@@ -183,7 +183,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <div>
                 {/* Komponen Hcaptcha */}
                 <Hcaptcha
-                  sitekey="3b883be4-51ea-4f80-9ae4-579ed9f2915e"
+                  sitekey="3c246758-c42c-406c-b258-87724508b28a"
                   onVerify={token => setHCaptchaToken(token)}
                   onExpire={() => setHCaptchaToken(null)}
                   theme="light"

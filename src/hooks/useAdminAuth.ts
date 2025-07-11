@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Pastikan path ini benar
 
 export const useAdminAuth = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -7,38 +7,62 @@ export const useAdminAuth = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      setLoading(true); // Pastikan status loading diatur ulang di awal
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session) {
+        if (!session || !session.user) {
+          // Jika tidak ada sesi atau pengguna, pasti bukan admin
           setIsAdmin(false);
-          setLoading(false);
           return;
         }
 
-        // Check if user has admin role in user_settings
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
+        // REKOMENDASI: Cek peran admin dari app_metadata JWT
+        const userRole = session.user.app_metadata?.role;
+        setIsAdmin(userRole === 'admin');
 
-        if (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        } else {
-          setIsAdmin(data?.role === 'admin');
-        }
+        // ALTERNATIF (Jika Anda MUTLAK harus membaca dari user_settings):
+        // Jika Anda masih ingin membaca dari user_settings, pastikan RLS di user_settings
+        // sudah diperbarui dengan benar seperti yang saya berikan sebelumnya.
+        // const { data, error } = await supabase
+        //   .from('user_settings')
+        //   .select('role')
+        //   .eq('user_id', session.user.id)
+        //   .single();
+
+        // if (error) {
+        //   console.error('Error checking admin status from user_settings:', error);
+        //   setIsAdmin(false); // Default to not admin on error
+        // } else {
+        //   setIsAdmin(data?.role === 'admin');
+        // }
+
       } catch (error) {
-        console.error('Error in admin auth check:', error);
-        setIsAdmin(false);
+        console.error('Error in useAdminAuth check:', error);
+        setIsAdmin(false); // Default to not admin on error
       } finally {
         setLoading(false);
       }
     };
 
     checkAdminStatus();
-  }, []);
+
+    // Tambahkan listener untuk memperbarui status jika sesi berubah
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+            // Perbarui status admin langsung dari app_metadata jika sesi berubah
+            setIsAdmin(session.user.app_metadata?.role === 'admin');
+        } else {
+            setIsAdmin(false);
+        }
+        setLoading(false); // Penting untuk mengakhiri loading jika auth state berubah
+    });
+
+    return () => {
+      authListener?.unsubscribe(); // Cleanup listener saat komponen di-unmount
+    };
+
+  }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
 
   return { isAdmin, loading };
 };

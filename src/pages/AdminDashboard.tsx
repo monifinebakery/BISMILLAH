@@ -5,8 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // TIDAK DIPERLUKAN LAGI UNTUK DATA ADMIN
 import { toast } from 'sonner';
+import { getCurrentSession } from '@/lib/authService'; // Untuk mendapatkan token auth
+
+// URL Edge Function API Admin Anda
+// PASTIKAN INI ADALAH URL YANG BENAR UNTUK EDGE FUNCTION ADMIN ANDA!
+// Contoh: https://<project_ref>.supabase.co/functions/v1/admin-api
+const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api'; // GANTI DENGAN URL EDGE FUNCTION ASLI ANDA
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -14,56 +20,94 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch users
-        const { data: userData, error: userError } = await supabase
-          .from('user_settings')
-          .select('*, user_payments(*)');
-        
-        if (userError) throw userError;
-        
-        // Fetch payments
-        const { data: paymentData, error: paymentError } = await supabase
-          .from('user_payments')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (paymentError) throw paymentError;
-        
-        setUsers(userData || []);
-        setPayments(paymentData || []);
-      } catch (error) {
-        console.error('Error fetching admin data:', error);
-        toast.error('Gagal memuat data admin');
-      } finally {
+  // Fungsi untuk mengambil data admin dari Edge Function
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const session = await getCurrentSession(); // Dapatkan sesi untuk token otorisasi
+      if (!session) {
+        toast.error('Anda tidak terautentikasi.');
         setLoading(false);
+        return;
       }
-    };
-    
+
+      const response = await fetch(ADMIN_API_URL + '/users', { // Panggil endpoint users di Edge Function
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengambil data admin dari API.');
+      }
+
+      const { data: adminData } = await response.json(); // Data dari Edge Function
+
+      // Asumsi adminData.data berisi { users: [...], payments: [...] }
+      setUsers(adminData.users || []);
+      setPayments(adminData.payments || []); // Edge Function mungkin mengembalikan ini terpisah atau digabungkan
+
+      // Jika Edge Function mengembalikan data users dan payments secara terpisah:
+      const usersResponse = await fetch(ADMIN_API_URL + '/users', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const paymentsResponse = await fetch(ADMIN_API_URL + '/payments', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      if (!usersResponse.ok || !paymentsResponse.ok) {
+        throw new Error('Failed to fetch admin data via API.');
+      }
+      
+      const { data: userDataFromApi } = await usersResponse.json();
+      const { data: paymentDataFromApi } = await paymentsResponse.json();
+
+      setUsers(userDataFromApi || []);
+      setPayments(paymentDataFromApi || []);
+
+    } catch (error: any) {
+      console.error('Error fetching admin data:', error.message);
+      toast.error(error.message || 'Gagal memuat data admin dari API.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
   const handleTogglePaymentStatus = async (paymentId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('user_payments')
-        .update({ is_paid: !currentStatus })
-        .eq('id', paymentId);
+      const session = await getCurrentSession(); // Dapatkan sesi untuk token otorisasi
+      if (!session) {
+        toast.error('Anda tidak terautentikasi.');
+        return;
+      }
+
+      const response = await fetch(ADMIN_API_URL + '/payment-status', { // Panggil endpoint update di Edge Function
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ paymentId, isPaid: !currentStatus })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengubah status pembayaran melalui API.');
+      }
       
-      if (error) throw error;
-      
-      // Update local state
-      setPayments(payments.map(payment => 
-        payment.id === paymentId ? {...payment, is_paid: !currentStatus} : payment
-      ));
+      // Setelah berhasil update melalui API, refresh data lokal
+      await fetchData(); // Fetch ulang semua data untuk konsistensi
       
       toast.success(`Status pembayaran berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      toast.error('Gagal mengubah status pembayaran');
+    } catch (error: any) {
+      console.error('Error updating payment status:', error.message);
+      toast.error(error.message || 'Gagal mengubah status pembayaran');
     }
   };
 
@@ -87,6 +131,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
+        {/* ... sisa kode JSX Anda ... */}
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center">

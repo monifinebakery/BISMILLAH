@@ -69,14 +69,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     setIsLoading(true);
     try {
-      // Bisa kirim hCaptchaToken ke backend kalau butuh verifikasi
-      const success = await sendEmailOtp(email);
+      // PERBAIKAN DI SINI: Teruskan hCaptchaToken ke sendEmailOtp
+      const success = await sendEmailOtp(email, hCaptchaToken); 
       if (success) {
         setOtpSent(true);
         startCooldown(60);
       } else {
-        startCooldown(60);
-        toast.error('Terlalu banyak percobaan. Silakan tunggu 1 menit sebelum mencoba lagi.');
+        // Jika sendEmailOtp mengembalikan false karena alasan lain (misal rate limit dari authService)
+        // Maka kita hanya perlu menampilkan error yang sudah ditangani di authService
+        // dan memulai cooldown jika diperlukan (misal untuk spamming)
+        startCooldown(60); // Mulai cooldown untuk mencegah percobaan berulang yang cepat
+        // Pesan error sudah ditangani di sendEmailOtp, jadi tidak perlu toast di sini lagi
       }
     } finally {
       setIsLoading(false);
@@ -94,8 +97,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await verifyEmailOtp(email, otp);
       if (success) {
-        // Pengguna berhasil login, redirect akan ditangani oleh AuthGuard
-        window.location.href = '/';
+        // Pengguna berhasil login, redirect akan ditangani oleh AuthGuard atau router Anda
+        window.location.href = '/'; // Contoh redirect ke halaman utama
       }
     } finally {
       setVerifying(false);
@@ -112,12 +115,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error('Masukkan alamat email yang valid.');
       return;
     }
+    // Untuk resend, kita bisa menggunakan token captcha yang terakhir atau memaksa pengguna
+    // untuk mengisi captcha baru jika ada risiko penyalahgunaan
+    // Untuk saat ini, kita meneruskan token hCaptcha yang ada.
+    if (!hCaptchaToken) {
+      toast.error('Harap selesaikan verifikasi captcha terlebih dahulu sebelum mengirim ulang.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const success = await sendEmailOtp(email);
+      // PERBAIKAN DI SINI: Teruskan hCaptchaToken ke sendEmailOtp
+      const success = await sendEmailOtp(email, hCaptchaToken); 
       if (!success) {
-        startCooldown(60);
-        toast.error('Terlalu banyak percobaan. Silakan tunggu 1 menit sebelum mencoba lagi.');
+        startCooldown(60); // Mulai cooldown jika gagal mengirim ulang
+        // Pesan error sudah ditangani di sendEmailOtp
       } else {
         startCooldown(60);
         toast.success('Kode OTP telah dikirim ulang ke email Anda');
@@ -183,7 +195,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <div>
                 {/* Komponen Hcaptcha */}
                 <Hcaptcha
-                  sitekey="3c246758-c42c-406c-b258-87724508b28a"
+                  sitekey="3c246758-c42c-406c-b258-87724508b28a" // PASTIKAN SITEKEY INI BENAR
                   onVerify={token => setHCaptchaToken(token)}
                   onExpire={() => setHCaptchaToken(null)}
                   theme="light"
@@ -214,6 +226,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </Button>
             </form>
           ) : (
+            // Bagian untuk memasukkan dan memverifikasi OTP
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <Mail className="h-8 w-8 text-green-600" />
@@ -261,7 +274,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   type="button"
                   variant="outline"
                   onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0}
+                  disabled={isLoading || cooldownTime > 0 || !hCaptchaToken} // Tambahkan !hCaptchaToken agar tidak bisa resend tanpa captcha
                   className="w-full"
                 >
                   {cooldownTime > 0 ? (

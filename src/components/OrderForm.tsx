@@ -1,0 +1,222 @@
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, X } from 'lucide-react';
+import type { Order, NewOrder, OrderItem } from '@/types/order';
+import { toast } from 'sonner';
+
+interface OrderFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (order: NewOrder | Order) => void;
+  initialData?: Order | null;
+  isViewMode?: boolean;
+}
+
+const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = false }: OrderFormProps) => {
+  const [formData, setFormData] = useState({
+    namaPelanggan: '',
+    emailPelanggan: '',
+    teleponPelanggan: '',
+    alamatPelanggan: '',
+    status: 'pending',
+    catatan: '',
+  });
+
+  const [items, setItems] = useState<Partial<OrderItem>[]>([]);
+  const [pajakInput, setPajakInput] = useState<number | string>('');
+  
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        namaPelanggan: initialData?.namaPelanggan || '',
+        emailPelanggan: initialData?.emailPelanggan || '',
+        teleponPelanggan: initialData?.teleponPelanggan || '',
+        alamatPelanggan: initialData?.alamatPelanggan || '',
+        status: initialData?.status || 'pending',
+        catatan: initialData?.catatan || '',
+      });
+      setItems(initialData?.items && initialData.items.length > 0 ? initialData.items : [{ id: 1, nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
+      setPajakInput(initialData?.pajak || '');
+    }
+  }, [open, initialData]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const addItem = () => {
+    setItems([...items, { id: Date.now(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
+  };
+
+  const removeItem = (id: number) => {
+    if (items.length > 1) {
+      setItems(items.filter(item => item.id !== id));
+    }
+  };
+
+  const updateItem = (id: number, field: keyof OrderItem, value: string | number) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        if ((field === 'quantity' || field === 'hargaSatuan') && updatedItem.quantity && updatedItem.hargaSatuan) {
+          updatedItem.totalHarga = updatedItem.quantity * updatedItem.hargaSatuan;
+        }
+        return updatedItem;
+      }
+      return item;
+    }));
+  };
+
+  const calculateTotals = () => {
+    const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
+    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(pajakInput);
+    const pajak = !isNaN(pajakValue) && pajakValue > 0 ? pajakValue : subtotal * 0.1;
+    const total = subtotal + pajak;
+    return { subtotal, pajak, total };
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const { subtotal, pajak, total } = calculateTotals();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isViewMode) return;
+
+    if (!formData.namaPelanggan.trim() || !formData.teleponPelanggan.trim()) {
+      toast.error('Nama dan Nomor Telepon pelanggan wajib diisi.');
+      return;
+    }
+    if (items.some(item => !item.nama?.trim() || item.quantity! <= 0)) {
+      toast.error('Semua item harus memiliki nama dan jumlah yang valid.');
+      return;
+    }
+
+    const { subtotal, pajak, total } = calculateTotals();
+    const commonData = { ...formData, items: items as OrderItem[], subtotal, pajak, totalPesanan: total };
+    
+    // MODIFIED: Logika diubah untuk menangani pembuatan tanggal pada pesanan baru
+    if (initialData) {
+      onSubmit({ ...initialData, ...commonData });
+    } else {
+      onSubmit({ ...commonData, tanggal: new Date() });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isViewMode ? 'Detail Pesanan' : (initialData ? 'Edit Pesanan' : 'Tambah Pesanan Baru')}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="namaPelanggan">Nama Pelanggan</Label>
+              <Input id="namaPelanggan" value={formData.namaPelanggan} onChange={(e) => handleInputChange('namaPelanggan', e.target.value)} required readOnly={isViewMode} />
+            </div>
+            <div>
+              <Label htmlFor="teleponPelanggan">Nomor Whatsapp</Label>
+              <Input id="teleponPelanggan" value={formData.teleponPelanggan} onChange={(e) => handleInputChange('teleponPelanggan', e.target.value)} required readOnly={isViewMode} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="alamatPelanggan">Alamat Pengiriman</Label>
+            <Textarea id="alamatPelanggan" value={formData.alamatPelanggan} onChange={(e) => handleInputChange('alamatPelanggan', e.target.value)} readOnly={isViewMode} rows={2} />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="font-semibold">Item Pesanan</Label>
+              {!isViewMode && (
+                <Button type="button" onClick={addItem} size="sm" className="h-8">
+                  <Plus className="h-4 w-4 mr-1" /> Tambah
+                </Button>
+              )}
+            </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px] px-2">Nama</TableHead>
+                    <TableHead className="px-1 text-center">Jml</TableHead>
+                    <TableHead className="px-2">Harga</TableHead>
+                    <TableHead className="text-right px-2">Total</TableHead>
+                    {!isViewMode && <TableHead className="w-10 p-0"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium p-1">
+                        <Input value={item.nama || ''} onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} className="h-8 px-2" readOnly={isViewMode} />
+                      </TableCell>
+                      <TableCell className="p-1">
+                        <Input type="number" value={item.quantity || 1} onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 1)} className="h-8 w-14 text-center px-1" readOnly={isViewMode} />
+                      </TableCell>
+                      <TableCell className="p-1">
+                        <Input type="number" value={item.hargaSatuan || 0} onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} className="h-8 px-2" readOnly={isViewMode} />
+                      </TableCell>
+                      <TableCell className="text-right p-2 text-xs">
+                        {formatCurrency(item.totalHarga || 0)}
+                      </TableCell>
+                      {!isViewMode && (
+                        <TableCell className="p-0 text-center">
+                          {items.length > 1 && (
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id!)}>
+                              <X className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          
+          <div className="space-y-2 rounded-lg border p-4">
+             <div className="flex justify-between text-sm">
+               <span>Subtotal</span>
+               <span>{formatCurrency(subtotal)}</span>
+             </div>
+             <div className="flex justify-between items-center text-sm">
+               <span>Pajak</span>
+               <Input type="number" value={pajakInput} onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')} placeholder="10%" className="h-8 w-24 text-right" readOnly={isViewMode} />
+             </div>
+             <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
+               <span>Total</span>
+               <span>{formatCurrency(total)}</span>
+             </div>
+           </div>
+
+          {!isViewMode && (
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+              <Button type="submit">{initialData ? 'Update Pesanan' : 'Buat Pesanan'}</Button>
+            </div>
+          )}
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default OrderForm;

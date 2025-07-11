@@ -1,0 +1,5 @@
+
+project_id = "kewhzkfvswbimmwtpymw"
+
+[functions.scalev-webhook]
+verify_jwt = false

@@ -1,14 +1,16 @@
-import { supabase } from '@/integrations/supabase/client';
+// src/services/authService.ts (contoh lokasi file Anda)
+
+import { supabase } from '@/integrations/supabase/client'; // Pastikan path ini benar untuk client Supabase Anda
 import { toast } from 'sonner';
-import { cleanupAuthState } from '@/lib/authUtils'; // Pastikan utilitas ini masih relevan
+import { cleanupAuthState } from '@/lib/authUtils'; // Pastikan utilitas ini relevan dan sesuai tujuan
 import { Session } from '@supabase/supabase-js';
 
 // Tentukan URL redirect berdasarkan environment
 const getRedirectUrl = () => {
   if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3000/'; // URL lokal Anda
+    return 'http://localhost:3000/'; // URL lokal Anda untuk pengembangan
   }
-  // Untuk produksi, gunakan subdomain utama aplikasi Anda
+  // Untuk produksi, gunakan subdomain utama aplikasi Anda yang sudah terdaftar di Supabase Auth Settings
   return 'https://kalkulator.monifine.my.id/';
 };
 
@@ -26,7 +28,7 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
     if (error) {
       console.error('Password reset error:', error);
 
-      // Tangani error rate limit spesifik
+      // Tangani error rate limit spesifik dari Supabase
       if (error.message?.includes('email rate limit exceeded') ||
           error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
@@ -48,23 +50,34 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 /**
  * Mengirim kode OTP ke alamat email yang diberikan.
  * @param email Alamat email untuk mengirim OTP.
+ * @param captchaToken Token hCaptcha (opsional, bisa null jika captcha tidak diaktifkan).
  * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
  */
-export const sendEmailOtp = async (email: string): Promise<boolean> => {
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
-    // Membersihkan state otentikasi yang ada terlebih dahulu untuk mencegah konflik
-    cleanupAuthState();
+    // Pertimbangkan tujuan cleanupAuthState():
+    // Jika tujuannya untuk menghapus sesi yang ada sebelum mengirim OTP login/daftar,
+    // pastikan ini adalah perilaku yang diinginkan dan tidak mengganggu alur.
+    // supabase.auth.signInWithOtp umumnya tidak memerlukan cleanup eksplisit.
+    cleanupAuthState(); // Pastikan fungsi ini didefinisikan dan sesuai dengan kebutuhan Anda
 
     const { error } = await supabase.auth.signInWithOtp({
-      email
+      email,
+      options: {
+        channel: 'email',
+        shouldCreateUser: true, // Rekomendasi: true agar pengguna baru bisa mendaftar/login dengan OTP
+        captchaToken: captchaToken, // Meneruskan token hCaptcha ke Supabase
+      },
     });
 
     if (error) {
       console.error('Email OTP error:', error);
 
-      // Tangani error rate limit spesifik
-      if (error.message?.includes('email rate limit exceeded') ||
-          error.message?.includes('over_email_send_rate_limit')) {
+      // Tingkatkan penanganan pesan error spesifik untuk captcha dan rate limit
+      if (error.message?.includes('captcha verification process failed')) {
+        toast.error('Verifikasi CAPTCHA gagal. Pastikan Anda bukan robot dan coba lagi.');
+      } else if (error.message?.includes('email rate limit exceeded') ||
+                 error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
       } else {
         toast.error(error.message || 'Gagal mengirim kode OTP');
@@ -72,7 +85,7 @@ export const sendEmailOtp = async (email: string): Promise<boolean> => {
       return false;
     }
 
-    toast.success('Kode OTP telah dikirim ke email Anda');
+    toast.success('Kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
     return true;
   } catch (error) {
     console.error('Error sending email OTP:', error);
@@ -92,20 +105,25 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email'
+      type: 'email' // Tipe verifikasi adalah 'email'
     });
     
     if (error) {
       console.error('OTP verification error:', error);
-      toast.error(error.message || 'Kode OTP tidak valid');
+      toast.error(error.message || 'Kode OTP tidak valid atau sudah kadaluarsa.'); // Pesan error lebih informatif
       return false;
     }
     
+    // Periksa apakah sesi berhasil dibuat
     if (data.session) {
-      toast.success('Login berhasil');
+      toast.success('Login berhasil! Anda akan diarahkan.');
+      // Di sini Anda bisa menambahkan logika redirect ke halaman dashboard atau halaman lain
+      // Contoh: window.location.href = '/dashboard';
       return true;
     } else {
-      toast.error('Gagal verifikasi OTP');
+      // Kasus ini jarang, tapi bisa terjadi jika verifikasi teknis berhasil
+      // tapi sesi pengguna tidak langsung terdeteksi atau dibuat.
+      toast.error('Verifikasi OTP berhasil, tetapi sesi tidak ditemukan. Silakan coba login ulang.');
       return false;
     }
   } catch (error) {
@@ -122,7 +140,7 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    return !!session;
+    return !!session; // Mengembalikan true jika ada sesi, false jika null
   } catch (error) {
     console.error('Error checking authentication:', error);
     return false;

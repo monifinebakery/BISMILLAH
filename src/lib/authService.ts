@@ -9,7 +9,7 @@ const getRedirectUrl = () => {
     return 'http://localhost:3000/'; // URL lokal Anda
   }
   // Untuk produksi, gunakan subdomain utama aplikasi Anda
-  return 'https://app.monifine.my.id/';
+  return 'https://kalkulator.monifine.my.id/';
 };
 
 /**

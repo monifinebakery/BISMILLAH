@@ -1,3 +1,5 @@
+// src/hooks/usePaymentStatus.ts
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
@@ -22,7 +24,6 @@ export const usePaymentStatus = () => {
   const { data: paymentStatus, isLoading, error, refetch } = useQuery({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
-      // Validate auth session first
       const isValid = await validateAuthSession();
       if (!isValid) {
         return null;
@@ -38,14 +39,16 @@ export const usePaymentStatus = () => {
         .from('user_payments')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // <--- PERUBAHAN DI SINI: dari .single() ke .maybeSingle()
 
       if (error) {
+        // PostgREST error code PGRST116 (0 or multiple rows) tidak lagi muncul di sini untuk 0 rows
+        // Tapi error lain (misal, RLS blocking) akan tetap tertangkap.
         console.error('Error fetching payment status:', error);
         return null;
       }
 
-      return data;
+      return data; // Akan mengembalikan null jika 0 baris, atau objek jika 1 baris
     },
     enabled: true,
     staleTime: 30000, // 30 seconds
@@ -89,9 +92,9 @@ export const usePaymentStatus = () => {
     isLoading,
     error,
     refetch,
-    // User is considered paid based on is_paid status
+    // isPaid akan benar jika paymentStatus bukan null DAN is_paid true
     isPaid: paymentStatus?.is_paid === true,
-    // User needs to pay if they have no record or haven't paid
+    // User needs to pay jika paymentStatus null (belum ada record) atau is_paid false
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
     // User's name from payment record
     userName: paymentStatus?.name || null

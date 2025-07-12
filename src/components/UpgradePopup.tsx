@@ -36,7 +36,7 @@ const UpgradePopup = () => {
           .from('user_payments')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Menggunakan maybeSingle, bukan single, agar tidak error jika tidak ada
 
         if (existingPayment) {
           // Update existing record
@@ -59,6 +59,9 @@ const UpgradePopup = () => {
             .from('user_payments')
             .insert({
               user_id: user.id,
+              email: user.email, // <--- BARIS INI DITAMBAHKAN
+              // Jika kolom 'name' juga NOT NULL, Anda bisa tambahkan:
+              // name: user.user_metadata?.full_name || user.email, 
               is_paid: false,
               payment_status: 'pending',
               pg_reference_id: paymentId
@@ -70,9 +73,10 @@ const UpgradePopup = () => {
             return;
           }
         }
-      } catch (dbError) {
-        console.error('Database operation error:', dbError);
-        // Continue with payment flow even if DB operation fails
+      } catch (dbError: any) { // Tangani error database operation secara spesifik
+        console.error('Database operation error:', dbError.message);
+        toast.error('Terjadi kesalahan database saat menyiapkan pembayaran.');
+        // Lanjutkan dengan payment flow meskipun ada error DB jika dianggap non-kritikal
       }
 
       // Open payment URL in new tab
@@ -82,8 +86,8 @@ const UpgradePopup = () => {
       toast.success('Halaman pembayaran dibuka di tab baru!');
       setShowUpgradePopup(false);
       
-    } catch (error) {
-      console.error('Payment initiation error:', error);
+    } catch (error: any) { // Tangani error umum inisiasi pembayaran
+      console.error('Payment initiation error:', error.message);
       toast.error('Terjadi kesalahan saat memproses pembayaran');
     } finally {
       setIsProcessing(false);

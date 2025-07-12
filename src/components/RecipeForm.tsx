@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { useAppData } from "@/contexts/AppDataContext";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUserSettings } from "@/hooks/useUserSettings"; // MODIFIED: Import useUserSettings
 
 interface RecipeFormProps {
   initialData?: Recipe | null;
@@ -20,6 +20,7 @@ interface RecipeFormProps {
 
 const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
   const { bahanBaku } = useAppData();
+  const { settings } = useUserSettings(); // MODIFIED: Ambil settings dari useUserSettings
   const { getIngredientPrice, updateIngredientPrices } = useIngredientPrices();
   
   const [formData, setFormData] = useState<NewRecipe>({
@@ -30,6 +31,7 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
     biayaTenagaKerja: 0,
     biayaOverhead: 0,
     marginKeuntungan: 0,
+    category: "", // MODIFIED: Tambahkan category ke state formData
   });
 
   const [newIngredient, setNewIngredient] = useState<Omit<RecipeIngredient, 'id' | 'totalHarga'>>({
@@ -49,6 +51,7 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
         biayaTenagaKerja: initialData.biayaTenagaKerja,
         biayaOverhead: initialData.biayaOverhead,
         marginKeuntungan: initialData.marginKeuntungan,
+        category: initialData.category, // MODIFIED: Set category dari initialData
       });
     }
   }, [initialData]);
@@ -140,7 +143,7 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.namaResep && formData.ingredients.length > 0) {
+    if (formData.namaResep && formData.ingredients.length > 0 && formData.category) { // MODIFIED: Tambahkan validasi category
       // Validate ingredient availability
       const unavailableIngredients = formData.ingredients.filter(ing => {
         const bahanBakuItem = bahanBaku.find(item => item.nama === ing.nama);
@@ -157,6 +160,12 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
       }
 
       onSave(formData);
+    } else {
+      toast({
+        title: "Data Belum Lengkap",
+        description: "Nama Resep, Kategori, dan Bahan-bahan tidak boleh kosong.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -197,6 +206,32 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
             required
             className="mt-1"
           />
+        </div>
+        {/* MODIFIED: Tambahkan Select untuk Kategori Resep */}
+        <div>
+          <Label htmlFor="category">Kategori Resep *</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(value) => handleInputChange('category', value)}
+            required
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Pilih Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              {settings.recipeCategories.length > 0 ? (
+                settings.recipeCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  Belum ada kategori. Tambahkan di Pengaturan.
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -324,6 +359,7 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
                       className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="h-3 w-3" />
+                      Hapus
                     </Button>
                   </div>
                 </div>

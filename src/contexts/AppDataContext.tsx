@@ -329,16 +329,79 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!session) return false;
 
       console.log('Syncing to cloud...');
+
+      // MODIFIED: Transform data from camelCase to snake_case before sending
+      const transformedPayload = {
+        bahanBaku: bahanBaku.map(item => ({
+          id: item.id,
+          nama: item.nama,
+          kategori: item.kategori,
+          stok: item.stok,
+          satuan: item.satuan,
+          minimum: item.minimum,
+          harga_satuan: item.hargaSatuan,
+          supplier: item.supplier,
+          tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString()
+        })),
+        suppliers: suppliers.map(item => ({
+          ...item,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
+        })),
+        purchases: purchases.map(item => ({
+          ...item,
+          total_nilai: item.totalNilai,
+          metode_perhitungan: item.metodePerhitungan
+        })),
+        recipes: recipes.map(item => ({
+          id: item.id,
+          nama_resep: item.namaResep,
+          deskripsi: item.deskripsi,
+          porsi: item.porsi,
+          ingredients: item.ingredients,
+          biaya_tenaga_kerja: item.biayaTenagaKerja,
+          biaya_overhead: item.biayaOverhead,
+          total_hpp: item.totalHPP,
+          hpp_per_porsi: item.hppPerPorsi,
+          margin_keuntungan: item.marginKeuntungan,
+          harga_jual_per_porsi: item.hargaJualPerPorsi,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
+        })),
+        hppResults: hppResults.map(item => ({
+          ...item,
+          biaya_tenaga_kerja: item.biayaTenagaKerja,
+          biaya_overhead: item.biayaOverhead,
+          margin_keuntungan: item.marginKeuntungan,
+          total_hpp: item.totalHPP,
+          hpp_per_porsi: item.hppPerPorsi,
+          harga_jual_per_porsi: item.hargaJualPerPorsi,
+          jumlah_porsi: item.jumlahPorsi,
+          created_at: item.timestamp.toISOString()
+        })),
+        activities: activities.map(item => ({
+          ...item,
+          created_at: item.timestamp.toISOString()
+        })),
+        orders: orders.map(item => ({
+          id: item.id,
+          nomor_pesanan: item.nomorPesanan,
+          tanggal: item.tanggal.toISOString(),
+          nama_pelanggan: item.namaPelanggan,
+          email_pelanggan: item.emailPelanggan,
+          telepon_pelanggan: item.teleponPelanggan,
+          alamat_pengiriman: item.alamatPelanggan,
+          items: item.items,
+          subtotal: item.subtotal,
+          pajak: item.pajak,
+          total_pesanan: item.totalPesanan,
+          status: item.status,
+          catatan: item.catatan
+        }))
+      };
+
       const { data, error } = await supabase.functions.invoke('hpp-data', {
-        body: {
-          bahanBaku,
-          suppliers,
-          purchases,
-          recipes,
-          hppResults,
-          activities,
-          orders
-        }
+        body: transformedPayload
       });
 
       if (error) {

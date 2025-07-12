@@ -54,7 +54,7 @@ const PaymentPage = () => {
           .from('user_payments')
           .insert({
             user_id: user.id,
-            email: user.email || 'unknown@example.com', // <-- DITAMBAHKAN
+            email: String(user.email || 'unknown@example.com'), // <-- DITAMBAHKAN
             order_id: paymentId, // <-- DITAMBAHKAN
             is_paid: false,
             payment_status: 'pending',

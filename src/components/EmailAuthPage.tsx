@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, HelpCircle, Clock } from 'lucide-react';
+import { Mail, Lock, HelpCircle, Clock, CheckCircle2 } from 'lucide-react'; // Menambahkan CheckCircle2
 import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  // Mengubah otpSent menjadi emailSentType
+  const [emailSentType, setEmailSentType] = useState<'otp' | 'confirmation' | null>(null);
   const [cooldownTime, setCooldownTime] = useState(0);
   const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
@@ -76,14 +77,16 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     setIsLoading(true);
     try {
-      const success = await sendEmailOtp(email, hCaptchaToken);
+      // Panggil sendEmailOtp dan gunakan nilai kembaliannya
+      const { success, emailType: sentType } = await sendEmailOtp(email, hCaptchaToken);
       if (success) {
-        setOtpSent(true);
+        setEmailSentType(sentType); // Set emailSentType berdasarkan hasil
         startCooldown(60);
-        toast.success('Kode OTP telah dikirim ke email Anda.');
+        // Pesan toast sudah ditangani di authService, jadi tidak perlu toast di sini lagi
       } else {
         // sendEmailOtp sudah menampilkan toast error, jadi di sini hanya set cooldown
         startCooldown(60);
+        setEmailSentType(null); // Kembali ke form email jika gagal
       }
     } finally {
       setIsLoading(false);
@@ -103,7 +106,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       const success = await verifyEmailOtp(email, otp);
       if (success) {
         // Pengguna berhasil login, redirect akan ditangani oleh AuthGuard atau router Anda
-        toast.success('Verifikasi berhasil! Mengarahkan Anda...');
+        // toast.success('Verifikasi berhasil! Mengarahkan Anda...'); // Toast sudah di authService
         window.location.href = '/'; // Contoh redirect ke halaman utama
       } else {
         // Jika verifikasi gagal, kosongkan input OTP
@@ -132,12 +135,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     setIsLoading(true);
     try {
-      const success = await sendEmailOtp(email, hCaptchaToken);
+      // Panggil sendEmailOtp dan gunakan nilai kembaliannya
+      const { success, emailType: sentType } = await sendEmailOtp(email, hCaptchaToken);
       if (!success) {
         startCooldown(60); // Mulai cooldown jika gagal mengirim ulang
         // Pesan error sudah ditangani di sendEmailOtp
       } else {
         startCooldown(60);
+        setEmailSentType(sentType); // Set emailSentType berdasarkan hasil
         toast.success('Kode OTP telah dikirim ulang ke email Anda');
       }
     } finally {
@@ -160,6 +165,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setEmail(e.target.value);
     // Reset hCaptcha jika email diubah, memaksa user untuk verifikasi ulang
     resetHCaptcha();
+    setEmailSentType(null); // Kembali ke form email jika email diubah
   };
 
   return (
@@ -187,7 +193,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!otpSent ? (
+          {emailSentType === null ? ( // Tampilkan form email jika belum ada email yang dikirim
             <form onSubmit={handleSubmitSendOtp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -200,7 +206,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     type="email"
                     placeholder="Masukkan email Anda"
                     value={email}
-                    onChange={handleEmailChange} // Gunakan handler baru di sini
+                    onChange={handleEmailChange}
                     className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:ring-hpp-primary focus:border-transparent"
                     required
                     disabled={isLoading}
@@ -208,9 +214,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
               <div>
-                {/* Komponen Hcaptcha dengan key untuk reset */}
                 <Hcaptcha
-                  key={hCaptchaKey} // Menggunakan key untuk mereset komponen
+                  key={hCaptchaKey}
                   sitekey="3c246758-c42c-406c-b258-87724508b28a" // PASTIKAN SITEKEY INI BENAR
                   onVerify={token => setHCaptchaToken(token)}
                   onExpire={() => setHCaptchaToken(null)}
@@ -240,8 +245,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 )}
               </Button>
             </form>
-          ) : (
-            // Bagian untuk memasukkan dan memverifikasi OTP
+          ) : emailSentType === 'otp' ? ( // Tampilkan form OTP jika jenisnya 'otp'
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <Mail className="h-8 w-8 text-green-600" />
@@ -252,7 +256,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini.
               </p>
               
-              <div className="mt-4 flex justify-center"> {/* Tambahkan flex justify-center untuk InputOTP */}
+              <div className="mt-4 flex justify-center">
                 <Label htmlFor="otp" className="sr-only">Kode OTP</Label>
                 <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                   <InputOTPGroup>
@@ -289,7 +293,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   type="button"
                   variant="outline"
                   onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0 || !hCaptchaToken} // Tambahkan !hCaptchaToken agar tidak bisa resend tanpa captcha
+                  disabled={isLoading || cooldownTime > 0 || !hCaptchaToken}
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
                 >
                   {cooldownTime > 0 ? (
@@ -301,6 +305,43 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     'Mengirim Ulang...'
                   ) : (
                     'Kirim Ulang Kode OTP'
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : ( // Tampilkan pesan konfirmasi jika jenisnya 'confirmation'
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800">Verifikasi Email Anda</h3>
+              <p className="text-gray-600">
+                Kami telah mengirim link konfirmasi ke <strong>{email}</strong>.
+                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk mengaktifkan akun Anda.
+              </p>
+              <Button
+                onClick={() => window.location.href = '/'} // Arahkan ke root (login)
+                className="w-full mt-4 bg-hpp-primary text-white hover:bg-opacity-90 rounded-md shadow-md transition-colors duration-200"
+              >
+                Kembali ke Halaman Login
+              </Button>
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleResendOtp}
+                  disabled={isLoading || cooldownTime > 0 || !hCaptchaToken}
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                >
+                  {cooldownTime > 0 ? (
+                    <>
+                      <Clock className="mr-2 h-4 w-4" />
+                      Tunggu {cooldownTime}s
+                    </>
+                  ) : isLoading ? (
+                    'Mengirim Ulang...'
+                  ) : (
+                    'Kirim Ulang Link Konfirmasi'
                   )}
                 </Button>
               </div>

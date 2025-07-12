@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Recipe, NewRecipe } from '@/types/recipe';
@@ -58,6 +57,7 @@ export const useRecipes = () => {
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           createdAt: new Date(item.created_at),
           updatedAt: new Date(item.updated_at),
+          category: item.category, // MODIFIED: Baca kolom category dari database
         };
       }) || [];
 
@@ -97,6 +97,7 @@ export const useRecipes = () => {
           hpp_per_porsi: hppPerPorsi,
           margin_keuntungan: recipe.marginKeuntungan,
           harga_jual_per_porsi: hargaJualPerPorsi,
+          category: recipe.category, // MODIFIED: Simpan kolom category ke database
         })
         .select()
         .single();
@@ -125,10 +126,23 @@ export const useRecipes = () => {
         return false;
       }
 
-      const totalBahanBaku = updates.ingredients?.reduce((sum, ing) => sum + ing.totalHarga, 0) || 0;
-      const totalHPP = totalBahanBaku + (updates.biayaTenagaKerja || 0) + (updates.biayaOverhead || 0);
-      const hppPerPorsi = totalHPP / (updates.porsi || 1);
-      const hargaJualPerPorsi = hppPerPorsi * (1 + (updates.marginKeuntungan || 0) / 100);
+      // Pastikan nilai default jika properti tidak ada di updates
+      const currentRecipe = recipes.find(r => r.id === id);
+      if (!currentRecipe) {
+        toast.error('Resep tidak ditemukan untuk diperbarui.');
+        return false;
+      }
+
+      const updatedIngredients = updates.ingredients || currentRecipe.ingredients;
+      const updatedBiayaTenagaKerja = updates.biayaTenagaKerja ?? currentRecipe.biayaTenagaKerja;
+      const updatedBiayaOverhead = updates.biayaOverhead ?? currentRecipe.biayaOverhead;
+      const updatedPorsi = updates.porsi ?? currentRecipe.porsi;
+      const updatedMarginKeuntungan = updates.marginKeuntungan ?? currentRecipe.marginKeuntungan;
+
+      const totalBahanBaku = updatedIngredients.reduce((sum, ing) => sum + ing.totalHarga, 0);
+      const totalHPP = totalBahanBaku + updatedBiayaTenagaKerja + updatedBiayaOverhead;
+      const hppPerPorsi = totalHPP / (updatedPorsi || 1); // Hindari pembagian nol
+      const hargaJualPerPorsi = hppPerPorsi * (1 + updatedMarginKeuntungan / 100);
 
       const { error } = await supabase
         .from('hpp_recipes')
@@ -143,6 +157,7 @@ export const useRecipes = () => {
           hpp_per_porsi: hppPerPorsi,
           margin_keuntungan: updates.marginKeuntungan,
           harga_jual_per_porsi: hargaJualPerPorsi,
+          category: updates.category, // MODIFIED: Update kolom category ke database
         })
         .eq('id', id)
         .eq('user_id', session.user.id);

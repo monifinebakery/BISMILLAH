@@ -35,8 +35,6 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "./contexts/PaymentContext";
-// MODIFIED: Impor ThemeToggle
-import ThemeToggle from "@/components/ThemeToggle"; // Hapus kurung kurawal; 
 
 // Konfigurasi QueryClient dengan retry yang lebih sedikit untuk mengurangi beban server
 const queryClient = new QueryClient({
@@ -74,7 +72,7 @@ const AppLayout = () => {
     <>
       {isMobile ? (
         // Mobile layout
-        <div className="min-h-screen flex flex-col bg-background"> {/* MODIFIED: bg-background */}
+        <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
             <div className="flex-1">
               <h1 className="text-lg font-bold text-primary">HPP by Monifine</h1>
@@ -83,14 +81,12 @@ const AppLayout = () => {
               {/* MODIFIED: Indikator hanya tampil di header jika sudah bayar */}
               {isPaid && <PaymentStatusIndicator />}
               <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
-              {/* MODIFIED: Tambahkan ThemeToggle untuk mobile */}
-              <ThemeToggle /> 
               <NotificationBell />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="text-destructive hover:bg-destructive/10 px-2 py-1" // MODIFIED: text-destructive hover:bg-destructive/10
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -124,7 +120,7 @@ const AppLayout = () => {
       ) : (
         // Desktop layout - tidak ada perubahan
         <SidebarProvider>
-          <div className="min-h-screen flex w-full bg-background"> {/* MODIFIED: bg-background */}
+          <div className="min-h-screen flex w-full">
             <AppSidebar />
             <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
               <header className="sticky top-0 z-40 flex h-12 sm:h-14 lg:h-[60px] items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-2 sm:px-4 lg:px-6 w-full">
@@ -133,8 +129,6 @@ const AppLayout = () => {
                 <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
                   <PaymentStatusIndicator />
                   <CloudSyncButton variant="upload" />
-                  {/* MODIFIED: Tambahkan ThemeToggle untuk desktop */}
-                  <ThemeToggle /> 
                   <DateTimeDisplay />
                   <NotificationBell />
                 </div>

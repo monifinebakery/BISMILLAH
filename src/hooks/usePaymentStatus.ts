@@ -37,18 +37,28 @@ export const usePaymentStatus = () => {
 
       const { data, error } = await supabase
         .from('user_payments')
-        .select('*')
+        // PERBAIKAN DI SINI: Cantumkan semua kolom secara spesifik
+        .select(`
+          id,
+          user_id,
+          is_paid,
+          pg_reference_id,
+          order_id,
+          email,
+          name,
+          payment_status,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', user.id)
-        .maybeSingle(); // <--- PERUBAHAN DI SINI: dari .single() ke .maybeSingle()
+        .maybeSingle();
 
       if (error) {
-        // PostgREST error code PGRST116 (0 or multiple rows) tidak lagi muncul di sini untuk 0 rows
-        // Tapi error lain (misal, RLS blocking) akan tetap tertangkap.
         console.error('Error fetching payment status:', error);
         return null;
       }
 
-      return data; // Akan mengembalikan null jika 0 baris, atau objek jika 1 baris
+      return data;
     },
     enabled: true,
     staleTime: 30000, // 30 seconds
@@ -92,11 +102,8 @@ export const usePaymentStatus = () => {
     isLoading,
     error,
     refetch,
-    // isPaid akan benar jika paymentStatus bukan null DAN is_paid true
     isPaid: paymentStatus?.is_paid === true,
-    // User needs to pay jika paymentStatus null (belum ada record) atau is_paid false
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    // User's name from payment record
     userName: paymentStatus?.name || null
   };
 };

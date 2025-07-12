@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react'; // MODIFIED: Tambahkan ChefHat
 import { useUserSettings } from '@/hooks/useUserSettings';
 import RecipeCategoryManager from '@/components/RecipeCategoryManager'; // MODIFIED: Tambahkan import RecipeCategoryManager
+import { Label } from '@/components/ui/label'; // MODIFIED: Tambahkan import Label
 
 const Settings = () => {
   const { settings, saveSettings, loading } = useUserSettings();

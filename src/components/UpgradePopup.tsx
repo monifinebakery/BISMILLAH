@@ -59,7 +59,9 @@ const UpgradePopup = () => {
             .from('user_payments')
             .insert({
               user_id: user.id,
-              email: user.email, // <--- BARIS INI DITAMBAHKAN
+              // MODIFIED: Memberikan nilai fallback untuk email dan menambahkan order_id
+              email: user.email || 'unknown@example.com', 
+              order_id: paymentId, // Menambahkan order_id
               // Jika kolom 'name' juga NOT NULL, Anda bisa tambahkan:
               // name: user.user_metadata?.full_name || user.email, 
               is_paid: false,

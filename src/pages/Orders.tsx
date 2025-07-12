@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // MODIFIED: Tambahkan useMemo
+import { format, subDays } from 'date-fns'; // MODIFIED: Tambahkan format, subDays
+import { Calendar as CalendarIcon } from 'lucide-react'; // MODIFIED: Tambahkan CalendarIcon
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // MODIFIED: Tambahkan Popover components
+import { Calendar } from '@/components/ui/calendar'; // MODIFIED: Tambahkan Calendar
+import { cn } from '@/lib/utils'; // MODIFIED: Tambahkan cn
+import { DateRange } from 'react-day-picker'; // MODIFIED: Tambahkan DateRange
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,6 +30,13 @@ import {
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
+  
+  // MODIFIED: Tambahkan State untuk Filter
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30), // Default: 30 hari terakhir
+    to: new Date(),
+  });
+  const [statusFilter, setStatusFilter] = useState<string>('all'); // Default: 'all'
   
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
@@ -66,22 +80,22 @@ const OrdersPage = () => {
     switch (status) {
       case 'pending':
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan} pada tanggal ${formattedDate}.\n\nPesanan Anda sedang kami proses. Berikut detail pesanan Anda:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi jika informasi ini sudah benar. Terima kasih!`;
-      
+        
       case 'confirmed':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah kami konfirmasi dan sedang diproses.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan segera memproses pesanan Anda. Terima kasih atas kesabaran Anda!`;
-      
+        
       case 'processing':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} sedang dalam proses pengerjaan.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan memberi tahu Anda ketika pesanan sudah selesai dibuat. Terima kasih atas kesabaran Anda!`;
-      
+        
       case 'shipping':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} sedang dikirim!\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi ketika pesanan sudah diterima. Terima kasih telah berbelanja di toko kami!`;
-      
+        
       case 'delivered':
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah berbelanja di toko kami! Pesanan Anda dengan nomor ${orderData.nomorPesanan} telah selesai.\n\nKami harap Anda puas dengan produk kami. Jika ada pertanyaan atau masukan, jangan ragu untuk menghubungi kami.\n\nSampai jumpa di pesanan berikutnya!`;
-      
+        
       case 'cancelled':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah dibatalkan sesuai permintaan.\n\nJika Anda memiliki pertanyaan atau ingin melakukan pemesanan ulang, silakan hubungi kami kembali.\n\nTerima kasih.`;
-      
+        
       default:
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan}.\n\nJika ada pertanyaan, silakan hubungi kami kembali.`;
     }
@@ -175,10 +189,19 @@ const OrdersPage = () => {
     }
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // MODIFIED: Perbarui Logika filteredOrders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      const orderDate = new Date(order.tanggal);
+      const matchesDate = dateRange?.from && dateRange?.to
+        ? orderDate >= dateRange.from && orderDate <= dateRange.to
+        : true; // Jika tidak ada rentang tanggal yang dipilih, semua tanggal cocok
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [orders, searchTerm, statusFilter, dateRange]);
 
   if (loading) {
     return (
@@ -211,15 +234,64 @@ const OrdersPage = () => {
         <CardHeader>
           <CardTitle>Filter Pesanan</CardTitle>
         </CardHeader>
+        {/* MODIFIED: Tambahkan UI Filter di Card "Filter Pesanan" */}
         <CardContent>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Cari berdasarkan nomor pesanan atau nama pelanggan..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col sm:flex-row gap-4"> {/* Gunakan flexbox untuk menata input dan filter */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Cari berdasarkan nomor pesanan atau nama pelanggan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full sm:w-[260px] justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pilih tanggal</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                {orderStatuses.map((statusOption) => (
+                  <SelectItem key={statusOption.key} value={statusOption.key}>
+                    {statusOption.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -312,7 +384,6 @@ const OrdersPage = () => {
                   Follow-up
                 </Button>
                 {/* Hapus tombol Konfirmasi, Batalkan, Hapus yang spesifik karena status kini diubah via Select */}
-                {/* if status is not cancelled and delivered then delete button appear */}
                 {order.status !== 'cancelled' && order.status !== 'delivered' && ( // hanya tampilkan hapus jika belum selesai atau dibatalkan
                   <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
                     <X className="h-4 w-4" />

@@ -59,44 +59,44 @@ export interface HPPResult {
 interface AppDataContextType {
   // Bahan Baku
   bahanBaku: BahanBaku[];
-  addBahanBaku: (bahan: Omit<BahanBaku, 'id'>) => void;
-  updateBahanBaku: (id: string, bahan: Partial<BahanBaku>) => void;
-  deleteBahanBaku: (id: string) => void;
+  addBahanBaku: (bahan: Omit<BahanBaku, 'id'>) => Promise<boolean>;
+  updateBahanBaku: (id: string, bahan: Partial<BahanBaku>) => Promise<boolean>;
+  deleteBahanBaku: (id: string) => Promise<boolean>;
   getBahanBakuByName: (nama: string) => BahanBaku | undefined;
   reduceStok: (nama: string, jumlah: number) => boolean;
   
   // Suppliers
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
-  updateSupplier: (id: string, supplier: Partial<Supplier>) => void;
-  deleteSupplier: (id: string) => void;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
+  updateSupplier: (id: string, supplier: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
   
   // Purchases
   purchases: Purchase[];
-  addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
-  updatePurchase: (id: string, purchase: Partial<Purchase>) => void;
-  deletePurchase: (id: string) => void;
+  addPurchase: (purchase: Omit<Purchase, 'id'>) => Promise<void>;
+  updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<void>;
+  deletePurchase: (id: string) => Promise<void>;
   
   // Recipes
   recipes: Recipe[];
-  addRecipe: (recipe: Omit<Recipe, 'id'>) => void;
-  updateRecipe: (id: string, recipe: Partial<Recipe>) => void;
-  deleteRecipe: (id: string) => void;
+  addRecipe: (recipe: Omit<Recipe, 'id'>) => Promise<boolean>;
+  updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<boolean>;
+  deleteRecipe: (id: string) => Promise<boolean>;
   
   // HPP Results
   hppResults: HPPResult[];
-  addHPPResult: (result: Omit<HPPResult, 'id'>) => void;
+  addHPPResult: (result: Omit<HPPResult, 'id'>) => Promise<void>;
   addHPPCalculation: (result: Omit<HPPResult, 'id'>) => void;
   
   // Activities
   activities: Activity[];
-  addActivity: (activity: Omit<Activity, 'id' | 'timestamp'>) => void;
+  addActivity: (activity: Omit<Activity, 'id' | 'timestamp'>) => Promise<void>;
   
   // Orders
   orders: Order[];
-  addOrder: (order: NewOrder) => void;
-  updateOrder: (id: string, order: Partial<Order>) => void;
-  deleteOrder: (id: string) => void;
+  addOrder: (order: NewOrder) => Promise<void>;
+  updateOrder: (id: string, order: Partial<Order>) => Promise<boolean>;
+  deleteOrder: (id: string) => Promise<boolean>;
   updateOrderStatus: (id: string, status: Order['status']) => void;
   
   // Statistics
@@ -511,35 +511,40 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Bahan Baku functions
-  const addBahanBaku = (bahan: Omit<BahanBaku, 'id'>) => {
+  const addBahanBaku = async (bahan: Omit<BahanBaku, 'id'>) => {
     const newBahan: BahanBaku = {
       ...bahan,
       id: generateUUID(),
     };
     setBahanBaku(prev => [...prev, newBahan]);
+    await syncToCloud();
     addActivity({
       title: 'Bahan Baku Ditambahkan',
       description: `${bahan.nama} telah ditambahkan ke gudang`,
       type: 'stok',
     });
+    return true;
   };
 
-  const updateBahanBaku = (id: string, updatedBahan: Partial<BahanBaku>) => {
+  const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
     setBahanBaku(prev => 
       prev.map(bahan => 
         bahan.id === id ? { ...bahan, ...updatedBahan } : bahan
       )
     );
+    await syncToCloud();
     addActivity({
       title: 'Bahan Baku Diperbarui',
       description: `Data bahan baku telah diperbarui`,
       type: 'stok',
     });
+    return true;
   };
 
-  const deleteBahanBaku = (id: string) => {
+  const deleteBahanBaku = async (id: string) => {
     const bahan = bahanBaku.find(b => b.id === id);
     setBahanBaku(prev => prev.filter(b => b.id !== id));
+    await syncToCloud();
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
@@ -547,6 +552,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         type: 'stok',
       });
     }
+    return true;
   };
 
   const getBahanBakuByName = (nama: string): BahanBaku | undefined => {
@@ -569,12 +575,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Supplier functions
-  const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
+  const addSupplier = async (supplier: Omit<Supplier, 'id'>) => {
     const newSupplier: Supplier = {
       ...supplier,
       id: generateUUID(),
     };
     setSuppliers(prev => [...prev, newSupplier]);
+    await syncToCloud();
     addActivity({
       title: 'Supplier Ditambahkan',
       description: `${supplier.nama} telah ditambahkan`,
@@ -582,17 +589,19 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const updateSupplier = (id: string, updatedSupplier: Partial<Supplier>) => {
+  const updateSupplier = async (id: string, updatedSupplier: Partial<Supplier>) => {
     setSuppliers(prev => 
       prev.map(supplier => 
         supplier.id === id ? { ...supplier, ...updatedSupplier } : supplier
       )
     );
+    await syncToCloud();
   };
 
-  const deleteSupplier = (id: string) => {
+  const deleteSupplier = async (id: string) => {
     const supplier = suppliers.find(s => s.id === id);
     setSuppliers(prev => prev.filter(s => s.id !== id));
+    await syncToCloud();
     if (supplier) {
       addActivity({
         title: 'Supplier Dihapus',
@@ -603,12 +612,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Purchase functions
-  const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
+  const addPurchase = async (purchase: Omit<Purchase, 'id'>) => {
     const newPurchase: Purchase = {
       ...purchase,
       id: generateUUID(),
     };
     setPurchases(prev => [...prev, newPurchase]);
+    await syncToCloud();
     
     // Update stock for each purchased item
     purchase.items.forEach(item => {
@@ -638,43 +648,50 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const updatePurchase = (id: string, updatedPurchase: Partial<Purchase>) => {
+  const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>) => {
     setPurchases(prev => 
       prev.map(purchase => 
         purchase.id === id ? { ...purchase, ...updatedPurchase } : purchase
       )
     );
+    await syncToCloud();
   };
 
-  const deletePurchase = (id: string) => {
+  const deletePurchase = async (id: string) => {
     setPurchases(prev => prev.filter(p => p.id !== id));
+    await syncToCloud();
   };
 
   // Recipe functions
-  const addRecipe = (recipe: Omit<Recipe, 'id'>) => {
+  const addRecipe = async (recipe: Omit<Recipe, 'id'>) => {
     const newRecipe: Recipe = {
       ...recipe,
       id: generateUUID(),
     };
     setRecipes(prev => [...prev, newRecipe]);
+    await syncToCloud();
     addActivity({
       title: 'Resep Ditambahkan',
       description: `Resep ${recipe.namaResep} telah disimpan`,
       type: 'resep',
     });
+    return true;
   };
 
-  const updateRecipe = (id: string, updatedRecipe: Partial<Recipe>) => {
+  const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
     setRecipes(prev => 
       prev.map(recipe => 
         recipe.id === id ? { ...recipe, ...updatedRecipe } : recipe
       )
     );
+    await syncToCloud();
+    return true;
   };
 
-  const deleteRecipe = (id: string) => {
+  const deleteRecipe = async (id: string) => {
     const recipe = recipes.find(r => r.id === id);
     setRecipes(prev => prev.filter(r => r.id !== id));
+    await syncToCloud();
     if (recipe) {
       addActivity({
         title: 'Resep Dihapus',
@@ -682,15 +699,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         type: 'resep',
       });
     }
+    return true;
   };
 
   // HPP Result functions
-  const addHPPResult = (result: Omit<HPPResult, 'id'>) => {
+  const addHPPResult = async (result: Omit<HPPResult, 'id'>) => {
     const newResult: HPPResult = {
       ...result,
       id: generateUUID(),
     };
     setHppResults(prev => [...prev, newResult]);
+    await syncToCloud();
     addActivity({
       title: 'HPP Dihitung',
       description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString()}/porsi`,
@@ -704,7 +723,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Order functions
-  const addOrder = (order: NewOrder) => {
+  const addOrder = async (order: NewOrder) => {
     const orderItems: OrderItem[] = order.items.map((item, index) => ({
       id: index + 1, // Keep as number for items
       nama: item.nama,
@@ -724,6 +743,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     
     setOrders(prev => [...prev, newOrder]);
+    await syncToCloud();
     addActivity({
       title: 'Pesanan Baru',
       description: `Pesanan ${newOrder.nomorPesanan} dari ${newOrder.namaPelanggan}`,
@@ -731,12 +751,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const updateOrder = (id: string, updatedOrder: Partial<Order>): boolean => {
+  const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
     setOrders(prev => 
       prev.map(order => 
         order.id === id ? { ...order, ...updatedOrder } : order
       )
     );
+    await syncToCloud();
     
     // Add activity for status change if status is included in the update
     if (updatedOrder.status) {
@@ -753,9 +774,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  const deleteOrder = (id: string): boolean => {
+  const deleteOrder = async (id: string): Promise<boolean> => {
     const order = orders.find(o => o.id === id);
     setOrders(prev => prev.filter(o => o.id !== id));
+    await syncToCloud();
     if (order) {
       addActivity({
         title: 'Pesanan Dihapus',
@@ -779,13 +801,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Activity functions
-  const addActivity = (activity: Omit<Activity, 'id' | 'timestamp'>) => {
+  const addActivity = async (activity: Omit<Activity, 'id' | 'timestamp'>) => {
     const newActivity: Activity = {
       ...activity,
       id: generateUUID(),
       timestamp: new Date(),
     };
     setActivities(prev => [newActivity, ...prev].slice(0, 50)); // Keep only latest 50
+    await syncToCloud();
   };
 
   // Statistics

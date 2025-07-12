@@ -219,16 +219,13 @@ const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
               <SelectValue placeholder="Pilih Kategori" />
             </SelectTrigger>
             <SelectContent>
-              {settings.recipeCategories.length > 0 ? (
+              <SelectItem value="all" disabled={settings.recipeCategories.length > 0}>Semua Kategori</SelectItem> {/* MODIFIED: Tambahkan disabled */}
+              {settings.recipeCategories.length > 0 && ( // Hanya render jika ada kategori
                 settings.recipeCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>
                 ))
-              ) : (
-                <SelectItem value="" disabled>
-                  Belum ada kategori. Tambahkan di Pengaturan.
-                </SelectItem>
               )}
             </SelectContent>
           </Select>

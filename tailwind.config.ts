@@ -18,23 +18,31 @@ export default {
 			}
 		},
 		extend: {
-			// MODIFIED: Dihapus definisi duplikat backgroundColor, textColor, dan borderColor
-			// backgroundColor: {
-			// 	'hpp-primary': 'var(--hpp-primary, #181D31)',
-			// 	'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			// },
-			// textColor: {
-			// 	'hpp-primary': 'var(--hpp-primary, #181D31)',
-			// 	'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			// },
-			// borderColor: {
-			// 	'hpp-primary': 'var(--hpp-primary, #181D31)',
-			// 	'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			// },
-			colors: {
-				// Definisi hpp-primary dan hpp-accent yang benar ada di sini
+			backgroundColor: {
 				'hpp-primary': 'var(--hpp-primary, #181D31)',
 				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			textColor: {
+				'hpp-primary': 'var(--hpp-primary, #181D31)',
+				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			borderColor: {
+				'hpp-primary': 'var(--hpp-primary, #181D31)',
+				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			backgroundColor: {
+				'hpp-primary': 'var(--hpp-primary, #181D31)',
+				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			textColor: {
+				'hpp-primary': 'var(--hpp-primary, #181D31)',
+				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			borderColor: {
+				'hpp-primary': 'var(--hpp-primary, #181D31)',
+				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+			},
+			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

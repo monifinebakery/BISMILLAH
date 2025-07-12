@@ -12,7 +12,7 @@ export interface PaymentStatus {
   pg_reference_id: string | null;
   order_id: string | null;
   email: string | null;
-  name: string | null; // Pertahankan di interface jika Anda akan mendapatkan 'name' dari sumber lain
+  // name: string | null; // <--- BARIS INI DIHAPUS
   payment_status: string;
   created_at: string;
   updated_at: string;

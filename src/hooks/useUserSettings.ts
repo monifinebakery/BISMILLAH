@@ -28,6 +28,8 @@ interface UserSettings {
     sessionTimeout: string;
     passwordRequirement: string;
   };
+  // MODIFIED: Tambahkan recipeCategories ke interface UserSettings
+  recipeCategories: string[]; 
 }
 
 const defaultSettings: UserSettings = {
@@ -55,6 +57,8 @@ const defaultSettings: UserSettings = {
     sessionTimeout: '30',
     passwordRequirement: 'medium',
   },
+  // MODIFIED: Inisialisasi recipeCategories di defaultSettings
+  recipeCategories: [], 
 };
 
 export const useUserSettings = () => {
@@ -80,6 +84,8 @@ export const useUserSettings = () => {
             notifications: { ...defaultSettings.notifications, ...parsed.notifications },
             backup: { ...defaultSettings.backup, ...parsed.backup },
             security: { ...defaultSettings.security, ...parsed.security },
+            // MODIFIED: Load recipeCategories dari localStorage
+            recipeCategories: parsed.recipeCategories || defaultSettings.recipeCategories,
           });
         }
         setLoading(false);
@@ -111,6 +117,11 @@ export const useUserSettings = () => {
         const security = typeof data.security_settings === 'object' && data.security_settings !== null 
           ? data.security_settings as UserSettings['security']
           : defaultSettings.security;
+        
+        // MODIFIED: Parse recipe_categories from JSONB (array of strings)
+        const recipeCategories = Array.isArray(data.recipe_categories) 
+          ? data.recipe_categories as string[]
+          : defaultSettings.recipeCategories;
 
         setSettings({
           id: data.id,
@@ -124,10 +135,12 @@ export const useUserSettings = () => {
           notifications,
           backup,
           security,
+          recipeCategories, // MODIFIED: Sertakan recipeCategories
         });
       } else {
         // Create default settings for new user
-        await saveSettings(defaultSettings);
+        // MODIFIED: Pastikan defaultSettings dikirim dengan recipeCategories
+        await saveSettings(defaultSettings); 
       }
     } catch (error) {
       console.error('Error in loadSettings:', error);
@@ -144,7 +157,7 @@ export const useUserSettings = () => {
         // Save to localStorage if not authenticated
         localStorage.setItem('appSettings', JSON.stringify(newSettings));
         setSettings(newSettings);
-        toast.success('Pengaturan berhasil disimpan!');
+        toast.success('Pengaturan berhasil disimpan (lokal)!'); // MODIFIED: Pesan lebih spesifik
         return true;
       }
 
@@ -160,6 +173,8 @@ export const useUserSettings = () => {
         notifications: newSettings.notifications,
         backup_settings: newSettings.backup,
         security_settings: newSettings.security,
+        // MODIFIED: Simpan recipeCategories sebagai JSONB
+        recipe_categories: newSettings.recipeCategories, 
       };
 
       const { error } = await supabase
@@ -168,16 +183,16 @@ export const useUserSettings = () => {
 
       if (error) {
         console.error('Error saving settings:', error);
-        toast.error('Gagal menyimpan pengaturan');
+        toast.error(`Gagal menyimpan pengaturan: ${error.message}`); // MODIFIED: Pesan lebih spesifik
         return false;
       }
 
       setSettings(newSettings);
-      toast.success('Pengaturan berhasil disimpan!');
+      toast.success('Pengaturan berhasil disimpan (cloud)!'); // MODIFIED: Pesan lebih spesifik
       return true;
     } catch (error) {
       console.error('Error in saveSettings:', error);
-      toast.error('Gagal menyimpan pengaturan');
+      toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`); // MODIFIED: Pesan lebih spesifik
       return false;
     }
   };

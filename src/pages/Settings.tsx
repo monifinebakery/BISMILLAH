@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react'; // MODIFIED: Tambahkan ChefHat
 import { useUserSettings } from '@/hooks/useUserSettings';
+import RecipeCategoryManager from '@/components/RecipeCategoryManager'; // MODIFIED: Tambahkan import RecipeCategoryManager
 
 const Settings = () => {
   const { settings, saveSettings, loading } = useUserSettings();
@@ -35,7 +35,7 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 flex items-center justify-center font-inter">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Memuat pengaturan...</p>
@@ -45,7 +45,7 @@ const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 font-inter">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
@@ -66,7 +66,7 @@ const Settings = () => {
 
         <div className="space-y-6">
           {/* Business Information */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center text-lg sm:text-xl">
                 <User className="h-5 w-5 mr-2" />
@@ -82,6 +82,7 @@ const Settings = () => {
                     value={settings.businessName}
                     onChange={(e) => handleDirectChange('businessName', e.target.value)}
                     onBlur={() => saveSettings(settings)}
+                    className="rounded-md"
                   />
                 </div>
                 <div>
@@ -91,6 +92,7 @@ const Settings = () => {
                     value={settings.ownerName}
                     onChange={(e) => handleDirectChange('ownerName', e.target.value)}
                     onBlur={() => saveSettings(settings)}
+                    className="rounded-md"
                   />
                 </div>
               </div>
@@ -103,6 +105,7 @@ const Settings = () => {
                     value={settings.email || ''}
                     onChange={(e) => handleDirectChange('email', e.target.value)}
                     onBlur={() => saveSettings(settings)}
+                    className="rounded-md"
                   />
                 </div>
                 <div>
@@ -112,6 +115,7 @@ const Settings = () => {
                     value={settings.phone || ''}
                     onChange={(e) => handleDirectChange('phone', e.target.value)}
                     onBlur={() => saveSettings(settings)}
+                    className="rounded-md"
                   />
                 </div>
               </div>
@@ -122,13 +126,14 @@ const Settings = () => {
                   value={settings.address || ''}
                   onChange={(e) => handleDirectChange('address', e.target.value)}
                   onBlur={() => saveSettings(settings)}
+                  className="rounded-md"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Appearance - without dark mode */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center text-lg sm:text-xl">
                 <Palette className="h-5 w-5 mr-2" />
@@ -143,7 +148,7 @@ const Settings = () => {
                     value={settings.currency}
                     onValueChange={(value) => handleDirectChange('currency', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-md">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -159,7 +164,7 @@ const Settings = () => {
                     value={settings.language}
                     onValueChange={(value) => handleDirectChange('language', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-md">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -173,7 +178,7 @@ const Settings = () => {
           </Card>
 
           {/* Notifications */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center text-lg sm:text-xl">
                 <Bell className="h-5 w-5 mr-2" />
@@ -217,7 +222,7 @@ const Settings = () => {
           </Card>
 
           {/* Data Backup */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center text-lg sm:text-xl">
                 <Database className="h-5 w-5 mr-2" />
@@ -242,7 +247,7 @@ const Settings = () => {
                     value={settings.backup.frequency}
                     onValueChange={(value) => handleSettingChange('backup', 'frequency', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-md">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,7 +263,7 @@ const Settings = () => {
                     value={settings.backup.location}
                     onValueChange={(value) => handleSettingChange('backup', 'location', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-md">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -272,7 +277,7 @@ const Settings = () => {
           </Card>
 
           {/* Security */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center text-lg sm:text-xl">
                 <Shield className="h-5 w-5 mr-2" />
@@ -297,6 +302,7 @@ const Settings = () => {
                     type="number"
                     value={settings.security.sessionTimeout}
                     onChange={(e) => handleSettingChange('security', 'sessionTimeout', e.target.value)}
+                    className="rounded-md"
                   />
                 </div>
                 <div>
@@ -305,7 +311,7 @@ const Settings = () => {
                     value={settings.security.passwordRequirement}
                     onValueChange={(value) => handleSettingChange('security', 'passwordRequirement', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-md">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,6 +322,19 @@ const Settings = () => {
                   </Select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          {/* Pengaturan Resep */}
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
+            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center text-lg sm:text-xl">
+                <ChefHat className="h-5 w-5 mr-2" />
+                Pengaturan Resep
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">Kelola kategori yang digunakan untuk resep Anda.</p>
+              <RecipeCategoryManager />
             </CardContent>
           </Card>
         </div>

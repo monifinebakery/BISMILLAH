@@ -23,16 +23,16 @@ const PaymentPage = () => {
         return;
       }
 
-      // Check if payment record already exists
+      // Generate unique payment ID for Scalev
+      const paymentId = `hpp_${user.id.substring(0, 8)}_${Date.now()}`;
+      
+      // MODIFIED: Menggunakan .maybeSingle() agar tidak error jika record tidak ditemukan
       const { data: existingPayment } = await supabase
         .from('user_payments')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // <-- PERUBAHAN DI SINI
 
-      // Generate unique payment ID for Scalev
-      const paymentId = `hpp_${user.id.substring(0, 8)}_${Date.now()}`;
-      
       if (existingPayment) {
         // Update existing record instead of creating new one
         const { error: updateError } = await supabase
@@ -54,6 +54,8 @@ const PaymentPage = () => {
           .from('user_payments')
           .insert({
             user_id: user.id,
+            email: user.email || 'unknown@example.com', // <-- DITAMBAHKAN
+            order_id: paymentId, // <-- DITAMBAHKAN
             is_paid: false,
             payment_status: 'pending',
             pg_reference_id: paymentId
@@ -76,8 +78,8 @@ const PaymentPage = () => {
       
       toast.success('Halaman pembayaran dibuka di tab baru. Setelah pembayaran selesai, refresh halaman ini.');
       
-    } catch (error) {
-      console.error('Payment initiation error:', error);
+    } catch (error: any) { // Menggunakan 'any' untuk error agar bisa mengakses 'error.message'
+      console.error('Payment initiation error:', error.message || error);
       toast.error('Terjadi kesalahan saat memproses pembayaran');
     } finally {
       setIsProcessing(false);

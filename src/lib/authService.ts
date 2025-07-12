@@ -49,12 +49,13 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 
 /**
  * Mengirim kode OTP ke alamat email yang diberikan.
+ * Fungsi ini akan selalu mengirim OTP atau link konfirmasi, dan mengembalikan boolean sukses.
+ * Pesan toast akan digeneralisasi karena UI akan selalu menampilkan input OTP.
  * @param email Alamat email untuk mengirim OTP.
  * @param captchaToken Token hCaptcha (opsional, bisa null jika captcha tidak diaktifkan).
- * @returns Promise yang mengembalikan objek { success: boolean, emailType: 'otp' | 'confirmation' | null }.
+ * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
  */
-export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<{ success: boolean, emailType: 'otp' | 'confirmation' | null }> => {
-  let emailType: 'otp' | 'confirmation' | null = null;
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
     // Pertimbangkan tujuan cleanupAuthState():
     // Jika tujuannya untuk menghapus sesi yang ada sebelum mengirim OTP login/daftar,
@@ -62,7 +63,7 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
     // supabase.auth.signInWithOtp umumnya tidak memerlukan cleanup eksplisit.
     cleanupAuthState(); // Pastikan fungsi ini didefinisikan dan sesuai dengan kebutuhan Anda
 
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         channel: 'email',
@@ -81,27 +82,19 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
                   error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
       } else {
-        toast.error(error.message || 'Gagal mengirim kode OTP');
+        toast.error(error.message || 'Gagal mengirim kode'); // Pesan lebih umum
       }
-      return { success: false, emailType: null };
+      return false;
     }
 
-    // Tentukan jenis email yang dikirim berdasarkan keberadaan sesi
-    if (data.session) {
-      // Jika sesi langsung ada, kemungkinan ini adalah login OTP untuk user yang sudah terkonfirmasi
-      emailType = 'otp';
-      toast.success('Kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    } else {
-      // Jika sesi null, kemungkinan ini adalah email konfirmasi untuk user baru atau belum terkonfirmasi
-      emailType = 'confirmation';
-      toast.success('Link konfirmasi atau kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    }
+    // Pesan sukses digeneralisasi karena UI akan selalu menampilkan input OTP
+    toast.success('Kode atau link konfirmasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
     
-    return { success: true, emailType };
+    return true;
   } catch (error) {
     console.error('Error sending email OTP:', error);
-    toast.error('Terjadi kesalahan saat mengirim kode OTP');
-    return { success: false, emailType: null };
+    toast.error('Terjadi kesalahan saat mengirim kode'); // Pesan lebih umum
+    return false;
   }
 };
 
@@ -121,7 +114,7 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     
     if (error) {
       console.error('OTP verification error:', error);
-      toast.error(error.message || 'Kode OTP tidak valid atau sudah kadaluarsa.'); // Pesan error lebih informatif
+      toast.error(error.message || 'Kode tidak valid atau sudah kadaluarsa.'); // Pesan error lebih informatif
       return false;
     }
     
@@ -134,12 +127,12 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     } else {
       // Kasus ini jarang, tapi bisa terjadi jika verifikasi teknis berhasil
       // tapi sesi pengguna tidak langsung terdeteksi atau dibuat.
-      toast.error('Verifikasi OTP berhasil, tetapi sesi tidak ditemukan. Silakan coba login ulang.');
+      toast.error('Verifikasi berhasil, tetapi sesi tidak ditemukan. Silakan coba login ulang.');
       return false;
     }
   } catch (error) {
     console.error('Error verifying OTP:', error);
-    toast.error('Terjadi kesalahan saat verifikasi kode OTP');
+    toast.error('Terjadi kesalahan saat verifikasi kode');
     return false;
   }
 };

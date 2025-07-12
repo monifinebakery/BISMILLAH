@@ -36,7 +36,7 @@ import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "./contexts/PaymentContext";
 // MODIFIED: Impor ThemeToggle
-import { ThemeToggle } from "@/components/ThemeToggle"; 
+import ThemeToggle from "@/components/ThemeToggle"; // Hapus kurung kurawal; 
 
 // Konfigurasi QueryClient dengan retry yang lebih sedikit untuk mengurangi beban server
 const queryClient = new QueryClient({

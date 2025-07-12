@@ -1,23 +1,23 @@
-import React, { useState, useMemo } from 'react'; // MODIFIED: Tambahkan useMemo
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search } from 'lucide-react'; // MODIFIED: Tambahkan Search
+import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search, Plus } from 'lucide-react'; // MODIFIED: Tambahkan Plus
 import { useRecipes } from '@/hooks/useRecipes';
 import RecipeForm from '@/components/RecipeForm';
 import { Recipe } from '@/types/recipe';
 import MenuExportButton from '@/components/MenuExportButton';
-import { useUserSettings } from '@/hooks/useUserSettings'; // MODIFIED: Import useUserSettings
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // MODIFIED: Import Select components
-import { Input } from '@/components/ui/input'; // MODIFIED: Import Input for search
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from '@/components/ui/input';
 
 const RecipesPage = () => {
   const { recipes, loading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
-  const { settings } = useUserSettings(); // MODIFIED: Ambil settings untuk kategori resep
+  const { settings } = useUserSettings();
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // MODIFIED: State untuk search term
-  const [categoryFilter, setCategoryFilter] = useState('all'); // MODIFIED: State untuk filter kategori
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const handleEdit = (recipe: Recipe) => {
     setEditingRecipe(recipe);

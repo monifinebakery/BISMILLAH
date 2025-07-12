@@ -33,6 +33,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [cooldownTime, setCooldownTime] = useState(0);
   const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
+  const [hCaptchaKey, setHCaptchaKey] = useState(0); // State baru untuk mereset hCaptcha
   const [verifying, setVerifying] = useState(false);
 
   // Fungsi untuk memulai cooldown timer
@@ -52,6 +53,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setCooldownTimer(timer);
   };
 
+  // Fungsi untuk mereset hCaptcha
+  const resetHCaptcha = () => {
+    setHCaptchaToken(null);
+    setHCaptchaKey(prev => prev + 1); // Mengubah key memaksa komponen Hcaptcha untuk me-mount ulang
+  };
+
   // Handler untuk mengirim kode OTP
   const handleSubmitSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,20 +76,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     setIsLoading(true);
     try {
-      // PERBAIKAN DI SINI: Teruskan hCaptchaToken ke sendEmailOtp
-      const success = await sendEmailOtp(email, hCaptchaToken); 
+      const success = await sendEmailOtp(email, hCaptchaToken);
       if (success) {
         setOtpSent(true);
         startCooldown(60);
+        toast.success('Kode OTP telah dikirim ke email Anda.');
       } else {
-        // Jika sendEmailOtp mengembalikan false karena alasan lain (misal rate limit dari authService)
-        // Maka kita hanya perlu menampilkan error yang sudah ditangani di authService
-        // dan memulai cooldown jika diperlukan (misal untuk spamming)
-        startCooldown(60); // Mulai cooldown untuk mencegah percobaan berulang yang cepat
-        // Pesan error sudah ditangani di sendEmailOtp, jadi tidak perlu toast di sini lagi
+        // sendEmailOtp sudah menampilkan toast error, jadi di sini hanya set cooldown
+        startCooldown(60);
       }
     } finally {
       setIsLoading(false);
+      resetHCaptcha(); // Reset hCaptcha setelah percobaan kirim OTP
     }
   };
 
@@ -98,7 +103,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       const success = await verifyEmailOtp(email, otp);
       if (success) {
         // Pengguna berhasil login, redirect akan ditangani oleh AuthGuard atau router Anda
+        toast.success('Verifikasi berhasil! Mengarahkan Anda...');
         window.location.href = '/'; // Contoh redirect ke halaman utama
+      } else {
+        // Jika verifikasi gagal, kosongkan input OTP
+        setOtp('');
+        // Pesan error sudah ditangani di verifyEmailOtp
       }
     } finally {
       setVerifying(false);
@@ -115,9 +125,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error('Masukkan alamat email yang valid.');
       return;
     }
-    // Untuk resend, kita bisa menggunakan token captcha yang terakhir atau memaksa pengguna
-    // untuk mengisi captcha baru jika ada risiko penyalahgunaan
-    // Untuk saat ini, kita meneruskan token hCaptcha yang ada.
     if (!hCaptchaToken) {
       toast.error('Harap selesaikan verifikasi captcha terlebih dahulu sebelum mengirim ulang.');
       return;
@@ -125,8 +132,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     setIsLoading(true);
     try {
-      // PERBAIKAN DI SINI: Teruskan hCaptchaToken ke sendEmailOtp
-      const success = await sendEmailOtp(email, hCaptchaToken); 
+      const success = await sendEmailOtp(email, hCaptchaToken);
       if (!success) {
         startCooldown(60); // Mulai cooldown jika gagal mengirim ulang
         // Pesan error sudah ditangani di sendEmailOtp
@@ -136,9 +142,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       }
     } finally {
       setIsLoading(false);
+      resetHCaptcha(); // Reset hCaptcha setelah percobaan kirim ulang OTP
     }
   };
 
+  // Efek untuk membersihkan timer saat komponen unmount
   React.useEffect(() => {
     return () => {
       if (cooldownTimer) {
@@ -147,12 +155,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     };
   }, [cooldownTimer]);
 
+  // Handler untuk perubahan input email
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    // Reset hCaptcha jika email diubah, memaksa user untuk verifikasi ulang
+    resetHCaptcha();
+  };
+
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100"
+      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 font-inter"
       style={{ '--hpp-primary': primaryColor, '--hpp-accent': accentColor } as React.CSSProperties}
     >
-      <Card className="w-full max-w-md shadow-xl border-0 overflow-hidden">
+      <Card className="w-full max-w-md shadow-xl border-0 rounded-lg overflow-hidden">
         <div className="h-2 bg-hpp-primary"></div>
         <CardHeader className="space-y-1 pt-6">
           <div className="flex justify-center mb-4">
@@ -167,7 +182,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           <CardTitle className="text-2xl font-bold text-center text-hpp-primary">
             {appName}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-gray-600">
             {appDescription}
           </CardDescription>
         </CardHeader>
@@ -185,26 +200,26 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     type="email"
                     placeholder="Masukkan email Anda"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 py-6 text-base"
+                    onChange={handleEmailChange} // Gunakan handler baru di sini
+                    className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:ring-hpp-primary focus:border-transparent"
                     required
                     disabled={isLoading}
                   />
                 </div>
               </div>
               <div>
-                {/* Komponen Hcaptcha */}
+                {/* Komponen Hcaptcha dengan key untuk reset */}
                 <Hcaptcha
+                  key={hCaptchaKey} // Menggunakan key untuk mereset komponen
                   sitekey="3c246758-c42c-406c-b258-87724508b28a" // PASTIKAN SITEKEY INI BENAR
                   onVerify={token => setHCaptchaToken(token)}
                   onExpire={() => setHCaptchaToken(null)}
                   theme="light"
-                  // size="normal"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full py-6 text-base font-medium bg-hpp-primary text-white hover:bg-opacity-90"
+                className="w-full py-6 text-base font-medium bg-hpp-primary text-white hover:bg-opacity-90 rounded-md shadow-md transition-colors duration-200"
                 disabled={isLoading || cooldownTime > 0 || !hCaptchaToken}
               >
                 {cooldownTime > 0 ? (
@@ -237,7 +252,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini.
               </p>
               
-              <div className="mt-4">
+              <div className="mt-4 flex justify-center"> {/* Tambahkan flex justify-center untuk InputOTP */}
                 <Label htmlFor="otp" className="sr-only">Kode OTP</Label>
                 <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                   <InputOTPGroup>
@@ -254,7 +269,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <Button 
                 onClick={handleVerifyOtp}
                 disabled={otp.length !== 6 || verifying}
-                className="w-full mt-4 bg-hpp-primary text-white hover:bg-opacity-90"
+                className="w-full mt-4 bg-hpp-primary text-white hover:bg-opacity-90 rounded-md shadow-md transition-colors duration-200"
               >
                 {verifying ? (
                   <>
@@ -275,7 +290,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   variant="outline"
                   onClick={handleResendOtp}
                   disabled={isLoading || cooldownTime > 0 || !hCaptchaToken} // Tambahkan !hCaptchaToken agar tidak bisa resend tanpa captcha
-                  className="w-full"
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
                 >
                   {cooldownTime > 0 ? (
                     <>
@@ -300,7 +315,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             </span>
           </div>
           {cooldownTime > 0 && (
-            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded">
+            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-md">
               Untuk mencegah spam, tunggu {cooldownTime} detik sebelum mengirim email lagi
             </div>
           )}

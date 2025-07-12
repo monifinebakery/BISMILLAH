@@ -23,16 +23,16 @@ const PaymentPage = () => {
         return;
       }
 
-      // Generate unique payment ID for Scalev
-      const paymentId = `hpp_${user.id.substring(0, 8)}_${Date.now()}`;
-      
       // MODIFIED: Menggunakan .maybeSingle() agar tidak error jika record tidak ditemukan
       const { data: existingPayment } = await supabase
         .from('user_payments')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle(); // <-- PERUBAHAN DI SINI
+        .maybeSingle(); // <-- PERUBAHAN DI SINI: dari .single() ke .maybeSingle()
 
+      // Generate unique payment ID for Scalev
+      const paymentId = `hpp_${user.id.substring(0, 8)}_${Date.now()}`;
+      
       if (existingPayment) {
         // Update existing record instead of creating new one
         const { error: updateError } = await supabase

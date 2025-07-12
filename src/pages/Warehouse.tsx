@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { useBahanBaku } from '@/hooks/useBahanBaku';
+// MODIFIED: Import 'useAppData' instead of 'useBahanBaku'
+import { useAppData } from '@/contexts/AppDataContext';
 import { BahanBaku } from '@/types/recipe';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
 
 const WarehousePage = () => {
-  const { bahanBaku, loading, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku();
+  // MODIFIED: Use the AppDataContext hook
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useAppData();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,8 +72,8 @@ const WarehousePage = () => {
 
   const filteredItems = bahanBaku.filter(item =>
     item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.kategori.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
@@ -86,16 +87,8 @@ const WarehousePage = () => {
     }).format(value);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white p-3 sm:p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data gudang...</p>
-        </div>
-      </div>
-    );
-  }
+  // MODIFIED: Removed the loading state block as requested
+  // The AppDataContext will handle the loading state globally.
 
   return (
     <div className="min-h-screen bg-white p-3 sm:p-6">

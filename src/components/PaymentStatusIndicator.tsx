@@ -10,7 +10,11 @@ interface PaymentStatusIndicatorProps {
 }
 
 const PaymentStatusIndicator = ({ size = 'sm' }: PaymentStatusIndicatorProps) => {
-  const { isPaid, needsPayment, setShowUpgradePopup, isLoading } = usePaymentContext();
+  // MODIFIED: Menghapus setShowUpgradePopup dari destructuring karena tidak lagi digunakan di sini
+  const { isPaid, isLoading } = usePaymentContext(); // Menghapus needsPayment, showUpgradePopup, setShowUpgradePopup
+
+  // URL yang akan dibuka saat tombol Upgrade diklik
+  const UPGRADE_URL = 'https://monifine.my.id/checkout-page-growth-kit?discount_code=HPP2025';
 
   if (isLoading) {
     return null;
@@ -27,7 +31,8 @@ const PaymentStatusIndicator = ({ size = 'sm' }: PaymentStatusIndicatorProps) =>
 
   return (
     <Button
-      onClick={() => setShowUpgradePopup(true)}
+      // MODIFIED: Mengubah onClick handler untuk langsung membuka URL
+      onClick={() => window.open(UPGRADE_URL, '_blank')}
       variant="outline"
       // MODIFIED: Menggunakan prop 'size' yang diterima
       size={size}

@@ -32,7 +32,7 @@ const Dashboard = () => {
       title: "Stok Menipis",
       value: stats.stokMenurut.toString(),
       color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400", // Akan diganti di render
-      icon: DollarSign, // Menggunakan DollarSign untuk Stok Menipis
+      icon: Package, // MODIFIED: Mengganti DollarSign dengan Package untuk debugging
     },
   ];
 

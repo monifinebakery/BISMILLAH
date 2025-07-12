@@ -14,25 +14,25 @@ const Dashboard = () => {
       title: "Total Produk",
       value: stats.totalProduk.toString(),
       icon: Package,
-      color: "from-blue-600 to-blue-400", // Akan diganti di render
+      // color: "from-blue-600 to-blue-400", // DIHAPUS: properti color tidak lagi digunakan di JSX
     },
     {
       title: "Stok Bahan Baku",
       value: stats.stokBahanBaku.toString(),
       icon: Warehouse,
-      color: "from-green-600 to-green-400", // Akan diganti di render
+      // color: "from-green-600 to-green-400", // DIHAPUS
     },
     {
       title: "HPP Rata-rata",
       value: stats.hppRataRata,
       icon: Calculator,
-      color: "from-purple-600 to-purple-400", // Akan diganti di render
+      // color: "from-purple-600 to-purple-400", // DIHAPUS
     },
     {
       title: "Stok Menipis",
       value: stats.stokMenurut.toString(),
-      color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400", // Akan diganti di render
-      icon: Package, // MODIFIED: Mengganti DollarSign dengan Package untuk debugging
+      // color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400", // DIHAPUS
+      icon: DollarSign, // DIKEMBALIKAN: Menggunakan DollarSign seperti yang dimaksud
     },
   ];
 
@@ -42,21 +42,21 @@ const Dashboard = () => {
       description: "Kalkulator untuk menghitung harga pokok penjualan",
       icon: Calculator,
       link: "/hpp",
-      color: "bg-blue-50 hover:bg-blue-100", // Akan diganti di render
+      // color: "bg-blue-50 hover:bg-blue-100", // DIHAPUS
     },
     {
       title: "Kelola Gudang",
       description: "Manajemen stok bahan baku dan inventory",
       icon: Warehouse,
       link: "/gudang",
-      color: "bg-green-50 hover:bg-green-100", // Akan diganti di render
+      // color: "bg-green-50 hover:bg-green-100", // DIHAPUS
     },
     {
       title: "Laporan Keuangan",
       description: "Analisis dan laporan finansial bisnis",
       icon: BarChart3,
       link: "/laporan",
-      color: "bg-purple-50 hover:bg-purple-100", // Akan diganti di render
+      // color: "bg-purple-50 hover:bg-purple-100", // DIHAPUS
     },
   ];
 
@@ -99,6 +99,7 @@ const Dashboard = () => {
                     <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">{stat.title}</p> {/* MODIFIED: text-muted-foreground */}
                     <p className="text-xl sm:text-2xl font-bold text-primary">{stat.value}</p> {/* MODIFIED: text-primary */}
                   </div>
+                  {/* stat.color tidak lagi digunakan di sini */}
                   <div className={`p-2 sm:p-3 rounded-full bg-secondary flex-shrink-0 ml-2`}> {/* MODIFIED: bg-secondary */}
                     <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> {/* MODIFIED: text-primary */}
                   </div>

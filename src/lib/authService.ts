@@ -1,4 +1,4 @@
-// src/services/authService.ts (contoh lokasi file Anda)
+// src/services/authService.ts
 
 import { supabase } from '@/integrations/supabase/client'; // Pastikan path ini benar untuk client Supabase Anda
 import { toast } from 'sonner';
@@ -51,9 +51,10 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
  * Mengirim kode OTP ke alamat email yang diberikan.
  * @param email Alamat email untuk mengirim OTP.
  * @param captchaToken Token hCaptcha (opsional, bisa null jika captcha tidak diaktifkan).
- * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ * @returns Promise yang mengembalikan objek { success: boolean, emailType: 'otp' | 'confirmation' | null }.
  */
-export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<{ success: boolean, emailType: 'otp' | 'confirmation' | null }> => {
+  let emailType: 'otp' | 'confirmation' | null = null;
   try {
     // Pertimbangkan tujuan cleanupAuthState():
     // Jika tujuannya untuk menghapus sesi yang ada sebelum mengirim OTP login/daftar,
@@ -61,7 +62,7 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
     // supabase.auth.signInWithOtp umumnya tidak memerlukan cleanup eksplisit.
     cleanupAuthState(); // Pastikan fungsi ini didefinisikan dan sesuai dengan kebutuhan Anda
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         channel: 'email',
@@ -77,20 +78,30 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       if (error.message?.includes('captcha verification process failed')) {
         toast.error('Verifikasi CAPTCHA gagal. Pastikan Anda bukan robot dan coba lagi.');
       } else if (error.message?.includes('email rate limit exceeded') ||
-                 error.message?.includes('over_email_send_rate_limit')) {
+                  error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
       } else {
         toast.error(error.message || 'Gagal mengirim kode OTP');
       }
-      return false;
+      return { success: false, emailType: null };
     }
 
-    toast.success('Kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    return true;
+    // Tentukan jenis email yang dikirim berdasarkan keberadaan sesi
+    if (data.session) {
+      // Jika sesi langsung ada, kemungkinan ini adalah login OTP untuk user yang sudah terkonfirmasi
+      emailType = 'otp';
+      toast.success('Kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+    } else {
+      // Jika sesi null, kemungkinan ini adalah email konfirmasi untuk user baru atau belum terkonfirmasi
+      emailType = 'confirmation';
+      toast.success('Link konfirmasi atau kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+    }
+    
+    return { success: true, emailType };
   } catch (error) {
     console.error('Error sending email OTP:', error);
     toast.error('Terjadi kesalahan saat mengirim kode OTP');
-    return false;
+    return { success: false, emailType: null };
   }
 };
 

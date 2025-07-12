@@ -35,6 +35,8 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "./contexts/PaymentContext";
+// MODIFIED: Impor ThemeToggle
+import { ThemeToggle } from "@/components/ThemeToggle"; 
 
 // Konfigurasi QueryClient dengan retry yang lebih sedikit untuk mengurangi beban server
 const queryClient = new QueryClient({
@@ -81,6 +83,8 @@ const AppLayout = () => {
               {/* MODIFIED: Indikator hanya tampil di header jika sudah bayar */}
               {isPaid && <PaymentStatusIndicator />}
               <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
+              {/* MODIFIED: Tambahkan ThemeToggle untuk mobile */}
+              <ThemeToggle /> 
               <NotificationBell />
               <Button
                 variant="ghost"
@@ -129,6 +133,8 @@ const AppLayout = () => {
                 <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
                   <PaymentStatusIndicator />
                   <CloudSyncButton variant="upload" />
+                  {/* MODIFIED: Tambahkan ThemeToggle untuk desktop */}
+                  <ThemeToggle /> 
                   <DateTimeDisplay />
                   <NotificationBell />
                 </div>

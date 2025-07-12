@@ -1,4 +1,3 @@
-
 export interface RecipeIngredient {
   id: string;
   nama: string;
@@ -22,6 +21,7 @@ export interface Recipe {
   hargaJualPerPorsi: number;
   createdAt: Date;
   updatedAt: Date;
+  category: string; // MODIFIED: Tambahkan category
 }
 
 export interface NewRecipe {
@@ -32,6 +32,7 @@ export interface NewRecipe {
   biayaTenagaKerja: number;
   biayaOverhead: number;
   marginKeuntungan: number;
+  category: string; // MODIFIED: Tambahkan category
 }
 
 export interface BahanBaku {
@@ -45,4 +46,5 @@ export interface BahanBaku {
   supplier: string;
   createdAt?: Date;
   updatedAt?: Date;
+  tanggalKadaluwarsa?: Date; // Menambahkan ini berdasarkan diskusi sebelumnya
 }

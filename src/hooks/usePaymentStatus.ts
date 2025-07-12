@@ -37,18 +37,8 @@ export const usePaymentStatus = () => {
 
       const { data, error } = await supabase
         .from('user_payments')
-        .select(`
-          id,
-          user_id,
-          is_paid,
-          pg_reference_id,
-          order_id,
-          email,
-          -- KOLOM 'name' DIHAPUS DARI SINI:
-          payment_status,
-          created_at,
-          updated_at
-        `)
+        // PERBAIKAN DI SINI: Ubah menjadi satu baris tanpa newline atau spasi berlebihan
+        .select(`id,user_id,is_paid,pg_reference_id,order_id,email,payment_status,created_at,updated_at`)
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -103,8 +93,6 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid: paymentStatus?.is_paid === true,
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    // userName sekarang akan selalu null dari paymentStatus jika kolom 'name' tidak dipilih.
-    // Jika Anda perlu nama pengguna, ambil dari user.user_metadata atau tabel user_settings.
-    userName: null // Atau ambil dari user.user_metadata?.full_name, jika Anda mau
+    userName: null
   };
 };

@@ -12,7 +12,7 @@ export interface PaymentStatus {
   pg_reference_id: string | null;
   order_id: string | null;
   email: string | null;
-  name: string | null;
+  name: string | null; // Pertahankan di interface jika Anda akan mendapatkan 'name' dari sumber lain
   payment_status: string;
   created_at: string;
   updated_at: string;
@@ -37,7 +37,6 @@ export const usePaymentStatus = () => {
 
       const { data, error } = await supabase
         .from('user_payments')
-        // PERBAIKAN DI SINI: Cantumkan semua kolom secara spesifik
         .select(`
           id,
           user_id,
@@ -45,7 +44,7 @@ export const usePaymentStatus = () => {
           pg_reference_id,
           order_id,
           email,
-          name,
+          -- KOLOM 'name' DIHAPUS DARI SINI:
           payment_status,
           created_at,
           updated_at
@@ -104,6 +103,8 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid: paymentStatus?.is_paid === true,
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    userName: paymentStatus?.name || null
+    // userName sekarang akan selalu null dari paymentStatus jika kolom 'name' tidak dipilih.
+    // Jika Anda perlu nama pengguna, ambil dari user.user_metadata atau tabel user_settings.
+    userName: null // Atau ambil dari user.user_metadata?.full_name, jika Anda mau
   };
 };

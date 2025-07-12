@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -138,6 +137,12 @@ const RecipesPage = () => {
                         <Badge className="bg-gradient-to-r from-orange-100 to-red-100 text-orange-700 border-orange-200">
                           {recipe.porsi} porsi
                         </Badge>
+                        {/* MODIFIED: Tampilkan Kategori Resep */}
+                        {recipe.category && (
+                          <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
+                            {recipe.category}
+                          </Badge>
+                        )}
                       </div>
                       
                       {recipe.deskripsi && (

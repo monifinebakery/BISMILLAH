@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search, Plus } from 'lucide-react'; // MODIFIED: Tambahkan Plus
+import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search, Plus } from 'lucide-react';
 import { useRecipes } from '@/hooks/useRecipes';
 import RecipeForm from '@/components/RecipeForm';
 import { Recipe } from '@/types/recipe';
@@ -155,17 +155,20 @@ const RecipesPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kategori</SelectItem>
-                    {settings.recipeCategories.length > 0 ? (
+                    {settings.recipeCategories.length > 0 && ( // Hanya render jika ada kategori
                       settings.recipeCategories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
                       ))
-                    ) : (
+                    )}
+                    {/* Hapus baris ini:
+                    {settings.recipeCategories.length === 0 ? (
                       <SelectItem value="" disabled>
                         Belum ada kategori. Tambahkan di Pengaturan.
                       </SelectItem>
-                    )}
+                    ) : null}
+                    */}
                   </SelectContent>
                 </Select>
               </div>

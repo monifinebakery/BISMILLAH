@@ -255,6 +255,14 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
 };
 
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // MODIFIED: Panggil hook sinkronisasi Supabase yang terpusat di awal komponen
+  const {
+    syncToSupabase: externalSyncToCloud,
+    loadFromSupabase: externalLoadFromCloud,
+    // Anda bisa mengekspos isLoading jika diperlukan di UI
+    // isLoading: isSyncing,
+  } = useSupabaseSync();
+
   // Load initial data from localStorage
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() => 
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
@@ -323,10 +331,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     ])
   );
-  const [assets, setAssets] = useState<Asset[]>(() => // MODIFIED: Tambahkan state assets
+  const [assets, setAssets] = useState<Asset[]>(() => 
     loadFromStorage(STORAGE_KEYS.ASSETS, [])
   );
-  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => // MODIFIED: Tambahkan state financialTransactions
+  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   );
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() => 
@@ -342,21 +350,20 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           purchases.length === 0 && 
           recipes.length === 0 && 
           orders.length <= 2 &&
-          assets.length === 0 && // MODIFIED: Cek assets
-          financialTransactions.length === 0 // MODIFIED: Cek financialTransactions
+          assets.length === 0 && 
+          financialTransactions.length === 0 
           ) { 
         console.log('Local data appears empty, attempting to load from cloud...');
-        await externalLoadFromCloud().then(loadedData => { // Menggunakan externalLoadFromCloud
-          if (loadedData) {
-            replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
-          }
-        });
+        const loadedData = await externalLoadFromCloud(); // Menggunakan externalLoadFromCloud
+        if (loadedData) {
+          replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
+        }
       }
     };
 
     const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
-  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]); // MODIFIED: Tambahkan dependensi
+  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]);
 
 
   // Save to localStorage whenever data changes
@@ -389,23 +396,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [orders]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ASSETS, assets); // MODIFIED: Save assets
+    saveToStorage(STORAGE_KEYS.ASSETS, assets); 
   }, [assets]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); // MODIFIED: Save financialTransactions
+    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); 
   }, [financialTransactions]);
 
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.CLOUD_SYNC, cloudSyncEnabled);
   }, [cloudSyncEnabled]);
-
-  // MODIFIED: Ambil fungsi sinkronisasi dari useSupabaseSync
-  const { 
-    syncToSupabase: externalSyncToCloud, 
-    loadFromSupabase: externalLoadFromCloud 
-  } = useSupabaseSync();
-
 
   // MODIFIED: Pendengar Realtime Supabase untuk sinkronisasi otomatis
   useEffect(() => {

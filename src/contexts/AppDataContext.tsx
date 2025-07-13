@@ -976,6 +976,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      category: newRecipe.category, // MODIFIED: Tambahkan category
     };
 
     const { error } = await supabase.from('hpp_recipes').insert([recipeToInsert]);
@@ -1007,6 +1008,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       margin_keuntungan: updatedRecipe.marginKeuntungan,
       harga_jual_per_porsi: updatedRecipe.hargaJualPerPorsi,
       updated_at: new Date().toISOString(),
+      category: updatedRecipe.category, // MODIFIED: Tambahkan category
     };
     // Hapus properti camelCase
     delete recipeToUpdate.namaResep;
@@ -1016,6 +1018,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     delete recipeToUpdate.hppPerPorsi;
     delete recipeToUpdate.marginKeuntungan;
     delete recipeToUpdate.hargaJualPerPorsi;
+    delete recipeToUpdate.category; // MODIFIED: Hapus category dari properti camelCase
 
     const { error } = await supabase.from('hpp_recipes').update(recipeToUpdate).eq('id', id);
     if (error) {

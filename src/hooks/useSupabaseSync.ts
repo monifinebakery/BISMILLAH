@@ -1,33 +1,46 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAppData } from '@/contexts/AppDataContext';
+import { useAppData } from '@/contexts/AppDataContext'; // MODIFIED: useAppData diimpor di sini
 import { toast } from 'sonner';
+
+// MODIFIED: Tambahkan interface untuk data yang akan disinkronkan
+interface SyncPayload {
+  bahanBaku: any[];
+  suppliers: any[];
+  purchases: any[];
+  recipes: any[];
+  hppResults: any[];
+  activities: any[];
+  orders: any[];
+  assets: any[];
+  financialTransactions: any[];
+  userSettings?: any; // user_settings mungkin tidak selalu ada di payload ini
+}
 
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
   
-  let appData;
-  try {
-    appData = useAppData();
-  } catch (error) {
-    return {
-      syncToSupabase: async () => false,
-      loadFromSupabase: async () => null,
-      getCloudStats: async () => null,
-      isLoading: false
-    };
-  }
+  // MODIFIED: useAppData dipanggil di luar try-catch untuk memastikan hook dipanggil di root komponen
+  // Namun, kita perlu memastikan AppDataProvider sudah ada di atasnya.
+  // Jika ini menyebabkan error "useAppData must be used within an AppDataProvider",
+  // maka Anda perlu memastikan AppDataProvider membungkus semua komponen yang menggunakan useSupabaseSync.
+  // Untuk tujuan ini, kita akan asumsikan AppDataProvider adalah parent yang tepat.
+  const appData = useAppData();
 
   const { 
     bahanBaku, 
+    suppliers, // MODIFIED: Tambahkan suppliers
     purchases, 
     recipes, 
     hppResults, 
     activities,
-    orders 
+    orders,
+    assets, // MODIFIED: Tambahkan assets
+    financialTransactions, // MODIFIED: Tambahkan financialTransactions
   } = appData;
 
-  const syncToSupabase = async () => {
+
+  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => { // MODIFIED: Menerima transformedPayload
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -38,131 +51,99 @@ export const useSupabaseSync = () => {
 
       console.log('Starting sync to Supabase...');
 
-      // Sync hpp_results to database
-      if (hppResults && hppResults.length > 0) {
-        for (const result of hppResults) {
-          const { error: hppError } = await supabase
-            .from('hpp_results')
-            .upsert({
-              id: result.id,
-              user_id: session.user.id,
-              nama: result.nama,
-              ingredients: JSON.parse(JSON.stringify(result.ingredients)),
-              biaya_tenaga_kerja: result.biayaTenagaKerja,
-              biaya_overhead: result.biayaOverhead,
-              margin_keuntungan: result.marginKeuntungan,
-              total_hpp: result.totalHPP,
-              hpp_per_porsi: result.hppPerPorsi,
-              harga_jual_per_porsi: result.hargaJualPerPorsi,
-              jumlah_porsi: result.jumlahPorsi,
-            });
+      // Gunakan transformedPayload yang sudah diterima
+      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
 
-          if (hppError) {
-            console.error('Error syncing HPP result:', hppError);
-          }
-        }
+      // Array of promises for all upsert operations
+      const syncPromises = [];
+
+      // Sync bahan_baku
+      if (bahanBaku && bahanBaku.length > 0) {
+        syncPromises.push(supabase.from('bahan_baku').upsert(bahanBaku, { onConflict: 'id' }));
+      } else { // Jika data kosong, hapus semua data user_id
+        syncPromises.push(supabase.from('bahan_baku').delete().eq('user_id', session.user.id));
       }
 
-      // Sync recipes to database
+      // Sync suppliers
+      if (suppliers && suppliers.length > 0) {
+        syncPromises.push(supabase.from('suppliers').upsert(suppliers, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('suppliers').delete().eq('user_id', session.user.id));
+      }
+
+      // Sync purchases
+      if (purchases && purchases.length > 0) {
+        syncPromises.push(supabase.from('purchases').upsert(purchases, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('purchases').delete().eq('user_id', session.user.id));
+      }
+
+      // Sync recipes
       if (recipes && recipes.length > 0) {
-        for (const recipe of recipes) {
-          const { error: recipeError } = await supabase
-            .from('hpp_recipes')
-            .upsert({
-              id: recipe.id,
-              user_id: session.user.id,
-              nama_resep: recipe.namaResep,
-              deskripsi: recipe.deskripsi,
-              porsi: recipe.porsi,
-              ingredients: JSON.parse(JSON.stringify(recipe.ingredients)),
-              biaya_tenaga_kerja: recipe.biayaTenagaKerja,
-              biaya_overhead: recipe.biayaOverhead,
-              margin_keuntungan: recipe.marginKeuntungan,
-              total_hpp: recipe.totalHPP,
-              hpp_per_porsi: recipe.hppPerPorsi,
-              harga_jual_per_porsi: recipe.hargaJualPerPorsi,
-            });
-
-          if (recipeError) {
-            console.error('Error syncing recipe:', recipeError);
-          }
-        }
+        syncPromises.push(supabase.from('hpp_recipes').upsert(recipes, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('hpp_recipes').delete().eq('user_id', session.user.id));
       }
 
-      // Sync orders to database
+      // Sync hpp_results
+      if (hppResults && hppResults.length > 0) {
+        syncPromises.push(supabase.from('hpp_results').upsert(hppResults, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('hpp_results').delete().eq('user_id', session.user.id));
+      }
+
+      // Sync activities
+      if (activities && activities.length > 0) {
+        // Activities might be append-only, consider insert or upsert based on your DB setup
+        // For simplicity, we'll upsert here. If you only insert, handle duplicates.
+        syncPromises.push(supabase.from('activities').upsert(activities, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('activities').delete().eq('user_id', session.user.id));
+      }
+
+      // Sync orders
       if (orders && orders.length > 0) {
-        for (const order of orders) {
-          const { error: orderError } = await supabase
-            .from('orders')
-            .upsert({
-              id: order.id,
-              user_id: session.user.id,
-              nomor_pesanan: order.nomorPesanan,
-              tanggal: order.tanggal.toISOString(),
-              nama_pelanggan: order.namaPelanggan,
-              email_pelanggan: order.emailPelanggan,
-              telepon_pelanggan: order.teleponPelanggan,
-              alamat_pengiriman: order.alamatPelanggan,
-              items: JSON.parse(JSON.stringify(order.items)),
-              total_pesanan: order.totalPesanan,
-              status: order.status,
-              catatan: order.catatan,
-            });
-
-          if (orderError) {
-            console.error('Error syncing order:', orderError);
-          }
-        }
+        syncPromises.push(supabase.from('orders').upsert(orders, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('orders').delete().eq('user_id', session.user.id));
       }
 
-      // Sync user settings
-      try {
-        const savedSettings = localStorage.getItem('appSettings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          const { error: settingsError } = await supabase
-            .from('user_settings')
-            .upsert({
-              user_id: session.user.id,
-              business_name: settings.businessName || 'Toko Roti Bahagia',
-              owner_name: settings.ownerName || 'John Doe',
-              email: settings.email,
-              phone: settings.phone,
-              address: settings.address,
-              currency: settings.currency || 'IDR',
-              language: settings.language || 'id',
-              notifications: settings.notifications || {
-                lowStock: true,
-                newOrder: true,
-                financial: false,
-                email: true,
-                push: false,
-              },
-              backup_settings: settings.backup || {
-                auto: false,
-                frequency: 'daily',
-                location: 'cloud',
-              },
-              security_settings: settings.security || {
-                twoFactor: false,
-                sessionTimeout: '30',
-                passwordRequirement: 'medium',
-              },
-            }, { onConflict: 'user_id' });
+      // Sync assets
+      if (assets && assets.length > 0) {
+        syncPromises.push(supabase.from('assets').upsert(assets, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('assets').delete().eq('user_id', session.user.id));
+      }
 
-          if (settingsError) {
-            console.error('Error syncing settings:', settingsError);
-          }
-        }
-      } catch (settingsError) {
-        console.error('Error processing settings sync:', settingsError);
+      // Sync financial_transactions
+      if (financialTransactions && financialTransactions.length > 0) {
+        syncPromises.push(supabase.from('financial_transactions').upsert(financialTransactions, { onConflict: 'id' }));
+      } else {
+        syncPromises.push(supabase.from('financial_transactions').delete().eq('user_id', session.user.id));
+      }
+
+      // Sync user settings (always upsert single record)
+      if (userSettings) {
+        syncPromises.push(supabase.from('user_settings').upsert(userSettings, { onConflict: 'user_id' }));
+      } else { // If userSettings is null/undefined, delete existing one for this user
+        syncPromises.push(supabase.from('user_settings').delete().eq('user_id', session.user.id));
+      }
+
+      // Execute all sync promises
+      const results = await Promise.all(syncPromises);
+      const hasError = results.some(res => res.error);
+
+      if (hasError) {
+        console.error('One or more sync operations failed:', results.filter(res => res.error));
+        toast.error('Gagal menyinkronkan data ke cloud (beberapa item mungkin gagal)');
+        return false;
       }
 
       toast.success('Data berhasil disinkronkan ke cloud');
       return true;
     } catch (error: any) {
-      console.error('Sync error:', error);
-      toast.error('Gagal menyinkronkan data ke cloud');
+      console.error('Sync to Supabase failed:', error);
+      toast.error(`Gagal menyinkronkan data ke cloud: ${error.message}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -205,23 +186,27 @@ export const useSupabaseSync = () => {
         supabase.from('activities').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50),
         supabase.from('orders').select('*').eq('user_id', session.user.id).order('tanggal', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
-        supabase.from('financial_transactions').select('*').eq('user_id', session.user.id).order('date', { ascending: false }),
+        supabase.from('financial_transactions').select('*').eq('user_id', session.user.id).order('tanggal', { ascending: false }), // MODIFIED: Order by 'tanggal'
         supabase.from('user_settings').select('*').eq('user_id', session.user.id).single()
       ]);
 
+      // Check for errors and throw if any critical error
       if (bahanBakuRes.error) throw bahanBakuRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
-      if (purchasesRes.error) throw purchasesRes.error;
+      if (purchasesRes.error) throw purchasesRes.res.error; // Fix: purchasesRes.res.error -> purchasesRes.error
       if (recipesRes.error) throw recipesRes.error;
       if (hppResultsRes.error) throw hppResultsRes.error;
       if (activitiesRes.error) throw activitiesRes.error;
       if (ordersRes.error) throw ordersRes.error;
       if (assetsRes.error) throw assetsRes.error;
       if (financialTransactionsRes.error) throw financialTransactionsRes.error;
+      // settingsRes might return PGRST116 (no rows found) which is okay, handle it below
 
-      // Load settings and save to localStorage
+      // Load settings and save to localStorage (handled by useUserSettings hook)
+      // We still return it as part of cloudData for AppDataContext to potentially use
+      let userSettingsData = null;
       if (settingsRes.data && !settingsRes.error) {
-        const cloudSettings = {
+        userSettingsData = {
           businessName: settingsRes.data.business_name,
           ownerName: settingsRes.data.owner_name,
           email: settingsRes.data.email,
@@ -232,9 +217,14 @@ export const useSupabaseSync = () => {
           notifications: settingsRes.data.notifications,
           backup: settingsRes.data.backup_settings,
           security: settingsRes.data.security_settings,
+          recipeCategories: settingsRes.data.recipe_categories || [], // MODIFIED: Load recipe_categories
         };
-        localStorage.setItem('appSettings', JSON.stringify(cloudSettings));
+        localStorage.setItem('appSettings', JSON.stringify(userSettingsData));
+      } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
+        console.error('Error loading user settings:', settingsRes.error);
+        toast.error(`Gagal memuat pengaturan pengguna: ${settingsRes.error.message}`);
       }
+
 
       const cloudData = {
         bahanBaku: bahanBakuRes.data?.map((item: any) => ({
@@ -247,6 +237,9 @@ export const useSupabaseSync = () => {
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier,
           tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
+          user_id: item.user_id, // Pastikan user_id juga dimuat
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         suppliers: suppliersRes.data?.map((item: any) => ({
           id: item.id,
@@ -256,6 +249,7 @@ export const useSupabaseSync = () => {
           telepon: item.telepon,
           alamat: item.alamat,
           catatan: item.catatan,
+          user_id: item.user_id, // Pastikan user_id juga dimuat
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -268,6 +262,9 @@ export const useSupabaseSync = () => {
           status: item.status,
           metodePerhitungan: item.metode_perhitungan,
           catatan: item.catatan,
+          user_id: item.user_id, // Pastikan user_id juga dimuat
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         recipes: recipesRes.data?.map((item: any) => ({
           id: item.id,
@@ -281,6 +278,8 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
+          category: item.category, // MODIFIED: Muat category
+          user_id: item.user_id, // Pastikan user_id juga dimuat
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -295,7 +294,10 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           jumlahPorsi: item.jumlah_porsi || 1,
-          timestamp: safeParseDate(item.created_at),
+          timestamp: safeParseDate(item.created_at), // timestamp is created_at from DB
+          user_id: item.user_id, // Pastikan user_id juga dimuat
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         activities: activitiesRes.data?.map((item: any) => ({
           id: item.id,
@@ -304,6 +306,9 @@ export const useSupabaseSync = () => {
           type: item.type,
           value: item.value,
           timestamp: safeParseDate(item.created_at),
+          user_id: item.user_id, // Pastikan user_id juga dimuat
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         orders: ordersRes.data?.map((item: any) => ({
           id: item.id,
@@ -314,38 +319,44 @@ export const useSupabaseSync = () => {
           teleponPelanggan: item.telepon_pelanggan,
           alamatPelanggan: item.alamat_pengiriman,
           items: item.items || [],
-          subtotal: parseFloat(item.total_pesanan) * 0.9 || 0,
-          pajak: parseFloat(item.total_pesanan) * 0.1 || 0,
+          subtotal: parseFloat(item.subtotal) || 0,
+          pajak: parseFloat(item.pajak) || 0,
           totalPesanan: parseFloat(item.total_pesanan) || 0,
           status: item.status,
           catatan: item.catatan,
+          user_id: item.user_id, // Pastikan user_id juga dimuat
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
-          kategori: item.kategori,
-          nilaiAwal: parseFloat(item.nilai_awal) || 0,
-          nilaiSekarang: parseFloat(item.nilai_sekarang) || 0,
-          tanggalBeli: item.tanggal_beli,
-          kondisi: item.kondisi,
-          lokasi: item.lokasi,
-          deskripsi: item.deskripsi,
-          depresiasi: parseFloat(item.depresiasi) || 0,
+          jenis: item.jenis,
+          nilai: parseFloat(item.nilai) || 0,
+          umurManfaat: parseFloat(item.umur_manfaat) || 0,
+          tanggalPembelian: safeParseDate(item.tanggal_pembelian),
+          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
+          nilaiSaatIni: parseFloat(item.nilai_saat_ini) || 0,
+          user_id: item.user_id,
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
-          type: item.type as 'income' | 'expense',
-          category: item.category,
-          amount: parseFloat(item.amount) || 0,
-          description: item.description,
-          date: safeParseDate(item.date),
-          createdAt: safeParseDate(item.created_at),
-        })) || []
+          tanggal: safeParseDate(item.tanggal),
+          jenis: item.jenis,
+          deskripsi: item.deskripsi,
+          jumlah: parseFloat(item.jumlah) || 0,
+          user_id: item.user_id,
+          created_at: safeParseDate(item.created_at),
+          updated_at: safeParseDate(item.updated_at),
+        })) || [],
+        userSettings: userSettingsData, // MODIFIED: Sertakan userSettings
       };
 
       console.log('Data loaded from cloud:', cloudData);
       toast.success('Data berhasil dimuat dari cloud');
-      return cloudData;
+      return cloudData; // PENTING: Kembalikan data yang dimuat
     } catch (error: any) {
       console.error('Load error:', error);
       toast.error('Gagal memuat data dari cloud');

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAppData } from '@/contexts/AppDataContext'; // MODIFIED: useAppData diimpor di sini
+// import { useAppData } from '@/contexts/AppDataContext'; // DIHAPUS: Tidak lagi memanggil useAppData di sini
 import { toast } from 'sonner';
 
 // MODIFIED: Tambahkan interface untuk data yang akan disinkronkan
@@ -20,27 +20,11 @@ interface SyncPayload {
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
   
-  // MODIFIED: useAppData dipanggil di luar try-catch untuk memastikan hook dipanggil di root komponen
-  // Namun, kita perlu memastikan AppDataProvider sudah ada di atasnya.
-  // Jika ini menyebabkan error "useAppData must be used within an AppDataProvider",
-  // maka Anda perlu memastikan AppDataProvider membungkus semua komponen yang menggunakan useSupabaseSync.
-  // Untuk tujuan ini, kita akan asumsikan AppDataProvider adalah parent yang tepat.
-  const appData = useAppData();
+  // MODIFIED: appData tidak lagi diambil dari useAppData di sini
+  // const { bahanBaku, purchases, recipes, hppResults, activities, orders } = appData;
 
-  const { 
-    bahanBaku, 
-    suppliers, // MODIFIED: Tambahkan suppliers
-    purchases, 
-    recipes, 
-    hppResults, 
-    activities,
-    orders,
-    assets, // MODIFIED: Tambahkan assets
-    financialTransactions, // MODIFIED: Tambahkan financialTransactions
-  } = appData;
-
-
-  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => { // MODIFIED: Menerima transformedPayload
+  // MODIFIED: syncToSupabase sekarang menerima transformedPayload sebagai argumen
+  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => { 
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -166,7 +150,8 @@ export const useSupabaseSync = () => {
     }
   };
 
-  const loadFromSupabase = async () => {
+  // MODIFIED: loadFromSupabase sekarang mengembalikan objek data lengkap
+  const loadFromSupabase = async (): Promise<SyncPayload | null> => { 
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -193,7 +178,7 @@ export const useSupabaseSync = () => {
       // Check for errors and throw if any critical error
       if (bahanBakuRes.error) throw bahanBakuRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
-      if (purchasesRes.error) throw purchasesRes.res.error; // Fix: purchasesRes.res.error -> purchasesRes.error
+      if (purchasesRes.error) throw purchasesRes.error; 
       if (recipesRes.error) throw recipesRes.error;
       if (hppResultsRes.error) throw hppResultsRes.error;
       if (activitiesRes.error) throw activitiesRes.error;
@@ -219,14 +204,14 @@ export const useSupabaseSync = () => {
           security: settingsRes.data.security_settings,
           recipeCategories: settingsRes.data.recipe_categories || [], // MODIFIED: Load recipe_categories
         };
-        localStorage.setItem('appSettings', JSON.stringify(userSettingsData));
+        // localStorage.setItem('appSettings', JSON.stringify(userSettingsData)); // DIHAPUS: useUserSettings akan mengelola localStorage-nya sendiri
       } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
         console.error('Error loading user settings:', settingsRes.error);
         toast.error(`Gagal memuat pengaturan pengguna: ${settingsRes.error.message}`);
       }
 
 
-      const cloudData = {
+      const cloudData: SyncPayload = { // MODIFIED: Tentukan tipe cloudData
         bahanBaku: bahanBakuRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,

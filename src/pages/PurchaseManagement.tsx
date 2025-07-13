@@ -434,7 +434,7 @@ const PurchaseManagement = () => {
         {/* Purchase List */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm w-full">
           <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg p-3 sm:p-4">
-            <CardTitle className="text-sm sm:text-lg lg:text-xl">Daftar Pembelian</CardTitle>
+            <CardTitle className="text-sm sm:text-lg lg:text-xl">Daftar Pembelian Bahan Baku</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto w-full">

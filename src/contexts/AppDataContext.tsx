@@ -2,20 +2,21 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import { toast } from 'sonner'; // Import toast for notifications
+import { useSupabaseSync } from '@/hooks/useSupabaseSync'; // MODIFIED: Import useSupabaseSync hook
 
+// MODIFIED: BahanBaku interface tetap camelCase, ini adalah representasi data di aplikasi/state
 export interface BahanBaku {
   id: string;
   nama: string;
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number;
+  hargaSatuan: number; // Tetap camelCase di interface
   minimum: number;
   supplier: string;
-  tanggalKadaluwarsa?: Date;
+  tanggalKadaluwarsa?: Date; // Tetap camelCase di interface
 }
 
 export interface Purchase {
@@ -59,6 +60,8 @@ export interface HPPResult {
   timestamp: Date;
 }
 
+// MODIFIED: Tambahkan interface untuk Asset dan FinancialTransaction jika belum ada di types/recipe.ts
+// Asumsi ini adalah representasi camelCase dari kolom DB.
 export interface Asset {
   id: string;
   nama: string;
@@ -347,20 +350,20 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           purchases.length === 0 && 
           recipes.length === 0 && 
           orders.length <= 2 &&
-          assets.length === 0 && // MODIFIED: Cek assets
-          financialTransactions.length === 0 // MODIFIED: Cek financialTransactions
+          assets.length === 0 && 
+          financialTransactions.length === 0 
           ) { 
         console.log('Local data appears empty, attempting to load from cloud...');
-        const loadedData = await externalLoadFromCloud(); // Menggunakan externalLoadFromCloud
+        const loadedData = await externalLoadFromCloud(); 
         if (loadedData) {
-          replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
+          replaceAllData(loadedData); 
         }
       }
     };
 
     const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
-  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]); // MODIFIED: Tambahkan dependensi
+  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]);
 
 
   // Save to localStorage whenever data changes
@@ -393,11 +396,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [orders]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ASSETS, assets); // MODIFIED: Save assets
+    saveToStorage(STORAGE_KEYS.ASSETS, assets); 
   }, [assets]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); // MODIFIED: Save financialTransactions
+    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); 
   }, [financialTransactions]);
 
   useEffect(() => {
@@ -484,6 +487,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
 
   // Enhanced manual cloud sync functions
+  // MODIFIED: Implementasi syncToCloud baru
   const syncToCloud = async (): Promise<boolean> => {
     if (!cloudSyncEnabled) return false;
     
@@ -496,115 +500,69 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       console.log('Syncing to cloud...');
 
-      // MODIFIED: Transform data from camelCase to snake_case before sending
+      // Kumpulkan semua data state lokal ke dalam payload
       const transformedPayload = {
         bahanBaku: bahanBaku.map(item => ({
-          id: item.id,
-          nama: item.nama,
-          kategori: item.kategori,
-          stok: item.stok,
-          satuan: item.satuan,
-          minimum: item.minimum,
-          harga_satuan: item.hargaSatuan, // Transform hargaSatuan to harga_satuan
-          supplier: item.supplier,
-          tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, // Transform tanggalKadaluwarsa to tanggal_kadaluwarsa
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, nama: item.nama, kategori: item.kategori, stok: item.stok, satuan: item.satuan,
+          minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier,
+          tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(), // Tambahkan created_at/updated_at dari item
         })),
         suppliers: suppliers.map(item => ({
-          ...item,
-          created_at: item.createdAt?.toISOString(),
-          updated_at: item.updatedAt?.toISOString(),
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon,
+          alamat: item.alamat, catatan: item.catatan, user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
         purchases: purchases.map(item => ({
-          ...item,
-          total_nilai: item.totalNilai,
-          metode_perhitungan: item.metodePerhitungan,
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, tanggal: item.tanggal.toISOString(), supplier: item.supplier, items: item.items,
+          total_nilai: item.totalNilai, metode_perhitungan: item.metodePerhitungan, catatan: item.catatan,
+          user_id: session.user.id, created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
         recipes: recipes.map(item => ({
-          id: item.id,
-          nama_resep: item.namaResep,
-          deskripsi: item.deskripsi,
-          porsi: item.porsi,
-          ingredients: item.ingredients,
-          biaya_tenaga_kerja: item.biayaTenagaKerja,
-          biaya_overhead: item.biayaOverhead,
-          total_hpp: item.totalHPP,
-          hpp_per_porsi: item.hppPerPorsi,
-          margin_keuntungan: item.marginKeuntungan,
-          harga_jual_per_porsi: item.hargaJualPerPorsi,
-          created_at: item.createdAt?.toISOString(),
-          updated_at: item.updatedAt?.toISOString(),
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, nama_resep: item.namaResep, deskripsi: item.deskripsi, porsi: item.porsi,
+          ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja,
+          biaya_overhead: item.biayaOverhead, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi,
+          margin_keuntungan: item.marginKeuntungan, harga_jual_per_porsi: item.hargaJualPerPorsi,
+          category: item.category, // Tambahkan category
+          user_id: session.user.id, created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
         hppResults: hppResults.map(item => ({
-          ...item,
-          biaya_tenaga_kerja: item.biayaTenagaKerja,
-          biaya_overhead: item.biayaOverhead,
-          margin_keuntungan: item.marginKeuntungan,
-          total_hpp: item.totalHPP,
-          hpp_per_porsi: item.hppPerPorsi,
-          harga_jual_per_porsi: item.hargaJualPerPorsi,
-          jumlah_porsi: item.jumlahPorsi,
-          created_at: item.timestamp.toISOString(),
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, nama: item.nama, ingredients: item.ingredients,
+          biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead,
+          margin_keuntungan: item.marginKeuntungan, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi,
+          harga_jual_per_porsi: item.hargaJualPerPorsi, jumlah_porsi: item.jumlahPorsi,
+          created_at: item.timestamp.toISOString(), user_id: session.user.id,
         })),
         activities: activities.map(item => ({
-          ...item,
-          created_at: item.timestamp.toISOString(),
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, title: item.title, description: item.description, type: item.type, value: item.value,
+          created_at: item.timestamp.toISOString(), user_id: session.user.id,
         })),
         orders: orders.map(item => ({
-          id: item.id,
-          nomor_pesanan: item.nomorPesanan,
-          tanggal: item.tanggal.toISOString(),
-          nama_pelanggan: item.namaPelanggan,
-          email_pelanggan: item.emailPelanggan,
-          telepon_pelanggan: item.teleponPelanggan,
-          alamat_pengiriman: item.alamatPelanggan,
-          items: item.items,
-          subtotal: item.subtotal,
-          pajak: item.pajak,
-          total_pesanan: item.totalPesanan,
-          status: item.status,
-          catatan: item.catatan,
-          user_id: session.user.id // Tambahkan user_id
+          id: item.id, nomor_pesanan: item.nomorPesanan, tanggal: item.tanggal.toISOString(),
+          nama_pelanggan: item.namaPelanggan, email_pelanggan: item.emailPelanggan,
+          telepon_pelanggan: item.teleponPelanggan, alamat_pengiriman: item.alamatPelanggan,
+          items: item.items, subtotal: item.subtotal, pajak: item.pajak,
+          total_pesanan: item.totalPesanan, status: item.status, catatan: item.catatan, user_id: session.user.id,
+          created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
-        assets: assets.map(item => ({ // MODIFIED: Transform assets
-          id: item.id,
-          nama: item.nama,
-          jenis: item.jenis,
-          nilai: item.nilai,
-          umur_manfaat: item.umurManfaat, // Transform
-          tanggal_pembelian: item.tanggalPembelian.toISOString(), // Transform
-          penyusutan_per_bulan: item.penyusutanPerBulan, // Transform
-          nilai_saat_ini: item.nilaiSaatIni, // Transform
-          user_id: session.user.id,
-          created_at: item.created_at?.toISOString(),
-          updated_at: item.updated_at?.toISOString(),
+        assets: assets.map(item => ({
+          id: item.id, nama: item.nama, jenis: item.jenis, nilai: item.nilai,
+          umur_manfaat: item.umurManfaat, tanggal_pembelian: item.tanggalPembelian.toISOString(),
+          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_saat_ini: item.nilaiSaatIni,
+          user_id: session.user.id, created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
-        financialTransactions: financialTransactions.map(item => ({ // MODIFIED: Transform financialTransactions
-          id: item.id,
-          tanggal: item.tanggal.toISOString(),
-          jenis: item.jenis,
-          deskripsi: item.deskripsi,
-          jumlah: item.jumlah,
-          user_id: session.user.id,
-          created_at: item.created_at?.toISOString(),
-          updated_at: item.updated_at?.toISOString(),
+        financialTransactions: financialTransactions.map(item => ({
+          id: item.id, tanggal: item.tanggal.toISOString(), jenis: item.jenis,
+          deskripsi: item.deskripsi, jumlah: item.jumlah, user_id: session.user.id,
+          created_at: item.created_at?.toISOString(), updated_at: item.updated_at?.toISOString(),
         })),
       };
 
-      // MODIFIED: Panggil externalSyncToCloud dari useSupabaseSync
       const success = await externalSyncToCloud(transformedPayload);
       if (!success) {
-        // toast.error sudah ditangani di useSupabaseSync
         return false;
       }
-
       console.log('Sync successful, data is now on cloud and local state will update via realtime/loadFromCloud.');
-      // toast.success sudah ditangani di useSupabaseSync
       return true;
     } catch (error) {
       console.error('Sync to cloud failed in AppDataContext:', error);
@@ -613,25 +571,22 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // MODIFIED: Implementasi loadFromCloud baru
   const loadFromCloud = async (): Promise<void> => {
     if (!cloudSyncEnabled) return;
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // Error toast handled by externalLoadFromCloud
         return;
       }
 
       console.log('Loading from cloud via AppDataContext...');
 
-      // MODIFIED: Panggil externalLoadFromCloud dari useSupabaseSync
       const loadedData = await externalLoadFromCloud(); 
       if (loadedData) {
-        replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
-        toast.success('Data berhasil dimuat dari cloud!'); // Toast success di sini setelah replaceAllData
-      } else {
-        // Toast error handled by externalLoadFromCloud
+        replaceAllData(loadedData); 
+        toast.success('Data berhasil dimuat dari cloud!');
       }
     } catch (error) {
       console.error('Load from cloud failed in AppDataContext:', error);
@@ -647,9 +602,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (data.hppResults) setHppResults(data.hppResults);
     if (data.activities) setActivities(data.activities);
     if (data.orders) setOrders(data.orders);
-    if (data.assets) setAssets(data.assets); // MODIFIED: setAssets
-    if (data.financialTransactions) setFinancialTransactions(data.financialTransactions); // MODIFIED: setFinancialTransactions
-    // user_settings dikelola oleh useUserSettings hook tersendiri, tidak di-set di sini
+    if (data.assets) setAssets(data.assets);
+    if (data.financialTransactions) setFinancialTransactions(data.financialTransactions);
     console.log("User settings will be loaded by useUserSettings hook directly.");
   };
 

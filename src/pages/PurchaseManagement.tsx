@@ -489,10 +489,10 @@ const PurchaseManagement = () => {
           <Card className="text-center p-6 sm:p-8 lg:p-12 shadow-lg border-0 bg-white/60 backdrop-blur-sm w-full">
             <Package className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-700 mb-2">
-              {searchTerm ? 'Pembelian tidak ditemukan' : 'Belum ada pembelian'}
+              {searchTerm ? 'Pembelian tidak ditemukan' : 'Belum ada pembelian bahan baku'}
             </h3>
             <p className="text-xs sm:text-sm lg:text-base text-gray-500 mb-4">
-              {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan pembelian pertama'}
+              {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan pembelian bahan baku pertama'}
             </p>
             {!searchTerm && (
               <Button

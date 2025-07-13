@@ -2,21 +2,20 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
-import { toast } from 'sonner'; // Import toast for notifications
-import { useSupabaseSync } from '@/hooks/useSupabaseSync'; // MODIFIED: Import useSupabaseSync hook
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 
-// MODIFIED: BahanBaku interface tetap camelCase, ini adalah representasi data di aplikasi/state
 export interface BahanBaku {
   id: string;
   nama: string;
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number; // Tetap camelCase di interface
+  hargaSatuan: number;
   minimum: number;
   supplier: string;
-  tanggalKadaluwarsa?: Date; // Tetap camelCase di interface
+  tanggalKadaluwarsa?: Date;
 }
 
 export interface Purchase {
@@ -60,8 +59,6 @@ export interface HPPResult {
   timestamp: Date;
 }
 
-// MODIFIED: Tambahkan interface untuk Asset dan FinancialTransaction jika belum ada di types/recipe.ts
-// Asumsi ini adalah representasi camelCase dari kolom DB.
 export interface Asset {
   id: string;
   nama: string;
@@ -182,8 +179,8 @@ const STORAGE_KEYS = {
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
   CLOUD_SYNC: 'hpp_app_cloud_sync',
-  ASSETS: 'hpp_app_assets', // MODIFIED: Tambahkan assets
-  FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions', // MODIFIED: Tambahkan financial_transactions
+  ASSETS: 'hpp_app_assets',
+  FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
 // Helper function to generate UUID
@@ -848,14 +845,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setSuppliers(prev => prev.filter(s => s.id !== id));
     await syncToCloud();
-    if (supplier) {
-      addActivity({
-        title: 'Supplier Dihapus',
-        description: `${supplier.nama} telah dihapus`,
-        type: 'supplier',
-      });
-      toast.success(`${supplier.nama} berhasil dihapus!`);
-    }
+    toast.success(`Supplier berhasil dihapus!`);
   };
 
   // Purchase functions
@@ -1094,7 +1084,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await syncToCloud();
     addActivity({
       title: 'HPP Dihitung',
-      description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString()}/porsi`,
+      description: `HPP ${result.hppPerPorsi.toLocaleString()}/porsi`, // MODIFIED: Sesuaikan deskripsi
       type: 'hpp',
       value: `HPP: Rp ${result.hppPerPorsi.toLocaleString()}`
     });

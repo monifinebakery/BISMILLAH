@@ -4,7 +4,166 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // MODIFIED: Tambahkan interface untuk data yang akan disinkronkan
+// Ini adalah representasi data setelah di-transform ke snake_case untuk dikirim ke DB
+interface TransformedBahanBaku {
+  id: string;
+  nama: string;
+  kategori: string;
+  stok: number;
+  satuan: string;
+  minimum: number;
+  harga_satuan: number; // snake_case
+  supplier: string;
+  tanggal_kadaluwarsa: string | null; // snake_case
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedSupplier {
+  id: string;
+  nama: string;
+  kontak: string;
+  email: string;
+  telepon: string;
+  alamat: string;
+  catatan?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedPurchase {
+  id: string;
+  tanggal: string;
+  supplier: string;
+  items: any[]; // Sesuaikan jika ada interface OrderItem di DB
+  total_nilai: number; // snake_case
+  metode_perhitungan: string; // snake_case
+  catatan?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedRecipe {
+  id: string;
+  nama_resep: string; // snake_case
+  deskripsi: string;
+  porsi: number;
+  ingredients: any[]; // Sesuaikan jika ada interface RecipeIngredient di DB
+  biaya_tenaga_kerja: number; // snake_case
+  biaya_overhead: number; // snake_case
+  total_hpp: number; // snake_case
+  hpp_per_porsi: number; // snake_case
+  margin_keuntungan: number; // snake_case
+  harga_jual_per_porsi: number; // snake_case
+  category: string; // snake_case (juga di app, tapi ini kolom DB)
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedHPPResult {
+  id: string;
+  nama: string;
+  ingredients: any[]; // Sesuaikan jika ada interface RecipeIngredient di DB
+  biaya_tenaga_kerja: number; // snake_case
+  biaya_overhead: number; // snake_case
+  margin_keuntungan: number; // snake_case
+  total_hpp: number; // snake_case
+  hpp_per_porsi: number; // snake_case
+  harga_jual_per_porsi: number; // snake_case
+  jumlah_porsi: number; // snake_case
+  user_id: string;
+  created_at: string;
+}
+
+interface TransformedActivity {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  value?: string;
+  user_id: string;
+  created_at: string;
+}
+
+interface TransformedOrder {
+  id: string;
+  nomor_pesanan: string; // snake_case
+  tanggal: string;
+  nama_pelanggan: string; // snake_case
+  email_pelanggan: string; // snake_case
+  telepon_pelanggan: string; // snake_case
+  alamat_pengiriman: string; // snake_case
+  items: any[]; // Sesuaikan jika ada interface OrderItem di DB
+  subtotal: number;
+  pajak: number;
+  total_pesanan: number; // snake_case
+  status: string;
+  catatan?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedAsset {
+  id: string;
+  nama: string;
+  jenis: string; // DB: jenis
+  nilai_awal: number; // DB: nilai_awal (local: nilai)
+  umur_manfaat: number; // DB: umur_manfaat (local: umurManfaat)
+  tanggal_pembelian: string; // DB: tanggal_pembelian (local: tanggalPembelian)
+  penyusutan_per_bulan: number; // DB: penyusutan_per_bulan (local: penyusutanPerBulan)
+  nilai_sekarang: number; // DB: nilai_sekarang (local: nilaiSaatIni)
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedFinancialTransaction {
+  id: string;
+  tanggal: string;
+  type: string; // DB: type (local: jenis)
+  deskripsi: string;
+  amount: number; // DB: amount (local: jumlah)
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedUserSettings {
+  user_id: string;
+  business_name: string;
+  owner_name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  currency: string;
+  language: string;
+  notifications: any;
+  backup_settings: any;
+  security_settings: any;
+  recipe_categories: string[];
+}
+
+
 interface SyncPayload {
+  bahanBaku: TransformedBahanBaku[];
+  suppliers: TransformedSupplier[];
+  purchases: TransformedPurchase[];
+  recipes: TransformedRecipe[];
+  hppResults: TransformedHPPResult[];
+  activities: TransformedActivity[];
+  orders: TransformedOrder[];
+  assets: TransformedAsset[];
+  financialTransactions: TransformedFinancialTransaction[];
+  userSettings?: TransformedUserSettings;
+}
+
+// MODIFIED: Interface untuk data yang dimuat dari Supabase (camelCase)
+interface LoadedData {
   bahanBaku: any[];
   suppliers: any[];
   purchases: any[];
@@ -14,15 +173,13 @@ interface SyncPayload {
   orders: any[];
   assets: any[];
   financialTransactions: any[];
-  userSettings?: any; // user_settings mungkin tidak selalu ada di payload ini
+  userSettings?: any;
 }
+
 
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
   
-  // MODIFIED: appData tidak lagi diambil dari useAppData di sini
-  // const { bahanBaku, purchases, recipes, hppResults, activities, orders } = appData;
-
   // MODIFIED: syncToSupabase sekarang menerima transformedPayload sebagai argumen
   const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => { 
     setIsLoading(true);
@@ -151,7 +308,7 @@ export const useSupabaseSync = () => {
   };
 
   // MODIFIED: loadFromSupabase sekarang mengembalikan objek data lengkap
-  const loadFromSupabase = async (): Promise<SyncPayload | null> => { 
+  const loadFromSupabase = async (): Promise<LoadedData | null> => { 
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -211,7 +368,7 @@ export const useSupabaseSync = () => {
       }
 
 
-      const cloudData: SyncPayload = { // MODIFIED: Tentukan tipe cloudData
+      const cloudData: LoadedData = { // MODIFIED: Tentukan tipe cloudData
         bahanBaku: bahanBakuRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
@@ -223,8 +380,8 @@ export const useSupabaseSync = () => {
           supplier: item.supplier,
           tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         suppliers: suppliersRes.data?.map((item: any) => ({
           id: item.id,
@@ -316,25 +473,25 @@ export const useSupabaseSync = () => {
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
-          jenis: item.jenis,
-          nilai: parseFloat(item.nilai) || 0,
-          umurManfaat: parseFloat(item.umur_manfaat) || 0,
-          tanggalPembelian: safeParseDate(item.tanggal_pembelian),
-          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
-          nilaiSaatIni: parseFloat(item.nilai_saat_ini) || 0,
+          jenis: item.jenis, // DB: jenis (local: jenis)
+          nilai: parseFloat(item.nilai_awal) || 0, // MODIFIED: nilai_awal -> nilai
+          umurManfaat: parseFloat(item.umur_manfaat) || 0, // MODIFIED: umur_manfaat -> umurManfaat
+          tanggalPembelian: safeParseDate(item.tanggal_pembelian), // MODIFIED: tanggal_pembelian -> tanggalPembelian
+          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // MODIFIED: penyusutan_per_bulan -> penyusutanPerBulan
+          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // MODIFIED: nilai_sekarang -> nilaiSaatIni
           user_id: item.user_id,
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
           tanggal: safeParseDate(item.tanggal),
-          jenis: item.jenis,
+          jenis: item.type, // MODIFIED: type -> jenis
           deskripsi: item.deskripsi,
-          jumlah: parseFloat(item.jumlah) || 0,
+          jumlah: parseFloat(item.amount) || 0, // MODIFIED: amount -> jumlah
           user_id: item.user_id,
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         userSettings: userSettingsData, // MODIFIED: Sertakan userSettings
       };

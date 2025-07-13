@@ -331,10 +331,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     ])
   );
-  const [assets, setAssets] = useState<Asset[]>(() => 
+  const [assets, setAssets] = useState<Asset[]>(() => // MODIFIED: Tambahkan state assets
     loadFromStorage(STORAGE_KEYS.ASSETS, [])
   );
-  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
+  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => // MODIFIED: Tambahkan state financialTransactions
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   );
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() => 
@@ -350,20 +350,21 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           purchases.length === 0 && 
           recipes.length === 0 && 
           orders.length <= 2 &&
-          assets.length === 0 && 
-          financialTransactions.length === 0 
+          assets.length === 0 && // MODIFIED: Cek assets
+          financialTransactions.length === 0 // MODIFIED: Cek financialTransactions
           ) { 
         console.log('Local data appears empty, attempting to load from cloud...');
-        const loadedData = await externalLoadFromCloud(); // Menggunakan externalLoadFromCloud
-        if (loadedData) {
-          replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
-        }
+        await externalLoadFromCloud().then(loadedData => { // Menggunakan externalLoadFromCloud
+          if (loadedData) {
+            replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
+          }
+        });
       }
     };
 
     const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
-  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]);
+  }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]); // MODIFIED: Tambahkan dependensi
 
 
   // Save to localStorage whenever data changes
@@ -396,11 +397,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [orders]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ASSETS, assets); 
+    saveToStorage(STORAGE_KEYS.ASSETS, assets); // MODIFIED: Save assets
   }, [assets]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); 
+    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); // MODIFIED: Save financialTransactions
   }, [financialTransactions]);
 
   useEffect(() => {

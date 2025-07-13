@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
 import { useAppData } from '@/contexts/AppDataContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Tetap import supabase jika digunakan di tempat lain
 
 interface Notification {
   id: string;
@@ -41,8 +41,8 @@ const NotificationBell = () => {
       title: activity.title,
       message: activity.description,
       type: activity.type === 'hpp' ? 'success' : 
-            activity.type === 'stok' ? 'info' : 
-            activity.type === 'resep' ? 'info' : 'info',
+             activity.type === 'stok' ? 'info' : 
+             activity.type === 'resep' ? 'info' : 'info',
       read: false,
       timestamp: activity.timestamp,
     }));
@@ -55,52 +55,50 @@ const NotificationBell = () => {
     setNotifications(allNotifications);
   }, [bahanBaku, activities]);
 
-  // Setup realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('notification-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bahan_baku'
-        },
-        (payload) => {
-          console.log('Realtime update:', payload);
-          // MODIFIED: Ganti reload dengan pembaruan data langsung dari cloud
-          loadFromCloud();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('New order update:', payload);
-          // Add new order notification
-          if (payload.eventType === 'INSERT') {
-            const newNotification: Notification = {
-              id: `order-${payload.new.id}`,
-              title: 'Pesanan Baru',
-              message: `Pesanan dari ${payload.new.nama_pelanggan}`,
-              type: 'info',
-              read: false,
-              timestamp: new Date(),
-            };
-            setNotifications(prev => [newNotification, ...prev].slice(0, 10));
-          }
-        }
-      )
-      .subscribe();
+  // MODIFIED: Hapus seluruh blok useEffect yang berisi supabase.channel('notification-updates').on(...)
+  // useEffect(() => {
+  //   const channel = supabase
+  //     .channel('notification-updates')
+  //     .on(
+  //       'postgres_changes',
+  //       {
+  //         event: '*',
+  //         schema: 'public',
+  //         table: 'bahan_baku'
+  //       },
+  //       (payload) => {
+  //         console.log('Realtime update:', payload);
+  //         loadFromCloud();
+  //       }
+  //     )
+  //     .on(
+  //       'postgres_changes',
+  //       {
+  //         event: '*',
+  //         schema: 'public',
+  //         table: 'orders'
+  //       },
+  //       (payload) => {
+  //         console.log('New order update:', payload);
+  //         if (payload.eventType === 'INSERT') {
+  //           const newNotification: Notification = {
+  //             id: `order-${payload.new.id}`,
+  //             title: 'Pesanan Baru',
+  //             message: `Pesanan dari ${payload.new.nama_pelanggan}`,
+  //             type: 'info',
+  //             read: false,
+  //             timestamp: new Date(),
+  //           };
+  //           setNotifications(prev => [newNotification, ...prev].slice(0, 10));
+  //         }
+  //       }
+  //     )
+  //     .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [loadFromCloud]); // MODIFIED: Menambahkan loadFromCloud sebagai dependensi
+  //   return () => {
+  //     supabase.removeChannel(channel);
+  //   };
+  // }, [loadFromCloud]); // loadFromCloud tidak lagi menjadi dependensi di useEffect ini
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -187,8 +185,8 @@ const NotificationBell = () => {
                     </div>
                     <Badge variant={getTypeColor(notification.type)} className="ml-2 text-xs">
                       {notification.type === 'warning' ? 'Peringatan' :
-                       notification.type === 'error' ? 'Error' :
-                       notification.type === 'success' ? 'Berhasil' : 'Info'}
+                        notification.type === 'error' ? 'Error' :
+                        notification.type === 'success' ? 'Berhasil' : 'Info'}
                     </Badge>
                   </div>
                 </div>

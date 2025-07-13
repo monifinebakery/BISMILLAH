@@ -351,11 +351,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           financialTransactions.length === 0 // MODIFIED: Cek financialTransactions
           ) { 
         console.log('Local data appears empty, attempting to load from cloud...');
-        await externalLoadFromCloud().then(loadedData => { // Menggunakan externalLoadFromCloud
-          if (loadedData) {
-            replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
-          }
-        });
+        const loadedData = await externalLoadFromCloud(); // Menggunakan externalLoadFromCloud
+        if (loadedData) {
+          replaceAllData(loadedData); // Perbarui state lokal dengan data yang dimuat
+        }
       }
     };
 
@@ -1084,7 +1083,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await syncToCloud();
     addActivity({
       title: 'HPP Dihitung',
-      description: `HPP ${result.hppPerPorsi.toLocaleString()}/porsi`, // MODIFIED: Sesuaikan deskripsi
+      description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString()}/porsi`,
       type: 'hpp',
       value: `HPP: Rp ${result.hppPerPorsi.toLocaleString()}`
     });

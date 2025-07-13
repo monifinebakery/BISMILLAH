@@ -17,6 +17,8 @@ export interface BahanBaku {
   minimum: number;
   supplier: string;
   tanggalKadaluwarsa?: Date; // Tetap camelCase di interface
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 export interface Purchase {
@@ -35,6 +37,8 @@ export interface Purchase {
   status: 'pending' | 'completed' | 'cancelled';
   metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
   catatan?: string;
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 export interface Activity {
@@ -44,6 +48,8 @@ export interface Activity {
   timestamp: Date;
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
   value?: string;
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 export interface HPPResult {
@@ -58,6 +64,8 @@ export interface HPPResult {
   hargaJualPerPorsi: number;
   jumlahPorsi: number;
   timestamp: Date;
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 // MODIFIED: Tambahkan interface untuk Asset dan FinancialTransaction jika belum ada di types/recipe.ts
@@ -72,8 +80,8 @@ export interface Asset {
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
   user_id?: string;
-  created_at?: Date;
-  updated_at?: Date;
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 export interface FinancialTransaction {
@@ -83,8 +91,8 @@ export interface FinancialTransaction {
   deskripsi: string;
   jumlah: number;
   user_id?: string;
-  created_at?: Date;
-  updated_at?: Date;
+  createdAt?: Date; // MODIFIED: Tambahkan
+  updatedAt?: Date; // MODIFIED: Tambahkan
 }
 
 
@@ -178,6 +186,7 @@ const STORAGE_KEYS = {
   SUPPLIERS: 'hpp_app_suppliers',
   PURCHASES: 'hpp_app_purchases',
   RECIPES: 'hpp_app_recipes',
+  PRIMARY_RECIPES: 'hpp_app_primary_recipes', // Tambahkan jika ada
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
@@ -331,10 +340,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     ])
   );
-  const [assets, setAssets] = useState<Asset[]>(() => // MODIFIED: Tambahkan state assets
+  const [assets, setAssets] = useState<Asset[]>(() => 
     loadFromStorage(STORAGE_KEYS.ASSETS, [])
   );
-  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => // MODIFIED: Tambahkan state financialTransactions
+  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   );
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() => 
@@ -487,7 +496,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
 
   // Enhanced manual cloud sync functions
-  // MODIFIED: Implementasi syncToCloud baru
   const syncToCloud = async (): Promise<boolean> => {
     if (!cloudSyncEnabled) return false;
     
@@ -571,7 +579,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // MODIFIED: Implementasi loadFromCloud baru
   const loadFromCloud = async (): Promise<void> => {
     if (!cloudSyncEnabled) return;
     

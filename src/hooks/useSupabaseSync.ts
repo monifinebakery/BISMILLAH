@@ -326,7 +326,7 @@ export const useSupabaseSync = () => {
         supabase.from('hpp_recipes').select('*').eq('user_id', session.user.id),
         supabase.from('hpp_results').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
         supabase.from('activities').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50),
-        supabase.from('orders').select('*').eq('user_id', session.user.id).order('date', { ascending: false }),
+        supabase.from('orders').select('*').eq('user_id', session.user.id).order('tanggal', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
         supabase.from('financial_transactions').select('*').eq('user_id', session.user.id).order('date', { ascending: false }), // MODIFIED: Order by 'tanggal'
         supabase.from('user_settings').select('*').eq('user_id', session.user.id).single()

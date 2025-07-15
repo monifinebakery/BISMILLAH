@@ -5,7 +5,7 @@ import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MenuExportButtonProps {
-  data: any[]; // Data yang akan diekspor, diterima sebagai prop
+  data: any[];
   filename: string;
   menuType: string;
 }
@@ -19,16 +19,15 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       }
 
       let content = `LAPORAN ${menuType.toUpperCase()}\n`;
-      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n\n`;
+      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n`;
+      content += `Total Records: ${data.length}\n\n`;
       
       data.forEach((item, index) => {
         content += `${index + 1}. `;
         Object.entries(item).forEach(([key, value]) => {
-          // MODIFIED: Sertakan created_at dan updated_at di PDF/Text
-          // Pastikan juga properti Date di-handle dengan benar
           if (!['id', 'user_id'].includes(key)) { 
             let displayValue = value;
-            if (value instanceof Date) { // Handle Date objects
+            if (value instanceof Date) {
               displayValue = value.toISOString();
             } else if (typeof value === 'object' && value !== null) {
               displayValue = JSON.stringify(value);
@@ -49,7 +48,7 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success(`Data ${menuType} berhasil diekspor sebagai PDF/Text`);
+      toast.success('Data berhasil diekspor sebagai PDF/Text');
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Gagal mengekspor data');
@@ -63,10 +62,11 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
         return;
       }
 
+      const CSV_DELIMITER = ';'; // MODIFIED: Gunakan titik koma sebagai pemisah CSV
+
       // Collect all unique keys from all objects in the data array
       const allKeys = new Set<string>();
       data.forEach(item => {
-        // MODIFIED: Sertakan semua kunci kecuali 'id' dan 'user_id'
         Object.keys(item).forEach(key => {    
           if (!['id', 'user_id'].includes(key)) { 
             allKeys.add(key);
@@ -79,7 +79,14 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       
       // Create CSV content with all headers
       const csvContent = [
-        headers.join(','),
+        headers.map(header => {
+          // Escape header if it contains delimiter or quotes
+          let headerValue = header;
+          if (headerValue.includes(CSV_DELIMITER) || headerValue.includes('"') || headerValue.includes('\n') || headerValue.includes('\r')) {
+            headerValue = `"${headerValue.replace(/"/g, '""')}"`;
+          }
+          return headerValue;
+        }).join(CSV_DELIMITER), // MODIFIED: Gunakan CSV_DELIMITER
         ...data.map(item => 
           headers.map(header => {
             let value = item[header];
@@ -88,23 +95,23 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
             if (value === null || value === undefined) {
               value = '';
             } 
-            // MODIFIED: Tangani objek Date secara spesifik: konversi ke string ISO
+            // Handle Date objects specifically: convert to ISO string
             else if (value instanceof Date) {
               value = value.toISOString();
             } 
-            // Tangani objek kompleks lainnya (seperti array, objek bersarang) dengan stringify
+            // Handle other complex objects (like arrays, nested objects) by stringifying
             else if (typeof value === 'object') {
               value = JSON.stringify(value);
             }
             
-            // Terapkan escaping CSV: sertakan dalam tanda kutip ganda jika berisi koma, tanda kutip ganda, atau baris baru
-            // Dan gandakan tanda kutip ganda internal
-            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
+            // Apply CSV escaping: enclose in double quotes if it contains delimiter, double quotes, or newlines
+            // And double internal double quotes
+            if (typeof value === 'string' && (value.includes(CSV_DELIMITER) || value.includes('"') || value.includes('\n') || value.includes('\r'))) { // MODIFIED: Gunakan CSV_DELIMITER
               value = `"${value.replace(/"/g, '""')}"`;
             }
             
             return value;
-          }).join(',')
+          }).join(CSV_DELIMITER) // MODIFIED: Gunakan CSV_DELIMITER
         )
       ].join('\n');
       

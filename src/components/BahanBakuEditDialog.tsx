@@ -3,17 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { BahanBaku } from "@/types/recipe"; // Pastikan BahanBaku interface mencakup harga_satuan (snake_case) dan tanggal_kadaluwarsa (snake_case)
+import { BahanBaku } from "@/types/recipe";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  // MODIFIED: onSave sekarang menerima Partial<BahanBaku> yang propertinya akan kita kirim sebagai camelCase dari dialog.
-  // Konversi ke snake_case (jika dibutuhkan oleh DB) akan ditangani di useBahanBaku.
   onSave: (updates: Partial<BahanBaku>) => void;
-  item: BahanBaku | null;
+  item: BahanBaku | null; // item ini adalah data asli dari database
 }
 
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
@@ -36,39 +34,38 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     purchaseTotalPrice: 0, // Harga Total Beli Kemasan
   });
 
-  // unitConversionMap: Faktor konversi dari Satuan Kemasan ke satuan dasar bahan baku
+  // unitConversionMap: Faktor konversi (sama seperti di WarehousePage)
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
     'gram': {
       'kg': 1000,
       'gram': 1,
-      'pon': 453.592, // 1 pon = 453.592 gram
+      'pon': 453.592,
     },
     'ml': {
       'liter': 1000,
       'ml': 1,
-      'galon': 3785.41, // 1 galon US = 3785.41 ml
+      'galon': 3785.41,
     },
     'pcs': {
       'pcs': 1,
       'lusin': 12,
       'gross': 144,
-      'box': 1, // Asumsi 1 box berisi 1 pcs standar (sesuaikan jika berbeda)
-      'bungkus': 1, // Asumsi 1 bungkus berisi 1 pcs standar (sesuaikan jika berbeda)
+      'box': 1,
+      'bungkus': 1,
     },
     'butir': {
       'butir': 1,
-      'tray': 30, // Asumsi 1 tray = 30 butir
-      'lusin': 12, // 1 lusin = 12 butir
+      'tray': 30,
+      'lusin': 12,
     },
   };
 
-  // useEffect untuk mengisi formData dan purchaseDetails saat item berubah atau dialog dibuka
+  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
-      // Memastikan `item.tanggal_kadaluwarsa` ditangani dengan benar jika null atau undefined dari DB
       const formattedDate = item.tanggal_kadaluwarsa
         ? new Date(item.tanggal_kadaluwarsa).toISOString().split('T')[0]
-        : ''; // Gunakan string kosong jika null/undefined
+        : '';
 
       setFormData({
         nama: item.nama,
@@ -76,75 +73,74 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         stok: item.stok,
         satuan: item.satuan,
         minimum: item.minimum,
-        hargaSatuan: item.harga_satuan, // Mengambil harga_satuan dari item (DB)
+        hargaSatuan: item.harga_satuan, // Inisialisasi dengan harga_satuan dari item (DB)
         supplier: item.supplier,
         tanggalKadaluwarsa: formattedDate,
       });
 
-      // Reset purchaseDetails saat item baru dimuat untuk diedit
-      // Ini penting agar user bisa memilih untuk mengedit harga satuan secara manual atau via detail pembelian
+      // MODIFIED: JANGAN mereset purchaseDetails di sini.
+      // purchaseDetails hanya direset saat menyimpan atau saat dialog ditutup (handleClose)
+      // atau saat user secara aktif menghapus inputnya.
+      // Jika Anda ingin detail pembelian diisi otomatis saat edit, itu perlu logika yang lebih kompleks
+      // untuk menyimpan detail pembelian di DB juga. Untuk saat ini, kita anggap detail pembelian
+      // adalah input sementara untuk mengkalkulasi harga satuan saat edit.
       setPurchaseDetails({
         purchaseQuantity: 0,
         purchaseUnit: '',
         purchaseTotalPrice: 0,
       });
 
+
     } else {
-      // Reset form jika item null (misal saat dialog ditutup)
+      // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: '',
       });
       setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     }
-  }, [item, isOpen]);
+  }, [item, isOpen]); // Dependensi: item dan isOpen
 
-
-  // useEffect untuk menghitung hargaSatuan otomatis berdasarkan Detail Pembelian
+  // MODIFIED: useEffect kedua (Perhitungan harga satuan)
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
     const baseUnit = formData.satuan.toLowerCase(); // Satuan dasar bahan baku yang dipilih
 
     let calculatedHarga = 0;
 
-    // Hanya hitung jika semua input pembelian valid dan satuan dasar sudah diisi
-    if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
-      const conversionRates = unitConversionMap[baseUnit];
+    // Tambahkan kondisi untuk memeriksa apakah ada input aktif di "Detail Pembelian"
+    const isPurchaseDetailsActive = purchaseQuantity > 0 || purchaseTotalPrice > 0 || purchaseUnit !== '';
 
-      if (conversionRates) {
-        const factor = conversionRates[purchaseUnit.toLowerCase()];
+    if (isPurchaseDetailsActive) {
+      // Lakukan perhitungan hanya jika ada input aktif
+      if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
+        const conversionRates = unitConversionMap[baseUnit];
 
-        if (factor !== undefined && factor > 0) {
-          calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
-        } else if (purchaseUnit.toLowerCase() === baseUnit) {
-          // Jika satuan pembelian sama dengan satuan dasar (e.g., beli 'gram', satuan dasar 'gram')
-          calculatedHarga = purchaseTotalPrice / purchaseQuantity;
-        } else {
-          // Jika satuan dasar ada tapi satuan pembelian tidak memiliki faktor konversi yang valid
-          // atau jika faktor <= 0, bisa tambahkan toast.warning di sini jika diperlukan
+        if (conversionRates) {
+          const factor = conversionRates[purchaseUnit.toLowerCase()];
+
+          if (factor !== undefined && factor > 0) {
+            calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
+          } else if (purchaseUnit.toLowerCase() === baseUnit) {
+            calculatedHarga = purchaseTotalPrice / purchaseQuantity;
+          }
+          // else: Tidak ada konversi valid, calculatedHarga tetap 0
         }
+        // else: Satuan dasar tidak ada di map, calculatedHarga tetap 0
+      }
+      setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
+    } else {
+      // Jika tidak ada input aktif di "Detail Pembelian"
+      if (item) {
+        // Jika ini item yang sedang diedit, kembalikan hargaSatuan ke nilai aslinya dari item
+        setFormData(prev => ({ ...prev, hargaSatuan: item.harga_satuan }));
       } else {
-        // Jika satuan dasar bahan baku (formData.satuan) tidak ada di unitConversionMap
-        // Bisa tambahkan toast.warning di sini jika diperlukan
+        // Jika ini bahan baku baru, set hargaSatuan ke 0
+        setFormData(prev => ({ ...prev, hargaSatuan: 0 }));
       }
     }
-
-    // Hanya update hargaSatuan jika ada detail pembelian yang diisi atau jika purchaseDetails dikosongkan
-    // Jika purchaseDetails.purchaseQuantity === 0 && purchaseDetails.purchaseTotalPrice === 0,
-    // maka biarkan hargaSatuan tetap dari `item` yang sedang diedit (yang diambil di useEffect pertama)
-    if (purchaseQuantity > 0 || purchaseTotalPrice > 0) {
-      setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
-    }
-    // Jika user mengosongkan detail pembelian, hargaSatuan akan kembali ke nilai awal `item.harga_satuan` dari `useEffect` pertama.
-    // Jika ingin dikembalikan ke 0 saat detail pembelian dikosongkan:
-    // else if (purchaseQuantity === 0 && purchaseTotalPrice === 0) {
-    //   setFormData(prev => ({ ...prev, hargaSatuan: 0 }));
-    // }
-
-  }, [purchaseDetails, formData.satuan, item]); // Tambahkan `item` sebagai dependensi untuk memastikan nilai awal
+  }, [purchaseDetails, formData.satuan, item]); // Tambahkan `item` sebagai dependensi
 
   const handleSave = () => {
-    // MODIFIED: Mengirim updates dengan properti camelCase langsung dari formData
-    // Konversi ke snake_case akan ditangani oleh useBahanBaku di layer hook.
     const updates: Partial<BahanBaku> = {
       nama: formData.nama,
       kategori: formData.kategori,
@@ -152,17 +148,18 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       satuan: formData.satuan,
       minimum: formData.minimum,
       supplier: formData.supplier,
-      // Menggunakan properti camelCase seperti di state React
-      hargaSatuan: formData.hargaSatuan,
-      // Menggunakan properti camelCase dan mengonversi ke Date object/ISO string di sini atau di hook jika type BahanBaku expects Date object
-      tanggalKadaluwarsa: formData.tanggalKadaluwarsa ? new Date(formData.tanggalKadaluwarsa).toISOString() : null, // Convert to ISO string
+      harga_satuan: formData.hargaSatuan, // Menggunakan hargaSatuan dari state
+      tanggal_kadaluwarsa: formData.tanggalKadaluwarsa ? new Date(formData.tanggalKadaluwarsa).toISOString() : null,
     };
 
-    onSave(updates); // Panggil onSave dari parent dengan updates (camelCase)
+    onSave(updates);
     onClose();
   };
 
   const handleClose = () => {
+    // Reset state saat dialog ditutup untuk memastikan bersih saat dibuka lagi
+    setFormData({ nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: '' });
+    setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     onClose();
   };
 
@@ -224,8 +221,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               id="hargaSatuan"
               type="number"
               value={formData.hargaSatuan}
-              readOnly // Jadikan read-only
-              className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed" // Styling untuk read-only
+              readOnly
+              className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
             />
             <p className="text-xs text-gray-500 mt-1">
               Harga per {formData.satuan || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
@@ -260,7 +257,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Input
               id="tanggalKadaluwarsa"
               type="date"
-              value={formData.tanggalKadaluwarsa || ''} // Pastikan default ke '' jika null
+              value={formData.tanggalKadaluwarsa || ''}
               onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -294,7 +291,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                       <SelectValue placeholder="Pilih satuan" />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* Daftar pilihan satuan harus konsisten dengan `unitConversionMap` */}
                       {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray', 'lusin', 'butir', 'gram', 'ml', 'pon', 'ons', 'galon'].map(unit => (
                         <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                       ))}

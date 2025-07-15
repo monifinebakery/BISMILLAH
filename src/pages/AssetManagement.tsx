@@ -20,7 +20,17 @@ const AssetManagement = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<Partial<Asset>>({});
+  // Pastikan inisialisasi formData mencakup semua properti Asset yang relevan
+  const [formData, setFormData] = useState<Partial<Asset>>({
+    nama: '',
+    kategori: undefined, // Gunakan undefined untuk Select
+    nilaiAwal: 0,
+    nilaiSekarang: 0,
+    tanggalBeli: undefined, // Gunakan Date | undefined
+    kondisi: undefined,    // Gunakan undefined untuk Select
+    lokasi: '',
+    deskripsi: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const kondisiColors = {
@@ -39,18 +49,21 @@ const AssetManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.nama || !formData.kategori || !formData.tanggalBeli || !formData.kondisi || !formData.lokasi) {
+    // Perbaikan validasi: Pastikan nilai yang diharapkan dari form tidak undefined/null
+    if (!formData.nama || !formData.kategori || !formData.tanggalBeli || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
+      toast.error("Harap lengkapi semua field yang wajib diisi dan pastikan nilai tidak negatif.");
       return;
     }
 
     setIsSubmitting(true);
-    
-    const assetData = {
+
+    // Pastikan nilai-nilai dikonversi ke tipe yang benar jika diperlukan oleh hook
+    const assetData: Omit<Asset, 'id'> = {
       nama: formData.nama,
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
-      nilaiAwal: formData.nilaiAwal || 0,
-      nilaiSekarang: formData.nilaiSekarang || 0,
-      tanggalBeli: formData.tanggalBeli,
+      nilaiAwal: formData.nilaiAwal,
+      nilaiSekarang: formData.nilaiSekarang,
+      tanggalBeli: formData.tanggalBeli, // Harusnya sudah Date object dari input onChange
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
@@ -67,19 +80,33 @@ const AssetManagement = () => {
       setIsEditing(false);
       setShowAddForm(false);
       setSelectedAsset(null);
-      setFormData({});
+      // Reset formData setelah save
+      setFormData({
+        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: ''
+      });
     }
 
     setIsSubmitting(false);
   };
 
   const handleDelete = async (id: string) => {
-    await deleteAsset(id);
+    if (confirm("Apakah Anda yakin ingin menghapus aset ini?")) {
+      await deleteAsset(id);
+      toast.success("Aset berhasil dihapus!");
+    }
   };
 
-  const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
-  const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSekarang, 0);
-  const totalDepresiasi = totalNilaiAwal - totalNilaiSekarang;
+  // Helper untuk mendapatkan nilai input yang aman dari null/undefined
+  const getInputValue = <T extends string | number | Date | undefined>(value: T): string | number => {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    // Jika itu objek Date, konversi ke YYYY-MM-DD
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+    return value;
+  };
 
   if (loading) {
     return (
@@ -178,10 +205,12 @@ const AssetManagement = () => {
               <CardTitle className="text-lg">Daftar Aset</CardTitle>
               <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
                 <DialogTrigger asChild>
-                  <Button 
+                  <Button
                     className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={() => {
-                      setFormData({});
+                      setFormData({ // Reset form data for new asset
+                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: ''
+                      });
                       setIsEditing(false);
                     }}
                   >
@@ -189,147 +218,155 @@ const AssetManagement = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm' : 'w-[95vw] max-w-md'} mx-auto`}>
+                {/* MODIFIED: DialogContent for Add/Edit Form - Added flex-col and responsive height */}
+                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh] flex flex-col' : 'w-[95vw] max-w-md max-h-[90vh] flex flex-col'} mx-auto`}>
                   <DialogHeader>
                     <DialogTitle className="text-orange-600">
                       {isEditing ? 'Edit Aset' : 'Tambah Aset Baru'}
                     </DialogTitle>
                   </DialogHeader>
-                  {/* MODIFIED: Kelas max-h-* dan overflow-y-auto dihapus */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="nama" className="text-gray-700">Nama Aset *</Label>
-                      <Input
-                        id="nama"
-                        value={formData.nama || ''}
-                        onChange={(e) => setFormData({...formData, nama: e.target.value})}
-                        placeholder="Masukkan nama aset"
-                        className="border-orange-200 focus:border-orange-400"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="kategori" className="text-gray-700">Kategori *</Label>
-                      <Select
-                        value={formData.kategori || ''}
-                        onValueChange={(value: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi') => 
-                          setFormData({...formData, kategori: value})
-                        }
-                      >
-                        <SelectTrigger className="border-orange-200 focus:border-orange-400">
-                          <SelectValue placeholder="Pilih kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Peralatan">Peralatan</SelectItem>
-                          <SelectItem value="Kendaraan">Kendaraan</SelectItem>
-                          <SelectItem value="Properti">Properti</SelectItem>
-                          <SelectItem value="Teknologi">Teknologi</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
+                  <div className="flex-grow overflow-y-auto pr-4 -mr-4 custom-scrollbar">
+                    <div className="space-y-4">
+                      {/* MODIFIED: Nama Aset & Kategori dalam satu baris grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="nama" className="text-gray-700">Nama Aset *</Label>
+                          <Input
+                            id="nama"
+                            value={getInputValue(formData.nama)}
+                            onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                            placeholder="Masukkan nama aset"
+                            className="border-orange-200 focus:border-orange-400"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="kategori" className="text-gray-700">Kategori *</Label>
+                          <Select
+                            value={getInputValue(formData.kategori) as string}
+                            onValueChange={(value: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi') =>
+                              setFormData({...formData, kategori: value})
+                            }
+                          >
+                            <SelectTrigger className="border-orange-200 focus:border-orange-400">
+                              <SelectValue placeholder="Pilih kategori" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Peralatan">Peralatan</SelectItem>
+                              <SelectItem value="Kendaraan">Kendaraan</SelectItem>
+                              <SelectItem value="Properti">Properti</SelectItem>
+                              <SelectItem value="Teknologi">Teknologi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                      {/* Nilai Awal & Nilai Sekarang dalam satu baris grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="nilaiAwal" className="text-gray-700">Nilai Awal</Label>
+                          <Input
+                            id="nilaiAwal"
+                            type="number"
+                            value={getInputValue(formData.nilaiAwal)}
+                            onChange={(e) => setFormData({...formData, nilaiAwal: Number(e.target.value)})}
+                            placeholder="0"
+                            className="border-orange-200 focus:border-orange-400"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="nilaiSekarang" className="text-gray-700">Nilai Sekarang</Label>
+                          <Input
+                            id="nilaiSekarang"
+                            type="number"
+                            value={getInputValue(formData.nilaiSekarang)}
+                            onChange={(e) => setFormData({...formData, nilaiSekarang: Number(e.target.value)})}
+                            placeholder="0"
+                            className="border-orange-200 focus:border-orange-400"
+                          />
+                        </div>
+                      </div>
+
                       <div>
-                        <Label htmlFor="nilaiAwal" className="text-gray-700">Nilai Awal</Label>
+                        <Label htmlFor="tanggalBeli" className="text-gray-700">Tanggal Beli *</Label>
                         <Input
-                          id="nilaiAwal"
-                          type="number"
-                          value={formData.nilaiAwal || ''}
-                          onChange={(e) => setFormData({...formData, nilaiAwal: Number(e.target.value)})}
-                          placeholder="0"
+                          id="tanggalBeli"
+                          type="date"
+                          value={getInputValue(formData.tanggalBeli)}
+                          onChange={(e) => setFormData({...formData, tanggalBeli: e.target.value ? new Date(e.target.value) : undefined})}
+                          className="border-orange-200 focus:border-orange-400"
+                          required
+                        />
+                      </div>
+
+                      {/* Kondisi & Lokasi dalam satu baris grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="kondisi" className="text-gray-700">Kondisi *</Label>
+                          <Select
+                            value={getInputValue(formData.kondisi) as string}
+                            onValueChange={(value: 'Baik' | 'Cukup' | 'Buruk') =>
+                              setFormData({...formData, kondisi: value})
+                            }
+                          >
+                            <SelectTrigger className="border-orange-200 focus:border-orange-400">
+                              <SelectValue placeholder="Pilih kondisi" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Baik">Baik</SelectItem>
+                              <SelectItem value="Cukup">Cukup</SelectItem>
+                              <SelectItem value="Buruk">Buruk</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="lokasi" className="text-gray-700">Lokasi *</Label>
+                          <Input
+                            id="lokasi"
+                            value={getInputValue(formData.lokasi)}
+                            onChange={(e) => setFormData({...formData, lokasi: e.target.value})}
+                            placeholder="Masukkan lokasi aset"
+                            className="border-orange-200 focus:border-orange-400"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="deskripsi" className="text-gray-700">Deskripsi</Label>
+                        <Textarea
+                          id="deskripsi"
+                          value={getInputValue(formData.deskripsi)}
+                          onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
+                          placeholder="Masukkan deskripsi aset"
+                          rows={3}
                           className="border-orange-200 focus:border-orange-400"
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="nilaiSekarang" className="text-gray-700">Nilai Sekarang</Label>
-                        <Input
-                          id="nilaiSekarang"
-                          type="number"
-                          value={formData.nilaiSekarang || ''}
-                          onChange={(e) => setFormData({...formData, nilaiSekarang: Number(e.target.value)})}
-                          placeholder="0"
-                          className="border-orange-200 focus:border-orange-400"
-                        />
-                      </div>
                     </div>
+                  </div> {/* End flex-grow overflow div */}
 
-                    <div>
-                      <Label htmlFor="tanggalBeli" className="text-gray-700">Tanggal Beli *</Label>
-                      <Input
-                        id="tanggalBeli"
-                        type="date"
-                        value={formData.tanggalBeli || ''}
-                        onChange={(e) => setFormData({...formData, tanggalBeli: e.target.value})}
-                        className="border-orange-200 focus:border-orange-400"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="kondisi" className="text-gray-700">Kondisi *</Label>
-                      <Select
-                        value={formData.kondisi || ''}
-                        onValueChange={(value: 'Baik' | 'Cukup' | 'Buruk') => 
-                          setFormData({...formData, kondisi: value})
-                        }
-                      >
-                        <SelectTrigger className="border-orange-200 focus:border-orange-400">
-                          <SelectValue placeholder="Pilih kondisi" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Baik">Baik</SelectItem>
-                          <SelectItem value="Cukup">Cukup</SelectItem>
-                          <SelectItem value="Buruk">Buruk</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="lokasi" className="text-gray-700">Lokasi *</Label>
-                      <Input
-                        id="lokasi"
-                        value={formData.lokasi || ''}
-                        onChange={(e) => setFormData({...formData, lokasi: e.target.value})}
-                        placeholder="Masukkan lokasi aset"
-                        className="border-orange-200 focus:border-orange-400"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="deskripsi" className="text-gray-700">Deskripsi</Label>
-                      <Textarea
-                        id="deskripsi"
-                        value={formData.deskripsi || ''}
-                        onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
-                        placeholder="Masukkan deskripsi aset"
-                        rows={3}
-                        className="border-orange-200 focus:border-orange-400"
-                      />
-                    </div>
-
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        onClick={handleSave} 
-                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Menyimpan...' : (isEditing ? 'Update' : 'Simpan')}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowAddForm(false);
-                          setIsEditing(false);
-                          setFormData({});
-                        }}
-                        className="flex-1 border-gray-300 hover:bg-gray-50"
-                        disabled={isSubmitting}
-                      >
-                        Batal
-                      </Button>
-                    </div>
+                  <div className="flex gap-2 pt-4"> {/* Buttons */}
+                    <Button
+                      onClick={handleSave}
+                      className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Menyimpan...' : (isEditing ? 'Update' : 'Simpan')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setIsEditing(false);
+                        setFormData({}); // Reset form data on cancel
+                      }}
+                      className="flex-1 border-gray-300 hover:bg-gray-50"
+                      disabled={isSubmitting}
+                    >
+                      Batal
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -350,7 +387,7 @@ const AssetManagement = () => {
                             variant="outline"
                             onClick={() => {
                               setSelectedAsset(asset);
-                              setFormData(asset);
+                              setFormData(asset); // Load asset data into form
                               setIsEditing(true);
                               setShowAddForm(true);
                             }}
@@ -442,7 +479,7 @@ const AssetManagement = () => {
                                 variant="outline"
                                 onClick={() => {
                                   setSelectedAsset(asset);
-                                  setFormData(asset);
+                                  setFormData(asset); // Load asset data into form
                                   setIsEditing(true);
                                   setShowAddForm(true);
                                 }}
@@ -467,14 +504,15 @@ const AssetManagement = () => {
                 </div>
               </ScrollArea>
             )}
-            
-            {assets.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-base">Belum ada aset yang terdaftar</p>
-                <p className="text-sm mt-1">Klik tombol "Tambah Aset" untuk memulai</p>
-              </div>
-            )}
+            {
+              assets.length === 0 && !isMobile && ( // Tampilkan pesan jika tidak ada aset di desktop
+                <div className="text-center py-8 text-gray-500">
+                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-base">Belum ada aset yang terdaftar</p>
+                  <p className="text-sm mt-1">Klik tombol "Tambah Aset" untuk memulai</p>
+                </div>
+              )
+            }
           </CardContent>
         </Card>
       </div>

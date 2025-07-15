@@ -1,4 +1,6 @@
 const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
+  console.log('Received updatedBahan:', updatedBahan); // Log input
+
   const bahanToUpdate: Partial<any> = {
     updated_at: new Date().toISOString(),
   };
@@ -22,7 +24,7 @@ const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => 
   bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
   bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
 
-  console.log('Sending to Supabase:', bahanToUpdate); // Debug log
+  console.log('Final bahanToUpdate before update:', bahanToUpdate); // Log sebelum update
 
   const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
 
@@ -42,15 +44,15 @@ const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => 
               ...updatedBahan,
               tanggalKadaluwarsa: safeParseDate(updatedItem.tanggal_kadaluwarsa),
               hargaSatuan: parseFloat(updatedItem.harga_satuan) || 0,
-              jumlahBeliKemasan: parseFloat(updatedItem.jumlah_beli_kemasan) || null,
+              jumlahBeliKemasan: updatedItem.jumlah_beli_kemasan !== null ? parseFloat(updatedItem.jumlah_beli_kemasan) : null,
               satuanKemasan: updatedItem.satuan_kemasan || null,
-              hargaTotalBeliKemasan: parseFloat(updatedItem.harga_total_beli_kemasan) || null,
+              hargaTotalBeliKemasan: updatedItem.harga_total_beli_kemasan !== null ? parseFloat(updatedItem.harga_total_beli_kemasan) : null,
               updatedAt: safeParseDate(updatedItem.updated_at),
             }
           : item
       )
     );
-    console.log('Updated bahanBaku state:', bahanBaku); // Debug state
+    console.log('Updated bahanBaku state:', bahanBaku); // Log state setelah update
   } else {
     console.warn('No data returned from Supabase update, falling back to local update');
     setBahanBaku(prev =>

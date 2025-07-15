@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { BahanBaku } from '@/hooks/useBahanBaku'; // Pastikan BahanBaku interface mencakup tanggalKadaluwarsa (Date | undefined)
+import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup tanggalKadaluwarsa (Date | undefined)
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner"; // Import toast
@@ -11,7 +11,7 @@ import { toast } from "sonner"; // Import toast
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updates: Partial<BahanBaku>) => void;
+  onSave: (updates: Partial<BahanBaku>) => Promise<void>; // MODIFIED: onSave sekarang mengembalikan Promise<void>
   item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook, dengan tanggalKadaluwarsa: Date | undefined)
 }
 
@@ -45,7 +45,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
-  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
+  // useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
       setFormData({
@@ -59,11 +59,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
       });
 
-      // MODIFIED: Inisialisasi purchaseDetails dari item prop
+      // Inisialisasi purchaseDetails dari item prop
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0, // Ambil nilai dari item
-        purchaseUnit: item.satuanKemasan || '',       // Ambil nilai dari item
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0, // Ambil nilai dari item
+        purchaseQuantity: item.jumlahBeliKemasan || 0,
+        purchaseUnit: item.satuanKemasan || '',
+        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
       });
 
     } else {
@@ -110,26 +110,28 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     }
   }, [purchaseDetails, formData.satuan, item]); // Tambahkan `item` sebagai dependensi
 
-  const handleSave = () => {
+  // MODIFIED: handleSave function
+  const handleSave = async () => { // Make the function async
     // Validasi dasar
     if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || formData.minimum === undefined || formData.minimum < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
 
-    // formData.tanggalKadaluwarsa sudah Date | undefined, jadi bisa langsung dilewatkan
-    onSave({
+    const updatesToSend: Partial<BahanBaku> = {
       ...formData,
       stok: parseFloat(String(formData.stok)) || 0,
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa, // Langsung lewatkan Date | undefined
-      // MODIFIED: Pastikan properti detail pembelian disertakan di sini
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
-    });
-    onClose();
+    };
+
+    await onSave(updatesToSend); // Await the onSave call
+
+    onClose(); // Close the dialog after the save operation is complete
   };
 
   const handleClose = () => {

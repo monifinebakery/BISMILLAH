@@ -6,15 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { useBahanBaku } from '@/hooks/useBahanBaku';
-import { BahanBaku } from '@/hooks/useBahanBaku'; // Import BahanBaku dari useBahanBaku
+// MODIFIED: Hapus import useBahanBaku sebagai sumber data utama
+// import { useBahanBaku } from '@/hooks/useBahanBaku';
+// MODIFIED: Import BahanBaku dari lokasi bersama (src/types/recipe.ts)
+import { BahanBaku } from '@/types/recipe';
+// MODIFIED: Import useAppData
+import { useAppData } from '@/contexts/AppDataContext';
+
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku();
+  // MODIFIED: Dapatkan semua dari useAppData
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useAppData();
+  // MODIFIED: Sekarang panggil useBahanBaku hanya untuk fungsi utilitas yang tersisa
+  // const { getBahanBakuByName, reduceStok } = useBahanBaku(); // Jika Anda masih ingin menggunakan reduceStok/getBahanBakuByName
+  // Kalau tidak ada fungsi spesifik lagi yang di return useBahanBaku, ini bisa dihapus saja.
+  // Tapi asumsi Anda masih ingin pakai, jadi ini perlu dipertimbangkan cara passing bahanBaku ke dalamnya.
+  // Untuk saat ini, kita biarkan useBahanBaku return bahanBaku agar reduceStok bisa dipakai.
+  // Jika getBahanBakuByName/reduceStok juga dihapus dari useBahanBaku, maka import useBahanBaku bisa dihapus.
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +94,7 @@ const WarehousePage = () => {
       return;
     }
 
+    // MODIFIED: Panggil addBahanBaku dari useAppData
     const success = await addBahanBaku(newItem);
     if (success) {
       setShowAddForm(false);
@@ -92,12 +106,10 @@ const WarehousePage = () => {
     }
   };
 
-  // MODIFIED: handleEdit function
   const handleEdit = (item: BahanBaku) => {
-    // MODIFIED: Langsung assign item.tanggalKadaluwarsa (Date | undefined)
     setEditingItem({
         ...item,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // MODIFIED: Assign Date | undefined directly
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
     });
     setPurchaseDetails({
         purchaseQuantity: item.jumlahBeliKemasan || 0,
@@ -114,9 +126,7 @@ const WarehousePage = () => {
             satuanKemasan: purchaseDetails.purchaseUnit,
             hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
         };
-        // `tanggalKadaluwarsa` dari updates sudah berupa Date | undefined dari dialog.
-        // Konversi ke string ISO akan dilakukan di hook `useBahanBaku`.
-        
+        // MODIFIED: Panggil updateBahanBaku dari useAppData
         await updateBahanBaku(editingItem.id, updatedItemData);
         setEditingItem(null);
         setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
@@ -128,6 +138,7 @@ const WarehousePage = () => {
 
   const handleDelete = async (id: string, nama: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
+      // MODIFIED: Panggil deleteBahanBaku dari useAppData
       await deleteBahanBaku(id);
       toast.success(`"${nama}" berhasil dihapus.`);
     }
@@ -443,7 +454,7 @@ const WarehousePage = () => {
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
                         {item.tanggalKadaluwarsa && (
-                          // MODIFIED: Tambahkan pemeriksaan robust untuk toLocaleDateString
+                          // MODIFIED: Tambahkan pemeriksaan robust sebelum memanggil toLocaleDateString
                           (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
                           <div>
                             <p className="text-sm text-gray-500">Kadaluwarsa</p>

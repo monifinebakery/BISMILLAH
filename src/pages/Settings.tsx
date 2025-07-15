@@ -11,7 +11,8 @@ import RecipeCategoryManager from '@/components/RecipeCategoryManager'; // MODIF
 import { Label } from '@/components/ui/label'; // MODIFIED: Tambahkan import Label
 
 const Settings = () => {
-  const { settings, saveSettings, loading } = useUserSettings();
+  // MODIFIED: Destrukturisasi 'setSettings' dari useUserSettings()
+  const { settings, setSettings, saveSettings, loading } = useUserSettings();
 
   // MODIFIED: Hapus fungsi handleSettingChange dan handleDirectChange
   // Logika akan langsung diimplementasikan di onChange/onValueChange/onCheckedChange
@@ -64,7 +65,7 @@ const Settings = () => {
                     id="businessName"
                     value={settings.businessName}
                     onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                    onBlur={() => saveSettings(settings)}
                     className="rounded-md"
                   />
                 </div>
@@ -74,7 +75,7 @@ const Settings = () => {
                     id="ownerName"
                     value={settings.ownerName}
                     onChange={(e) => setSettings({ ...settings, ownerName: e.target.value })}
-                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                    onBlur={() => saveSettings(settings)}
                     className="rounded-md"
                   />
                 </div>
@@ -87,7 +88,7 @@ const Settings = () => {
                     type="email"
                     value={settings.email || ''}
                     onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                    onBlur={() => saveSettings(settings)}
                     className="rounded-md"
                   />
                 </div>
@@ -97,7 +98,7 @@ const Settings = () => {
                     id="phone"
                     value={settings.phone || ''}
                     onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                    onBlur={() => saveSettings(settings)}
                     className="rounded-md"
                   />
                 </div>
@@ -108,7 +109,7 @@ const Settings = () => {
                   id="address"
                   value={settings.address || ''}
                   onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                  onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                  onBlur={() => saveSettings(settings)}
                   className="rounded-md"
                 />
               </div>
@@ -132,7 +133,7 @@ const Settings = () => {
                     onValueChange={(value) => {
                       const newSettings = { ...settings, currency: value };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   >
                     <SelectTrigger className="rounded-md">
@@ -152,7 +153,7 @@ const Settings = () => {
                     onValueChange={(value) => {
                       const newSettings = { ...settings, language: value };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   >
                     <SelectTrigger className="rounded-md">
@@ -191,7 +192,7 @@ const Settings = () => {
                         notifications: { ...settings.notifications, lowStock: checked },
                       };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   />
                 </div>
@@ -208,7 +209,7 @@ const Settings = () => {
                         notifications: { ...settings.notifications, newOrder: checked },
                       };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   />
                 </div>
@@ -225,7 +226,7 @@ const Settings = () => {
                         notifications: { ...settings.notifications, financial: checked },
                       };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   />
                 </div>
@@ -255,7 +256,7 @@ const Settings = () => {
                       backup: { ...settings.backup, auto: checked },
                     };
                     setSettings(newSettings);
-                    saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    saveSettings(newSettings);
                   }}
                 />
               </div>
@@ -267,7 +268,7 @@ const Settings = () => {
                     onValueChange={(value) => {
                       const newSettings = { ...settings, backup: { ...settings.backup, frequency: value } };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   >
                     <SelectTrigger className="rounded-md">
@@ -287,7 +288,7 @@ const Settings = () => {
                     onValueChange={(value) => {
                       const newSettings = { ...settings, backup: { ...settings.backup, location: value } };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   >
                     <SelectTrigger className="rounded-md">
@@ -325,7 +326,7 @@ const Settings = () => {
                       security: { ...settings.security, twoFactor: checked },
                     };
                     setSettings(newSettings);
-                    saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    saveSettings(newSettings);
                   }}
                 />
               </div>
@@ -336,7 +337,7 @@ const Settings = () => {
                     type="number"
                     value={settings.security.sessionTimeout}
                     onChange={(e) => setSettings({ ...settings, security: { ...settings.security, sessionTimeout: e.target.value } })}
-                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
+                    onBlur={() => saveSettings(settings)}
                     className="rounded-md"
                   />
                 </div>
@@ -347,7 +348,7 @@ const Settings = () => {
                     onValueChange={(value) => {
                       const newSettings = { ...settings, security: { ...settings.security, passwordRequirement: value } };
                       setSettings(newSettings);
-                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                      saveSettings(newSettings);
                     }}
                   >
                     <SelectTrigger className="rounded-md">

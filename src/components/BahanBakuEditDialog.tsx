@@ -30,10 +30,14 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaTotalBeliKemasan: null,
   });
 
-  const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: 0,
-    purchaseUnit: '',
-    purchaseTotalPrice: 0,
+  const [purchaseDetails, setPurchaseDetails] = useState<{
+    purchaseQuantity: number | null; // MODIFIED: Izinkan null di state ini
+    purchaseUnit: string | null;     // MODIFIED: Izinkan null di state ini
+    purchaseTotalPrice: number | null; // MODIFIED: Izinkan null di state ini
+  }>({
+    purchaseQuantity: null, // MODIFIED: Default ke null
+    purchaseUnit: null,     // MODIFIED: Default ke null
+    purchaseTotalPrice: null, // MODIFIED: Default ke null
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
@@ -64,17 +68,19 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
       // MODIFIED: Inisialisasi purchaseDetails dari item prop, mempertahankan `null`
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null)
-        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign nilai dari item (bisa null)
-        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null)
+        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
+        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign nilai dari item (bisa null atau string)
+        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
       });
 
     } else {
+      // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Untuk item baru, 0/'' adalah default yang baik
+      // Untuk item baru, purchaseDetails juga disetel ke null agar input kosong
+      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null }); // MODIFIED: Reset ke null
     }
   }, [item, isOpen]);
 
@@ -85,10 +91,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
     let calculatedHarga = 0;
 
+    // Pastikan nilai-nilai ini tidak null/undefined sebelum digunakan dalam perhitungan
     if (
-      (purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0) && // Cek lebih ketat
-      (purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0) && // Cek lebih ketat
-      (purchaseUnit !== null && purchaseUnit !== '') && // Cek purchaseUnit
+      (purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0) &&
+      (purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0) &&
+      (purchaseUnit !== null && purchaseUnit !== '') &&
       baseUnit
     ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
@@ -124,9 +131,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
       // Pastikan properti detail pembelian disertakan di sini, mereka bisa null
-      jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
-      satuanKemasan: purchaseDetails.purchaseUnit,
-      hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
+      jumlahBeliKemasan: purchaseDetails.purchaseQuantity, // Ini akan mengirim null jika user tidak mengisi
+      satuanKemasan: purchaseDetails.purchaseUnit,         // Ini akan mengirim null jika user tidak mengisi
+      hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice, // Ini akan mengirim null jika user tidak mengisi
     };
 
     await onSave(updatesToSend);
@@ -139,7 +146,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
     });
-    setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
+    // MODIFIED: Reset ke null saat menutup dialog agar bersih
+    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
     onClose();
   };
 

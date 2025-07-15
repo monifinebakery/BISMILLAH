@@ -47,9 +47,9 @@ const WarehousePage = () => {
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: '',
+    purchaseQuantity: 0,
     purchaseUnit: '',
-    purchaseTotalPrice: '',
+    purchaseTotalPrice: 0,
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {

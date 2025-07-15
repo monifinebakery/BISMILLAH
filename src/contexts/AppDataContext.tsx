@@ -2,24 +2,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
-import { toast } from 'sonner'; // Import toast for notifications
-import { useSupabaseSync } from '@/hooks/useSupabaseSync'; // MODIFIED: Import useSupabaseSync hook
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate
 
-// MODIFIED: BahanBaku interface tetap camelCase, ini adalah representasi data di aplikasi/state
 export interface BahanBaku {
   id: string;
   nama: string;
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number; // Tetap camelCase di interface
+  hargaSatuan: number;
   minimum: number;
   supplier: string;
-  tanggalKadaluwarsa?: Date; // Tetap camelCase di interface
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
-  // MODIFIED: Tambahkan properti baru
+  tanggalKadaluwarsa?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   jumlahBeliKemasan?: number | null;
   satuanKemasan?: string | null;
   hargaTotalBeliKemasan?: number | null;
@@ -41,8 +40,8 @@ export interface Purchase {
   status: 'pending' | 'completed' | 'cancelled';
   metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
   catatan?: string;
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Activity {
@@ -52,8 +51,8 @@ export interface Activity {
   timestamp: Date;
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
   value?: string;
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface HPPResult {
@@ -68,12 +67,10 @@ export interface HPPResult {
   hargaJualPerPorsi: number;
   jumlahPorsi: number;
   timestamp: Date;
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-// MODIFIED: Tambahkan interface untuk Asset dan FinancialTransaction jika belum ada di types/recipe.ts
-// Asumsi ini adalah representasi camelCase dari kolom DB.
 export interface Asset {
   id: string;
   nama: string;
@@ -84,8 +81,8 @@ export interface Asset {
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
   user_id?: string;
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface FinancialTransaction {
@@ -95,13 +92,11 @@ export interface FinancialTransaction {
   deskripsi: string;
   jumlah: number;
   user_id?: string;
-  createdAt?: Date; // MODIFIED: Tambahkan
-  updatedAt?: Date; // MODIFIED: Tambahkan
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-
 interface AppDataContextType {
-  // Bahan Baku
   bahanBaku: BahanBaku[];
   addBahanBaku: (bahan: Omit<BahanBaku, 'id'>) => Promise<boolean>;
   updateBahanBaku: (id: string, bahan: Partial<BahanBaku>) => Promise<boolean>;
@@ -109,53 +104,44 @@ interface AppDataContextType {
   getBahanBakuByName: (nama: string) => BahanBaku | undefined;
   reduceStok: (nama: string, jumlah: number) => boolean;
 
-  // Suppliers
   suppliers: Supplier[];
   addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
   updateSupplier: (id: string, supplier: Partial<Supplier>) => Promise<void>;
   deleteSupplier: (id: string) => Promise<void>;
 
-  // Purchases
   purchases: Purchase[];
   addPurchase: (purchase: Omit<Purchase, 'id'>) => Promise<void>;
   updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<void>;
   deletePurchase: (id: string) => Promise<void>;
 
-  // Recipes
   recipes: Recipe[];
   addRecipe: (recipe: Omit<Recipe, 'id'>) => Promise<boolean>;
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<boolean>;
   deleteRecipe: (id: string) => Promise<boolean>;
 
-  // HPP Results
   hppResults: HPPResult[];
   addHPPResult: (result: Omit<HPPResult, 'id'>) => Promise<void>;
   addHPPCalculation: (result: Omit<HPPResult, 'id'>) => void;
 
-  // Activities
   activities: Activity[];
   addActivity: (activity: Omit<Activity, 'id' | 'timestamp'>) => Promise<void>;
 
-  // Orders
   orders: Order[];
   addOrder: (order: NewOrder) => Promise<void>;
   updateOrder: (id: string, order: Partial<Order>) => Promise<boolean>;
   deleteOrder: (id: string) => Promise<boolean>;
   updateOrderStatus: (id: string, status: Order['status']) => void;
 
-  // Assets
   assets: Asset[];
   addAsset: (asset: Omit<Asset, 'id'>) => Promise<boolean>;
   updateAsset: (id: string, asset: Partial<Asset>) => Promise<boolean>;
   deleteAsset: (id: string) => Promise<boolean>;
 
-  // Financial Transactions
   financialTransactions: FinancialTransaction[];
   addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id'>) => Promise<boolean>;
   updateFinancialTransaction: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
   deleteFinancialTransaction: (id: string) => Promise<boolean>;
 
-  // Statistics
   getStatistics: () => {
     totalBahanBaku: number;
     stokMenipis: number;
@@ -172,11 +158,9 @@ interface AppDataContextType {
     stokMenurut: number;
   };
 
-  // Cloud sync
   cloudSyncEnabled: boolean;
   setCloudSyncEnabled: (enabled: boolean) => void;
 
-  // Manual sync functions
   syncToCloud: () => Promise<boolean>;
   loadFromCloud: () => Promise<void>;
   replaceAllData: (data: any) => void;
@@ -184,13 +168,12 @@ interface AppDataContextType {
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
-// Local Storage keys
 const STORAGE_KEYS = {
   BAHAN_BAKU: 'hpp_app_bahan_baku',
   SUPPLIERS: 'hpp_app_suppliers',
   PURCHASES: 'hpp_app_purchases',
   RECIPES: 'hpp_app_recipes',
-  PRIMARY_RECIPES: 'hpp_app_primary_recipes', // Tambahkan jika ada
+  PRIMARY_RECIPES: 'hpp_app_primary_recipes',
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
@@ -199,7 +182,6 @@ const STORAGE_KEYS = {
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
-// Helper function to generate UUID
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -208,7 +190,6 @@ const generateUUID = () => {
   });
 };
 
-// Helper functions for localStorage
 const saveToStorage = (key: string, data: any) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -222,40 +203,37 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Convert date strings back to Date objects for activities
       if (key === STORAGE_KEYS.ACTIVITIES || key === STORAGE_KEYS.HPP_RESULTS) {
         return parsed.map((item: any) => ({
           ...item,
-          timestamp: new Date(item.timestamp),
+          timestamp: safeParseDate(item.timestamp),
         }));
       }
       if (key === STORAGE_KEYS.PURCHASES) {
         return parsed.map((item: any) => ({
           ...item,
-          tanggal: new Date(item.tanggal),
+          tanggal: safeParseDate(item.tanggal),
         }));
       }
       if (key === STORAGE_KEYS.BAHAN_BAKU) {
         return parsed.map((item: any) => ({
           ...item,
-          tanggalKadaluwarsa: item.tanggalKadaluwarsa ? new Date(item.tanggalKadaluwarsa) : undefined,
+          tanggalKadaluwarsa: safeParseDate(item.tanggalKadaluwarsa),
         }));
       }
       if (key === STORAGE_KEYS.ORDERS) {
-        return parsed.map((item: any) => ({ ...item, tanggal: item.tanggal ? new Date(item.tanggal) : new Date() }));
+        return parsed.map((item: any) => ({ ...item, tanggal: safeParseDate(item.tanggal) || new Date() }));
       }
-      // MODIFIED: Handle assets
       if (key === STORAGE_KEYS.ASSETS) {
         return parsed.map((item: any) => ({
           ...item,
-          tanggalPembelian: item.tanggalPembelian ? new Date(item.tanggalPembelian) : undefined
+          tanggalPembelian: safeParseDate(item.tanggalPembelian),
         }));
       }
-      // MODIFIED: Handle financial_transactions
       if (key === STORAGE_KEYS.FINANCIAL_TRANSACTIONS) {
         return parsed.map((item: any) => ({
           ...item,
-          tanggal: item.tanggal ? new Date(item.tanggal) : new Date()
+          tanggal: safeParseDate(item.tanggal) || new Date(),
         }));
       }
       return parsed;
@@ -268,15 +246,11 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
 };
 
 export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // MODIFIED: Panggil hook sinkronisasi Supabase yang terpusat di awal komponen
   const {
     syncToSupabase: externalSyncToCloud,
     loadFromSupabase: externalLoadFromCloud,
-    // Anda bisa mengekspos isLoading jika diperlukan di UI
-    // isLoading: isSyncing,
   } = useSupabaseSync();
 
-  // Load initial data from localStorage
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -305,20 +279,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'john@example.com',
         teleponPelanggan: '081234567890',
         alamatPelanggan: 'Jl. Merdeka No. 123, Jakarta',
-        items: [
-          {
-            id: 1,
-            nama: 'Kue Coklat',
-            quantity: 2,
-            hargaSatuan: 50000,
-            totalHarga: 100000
-          }
-        ],
+        items: [{ id: 1, nama: 'Kue Coklat', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 }],
         subtotal: 100000,
         pajak: 10000,
         totalPesanan: 110000,
         status: 'pending',
-        catatan: 'Kirim sebelum jam 5 sore'
+        catatan: 'Kirim sebelum jam 5 sore',
       },
       {
         id: generateUUID(),
@@ -328,20 +294,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'jane@example.com',
         teleponPelanggan: '081234567891',
         alamatPelanggan: 'Jl. Sudirman No. 456, Jakarta',
-        items: [
-          {
-            id: 1,
-            nama: 'Roti Tawar',
-            quantity: 5,
-            hargaSatuan: 15000,
-            totalHarga: 75000
-          }
-        ],
+        items: [{ id: 1, nama: 'Roti Tawar', quantity: 5, hargaSatuan: 15000, totalHarga: 75000 }],
         subtotal: 75000,
         pajak: 7500,
         totalPesanan: 82500,
-        status: 'confirmed'
-      }
+        status: 'confirmed',
+      },
     ])
   );
   const [assets, setAssets] = useState<Asset[]>(() =>
@@ -354,23 +312,20 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     loadFromStorage(STORAGE_KEYS.CLOUD_SYNC, false)
   );
 
-  // Auto-load from cloud when data is empty and cloud sync is enabled
   useEffect(() => {
     const checkAndLoadFromCloud = async () => {
       if (cloudSyncEnabled &&
-          bahanBaku.length === 0 &&
-          suppliers.length === 0 &&
-          purchases.length === 0 &&
-          recipes.length === 0 &&
-          orders.length <= 2 &&
-          assets.length === 0 &&
-          financialTransactions.length === 0
-          ) {
+        bahanBaku.length === 0 &&
+        suppliers.length === 0 &&
+        purchases.length === 0 &&
+        recipes.length === 0 &&
+        orders.length <= 2 &&
+        assets.length === 0 &&
+        financialTransactions.length === 0
+      ) {
         console.log('Local data appears empty, attempting to load from cloud...');
         const loadedData = await externalLoadFromCloud();
-        if (loadedData) {
-          replaceAllData(loadedData);
-        }
+        if (loadedData) replaceAllData(loadedData);
       }
     };
 
@@ -378,58 +333,23 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => clearTimeout(timer);
   }, [cloudSyncEnabled, externalLoadFromCloud, bahanBaku, suppliers, purchases, recipes, orders, assets, financialTransactions]);
 
+  useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.RECIPES, recipes); }, [recipes]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.HPP_RESULTS, hppResults); }, [hppResults]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ACTIVITIES, activities); }, [activities]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ORDERS, orders); }, [orders]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ASSETS, assets); }, [assets]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.CLOUD_SYNC, cloudSyncEnabled); }, [cloudSyncEnabled]);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku);
-  }, [bahanBaku]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers);
-  }, [suppliers]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.PURCHASES, purchases);
-  }, [purchases]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.RECIPES, recipes);
-  }, [recipes]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.HPP_RESULTS, hppResults);
-  }, [hppResults]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ACTIVITIES, activities);
-  }, [activities]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ORDERS, orders);
-  }, [orders]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ASSETS, assets);
-  }, [assets]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions);
-  }, [financialTransactions]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.CLOUD_SYNC, cloudSyncEnabled);
-  }, [cloudSyncEnabled]);
-
-  // MODIFIED: Pendengar Realtime Supabase untuk sinkronisasi otomatis
   useEffect(() => {
     let channels: any[] = [];
-
     const setupRealtimeSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-
-      // Hapus langganan sebelumnya jika ada
       channels.forEach(channel => supabase.removeChannel(channel));
-      channels = []; // Reset channels array
+      channels = [];
 
       if (!session) {
         console.log('Tidak ada sesi untuk langganan realtime.');
@@ -437,32 +357,21 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       const userId = session.user.id;
 
-      // Daftar tabel yang akan dilanggan
       const tablesToSubscribe = [
         'bahan_baku', 'suppliers', 'purchases', 'hpp_recipes', 'hpp_results',
-        'orders', 'activities', 'assets', 'financial_transactions', 'user_settings'
+        'orders', 'activities', 'assets', 'financial_transactions', 'user_settings',
       ];
-
-      console.log(`Menyiapkan langganan realtime untuk user_id: ${userId}`);
 
       for (const tableName of tablesToSubscribe) {
         const channel = supabase
           .channel(`public:${tableName}_changes_${userId}`)
           .on(
             'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: tableName,
-              filter: `user_id=eq.${userId}`
-            },
+            { event: '*', schema: 'public', table: tableName, filter: `user_id=eq.${userId}` },
             (payload) => {
               console.log(`Perubahan realtime terdeteksi di ${tableName}:`, payload);
-              // Picu pemuatan ulang semua data
               externalLoadFromCloud().then(loadedData => {
-                if (loadedData) {
-                  replaceAllData(loadedData);
-                }
+                if (loadedData) replaceAllData(loadedData);
               });
             }
           )
@@ -472,34 +381,25 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     setupRealtimeSubscription();
-
     return () => {
       console.log('Membersihkan langganan realtime.');
       channels.forEach(channel => supabase.removeChannel(channel));
     };
   }, [externalLoadFromCloud]);
 
-
-  // MODIFIED: Pendengar untuk memuat data saat aplikasi kembali fokus
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('Tab aplikasi terlihat, memeriksa pembaruan...');
         externalLoadFromCloud().then(loadedData => {
-          if (loadedData) {
-            replaceAllData(loadedData);
-          }
+          if (loadedData) replaceAllData(loadedData);
         });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [externalLoadFromCloud]);
 
-
-  // Enhanced manual cloud sync functions
   const syncToCloud = async (): Promise<boolean> => {
     if (!cloudSyncEnabled) return false;
 
@@ -510,79 +410,138 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         return false;
       }
 
-      console.log('Syncing to cloud...');
-
-      // Kumpulkan semua data state lokal ke dalam payload
       const transformedPayload = {
         bahanBaku: bahanBaku.map(item => ({
-          id: item.id, nama: item.nama, kategori: item.kategori, stok: item.stok, satuan: item.satuan,
-          minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier,
-          tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, user_id: session.user.id,
-          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(), // Tambahkan created_at/updated_at dari item
-          // MODIFIED: Gunakan nullish coalescing (??) untuk mempertahankan 0 dan ""
-          jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
-          satuan_kemasan: item.satuanKemasan ?? null,         // Akan mengirim "" jika "", null jika null/undefined
-          harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
+          id: item.id,
+          nama: item.nama,
+          kategori: item.kategori,
+          stok: item.stok,
+          satuan: item.satuan,
+          minimum: item.minimum,
+          harga_satuan: item.hargaSatuan,
+          supplier: item.supplier,
+          tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
+          jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null,
+          satuan_kemasan: item.satuanKemasan ?? null,
+          harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null,
         })),
         suppliers: suppliers.map(item => ({
-          id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon,
-          alamat: item.alamat, catatan: item.catatan, user_id: session.user.id,
-          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          nama: item.nama,
+          kontak: item.kontak,
+          email: item.email,
+          telepon: item.telepon,
+          alamat: item.alamat,
+          catatan: item.catatan,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
         purchases: purchases.map(item => ({
-          id: item.id, tanggal: item.tanggal.toISOString(), supplier: item.supplier, items: item.items,
-          total_nilai: item.totalNilai, metode_perhitungan: item.metodePerhitungan, catatan: item.catatan,
-          user_id: session.user.id, created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          tanggal: item.tanggal.toISOString(),
+          supplier: item.supplier,
+          items: item.items,
+          total_nilai: item.totalNilai,
+          metode_perhitungan: item.metodePerhitungan,
+          catatan: item.catatan,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
         recipes: recipes.map(item => ({
-          id: item.id, nama_resep: item.namaResep, deskripsi: item.deskripsi, porsi: item.porsi,
-          ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja,
-          biaya_overhead: item.biayaOverhead, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi,
-          margin_keuntungan: item.marginKeuntungan, harga_jual_per_porsi: item.hargaJualPerPorsi,
-          category: item.category, // Tambahkan category
-          user_id: session.user.id, created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          nama_resep: item.namaResep,
+          deskripsi: item.deskripsi,
+          porsi: item.porsi,
+          ingredients: item.ingredients,
+          biaya_tenaga_kerja: item.biayaTenagaKerja,
+          biaya_overhead: item.biayaOverhead,
+          total_hpp: item.totalHPP,
+          hpp_per_porsi: item.hppPerPorsi,
+          margin_keuntungan: item.marginKeuntungan,
+          harga_jual_per_porsi: item.hargaJualPerPorsi,
+          category: item.category,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
         hppResults: hppResults.map(item => ({
-          id: item.id, nama: item.nama, ingredients: item.ingredients,
-          biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead,
-          margin_keuntungan: item.marginKeuntungan, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi,
-          harga_jual_per_porsi: item.hargaJualPerPorsi, jumlah_porsi: item.jumlahPorsi,
-          created_at: item.timestamp.toISOString(), user_id: session.user.id,
+          id: item.id,
+          nama: item.nama,
+          ingredients: item.ingredients,
+          biaya_tenaga_kerja: item.biayaTenagaKerja,
+          biaya_overhead: item.biayaOverhead,
+          margin_keuntungan: item.marginKeuntungan,
+          total_hpp: item.totalHPP,
+          hpp_per_porsi: item.hppPerPorsi,
+          harga_jual_per_porsi: item.hargaJualPerPorsi,
+          jumlah_porsi: item.jumlahPorsi,
+          created_at: item.timestamp.toISOString(),
+          user_id: session.user.id,
         })),
         activities: activities.map(item => ({
-          id: item.id, title: item.title, description: item.description, type: item.type, value: item.value,
-          created_at: item.timestamp.toISOString(), user_id: session.user.id,
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          type: item.type,
+          value: item.value,
+          created_at: item.timestamp.toISOString(),
+          user_id: session.user.id,
         })),
         orders: orders.map(item => ({
-          id: item.id, nomor_pesanan: item.nomorPesanan, tanggal: item.tanggal.toISOString(),
-          nama_pelanggan: item.namaPelanggan, email_pelanggan: item.emailPelanggan,
-          telepon_pelanggan: item.teleponPelanggan, alamat_pengiriman: item.alamatPelanggan,
-          items: item.items, subtotal: item.subtotal, pajak: item.pajak,
-          total_pesanan: item.totalPesanan, status: item.status, catatan: item.catatan, user_id: session.user.id,
-          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          nomor_pesanan: item.nomorPesanan,
+          tanggal: item.tanggal.toISOString(),
+          nama_pelanggan: item.namaPelanggan,
+          email_pelanggan: item.emailPelanggan,
+          telepon_pelanggan: item.teleponPelanggan,
+          alamat_pengiriman: item.alamatPelanggan,
+          items: item.items,
+          subtotal: item.subtotal,
+          pajak: item.pajak,
+          total_pesanan: item.totalPesanan,
+          status: item.status,
+          catatan: item.catatan,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
         assets: assets.map(item => ({
-          id: item.id, nama: item.nama, jenis: item.jenis, nilai: item.nilai,
-          umur_manfaat: item.umurManfaat, tanggal_pembelian: item.tanggalPembelian.toISOString(),
-          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_sekarang: item.nilaiSaatIni,
-          user_id: session.user.id, created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          nama: item.nama,
+          jenis: item.jenis,
+          nilai_awal: item.nilai,
+          umur_manfaat: item.umurManfaat,
+          tanggal_pembelian: item.tanggalPembelian.toISOString(),
+          penyusutan_per_bulan: item.penyusutanPerBulan,
+          nilai_sekarang: item.nilaiSaatIni,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
         financialTransactions: financialTransactions.map(item => ({
-          id: item.id, tanggal: item.tanggal.toISOString(), jenis: item.jenis,
-          deskripsi: item.deskripsi, jumlah: item.jumlah, user_id: session.user.id,
-          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          id: item.id,
+          tanggal: item.tanggal.toISOString(),
+          type: item.jenis,
+          deskripsi: item.deskripsi,
+          amount: item.jumlah,
+          user_id: session.user.id,
+          created_at: item.createdAt?.toISOString(),
+          updated_at: item.updatedAt?.toISOString(),
         })),
       };
 
       const success = await externalSyncToCloud(transformedPayload);
-      if (!success) {
-        return false;
-      }
-      console.log('Sync successful, data is now on cloud and local state will update via realtime/loadFromCloud.');
+      if (!success) return false;
+      console.log('Sync successful, data is now on cloud.');
       return true;
     } catch (error: any) {
-      console.error('Sync to cloud failed in AppDataContext:', error);
-      toast.error(`Gagal sinkronisasi ke cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Sync to cloud failed:', error);
+      toast.error(`Gagal sinkronisasi ke cloud: ${error.message}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -594,19 +553,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return;
-      }
-
-      console.log('Loading from cloud via AppDataContext...');
+      if (!session) return;
 
       const loadedData = await externalLoadFromCloud();
-      if (loadedData) {
-        replaceAllData(loadedData);
-        toast.success('Data berhasil dimuat dari cloud!');
-      }
+      if (loadedData) replaceAllData(loadedData);
+      toast.success('Data berhasil dimuat dari cloud!');
     } catch (error) {
-      console.error('Load from cloud failed in AppDataContext:', error);
+      console.error('Load from cloud failed:', error);
       toast.error(`Gagal memuat dari cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -624,36 +577,31 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     console.log("User settings will be loaded by useUserSettings hook directly.");
   };
 
-
-  // Bahan Baku functions
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id'>) => {
     const newBahan: BahanBaku = {
       ...bahan,
       id: generateUUID(),
-      // Pastikan userId, createdAt, updatedAt juga ada di newBahan untuk konsistensi lokal
       userId: (await supabase.auth.getSession()).data.session?.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    // MODIFIED: Transform to snake_case for Supabase insert, termasuk kolom baru
     const bahanToInsert = {
       id: newBahan.id,
       nama: newBahan.nama,
       kategori: newBahan.kategori,
       stok: newBahan.stok,
       satuan: newBahan.satuan,
-      harga_satuan: newBahan.hargaSatuan, // Transform
+      harga_satuan: newBahan.hargaSatuan,
       minimum: newBahan.minimum,
       supplier: newBahan.supplier,
-      tanggal_kadaluwarsa: newBahan.tanggalKadaluwarsa?.toISOString() || null, // Transform & handle null
-      user_id: newBahan.userId, // Ambil user_id dari newBahan
-      created_at: newBahan.createdAt?.toISOString(), // Ambil dari newBahan
-      updated_at: newBahan.updatedAt?.toISOString(), // Ambil dari newBahan
-      // MODIFIED: Gunakan nullish coalescing (??) untuk mempertahankan 0 dan ""
-      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
-      satuan_kemasan: newBahan.satuanKemasan ?? null,         // Akan mengirim "" jika "", null jika null/undefined
-      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
+      tanggal_kadaluwarsa: newBahan.tanggalKadaluwarsa?.toISOString() || null,
+      user_id: newBahan.userId,
+      created_at: newBahan.createdAt?.toISOString(),
+      updated_at: newBahan.updatedAt?.toISOString(),
+      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null,
+      satuan_kemasan: newBahan.satuanKemasan ?? null,
+      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null,
     };
 
     const { error } = await supabase.from('bahan_baku').insert([bahanToInsert]);
@@ -664,47 +612,47 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setBahanBaku(prev => [...prev, newBahan]); // Update local state dengan camelCase
-    await syncToCloud(); // Sync all data (redundant for single item, but follows existing pattern)
+    setBahanBaku(prev => [...prev, newBahan]);
+    await syncToCloud();
     addActivity({
       title: 'Bahan Baku Ditambahkan',
       description: `${bahan.nama} telah ditambahkan ke gudang`,
       type: 'stok',
     });
-    toast.success(`${bahan.nama} berhasil ditambahkan!`); // Konfirmasi berhasil
+    toast.success(`${bahan.nama} berhasil ditambahkan!`);
     return true;
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
-    // MODIFIED: Transform to snake_case for Supabase update, termasuk kolom baru
     const bahanToUpdate: Partial<any> = {
-      // properti yang ada di updatedBahan (camelCase)
+      updated_at: new Date().toISOString(),
     };
 
-    // Mapping eksplisit untuk setiap properti yang mungkin diupdate
     if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
     if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
     if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
     if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
     if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
     if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-
-    // Properti yang perlu di-transform ke snake_case dan mungkin null
     if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
     if (updatedBahan.tanggalKadaluwarsa !== undefined) {
       bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa?.toISOString() || null;
     } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
-      bahanToUpdate.tanggal_kadaluwarsa = null; // Handle explicit null
+      bahanToUpdate.tanggal_kadaluwarsa = null;
+    }
+    if (updatedBahan.jumlahBeliKemasan !== undefined) {
+      bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
+    }
+    if (updatedBahan.satuanKemasan !== undefined) {
+      bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
+    }
+    if (updatedBahan.hargaTotalBeliKemasan !== undefined) {
+      bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
     }
 
-    // MODIFIED: Tambahkan kolom baru dengan nullish coalescing (??)
-    if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-    if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-    if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+    console.log('Sending to Supabase:', bahanToUpdate);
 
-    bahanToUpdate.updated_at = new Date().toISOString(); // Selalu update updated_at
-
-    const { error } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id);
+    const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
 
     if (error) {
       console.error('Error updating bahan baku in DB:', error);
@@ -712,11 +660,33 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setBahanBaku(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
-      )
-    );
+    if (data && data.length > 0) {
+      const updatedItem = data[0];
+      setBahanBaku(prev =>
+        prev.map(item =>
+          item.id === id
+            ? {
+                ...item,
+                ...updatedBahan,
+                tanggalKadaluwarsa: safeParseDate(updatedItem.tanggal_kadaluwarsa),
+                hargaSatuan: parseFloat(updatedItem.harga_satuan) || 0,
+                jumlahBeliKemasan: parseFloat(updatedItem.jumlah_beli_kemasan) || null,
+                satuanKemasan: updatedItem.satuan_kemasan || null,
+                hargaTotalBeliKemasan: parseFloat(updatedItem.harga_total_beli_kemasan) || null,
+                updatedAt: safeParseDate(updatedItem.updated_at),
+              }
+            : item
+        )
+      );
+    } else {
+      console.warn('No data returned from Supabase update, falling back to local update');
+      setBahanBaku(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
+        )
+      );
+    }
+
     await syncToCloud();
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
@@ -757,7 +727,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // Panggil updateBahanBaku yang akan sync ke cloud
     updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
     addActivity({
       title: 'Stok Berkurang',
@@ -767,7 +736,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  // Supplier functions
   const addSupplier = async (supplier: Omit<Supplier, 'id'>) => {
     const newSupplier: Supplier = {
       ...supplier,
@@ -818,8 +786,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (supplierToUpdate.telepon) supplierToUpdate.telepon = updatedSupplier.telepon;
     if (supplierToUpdate.alamat) supplierToUpdate.alamat = updatedSupplier.alamat;
     if (supplierToUpdate.catatan) supplierToUpdate.catatan = updatedSupplier.catatan;
-    delete supplierToUpdate.createdAt; // createdAt should not be updated
-
+    delete supplierToUpdate.createdAt;
 
     const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
     if (error) {
@@ -860,7 +827,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  // Purchase functions
   const addPurchase = async (purchase: Omit<Purchase, 'id'>) => {
     const newPurchase: Purchase = {
       ...purchase,
@@ -892,23 +858,20 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setPurchases(prev => [...prev, newPurchase]);
     await syncToCloud();
 
-    // Update stock for each purchased item
     purchase.items.forEach(item => {
       const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
         updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
-          hargaSatuan: item.hargaSatuan
+          hargaSatuan: item.hargaSatuan,
         });
       } else {
-        // MODIFIED: Ensure new bahan baku added here also uses camelCase for hook,
-        // and hook handles transformation to snake_case for DB
         addBahanBaku({
           nama: item.namaBarang,
           kategori: item.kategori,
           stok: item.jumlah,
           satuan: item.satuan,
-          minimum: 10, // Default minimum
+          minimum: 10,
           hargaSatuan: item.hargaSatuan,
           supplier: purchase.supplier,
         });
@@ -932,7 +895,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     if (purchaseToUpdate.totalNilai) delete purchaseToUpdate.totalNilai;
     if (purchaseToUpdate.metodePerhitungan) delete purchaseToUpdate.metodePerhitungan;
-    if (purchaseToUpdate.createdAt) delete purchaseToUpdate.createdAt; // createdAt should not be updated
+    if (purchaseToUpdate.createdAt) delete purchaseToUpdate.createdAt;
 
     const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id);
     if (error) {
@@ -963,7 +926,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.success(`Pembelian berhasil dihapus!`);
   };
 
-  // Recipe functions
   const addRecipe = async (recipe: Omit<Recipe, 'id'>) => {
     const newRecipe: Recipe = {
       ...recipe,
@@ -1010,7 +972,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
     const recipeToUpdate: Partial<any> = {
-      ...updatedRecipe, // Spread updatedRecipe to include all fields
+      ...updatedRecipe,
       nama_resep: updatedRecipe.namaResep,
       biaya_tenaga_kerja: updatedRecipe.biayaTenagaKerja,
       biaya_overhead: updatedRecipe.biayaOverhead,
@@ -1021,7 +983,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: new Date().toISOString(),
       category: updatedRecipe.category,
     };
-    // Hapus properti camelCase yang sudah ada padanan snake_case-nya
     delete recipeToUpdate.namaResep;
     delete recipeToUpdate.biayaTenagaKerja;
     delete recipeToUpdate.biayaOverhead;
@@ -1071,13 +1032,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  // HPP Result functions
   const addHPPResult = async (result: Omit<HPPResult, 'id'>) => {
     const newResult: HPPResult = {
       ...result,
       id: generateUUID(),
-      createdAt: new Date(), // Menambahkan createdAt
-      updatedAt: new Date(), // Menambahkan updatedAt
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const resultToInsert = {
@@ -1092,8 +1052,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       harga_jual_per_porsi: newResult.hargaJualPerPorsi,
       jumlah_porsi: newResult.jumlahPorsi,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: newResult.createdAt?.toISOString(), // Menggunakan newResult.createdAt
-      updated_at: newResult.updatedAt?.toISOString(), // Menggunakan newResult.updatedAt
+      created_at: newResult.createdAt?.toISOString(),
+      updated_at: newResult.updatedAt?.toISOString(),
     };
 
     const { error } = await supabase.from('hpp_results').insert([resultToInsert]);
@@ -1109,7 +1069,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       title: 'HPP Dihitung',
       description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString()}/porsi`,
       type: 'hpp',
-      value: `HPP: Rp ${result.hppPerPorsi.toLocaleString()}`
+      value: `HPP: Rp ${result.hppPerPorsi.toLocaleString()}`,
     });
     toast.success(`Hasil HPP ${result.nama} berhasil disimpan!`);
   };
@@ -1118,16 +1078,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addHPPResult(result);
   };
 
-  // Order functions
   const addOrder = async (order: NewOrder) => {
     const newOrder: Order = {
       ...order,
       id: generateUUID(),
-      tanggal: new Date(), // Pastikan ini Date object
-      createdAt: new Date(), // Tambahkan
-      updatedAt: new Date(), // Tambahkan
+      tanggal: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       nomorPesanan: `ORD-${String(Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', '')) || 0)) + 1).padStart(3, '0')}`,
-      status: 'pending'
+      status: 'pending',
     };
 
     const orderToInsert = {
@@ -1177,21 +1136,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       total_pesanan: updatedOrder.totalPesanan,
       updated_at: new Date().toISOString(),
     };
-    // Hapus properti camelCase
     delete orderToUpdate.nomorPesanan;
     delete orderToUpdate.namaPelanggan;
     delete orderToUpdate.emailPelanggan;
     delete orderToUpdate.teleponPelanggan;
     delete orderToUpdate.alamatPelanggan;
     delete orderToUpdate.totalPesanan;
-    // createdAt tidak boleh diupdate, hanya updated_at
-    if (orderToUpdate.createdAt) delete orderToUpdate.createdAt; // createdAt can't be updated
-
-    // tanggal harus dikonversi jika ada perubahan
+    if (orderToUpdate.createdAt) delete orderToUpdate.createdAt;
     if (updatedOrder.tanggal !== undefined) {
       orderToUpdate.tanggal = updatedOrder.tanggal.toISOString();
     }
-
 
     const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id);
     if (error) {
@@ -1207,7 +1161,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     );
     await syncToCloud();
 
-    // Add activity for status change if status is included in the update
     if (updatedOrder.status) {
       const order = orders.find(o => o.id === id);
       if (order && order.status !== updatedOrder.status) {
@@ -1257,14 +1210,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Activity functions
   const addActivity = async (activity: Omit<Activity, 'id' | 'timestamp'>) => {
     const newActivity: Activity = {
       ...activity,
       id: generateUUID(),
       timestamp: new Date(),
-      createdAt: new Date(), // Tambahkan
-      updatedAt: new Date(), // Tambahkan
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const activityToInsert = {
@@ -1285,12 +1237,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    setActivities(prev => [newActivity, ...prev].slice(0, 50)); // Keep only latest 50
+    setActivities(prev => [newActivity, ...prev].slice(0, 50));
     await syncToCloud();
     toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
-  // Statistics
   const getStatistics = () => {
     const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
     const averageHPP = hppResults.length > 0

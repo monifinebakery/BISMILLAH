@@ -93,7 +93,6 @@ const WarehousePage = () => {
   };
 
   const handleEdit = (item: BahanBaku) => {
-    // item.tanggalKadaluwarsa adalah Date | undefined
     const formattedDate = item.tanggalKadaluwarsa?.toISOString().split('T')[0] || '';
 
     setEditingItem({
@@ -103,7 +102,7 @@ const WarehousePage = () => {
     setPurchaseDetails({
         purchaseQuantity: item.jumlahBeliKemasan || 0,
         purchaseUnit: item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
+        totalPurchasePrice: item.hargaTotalBeliKemasan || 0, // Fix: totalPurchasePrice should be purchaseTotalPrice
     });
   };
 
@@ -115,12 +114,10 @@ const WarehousePage = () => {
             satuanKemasan: purchaseDetails.purchaseUnit,
             hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
         };
-        // tanggalKadaluwarsa dari updates adalah string (dari input), perlu diubah ke Date object jika hook mengharapkan Date
         if (typeof updatedItemData.tanggalKadaluwarsa === 'string') {
             updatedItemData.tanggalKadaluwarsa = updatedItemData.tanggalKadaluwarsa ? new Date(updatedItemData.tanggalKadaluwarsa) : undefined;
-            // Cek apakah tanggal yang dikonversi valid
             if (updatedItemData.tanggalKadaluwarsa && isNaN(updatedItemData.tanggalKadaluwarsa.getTime())) {
-                updatedItemData.tanggalKadaluwarsa = undefined; // Set ke undefined jika Invalid Date
+                updatedItemData.tanggalKadaluwarsa = undefined;
             }
         }
         
@@ -202,7 +199,6 @@ const WarehousePage = () => {
                   <AlertTriangle className="h-5 w-5 mr-2" />
                   Peringatan Stok Rendah ({lowStockItems.length} item)
                 </CardTitle>
-              </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -452,7 +448,7 @@ const WarehousePage = () => {
                         </div>
                         {item.tanggalKadaluwarsa && (
                           // MODIFIED: Tambahkan pemeriksaan robust sebelum memanggil toLocaleDateString
-                          (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime())) &&
+                          (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
                           <div>
                             <p className="text-sm text-gray-500">Kadaluwarsa</p>
                             <p className="font-semibold text-gray-800">

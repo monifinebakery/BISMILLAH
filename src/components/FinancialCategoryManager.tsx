@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,16 +8,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+// MODIFIED: Impor useUserSettings
+import { useUserSettings } from '@/hooks/useUserSettings';
 
-interface FinancialCategoryManagerProps {
-  categories: { income: string[]; expense: string[] };
-  onUpdateCategories: (categories: { income: string[]; expense: string[] }) => void;
-}
+// MODIFIED: Hapus interface FinancialCategoryManagerProps
+// interface FinancialCategoryManagerProps {
+//   categories: { income: string[]; expense: string[] };
+//   onUpdateCategories: (categories: { income: string[]; expense: string[] }) => void;
+// }
 
-const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
-  categories,
-  onUpdateCategories,
-}) => {
+// MODIFIED: Hapus props 'categories' dan 'onUpdateCategories'
+const FinancialCategoryManager: React.FC = () => {
+  // MODIFIED: Panggil useUserSettings hook
+  const { settings, saveSettings } = useUserSettings();
+
   const [isOpen, setIsOpen] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [categoryType, setCategoryType] = useState<'income' | 'expense'>('income');
@@ -28,30 +31,42 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
     newName: string;
   } | null>(null);
 
-  const addCategory = () => {
+  const addCategory = async () => { // MODIFIED: Make async
     if (!newCategory.trim()) {
       toast.error('Nama kategori tidak boleh kosong');
       return;
     }
 
+    // MODIFIED: Gunakan settings.financialCategories
     const updatedCategories = {
-      ...categories,
-      [categoryType]: [...categories[categoryType], newCategory.trim()],
+      ...settings.financialCategories,
+      [categoryType]: [...settings.financialCategories[categoryType], newCategory.trim()],
     };
 
-    onUpdateCategories(updatedCategories);
-    setNewCategory('');
-    toast.success('Kategori berhasil ditambahkan');
+    // MODIFIED: Panggil saveSettings
+    const success = await saveSettings({ ...settings, financialCategories: updatedCategories });
+    if (success) {
+      setNewCategory('');
+      toast.success('Kategori berhasil ditambahkan');
+    } else {
+      toast.error('Gagal menambahkan kategori');
+    }
   };
 
-  const deleteCategory = (type: 'income' | 'expense', categoryName: string) => {
+  const deleteCategory = async (type: 'income' | 'expense', categoryName: string) => { // MODIFIED: Make async
+    // MODIFIED: Gunakan settings.financialCategories
     const updatedCategories = {
-      ...categories,
-      [type]: categories[type].filter(cat => cat !== categoryName),
+      ...settings.financialCategories,
+      [type]: settings.financialCategories[type].filter(cat => cat !== categoryName),
     };
 
-    onUpdateCategories(updatedCategories);
-    toast.success('Kategori berhasil dihapus');
+    // MODIFIED: Panggil saveSettings
+    const success = await saveSettings({ ...settings, financialCategories: updatedCategories });
+    if (success) {
+      toast.success('Kategori berhasil dihapus');
+    } else {
+      toast.error('Gagal menghapus kategori');
+    }
   };
 
   const startEditCategory = (type: 'income' | 'expense', categoryName: string) => {
@@ -62,22 +77,28 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
     });
   };
 
-  const saveEditCategory = () => {
+  const saveEditCategory = async () => { // MODIFIED: Make async
     if (!editingCategory || !editingCategory.newName.trim()) {
       toast.error('Nama kategori tidak boleh kosong');
       return;
     }
 
+    // MODIFIED: Gunakan settings.financialCategories
     const updatedCategories = {
-      ...categories,
-      [editingCategory.type]: categories[editingCategory.type].map(cat =>
+      ...settings.financialCategories,
+      [editingCategory.type]: settings.financialCategories[editingCategory.type].map(cat =>
         cat === editingCategory.oldName ? editingCategory.newName.trim() : cat
       ),
     };
 
-    onUpdateCategories(updatedCategories);
-    setEditingCategory(null);
-    toast.success('Kategori berhasil diupdate');
+    // MODIFIED: Panggil saveSettings
+    const success = await saveSettings({ ...settings, financialCategories: updatedCategories });
+    if (success) {
+      setEditingCategory(null);
+      toast.success('Kategori berhasil diupdate');
+    } else {
+      toast.error('Gagal mengupdate kategori');
+    }
   };
 
   const cancelEdit = () => {
@@ -96,7 +117,7 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
         <DialogHeader>
           <DialogTitle>Kelola Kategori Keuangan</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Add New Category */}
           <Card>
@@ -142,7 +163,8 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {categories.income.map((category) => (
+                {/* MODIFIED: Gunakan settings.financialCategories.income */}
+                {settings.financialCategories.income.map((category) => (
                   <div key={category} className="flex items-center justify-between p-2 border rounded">
                     {editingCategory?.type === 'income' && editingCategory.oldName === category ? (
                       <div className="flex items-center space-x-2 flex-1">
@@ -187,7 +209,8 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
                     )}
                   </div>
                 ))}
-                {categories.income.length === 0 && (
+                {/* MODIFIED: Gunakan settings.financialCategories.income */}
+                {settings.financialCategories.income.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">Belum ada kategori pemasukan</p>
                 )}
               </div>
@@ -201,7 +224,8 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {categories.expense.map((category) => (
+                {/* MODIFIED: Gunakan settings.financialCategories.expense */}
+                {settings.financialCategories.expense.map((category) => (
                   <div key={category} className="flex items-center justify-between p-2 border rounded">
                     {editingCategory?.type === 'expense' && editingCategory.oldName === category ? (
                       <div className="flex items-center space-x-2 flex-1">
@@ -246,7 +270,8 @@ const FinancialCategoryManager: React.FC<FinancialCategoryManagerProps> = ({
                     )}
                   </div>
                 ))}
-                {categories.expense.length === 0 && (
+                {/* MODIFIED: Gunakan settings.financialCategories.expense */}
+                {settings.financialCategories.expense.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">Belum ada kategori pengeluaran</p>
                 )}
               </div>

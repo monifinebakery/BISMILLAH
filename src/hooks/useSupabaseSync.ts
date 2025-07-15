@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-// import { useAppData } from '@/contexts/AppDataContext'; // DIHAPUS: Tidak lagi memanggil useAppData di sini
 import { toast } from 'sonner';
 
 // MODIFIED: Tambahkan interface untuk data yang akan disinkronkan
@@ -176,12 +175,29 @@ interface LoadedData {
   userSettings?: any;
 }
 
+// MODIFIED: safeParseDate sekarang diekspor
+export const safeParseDate = (dateValue: any): Date | undefined => {
+  try {
+    if (!dateValue) return undefined; // Mengembalikan undefined jika nilai kosong
+
+    if (dateValue instanceof Date) {
+      return isNaN(dateValue.getTime()) ? undefined : dateValue;
+    }
+
+    const parsed = new Date(dateValue);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  } catch (error) {
+    console.error('Error parsing date:', error, dateValue);
+    return undefined; // Mengembalikan undefined jika ada error
+  }
+};
+
 
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // MODIFIED: syncToSupabase sekarang menerima transformedPayload sebagai argumen
-  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => { 
+  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -291,24 +307,8 @@ export const useSupabaseSync = () => {
     }
   };
 
-  const safeParseDate = (dateValue: any) => {
-    try {
-      if (!dateValue) return new Date();
-      
-      if (dateValue instanceof Date) {
-        return isNaN(dateValue.getTime()) ? new Date() : dateValue;
-      }
-      
-      const parsed = new Date(dateValue);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
-    } catch (error) {
-      console.error('Error parsing date:', error, dateValue);
-      return new Date();
-    }
-  };
-
   // MODIFIED: loadFromSupabase sekarang mengembalikan objek data lengkap
-  const loadFromSupabase = async (): Promise<LoadedData | null> => { 
+  const loadFromSupabase = async (): Promise<LoadedData | null> => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -329,13 +329,13 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
         supabase.from('financial_transactions').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }), // MODIFIED: Order by 'tanggal'
-        supabase.from('user_settings').select('*').eq('user_id', session.user.id).single()
+        supabase.from('user_settings').select('*').eq('user_id', session.user.id).maybeSingle() // Use maybeSingle()
       ]);
 
       // Check for errors and throw if any critical error
       if (bahanBakuRes.error) throw bahanBakuRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
-      if (purchasesRes.error) throw purchasesRes.error; 
+      if (purchasesRes.error) throw purchasesRes.error;
       if (recipesRes.error) throw recipesRes.error;
       if (hppResultsRes.error) throw hppResultsRes.error;
       if (activitiesRes.error) throw activitiesRes.error;
@@ -344,8 +344,6 @@ export const useSupabaseSync = () => {
       if (financialTransactionsRes.error) throw financialTransactionsRes.error;
       // settingsRes might return PGRST116 (no rows found) which is okay, handle it below
 
-      // Load settings and save to localStorage (handled by useUserSettings hook)
-      // We still return it as part of cloudData for AppDataContext to potentially use
       let userSettingsData = null;
       if (settingsRes.data && !settingsRes.error) {
         userSettingsData = {
@@ -361,7 +359,6 @@ export const useSupabaseSync = () => {
           security: settingsRes.data.security_settings,
           recipeCategories: settingsRes.data.recipe_categories || [], // MODIFIED: Load recipe_categories
         };
-        // localStorage.setItem('appSettings', JSON.stringify(userSettingsData)); // DIHAPUS: useUserSettings akan mengelola localStorage-nya sendiri
       } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
         console.error('Error loading user settings:', settingsRes.error);
         toast.error(`Gagal memuat pengaturan pengguna: ${settingsRes.error.message}`);
@@ -378,10 +375,10 @@ export const useSupabaseSync = () => {
           minimum: parseFloat(item.minimum) || 0,
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier,
-          tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
+          tanggalKadaluwarsa: item.tanggal_kadaluwarsa || null, // MODIFIED: Simpan sebagai string/null
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         suppliers: suppliersRes.data?.map((item: any) => ({
           id: item.id,
@@ -392,12 +389,12 @@ export const useSupabaseSync = () => {
           alamat: item.alamat,
           catatan: item.catatan,
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         purchases: purchasesRes.data?.map((item: any) => ({
           id: item.id,
-          tanggal: safeParseDate(item.tanggal),
+          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
           supplier: item.supplier,
           items: item.items || [],
           totalNilai: parseFloat(item.total_nilai) || 0,
@@ -405,8 +402,8 @@ export const useSupabaseSync = () => {
           metodePerhitungan: item.metode_perhitungan,
           catatan: item.catatan,
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         recipes: recipesRes.data?.map((item: any) => ({
           id: item.id,
@@ -420,10 +417,10 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
-          category: item.category, // MODIFIED: Muat category
+          category: item.category,
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         hppResults: hppResultsRes.data?.map((item: any) => ({
           id: item.id,
@@ -436,10 +433,10 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           jumlahPorsi: item.jumlah_porsi || 1,
-          timestamp: safeParseDate(item.created_at), // timestamp is created_at from DB
+          timestamp: item.created_at, // MODIFIED: Simpan sebagai string
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          created_at: item.created_at, // MODIFIED: Simpan sebagai string
+          updated_at: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         activities: activitiesRes.data?.map((item: any) => ({
           id: item.id,
@@ -447,15 +444,15 @@ export const useSupabaseSync = () => {
           description: item.description,
           type: item.type,
           value: item.value,
-          timestamp: safeParseDate(item.created_at),
+          timestamp: item.created_at, // MODIFIED: Simpan sebagai string
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          created_at: item.created_at, // MODIFIED: Simpan sebagai string
+          updated_at: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         orders: ordersRes.data?.map((item: any) => ({
           id: item.id,
           nomorPesanan: item.nomor_pesanan,
-          tanggal: safeParseDate(item.tanggal),
+          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
           namaPelanggan: item.nama_pelanggan,
           emailPelanggan: item.email_pelanggan,
           teleponPelanggan: item.telepon_pelanggan,
@@ -467,38 +464,38 @@ export const useSupabaseSync = () => {
           status: item.status,
           catatan: item.catatan,
           user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: safeParseDate(item.created_at),
-          updated_at: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
-          jenis: item.jenis, // DB: jenis (local: jenis)
-          nilai: parseFloat(item.nilai_awal) || 0, // MODIFIED: nilai_awal -> nilai
-          umurManfaat: parseFloat(item.umur_manfaat) || 0, // MODIFIED: umur_manfaat -> umurManfaat
-          tanggalPembelian: safeParseDate(item.tanggal_pembelian), // MODIFIED: tanggal_pembelian -> tanggalPembelian
-          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // MODIFIED: penyusutan_per_bulan -> penyusutanPerBulan
-          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // MODIFIED: nilai_sekarang -> nilaiSaatIni
+          jenis: item.jenis,
+          nilai: parseFloat(item.nilai_awal) || 0,
+          umurManfaat: parseFloat(item.umur_manfaat) || 0,
+          tanggalPembelian: item.tanggal_pembelian, // MODIFIED: Simpan sebagai string
+          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
+          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
           user_id: item.user_id,
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
-          tanggal: safeParseDate(item.tanggal),
-          jenis: item.type, // MODIFIED: type -> jenis
+          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
+          jenis: item.type,
           deskripsi: item.deskripsi,
-          jumlah: parseFloat(item.amount) || 0, // MODIFIED: amount -> jumlah
+          jumlah: parseFloat(item.amount) || 0,
           user_id: item.user_id,
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
+          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
+          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
         })) || [],
-        userSettings: userSettingsData, // MODIFIED: Sertakan userSettings
+        userSettings: userSettingsData,
       };
 
       console.log('Data loaded from cloud:', cloudData);
       toast.success('Data berhasil dimuat dari cloud');
-      return cloudData; // PENTING: Kembalikan data yang dimuat
+      return cloudData;
     } catch (error: any) {
       console.error('Load error:', error);
       toast.error('Gagal memuat data dari cloud');

@@ -631,24 +631,66 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: new Date().toISOString(),
     };
 
-    // Pastikan semua field yang mungkin diubah selalu dimasukkan
-    if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
-    if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
-    if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
-    if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
-    if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
-    if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+    // Validasi dan log setiap field sebelum ditambahkan ke bahanToUpdate
+    console.log('Validating fields...');
+    if (updatedBahan.nama !== undefined) {
+      console.log('Nama updated:', updatedBahan.nama);
+      bahanToUpdate.nama = updatedBahan.nama;
+    }
+    if (updatedBahan.kategori !== undefined) {
+      console.log('Kategori updated:', updatedBahan.kategori);
+      bahanToUpdate.kategori = updatedBahan.kategori;
+    }
+    if (updatedBahan.stok !== undefined) {
+      console.log('Stok updated:', updatedBahan.stok);
+      bahanToUpdate.stok = updatedBahan.stok;
+    }
+    if (updatedBahan.satuan !== undefined) {
+      console.log('Satuan updated:', updatedBahan.satuan);
+      bahanToUpdate.satuan = updatedBahan.satuan;
+    }
+    if (updatedBahan.minimum !== undefined) {
+      console.log('Minimum updated:', updatedBahan.minimum);
+      bahanToUpdate.minimum = updatedBahan.minimum;
+    }
+    if (updatedBahan.supplier !== undefined) {
+      console.log('Supplier updated:', updatedBahan.supplier);
+      bahanToUpdate.supplier = updatedBahan.supplier;
+    }
+    if (updatedBahan.hargaSatuan !== undefined) {
+      console.log('HargaSatuan updated:', updatedBahan.hargaSatuan);
+      bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+    }
     if (updatedBahan.tanggalKadaluwarsa !== undefined) {
+      console.log('TanggalKadaluwarsa updated:', updatedBahan.tanggalKadaluwarsa);
       bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa?.toISOString() || null;
     } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
+      console.log('TanggalKadaluwarsa set to null');
       bahanToUpdate.tanggal_kadaluwarsa = null;
     }
 
-    // Pastikan purchase details selalu diperbarui
-    bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-    bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-    bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+    // Pastikan purchase details selalu diperbarui dan dilog
+    if (updatedBahan.jumlahBeliKemasan !== undefined) {
+      console.log('JumlahBeliKemasan updated:', updatedBahan.jumlahBeliKemasan);
+      bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan;
+    } else {
+      console.log('JumlahBeliKemasan not updated, setting to null');
+      bahanToUpdate.jumlah_beli_kemasan = null;
+    }
+    if (updatedBahan.satuanKemasan !== undefined) {
+      console.log('SatuanKemasan updated:', updatedBahan.satuanKemasan);
+      bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;
+    } else {
+      console.log('SatuanKemasan not updated, setting to null');
+      bahanToUpdate.satuan_kemasan = null;
+    }
+    if (updatedBahan.hargaTotalBeliKemasan !== undefined) {
+      console.log('HargaTotalBeliKemasan updated:', updatedBahan.hargaTotalBeliKemasan);
+      bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan;
+    } else {
+      console.log('HargaTotalBeliKemasan not updated, setting to null');
+      bahanToUpdate.harga_total_beli_kemasan = null;
+    }
 
     console.log('Prepared bahanToUpdate:', JSON.stringify(bahanToUpdate, null, 2));
 
@@ -663,6 +705,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     if (data && data.length > 0) {
       const updatedItem = data[0];
+      console.log('Raw updated item from Supabase:', JSON.stringify(updatedItem, null, 2));
       setBahanBaku(prev =>
         prev.map(item =>
           item.id === id
@@ -690,7 +733,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log('Fallback updatedBahan state:', JSON.stringify(bahanBaku, null, 2));
     }
 
-    // Nonaktifkan sementara syncToCloud untuk isolasi
+    // Nonaktifkan sementara syncToCloud dan real-time interference
     // await syncToCloud();
     console.log('=== DEBUG: updateBahanBaku completed ===');
     toast.success(`Bahan baku berhasil diperbarui!`);
@@ -1277,6 +1320,192 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   };
 
+  const addAsset = async (asset: Omit<Asset, 'id'>) => {
+    const newAsset: Asset = {
+      ...asset,
+      id: generateUUID(),
+      user_id: (await supabase.auth.getSession()).data.session?.user.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      penyusutanPerBulan: asset.nilai / (asset.umurManfaat * 12),
+      nilaiSaatIni: asset.nilai,
+    };
+
+    const assetToInsert = {
+      id: newAsset.id,
+      nama: newAsset.nama,
+      jenis: newAsset.jenis,
+      nilai_awal: newAsset.nilai,
+      umur_manfaat: newAsset.umurManfaat,
+      tanggal_pembelian: newAsset.tanggalPembelian.toISOString(),
+      penyusutan_per_bulan: newAsset.penyusutanPerBulan,
+      nilai_sekarang: newAsset.nilaiSaatIni,
+      user_id: newAsset.user_id,
+      created_at: newAsset.createdAt?.toISOString(),
+      updated_at: newAsset.updatedAt?.toISOString(),
+    };
+
+    const { error } = await supabase.from('assets').insert([assetToInsert]);
+    if (error) {
+      console.error('Error adding asset to DB:', error);
+      toast.error(`Gagal menambahkan aset: ${error.message}`);
+      return false;
+    }
+
+    setAssets(prev => [...prev, newAsset]);
+    await syncToCloud();
+    addActivity({
+      title: 'Aset Ditambahkan',
+      description: `${asset.nama} telah ditambahkan`,
+      type: 'stok',
+    });
+    toast.success(`${asset.nama} berhasil ditambahkan!`);
+    return true;
+  };
+
+  const updateAsset = async (id: string, updatedAsset: Partial<Asset>) => {
+    const assetToUpdate: Partial<any> = {
+      ...updatedAsset,
+      updated_at: new Date().toISOString(),
+    };
+    if (assetToUpdate.nama) assetToUpdate.nama = updatedAsset.nama;
+    if (assetToUpdate.jenis) assetToUpdate.jenis = updatedAsset.jenis;
+    if (assetToUpdate.nilai) assetToUpdate.nilai_awal = updatedAsset.nilai;
+    if (assetToUpdate.umurManfaat) assetToUpdate.umur_manfaat = updatedAsset.umurManfaat;
+    if (updatedAsset.tanggalPembelian) {
+      assetToUpdate.tanggal_pembelian = updatedAsset.tanggalPembelian.toISOString();
+    }
+    delete assetToUpdate.createdAt;
+
+    const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id);
+    if (error) {
+      console.error('Error updating asset in DB:', error);
+      toast.error(`Gagal memperbarui aset: ${error.message}`);
+      return false;
+    }
+
+    setAssets(prev =>
+      prev.map(asset =>
+        asset.id === id ? { ...asset, ...updatedAsset, updatedAt: new Date() } : asset
+      )
+    );
+    await syncToCloud();
+    toast.success(`Aset berhasil diperbarui!`);
+    return true;
+  };
+
+  const deleteAsset = async (id: string) => {
+    const asset = assets.find(a => a.id === id);
+
+    const { error } = await supabase.from('assets').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting asset from DB:', error);
+      toast.error(`Gagal menghapus aset: ${error.message}`);
+      return false;
+    }
+
+    setAssets(prev => prev.filter(a => a.id !== id));
+    await syncToCloud();
+    if (asset) {
+      addActivity({
+        title: 'Aset Dihapus',
+        description: `${asset.nama} telah dihapus`,
+        type: 'stok',
+      });
+      toast.success(`Aset ${asset.nama} berhasil dihapus!`);
+    }
+    return true;
+  };
+
+  const addFinancialTransaction = async (transaction: Omit<FinancialTransaction, 'id'>) => {
+    const newTransaction: FinancialTransaction = {
+      ...transaction,
+      id: generateUUID(),
+      user_id: (await supabase.auth.getSession()).data.session?.user.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const transactionToInsert = {
+      id: newTransaction.id,
+      tanggal: newTransaction.tanggal.toISOString(),
+      type: newTransaction.jenis,
+      deskripsi: newTransaction.deskripsi,
+      amount: newTransaction.jumlah,
+      user_id: newTransaction.user_id,
+      created_at: newTransaction.createdAt?.toISOString(),
+      updated_at: newTransaction.updatedAt?.toISOString(),
+    };
+
+    const { error } = await supabase.from('financial_transactions').insert([transactionToInsert]);
+    if (error) {
+      console.error('Error adding financial transaction to DB:', error);
+      toast.error(`Gagal menambahkan transaksi keuangan: ${error.message}`);
+      return false;
+    }
+
+    setFinancialTransactions(prev => [...prev, newTransaction]);
+    await syncToCloud();
+    addActivity({
+      title: 'Transaksi Keuangan Ditambahkan',
+      description: `${transaction.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.jumlah.toLocaleString()}`,
+      type: 'stok',
+    });
+    toast.success(`Transaksi berhasil ditambahkan!`);
+    return true;
+  };
+
+  const updateFinancialTransaction = async (id: string, updatedTransaction: Partial<FinancialTransaction>) => {
+    const transactionToUpdate: Partial<any> = {
+      ...updatedTransaction,
+      updated_at: new Date().toISOString(),
+    };
+    if (transactionToUpdate.tanggal) transactionToUpdate.tanggal = updatedTransaction.tanggal.toISOString();
+    if (transactionToUpdate.jenis) transactionToUpdate.type = updatedTransaction.jenis;
+    if (transactionToUpdate.deskripsi) transactionToUpdate.deskripsi = updatedTransaction.deskripsi;
+    if (transactionToUpdate.jumlah) transactionToUpdate.amount = updatedTransaction.jumlah;
+    delete transactionToUpdate.createdAt;
+
+    const { error } = await supabase.from('financial_transactions').update(transactionToUpdate).eq('id', id);
+    if (error) {
+      console.error('Error updating financial transaction in DB:', error);
+      toast.error(`Gagal memperbarui transaksi keuangan: ${error.message}`);
+      return false;
+    }
+
+    setFinancialTransactions(prev =>
+      prev.map(transaction =>
+        transaction.id === id ? { ...transaction, ...updatedTransaction, updatedAt: new Date() } : transaction
+      )
+    );
+    await syncToCloud();
+    toast.success(`Transaksi berhasil diperbarui!`);
+    return true;
+  };
+
+  const deleteFinancialTransaction = async (id: string) => {
+    const transaction = financialTransactions.find(t => t.id === id);
+
+    const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting financial transaction from DB:', error);
+      toast.error(`Gagal menghapus transaksi keuangan: ${error.message}`);
+      return false;
+    }
+
+    setFinancialTransactions(prev => prev.filter(t => t.id !== id));
+    await syncToCloud();
+    if (transaction) {
+      addActivity({
+        title: 'Transaksi Keuangan Dihapus',
+        description: `${transaction.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.jumlah.toLocaleString()} dihapus`,
+        type: 'stok',
+      });
+      toast.success(`Transaksi berhasil dihapus!`);
+    }
+    return true;
+  };
+
   const value: AppDataContextType = {
     bahanBaku,
     addBahanBaku,
@@ -1306,6 +1535,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateOrder,
     deleteOrder,
     updateOrderStatus,
+    assets,
+    addAsset,
+    updateAsset,
+    deleteAsset,
+    financialTransactions,
+    addFinancialTransaction,
+    updateFinancialTransaction,
+    deleteFinancialTransaction,
     getStatistics,
     getDashboardStats,
     cloudSyncEnabled,

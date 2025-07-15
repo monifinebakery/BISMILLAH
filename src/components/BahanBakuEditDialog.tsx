@@ -25,16 +25,15 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
-    // Ensure these are initialized explicitly to null for consistency with DB null
     jumlahBeliKemasan: null,
     satuanKemasan: null,
     hargaTotalBeliKemasan: null,
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: '',
+    purchaseQuantity: 0,
     purchaseUnit: '',
-    purchaseTotalPrice: '',
+    purchaseTotalPrice: 0,
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
@@ -140,7 +139,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
-  // Helper function to safely render values in inputs as string or number
   const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -152,7 +150,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md font-inter">
         <DialogHeader>
-          <DialogTitle className="text-orange-600">Edit Bahan Baku</CardTitle>
+          {/* MODIFIED: Corrected closing tag from </CardTitle> to </DialogTitle> */}
+          <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -267,7 +266,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    value={getInputValue(purchaseDetails.purchaseUnit) as string} // MODIFIED: Ensure value is explicitly string
+                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">

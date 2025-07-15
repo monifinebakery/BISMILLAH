@@ -1,3 +1,4 @@
+// src/components/BahanBakuEditDialog.tsx
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } => { /* ... */ };
 import { toast } from "sonner"; // Import toast
 
 interface BahanBakuEditDialogProps {
@@ -16,7 +17,6 @@ interface BahanBakuEditDialogProps {
 }
 
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
-  // State untuk form utama. Sekarang tanggalKadaluwarsa akan menjadi Date | undefined
   const [formData, setFormData] = useState<Partial<BahanBaku>>({
     nama: '',
     kategori: '',
@@ -25,23 +25,21 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     minimum: 0,
     hargaSatuan: 0,
     supplier: '',
-    tanggalKadaluwarsa: undefined, // Inisialisasi sebagai undefined (Date | undefined)
+    tanggalKadaluwarsa: undefined,
   });
 
-  // State baru untuk Detail Pembelian
   const [purchaseDetails, setPurchaseDetails] = useState({
     purchaseQuantity: 0,
     purchaseUnit: '',
     purchaseTotalPrice: 0,
   });
 
-  // unitConversionMap: Faktor konversi (sama seperti di WarehousePage)
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
     'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592, 'ons': 28.3495 },
     'ml': { 'liter': 1000, 'ml': 1, 'galon': 3785.41 },
     'pcs': { 'pcs': 1, 'lusin': 12, 'gross': 144, 'box': 1, 'bungkus': 1 },
     'butir': { 'butir': 1, 'tray': 30, 'lusin': 12 },
-    'kg': { 'kg': 1, 'gram': 0.001, 'ons': 0.0283495 }, // Tambahkan konversi umum
+    'kg': { 'kg': 1, 'gram': 0.001, 'ons': 0.0283495 },
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
@@ -56,42 +54,45 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
-        // Pastikan properti baru juga diinisialisasi di formData jika Anda menyimpannya di sana juga
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa,
         jumlahBeliKemasan: item.jumlahBeliKemasan,
         satuanKemasan: item.satuanKemasan,
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
 
-      // MODIFIED: Inisialisasi purchaseDetails dari item prop
+      // MODIFIED: Inisialisasi purchaseDetails dari item prop, mempertahankan `null`
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0, // Ambil nilai dari item
-        purchaseUnit: item.satuanKemasan || '',       // Ambil nilai dari item
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0, // Ambil nilai dari item
+        purchaseQuantity: item.jumlahBeliKemasan === null ? null : item.jumlahBeliKemasan || 0, // Jika null, tetap null, else if 0, tetap 0.
+        purchaseUnit: item.satuanKemasan === null ? null : item.satuanKemasan || '',       // Jika null, tetap null, else if '', tetap ''
+        purchaseTotalPrice: item.hargaTotalBeliKemasan === null ? null : item.hargaTotalBeliKemasan || 0, // Jika null, tetap null, else if 0, tetap 0.
       });
 
     } else {
-      // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
       setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     }
-  }, [item, isOpen]); // Dependensi: item dan isOpen
+  }, [item, isOpen]);
 
   // useEffect kedua (Perhitungan harga satuan)
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
-    const baseUnit = formData.satuan?.toLowerCase(); // Satuan dasar bahan baku yang dipilih, gunakan optional chaining
+    const baseUnit = formData.satuan?.toLowerCase();
 
     let calculatedHarga = 0;
 
     // Only proceed with calculation if all necessary inputs are valid and non-zero
-    if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
+    // Note: purchaseQuantity dan purchaseTotalPrice bisa jadi null di sini, perlu dihandle
+    if (
+      (purchaseQuantity !== null && purchaseQuantity > 0) &&
+      (purchaseTotalPrice !== null && purchaseTotalPrice > 0) &&
+      (purchaseUnit !== null && purchaseUnit !== '') && // purchaseUnit juga bisa null
+      baseUnit
+    ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
 
-      // First, try to find a direct conversion factor
       const conversionRates = unitConversionMap[baseUnit];
       let factor = 0;
 
@@ -99,25 +100,18 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         factor = conversionRates[lowerCasePurchaseUnit];
       }
 
-      // If a specific factor exists and is valid
       if (factor !== undefined && factor > 0) {
         calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
-      }
-      // If no specific factor, but the units are the same (e.g., "buah" to "buah")
-      else if (lowerCasePurchaseUnit === baseUnit) {
+      } else if (lowerCasePurchaseUnit === baseUnit) {
         calculatedHarga = purchaseTotalPrice / purchaseQuantity;
       }
-      // Otherwise, no valid conversion or calculation possible, calculatedHarga remains 0
     }
 
-    // Always update hargaSatuan. If calculatedHarga is 0 (due to invalid inputs or no conversion), it will be 0.
     setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
 
-  }, [purchaseDetails, formData.satuan]); // Removed 'item' from dependencies as it's handled by initial useEffect
+  }, [purchaseDetails, formData.satuan]);
 
-
-  const handleSave = async () => { // Make the function async
-    // Validasi dasar
+  const handleSave = async () => {
     if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || formData.minimum === undefined || formData.minimum < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
@@ -128,20 +122,18 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       stok: parseFloat(String(formData.stok)) || 0,
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
-      tanggalKadaluwarsa: formData.tanggalKadaluwarsa, // Langsung lewatkan Date | undefined
-      // Pastikan properti detail pembelian disertakan di sini
+      tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
     };
 
-    await onSave(updatesToSend); // Await the onSave call
+    await onSave(updatesToSend);
 
-    onClose(); // Close the dialog after the save operation is complete
+    onClose();
   };
 
   const handleClose = () => {
-    // Reset state saat dialog ditutup untuk memastikan bersih saat dibuka lagi
     setFormData({
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
@@ -238,7 +230,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
           </div>
 
           <div>
-            <Label htmlFor="tanggalKadaluwarsa" className="text-gray-700">Tanggal Kadaluwarsa</Label>
+            <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
             <Input
               id="tanggalKadaluwarsa"
               type="date"
@@ -260,7 +252,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseQuantity"
                     type="number"
-                    value={purchaseDetails.purchaseQuantity || ''}
+                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
+                    value={purchaseDetails.purchaseQuantity === null || purchaseDetails.purchaseQuantity === undefined ? '' : purchaseDetails.purchaseQuantity}
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"
@@ -269,7 +262,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    value={purchaseDetails.purchaseUnit}
+                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
+                    value={purchaseDetails.purchaseUnit === null || purchaseDetails.purchaseUnit === undefined ? '' : purchaseDetails.purchaseUnit}
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">
@@ -287,7 +281,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseTotalPrice"
                     type="number"
-                    value={purchaseDetails.purchaseTotalPrice || ''}
+                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
+                    value={purchaseDetails.purchaseTotalPrice === null || purchaseDetails.purchaseTotalPrice === undefined ? '' : purchaseDetails.purchaseTotalPrice}
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"

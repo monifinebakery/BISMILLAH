@@ -92,17 +92,17 @@ const WarehousePage = () => {
     }
   };
 
+  // MODIFIED: handleEdit function
   const handleEdit = (item: BahanBaku) => {
-    const formattedDate = item.tanggalKadaluwarsa?.toISOString().split('T')[0] || '';
-
+    // MODIFIED: Langsung assign item.tanggalKadaluwarsa (Date | undefined)
     setEditingItem({
         ...item,
-        tanggalKadaluwarsa: formattedDate,
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // MODIFIED: Assign Date | undefined directly
     });
     setPurchaseDetails({
         purchaseQuantity: item.jumlahBeliKemasan || 0,
         purchaseUnit: item.satuanKemasan || '',
-        totalPurchasePrice: item.hargaTotalBeliKemasan || 0, // Fix: totalPurchasePrice should be purchaseTotalPrice
+        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
     });
   };
 
@@ -114,12 +114,8 @@ const WarehousePage = () => {
             satuanKemasan: purchaseDetails.purchaseUnit,
             hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
         };
-        if (typeof updatedItemData.tanggalKadaluwarsa === 'string') {
-            updatedItemData.tanggalKadaluwarsa = updatedItemData.tanggalKadaluwarsa ? new Date(updatedItemData.tanggalKadaluwarsa) : undefined;
-            if (updatedItemData.tanggalKadaluwarsa && isNaN(updatedItemData.tanggalKadaluwarsa.getTime())) {
-                updatedItemData.tanggalKadaluwarsa = undefined;
-            }
-        }
+        // `tanggalKadaluwarsa` dari updates sudah berupa Date | undefined dari dialog.
+        // Konversi ke string ISO akan dilakukan di hook `useBahanBaku`.
         
         await updateBahanBaku(editingItem.id, updatedItemData);
         setEditingItem(null);
@@ -447,7 +443,7 @@ const WarehousePage = () => {
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
                         {item.tanggalKadaluwarsa && (
-                          // MODIFIED: Tambahkan pemeriksaan robust sebelum memanggil toLocaleDateString
+                          // MODIFIED: Tambahkan pemeriksaan robust untuk toLocaleDateString
                           (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
                           <div>
                             <p className="text-sm text-gray-500">Kadaluwarsa</p>

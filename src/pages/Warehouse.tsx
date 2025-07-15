@@ -126,7 +126,7 @@ const WarehousePage = () => {
             satuanKemasan: purchaseDetails.purchaseUnit,
             hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
         };
-        // MODIFIED: Panggil updateBahanBaku dari useAppData
+        
         await updateBahanBaku(editingItem.id, updatedItemData);
         setEditingItem(null);
         setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
@@ -454,7 +454,6 @@ const WarehousePage = () => {
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
                         {item.tanggalKadaluwarsa && (
-                          // MODIFIED: Tambahkan pemeriksaan robust sebelum memanggil toLocaleDateString
                           (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
                           <div>
                             <p className="text-sm text-gray-500">Kadaluwarsa</p>

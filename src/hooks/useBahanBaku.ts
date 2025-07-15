@@ -1,9 +1,9 @@
 const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
   const bahanToUpdate: Partial<any> = {
-    updated_at: new Date().toISOString(), // Always update the timestamp
+    updated_at: new Date().toISOString(),
   };
 
-  // Explicitly map all possible fields from updatedBahan to snake_case
+  // Pastikan semua field yang mungkin diubah selalu dimasukkan
   if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
   if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
   if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
@@ -17,16 +17,12 @@ const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => 
     bahanToUpdate.tanggal_kadaluwarsa = null;
   }
 
-  // Ensure purchase details are included
-  if (updatedBahan.jumlahBeliKemasan !== undefined) {
-    bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-  }
-  if (updatedBahan.satuanKemasan !== undefined) {
-    bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-  }
-  if (updatedBahan.hargaTotalBeliKemasan !== undefined) {
-    bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
-  }
+  // Pastikan purchase details selalu diperbarui, bahkan jika null
+  bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
+  bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
+  bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+
+  console.log('Sending to Supabase:', bahanToUpdate); // Debug log
 
   const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
 
@@ -36,7 +32,6 @@ const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => 
     return false;
   }
 
-  // Update local state with the response from Supabase to ensure consistency
   if (data && data.length > 0) {
     const updatedItem = data[0];
     setBahanBaku(prev =>
@@ -45,18 +40,19 @@ const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => 
           ? {
               ...item,
               ...updatedBahan,
-              tanggalKadaluwarsa: updatedItem.tanggal_kadaluwarsa ? new Date(updatedItem.tanggal_kadaluwarsa) : undefined,
-              hargaSatuan: updatedItem.harga_satuan,
-              jumlahBeliKemasan: updatedItem.jumlah_beli_kemasan,
-              satuanKemasan: updatedItem.satuan_kemasan,
-              hargaTotalBeliKemasan: updatedItem.harga_total_beli_kemasan,
-              updatedAt: new Date(updatedItem.updated_at),
+              tanggalKadaluwarsa: safeParseDate(updatedItem.tanggal_kadaluwarsa),
+              hargaSatuan: parseFloat(updatedItem.harga_satuan) || 0,
+              jumlahBeliKemasan: parseFloat(updatedItem.jumlah_beli_kemasan) || null,
+              satuanKemasan: updatedItem.satuan_kemasan || null,
+              hargaTotalBeliKemasan: parseFloat(updatedItem.harga_total_beli_kemasan) || null,
+              updatedAt: safeParseDate(updatedItem.updated_at),
             }
           : item
       )
     );
+    console.log('Updated bahanBaku state:', bahanBaku); // Debug state
   } else {
-    // Fallback to local update if data is not returned
+    console.warn('No data returned from Supabase update, falling back to local update');
     setBahanBaku(prev =>
       prev.map(item =>
         item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item

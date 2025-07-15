@@ -25,7 +25,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     minimum: 0,
     hargaSatuan: 0,
     supplier: '',
-    tanggalKadaluwarsa: undefined, // MODIFIED: Inisialisasi sebagai undefined (Date | undefined)
+    tanggalKadaluwarsa: undefined, // Inisialisasi sebagai undefined (Date | undefined)
   });
 
   // State baru untuk Detail Pembelian
@@ -56,13 +56,14 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // MODIFIED: Langsung assign Date | undefined dari item
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
       });
 
+      // MODIFIED: Inisialisasi purchaseDetails dari item prop
       setPurchaseDetails({
-        purchaseQuantity: 0,
-        purchaseUnit: '',
-        purchaseTotalPrice: 0,
+        purchaseQuantity: item.jumlahBeliKemasan || 0, // Ambil nilai dari item
+        purchaseUnit: item.satuanKemasan || '',       // Ambil nilai dari item
+        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0, // Ambil nilai dari item
       });
 
     } else {
@@ -101,7 +102,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
     } else {
       // Jika tidak ada input aktif di "Detail Pembelian", kembalikan hargaSatuan ke nilai aslinya dari item
-      // Ini penting agar harga tidak terreset ke 0 jika user tidak mengisi detail pembelian
       if (item) {
         setFormData(prev => ({ ...prev, hargaSatuan: item.hargaSatuan }));
       } else {
@@ -117,14 +117,14 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       return;
     }
 
-    // MODIFIED: formData.tanggalKadaluwarsa sekarang sudah Date | undefined, jadi bisa langsung dilewatkan
+    // formData.tanggalKadaluwarsa sudah Date | undefined, jadi bisa langsung dilewatkan
     onSave({
       ...formData,
       stok: parseFloat(String(formData.stok)) || 0,
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
-      tanggalKadaluwarsa: formData.tanggalKadaluwarsa, // MODIFIED: Langsung lewatkan Date | undefined
-      // Tambahkan properti detail pembelian
+      tanggalKadaluwarsa: formData.tanggalKadaluwarsa, // Langsung lewatkan Date | undefined
+      // MODIFIED: Pastikan properti detail pembelian disertakan di sini
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
@@ -134,7 +134,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   const handleClose = () => {
     // Reset state saat dialog ditutup untuk memastikan bersih saat dibuka lagi
-    setFormData({ nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined }); // MODIFIED: Reset ke undefined
+    setFormData({ nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined });
     setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     onClose();
   };
@@ -226,15 +226,12 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             />
           </div>
 
-          {/* Input Tanggal Kadaluwarsa */}
           <div>
             <Label htmlFor="tanggalKadaluwarsa" className="text-gray-700">Tanggal Kadaluwarsa</Label>
             <Input
               id="tanggalKadaluwarsa"
               type="date"
-              // MODIFIED: Tampilkan Date object sebagai string YYYY-MM-DD untuk input
               value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
-              // MODIFIED: Konversi string dari input kembali menjadi Date object atau undefined
               onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />

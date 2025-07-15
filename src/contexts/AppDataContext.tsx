@@ -520,9 +520,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, user_id: session.user.id,
           created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(), // Tambahkan created_at/updated_at dari item
           // MODIFIED: Tambahkan kolom baru ke payload sync
-          jumlah_beli_kemasan: item.jumlahBeliKemasan || null,
-          satuan_kemasan: item.satuanKemasan || null,
-          harga_total_beli_kemasan: item.hargaTotalBeliKemasan || null,
+          jumlah_beli_kemasan: item.jumlahBeliKemasan || null, // Sudah benar untuk null -> null, 0 -> null (jika ini yg diinginkan untuk sync)
+          satuan_kemasan: item.satuanKemasan || null,         // Sudah benar untuk "" -> null, null -> null
+          harga_total_beli_kemasan: item.hargaTotalBeliKemasan || null, // Sudah benar untuk null -> null, 0 -> null (jika ini yg diinginkan untuk sync)
         })),
         suppliers: suppliers.map(item => ({
           id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon,
@@ -580,10 +580,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       console.log('Sync successful, data is now on cloud and local state will update via realtime/loadFromCloud.');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync to cloud failed in AppDataContext:', error);
       toast.error(`Gagal sinkronisasi ke cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -648,10 +650,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       user_id: newBahan.userId, // Ambil user_id dari newBahan
       created_at: newBahan.createdAt?.toISOString(), // Ambil dari newBahan
       updated_at: newBahan.updatedAt?.toISOString(), // Ambil dari newBahan
-      // MODIFIED: Tambahkan kolom baru
-      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan || null,
-      satuan_kemasan: newBahan.satuanKemasan || null,
-      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan || null,
+      // MODIFIED: Gunakan nullish coalescing (??) untuk mempertahankan 0 dan ""
+      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null,
+      satuan_kemasan: newBahan.satuanKemasan ?? null,
+      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null,
     };
 
     const { error } = await supabase.from('bahan_baku').insert([bahanToInsert]);
@@ -695,10 +697,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       bahanToUpdate.tanggal_kadaluwarsa = null; // Handle explicit null
     }
 
-    // MODIFIED: Tambahkan kolom baru
-    if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan;
-    if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;
-    if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan;
+    // MODIFIED: Tambahkan kolom baru dengan nullish coalescing (??)
+    if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
+    if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
+    if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
 
     bahanToUpdate.updated_at = new Date().toISOString(); // Selalu update updated_at
 
@@ -711,16 +713,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     setBahanBaku(prev =>
-      prev.map(bahan =>
-        bahan.id === id ? { ...bahan, ...updatedBahan, updatedAt: new Date() } : bahan
+      prev.map(item =>
+        item.id === id ? { ...item, ...updates, updatedAt: new Date() } : item
       )
     );
-    await syncToCloud(); // Sync all data
-    addActivity({
-      title: 'Bahan Baku Diperbarui',
-      description: `Data bahan baku telah diperbarui`,
-      type: 'stok',
-    });
+    await syncToCloud();
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };
@@ -775,7 +772,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newSupplier: Supplier = {
       ...supplier,
       id: generateUUID(),
-      userId: (await supabase.auth.getSession()).data.session?.user.id, // Ambil userId
+      userId: (await supabase.auth.getSession()).data.session?.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -788,9 +785,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       telepon: newSupplier.telepon,
       alamat: newSupplier.alamat,
       catatan: newSupplier.catatan,
-      user_id: newSupplier.userId, // Gunakan userId
-      created_at: newSupplier.createdAt?.toISOString(), // Pastikan Date object
-      updated_at: newSupplier.updatedAt?.toISOString(), // Pastikan Date object
+      user_id: newSupplier.userId,
+      created_at: newSupplier.createdAt?.toISOString(),
+      updated_at: newSupplier.updatedAt?.toISOString(),
     };
 
     const { error } = await supabase.from('suppliers').insert([supplierToInsert]);
@@ -815,15 +812,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...updatedSupplier,
       updated_at: new Date().toISOString(),
     };
-    // Hapus properti camelCase yang tidak ada di DB
     if (supplierToUpdate.nama) supplierToUpdate.nama = updatedSupplier.nama;
     if (supplierToUpdate.kontak) supplierToUpdate.kontak = updatedSupplier.kontak;
     if (supplierToUpdate.email) supplierToUpdate.email = updatedSupplier.email;
     if (supplierToUpdate.telepon) supplierToUpdate.telepon = updatedSupplier.telepon;
     if (supplierToUpdate.alamat) supplierToUpdate.alamat = updatedSupplier.alamat;
     if (supplierToUpdate.catatan) supplierToUpdate.catatan = updatedSupplier.catatan;
-    // createdAt tidak boleh diupdate, hanya updated_at
-    delete supplierToUpdate.createdAt;
+    delete supplierToUpdate.createdAt; // createdAt should not be updated
 
 
     const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
@@ -899,7 +894,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Update stock for each purchased item
     purchase.items.forEach(item => {
-      const existingBahan = getBahanBakuByName(item.nama);
+      const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
         updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
@@ -909,7 +904,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         // MODIFIED: Ensure new bahan baku added here also uses camelCase for hook,
         // and hook handles transformation to snake_case for DB
         addBahanBaku({
-          nama: item.nama,
+          nama: item.namaBarang,
           kategori: item.kategori,
           stok: item.jumlah,
           satuan: item.satuan,
@@ -1190,7 +1185,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     delete orderToUpdate.alamatPelanggan;
     delete orderToUpdate.totalPesanan;
     // createdAt tidak boleh diupdate, hanya updated_at
-    delete orderToUpdate.createdAt;
+    if (orderToUpdate.createdAt) delete orderToUpdate.createdAt; // createdAt can't be updated
+
     // tanggal harus dikonversi jika ada perubahan
     if (updatedOrder.tanggal !== undefined) {
       orderToUpdate.tanggal = updatedOrder.tanggal.toISOString();

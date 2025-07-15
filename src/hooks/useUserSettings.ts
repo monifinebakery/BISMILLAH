@@ -29,7 +29,12 @@ interface UserSettings {
     passwordRequirement: string;
   };
   // MODIFIED: Tambahkan recipeCategories ke interface UserSettings
-  recipeCategories: string[]; 
+  recipeCategories: string[];
+  // NEW: Tambahkan financialCategories ke interface UserSettings
+  financialCategories: {
+    income: string[];
+    expense: string[];
+  };
 }
 
 const defaultSettings: UserSettings = {
@@ -58,7 +63,12 @@ const defaultSettings: UserSettings = {
     passwordRequirement: 'medium',
   },
   // MODIFIED: Inisialisasi recipeCategories di defaultSettings
-  recipeCategories: [], 
+  recipeCategories: [],
+  // NEW: Inisialisasi financialCategories di defaultSettings
+  financialCategories: {
+    income: ['Penjualan Produk', 'Jasa', 'Lain-lain'],
+    expense: ['Bahan Baku', 'Gaji', 'Sewa', 'Utilitas', 'Lain-lain'],
+  },
 };
 
 export const useUserSettings = () => {
@@ -86,6 +96,8 @@ export const useUserSettings = () => {
             security: { ...defaultSettings.security, ...parsed.security },
             // MODIFIED: Load recipeCategories dari localStorage
             recipeCategories: parsed.recipeCategories || defaultSettings.recipeCategories,
+            // NEW: Load financialCategories dari localStorage
+            financialCategories: parsed.financialCategories || defaultSettings.financialCategories,
           });
         }
         setLoading(false);
@@ -106,22 +118,28 @@ export const useUserSettings = () => {
 
       if (data) {
         // Type-safe parsing of JSONB fields
-        const notifications = typeof data.notifications === 'object' && data.notifications !== null 
+        const notifications = typeof data.notifications === 'object' && data.notifications !== null
           ? data.notifications as UserSettings['notifications']
           : defaultSettings.notifications;
-        
-        const backup = typeof data.backup_settings === 'object' && data.backup_settings !== null 
+
+        const backup = typeof data.backup_settings === 'object' && data.backup_settings !== null
           ? data.backup_settings as UserSettings['backup']
           : defaultSettings.backup;
-        
-        const security = typeof data.security_settings === 'object' && data.security_settings !== null 
+
+        const security = typeof data.security_settings === 'object' && data.security_settings !== null
           ? data.security_settings as UserSettings['security']
           : defaultSettings.security;
-        
+
         // MODIFIED: Parse recipe_categories from JSONB (array of strings)
-        const recipeCategories = Array.isArray(data.recipe_categories) 
+        const recipeCategories = Array.isArray(data.recipe_categories)
           ? data.recipe_categories as string[]
           : defaultSettings.recipeCategories;
+
+        // NEW: Parse financial_categories from JSONB
+        const financialCategories = typeof data.financial_categories === 'object' && data.financial_categories !== null
+          ? data.financial_categories as UserSettings['financialCategories']
+          : defaultSettings.financialCategories;
+
 
         setSettings({
           id: data.id,
@@ -136,11 +154,12 @@ export const useUserSettings = () => {
           backup,
           security,
           recipeCategories, // MODIFIED: Sertakan recipeCategories
+          financialCategories, // NEW: Sertakan financialCategories
         });
       } else {
         // Create default settings for new user
-        // MODIFIED: Pastikan defaultSettings dikirim dengan recipeCategories
-        await saveSettings(defaultSettings); 
+        // MODIFIED: Pastikan defaultSettings dikirim dengan recipeCategories dan financialCategories
+        await saveSettings(defaultSettings);
       }
     } catch (error) {
       console.error('Error in loadSettings:', error);
@@ -152,12 +171,12 @@ export const useUserSettings = () => {
   const saveSettings = async (newSettings: UserSettings) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         // Save to localStorage if not authenticated
         localStorage.setItem('appSettings', JSON.stringify(newSettings));
         setSettings(newSettings);
-        toast.success('Pengaturan berhasil disimpan (lokal)!'); // MODIFIED: Pesan lebih spesifik
+        toast.success('Pengaturan berhasil disimpan (lokal)!');
         return true;
       }
 
@@ -174,7 +193,9 @@ export const useUserSettings = () => {
         backup_settings: newSettings.backup,
         security_settings: newSettings.security,
         // MODIFIED: Simpan recipeCategories sebagai JSONB
-        recipe_categories: newSettings.recipeCategories, 
+        recipe_categories: newSettings.recipeCategories,
+        // NEW: Simpan financialCategories sebagai JSONB
+        financial_categories: newSettings.financialCategories,
       };
 
       const { error } = await supabase
@@ -183,16 +204,16 @@ export const useUserSettings = () => {
 
       if (error) {
         console.error('Error saving settings:', error);
-        toast.error(`Gagal menyimpan pengaturan: ${error.message}`); // MODIFIED: Pesan lebih spesifik
+        toast.error(`Gagal menyimpan pengaturan: ${error.message}`);
         return false;
       }
 
       setSettings(newSettings);
-      toast.success('Pengaturan berhasil disimpan (cloud)!'); // MODIFIED: Pesan lebih spesifik
+      toast.success('Pengaturan berhasil disimpan (cloud)!');
       return true;
     } catch (error) {
       console.error('Error in saveSettings:', error);
-      toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`); // MODIFIED: Pesan lebih spesifik
+      toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   };

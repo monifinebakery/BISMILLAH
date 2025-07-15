@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { BahanBaku } from "@/types/recipe"; // Pastikan BahanBaku interface mencakup harga_satuan (snake_case) dan tanggal_kadaluwarsa (snake_case)
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  // MODIFIED: onSave sekarang menerima Partial<BahanBaku> yang propertinya akan kita kirim sebagai camelCase dari dialog.
+  // Konversi ke snake_case (jika dibutuhkan oleh DB) akan ditangani di useBahanBaku.
   onSave: (updates: Partial<BahanBaku>) => void;
   item: BahanBaku | null;
 }
@@ -58,16 +60,15 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       'tray': 30, // Asumsi 1 tray = 30 butir
       'lusin': 12, // 1 lusin = 12 butir
     },
-    // Tambahkan satuan dasar lain yang relevan di sini
   };
 
   // useEffect untuk mengisi formData dan purchaseDetails saat item berubah atau dialog dibuka
   useEffect(() => {
     if (item) {
-      // Format tanggal_kadaluwarsa dari Date object/ISO string ke string YYYY-MM-DD untuk input type="date"
-      const formattedDate = item.tanggal_kadaluwarsa // Asumsi item.tanggal_kadaluwarsa dari DB adalah string ISO atau Date object
+      // Memastikan `item.tanggal_kadaluwarsa` ditangani dengan benar jika null atau undefined dari DB
+      const formattedDate = item.tanggal_kadaluwarsa
         ? new Date(item.tanggal_kadaluwarsa).toISOString().split('T')[0]
-        : '';
+        : ''; // Gunakan string kosong jika null/undefined
 
       setFormData({
         nama: item.nama,
@@ -119,32 +120,31 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
           calculatedHarga = purchaseTotalPrice / purchaseQuantity;
         } else {
           // Jika satuan dasar ada tapi satuan pembelian tidak memiliki faktor konversi yang valid
-          // Atau jika faktor <= 0
-          // toast.warning(`Tidak ada faktor konversi yang valid untuk '${purchaseUnit}' ke '${baseUnit}'.`, { duration: 3000 });
+          // atau jika faktor <= 0, bisa tambahkan toast.warning di sini jika diperlukan
         }
       } else {
         // Jika satuan dasar bahan baku (formData.satuan) tidak ada di unitConversionMap
-        // toast.warning(`Satuan dasar bahan baku '${baseUnit}' tidak ada dalam peta konversi.`, { duration: 3000 });
+        // Bisa tambahkan toast.warning di sini jika diperlukan
       }
     }
 
-    // Hanya update hargaSatuan jika ada detail pembelian yang diisi
-    // Jika purchaseDetails.purchaseQuantity === 0 dan purchaseDetails.purchaseTotalPrice === 0,
+    // Hanya update hargaSatuan jika ada detail pembelian yang diisi atau jika purchaseDetails dikosongkan
+    // Jika purchaseDetails.purchaseQuantity === 0 && purchaseDetails.purchaseTotalPrice === 0,
     // maka biarkan hargaSatuan tetap dari `item` yang sedang diedit (yang diambil di useEffect pertama)
     if (purchaseQuantity > 0 || purchaseTotalPrice > 0) {
       setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
     }
-    // Jika detail pembelian dikosongkan setelah diisi, biarkan hargaSatuan tetap pada nilai awal dari item
-    // atau jika ingin dikembalikan ke 0:
-    // else if (purchaseQuantity === 0 && purchaseTotalPrice === 0 && (item?.harga_satuan !== 0 && item?.harga_satuan !== undefined)) {
+    // Jika user mengosongkan detail pembelian, hargaSatuan akan kembali ke nilai awal `item.harga_satuan` dari `useEffect` pertama.
+    // Jika ingin dikembalikan ke 0 saat detail pembelian dikosongkan:
+    // else if (purchaseQuantity === 0 && purchaseTotalPrice === 0) {
     //   setFormData(prev => ({ ...prev, hargaSatuan: 0 }));
     // }
 
   }, [purchaseDetails, formData.satuan, item]); // Tambahkan `item` sebagai dependensi untuk memastikan nilai awal
 
   const handleSave = () => {
-    // Mapping properti dari state lokal (camelCase) ke format DB (snake_case)
-    // Pastikan hanya properti yang relevan yang diperbarui
+    // MODIFIED: Mengirim updates dengan properti camelCase langsung dari formData
+    // Konversi ke snake_case akan ditangani oleh useBahanBaku di layer hook.
     const updates: Partial<BahanBaku> = {
       nama: formData.nama,
       kategori: formData.kategori,
@@ -152,13 +152,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       satuan: formData.satuan,
       minimum: formData.minimum,
       supplier: formData.supplier,
-      // Mapping hargaSatuan (camelCase) dari state ke harga_satuan (snake_case) untuk DB
-      harga_satuan: formData.hargaSatuan,
-      // Mapping tanggalKadaluwarsa (string) ke tanggal_kadaluwarsa (string ISO atau null) untuk DB
-      tanggal_kadaluwarsa: formData.tanggalKadaluwarsa ? new Date(formData.tanggalKadaluwarsa).toISOString() : null,
+      // Menggunakan properti camelCase seperti di state React
+      hargaSatuan: formData.hargaSatuan,
+      // Menggunakan properti camelCase dan mengonversi ke Date object/ISO string di sini atau di hook jika type BahanBaku expects Date object
+      tanggalKadaluwarsa: formData.tanggalKadaluwarsa ? new Date(formData.tanggalKadaluwarsa).toISOString() : null, // Convert to ISO string
     };
 
-    onSave(updates); // Panggil onSave dari parent dengan updates yang sudah di-map
+    onSave(updates); // Panggil onSave dari parent dengan updates (camelCase)
     onClose();
   };
 

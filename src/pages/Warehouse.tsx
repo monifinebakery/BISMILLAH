@@ -21,6 +21,7 @@ const WarehousePage = () => {
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // MODIFIED: Inisialisasi newItem dengan null untuk properti pembelian detail
   const [newItem, setNewItem] = useState<Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>({
     nama: '',
     kategori: '',
@@ -30,11 +31,12 @@ const WarehousePage = () => {
     minimum: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: null,
-    satuanKemasan: null,
-    hargaTotalBeliKemasan: null,
+    jumlahBeliKemasan: null,   // MODIFIED: Default ke null
+    satuanKemasan: null,       // MODIFIED: Default ke null
+    hargaTotalBeliKemasan: null, // MODIFIED: Default ke null
   });
 
+  // purchaseDetails ini untuk form ADD, jadi default 0/'' itu wajar
   const [purchaseDetails, setPurchaseDetails] = useState({
     purchaseQuantity: 0,
     purchaseUnit: '',
@@ -90,34 +92,33 @@ const WarehousePage = () => {
         nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
+      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchaseDetails for Add form
     }
   };
 
+  // MODIFIED: handleEdit function
   const handleEdit = (item: BahanBaku) => {
     setEditingItem({
         ...item,
         tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
     });
+    // MODIFIED: Inisialisasi purchaseDetails langsung dari item, mempertahankan null
     setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0,
-        purchaseUnit: item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
+        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign null/number
+        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign null/string
+        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign null/number
     });
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (editingItem && editingItem.id) {
         const updatedItemData = {
-            ...updates,
-            jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
-            satuanKemasan: purchaseDetails.purchaseUnit,
-            hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
+            ...updates, // Ini sudah mengandung jumlahBeliKemasan, satuanKemasan, hargaTotalBeliKemasan yang benar dari dialog.
         };
         
         await updateBahanBaku(editingItem.id, updatedItemData);
         setEditingItem(null);
-        setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
+        setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchaseDetails di WarehousePage setelah save
         toast.success("Bahan baku berhasil diperbarui!");
     } else {
       toast.error("Gagal memperbarui bahan baku.");
@@ -146,6 +147,15 @@ const WarehousePage = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(value);
+  };
+
+  // Helper function to safely render values in inputs as string or number
+  // Ini tetap sama, akan mengubah null/undefined menjadi ''
+  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return value;
   };
 
   return (
@@ -237,7 +247,7 @@ const WarehousePage = () => {
                       <Label htmlFor="nama">Nama Bahan *</Label>
                       <Input
                         id="nama"
-                        value={newItem.nama}
+                        value={getInputValue(newItem.nama)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -247,7 +257,7 @@ const WarehousePage = () => {
                       <Label htmlFor="kategori">Kategori *</Label>
                       <Input
                         id="kategori"
-                        value={newItem.kategori}
+                        value={getInputValue(newItem.kategori)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -258,7 +268,7 @@ const WarehousePage = () => {
                       <Input
                         id="stok"
                         type="number"
-                        value={newItem.stok === 0 ? '' : newItem.stok}
+                        value={getInputValue(newItem.stok)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -268,7 +278,7 @@ const WarehousePage = () => {
                       <Label htmlFor="satuan">Satuan *</Label>
                       <Input
                         id="satuan"
-                        value={newItem.satuan}
+                        value={getInputValue(newItem.satuan)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -281,12 +291,12 @@ const WarehousePage = () => {
                       <Input
                         id="hargaSatuan"
                         type="number"
-                        value={newItem.hargaSatuan === 0 ? '' : newItem.hargaSatuan}
+                        value={getInputValue(newItem.hargaSatuan)} // MODIFIED: Gunakan getInputValue
                         readOnly
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md bg-gray-100 cursor-not-allowed"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Harga per {newItem.satuan || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+                        Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
                       </p>
                     </div>
 
@@ -295,7 +305,7 @@ const WarehousePage = () => {
                       <Input
                         id="minimum"
                         type="number"
-                        value={newItem.minimum === 0 ? '' : newItem.minimum}
+                        value={getInputValue(newItem.minimum)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -305,7 +315,7 @@ const WarehousePage = () => {
                       <Label htmlFor="supplier">Supplier</Label>
                       <Input
                         id="supplier"
-                        value={newItem.supplier}
+                        value={getInputValue(newItem.supplier)} // MODIFIED: Gunakan getInputValue
                         onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -334,7 +344,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseQuantity"
                             type="number"
-                            value={purchaseDetails.purchaseQuantity || ''}
+                            value={getInputValue(purchaseDetails.purchaseQuantity)} // MODIFIED: Gunakan getInputValue
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -343,7 +353,7 @@ const WarehousePage = () => {
                         <div>
                           <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                           <Select
-                            value={purchaseDetails.purchaseUnit}
+                            value={getInputValue(purchaseDetails.purchaseUnit) as string} // MODIFIED: Gunakan getInputValue
                             onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                           >
                             <SelectTrigger className="rounded-md">
@@ -361,7 +371,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
-                            value={purchaseDetails.purchaseTotalPrice || ''}
+                            value={getInputValue(purchaseDetails.purchaseTotalPrice)} // MODIFIED: Gunakan getInputValue
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -453,7 +463,7 @@ const WarehousePage = () => {
                             </p>
                           </div>
                         )}
-                        {/* MODIFIED: Tampilkan Detail Pembelian jika ada */}
+                        {/* Tampilkan Detail Pembelian jika ada */}
                         {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
                            <div className="md:col-span-full border-t border-gray-100 pt-3 mt-3">
                               <p className="text-sm text-gray-500 font-semibold mb-1">Detail Pembelian</p>

@@ -66,9 +66,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       });
 
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
-        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign nilai dari item (bisa null atau string)
-        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
+        purchaseQuantity: item.jumlahBeliKemasan,
+        purchaseUnit: item.satuanKemasan,
+        purchaseTotalPrice: item.hargaTotalBeliKemasan,
       });
 
     } else {
@@ -76,7 +76,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null }); // MODIFIED: Reset ke null
+      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
     }
   }, [item, isOpen]);
 
@@ -124,7 +124,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
-      // Pastikan properti detail pembelian disertakan di sini, mereka bisa null
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
@@ -140,7 +139,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
     });
-    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null }); // MODIFIED: Reset ke null
+    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
     onClose();
   };
 
@@ -153,155 +152,161 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md font-inter">
+      {/* MODIFIED: Tambahkan flex-col dan atur tinggi untuk scrollability di mobile */}
+      <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
-            <Input
-              id="nama"
-              value={getInputValue(formData.nama)}
-              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-              className="border-orange-200 focus:border-orange-400 rounded-md"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
-            <Input
-              id="kategori"
-              value={getInputValue(formData.kategori)}
-              onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-              className="border-orange-200 focus:border-orange-400 rounded-md"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+        {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
+        <div className="flex-grow overflow-y-auto pr-4 -mr-4"> {/* pr-4 -mr-4 untuk estetika scrollbar */}
+          <div className="space-y-4"> {/* Konten form utama */}
             <div>
-              <Label htmlFor="stok" className="text-gray-700">Stok</Label>
+              <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
               <Input
-                id="stok"
+                id="nama"
+                value={getInputValue(formData.nama)}
+                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                className="border-orange-200 focus:border-orange-400 rounded-md"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
+              <Input
+                id="kategori"
+                value={getInputValue(formData.kategori)}
+                onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+                className="border-orange-200 focus:border-orange-400 rounded-md"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="stok" className="text-gray-700">Stok</Label>
+                <Input
+                  id="stok"
+                  type="number"
+                  value={getInputValue(formData.stok)}
+                  onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  className="border-orange-200 focus:border-orange-400 rounded-md"
+                />
+              </div>
+              <div>
+                <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
+                <Input
+                  id="satuan"
+                  value={getInputValue(formData.satuan)}
+                  onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
+                  className="border-orange-200 focus:border-orange-400 rounded-md"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="hargaSatuan" className="text-gray-700">Harga per Satuan (Rp)</Label>
+              <Input
+                id="hargaSatuan"
                 type="number"
-                value={getInputValue(formData.stok)}
-                onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
+                value={getInputValue(formData.hargaSatuan)}
+                readOnly
+                className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Harga per {getInputValue(formData.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="minimum" className="text-gray-700">Stok Minimum</Label>
+              <Input
+                id="minimum"
+                type="number"
+                value={getInputValue(formData.minimum)}
+                onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
                 min="0"
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
             </div>
+
             <div>
-              <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
+              <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
               <Input
-                id="satuan"
-                value={getInputValue(formData.satuan)}
-                onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
+                id="supplier"
+                value={getInputValue(formData.supplier)}
+                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="hargaSatuan" className="text-gray-700">Harga per Satuan (Rp)</Label>
-            <Input
-              id="hargaSatuan"
-              type="number"
-              value={getInputValue(formData.hargaSatuan)}
-              readOnly
-              className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Harga per {getInputValue(formData.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
-            </p>
-          </div>
+            <div>
+              <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
+              <Input
+                id="tanggalKadaluwarsa"
+                type="date"
+                value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
+                className="border-orange-200 focus:border-orange-400 rounded-md"
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="minimum" className="text-gray-700">Stok Minimum</Label>
-            <Input
-              id="minimum"
-              type="number"
-              value={getInputValue(formData.minimum)}
-              onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
-              min="0"
-              className="border-orange-200 focus:border-orange-400 rounded-md"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
-            <Input
-              id="supplier"
-              value={getInputValue(formData.supplier)}
-              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-              className="border-orange-200 focus:border-orange-400 rounded-md"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
-            <Input
-              id="tanggalKadaluwarsa"
-              type="date"
-              value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
-              onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
-              className="border-orange-200 focus:border-orange-400 rounded-md"
-            />
-          </div>
-
-          {/* NEW SECTION: Detail Pembelian */}
-          <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">
-            <CardHeader>
-              <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
-                  <Input
-                    id="purchaseQuantity"
-                    type="number"
-                    value={getInputValue(purchaseDetails.purchaseQuantity)}
-                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                    className="rounded-md"
-                  />
+            {/* NEW SECTION: Detail Pembelian */}
+            <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">
+              <CardHeader>
+                <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
+                    <Input
+                      id="purchaseQuantity"
+                      type="number"
+                      value={getInputValue(purchaseDetails.purchaseQuantity)}
+                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
+                    <Select
+                      value={getInputValue(purchaseDetails.purchaseUnit) as string}
+                      onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
+                    >
+                      <SelectTrigger className="rounded-md">
+                        <SelectValue placeholder="Pilih satuan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray', 'lusin', 'butir', 'gram', 'ml', 'pon', 'ons', 'galon'].map(unit => (
+                          <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
+                    <Input
+                      id="purchaseTotalPrice"
+                      type="number"
+                      value={getInputValue(purchaseDetails.purchaseTotalPrice)}
+                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="rounded-md"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
-                  <Select
-                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
-                    onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
-                  >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue placeholder="Pilih satuan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray', 'lusin', 'butir', 'gram', 'ml', 'pon', 'ons', 'galon'].map(unit => (
-                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
-                  <Input
-                    id="purchaseTotalPrice"
-                    type="number"
-                    value={getInputValue(purchaseDetails.purchaseTotalPrice)}
-                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                    className="rounded-md"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                Harga Satuan akan dihitung otomatis jika detail pembelian diisi.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Harga Satuan akan dihitung otomatis jika detail pembelian diisi.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
+        </div> {/* End flex-grow overflow div */}
+
+        {/* Buttons remain fixed at the bottom */}
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={handleClose} className="flex-1 border-gray-300 hover:bg-gray-50 rounded-md">
             Batal

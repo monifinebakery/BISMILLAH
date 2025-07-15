@@ -1,135 +1,187 @@
-import React, { useState, useEffect } from 'react'; // MODIFIED: Tambahkan useEffect
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { useBahanBaku } from '@/hooks/useBahanBaku'; 
-import { BahanBaku } from '@/types/recipe'; 
+import { useBahanBaku } from '@/hooks/useBahanBaku';
+import { BahanBaku } from '@/types/recipe'; // Asumsi BahanBaku type: { ..., harga_satuan: number, tanggal_kadaluwarsa: string | null, ... }
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
-import { toast } from 'sonner'; // MODIFIED: Import toast
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // MODIFIED: Import Select components
+import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku(); 
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
+  // State untuk form Tambah Bahan Baku
   const [newItem, setNewItem] = useState({
     nama: '',
     kategori: '',
     stok: 0,
-    satuan: '',
-    hargaSatuan: 0, 
+    satuan: '', // Satuan dasar bahan baku (e.g., 'gram', 'ml', 'pcs')
+    hargaSatuan: 0, // Ini akan dihitung otomatis
     minimum: 0,
     supplier: '',
-    tanggalKadaluwarsa: undefined as Date | undefined, // MODIFIED: Gunakan Date | undefined
+    tanggalKadaluwarsa: '', // String format YYYY-MM-DD for date input
   });
 
-  // MODIFIED: State baru untuk Detail Pembelian
+  // State untuk Detail Pembelian (digunakan untuk perhitungan hargaSatuan)
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: 0, // Jumlah Beli Kemasan
-    purchaseUnit: '',     // Satuan Kemasan
-    purchaseTotalPrice: 0, // Harga Total Beli Kemasan
+    purchaseQuantity: 0,    // Jumlah Beli Kemasan
+    purchaseUnit: '',       // Satuan Kemasan (e.g., 'kg', 'liter', 'box')
+    purchaseTotalPrice: 0,  // Harga Total Beli Kemasan
   });
 
-  // MODIFIED: unitConversionMap - Faktor konversi dari satuan kemasan ke satuan dasar
-  // Anda perlu menyesuaikan faktor konversi ini sesuai dengan kebutuhan bisnis Anda
-  const unitConversionMap: { [key: string]: { [key: string]: number } } = {
-    // Contoh: Jika satuan dasar adalah 'gram'
-    'gram': { 'kg': 1000, 'gram': 1, 'pcs': 1 },
-    'kg': { 'kg': 1, 'gram': 0.001, 'pcs': 1 },
-    // Contoh: Jika satuan dasar adalah 'ml'
-    'ml': { 'liter': 1000, 'ml': 1 },
-    'liter': { 'liter': 1, 'ml': 0.001 },
-    // Contoh: Jika satuan dasar adalah 'pcs'
-    'pcs': { 'pcs': 1, 'box': 12, 'lusin': 12, 'tray': 30 },
-    // Tambahkan konversi lain sesuai kebutuhan
+  // unitConversionMap: Faktor konversi dari Satuan Kemasan ke satuan dasar bahan baku
+  // Kunci pertama adalah SATUAN DASAR bahan baku (newItem.satuan)
+  // Kunci kedua adalah SATUAN PEMBELIAN (purchaseDetails.purchaseUnit)
+  // Nilai adalah faktor pengali untuk mengubah satuan pembelian ke satuan dasar.
+  // Contoh: 1 kg = 1000 gram, jadi konversi 'kg' ke 'gram' adalah 1000.
+  // Jika 1 box = 12 pcs, konversi 'box' ke 'pcs' adalah 12.
+  const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
+    'gram': {
+      'kg': 1000,
+      'gram': 1,
+      'pon': 453.592, // 1 pon = 453.592 gram
+      // Tambahkan konversi lain ke gram
+    },
+    'ml': {
+      'liter': 1000,
+      'ml': 1,
+      'galon': 3785.41, // 1 galon US = 3785.41 ml
+      // Tambahkan konversi lain ke ml
+    },
+    'pcs': {
+      'pcs': 1,
+      'lusin': 12,
+      'gross': 144,
+      'box': 1, // Jika 1 box berisi 1 pcs standar (perlu disesuaikan jika 1 box berisi banyak pcs)
+      'bungkus': 1, // Jika 1 bungkus berisi 1 pcs standar
+      // Tambahkan konversi lain ke pcs
+    },
+    'butir': {
+      'butir': 1,
+      'tray': 30, // Asumsi 1 tray = 30 butir
+      'lusin': 12, // 1 lusin = 12 butir
+      // Tambahkan konversi lain ke butir
+    },
+    // Tambahkan satuan dasar lain yang relevan di sini
   };
 
-  // MODIFIED: useEffect untuk menghitung hargaSatuan otomatis
+  // useEffect untuk menghitung hargaSatuan otomatis berdasarkan Detail Pembelian
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
-    const baseUnit = newItem.satuan; // Satuan dasar bahan baku yang dipilih
+    const baseUnit = newItem.satuan.toLowerCase(); // Satuan dasar bahan baku yang dipilih (convert to lowercase for map consistency)
 
+    let calculatedHarga = 0;
+
+    // Hanya hitung jika semua input pembelian valid dan satuan dasar sudah diisi
     if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
-      const conversionFactor = unitConversionMap[baseUnit]?.[purchaseUnit] || 0; // Cari faktor konversi
-      
-      if (conversionFactor > 0) {
-        const calculatedHargaSatuan = purchaseTotalPrice / (purchaseQuantity * conversionFactor);
-        setNewItem(prev => ({ ...prev, hargaSatuan: calculatedHargaSatuan }));
-      } else if (purchaseUnit === baseUnit) { // Jika satuan kemasan sama dengan satuan dasar
-        setNewItem(prev => ({ ...prev, hargaSatuan: purchaseTotalPrice / purchaseQuantity }));
-      } else {
-        // Jika tidak ada faktor konversi yang ditemukan dan satuan tidak sama
-        setNewItem(prev => ({ ...prev, hargaSatuan: 0 })); // Atau biarkan nilai manual jika diinginkan
-        toast.warning(`Tidak ada faktor konversi untuk ${purchaseUnit} ke ${baseUnit}.`);
-      }
-    } else if (purchaseQuantity === 0 && purchaseTotalPrice === 0) {
-      // Reset hargaSatuan jika detail pembelian kosong
-      setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
-    }
-  }, [purchaseDetails, newItem.satuan]); // Dependensi: purchaseDetails dan satuan newItem
+      const conversionRates = unitConversionMap[baseUnit];
 
+      if (conversionRates) {
+        const factor = conversionRates[purchaseUnit.toLowerCase()];
+
+        if (factor !== undefined && factor > 0) {
+          calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
+        } else if (purchaseUnit.toLowerCase() === baseUnit) {
+          // Jika satuan pembelian sama dengan satuan dasar (e.g., beli 'gram', satuan dasar 'gram')
+          calculatedHarga = purchaseTotalPrice / purchaseQuantity;
+        } else {
+          // Jika satuan dasar ada tapi satuan pembelian tidak memiliki faktor konversi yang valid
+          toast.warning(`Tidak ada faktor konversi yang ditemukan untuk '${purchaseUnit}' ke '${baseUnit}'.`, { duration: 3000 });
+        }
+      } else {
+        // Jika satuan dasar bahan baku (newItem.satuan) tidak ada di unitConversionMap
+        toast.warning(`Satuan dasar bahan baku '${baseUnit}' tidak ada dalam peta konversi.`, { duration: 3000 });
+      }
+    }
+
+    // Update hargaSatuan di state newItem, dengan pembatasan desimal
+    setNewItem(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
+
+  }, [purchaseDetails, newItem.satuan]); // Dependensi: perubahan detail pembelian atau satuan dasar bahan baku
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // MODIFIED: Validasi yang lebih ketat
+
+    // Validasi dasar
     if (!newItem.nama || !newItem.kategori || newItem.stok <= 0 || !newItem.satuan || newItem.hargaSatuan <= 0 || newItem.minimum < 0) {
-      toast.error('Harap lengkapi semua field yang wajib diisi dan pastikan stok/harga > 0.');
+      toast.error('Harap lengkapi semua field yang wajib diisi dan pastikan Stok serta Harga Satuan lebih dari 0.');
       return;
     }
 
-    const itemData = {
+    // Mapping state ke format BahanBaku yang sesuai DB/backend
+    const itemData: Omit<BahanBaku, 'id'> = { // Omit 'id' karena ini untuk penambahan
       nama: newItem.nama,
       kategori: newItem.kategori,
       stok: newItem.stok,
       satuan: newItem.satuan,
-      hargaSatuan: newItem.hargaSatuan, 
+      harga_satuan: newItem.hargaSatuan, // Mapping hargaSatuan ke harga_satuan (snake_case)
       minimum: newItem.minimum,
       supplier: newItem.supplier,
-      tanggalKadaluwarsa: newItem.tanggalKadaluwarsa, 
+      tanggal_kadaluwarsa: newItem.tanggalKadaluwarsa || null, // Mapping tanggalKadaluwarsa ke tanggal_kadaluwarsa, pastikan null jika kosong
     };
 
     const success = await addBahanBaku(itemData);
     if (success) {
       setShowAddForm(false);
+      // Reset form
       setNewItem({
-        nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: undefined,
+        nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: '',
       });
-      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchase details
+      // Reset detail pembelian
+      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
+      toast.success("Bahan baku berhasil ditambahkan!");
+    } else {
+      toast.error("Gagal menambahkan bahan baku. Silakan coba lagi.");
     }
   };
 
   const handleEdit = (item: BahanBaku) => {
-    const formattedDate = item.tanggalKadaluwarsa instanceof Date
-        ? item.tanggalKadaluwarsa.toISOString().split('T')[0]
-        : undefined; // Pastikan undefined jika null/bukan Date
+    // Memformat tanggal_kadaluwarsa dari object Date/string ISO ke YYYY-MM-DD untuk input type="date"
+    const formattedDate = item.tanggal_kadaluwarsa
+      ? new Date(item.tanggal_kadaluwarsa).toISOString().split('T')[0]
+      : ''; // Gunakan string kosong jika null/undefined
 
     setEditingItem({
-        ...item,
-        tanggalKadaluwarsa: formattedDate // Pastikan format YYYY-MM-DD untuk input date
+      ...item,
+      // Mapping properti dari DB (snake_case) ke state lokal (camelCase) untuk edit form
+      hargaSatuan: item.harga_satuan,
+      tanggalKadaluwarsa: formattedDate,
     });
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
-    if (editingItem) {
+    if (editingItem && editingItem.id) {
+      // Mapping properti dari state lokal (camelCase) ke format DB (snake_case)
       const updatedData: Partial<BahanBaku> = {
-          ...updates,
-          tanggalKadaluwarsa: updates.tanggalKadaluwarsa ? new Date(updates.tanggalKadaluwarsa) : undefined
+        ...updates,
+        harga_satuan: (updates as any).hargaSatuan, // Cast to any to access hargaSatuan from updates
+        tanggal_kadaluwarsa: updates.tanggalKadaluwarsa ? new Date(updates.tanggalKadaluwarsa).toISOString() : null,
       };
+      // Hapus properti camelCase yang tidak ada di type BahanBaku (DB)
+      delete (updatedData as any).hargaSatuan;
+      delete (updatedData as any).tanggalKadaluwarsa;
+
       await updateBahanBaku(editingItem.id, updatedData);
       setEditingItem(null);
+      toast.success("Bahan baku berhasil diperbarui!");
+    } else {
+      toast.error("Gagal memperbarui bahan baku.");
     }
   };
 
+
   const handleDelete = async (id: string, nama: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
+    if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) { // Pertimbangkan modal kustom instead of native confirm()
       await deleteBahanBaku(id);
+      toast.success(`"${nama}" berhasil dihapus.`);
     }
   };
 
@@ -175,7 +227,7 @@ const WarehousePage = () => {
                 filename="gudang"
                 menuType="Gudang"
               />
-              <Button 
+              <Button
                 onClick={() => setShowAddForm(true)}
                 className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200"
               >
@@ -240,7 +292,7 @@ const WarehousePage = () => {
                       <Input
                         id="nama"
                         value={newItem.nama}
-                        onChange={(e) => setNewItem({...newItem, nama: e.target.value})}
+                        onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -250,7 +302,7 @@ const WarehousePage = () => {
                       <Input
                         id="kategori"
                         value={newItem.kategori}
-                        onChange={(e) => setNewItem({...newItem, kategori: e.target.value})}
+                        onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -260,8 +312,8 @@ const WarehousePage = () => {
                       <Input
                         id="stok"
                         type="number"
-                        value={newItem.stok}
-                        onChange={(e) => setNewItem({...newItem, stok: parseFloat(e.target.value) || 0})}
+                        value={newItem.stok === 0 ? '' : newItem.stok} // Display empty for 0
+                        onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -271,18 +323,34 @@ const WarehousePage = () => {
                       <Input
                         id="satuan"
                         value={newItem.satuan}
-                        onChange={(e) => setNewItem({...newItem, satuan: e.target.value})}
+                        onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
+
+                    {/* Harga Satuan (Read-Only) - Ini yang perlu muncul kembali */}
+                    <div>
+                      <Label htmlFor="hargaSatuan">Harga Satuan *</Label>
+                      <Input
+                        id="hargaSatuan"
+                        type="number"
+                        value={newItem.hargaSatuan === 0 ? '' : newItem.hargaSatuan}
+                        readOnly // Ini harus read-only
+                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md bg-gray-100 cursor-not-allowed" // Styling untuk read-only
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Harga per {newItem.satuan || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+                      </p>
+                    </div>
+
                     <div>
                       <Label htmlFor="minimum">Stok Minimum *</Label>
                       <Input
                         id="minimum"
                         type="number"
-                        value={newItem.minimum}
-                        onChange={(e) => setNewItem({...newItem, minimum: parseFloat(e.target.value) || 0})}
+                        value={newItem.minimum === 0 ? '' : newItem.minimum} // Display empty for 0
+                        onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -292,7 +360,7 @@ const WarehousePage = () => {
                       <Input
                         id="supplier"
                         value={newItem.supplier}
-                        onChange={(e) => setNewItem({...newItem, supplier: e.target.value})}
+                        onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
@@ -301,14 +369,14 @@ const WarehousePage = () => {
                       <Input
                         id="tanggalKadaluwarsa"
                         type="date"
-                        value={newItem.tanggalKadaluwarsa ? newItem.tanggalKadaluwarsa.toISOString().split('T')[0] : ''} // Format Date object to string
-                        onChange={(e) => setNewItem({...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined})} // Convert string to Date object
+                        value={newItem.tanggalKadaluwarsa}
+                        onChange={(e) => setNewItem({ ...newItem, tanggalKadaluwarsa: e.target.value })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
                   </div>
 
-                  {/* MODIFIED: Detail Pembelian Section */}
+                  {/* Detail Pembelian Section - Ini sudah ada di screenshotmu */}
                   <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
                     <CardHeader>
                       <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
@@ -321,7 +389,7 @@ const WarehousePage = () => {
                             id="purchaseQuantity"
                             type="number"
                             value={purchaseDetails.purchaseQuantity || ''}
-                            onChange={(e) => setPurchaseDetails({...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0})}
+                            onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
                           />
@@ -330,13 +398,14 @@ const WarehousePage = () => {
                           <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                           <Select
                             value={purchaseDetails.purchaseUnit}
-                            onValueChange={(value) => setPurchaseDetails({...purchaseDetails, purchaseUnit: value})}
+                            onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                           >
                             <SelectTrigger className="rounded-md">
                               <SelectValue placeholder="Pilih satuan" />
                             </SelectTrigger>
                             <SelectContent>
-                              {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray'].map(unit => (
+                              {/* Pastikan daftar ini lengkap sesuai kebutuhan UMKM */}
+                              {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray', 'lusin', 'butir'].map(unit => (
                                 <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                               ))}
                             </SelectContent>
@@ -348,7 +417,7 @@ const WarehousePage = () => {
                             id="purchaseTotalPrice"
                             type="number"
                             value={purchaseDetails.purchaseTotalPrice || ''}
-                            onChange={(e) => setPurchaseDetails({...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0})}
+                            onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
                           />
@@ -383,7 +452,7 @@ const WarehousePage = () => {
                 {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
               </p>
               {!searchTerm && (
-                <Button 
+                <Button
                   onClick={() => setShowAddForm(true)}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200"
                 >
@@ -408,7 +477,7 @@ const WarehousePage = () => {
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                           <p className="text-sm text-gray-500">Stok</p>
@@ -416,7 +485,8 @@ const WarehousePage = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Harga Satuan</p>
-                          <p className="font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</p> {/* Menggunakan item.hargaSatuan */}
+                          {/* Menggunakan item.harga_satuan dari DB */}
+                          <p className="font-semibold text-green-600">{formatCurrency(item.harga_satuan)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Minimum</p>
@@ -426,18 +496,18 @@ const WarehousePage = () => {
                           <p className="text-sm text-gray-500">Supplier</p>
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
-                        {/* MODIFIED: Tampilkan Tanggal Kadaluwarsa */}
-                        {item.tanggalKadaluwarsa && (
-                            <div>
-                                <p className="text-sm text-gray-500">Kadaluwarsa</p>
-                                <p className="font-semibold text-gray-800">
-                                    {new Date(item.tanggalKadaluwarsa).toLocaleDateString('id-ID', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric'
-                                    })}
-                                </p>
-                            </div>
+                        {item.tanggal_kadaluwarsa && (
+                          <div>
+                            <p className="text-sm text-gray-500">Kadaluwarsa</p>
+                            <p className="font-semibold text-gray-800">
+                              {/* Pastikan ini menampilkan tanggal yang benar */}
+                              {new Date(item.tanggal_kadaluwarsa).toLocaleDateString('id-ID', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>

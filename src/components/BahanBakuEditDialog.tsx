@@ -3,16 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { BahanBaku } from '@/types/recipe';
+import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from "sonner"; // Import toast
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updates: Partial<BahanBaku>) => Promise<void>;
-  item: BahanBaku | null;
+  item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook)
 }
 
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
@@ -66,16 +66,17 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       });
 
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan,
-        purchaseUnit: item.satuanKemasan,
-        purchaseTotalPrice: item.hargaTotalBeliKemasan,
+        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
+        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign nilai dari item (bisa null atau string)
+        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null atau number)
       });
+
     } else {
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
+      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null }); // MODIFIED: Reset ke null
     }
   }, [item, isOpen]);
 
@@ -86,40 +87,33 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     let calculatedHarga = 0;
 
     if (
-      purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0 &&
-      purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0 &&
-      purchaseUnit !== null && purchaseUnit !== '' &&
+      (purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0) &&
+      (purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0) &&
+      (purchaseUnit !== null && purchaseUnit !== '') &&
       baseUnit
     ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
-      const conversionRates = unitConversionMap[baseUnit];
-      let factor = conversionRates?.[lowerCasePurchaseUnit];
 
-      console.log('=== DEBUG: Conversion Details ===', {
-        baseUnit,
-        purchaseUnit: lowerCasePurchaseUnit,
-        conversionRates,
-        factor,
-        purchaseQuantity,
-        purchaseTotalPrice,
-      });
+      const conversionRates = unitConversionMap[baseUnit];
+      let factor = 0;
+
+      if (conversionRates) {
+        factor = conversionRates[lowerCasePurchaseUnit];
+      }
 
       if (factor !== undefined && factor > 0) {
         calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
       } else if (lowerCasePurchaseUnit === baseUnit) {
         calculatedHarga = purchaseTotalPrice / purchaseQuantity;
       }
-    } else {
-      console.log('=== DEBUG: Skipping hargaSatuan calculation ===', { purchaseQuantity, purchaseUnit, purchaseTotalPrice, baseUnit });
     }
 
-    setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) || prev.hargaSatuan || 0 }));
+    setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
+
   }, [purchaseDetails, formData.satuan]);
 
   const handleSave = async () => {
-    if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || 
-        formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || 
-        formData.minimum === undefined || formData.minimum < 0) {
+    if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || formData.minimum === undefined || formData.minimum < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
@@ -130,14 +124,14 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
+      // Pastikan properti detail pembelian disertakan di sini, mereka bisa null
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
     };
 
-    console.log('=== DEBUG: Updates to send to onSave ===', JSON.stringify(updatesToSend, null, 2));
-
     await onSave(updatesToSend);
+
     onClose();
   };
 
@@ -146,8 +140,15 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
     });
-    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
+    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null }); // MODIFIED: Reset ke null
     onClose();
+  };
+
+  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return value;
   };
 
   return (
@@ -162,7 +163,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
             <Input
               id="nama"
-              value={formData.nama ?? ''}
+              value={getInputValue(formData.nama)}
               onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -172,7 +173,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
             <Input
               id="kategori"
-              value={formData.kategori ?? ''}
+              value={getInputValue(formData.kategori)}
               onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -184,7 +185,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="stok"
                 type="number"
-                value={formData.stok ?? ''}
+                value={getInputValue(formData.stok)}
                 onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
                 min="0"
                 className="border-orange-200 focus:border-orange-400 rounded-md"
@@ -194,7 +195,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
               <Input
                 id="satuan"
-                value={formData.satuan ?? ''}
+                value={getInputValue(formData.satuan)}
                 onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -206,12 +207,12 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Input
               id="hargaSatuan"
               type="number"
-              value={formData.hargaSatuan ?? ''}
+              value={getInputValue(formData.hargaSatuan)}
               readOnly
               className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Harga per {formData.satuan ?? 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+              Harga per {getInputValue(formData.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
             </p>
           </div>
 
@@ -220,7 +221,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Input
               id="minimum"
               type="number"
-              value={formData.minimum ?? ''}
+              value={getInputValue(formData.minimum)}
               onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
               min="0"
               className="border-orange-200 focus:border-orange-400 rounded-md"
@@ -231,7 +232,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
             <Input
               id="supplier"
-              value={formData.supplier ?? ''}
+              value={getInputValue(formData.supplier)}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -248,6 +249,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             />
           </div>
 
+          {/* NEW SECTION: Detail Pembelian */}
           <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">
             <CardHeader>
               <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
@@ -259,8 +261,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseQuantity"
                     type="number"
-                    value={purchaseDetails.purchaseQuantity ?? ''}
-                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || null })}
+                    value={getInputValue(purchaseDetails.purchaseQuantity)}
+                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"
                   />
@@ -268,7 +270,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    value={purchaseDetails.purchaseUnit ?? ''}
+                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">
@@ -286,8 +288,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseTotalPrice"
                     type="number"
-                    value={purchaseDetails.purchaseTotalPrice ?? ''}
-                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || null })}
+                    value={getInputValue(purchaseDetails.purchaseTotalPrice)}
+                    onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"
                   />

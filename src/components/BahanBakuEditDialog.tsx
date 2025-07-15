@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner"; // Import toast
 
 interface BahanBakuEditDialogProps {
@@ -143,12 +143,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    return value;
-  };
+  // REMOVED: getInputValue helper function from this file.
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -157,114 +152,110 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
           <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
         </DialogHeader>
 
-        {/* MODIFIED: Menggunakan grid untuk menata ulang layout */}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4"> {/* Grid utama untuk 2 kolom */}
-            <div>
-              <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
-              <Input
-                id="nama"
-                value={getInputValue(formData.nama)}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                className="border-orange-200 focus:border-orange-400 rounded-md"
-              />
-            </div>
-            <div>
-              <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
-              <Input
-                id="kategori"
-                value={getInputValue(formData.kategori)}
-                onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                className="border-orange-200 focus:border-orange-400 rounded-md"
-              />
-            </div>
+          <div>
+            <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
+            <Input
+              id="nama"
+              value={formData.nama ?? ''} // MODIFIED: Gunakan ?? ''
+              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+              className="border-orange-200 focus:border-orange-400 rounded-md"
+            />
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 col-span-2"> {/* Stok & Satuan dalam satu baris, tapi occupy 2 cols */}
-              <div>
-                <Label htmlFor="stok" className="text-gray-700">Stok</Label>
-                <Input
-                  id="stok"
-                  type="number"
-                  value={getInputValue(formData.stok)}
-                  onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
-                  min="0"
-                  className="border-orange-200 focus:border-orange-400 rounded-md"
-                />
-              </div>
-              <div>
-                <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
-                <Input
-                  id="satuan"
-                  value={getInputValue(formData.satuan)}
-                  onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
-                  className="border-orange-200 focus:border-orange-400 rounded-md"
-                />
-              </div>
-            </div> {/* End Stok & Satuan */}
+          <div>
+            <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
+            <Input
+              id="kategori"
+              value={formData.kategori ?? ''} // MODIFIED: Gunakan ?? ''
+              onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+              className="border-orange-200 focus:border-orange-400 rounded-md"
+            />
+          </div>
 
-            <div className="col-span-2"> {/* Harga Satuan full width */}
-              <Label htmlFor="hargaSatuan" className="text-gray-700">Harga per Satuan (Rp)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="stok" className="text-gray-700">Stok</Label>
               <Input
-                id="hargaSatuan"
+                id="stok"
                 type="number"
-                value={getInputValue(formData.hargaSatuan)}
-                readOnly
-                className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Harga per {getInputValue(formData.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
-              </p>
-            </div>
-
-            <div className="col-span-2 grid grid-cols-2 gap-3"> {/* Stok Minimum & Supplier */}
-              <div>
-                <Label htmlFor="minimum" className="text-gray-700">Stok Minimum</Label>
-                <Input
-                  id="minimum"
-                  type="number"
-                  value={getInputValue(formData.minimum)}
-                  onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
-                  min="0"
-                  className="border-orange-200 focus:border-orange-400 rounded-md"
-                />
-              </div>
-              <div>
-                <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
-                <Input
-                  id="supplier"
-                  value={getInputValue(formData.supplier)}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                  className="border-orange-200 focus:border-orange-400 rounded-md"
-                />
-              </div>
-            </div> {/* End Stok Minimum & Supplier */}
-
-            <div className="col-span-2"> {/* Tanggal Kadaluwarsa full width */}
-              <Label htmlFor="tanggalKadaluwarsa" className="text-gray-700">Tanggal Kadaluwarsa</Label>
-              <Input
-                id="tanggalKadaluwarsa"
-                type="date"
-                value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
+                value={formData.stok ?? ''} // MODIFIED: Gunakan ?? ''
+                onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
+                min="0"
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
             </div>
+            <div>
+              <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
+              <Input
+                id="satuan"
+                value={formData.satuan ?? ''} // MODIFIED: Gunakan ?? ''
+                onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
+                className="border-orange-200 focus:border-orange-400 rounded-md"
+              />
+            </div>
+          </div>
 
-          </div> {/* End Grid utama */}
+          <div>
+            <Label htmlFor="hargaSatuan" className="text-gray-700">Harga per Satuan (Rp)</Label>
+            <Input
+              id="hargaSatuan"
+              type="number"
+              value={formData.hargaSatuan ?? ''} // MODIFIED: Gunakan ?? ''
+              readOnly
+              className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Harga per {formData.satuan ?? 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+            </p>
+          </div>
 
-          {/* NEW SECTION: Detail Pembelian - Pindah ke luar grid utama jika ingin full width, atau atur col-span */}
+          <div>
+            <Label htmlFor="minimum" className="text-gray-700">Stok Minimum</Label>
+            <Input
+              id="minimum"
+              type="number"
+              value={formData.minimum ?? ''} // MODIFIED: Gunakan ?? ''
+              onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
+              min="0"
+              className="border-orange-200 focus:border-orange-400 rounded-md"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
+            <Input
+              id="supplier"
+              value={formData.supplier ?? ''} // MODIFIED: Gunakan ?? ''
+              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              className="border-orange-200 focus:border-orange-400 rounded-md"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
+            <Input
+              id="tanggalKadaluwarsa"
+              type="date"
+              value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
+              onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
+              className="border-orange-200 focus:border-orange-400 rounded-md"
+            />
+          </div>
+
+          {/* NEW SECTION: Detail Pembelian */}
           <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">
             <CardHeader>
               <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-4"> {/* MODIFIED: grid-cols-3 for new fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
                   <Input
                     id="purchaseQuantity"
                     type="number"
-                    value={getInputValue(purchaseDetails.purchaseQuantity)}
+                    value={purchaseDetails.purchaseQuantity ?? ''} // MODIFIED: Gunakan ?? ''
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"
@@ -273,7 +264,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
+                    value={purchaseDetails.purchaseUnit ?? ''} // MODIFIED: Gunakan ?? ''
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">
@@ -291,7 +282,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseTotalPrice"
                     type="number"
-                    value={getInputValue(purchaseDetails.purchaseTotalPrice)}
+                    value={purchaseDetails.purchaseTotalPrice ?? ''} // MODIFIED: Gunakan ?? ''
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"

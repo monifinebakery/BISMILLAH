@@ -13,26 +13,8 @@ import { Label } from '@/components/ui/label'; // MODIFIED: Tambahkan import Lab
 const Settings = () => {
   const { settings, saveSettings, loading } = useUserSettings();
 
-  const handleSettingChange = (category: keyof typeof settings, key: string, value: any) => {
-    if (typeof settings[category] === 'object' && settings[category] !== null) {
-      const newSettings = {
-        ...settings,
-        [category]: {
-          ...(settings[category] as object),
-          [key]: value,
-        },
-      };
-      saveSettings(newSettings);
-    }
-  };
-
-  const handleDirectChange = (key: keyof typeof settings, value: any) => {
-    const newSettings = {
-      ...settings,
-      [key]: value,
-    };
-    saveSettings(newSettings);
-  };
+  // MODIFIED: Hapus fungsi handleSettingChange dan handleDirectChange
+  // Logika akan langsung diimplementasikan di onChange/onValueChange/onCheckedChange
 
   if (loading) {
     return (
@@ -81,8 +63,8 @@ const Settings = () => {
                   <Input
                     id="businessName"
                     value={settings.businessName}
-                    onChange={(e) => handleDirectChange('businessName', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
+                    onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
+                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                     className="rounded-md"
                   />
                 </div>
@@ -91,8 +73,8 @@ const Settings = () => {
                   <Input
                     id="ownerName"
                     value={settings.ownerName}
-                    onChange={(e) => handleDirectChange('ownerName', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
+                    onChange={(e) => setSettings({ ...settings, ownerName: e.target.value })}
+                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                     className="rounded-md"
                   />
                 </div>
@@ -104,8 +86,8 @@ const Settings = () => {
                     id="email"
                     type="email"
                     value={settings.email || ''}
-                    onChange={(e) => handleDirectChange('email', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
+                    onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                     className="rounded-md"
                   />
                 </div>
@@ -114,8 +96,8 @@ const Settings = () => {
                   <Input
                     id="phone"
                     value={settings.phone || ''}
-                    onChange={(e) => handleDirectChange('phone', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
+                    onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                     className="rounded-md"
                   />
                 </div>
@@ -125,8 +107,8 @@ const Settings = () => {
                 <Input
                   id="address"
                   value={settings.address || ''}
-                  onChange={(e) => handleDirectChange('address', e.target.value)}
-                  onBlur={() => saveSettings(settings)}
+                  onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                  onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                   className="rounded-md"
                 />
               </div>
@@ -147,7 +129,11 @@ const Settings = () => {
                   <Label htmlFor="currency">Mata Uang</Label>
                   <Select
                     value={settings.currency}
-                    onValueChange={(value) => handleDirectChange('currency', value)}
+                    onValueChange={(value) => {
+                      const newSettings = { ...settings, currency: value };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   >
                     <SelectTrigger className="rounded-md">
                       <SelectValue />
@@ -163,7 +149,11 @@ const Settings = () => {
                   <Label htmlFor="language">Bahasa</Label>
                   <Select
                     value={settings.language}
-                    onValueChange={(value) => handleDirectChange('language', value)}
+                    onValueChange={(value) => {
+                      const newSettings = { ...settings, language: value };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   >
                     <SelectTrigger className="rounded-md">
                       <SelectValue />
@@ -195,7 +185,14 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={settings.notifications.lowStock}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'lowStock', checked)}
+                    onCheckedChange={(checked) => {
+                      const newSettings = {
+                        ...settings,
+                        notifications: { ...settings.notifications, lowStock: checked },
+                      };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -205,7 +202,14 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={settings.notifications.newOrder}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'newOrder', checked)}
+                    onCheckedChange={(checked) => {
+                      const newSettings = {
+                        ...settings,
+                        notifications: { ...settings.notifications, newOrder: checked },
+                      };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -215,7 +219,14 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={settings.notifications.financial}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'financial', checked)}
+                    onCheckedChange={(checked) => {
+                      const newSettings = {
+                        ...settings,
+                        notifications: { ...settings.notifications, financial: checked },
+                      };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   />
                 </div>
               </div>
@@ -238,7 +249,14 @@ const Settings = () => {
                 </div>
                 <Switch
                   checked={settings.backup.auto}
-                  onCheckedChange={(checked) => handleSettingChange('backup', 'auto', checked)}
+                  onCheckedChange={(checked) => {
+                    const newSettings = {
+                      ...settings,
+                      backup: { ...settings.backup, auto: checked },
+                    };
+                    setSettings(newSettings);
+                    saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                  }}
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -246,7 +264,11 @@ const Settings = () => {
                   <Label>Frekuensi Backup</Label>
                   <Select
                     value={settings.backup.frequency}
-                    onValueChange={(value) => handleSettingChange('backup', 'frequency', value)}
+                    onValueChange={(value) => {
+                      const newSettings = { ...settings, backup: { ...settings.backup, frequency: value } };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   >
                     <SelectTrigger className="rounded-md">
                       <SelectValue />
@@ -262,7 +284,11 @@ const Settings = () => {
                   <Label>Lokasi Backup</Label>
                   <Select
                     value={settings.backup.location}
-                    onValueChange={(value) => handleSettingChange('backup', 'location', value)}
+                    onValueChange={(value) => {
+                      const newSettings = { ...settings, backup: { ...settings.backup, location: value } };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   >
                     <SelectTrigger className="rounded-md">
                       <SelectValue />
@@ -293,7 +319,14 @@ const Settings = () => {
                 </div>
                 <Switch
                   checked={settings.security.twoFactor}
-                  onCheckedChange={(checked) => handleSettingChange('security', 'twoFactor', checked)}
+                  onCheckedChange={(checked) => {
+                    const newSettings = {
+                      ...settings,
+                      security: { ...settings.security, twoFactor: checked },
+                    };
+                    setSettings(newSettings);
+                    saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                  }}
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -302,7 +335,8 @@ const Settings = () => {
                   <Input
                     type="number"
                     value={settings.security.sessionTimeout}
-                    onChange={(e) => handleSettingChange('security', 'sessionTimeout', e.target.value)}
+                    onChange={(e) => setSettings({ ...settings, security: { ...settings.security, sessionTimeout: e.target.value } })}
+                    onBlur={() => saveSettings(settings)} // MODIFIED: Simpan saat onBlur
                     className="rounded-md"
                   />
                 </div>
@@ -310,7 +344,11 @@ const Settings = () => {
                   <Label>Persyaratan Password</Label>
                   <Select
                     value={settings.security.passwordRequirement}
-                    onValueChange={(value) => handleSettingChange('security', 'passwordRequirement', value)}
+                    onValueChange={(value) => {
+                      const newSettings = { ...settings, security: { ...settings.security, passwordRequirement: value } };
+                      setSettings(newSettings);
+                      saveSettings(newSettings); // MODIFIED: Simpan setelah perubahan state
+                    }}
                   >
                     <SelectTrigger className="rounded-md">
                       <SelectValue />

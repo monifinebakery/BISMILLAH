@@ -5,7 +5,7 @@ import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate
+import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 export interface BahanBaku {
   id: string;
@@ -624,10 +624,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
+    console.log('=== DEBUG: Starting updateBahanBaku ===');
+    console.log('Received updatedBahan:', JSON.stringify(updatedBahan, null, 2));
+
     const bahanToUpdate: Partial<any> = {
       updated_at: new Date().toISOString(),
     };
 
+    // Pastikan semua field yang mungkin diubah selalu dimasukkan
     if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
     if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
     if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
@@ -640,19 +644,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
       bahanToUpdate.tanggal_kadaluwarsa = null;
     }
-    if (updatedBahan.jumlahBeliKemasan !== undefined) {
-      bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-    }
-    if (updatedBahan.satuanKemasan !== undefined) {
-      bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-    }
-    if (updatedBahan.hargaTotalBeliKemasan !== undefined) {
-      bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
-    }
 
-    console.log('Sending to Supabase:', bahanToUpdate);
+    // Pastikan purchase details selalu diperbarui
+    bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
+    bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
+    bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+
+    console.log('Prepared bahanToUpdate:', JSON.stringify(bahanToUpdate, null, 2));
 
     const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
+    console.log('Supabase response:', JSON.stringify({ error, data }, null, 2));
 
     if (error) {
       console.error('Error updating bahan baku in DB:', error);
@@ -670,14 +671,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
                 ...updatedBahan,
                 tanggalKadaluwarsa: safeParseDate(updatedItem.tanggal_kadaluwarsa),
                 hargaSatuan: parseFloat(updatedItem.harga_satuan) || 0,
-                jumlahBeliKemasan: parseFloat(updatedItem.jumlah_beli_kemasan) || null,
+                jumlahBeliKemasan: updatedItem.jumlah_beli_kemasan !== null ? parseFloat(updatedItem.jumlah_beli_kemasan) : null,
                 satuanKemasan: updatedItem.satuan_kemasan || null,
-                hargaTotalBeliKemasan: parseFloat(updatedItem.harga_total_beli_kemasan) || null,
+                hargaTotalBeliKemasan: updatedItem.harga_total_beli_kemasan !== null ? parseFloat(updatedItem.harga_total_beli_kemasan) : null,
                 updatedAt: safeParseDate(updatedItem.updated_at),
               }
             : item
         )
       );
+      console.log('Updated bahanBaku state:', JSON.stringify(bahanBaku, null, 2));
     } else {
       console.warn('No data returned from Supabase update, falling back to local update');
       setBahanBaku(prev =>
@@ -685,9 +687,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
         )
       );
+      console.log('Fallback updatedBahan state:', JSON.stringify(bahanBaku, null, 2));
     }
 
-    await syncToCloud();
+    // Nonaktifkan sementara syncToCloud untuk isolasi
+    // await syncToCloud();
+    console.log('=== DEBUG: updateBahanBaku completed ===');
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };

@@ -148,14 +148,6 @@ const WarehousePage = () => {
     }).format(value);
   };
 
-  // Helper function to safely render values in inputs as string or number
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    return value;
-  };
-
   return (
     <div className="min-h-screen bg-white p-3 sm:p-6 font-inter">
       <div className="max-w-7xl mx-auto">
@@ -245,7 +237,7 @@ const WarehousePage = () => {
                       <Label htmlFor="nama">Nama Bahan *</Label>
                       <Input
                         id="nama"
-                        value={getInputValue(newItem.nama)} // MODIFIED
+                        value={newItem.nama}
                         onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -255,7 +247,7 @@ const WarehousePage = () => {
                       <Label htmlFor="kategori">Kategori *</Label>
                       <Input
                         id="kategori"
-                        value={getInputValue(newItem.kategori)} // MODIFIED
+                        value={newItem.kategori}
                         onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -266,7 +258,7 @@ const WarehousePage = () => {
                       <Input
                         id="stok"
                         type="number"
-                        value={getInputValue(newItem.stok)} // MODIFIED
+                        value={newItem.stok === 0 ? '' : newItem.stok}
                         onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -276,7 +268,7 @@ const WarehousePage = () => {
                       <Label htmlFor="satuan">Satuan *</Label>
                       <Input
                         id="satuan"
-                        value={getInputValue(newItem.satuan)} // MODIFIED
+                        value={newItem.satuan}
                         onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -289,12 +281,12 @@ const WarehousePage = () => {
                       <Input
                         id="hargaSatuan"
                         type="number"
-                        value={getInputValue(newItem.hargaSatuan)} // MODIFIED
+                        value={newItem.hargaSatuan === 0 ? '' : newItem.hargaSatuan}
                         readOnly
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md bg-gray-100 cursor-not-allowed"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+                        Harga per {newItem.satuan || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
                       </p>
                     </div>
 
@@ -303,7 +295,7 @@ const WarehousePage = () => {
                       <Input
                         id="minimum"
                         type="number"
-                        value={getInputValue(newItem.minimum)} // MODIFIED
+                        value={newItem.minimum === 0 ? '' : newItem.minimum}
                         onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -313,7 +305,7 @@ const WarehousePage = () => {
                       <Label htmlFor="supplier">Supplier</Label>
                       <Input
                         id="supplier"
-                        value={getInputValue(newItem.supplier)} // MODIFIED
+                        value={newItem.supplier}
                         onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -342,7 +334,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseQuantity"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseQuantity)} // MODIFIED
+                            value={purchaseDetails.purchaseQuantity || ''}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -351,7 +343,7 @@ const WarehousePage = () => {
                         <div>
                           <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                           <Select
-                            value={getInputValue(purchaseDetails.purchaseUnit) as string} // MODIFIED
+                            value={purchaseDetails.purchaseUnit}
                             onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                           >
                             <SelectTrigger className="rounded-md">
@@ -369,7 +361,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseTotalPrice)} // MODIFIED
+                            value={purchaseDetails.purchaseTotalPrice || ''}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -461,8 +453,8 @@ const WarehousePage = () => {
                             </p>
                           </div>
                         )}
-                        {/* Tampilkan Detail Pembelian jika ada */}
-                        {(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
+                        {/* MODIFIED: Tampilkan Detail Pembelian jika ada */}
+                        {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
                            <div className="md:col-span-full border-t border-gray-100 pt-3 mt-3">
                               <p className="text-sm text-gray-500 font-semibold mb-1">Detail Pembelian</p>
                               <p className="text-xs text-gray-700">

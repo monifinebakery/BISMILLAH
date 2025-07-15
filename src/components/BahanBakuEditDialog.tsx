@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { BahanBaku } from "@/types/recipe"; // Pastikan BahanBaku interface mencakup tanggalKadaluwarsa
+import { BahanBaku } from '@/hooks/useBahanBaku'; // Pastikan BahanBaku interface mencakup tanggalKadaluwarsa (Date | undefined)
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner"; // Import toast
@@ -12,7 +12,7 @@ interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updates: Partial<BahanBaku>) => void;
-  item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook)
+  item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook, dengan tanggalKadaluwarsa: Date | undefined)
 }
 
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
@@ -23,16 +23,16 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     stok: 0,
     satuan: '',
     minimum: 0,
-    hargaSatuan: 0, 
+    hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined, // Gunakan Date | undefined
   });
 
   // State baru untuk Detail Pembelian
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: 0,   // Jumlah Beli Kemasan
-    purchaseUnit: '',      // Satuan Kemasan
-    purchaseTotalPrice: 0, // Harga Total Beli Kemasan
+    purchaseQuantity: 0,
+    purchaseUnit: '',
+    purchaseTotalPrice: 0,
   });
 
   // unitConversionMap: Faktor konversi (sama seperti di WarehousePage)
@@ -48,7 +48,10 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   // useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
-      const formattedDate = item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime())
+      // MODIFIED: Tambahkan explicit check untuk `typeof .toISOString === 'function'`
+      const formattedDate = (item.tanggalKadaluwarsa instanceof Date &&
+                             !isNaN(item.tanggalKadaluwarsa.getTime()) &&
+                             typeof item.tanggalKadaluwarsa.toISOString === 'function') // Pastikan toISOString adalah function
         ? item.tanggalKadaluwarsa.toISOString().split('T')[0]
         : '';
 
@@ -58,13 +61,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         stok: item.stok,
         satuan: item.satuan,
         minimum: item.minimum,
-        hargaSatuan: item.hargaSatuan, // MODIFIED: Gunakan item.hargaSatuan (camelCase)
+        hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: formattedDate,
+        tanggalKadaluwarsa: formattedDate, // Ini akan menjadi string YYYY-MM-DD
       });
 
-      // JANGAN mereset purchaseDetails di sini. Ini hanya untuk menginisialisasi form utama.
-      // purchaseDetails akan direset di handleClose atau saat save.
       setPurchaseDetails({
         purchaseQuantity: 0,
         purchaseUnit: '',
@@ -72,7 +73,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       });
 
     } else {
-      // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       });
@@ -107,11 +107,10 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
     } else {
       // Jika tidak ada input aktif di "Detail Pembelian", kembalikan hargaSatuan ke nilai aslinya dari item
-      // Ini penting agar harga tidak terreset ke 0 jika user tidak mengisi detail pembelian
       if (item) {
-        setFormData(prev => ({ ...prev, hargaSatuan: item.hargaSatuan })); // MODIFIED: Gunakan item.hargaSatuan
+        setFormData(prev => ({ ...prev, hargaSatuan: item.hargaSatuan }));
       } else {
-        setFormData(prev => ({ ...prev, hargaSatuan: 0 })); // Jika item baru, set ke 0
+        setFormData(prev => ({ ...prev, hargaSatuan: 0 }));
       }
     }
   }, [purchaseDetails, formData.satuan, item]); // Tambahkan `item` sebagai dependensi
@@ -124,23 +123,34 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     }
 
     // Konversi tanggalKadaluwarsa dari string YYYY-MM-DD kembali ke Date object
-    const tanggalKadaluwarsaDate = formData.tanggalKadaluwarsa 
-      ? new Date(formData.tanggalKadaluwarsa) 
-      : undefined;
+    let tanggalKadaluwarsaDate: Date | undefined = undefined;
+    if (typeof formData.tanggalKadaluwarsa === 'string' && formData.tanggalKadaluwarsa) {
+      const parsedDate = new Date(formData.tanggalKadaluwarsa);
+      if (!isNaN(parsedDate.getTime())) {
+        tanggalKadaluwarsaDate = parsedDate;
+      }
+    } else if (formData.tanggalKadaluwarsa instanceof Date) {
+        tanggalKadaluwarsaDate = formData.tanggalKadaluwarsa;
+    }
+
 
     onSave({
       ...formData,
-      stok: parseFloat(String(formData.stok)) || 0, 
-      minimum: parseFloat(String(formData.minimum)) || 0, 
-      hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0, 
-      tanggalKadaluwarsa: tanggalKadaluwarsaDate, 
+      stok: parseFloat(String(formData.stok)) || 0,
+      minimum: parseFloat(String(formData.minimum)) || 0,
+      hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
+      tanggalKadaluwarsa: tanggalKadaluwarsaDate, // Kirim sebagai Date | undefined
+      // Tambahkan properti detail pembelian
+      jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
+      satuanKemasan: purchaseDetails.purchaseUnit,
+      hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
     });
     onClose();
   };
 
   const handleClose = () => {
     // Reset state saat dialog ditutup untuk memastikan bersih saat dibuka lagi
-    setFormData({ nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined }); // MODIFIED: Set to undefined
+    setFormData({ nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined });
     setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     onClose();
   };
@@ -196,7 +206,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             </div>
           </div>
 
-          {/* Harga per Satuan (Rp) - Sekarang Read-Only */}
           <div>
             <Label htmlFor="hargaSatuan" className="text-gray-700">Harga per Satuan (Rp)</Label>
             <Input
@@ -233,14 +242,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             />
           </div>
 
-          {/* Input Tanggal Kadaluwarsa */}
           <div>
             <Label htmlFor="tanggalKadaluwarsa" className="text-gray-700">Tanggal Kadaluwarsa</Label>
             <Input
               id="tanggalKadaluwarsa"
               type="date"
-              value={formData.tanggalKadaluwarsa || ''} 
-              onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value })}
+              value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''} // MODIFIED
+              onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })} // MODIFIED
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
           </div>

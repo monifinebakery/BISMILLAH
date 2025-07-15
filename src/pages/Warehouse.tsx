@@ -96,24 +96,25 @@ const WarehousePage = () => {
     }
   };
 
-  // MODIFIED: handleEdit function
   const handleEdit = (item: BahanBaku) => {
     setEditingItem({
         ...item,
         tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
     });
-    // MODIFIED: Inisialisasi purchaseDetails langsung dari item, mempertahankan null
     setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign null/number
-        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign null/string
-        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign null/number
+        purchaseQuantity: item.jumlahBeliKemasan || 0,
+        purchaseUnit: item.satuanKemasan || '',
+        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
     });
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (editingItem && editingItem.id) {
         const updatedItemData = {
-            ...updates, // Ini sudah mengandung jumlahBeliKemasan, satuanKemasan, hargaTotalBeliKemasan yang benar dari dialog.
+            ...updates,
+            jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
+            satuanKemasan: purchaseDetails.purchaseUnit,
+            hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
         };
         
         await updateBahanBaku(editingItem.id, updatedItemData);
@@ -150,7 +151,6 @@ const WarehousePage = () => {
   };
 
   // Helper function to safely render values in inputs as string or number
-  // Ini tetap sama, akan mengubah null/undefined menjadi ''
   const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -247,7 +247,7 @@ const WarehousePage = () => {
                       <Label htmlFor="nama">Nama Bahan *</Label>
                       <Input
                         id="nama"
-                        value={getInputValue(newItem.nama)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.nama)}
                         onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -257,7 +257,7 @@ const WarehousePage = () => {
                       <Label htmlFor="kategori">Kategori *</Label>
                       <Input
                         id="kategori"
-                        value={getInputValue(newItem.kategori)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.kategori)}
                         onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -268,7 +268,7 @@ const WarehousePage = () => {
                       <Input
                         id="stok"
                         type="number"
-                        value={getInputValue(newItem.stok)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.stok)}
                         onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -278,7 +278,7 @@ const WarehousePage = () => {
                       <Label htmlFor="satuan">Satuan *</Label>
                       <Input
                         id="satuan"
-                        value={getInputValue(newItem.satuan)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.satuan)}
                         onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -291,7 +291,7 @@ const WarehousePage = () => {
                       <Input
                         id="hargaSatuan"
                         type="number"
-                        value={getInputValue(newItem.hargaSatuan)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.hargaSatuan)}
                         readOnly
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md bg-gray-100 cursor-not-allowed"
                       />
@@ -305,7 +305,7 @@ const WarehousePage = () => {
                       <Input
                         id="minimum"
                         type="number"
-                        value={getInputValue(newItem.minimum)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.minimum)}
                         onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
                         required
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
@@ -315,7 +315,7 @@ const WarehousePage = () => {
                       <Label htmlFor="supplier">Supplier</Label>
                       <Input
                         id="supplier"
-                        value={getInputValue(newItem.supplier)} // MODIFIED: Gunakan getInputValue
+                        value={getInputValue(newItem.supplier)}
                         onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
@@ -344,7 +344,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseQuantity"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseQuantity)} // MODIFIED: Gunakan getInputValue
+                            value={getInputValue(purchaseDetails.purchaseQuantity)}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -353,7 +353,7 @@ const WarehousePage = () => {
                         <div>
                           <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                           <Select
-                            value={getInputValue(purchaseDetails.purchaseUnit) as string} // MODIFIED: Gunakan getInputValue
+                            value={getInputValue(purchaseDetails.purchaseUnit) as string}
                             onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                           >
                             <SelectTrigger className="rounded-md">
@@ -371,7 +371,7 @@ const WarehousePage = () => {
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseTotalPrice)} // MODIFIED: Gunakan getInputValue
+                            value={getInputValue(purchaseDetails.purchaseTotalPrice)}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
@@ -418,7 +418,7 @@ const WarehousePage = () => {
           ) : (
             filteredItems.map((item) => (
               <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-6">
+                <CardContent className="p-4"> {/* MODIFIED: p-6 changed to p-4 */}
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
@@ -433,7 +433,8 @@ const WarehousePage = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* MODIFIED: Item grid layout */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
                         <div>
                           <p className="text-sm text-gray-500">Stok</p>
                           <p className="font-semibold text-gray-800">{item.stok} {item.satuan}</p>
@@ -463,11 +464,11 @@ const WarehousePage = () => {
                             </p>
                           </div>
                         )}
-                        {/* Tampilkan Detail Pembelian jika ada */}
+                        {/* MODIFIED: Tampilkan Detail Pembelian dalam 1 baris */}
                         {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
-                           <div className="md:col-span-full border-t border-gray-100 pt-3 mt-3">
-                              <p className="text-sm text-gray-500 font-semibold mb-1">Detail Pembelian</p>
-                              <p className="text-xs text-gray-700">
+                           <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3"> {/* MODIFIED */}
+                              <p className="text-sm text-gray-500 font-semibold">Detail Pembelian</p> {/* MODIFIED */}
+                              <p className="text-xs text-gray-700"> {/* MODIFIED */}
                                 {item.jumlahBeliKemasan || '0'} {item.satuanKemasan || ''} @ {formatCurrency(item.hargaTotalBeliKemasan || 0)}
                               </p>
                             </div>

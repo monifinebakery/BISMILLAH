@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } => { /* ... */ };
+// MODIFIED: Corrected Select import statement (it was already correct)
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner"; // Import toast
 
 interface BahanBakuEditDialogProps {
@@ -26,6 +27,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
+    jumlahBeliKemasan: null,
+    satuanKemasan: null,
+    hargaTotalBeliKemasan: null,
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({
@@ -43,7 +47,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
-  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
       setFormData({
@@ -60,11 +63,10 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
 
-      // MODIFIED: Inisialisasi purchaseDetails dari item prop, mempertahankan `null`
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan === null ? null : item.jumlahBeliKemasan || 0, // Jika null, tetap null, else if 0, tetap 0.
-        purchaseUnit: item.satuanKemasan === null ? null : item.satuanKemasan || '',       // Jika null, tetap null, else if '', tetap ''
-        purchaseTotalPrice: item.hargaTotalBeliKemasan === null ? null : item.hargaTotalBeliKemasan || 0, // Jika null, tetap null, else if 0, tetap 0.
+        purchaseQuantity: item.jumlahBeliKemasan === null ? null : item.jumlahBeliKemasan || 0,
+        purchaseUnit: item.satuanKemasan === null ? null : item.satuanKemasan || '',
+        purchaseTotalPrice: item.hargaTotalBeliKemasan === null ? null : item.hargaTotalBeliKemasan || 0,
       });
 
     } else {
@@ -76,19 +78,16 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     }
   }, [item, isOpen]);
 
-  // useEffect kedua (Perhitungan harga satuan)
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
     const baseUnit = formData.satuan?.toLowerCase();
 
     let calculatedHarga = 0;
 
-    // Only proceed with calculation if all necessary inputs are valid and non-zero
-    // Note: purchaseQuantity dan purchaseTotalPrice bisa jadi null di sini, perlu dihandle
     if (
       (purchaseQuantity !== null && purchaseQuantity > 0) &&
       (purchaseTotalPrice !== null && purchaseTotalPrice > 0) &&
-      (purchaseUnit !== null && purchaseUnit !== '') && // purchaseUnit juga bisa null
+      (purchaseUnit !== null && purchaseUnit !== '') &&
       baseUnit
     ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
@@ -142,11 +141,18 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
+  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return value;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md font-inter">
         <DialogHeader>
-          <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
+          <DialogTitle className="text-orange-600">Edit Bahan Baku</CardTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -154,7 +160,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
             <Input
               id="nama"
-              value={formData.nama || ''}
+              value={getInputValue(formData.nama)}
               onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -164,7 +170,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="kategori" className="text-gray-700">Kategori</Label>
             <Input
               id="kategori"
-              value={formData.kategori || ''}
+              value={getInputValue(formData.kategori)}
               onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -176,7 +182,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="stok"
                 type="number"
-                value={formData.stok || ''}
+                value={getInputValue(formData.stok)}
                 onChange={(e) => setFormData({ ...formData, stok: parseFloat(e.target.value) || 0 })}
                 min="0"
                 className="border-orange-200 focus:border-orange-400 rounded-md"
@@ -186,7 +192,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Label htmlFor="satuan" className="text-gray-700">Satuan</Label>
               <Input
                 id="satuan"
-                value={formData.satuan || ''}
+                value={getInputValue(formData.satuan)}
                 onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -198,12 +204,12 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Input
               id="hargaSatuan"
               type="number"
-              value={formData.hargaSatuan || ''}
+              value={getInputValue(formData.hargaSatuan)}
               readOnly
               className="border-orange-200 focus:border-orange-400 rounded-md bg-gray-100 cursor-not-allowed"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Harga per {formData.satuan || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
+              Harga per {getInputValue(formData.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
             </p>
           </div>
 
@@ -212,7 +218,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Input
               id="minimum"
               type="number"
-              value={formData.minimum || ''}
+              value={getInputValue(formData.minimum)}
               onChange={(e) => setFormData({ ...formData, minimum: parseFloat(e.target.value) || 0 })}
               min="0"
               className="border-orange-200 focus:border-orange-400 rounded-md"
@@ -223,7 +229,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
             <Input
               id="supplier"
-              value={formData.supplier || ''}
+              value={getInputValue(formData.supplier)}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
               className="border-orange-200 focus:border-orange-400 rounded-md"
             />
@@ -252,8 +258,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseQuantity"
                     type="number"
-                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
-                    value={purchaseDetails.purchaseQuantity === null || purchaseDetails.purchaseQuantity === undefined ? '' : purchaseDetails.purchaseQuantity}
+                    value={getInputValue(purchaseDetails.purchaseQuantity)}
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"
@@ -262,8 +267,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
-                    value={purchaseDetails.purchaseUnit === null || purchaseDetails.purchaseUnit === undefined ? '' : purchaseDetails.purchaseUnit}
+                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">
@@ -281,8 +285,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <Input
                     id="purchaseTotalPrice"
                     type="number"
-                    // MODIFIED: Gunakan conditional rendering yang lebih spesifik
-                    value={purchaseDetails.purchaseTotalPrice === null || purchaseDetails.purchaseTotalPrice === undefined ? '' : purchaseDetails.purchaseTotalPrice}
+                    value={getInputValue(purchaseDetails.purchaseTotalPrice)}
                     onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0"
                     className="rounded-md"

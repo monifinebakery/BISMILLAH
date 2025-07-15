@@ -17,6 +17,10 @@ interface TransformedBahanBaku {
   user_id: string;
   created_at: string;
   updated_at: string;
+  // NEW: Kolom detail pembelian
+  jumlah_beli_kemasan: number | null;
+  satuan_kemasan: string | null;
+  harga_total_beli_kemasan: number | null;
 }
 
 interface TransformedSupplier {
@@ -375,10 +379,14 @@ export const useSupabaseSync = () => {
           minimum: parseFloat(item.minimum) || 0,
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier,
-          tanggalKadaluwarsa: item.tanggal_kadaluwarsa || null, // MODIFIED: Simpan sebagai string/null
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          tanggalKadaluwarsa: safeParseDate(item.tanggal_kadaluwarsa), // MODIFIED: Gunakan safeParseDate
+          user_id: item.user_id,
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
+          // NEW: Kolom detail pembelian
+          jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) || null,
+          satuanKemasan: item.satuan_kemasan || null,
+          hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) || null,
         })) || [],
         suppliers: suppliersRes.data?.map((item: any) => ({
           id: item.id,
@@ -388,22 +396,22 @@ export const useSupabaseSync = () => {
           telepon: item.telepon,
           alamat: item.alamat,
           catatan: item.catatan,
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          user_id: item.user_id,
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         purchases: purchasesRes.data?.map((item: any) => ({
           id: item.id,
-          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
+          tanggal: safeParseDate(item.tanggal), // MODIFIED: Gunakan safeParseDate
           supplier: item.supplier,
           items: item.items || [],
           totalNilai: parseFloat(item.total_nilai) || 0,
           status: item.status,
           metodePerhitungan: item.metode_perhitungan,
           catatan: item.catatan,
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          user_id: item.user_id,
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         recipes: recipesRes.data?.map((item: any) => ({
           id: item.id,
@@ -418,9 +426,9 @@ export const useSupabaseSync = () => {
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           category: item.category,
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          user_id: item.user_id,
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         hppResults: hppResultsRes.data?.map((item: any) => ({
           id: item.id,
@@ -433,10 +441,10 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           jumlahPorsi: item.jumlah_porsi || 1,
-          timestamp: item.created_at, // MODIFIED: Simpan sebagai string
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: item.created_at, // MODIFIED: Simpan sebagai string
-          updated_at: item.updated_at, // MODIFIED: Simpan sebagai string
+          timestamp: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          user_id: item.user_id,
+          created_at: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updated_at: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         activities: activitiesRes.data?.map((item: any) => ({
           id: item.id,
@@ -444,15 +452,15 @@ export const useSupabaseSync = () => {
           description: item.description,
           type: item.type,
           value: item.value,
-          timestamp: item.created_at, // MODIFIED: Simpan sebagai string
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          created_at: item.created_at, // MODIFIED: Simpan sebagai string
-          updated_at: item.updated_at, // MODIFIED: Simpan sebagai string
+          timestamp: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          user_id: item.user_id,
+          created_at: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         orders: ordersRes.data?.map((item: any) => ({
           id: item.id,
           nomorPesanan: item.nomor_pesanan,
-          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
+          tanggal: safeParseDate(item.tanggal), // MODIFIED: Gunakan safeParseDate
           namaPelanggan: item.nama_pelanggan,
           emailPelanggan: item.email_pelanggan,
           teleponPelanggan: item.telepon_pelanggan,
@@ -463,9 +471,9 @@ export const useSupabaseSync = () => {
           totalPesanan: parseFloat(item.total_pesanan) || 0,
           status: item.status,
           catatan: item.catatan,
-          user_id: item.user_id, // Pastikan user_id juga dimuat
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          user_id: item.user_id,
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
@@ -473,22 +481,22 @@ export const useSupabaseSync = () => {
           jenis: item.jenis,
           nilai: parseFloat(item.nilai_awal) || 0,
           umurManfaat: parseFloat(item.umur_manfaat) || 0,
-          tanggalPembelian: item.tanggal_pembelian, // MODIFIED: Simpan sebagai string
+          tanggalPembelian: safeParseDate(item.tanggal_pembelian), // MODIFIED: Gunakan safeParseDate
           penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
           user_id: item.user_id,
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
-          tanggal: item.tanggal, // MODIFIED: Simpan sebagai string
+          tanggal: safeParseDate(item.tanggal), // MODIFIED: Gunakan safeParseDate
           jenis: item.type,
           deskripsi: item.deskripsi,
           jumlah: parseFloat(item.amount) || 0,
           user_id: item.user_id,
-          createdAt: item.created_at, // MODIFIED: Simpan sebagai string
-          updatedAt: item.updated_at, // MODIFIED: Simpan sebagai string
+          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         })) || [],
         userSettings: userSettingsData,
       };

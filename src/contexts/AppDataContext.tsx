@@ -19,6 +19,10 @@ export interface BahanBaku {
   tanggalKadaluwarsa?: Date; // Tetap camelCase di interface
   createdAt?: Date; // MODIFIED: Tambahkan
   updatedAt?: Date; // MODIFIED: Tambahkan
+  // MODIFIED: Tambahkan properti baru
+  jumlahBeliKemasan?: number | null;
+  satuanKemasan?: string | null;
+  hargaTotalBeliKemasan?: number | null;
 }
 
 export interface Purchase {
@@ -104,34 +108,34 @@ interface AppDataContextType {
   deleteBahanBaku: (id: string) => Promise<boolean>;
   getBahanBakuByName: (nama: string) => BahanBaku | undefined;
   reduceStok: (nama: string, jumlah: number) => boolean;
-  
+
   // Suppliers
   suppliers: Supplier[];
   addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
   updateSupplier: (id: string, supplier: Partial<Supplier>) => Promise<void>;
   deleteSupplier: (id: string) => Promise<void>;
-  
+
   // Purchases
   purchases: Purchase[];
   addPurchase: (purchase: Omit<Purchase, 'id'>) => Promise<void>;
   updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<void>;
   deletePurchase: (id: string) => Promise<void>;
-  
+
   // Recipes
   recipes: Recipe[];
   addRecipe: (recipe: Omit<Recipe, 'id'>) => Promise<boolean>;
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<boolean>;
   deleteRecipe: (id: string) => Promise<boolean>;
-  
+
   // HPP Results
   hppResults: HPPResult[];
   addHPPResult: (result: Omit<HPPResult, 'id'>) => Promise<void>;
   addHPPCalculation: (result: Omit<HPPResult, 'id'>) => void;
-  
+
   // Activities
   activities: Activity[];
   addActivity: (activity: Omit<Activity, 'id' | 'timestamp'>) => Promise<void>;
-  
+
   // Orders
   orders: Order[];
   addOrder: (order: NewOrder) => Promise<void>;
@@ -150,7 +154,7 @@ interface AppDataContextType {
   addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id'>) => Promise<boolean>;
   updateFinancialTransaction: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
   deleteFinancialTransaction: (id: string) => Promise<boolean>;
-  
+
   // Statistics
   getStatistics: () => {
     totalBahanBaku: number;
@@ -160,7 +164,7 @@ interface AppDataContextType {
     totalRecipes: number;
     averageHPP: number;
   };
-  
+
   getDashboardStats: () => {
     totalProduk: number;
     stokBahanBaku: number;
@@ -171,7 +175,7 @@ interface AppDataContextType {
   // Cloud sync
   cloudSyncEnabled: boolean;
   setCloudSyncEnabled: (enabled: boolean) => void;
-  
+
   // Manual sync functions
   syncToCloud: () => Promise<boolean>;
   loadFromCloud: () => Promise<void>;
@@ -242,16 +246,16 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
       }
       // MODIFIED: Handle assets
       if (key === STORAGE_KEYS.ASSETS) {
-        return parsed.map((item: any) => ({ 
-          ...item, 
-          tanggalPembelian: item.tanggalPembelian ? new Date(item.tanggalPembelian) : undefined 
+        return parsed.map((item: any) => ({
+          ...item,
+          tanggalPembelian: item.tanggalPembelian ? new Date(item.tanggalPembelian) : undefined
         }));
       }
       // MODIFIED: Handle financial_transactions
       if (key === STORAGE_KEYS.FINANCIAL_TRANSACTIONS) {
-        return parsed.map((item: any) => ({ 
-          ...item, 
-          tanggal: item.tanggal ? new Date(item.tanggal) : new Date() 
+        return parsed.map((item: any) => ({
+          ...item,
+          tanggal: item.tanggal ? new Date(item.tanggal) : new Date()
         }));
       }
       return parsed;
@@ -273,25 +277,25 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   } = useSupabaseSync();
 
   // Load initial data from localStorage
-  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() => 
+  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => 
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() =>
     loadFromStorage(STORAGE_KEYS.SUPPLIERS, [])
   );
-  const [purchases, setPurchases] = useState<Purchase[]>(() => 
+  const [purchases, setPurchases] = useState<Purchase[]>(() =>
     loadFromStorage(STORAGE_KEYS.PURCHASES, [])
   );
-  const [recipes, setRecipes] = useState<Recipe[]>(() => 
+  const [recipes, setRecipes] = useState<Recipe[]>(() =>
     loadFromStorage(STORAGE_KEYS.RECIPES, [])
   );
-  const [hppResults, setHppResults] = useState<HPPResult[]>(() => 
+  const [hppResults, setHppResults] = useState<HPPResult[]>(() =>
     loadFromStorage(STORAGE_KEYS.HPP_RESULTS, [])
   );
-  const [activities, setActivities] = useState<Activity[]>(() => 
+  const [activities, setActivities] = useState<Activity[]>(() =>
     loadFromStorage(STORAGE_KEYS.ACTIVITIES, [])
   );
-  const [orders, setOrders] = useState<Order[]>(() => 
+  const [orders, setOrders] = useState<Order[]>(() =>
     loadFromStorage(STORAGE_KEYS.ORDERS, [
       {
         id: generateUUID(),
@@ -340,32 +344,32 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     ])
   );
-  const [assets, setAssets] = useState<Asset[]>(() => 
+  const [assets, setAssets] = useState<Asset[]>(() =>
     loadFromStorage(STORAGE_KEYS.ASSETS, [])
   );
-  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
+  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() =>
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   );
-  const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() => 
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() =>
     loadFromStorage(STORAGE_KEYS.CLOUD_SYNC, false)
   );
 
   // Auto-load from cloud when data is empty and cloud sync is enabled
   useEffect(() => {
     const checkAndLoadFromCloud = async () => {
-      if (cloudSyncEnabled && 
-          bahanBaku.length === 0 && 
-          suppliers.length === 0 && 
-          purchases.length === 0 && 
-          recipes.length === 0 && 
+      if (cloudSyncEnabled &&
+          bahanBaku.length === 0 &&
+          suppliers.length === 0 &&
+          purchases.length === 0 &&
+          recipes.length === 0 &&
           orders.length <= 2 &&
-          assets.length === 0 && 
-          financialTransactions.length === 0 
-          ) { 
+          assets.length === 0 &&
+          financialTransactions.length === 0
+          ) {
         console.log('Local data appears empty, attempting to load from cloud...');
-        const loadedData = await externalLoadFromCloud(); 
+        const loadedData = await externalLoadFromCloud();
         if (loadedData) {
-          replaceAllData(loadedData); 
+          replaceAllData(loadedData);
         }
       }
     };
@@ -405,11 +409,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [orders]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.ASSETS, assets); 
+    saveToStorage(STORAGE_KEYS.ASSETS, assets);
   }, [assets]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); 
+    saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions);
   }, [financialTransactions]);
 
   useEffect(() => {
@@ -418,11 +422,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // MODIFIED: Pendengar Realtime Supabase untuk sinkronisasi otomatis
   useEffect(() => {
-    let channels: any[] = []; 
+    let channels: any[] = [];
 
     const setupRealtimeSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       // Hapus langganan sebelumnya jika ada
       channels.forEach(channel => supabase.removeChannel(channel));
       channels = []; // Reset channels array
@@ -432,32 +436,32 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
       }
       const userId = session.user.id;
-      
+
       // Daftar tabel yang akan dilanggan
       const tablesToSubscribe = [
         'bahan_baku', 'suppliers', 'purchases', 'hpp_recipes', 'hpp_results',
         'orders', 'activities', 'assets', 'financial_transactions', 'user_settings'
       ];
-      
+
       console.log(`Menyiapkan langganan realtime untuk user_id: ${userId}`);
 
       for (const tableName of tablesToSubscribe) {
         const channel = supabase
-          .channel(`public:${tableName}_changes_${userId}`) 
+          .channel(`public:${tableName}_changes_${userId}`)
           .on(
             'postgres_changes',
             {
-              event: '*', 
+              event: '*',
               schema: 'public',
               table: tableName,
-              filter: `user_id=eq.${userId}` 
+              filter: `user_id=eq.${userId}`
             },
             (payload) => {
               console.log(`Perubahan realtime terdeteksi di ${tableName}:`, payload);
               // Picu pemuatan ulang semua data
-              externalLoadFromCloud().then(loadedData => { 
+              externalLoadFromCloud().then(loadedData => {
                 if (loadedData) {
-                  replaceAllData(loadedData); 
+                  replaceAllData(loadedData);
                 }
               });
             }
@@ -473,7 +477,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log('Membersihkan langganan realtime.');
       channels.forEach(channel => supabase.removeChannel(channel));
     };
-  }, [externalLoadFromCloud]); 
+  }, [externalLoadFromCloud]);
 
 
   // MODIFIED: Pendengar untuk memuat data saat aplikasi kembali fokus
@@ -481,9 +485,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('Tab aplikasi terlihat, memeriksa pembaruan...');
-        externalLoadFromCloud().then(loadedData => { 
+        externalLoadFromCloud().then(loadedData => {
           if (loadedData) {
-            replaceAllData(loadedData); 
+            replaceAllData(loadedData);
           }
         });
       }
@@ -492,13 +496,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [externalLoadFromCloud]); 
+  }, [externalLoadFromCloud]);
 
 
   // Enhanced manual cloud sync functions
   const syncToCloud = async (): Promise<boolean> => {
     if (!cloudSyncEnabled) return false;
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -515,6 +519,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier,
           tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, user_id: session.user.id,
           created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(), // Tambahkan created_at/updated_at dari item
+          // MODIFIED: Tambahkan kolom baru ke payload sync
+          jumlah_beli_kemasan: item.jumlahBeliKemasan || null,
+          satuan_kemasan: item.satuanKemasan || null,
+          harga_total_beli_kemasan: item.hargaTotalBeliKemasan || null,
         })),
         suppliers: suppliers.map(item => ({
           id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon,
@@ -551,18 +559,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           telepon_pelanggan: item.teleponPelanggan, alamat_pengiriman: item.alamatPelanggan,
           items: item.items, subtotal: item.subtotal, pajak: item.pajak,
           total_pesanan: item.totalPesanan, status: item.status, catatan: item.catatan, user_id: session.user.id,
-          created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
         assets: assets.map(item => ({
           id: item.id, nama: item.nama, jenis: item.jenis, nilai: item.nilai,
           umur_manfaat: item.umurManfaat, tanggal_pembelian: item.tanggalPembelian.toISOString(),
-          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_saat_ini: item.nilaiSaatIni,
-          user_id: session.user.id, created_at: item.created_at?.toISOString(), updated_at: item.updatedAt?.toISOString(),
+          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_sekarang: item.nilaiSaatIni,
+          user_id: session.user.id, created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
         financialTransactions: financialTransactions.map(item => ({
           id: item.id, tanggal: item.tanggal.toISOString(), jenis: item.jenis,
           deskripsi: item.deskripsi, jumlah: item.jumlah, user_id: session.user.id,
-          created_at: item.created_at?.toISOString(), updated_at: item.updated_at?.toISOString(),
+          created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(),
         })),
       };
 
@@ -581,7 +589,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const loadFromCloud = async (): Promise<void> => {
     if (!cloudSyncEnabled) return;
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -590,9 +598,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       console.log('Loading from cloud via AppDataContext...');
 
-      const loadedData = await externalLoadFromCloud(); 
+      const loadedData = await externalLoadFromCloud();
       if (loadedData) {
-        replaceAllData(loadedData); 
+        replaceAllData(loadedData);
         toast.success('Data berhasil dimuat dari cloud!');
       }
     } catch (error) {
@@ -620,9 +628,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newBahan: BahanBaku = {
       ...bahan,
       id: generateUUID(),
+      // Pastikan userId, createdAt, updatedAt juga ada di newBahan untuk konsistensi lokal
+      userId: (await supabase.auth.getSession()).data.session?.user.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
-    // MODIFIED: Transform to snake_case for Supabase insert
+
+    // MODIFIED: Transform to snake_case for Supabase insert, termasuk kolom baru
     const bahanToInsert = {
       id: newBahan.id,
       nama: newBahan.nama,
@@ -633,9 +645,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       minimum: newBahan.minimum,
       supplier: newBahan.supplier,
       tanggal_kadaluwarsa: newBahan.tanggalKadaluwarsa?.toISOString() || null, // Transform & handle null
-      user_id: (await supabase.auth.getSession()).data.session?.user.id, // Ambil user_id dari sesi
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      user_id: newBahan.userId, // Ambil user_id dari newBahan
+      created_at: newBahan.createdAt?.toISOString(), // Ambil dari newBahan
+      updated_at: newBahan.updatedAt?.toISOString(), // Ambil dari newBahan
+      // MODIFIED: Tambahkan kolom baru
+      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan || null,
+      satuan_kemasan: newBahan.satuanKemasan || null,
+      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan || null,
     };
 
     const { error } = await supabase.from('bahan_baku').insert([bahanToInsert]);
@@ -646,7 +662,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setBahanBaku(prev => [...prev, newBahan]); // Update local state with camelCase
+    setBahanBaku(prev => [...prev, newBahan]); // Update local state dengan camelCase
     await syncToCloud(); // Sync all data (redundant for single item, but follows existing pattern)
     addActivity({
       title: 'Bahan Baku Ditambahkan',
@@ -658,16 +674,33 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
-    // MODIFIED: Transform to snake_case for Supabase update
+    // MODIFIED: Transform to snake_case for Supabase update, termasuk kolom baru
     const bahanToUpdate: Partial<any> = {
-      ...updatedBahan,
-      harga_satuan: updatedBahan.hargaSatuan, // Transform
-      tanggal_kadaluwarsa: updatedBahan.tanggalKadaluwarsa?.toISOString() || null, // Transform & handle null
-      updated_at: new Date().toISOString(),
+      // properti yang ada di updatedBahan (camelCase)
     };
-    // Hapus properti camelCase yang tidak ada di DB
-    delete bahanToUpdate.hargaSatuan;
-    delete bahanToUpdate.tanggalKadaluwarsa;
+
+    // Mapping eksplisit untuk setiap properti yang mungkin diupdate
+    if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
+    if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
+    if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
+    if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
+    if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
+    if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
+
+    // Properti yang perlu di-transform ke snake_case dan mungkin null
+    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+    if (updatedBahan.tanggalKadaluwarsa !== undefined) {
+      bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa?.toISOString() || null;
+    } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
+      bahanToUpdate.tanggal_kadaluwarsa = null; // Handle explicit null
+    }
+
+    // MODIFIED: Tambahkan kolom baru
+    if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan;
+    if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;
+    if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan;
+
+    bahanToUpdate.updated_at = new Date().toISOString(); // Selalu update updated_at
 
     const { error } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id);
 
@@ -677,9 +710,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setBahanBaku(prev => 
-      prev.map(bahan => 
-        bahan.id === id ? { ...bahan, ...updatedBahan } : bahan
+    setBahanBaku(prev =>
+      prev.map(bahan =>
+        bahan.id === id ? { ...bahan, ...updatedBahan, updatedAt: new Date() } : bahan
       )
     );
     await syncToCloud(); // Sync all data
@@ -688,13 +721,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       description: `Data bahan baku telah diperbarui`,
       type: 'stok',
     });
-    toast.success(`Bahan baku berhasil diperbarui!`); // Konfirmasi berhasil
+    toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };
 
   const deleteBahanBaku = async (id: string) => {
     const bahan = bahanBaku.find(b => b.id === id);
-    
+
     const { error } = await supabase.from('bahan_baku').delete().eq('id', id);
 
     if (error) {
@@ -704,14 +737,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     setBahanBaku(prev => prev.filter(b => b.id !== id));
-    await syncToCloud(); // Sync all data
+    await syncToCloud();
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
         description: `${bahan.nama} telah dihapus dari gudang`,
         type: 'stok',
       });
-      toast.success(`${bahan.nama} berhasil dihapus!`); // Konfirmasi berhasil
+      toast.success(`${bahan.nama} berhasil dihapus!`);
     }
     return true;
   };
@@ -742,16 +775,23 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newSupplier: Supplier = {
       ...supplier,
       id: generateUUID(),
+      userId: (await supabase.auth.getSession()).data.session?.user.id, // Ambil userId
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
+
     const supplierToInsert = {
-      ...newSupplier,
-      created_at: newSupplier.createdAt?.toISOString(),
-      updated_at: newSupplier.updatedAt?.toISOString(),
-      user_id: (await supabase.auth.getSession()).data.session?.user.id,
+      id: newSupplier.id,
+      nama: newSupplier.nama,
+      kontak: newSupplier.kontak,
+      email: newSupplier.email,
+      telepon: newSupplier.telepon,
+      alamat: newSupplier.alamat,
+      catatan: newSupplier.catatan,
+      user_id: newSupplier.userId, // Gunakan userId
+      created_at: newSupplier.createdAt?.toISOString(), // Pastikan Date object
+      updated_at: newSupplier.updatedAt?.toISOString(), // Pastikan Date object
     };
-    delete supplierToInsert.createdAt; // Hapus properti camelCase
-    delete supplierToInsert.updatedAt;
 
     const { error } = await supabase.from('suppliers').insert([supplierToInsert]);
     if (error) {
@@ -775,7 +815,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...updatedSupplier,
       updated_at: new Date().toISOString(),
     };
-    if (supplierToUpdate.createdAt) delete supplierToUpdate.createdAt; // Hapus jika ada
+    // Hapus properti camelCase yang tidak ada di DB
+    if (supplierToUpdate.nama) supplierToUpdate.nama = updatedSupplier.nama;
+    if (supplierToUpdate.kontak) supplierToUpdate.kontak = updatedSupplier.kontak;
+    if (supplierToUpdate.email) supplierToUpdate.email = updatedSupplier.email;
+    if (supplierToUpdate.telepon) supplierToUpdate.telepon = updatedSupplier.telepon;
+    if (supplierToUpdate.alamat) supplierToUpdate.alamat = updatedSupplier.alamat;
+    if (supplierToUpdate.catatan) supplierToUpdate.catatan = updatedSupplier.catatan;
+    // createdAt tidak boleh diupdate, hanya updated_at
+    delete supplierToUpdate.createdAt;
+
 
     const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
     if (error) {
@@ -784,9 +833,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    setSuppliers(prev => 
-      prev.map(supplier => 
-        supplier.id === id ? { ...supplier, ...updatedSupplier } : supplier
+    setSuppliers(prev =>
+      prev.map(supplier =>
+        supplier.id === id ? { ...supplier, ...updatedSupplier, updatedAt: new Date() } : supplier
       )
     );
     await syncToCloud();
@@ -795,7 +844,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteSupplier = async (id: string) => {
     const supplier = suppliers.find(s => s.id === id);
-    
+
     const { error } = await supabase.from('suppliers').delete().eq('id', id);
     if (error) {
       console.error('Error deleting supplier from DB:', error);
@@ -805,7 +854,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setSuppliers(prev => prev.filter(s => s.id !== id));
     await syncToCloud();
-    toast.success(`Supplier berhasil dihapus!`);
+    if (supplier) {
+      addActivity({
+        title: 'Supplier Dihapus',
+        description: `${supplier.nama} telah dihapus`,
+        type: 'supplier',
+      });
+      toast.success(`Supplier berhasil dihapus!`);
+    }
+    return true;
   };
 
   // Purchase functions
@@ -813,18 +870,22 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newPurchase: Purchase = {
       ...purchase,
       id: generateUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
+
     const purchaseToInsert = {
-      ...newPurchase,
+      id: newPurchase.id,
+      tanggal: newPurchase.tanggal.toISOString(),
+      supplier: newPurchase.supplier,
+      items: newPurchase.items,
       total_nilai: newPurchase.totalNilai,
       metode_perhitungan: newPurchase.metodePerhitungan,
+      catatan: newPurchase.catatan,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: newPurchase.createdAt?.toISOString(),
+      updated_at: newPurchase.updatedAt?.toISOString(),
     };
-    delete purchaseToInsert.totalNilai;
-    delete purchaseToInsert.metodePerhitungan;
 
     const { error } = await supabase.from('purchases').insert([purchaseToInsert]);
     if (error) {
@@ -835,23 +896,24 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setPurchases(prev => [...prev, newPurchase]);
     await syncToCloud();
-    
+
     // Update stock for each purchased item
     purchase.items.forEach(item => {
-      const existingBahan = getBahanBakuByName(item.namaBarang);
+      const existingBahan = getBahanBakuByName(item.nama);
       if (existingBahan) {
-        updateBahanBaku(existingBahan.id, { 
+        updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
-          hargaSatuan: item.hargaSatuan 
+          hargaSatuan: item.hargaSatuan
         });
       } else {
-        // MODIFIED: Ensure new bahan baku added here also uses snake_case for DB
+        // MODIFIED: Ensure new bahan baku added here also uses camelCase for hook,
+        // and hook handles transformation to snake_case for DB
         addBahanBaku({
-          nama: item.namaBarang,
+          nama: item.nama,
           kategori: item.kategori,
           stok: item.jumlah,
           satuan: item.satuan,
-          minimum: 10,
+          minimum: 10, // Default minimum
           hargaSatuan: item.hargaSatuan,
           supplier: purchase.supplier,
         });
@@ -875,6 +937,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     if (purchaseToUpdate.totalNilai) delete purchaseToUpdate.totalNilai;
     if (purchaseToUpdate.metodePerhitungan) delete purchaseToUpdate.metodePerhitungan;
+    if (purchaseToUpdate.createdAt) delete purchaseToUpdate.createdAt; // createdAt should not be updated
 
     const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id);
     if (error) {
@@ -883,9 +946,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    setPurchases(prev => 
-      prev.map(purchase => 
-        purchase.id === id ? { ...purchase, ...updatedPurchase } : purchase
+    setPurchases(prev =>
+      prev.map(purchase =>
+        purchase.id === id ? { ...purchase, ...updatedPurchase, updatedAt: new Date() } : purchase
       )
     );
     await syncToCloud();
@@ -910,8 +973,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newRecipe: Recipe = {
       ...recipe,
       id: generateUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
+
     const recipeToInsert = {
       id: newRecipe.id,
       nama_resep: newRecipe.namaResep,
@@ -925,9 +990,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       margin_keuntungan: newRecipe.marginKeuntungan,
       harga_jual_per_porsi: newRecipe.hargaJualPerPorsi,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      category: newRecipe.category, // MODIFIED: Tambahkan category
+      created_at: newRecipe.createdAt?.toISOString(),
+      updated_at: newRecipe.updatedAt?.toISOString(),
+      category: newRecipe.category,
     };
 
     const { error } = await supabase.from('hpp_recipes').insert([recipeToInsert]);
@@ -950,7 +1015,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
     const recipeToUpdate: Partial<any> = {
-      ...updatedRecipe,
+      ...updatedRecipe, // Spread updatedRecipe to include all fields
       nama_resep: updatedRecipe.namaResep,
       biaya_tenaga_kerja: updatedRecipe.biayaTenagaKerja,
       biaya_overhead: updatedRecipe.biayaOverhead,
@@ -959,9 +1024,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       margin_keuntungan: updatedRecipe.marginKeuntungan,
       harga_jual_per_porsi: updatedRecipe.hargaJualPerPorsi,
       updated_at: new Date().toISOString(),
-      category: updatedRecipe.category, // MODIFIED: Tambahkan category
+      category: updatedRecipe.category,
     };
-    // Hapus properti camelCase
+    // Hapus properti camelCase yang sudah ada padanan snake_case-nya
     delete recipeToUpdate.namaResep;
     delete recipeToUpdate.biayaTenagaKerja;
     delete recipeToUpdate.biayaOverhead;
@@ -969,7 +1034,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     delete recipeToUpdate.hppPerPorsi;
     delete recipeToUpdate.marginKeuntungan;
     delete recipeToUpdate.hargaJualPerPorsi;
-    delete recipeToUpdate.category; // MODIFIED: Hapus category dari properti camelCase
+    delete recipeToUpdate.category;
 
     const { error } = await supabase.from('hpp_recipes').update(recipeToUpdate).eq('id', id);
     if (error) {
@@ -978,8 +1043,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setRecipes(prev => 
-      prev.map(recipe => 
+    setRecipes(prev =>
+      prev.map(recipe =>
         recipe.id === id ? { ...recipe, ...updatedRecipe } : recipe
       )
     );
@@ -990,7 +1055,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteRecipe = async (id: string) => {
     const recipe = recipes.find(r => r.id === id);
-    
+
     const { error } = await supabase.from('hpp_recipes').delete().eq('id', id);
     if (error) {
       console.error('Error deleting recipe from DB:', error);
@@ -1016,8 +1081,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newResult: HPPResult = {
       ...result,
       id: generateUUID(),
+      createdAt: new Date(), // Menambahkan createdAt
+      updatedAt: new Date(), // Menambahkan updatedAt
     };
-    
+
     const resultToInsert = {
       id: newResult.id,
       nama: newResult.nama,
@@ -1030,7 +1097,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       harga_jual_per_porsi: newResult.hargaJualPerPorsi,
       jumlah_porsi: newResult.jumlahPorsi,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: newResult.timestamp.toISOString(),
+      created_at: newResult.createdAt?.toISOString(), // Menggunakan newResult.createdAt
+      updated_at: newResult.updatedAt?.toISOString(), // Menggunakan newResult.updatedAt
     };
 
     const { error } = await supabase.from('hpp_results').insert([resultToInsert]);
@@ -1057,24 +1125,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Order functions
   const addOrder = async (order: NewOrder) => {
-    const orderItems: OrderItem[] = order.items.map((item, index) => ({
-      id: index + 1, // Keep as number for items
-      nama: item.nama,
-      quantity: item.quantity,
-      hargaSatuan: item.hargaSatuan,
-      totalHarga: item.quantity * item.hargaSatuan
-    }));
-
     const newOrder: Order = {
       ...order,
       id: generateUUID(),
+      tanggal: new Date(), // Pastikan ini Date object
+      createdAt: new Date(), // Tambahkan
+      updatedAt: new Date(), // Tambahkan
       nomorPesanan: `ORD-${String(Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', '')) || 0)) + 1).padStart(3, '0')}`,
-      tanggal: new Date(),
-      items: orderItems,
-      // subtotal, pajak, totalPesanan langsung dari order param
       status: 'pending'
     };
-    
+
     const orderToInsert = {
       id: newOrder.id,
       nomor_pesanan: newOrder.nomorPesanan,
@@ -1090,8 +1150,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       status: newOrder.status,
       catatan: newOrder.catatan,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: newOrder.createdAt?.toISOString(),
+      updated_at: newOrder.updatedAt?.toISOString(),
     };
 
     const { error } = await supabase.from('orders').insert([orderToInsert]);
@@ -1100,7 +1160,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       toast.error(`Gagal menambahkan pesanan: ${error.message}`);
       return;
     }
-    
+
     setOrders(prev => [...prev, newOrder]);
     await syncToCloud();
     addActivity({
@@ -1129,6 +1189,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     delete orderToUpdate.teleponPelanggan;
     delete orderToUpdate.alamatPelanggan;
     delete orderToUpdate.totalPesanan;
+    // createdAt tidak boleh diupdate, hanya updated_at
+    delete orderToUpdate.createdAt;
+    // tanggal harus dikonversi jika ada perubahan
+    if (updatedOrder.tanggal !== undefined) {
+      orderToUpdate.tanggal = updatedOrder.tanggal.toISOString();
+    }
+
 
     const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id);
     if (error) {
@@ -1137,13 +1204,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setOrders(prev => 
-      prev.map(order => 
-        order.id === id ? { ...order, ...updatedOrder } : order
+    setOrders(prev =>
+      prev.map(order =>
+        order.id === id ? { ...order, ...updatedOrder, updatedAt: new Date() } : order
       )
     );
     await syncToCloud();
-    
+
     // Add activity for status change if status is included in the update
     if (updatedOrder.status) {
       const order = orders.find(o => o.id === id);
@@ -1161,7 +1228,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteOrder = async (id: string): Promise<boolean> => {
     const order = orders.find(o => o.id === id);
-    
+
     const { error } = await supabase.from('orders').delete().eq('id', id);
     if (error) {
       console.error('Error deleting order from DB:', error);
@@ -1200,8 +1267,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...activity,
       id: generateUUID(),
       timestamp: new Date(),
+      createdAt: new Date(), // Tambahkan
+      updatedAt: new Date(), // Tambahkan
     };
-    
+
     const activityToInsert = {
       id: newActivity.id,
       title: newActivity.title,
@@ -1209,7 +1278,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       type: newActivity.type,
       value: newActivity.value,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: newActivity.timestamp.toISOString(),
+      created_at: newActivity.createdAt?.toISOString(), // Gunakan createdAt
+      updated_at: newActivity.updatedAt?.toISOString(), // Gunakan updatedAt
     };
 
     const { error } = await supabase.from('activities').insert([activityToInsert]);
@@ -1227,8 +1297,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Statistics
   const getStatistics = () => {
     const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
-    const averageHPP = hppResults.length > 0 
-      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length 
+    const averageHPP = hppResults.length > 0
+      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
       : 0;
 
     return {
@@ -1243,8 +1313,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const getDashboardStats = () => {
     const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
-    const averageHPP = hppResults.length > 0 
-      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length 
+    const averageHPP = hppResults.length > 0
+      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
       : 0;
 
     return {

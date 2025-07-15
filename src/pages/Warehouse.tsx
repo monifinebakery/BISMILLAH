@@ -1,87 +1,126 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // MODIFIED: Tambahkan useEffect
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { useAppData } from '@/contexts/AppDataContext';
-import { BahanBaku } from '@/types/recipe'; // Asumsi BahanBaku type sudah sesuai DB
+import { useBahanBaku } from '@/hooks/useBahanBaku'; 
+import { BahanBaku } from '@/types/recipe'; 
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
+import { toast } from 'sonner'; // MODIFIED: Import toast
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // MODIFIED: Import Select components
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useAppData();
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku(); 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // MODIFIED: Sesuaikan nama properti state newItem dengan nama kolom database
   const [newItem, setNewItem] = useState({
     nama: '',
     kategori: '',
     stok: 0,
     satuan: '',
-    harga_satuan: 0, // Disesuaikan: hargaSatuan -> harga_satuan
+    hargaSatuan: 0, 
     minimum: 0,
     supplier: '',
-    tanggal_kadaluwarsa: '' // Disesuaikan: tanggalKadaluwarsa -> tanggal_kadaluwarsa
+    tanggalKadaluwarsa: undefined as Date | undefined, // MODIFIED: Gunakan Date | undefined
   });
+
+  // MODIFIED: State baru untuk Detail Pembelian
+  const [purchaseDetails, setPurchaseDetails] = useState({
+    purchaseQuantity: 0, // Jumlah Beli Kemasan
+    purchaseUnit: '',     // Satuan Kemasan
+    purchaseTotalPrice: 0, // Harga Total Beli Kemasan
+  });
+
+  // MODIFIED: unitConversionMap - Faktor konversi dari satuan kemasan ke satuan dasar
+  // Anda perlu menyesuaikan faktor konversi ini sesuai dengan kebutuhan bisnis Anda
+  const unitConversionMap: { [key: string]: { [key: string]: number } } = {
+    // Contoh: Jika satuan dasar adalah 'gram'
+    'gram': { 'kg': 1000, 'gram': 1, 'pcs': 1 },
+    'kg': { 'kg': 1, 'gram': 0.001, 'pcs': 1 },
+    // Contoh: Jika satuan dasar adalah 'ml'
+    'ml': { 'liter': 1000, 'ml': 1 },
+    'liter': { 'liter': 1, 'ml': 0.001 },
+    // Contoh: Jika satuan dasar adalah 'pcs'
+    'pcs': { 'pcs': 1, 'box': 12, 'lusin': 12, 'tray': 30 },
+    // Tambahkan konversi lain sesuai kebutuhan
+  };
+
+  // MODIFIED: useEffect untuk menghitung hargaSatuan otomatis
+  useEffect(() => {
+    const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
+    const baseUnit = newItem.satuan; // Satuan dasar bahan baku yang dipilih
+
+    if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
+      const conversionFactor = unitConversionMap[baseUnit]?.[purchaseUnit] || 0; // Cari faktor konversi
+      
+      if (conversionFactor > 0) {
+        const calculatedHargaSatuan = purchaseTotalPrice / (purchaseQuantity * conversionFactor);
+        setNewItem(prev => ({ ...prev, hargaSatuan: calculatedHargaSatuan }));
+      } else if (purchaseUnit === baseUnit) { // Jika satuan kemasan sama dengan satuan dasar
+        setNewItem(prev => ({ ...prev, hargaSatuan: purchaseTotalPrice / purchaseQuantity }));
+      } else {
+        // Jika tidak ada faktor konversi yang ditemukan dan satuan tidak sama
+        setNewItem(prev => ({ ...prev, hargaSatuan: 0 })); // Atau biarkan nilai manual jika diinginkan
+        toast.warning(`Tidak ada faktor konversi untuk ${purchaseUnit} ke ${baseUnit}.`);
+      }
+    } else if (purchaseQuantity === 0 && purchaseTotalPrice === 0) {
+      // Reset hargaSatuan jika detail pembelian kosong
+      setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
+    }
+  }, [purchaseDetails, newItem.satuan]); // Dependensi: purchaseDetails dan satuan newItem
+
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // MODIFIED: Pastikan nama properti yang dikirim ke addBahanBaku sesuai dengan DB
+    // MODIFIED: Validasi yang lebih ketat
+    if (!newItem.nama || !newItem.kategori || newItem.stok <= 0 || !newItem.satuan || newItem.hargaSatuan <= 0 || newItem.minimum < 0) {
+      toast.error('Harap lengkapi semua field yang wajib diisi dan pastikan stok/harga > 0.');
+      return;
+    }
+
     const itemData = {
       nama: newItem.nama,
       kategori: newItem.kategori,
       stok: newItem.stok,
       satuan: newItem.satuan,
-      harga_satuan: newItem.harga_satuan, // Disesuaikan
+      hargaSatuan: newItem.hargaSatuan, 
       minimum: newItem.minimum,
       supplier: newItem.supplier,
-      // Konversi tanggal_kadaluwarsa ke format Date atau ISO string jika diperlukan oleh backend/DB
-      tanggal_kadaluwarsa: newItem.tanggal_kadaluwarsa ? new Date(newItem.tanggal_kadaluwarsa).toISOString() : null // Disesuaikan, dan handle null/undefined
+      tanggalKadaluwarsa: newItem.tanggalKadaluwarsa, 
     };
 
     const success = await addBahanBaku(itemData);
     if (success) {
       setShowAddForm(false);
-      // Reset form setelah berhasil disimpan
       setNewItem({
-        nama: '',
-        kategori: '',
-        stok: 0,
-        satuan: '',
-        harga_satuan: 0,
-        minimum: 0,
-        supplier: '',
-        tanggal_kadaluwarsa: ''
+        nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: undefined,
       });
+      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchase details
     }
   };
 
   const handleEdit = (item: BahanBaku) => {
-    // MODIFIED: Pastikan saat mengedit, nilai tanggal kadaluwarsa diformat untuk input type="date"
-    // Jika item.tanggal_kadaluwarsa adalah objek Date atau ISO string, konversi ke YYYY-MM-DD
-    const formattedDate = item.tanggal_kadaluwarsa instanceof Date
-        ? item.tanggal_kadaluwarsa.toISOString().split('T')[0]
-        : (typeof item.tanggal_kadaluwarsa === 'string' && item.tanggal_kadaluwarsa.includes('T'))
-            ? item.tanggal_kadaluwarsa.split('T')[0]
-            : item.tanggal_kadaluwarsa; // Biarkan apa adanya jika sudah YYYY-MM-DD atau null
+    const formattedDate = item.tanggalKadaluwarsa instanceof Date
+        ? item.tanggalKadaluwarsa.toISOString().split('T')[0]
+        : undefined; // Pastikan undefined jika null/bukan Date
 
     setEditingItem({
         ...item,
-        tanggal_kadaluwarsa: formattedDate // Pastikan format YYYY-MM-DD untuk input date
+        tanggalKadaluwarsa: formattedDate // Pastikan format YYYY-MM-DD untuk input date
     });
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (editingItem) {
-      // MODIFIED: Pastikan tanggal_kadaluwarsa di updates juga dikirim dalam format yang benar ke DB
-      const updatedData = {
+      const updatedData: Partial<BahanBaku> = {
           ...updates,
-          tanggal_kadaluwarsa: updates.tanggal_kadaluwarsa ? new Date(updates.tanggal_kadaluwarsa).toISOString() : null
+          tanggalKadaluwarsa: updates.tanggalKadaluwarsa ? new Date(updates.tanggalKadaluwarsa) : undefined
       };
       await updateBahanBaku(editingItem.id, updatedData);
       setEditingItem(null);
@@ -89,7 +128,6 @@ const WarehousePage = () => {
   };
 
   const handleDelete = async (id: string, nama: string) => {
-    // MODIFIED: Ganti confirm() dengan modal kustom jika ini untuk lingkungan iFrame
     if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
       await deleteBahanBaku(id);
     }
@@ -198,7 +236,7 @@ const WarehousePage = () => {
                 <form onSubmit={handleAddItem} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="nama">Nama Bahan</Label>
+                      <Label htmlFor="nama">Nama Bahan *</Label>
                       <Input
                         id="nama"
                         value={newItem.nama}
@@ -208,7 +246,7 @@ const WarehousePage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="kategori">Kategori</Label>
+                      <Label htmlFor="kategori">Kategori *</Label>
                       <Input
                         id="kategori"
                         value={newItem.kategori}
@@ -218,7 +256,7 @@ const WarehousePage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="stok">Stok</Label>
+                      <Label htmlFor="stok">Stok *</Label>
                       <Input
                         id="stok"
                         type="number"
@@ -229,7 +267,7 @@ const WarehousePage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="satuan">Satuan</Label>
+                      <Label htmlFor="satuan">Satuan *</Label>
                       <Input
                         id="satuan"
                         value={newItem.satuan}
@@ -239,18 +277,7 @@ const WarehousePage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="harga_satuan">Harga Satuan</Label>
-                      <Input
-                        id="harga_satuan"
-                        type="number"
-                        value={newItem.harga_satuan} // Menggunakan harga_satuan
-                        onChange={(e) => setNewItem({...newItem, harga_satuan: parseFloat(e.target.value) || 0})} // Menggunakan harga_satuan
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="minimum">Stok Minimum</Label>
+                      <Label htmlFor="minimum">Stok Minimum *</Label>
                       <Input
                         id="minimum"
                         type="number"
@@ -270,16 +297,69 @@ const WarehousePage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="tanggal_kadaluwarsa">Tanggal Kadaluwarsa</Label>
+                      <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
                       <Input
-                        id="tanggal_kadaluwarsa"
+                        id="tanggalKadaluwarsa"
                         type="date"
-                        value={newItem.tanggal_kadaluwarsa} // Menggunakan tanggal_kadaluwarsa
-                        onChange={(e) => setNewItem({...newItem, tanggal_kadaluwarsa: e.target.value})} // Menggunakan tanggal_kadaluwarsa
+                        value={newItem.tanggalKadaluwarsa ? newItem.tanggalKadaluwarsa.toISOString().split('T')[0] : ''} // Format Date object to string
+                        onChange={(e) => setNewItem({...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined})} // Convert string to Date object
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
                   </div>
+
+                  {/* MODIFIED: Detail Pembelian Section */}
+                  <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
+                    <CardHeader>
+                      <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
+                          <Input
+                            id="purchaseQuantity"
+                            type="number"
+                            value={purchaseDetails.purchaseQuantity || ''}
+                            onChange={(e) => setPurchaseDetails({...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0})}
+                            placeholder="0"
+                            className="rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
+                          <Select
+                            value={purchaseDetails.purchaseUnit}
+                            onValueChange={(value) => setPurchaseDetails({...purchaseDetails, purchaseUnit: value})}
+                          >
+                            <SelectTrigger className="rounded-md">
+                              <SelectValue placeholder="Pilih satuan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray'].map(unit => (
+                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
+                          <Input
+                            id="purchaseTotalPrice"
+                            type="number"
+                            value={purchaseDetails.purchaseTotalPrice || ''}
+                            onChange={(e) => setPurchaseDetails({...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0})}
+                            placeholder="0"
+                            className="rounded-md"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Harga Satuan akan dihitung otomatis jika detail pembelian diisi.
+                      </p>
+                    </CardContent>
+                  </Card>
+
                   <div className="flex gap-2">
                     <Button type="submit" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200">
                       Simpan
@@ -336,7 +416,7 @@ const WarehousePage = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Harga Satuan</p>
-                          <p className="font-semibold text-green-600">{formatCurrency(item.harga_satuan)}</p> {/* Menggunakan item.harga_satuan */}
+                          <p className="font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</p> {/* Menggunakan item.hargaSatuan */}
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Minimum</p>
@@ -347,11 +427,11 @@ const WarehousePage = () => {
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
                         {/* MODIFIED: Tampilkan Tanggal Kadaluwarsa */}
-                        {item.tanggal_kadaluwarsa && (
+                        {item.tanggalKadaluwarsa && (
                             <div>
                                 <p className="text-sm text-gray-500">Kadaluwarsa</p>
                                 <p className="font-semibold text-gray-800">
-                                    {new Date(item.tanggal_kadaluwarsa).toLocaleDateString('id-ID', {
+                                    {new Date(item.tanggalKadaluwarsa).toLocaleDateString('id-ID', {
                                         year: 'numeric',
                                         month: 'short',
                                         day: 'numeric'

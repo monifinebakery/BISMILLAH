@@ -32,9 +32,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: 0,
+    purchaseQuantity: '',
     purchaseUnit: '',
-    purchaseTotalPrice: 0,
+    purchaseTotalPrice: '',
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {

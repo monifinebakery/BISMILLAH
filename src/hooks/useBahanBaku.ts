@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { BahanBaku } from '@/types/recipe';
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // MODIFIED: Import safeParseDate
 
 const STORAGE_KEY = 'hpp_app_bahan_baku';
 
@@ -44,10 +45,9 @@ export const useBahanBaku = (userId: string | undefined) => {
         minimum: parseFloat(item.minimum) || 0,
         hargaSatuan: parseFloat(item.harga_satuan) || 0,
         supplier: item.supplier || '',
-        tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? new Date(item.tanggal_kadaluwarsa) : undefined,
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at),
-        // MODIFIED: Muat properti detail pembelian
+        tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined, // MODIFIED: Gunakan safeParseDate
+        createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
+        updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
         lastPurchaseQuantity: parseFloat(item.last_purchase_quantity) || undefined,
         lastPurchaseUnit: item.last_purchase_unit || undefined,
         lastPurchaseTotalPrice: parseFloat(item.last_purchase_total_price) || undefined,
@@ -81,7 +81,7 @@ export const useBahanBaku = (userId: string | undefined) => {
       }
 
       const newBahanId = generateUUID();
-      const now = new Date().toISOString();
+      const now = new Date(); // MODIFIED: Tetap sebagai Date object untuk kemudahan
 
       const { data, error } = await supabase
         .from('bahan_baku')
@@ -95,10 +95,9 @@ export const useBahanBaku = (userId: string | undefined) => {
           minimum: bahan.minimum,
           harga_satuan: bahan.hargaSatuan,
           supplier: bahan.supplier,
-          tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa?.toISOString() || null,
-          created_at: now,
-          updated_at: now,
-          // MODIFIED: Simpan properti detail pembelian
+          tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa instanceof Date ? bahan.tanggalKadaluwarsa.toISOString() : null, // MODIFIED: Cek instanceof Date
+          created_at: now.toISOString(), // MODIFIED: Gunakan now.toISOString()
+          updated_at: now.toISOString(), // MODIFIED: Gunakan now.toISOString()
           last_purchase_quantity: bahan.lastPurchaseQuantity || null,
           last_purchase_unit: bahan.lastPurchaseUnit || null,
           last_purchase_total_price: bahan.lastPurchaseTotalPrice || null,
@@ -115,8 +114,8 @@ export const useBahanBaku = (userId: string | undefined) => {
       setBahanBaku(prev => [...prev, {
         ...bahan,
         id: newBahanId,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
+        createdAt: now, // MODIFIED: Gunakan now (Date object)
+        updatedAt: now, // MODIFIED: Gunakan now (Date object)
       }]);
       toast.success('Bahan baku berhasil ditambahkan');
       return true;
@@ -147,11 +146,10 @@ export const useBahanBaku = (userId: string | undefined) => {
       if (updates.hargaSatuan !== undefined) updateData.harga_satuan = updates.hargaSatuan;
       if (updates.supplier !== undefined) updateData.supplier = updates.supplier;
       if (updates.tanggalKadaluwarsa !== undefined) {
-        updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa?.toISOString() || null;
+        updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa instanceof Date ? updates.tanggalKadaluwarsa.toISOString() : null; // MODIFIED: Cek instanceof Date
       } else if (updates.tanggalKadaluwarsa === null) {
         updateData.tanggal_kadaluwarsa = null;
       }
-      // MODIFIED: Update properti detail pembelian
       if (updates.lastPurchaseQuantity !== undefined) updateData.last_purchase_quantity = updates.lastPurchaseQuantity;
       if (updates.lastPurchaseUnit !== undefined) updateData.last_purchase_unit = updates.lastPurchaseUnit;
       if (updates.lastPurchaseTotalPrice !== undefined) updateData.last_purchase_total_price = updates.lastPurchaseTotalPrice;

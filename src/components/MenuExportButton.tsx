@@ -5,7 +5,7 @@ import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MenuExportButtonProps {
-  data: any[];
+  data: any[]; // Data yang akan diekspor, diterima sebagai prop
   filename: string;
   menuType: string;
 }
@@ -19,16 +19,20 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       }
 
       let content = `LAPORAN ${menuType.toUpperCase()}\n`;
-      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n`;
-      content += `Total Records: ${data.length}\n\n`;
+      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n\n`;
       
       data.forEach((item, index) => {
         content += `${index + 1}. `;
         Object.entries(item).forEach(([key, value]) => {
-          if (key !== 'id' && key !== 'user_id' && key !== 'created_at' && key !== 'updated_at') {
-            const displayValue = typeof value === 'object' && value !== null 
-              ? JSON.stringify(value) 
-              : value?.toString() || '';
+          // MODIFIED: Sertakan created_at dan updated_at di PDF/Text
+          // Pastikan juga properti Date di-handle dengan benar
+          if (!['id', 'user_id'].includes(key)) { 
+            let displayValue = value;
+            if (value instanceof Date) { // Handle Date objects
+              displayValue = value.toISOString();
+            } else if (typeof value === 'object' && value !== null) {
+              displayValue = JSON.stringify(value);
+            }
             content += `${key}: ${displayValue} | `;
           }
         });
@@ -47,6 +51,7 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       
       toast.success(`Data ${menuType} berhasil diekspor sebagai PDF/Text`);
     } catch (error) {
+      console.error('Export error:', error);
       toast.error('Gagal mengekspor data');
     }
   };
@@ -61,8 +66,9 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       // Collect all unique keys from all objects in the data array
       const allKeys = new Set<string>();
       data.forEach(item => {
-        Object.keys(item).forEach(key => {
-          if (!['id', 'user_id', 'created_at', 'updated_at'].includes(key)) {
+        // MODIFIED: Sertakan semua kunci kecuali 'id' dan 'user_id'
+        Object.keys(item).forEach(key => {    
+          if (!['id', 'user_id'].includes(key)) { 
             allKeys.add(key);
           }
         });
@@ -78,15 +84,22 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
           headers.map(header => {
             let value = item[header];
             
-            // Handle complex data types
+            // Handle null or undefined values
             if (value === null || value === undefined) {
               value = '';
-            } else if (typeof value === 'object') {
+            } 
+            // MODIFIED: Tangani objek Date secara spesifik: konversi ke string ISO
+            else if (value instanceof Date) {
+              value = value.toISOString();
+            } 
+            // Tangani objek kompleks lainnya (seperti array, objek bersarang) dengan stringify
+            else if (typeof value === 'object') {
               value = JSON.stringify(value);
             }
             
-            // Escape commas and quotes for CSV format
-            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            // Terapkan escaping CSV: sertakan dalam tanda kutip ganda jika berisi koma, tanda kutip ganda, atau baris baru
+            // Dan gandakan tanda kutip ganda internal
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
               value = `"${value.replace(/"/g, '""')}"`;
             }
             
@@ -120,18 +133,18 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
         <Button 
           variant="outline" 
           size="sm"
-          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700"
+          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700 rounded-md shadow-sm transition-colors duration-200" 
         >
           <Download className="h-4 w-4 mr-2" />
-          Export {menuType}
+          Export Data
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg">
-        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50">
+      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg rounded-md"> 
+        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md"> 
           <FileText className="h-4 w-4 mr-2 text-blue-600" />
           Export sebagai PDF/Text
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50">
+        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50 rounded-md"> 
           <FileText className="h-4 w-4 mr-2 text-green-600" />
           Export sebagai Excel/CSV
         </DropdownMenuItem>

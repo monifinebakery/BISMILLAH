@@ -16,13 +16,19 @@ import ExportButtons from '@/components/ExportButtons';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext'; // MODIFIED: Impor context
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator'; // MODIFIED: Impor indikator
+// NEW: Impor useUserSettings
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const FinancialReportPage = () => {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useFinancialTransactions();
-  const [categories, setCategories] = useState({
-    income: ['Penjualan Produk', 'Jasa Catering', 'Investasi'],
-    expense: ['Bahan Baku', 'Gaji Karyawan', 'Utilitas', 'Marketing', 'Operasional'],
-  });
+  // MODIFIED: Hapus state lokal categories
+  // const [categories, setCategories] = useState({
+  //   income: ['Penjualan Produk', 'Jasa Catering', 'Investasi'],
+  //   expense: ['Bahan Baku', 'Gaji Karyawan', 'Utilitas', 'Marketing', 'Operasional'],
+  // });
+
+  // NEW: Panggil useUserSettings
+  const { settings } = useUserSettings();
 
   // MODIFIED: Mengambil status pembayaran
   const { isPaid } = usePaymentContext();
@@ -35,7 +41,7 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      const transactionDate = new Date(t.date);
+      const transactionDate = t.tanggal; // Assuming t.tanggal is now a Date object from useFinancialTransactions
       if (dateRange?.from && transactionDate < dateRange.from) return false;
       if (dateRange?.to && transactionDate > dateRange.to) return false;
       return true;
@@ -43,11 +49,11 @@ const FinancialReportPage = () => {
   }, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    return filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((sum, t) => sum + t.jumlah, 0); // MODIFIED: properti jenis dan jumlah
   }, [filteredTransactions]);
 
   const totalExpense = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    return filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((sum, t) => sum + t.jumlah, 0); // MODIFIED: properti jenis dan jumlah
   }, [filteredTransactions]);
 
   const balance = useMemo(() => {
@@ -61,10 +67,14 @@ const FinancialReportPage = () => {
     const expenseByCategory: { [key: string]: number } = {};
 
     filteredTransactions.forEach(t => {
-      if (t.type === 'income') {
-        incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + t.amount;
+      // MODIFIED: Gunakan properti 'deskripsi' dari transaksi sebagai kategori yang dimuat
+      // atau jika Anda memiliki properti kategori di transaksi keuangan (direkomendasikan)
+      const categoryName = t.deskripsi; // Asumsi 'deskripsi' menyimpan kategori, atau tambahkan kolom 'category' di FinancialTransaction
+      // Jika Anda punya kolom 'category' di FinancialTransaction di DB, gunakan t.category
+      if (t.jenis === 'pemasukan') {
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + t.jumlah;
       } else {
-        expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + t.jumlah;
       }
     });
 
@@ -78,14 +88,14 @@ const FinancialReportPage = () => {
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
     filteredTransactions.forEach(t => {
-      const monthYear = format(t.date, 'yyyy-MM');
+      const monthYear = format(t.tanggal, 'yyyy-MM'); // MODIFIED: Gunakan t.tanggal
       if (!monthlyData[monthYear]) {
-        monthlyData[monthYear] = { income: 0, expense: 0, date: t.date };
+        monthlyData[monthYear] = { income: 0, expense: 0, date: t.tanggal }; // MODIFIED: Gunakan t.tanggal
       }
-      if (t.type === 'income') {
-        monthlyData[monthYear].income += t.amount;
+      if (t.jenis === 'pemasukan') { // MODIFIED: Gunakan properti jenis
+        monthlyData[monthYear].income += t.jumlah; // MODIFIED: Gunakan properti jumlah
       } else {
-        monthlyData[monthYear].expense += t.amount;
+        monthlyData[monthYear].expense += t.jumlah; // MODIFIED: Gunakan properti jumlah
       }
     });
 
@@ -130,9 +140,11 @@ const FinancialReportPage = () => {
                   <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
                 </PopoverContent>
               </Popover>
-              <FinancialCategoryManager categories={categories} onUpdateCategories={setCategories} />
+              {/* MODIFIED: Hapus props 'categories' dan 'onUpdateCategories' */}
+              <FinancialCategoryManager />
               <ExportButtons data={filteredTransactions} filename="laporan-keuangan" type="financial" />
-              <FinancialTransactionDialog onAddTransaction={addTransaction} categories={categories} />
+              {/* MODIFIED: Teruskan settings.financialCategories */}
+              <FinancialTransactionDialog onAddTransaction={addTransaction} categories={settings.financialCategories} />
             </div>
           </div>
         </div>
@@ -189,7 +201,7 @@ const FinancialReportPage = () => {
             loading={loading}
             onUpdateTransaction={updateTransaction}
             onDeleteTransaction={deleteTransaction}
-            categories={categories}
+            categories={settings.financialCategories} // MODIFIED: Teruskan settings.financialCategories
           />
         </div>
       </div>

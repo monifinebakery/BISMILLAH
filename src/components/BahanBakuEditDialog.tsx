@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup tanggalKadaluwarsa (Date | undefined)
+import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner"; // Import toast
@@ -11,8 +11,8 @@ import { toast } from "sonner"; // Import toast
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updates: Partial<BahanBaku>) => Promise<void>; // onSave sekarang mengembalikan Promise<void>
-  item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook, dengan tanggalKadaluwarsa: Date | undefined)
+  onSave: (updates: Partial<BahanBaku>) => Promise<void>;
+  item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook)
 }
 
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
@@ -45,7 +45,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
-  // useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
+  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
       setFormData({
@@ -54,20 +54,20 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         stok: item.stok,
         satuan: item.satuan,
         minimum: item.minimum,
-        hargaSatuan: item.hargaSatuan, // MODIFIED: Gunakan item.hargaSatuan (camelCase)
+        hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
         tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
-        // Pastikan properti baru juga diinisialisasi
+        // Pastikan properti baru juga diinisialisasi di formData jika Anda menyimpannya di sana juga
         jumlahBeliKemasan: item.jumlahBeliKemasan,
         satuanKemasan: item.satuanKemasan,
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
 
-      // Inisialisasi purchaseDetails dari item prop
+      // MODIFIED: Inisialisasi purchaseDetails dari item prop
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0,
-        purchaseUnit: item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
+        purchaseQuantity: item.jumlahBeliKemasan || 0, // Ambil nilai dari item
+        purchaseUnit: item.satuanKemasan || '',       // Ambil nilai dari item
+        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0, // Ambil nilai dari item
       });
 
     } else {
@@ -80,7 +80,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     }
   }, [item, isOpen]); // Dependensi: item dan isOpen
 
-  // MODIFIED: useEffect kedua (Perhitungan harga satuan)
+  // useEffect kedua (Perhitungan harga satuan)
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
     const baseUnit = formData.satuan?.toLowerCase(); // Satuan dasar bahan baku yang dipilih, gunakan optional chaining
@@ -129,6 +129,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa, // Langsung lewatkan Date | undefined
+      // Pastikan properti detail pembelian disertakan di sini
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,

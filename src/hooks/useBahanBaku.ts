@@ -1,78 +1,70 @@
-// src/hooks/useBahanBaku.ts
-import { useState, useEffect } from 'react'; // useState dan useEffect mungkin tidak diperlukan lagi jika tidak ada state internal
-import { toast } from 'sonner';
-
-// MODIFIED: Import BahanBaku dari lokasi bersama (src/types/recipe.ts)
-import { BahanBaku } from '@/types/recipe';
-// MODIFIED: Import useAppData
-import { useAppData } from '@/contexts/AppDataContext';
-
-// MODIFIED: safeParseDate mungkin tidak perlu diimpor di sini jika hanya digunakan di useSupabaseSync
-// dan data BahanBaku sudah berupa Date objects dari useAppData.
-// Jika fungsi add/update/delete BahanBaku masih di hook ini (bukan di useAppData),
-// maka safeParseDate dan supabase masih diperlukan.
-// Sesuai instruksi, CRUD akan dipindahkan ke useAppData. Jadi, kita hapus impor yang tidak perlu.
-// import { safeParseDate } from '@/hooks/useSupabaseSync'; // DIHAPUS
-
-// MODIFIED: useBahanBaku tidak lagi menerima userId karena data akan dari AppDataContext
-export const useBahanBaku = () => {
-  // MODIFIED: useBahanBaku tidak lagi memiliki state bahanBaku dan loading internal
-  // Data bahanBaku akan diterima dari useAppData melalui komponen yang memanggil hook ini.
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useAppData();
-
-  // MODIFIED: loadBahanBaku dan useEffect-nya dihapus. Data loading ditangani AppDataContext.
-  // const [loading, setLoading] = useState(true);
-  // const loadBahanBaku = async () => { ... };
-  // useEffect(() => { loadBahanBaku(); }, [userId]);
-  // useEffect(() => { saveToStorage(STORAGE_KEY, bahanBaku); }, [bahanBaku]);
-
-
-  // MODIFIED: CRUD functions akan memanggil fungsi dari useAppData
-  // Ini adalah fungsi yang akan dipanggil oleh komponen seperti WarehousePage
-  const addBahanBakuToApp = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
-    // Validasi atau logika pra-penyimpanan lainnya bisa tetap di sini
-    return addBahanBaku(bahan); // Memanggil addBahanBaku dari useAppData
+const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
+  const bahanToUpdate: Partial<any> = {
+    updated_at: new Date().toISOString(), // Always update the timestamp
   };
 
-  const updateBahanBakuInApp = async (id: string, updates: Partial<BahanBaku>) => {
-    // Validasi atau logika pra-update lainnya
-    return updateBahanBaku(id, updates); // Memanggil updateBahanBaku dari useAppData
-  };
+  // Explicitly map all possible fields from updatedBahan to snake_case
+  if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
+  if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
+  if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
+  if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
+  if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
+  if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
+  if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+  if (updatedBahan.tanggalKadaluwarsa !== undefined) {
+    bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa?.toISOString() || null;
+  } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
+    bahanToUpdate.tanggal_kadaluwarsa = null;
+  }
 
-  const deleteBahanBakuInApp = async (id: string) => {
-    // Validasi atau logika pra-hapus lainnya
-    return deleteBahanBaku(id); // Memanggil deleteBahanBaku dari useAppData
-  };
+  // Ensure purchase details are included
+  if (updatedBahan.jumlahBeliKemasan !== undefined) {
+    bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
+  }
+  if (updatedBahan.satuanKemasan !== undefined) {
+    bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
+  }
+  if (updatedBahan.hargaTotalBeliKemasan !== undefined) {
+    bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+  }
 
+  const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
 
-  const getBahanBakuByName = (nama: string): BahanBaku | undefined => {
-    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
-  };
+  if (error) {
+    console.error('Error updating bahan baku in DB:', error);
+    toast.error(`Gagal memperbarui bahan baku: ${error.message}`);
+    return false;
+  }
 
-  const reduceStok = (nama: string, jumlah: number): boolean => {
-    const bahan = getBahanBakuByName(nama);
-    if (!bahan) {
-      toast.error(`Stok ${nama} tidak ditemukan.`);
-      return false;
-    }
-    if (bahan.stok < jumlah) {
-      toast.error(`Stok ${nama} tidak cukup. Tersisa ${bahan.stok} ${bahan.satuan}.`);
-      return false;
-    }
-    // MODIFIED: Panggil updateBahanBaku dari useAppData
-    updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
-    return true;
-  };
+  // Update local state with the response from Supabase to ensure consistency
+  if (data && data.length > 0) {
+    const updatedItem = data[0];
+    setBahanBaku(prev =>
+      prev.map(item =>
+        item.id === id
+          ? {
+              ...item,
+              ...updatedBahan,
+              tanggalKadaluwarsa: updatedItem.tanggal_kadaluwarsa ? new Date(updatedItem.tanggal_kadaluwarsa) : undefined,
+              hargaSatuan: updatedItem.harga_satuan,
+              jumlahBeliKemasan: updatedItem.jumlah_beli_kemasan,
+              satuanKemasan: updatedItem.satuan_kemasan,
+              hargaTotalBeliKemasan: updatedItem.harga_total_beli_kemasan,
+              updatedAt: new Date(updatedItem.updated_at),
+            }
+          : item
+      )
+    );
+  } else {
+    // Fallback to local update if data is not returned
+    setBahanBaku(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
+      )
+    );
+  }
 
-  return {
-    bahanBaku, // MODIFIED: bahanBaku kini hanya disediakan, bukan dikelola di sini
-    // loading, // DIHAPUS
-    // loadBahanBaku, // DIHAPUS
-    addBahanBaku: addBahanBakuToApp, // MODIFIED: Ekspor wrapper
-    updateBahanBaku: updateBahanBakuInApp, // MODIFIED: Ekspor wrapper
-    deleteBahanBaku: deleteBahanBakuInApp, // MODIFIED: Ekspor wrapper
-    getBahanBakuByName,
-    reduceStok,
-    // setBahanBaku, // DIHAPUS
-  };
+  await syncToCloud();
+  toast.success(`Bahan baku berhasil diperbarui!`);
+  return true;
 };

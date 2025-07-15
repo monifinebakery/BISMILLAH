@@ -519,10 +519,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier,
           tanggal_kadaluwarsa: item.tanggalKadaluwarsa?.toISOString() || null, user_id: session.user.id,
           created_at: item.createdAt?.toISOString(), updated_at: item.updatedAt?.toISOString(), // Tambahkan created_at/updated_at dari item
-          // MODIFIED: Tambahkan kolom baru ke payload sync
-          jumlah_beli_kemasan: item.jumlahBeliKemasan || null, // Sudah benar untuk null -> null, 0 -> null (jika ini yg diinginkan untuk sync)
-          satuan_kemasan: item.satuanKemasan || null,         // Sudah benar untuk "" -> null, null -> null
-          harga_total_beli_kemasan: item.hargaTotalBeliKemasan || null, // Sudah benar untuk null -> null, 0 -> null (jika ini yg diinginkan untuk sync)
+          // MODIFIED: Gunakan nullish coalescing (??) untuk mempertahankan 0 dan ""
+          jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
+          satuan_kemasan: item.satuanKemasan ?? null,         // Akan mengirim "" jika "", null jika null/undefined
+          harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
         })),
         suppliers: suppliers.map(item => ({
           id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon,
@@ -651,9 +651,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       created_at: newBahan.createdAt?.toISOString(), // Ambil dari newBahan
       updated_at: newBahan.updatedAt?.toISOString(), // Ambil dari newBahan
       // MODIFIED: Gunakan nullish coalescing (??) untuk mempertahankan 0 dan ""
-      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null,
-      satuan_kemasan: newBahan.satuanKemasan ?? null,
-      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null,
+      jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
+      satuan_kemasan: newBahan.satuanKemasan ?? null,         // Akan mengirim "" jika "", null jika null/undefined
+      harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null, // Akan mengirim 0 jika 0, null jika null/undefined
     };
 
     const { error } = await supabase.from('bahan_baku').insert([bahanToInsert]);
@@ -714,7 +714,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setBahanBaku(prev =>
       prev.map(item =>
-        item.id === id ? { ...item, ...updates, updatedAt: new Date() } : item
+        item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
       )
     );
     await syncToCloud();
@@ -1274,8 +1274,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       type: newActivity.type,
       value: newActivity.value,
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      created_at: newActivity.createdAt?.toISOString(), // Gunakan createdAt
-      updated_at: newActivity.updatedAt?.toISOString(), // Gunakan updatedAt
+      created_at: newActivity.createdAt?.toISOString(),
+      updated_at: newActivity.updatedAt?.toISOString(),
     };
 
     const { error } = await supabase.from('activities').insert([activityToInsert]);

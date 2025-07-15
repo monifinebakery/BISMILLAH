@@ -1,4 +1,3 @@
-// src/components/BahanBakuEditDialog.tsx
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku interface mencakup properti baru
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// MODIFIED: Corrected Select import statement (it was already correct)
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner"; // Import toast
 
 interface BahanBakuEditDialogProps {
@@ -27,6 +25,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
+    // Ensure these are initialized explicitly to null for consistency with DB null
     jumlahBeliKemasan: null,
     satuanKemasan: null,
     hargaTotalBeliKemasan: null,
@@ -141,6 +140,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
+  // Helper function to safely render values in inputs as string or number
   const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -267,7 +267,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 <div>
                   <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                   <Select
-                    value={getInputValue(purchaseDetails.purchaseUnit) as string}
+                    value={getInputValue(purchaseDetails.purchaseUnit) as string} // MODIFIED: Ensure value is explicitly string
                     onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                   >
                     <SelectTrigger className="rounded-md">

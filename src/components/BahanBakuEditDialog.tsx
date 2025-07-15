@@ -31,9 +31,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: '',
+    purchaseQuantity: 0,
     purchaseUnit: '',
-    purchaseTotalPrice: '',
+    purchaseTotalPrice: 0,
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
@@ -45,6 +45,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
+  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
       setFormData({
@@ -61,10 +62,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
 
+      // MODIFIED: Inisialisasi purchaseDetails dari item prop, mempertahankan `null`
       setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan === null ? null : item.jumlahBeliKemasan || 0,
-        purchaseUnit: item.satuanKemasan === null ? null : item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan === null ? null : item.hargaTotalBeliKemasan || 0,
+        purchaseQuantity: item.jumlahBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null)
+        purchaseUnit: item.satuanKemasan,         // MODIFIED: Langsung assign nilai dari item (bisa null)
+        purchaseTotalPrice: item.hargaTotalBeliKemasan, // MODIFIED: Langsung assign nilai dari item (bisa null)
       });
 
     } else {
@@ -72,10 +74,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
+      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Untuk item baru, 0/'' adalah default yang baik
     }
   }, [item, isOpen]);
 
+  // useEffect kedua (Perhitungan harga satuan)
   useEffect(() => {
     const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
     const baseUnit = formData.satuan?.toLowerCase();
@@ -83,9 +86,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     let calculatedHarga = 0;
 
     if (
-      (purchaseQuantity !== null && purchaseQuantity > 0) &&
-      (purchaseTotalPrice !== null && purchaseTotalPrice > 0) &&
-      (purchaseUnit !== null && purchaseUnit !== '') &&
+      (purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0) && // Cek lebih ketat
+      (purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0) && // Cek lebih ketat
+      (purchaseUnit !== null && purchaseUnit !== '') && // Cek purchaseUnit
       baseUnit
     ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
@@ -120,6 +123,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
+      // Pastikan properti detail pembelian disertakan di sini, mereka bisa null
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
@@ -150,7 +154,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md font-inter">
         <DialogHeader>
-          {/* MODIFIED: Corrected closing tag from </CardTitle> to </DialogTitle> */}
           <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
         </DialogHeader>
 

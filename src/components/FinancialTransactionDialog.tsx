@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,9 +33,17 @@ const FinancialTransactionDialog = ({
       return;
     }
 
+    // Validasi dan konversi tanggal
+    const transactionDate = new Date(formData.date);
+    if (isNaN(transactionDate.getTime())) {
+      // Jika tanggal tidak valid, gunakan tanggal saat ini
+      console.warn('Tanggal tidak valid, menggunakan tanggal saat ini');
+      transactionDate.setTime(Date.now());
+    }
+
     const success = await onAddTransaction({
       ...formData,
-      date: new Date(formData.date),
+      date: transactionDate, // Gunakan objek Date yang sudah divalidasi
     });
 
     if (success) {

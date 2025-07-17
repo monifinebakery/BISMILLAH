@@ -352,7 +352,7 @@ const WarehousePage = () => {
                             id="purchaseQuantity"
                             type="number"
                             value={getInputValue(newItem.jumlahBeliKemasan)} // MODIFIED: Gunakan getInputValue
-                            onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || null })}
+                            onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
                             required // MODIFIED: Tambahkan required
@@ -381,7 +381,7 @@ const WarehousePage = () => {
                             id="purchaseTotalPrice"
                             type="number"
                             value={getInputValue(newItem.hargaTotalBeliKemasan)}
-                            onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || null })}
+                            onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
                             required // MODIFIED: Tambahkan required

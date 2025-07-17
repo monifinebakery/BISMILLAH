@@ -89,7 +89,7 @@ export interface FinancialTransaction {
   id: string;
   tanggal: Date;
   jenis: 'pemasukan' | 'pengeluaran';
-  deskripsi: string;
+  description: string; // Diperbarui dari 'deskripsi' ke 'description'
   jumlah: number;
   user_id?: string;
   createdAt?: Date;
@@ -527,7 +527,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           id: item.id,
           tanggal: item.tanggal.toISOString(),
           type: item.jenis,
-          deskripsi: item.deskripsi,
+          description: item.description, // Diperbarui dari 'deskripsi' ke 'description'
           amount: item.jumlah,
           user_id: session.user.id,
           created_at: item.createdAt?.toISOString(),
@@ -1424,14 +1424,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
-      tanggal: transaction.tanggal || new Date(), // Default ke tanggal saat ini jika undefined
+      tanggal: transaction.tanggal || new Date(),
     };
 
     const transactionToInsert = {
       id: newTransaction.id,
       tanggal: newTransaction.tanggal.toISOString(),
       type: newTransaction.jenis,
-      deskripsi: newTransaction.deskripsi,
+      description: newTransaction.description, // Diperbarui dari 'deskripsi' ke 'description'
       amount: newTransaction.jumlah,
       user_id: newTransaction.user_id,
       created_at: newTransaction.createdAt?.toISOString(),
@@ -1463,7 +1463,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     if (transactionToUpdate.tanggal) transactionToUpdate.tanggal = updatedTransaction.tanggal?.toISOString() || new Date().toISOString();
     if (transactionToUpdate.jenis) transactionToUpdate.type = updatedTransaction.jenis;
-    if (transactionToUpdate.deskripsi) transactionToUpdate.deskripsi = updatedTransaction.deskripsi;
+    if (transactionToUpdate.description) transactionToUpdate.description = updatedTransaction.description; // Diperbarui dari 'deskripsi' ke 'description'
     if (transactionToUpdate.jumlah) transactionToUpdate.amount = updatedTransaction.jumlah;
     delete transactionToUpdate.createdAt;
 

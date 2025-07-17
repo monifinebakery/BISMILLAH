@@ -8,7 +8,7 @@ interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTransaction: (transaction: any) => Promise<boolean>;
-  categories: string[];
+  categories: { income: string[]; expense: string[] };
 }
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
@@ -90,7 +90,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Pilih Kategori</SelectItem>
-              {(categories || []).map((cat) => (
+              {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>

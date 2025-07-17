@@ -325,4 +325,4 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   );
 };
 
-export default BahanBakuEditDial
+export default BahanBakuEditDialog.tsx

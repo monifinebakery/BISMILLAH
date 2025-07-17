@@ -5,7 +5,8 @@ import { SidebarClose, SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons"; // Pastikan ini diimpor
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react"; // MODIFIED: Hapus Home dari sini
+// MODIFIED: Hapus Home dari import lucide-react
+import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react"; 
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
@@ -42,7 +43,7 @@ export function AppSidebar() {
   const navItems = [
     {
       title: "Dashboard",
-      icon: DashboardIcon, // MODIFIED: Gunakan DashboardIcon
+      icon: DashboardIcon, // Gunakan DashboardIcon
       href: "/",
       section: "Dashboard",
     },
@@ -83,7 +84,7 @@ export function AppSidebar() {
       section: "Bisnis",
     },
     {
-      title: "Laporan Keuangan",
+      title: "Laporan & Analisis",
       icon: FileText,
       href: "/laporan",
       section: "Laporan & Analisis",

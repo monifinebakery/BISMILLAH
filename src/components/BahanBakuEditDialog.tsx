@@ -44,13 +44,11 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: null, // Sekarang ada di formData
-    satuanKemasan: null,     // Sekarang ada di formData
-    hargaTotalBeliKemasan: null, // Sekarang ada di formData
+    // MODIFIED: Inisialisasi properti detail pembelian ke 0 atau '' (tidak lagi null) untuk item baru
+    jumlahBeliKemasan: 0,   // Default 0 untuk numeric
+    satuanKemasan: '',     // Default '' untuk string
+    hargaTotalBeliKemasan: 0, // Default 0 untuk numeric
   });
-
-  // MODIFIED: Hapus state purchaseDetails
-  // const [purchaseDetails, setPurchaseDetails] = useState<{ ... }>({ ... });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
     'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592, 'ons': 28.3495 },
@@ -61,13 +59,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
-  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
-      // --- DEBUG LOG START ---
-      console.log('BahanBakuEditDialog: Item received in useEffect (initialization):', item);
-      // --- DEBUG LOG END ---
-
       setFormData({
         nama: item.nama,
         kategori: item.kategori,
@@ -78,30 +71,21 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         supplier: item.supplier,
         tanggalKadaluwarsa: item.tanggalKadaluwarsa,
         // Inisialisasi properti detail pembelian langsung dari item ke formData
-        jumlahBeliKemasan: item.jumlahBeliKemasan,
-        satuanKemasan: item.satuanKemasan,
-        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
+        // MODIFIED: Pastikan item.jumlahBeliKemasan/etc. tidak undefined/null agar tidak menjadi default 0/''
+        jumlahBeliKemasan: item.jumlahBeliKemasan ?? 0, // Assign 0 if null/undefined from DB
+        satuanKemasan: item.satuanKemasan ?? '',       // Assign '' if null/undefined from DB
+        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? 0, // Assign 0 if null/undefined from DB
       });
-
-      // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
-      // setPurchaseDetails({ ... });
-
-      // --- DEBUG LOG START ---
-      console.log('BahanBakuEditDialog: formData after initialization:', {
-          jumlahBeliKemasan: item.jumlahBeliKemasan,
-          satuanKemasan: item.satuanKemasan,
-          hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
-      });
-      // --- DEBUG LOG END ---
 
     } else {
       // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
-        jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
+        // MODIFIED: Pastikan default inisialisasi untuk item baru adalah 0 atau ''
+        jumlahBeliKemasan: 0,
+        satuanKemasan: '',
+        hargaTotalBeliKemasan: 0,
       });
-      // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
-      // setPurchaseDetails({ ... });
     }
   }, [item, isOpen]);
 
@@ -113,19 +97,19 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   const debouncedSatuanUtama = useDebounce(formData.satuan, 300);
 
 
-  // MODIFIED: useEffect kedua (Perhitungan harga satuan) - menggunakan nilai debounced dari formData
   useEffect(() => {
     const purchaseQuantity = debouncedJumlahBeliKemasan;
     const purchaseUnit = debouncedSatuanKemasan;
     const purchaseTotalPrice = debouncedHargaTotalBeliKemasan;
-    const baseUnit = debouncedSatuanUtama?.toLowerCase(); // Gunakan satuan utama dari formData
+    const baseUnit = debouncedSatuanUtama?.toLowerCase();
 
     let calculatedHarga = 0;
 
+    // MODIFIED: Validasi agar memastikan nilai yang diperlukan tidak nol/kosong
     if (
-      (purchaseQuantity !== null && purchaseQuantity !== undefined && purchaseQuantity > 0) &&
-      (purchaseTotalPrice !== null && purchaseTotalPrice !== undefined && purchaseTotalPrice > 0) &&
-      (purchaseUnit !== null && purchaseUnit !== '') &&
+      (purchaseQuantity && purchaseQuantity > 0) && // Check that it's a number > 0 (not null/undefined/0)
+      (purchaseTotalPrice && purchaseTotalPrice > 0) && // Check that it's a number > 0
+      (purchaseUnit && purchaseUnit !== '') && // Check that it's a non-empty string
       baseUnit
     ) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
@@ -151,17 +135,33 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   const handleSave = async () => {
     // Validasi dasar
-    if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || formData.minimum === undefined || formData.minimum < 0) {
+    if (
+        !formData.nama || !formData.kategori || !formData.satuan ||
+        formData.stok === undefined || formData.stok < 0 ||
+        formData.hargaSatuan === undefined || formData.hargaSatuan < 0 ||
+        formData.minimum === undefined || formData.minimum < 0
+    ) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
 
-    // MODIFIED: updatesToSend cukup menggunakan formData langsung
+    // MODIFIED: Validasi untuk field Detail Pembelian yang sekarang wajib
+    if (
+      formData.jumlahBeliKemasan === undefined || formData.jumlahBeliKemasan <= 0 ||
+      !formData.satuanKemasan || formData.satuanKemasan.trim() === '' ||
+      formData.hargaTotalBeliKemasan === undefined || formData.hargaTotalBeliKemasan <= 0
+    ) {
+      toast.error("Detail Pembelian: Jumlah Beli, Satuan Kemasan, dan Harga Total Beli wajib diisi dan harus lebih dari 0.");
+      return;
+    }
+
     const updatesToSend: Partial<BahanBaku> = {
       ...formData,
-      // Stok, minimum, hargaSatuan sudah di-parse ke float di dalam onChange handler
-      // tanggalKadaluwarsa sudah Date|undefined, tidak perlu konversi di sini
-      // jumlahBeliKemasan, satuanKemasan, hargaTotalBeliKemasan juga sudah ada di formData
+      stok: parseFloat(String(formData.stok)) || 0,
+      minimum: parseFloat(String(formData.minimum)) || 0,
+      hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
+      tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
+      // Karena semua sekarang ada di formData, tidak perlu assign dari purchaseDetails lagi
     };
 
     await onSave(updatesToSend);
@@ -170,13 +170,12 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   };
 
   const handleClose = () => {
-    // MODIFIED: Reset semua field di formData ke null/undefined default
+    // MODIFIED: Reset semua field di formData ke 0 atau '' saat menutup dialog
     setFormData({
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
-      jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
+      jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0, // MODIFIED: Reset ke 0 atau ''
     });
     // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
-    // setPurchaseDetails({ ... });
     onClose();
   };
 
@@ -280,7 +279,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             </div>
 
             <div>
-              <Label htmlFor="supplier" className="text-gray-700">Supplier</Label>
+              <Label htmlFor="supplier">Supplier</Label>
               <Input
                 id="supplier"
                 value={getInputValue(formData.supplier)}
@@ -294,7 +293,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="tanggalKadaluwarsa"
                 type="date"
-                value={getInputValue(formData.tanggalKadaluwarsa) as string} // MODIFIED: Use getInputValue
+                value={getInputValue(formData.tanggalKadaluwarsa) as string} // MODIFIED: Gunakan getInputValue
                 onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -303,26 +302,28 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             {/* NEW SECTION: Detail Pembelian */}
             <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">
               <CardHeader>
-                <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
+                <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle> {/* MODIFIED: Hapus "(Opsional)" */}
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
+                    <Label htmlFor="jumlahBeliKemasan">Jumlah Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                     <Input
-                      id="purchaseQuantity"
+                      id="jumlahBeliKemasan"
                       type="number"
-                      value={getInputValue(formData.jumlahBeliKemasan)} // MODIFIED: Gunakan getInputValue langsung
+                      value={getInputValue(formData.jumlahBeliKemasan)}
                       onChange={(e) => setFormData({ ...formData, jumlahBeliKemasan: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
+                      required // MODIFIED: Tambahkan required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
+                    <Label htmlFor="satuanKemasan">Satuan Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                     <Select
-                      value={getInputValue(formData.satuanKemasan) as string} // MODIFIED: Gunakan getInputValue langsung
+                      value={getInputValue(formData.satuanKemasan) as string}
                       onValueChange={(value) => setFormData({ ...formData, satuanKemasan: value })}
+                      required // MODIFIED: Tambahkan required
                     >
                       <SelectTrigger className="rounded-md">
                         <SelectValue placeholder="Pilih satuan" />
@@ -335,14 +336,15 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
+                    <Label htmlFor="hargaTotalBeliKemasan">Harga Total Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                     <Input
-                      id="purchaseTotalPrice"
+                      id="hargaTotalBeliKemasan"
                       type="number"
-                      value={getInputValue(formData.hargaTotalBeliKemasan)} // MODIFIED: Gunakan getInputValue langsung
+                      value={getInputValue(formData.hargaTotalBeliKemasan)}
                       onChange={(e) => setFormData({ ...formData, hargaTotalBeliKemasan: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
+                      required // MODIFIED: Tambahkan required
                     />
                   </div>
                 </div>

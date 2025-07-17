@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 // Hapus import Badge karena tidak lagi digunakan
-// import { Badge } from '@/components/ui/badge'; 
+// import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import CloudSyncButton from '@/components/CloudSyncButton';
@@ -30,14 +30,14 @@ import {
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
-  
+
   // MODIFIED: Tambahkan State untuk Filter
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30), // Default: 30 hari terakhir
     to: new Date(),
   });
   const [statusFilter, setStatusFilter] = useState<string>('all'); // Default: 'all'
-  
+
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
@@ -76,26 +76,26 @@ const OrdersPage = () => {
     const formattedDate = formatDate(orderData.tanggal);
     const items = orderData.items.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ');
     const total = orderData.totalPesanan.toLocaleString('id-ID');
-    
+
     switch (status) {
       case 'pending':
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan} pada tanggal ${formattedDate}.\n\nPesanan Anda sedang kami proses. Berikut detail pesanan Anda:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi jika informasi ini sudah benar. Terima kasih!`;
-        
+
       case 'confirmed':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah kami konfirmasi dan sedang diproses.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan segera memproses pesanan Anda. Terima kasih atas kesabaran Anda!`;
-        
+
       case 'processing':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} sedang dalam proses pengerjaan.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan memberi tahu Anda ketika pesanan sudah selesai dibuat. Terima kasih atas kesabaran Anda!`;
-        
+
       case 'shipping':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} sedang dikirim!\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi ketika pesanan sudah diterima. Terima kasih telah berbelanja di toko kami!`;
-        
+
       case 'delivered':
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah berbelanja di toko kami! Pesanan Anda dengan nomor ${orderData.nomorPesanan} telah selesai.\n\nKami harap Anda puas dengan produk kami. Jika ada pertanyaan atau masukan, jangan ragu untuk menghubungi kami.\n\nSampai jumpa di pesanan berikutnya!`;
-        
+
       case 'cancelled':
         return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah dibatalkan sesuai permintaan.\n\nJika Anda memiliki pertanyaan atau ingin melakukan pemesanan ulang, silakan hubungi kami kembali.\n\nTerima kasih.`;
-        
+
       default:
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan}.\n\nJika ada pertanyaan, silakan hubungi kami kembali.`;
     }
@@ -147,7 +147,7 @@ const OrdersPage = () => {
   // const handleCancelOrder = async (orderId: string) => { ... };
   // const handleProcessOrder = async (orderId: string) => { ... };
   // const handleShipOrder = async (orderId: string) => { ... };
-  
+
   const handleEditOrder = (order: Order) => {
     setEditingOrder(order);
     setShowOrderForm(true);
@@ -195,10 +195,14 @@ const OrdersPage = () => {
       const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      const orderDate = new Date(order.tanggal);
-      const matchesDate = dateRange?.from && dateRange?.to
+      
+      // MODIFIED: Periksa apakah order.tanggal adalah instance Date sebelum memformat
+      const orderDate = order.tanggal instanceof Date ? order.tanggal : new Date(order.tanggal); 
+      
+      const matchesDate = dateRange?.from && dateRange?.to && orderDate instanceof Date && !isNaN(orderDate.getTime()) // Tambahkan pemeriksaan validitas tanggal
         ? orderDate >= dateRange.from && orderDate <= dateRange.to
         : true; // Jika tidak ada rentang tanggal yang dipilih, semua tanggal cocok
+
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [orders, searchTerm, statusFilter, dateRange]);
@@ -242,7 +246,7 @@ const OrdersPage = () => {
               <Input
                 placeholder="Cari berdasarkan nomor pesanan atau nama pelanggan..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchFilter(e.target.value)} // Fix: Should update searchTerm
                 className="pl-10"
               />
             </div>
@@ -257,8 +261,9 @@ const OrdersPage = () => {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
+                  {/* MODIFIED: Periksa instanceof Date sebelum memformat */}
+                  {dateRange?.from && dateRange.from instanceof Date ? (
+                    dateRange.to && dateRange.to instanceof Date ? (
                       `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
                     ) : (
                       format(dateRange.from, "LLL dd, y")
@@ -304,7 +309,7 @@ const OrdersPage = () => {
                 <div>
                   <CardTitle className="text-lg">{order.nomorPesanan}</CardTitle>
                   <CardDescription>
-                    {order.namaPelanggan} • {formatDate(order.tanggal)} 
+                    {order.namaPelanggan} • {formatDate(order.tanggal)}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -326,7 +331,6 @@ const OrdersPage = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  {/* Badge asli dihapus */}
                 </div>
               </div>
             </CardHeader>
@@ -374,16 +378,15 @@ const OrdersPage = () => {
                   <Edit className="h-4 w-4" />
                   Edit Detail
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleFollowUpClick(order)}
                   className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
                 >
                   <MessageSquare className="h-4 w-4" />
                   Follow-up
                 </Button>
-                {/* Hapus tombol Konfirmasi, Batalkan, Hapus yang spesifik karena status kini diubah via Select */}
                 {order.status !== 'cancelled' && order.status !== 'delivered' && ( // hanya tampilkan hapus jika belum selesai atau dibatalkan
                   <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
                     <X className="h-4 w-4" />
@@ -406,7 +409,7 @@ const OrdersPage = () => {
           </CardContent>
         </Card>
       )}
-      
+
       <OrderForm
         open={showOrderForm}
         onOpenChange={(isOpen) => {
@@ -418,7 +421,7 @@ const OrdersPage = () => {
         onSubmit={handleSubmit}
         initialData={editingOrder}
       />
-      
+
       <WhatsappFollowUpModal
         isOpen={isWhatsappModalOpen}
         onClose={() => setIsWhatsappModalOpen(false)}

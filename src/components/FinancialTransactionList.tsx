@@ -55,7 +55,7 @@ const FinancialTransactionList = ({
       category: transaction.category,
       amount: transaction.amount,
       description: transaction.description,
-      date: transaction.date.toISOString().split('T')[0],
+      date: transaction.date instanceof Date && !isNaN(transaction.date.getTime())   ? transaction.date.toISOString().split('T')[0]   : '', // Jika tanggal tidak valid atau undefined, gunakan string kosong
     });
   };
 

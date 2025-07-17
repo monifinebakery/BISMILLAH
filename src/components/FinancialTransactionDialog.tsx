@@ -34,7 +34,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       if (isNaN(value.getTime())) { // Pastikan tanggal valid
         return ''; // Tanggal tidak valid, kembalikan string kosong
       }
-      // NEW: Periksa hasil toISOString() sebelum memanggil .split()
+      // MODIFIED: Periksa hasil toISOString() sebelum memanggil .split()
       const isoString = value.toISOString();
       if (isoString === null || isoString === undefined) { // Ini adalah pemeriksaan tambahan yang diminta
           return ''; // Jika hasil toISOString entah bagaimana null/undefined, kembalikan string kosong

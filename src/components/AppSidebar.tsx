@@ -28,7 +28,6 @@ import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import CloudSyncButton from "@/components/CloudSyncButton";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useAppData } from "@/contexts/AppDataContext";
 import React, { useState } from "react";
 

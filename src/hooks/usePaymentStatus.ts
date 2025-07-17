@@ -15,8 +15,8 @@ export interface PaymentStatus {
   email: string | null;
   // name: string | null; // <--- BARIS INI DIHAPUS
   payment_status: string;
-  created_at: date; // Ubah dari string menjadi Date
-  updated_at: date; // Ubah dari string menjadi Date
+  created_at: Date | undefined; // Ubah dari string menjadi Date
+  updated_at: Date | undefined; // Ubah dari string menjadi Date
 }
 
 // Ini adalah fungsi yang perlu diekspor.

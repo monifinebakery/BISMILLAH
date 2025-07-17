@@ -1,8 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-// MODIFIED: Tambahkan Sidebar ke import
-import { Sidebar, SidebarClose, SidebarTrigger, useSidebar, SidebarHeader, SidebarContent } from "@/components/ui/sidebar"; 
+import { 
+  Sidebar, 
+  SidebarClose, 
+  SidebarTrigger, 
+  useSidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+} from "@/components/ui/sidebar"; 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
@@ -40,69 +53,76 @@ export function AppSidebar() {
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const navItems = [
+  // MODIFIED: Pindahkan definisi menuGroups ke dalam komponen
+  const menuGroups = [
     {
-      title: "Dashboard",
-      icon: DashboardIcon,
-      href: "/",
-      section: "Dashboard",
+      label: "Dashboard",
+      items: [
+        {
+          title: "Dashboard",
+          url: "/",
+          icon: DashboardIcon,
+        },
+        {
+          title: "Kalkulator HPP Cepat",
+          url: "/hpp",
+          icon: Calculator,
+        },
+      ]
     },
     {
-      title: "Kalkulator HPP Cepat",
-      icon: Calculator,
-      href: "/hpp",
-      section: "Dashboard",
+      label: "Produksi",
+      items: [
+        {
+          title: "Manajemen Resep",
+          url: "/resep",
+          icon: ChefHat,
+        },
+        {
+          title: "Gudang Bahan Baku",
+          url: "/gudang",
+          icon: Package,
+        },
+      ]
     },
     {
-      title: "Manajemen Resep",
-      icon: ChefHat,
-      href: "/resep",
-      section: "Produksi",
+      label: "Bisnis",
+      items: [
+        {
+          title: "Supplier",
+          url: "/supplier",
+          icon: Users,
+        },
+        {
+          title: "Pembelian Bahan Baku",
+          url: "/pembelian",
+          icon: ShoppingCart,
+        },
+        {
+          title: "Pesanan",
+          url: "/pesanan",
+          icon: ShoppingCart
+        },
+      ]
     },
     {
-      title: "Gudang Bahan Baku",
-      icon: Package,
-      href: "/gudang",
-      section: "Produksi",
-    },
-    {
-      title: "Supplier",
-      icon: Users,
-      href: "/supplier",
-      section: "Bisnis",
-    },
-    {
-      title: "Pembelian Bahan Baku",
-      icon: ShoppingCart,
-      href: "/pembelian",
-      section: "Bisnis",
-    },
-    {
-      title: "Pesanan",
-      icon: ShoppingCart,
-      href: "/pesanan",
-      section: "Bisnis",
-    },
-    {
-      title: "Laporan & Analisis",
-      icon: FileText,
-      href: "/laporan",
-      section: "Laporan & Analisis",
-    },
-    {
-      title: "Manajemen Aset",
-      icon: Building2,
-      href: "/aset",
-      section: "Laporan & Analisis",
-    },
-    {
-      title: "Pengaturan",
-      icon: Settings,
-      href: "/pengaturan",
-      section: "Lainnya",
-    },
+      label: "Laporan & Analisis",
+      items: [
+        {
+          title: "Laporan Keuangan",
+          url: "/laporan",
+          icon: FileText,
+        },
+        {
+          title: "Manajemen Aset",
+          url: "/aset",
+          icon: Building2,
+        },
+      ]
+    }
   ];
 
+  // MODIFIED: Pindahkan definisi settingsItems ke dalam komponen
   const settingsItems = [
     {
       title: "Pengaturan",

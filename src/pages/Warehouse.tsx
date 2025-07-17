@@ -1,4 +1,3 @@
-// src/pages/Warehouse.tsx
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku dari types/recipe
+import { BahanBaku } from '@/types/recipe';
 import { useAppData } from '@/contexts/AppDataContext';
-
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
 import { toast } from 'sonner';
@@ -35,12 +33,6 @@ const WarehousePage = () => {
     hargaTotalBeliKemasan: 0,
   });
 
-  const [purchaseDetails, setPurchaseDetails] = useState({
-    purchaseQuantity: 0,
-    purchaseUnit: '',
-    purchaseTotalPrice: 0,
-  });
-
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
     'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592 },
     'ml': { 'liter': 1000, 'ml': 1, 'galon': 3785.41 },
@@ -49,7 +41,9 @@ const WarehousePage = () => {
   };
 
   useEffect(() => {
-    const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
+    const purchaseQuantity = newItem.jumlahBeliKemasan;
+    const purchaseUnit = newItem.satuanKemasan;
+    const purchaseTotalPrice = newItem.hargaTotalBeliKemasan;
     const baseUnit = newItem.satuan.toLowerCase();
 
     let calculatedHarga = 0;
@@ -72,8 +66,7 @@ const WarehousePage = () => {
     } else {
       setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
     }
-  }, [purchaseDetails, newItem.satuan]);
-
+  }, [newItem.jumlahBeliKemasan, newItem.satuanKemasan, newItem.hargaTotalBeliKemasan, newItem.satuan]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,23 +80,26 @@ const WarehousePage = () => {
     if (success) {
       setShowAddForm(false);
       setNewItem({
-        nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: undefined,
-        jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
+        nama: '',
+        kategori: '',
+        stok: 0,
+        satuan: '',
+        hargaSatuan: 0,
+        minimum: 0,
+        supplier: '',
+        tanggalKadaluwarsa: undefined,
+        jumlahBeliKemasan: 0,
+        satuanKemasan: '',
+        hargaTotalBeliKemasan: 0,
       });
-      setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 });
     }
   };
 
-  // MODIFIED: handleEdit function - Ambil item lengkap dari bahanBaku array
-  const handleEdit = (itemToEdit: BahanBaku) => { // Parameter diganti namanya agar lebih jelas
-    // Temukan objek item lengkap yang segar dari array bahanBaku utama (source of truth)
+  const handleEdit = (itemToEdit: BahanBaku) => {
     const fullItem = bahanBaku.find(b => b.id === itemToEdit.id);
 
     if (fullItem) {
-      setEditingItem(fullItem); // MODIFIED: Set editingItem ke objek lengkap yang ditemukan
-      // purchaseDetails di WarehousePage TIDAK perlu diinisialisasi di sini lagi,
-      // karena dialog akan mengambil datanya dari prop `item` (yaitu `editingItem`).
-      // Hapus baris ini: setPurchaseDetails({ purchaseQuantity: item.jumlahBeliKemasan || 0, ... });
+      setEditingItem(fullItem);
     } else {
       console.error("Error: Item tidak ditemukan di daftar bahanBaku untuk diedit.", itemToEdit);
       toast.error("Gagal mengedit: Item tidak ditemukan.");
@@ -112,14 +108,10 @@ const WarehousePage = () => {
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (editingItem && editingItem.id) {
-        const updatedItemData = {
-            ...updates, // Ini sudah mengandung jumlahBeliKemasan, satuanKemasan, hargaTotalBeliKemasan yang benar dari dialog.
-        };
-        
-        await updateBahanBaku(editingItem.id, updatedItemData);
-        setEditingItem(null);
-        setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchaseDetails di WarehousePage setelah save
-        toast.success("Bahan baku berhasil diperbarui!");
+      const updatedItemData = { ...updates };
+      await updateBahanBaku(editingItem.id, updatedItemData);
+      setEditingItem(null);
+      toast.success("Bahan baku berhasil diperbarui!");
     } else {
       toast.error("Gagal memperbarui bahan baku.");
     }
@@ -149,7 +141,6 @@ const WarehousePage = () => {
     }).format(value);
   };
 
-  // Helper function to safely render string/number values in inputs
   const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -157,7 +148,6 @@ const WarehousePage = () => {
     return value;
   };
 
-  // NEW: Helper function to safely get YYYY-MM-DD string for date input
   const getDateInputValue = (date: Date | undefined): string => {
     if (date instanceof Date && !isNaN(date.getTime())) {
       return date.toISOString().split('T')[0];
@@ -168,7 +158,6 @@ const WarehousePage = () => {
   return (
     <div className="min-h-screen bg-white p-3 sm:p-6 font-inter">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
@@ -201,7 +190,6 @@ const WarehousePage = () => {
           </div>
         </div>
 
-        {/* Low Stock Alert */}
         {lowStockItems.length > 0 && (
           <div className="mb-6">
             <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-lg rounded-lg">
@@ -227,7 +215,6 @@ const WarehousePage = () => {
           </div>
         )}
 
-        {/* Search */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -240,7 +227,6 @@ const WarehousePage = () => {
           </div>
         </div>
 
-        {/* Add Form */}
         {showAddForm && (
           <div className="mb-6">
             <Card className="bg-white shadow-lg border-orange-200 rounded-lg">
@@ -291,8 +277,6 @@ const WarehousePage = () => {
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
-
-                    {/* Harga Satuan (Read-Only) */}
                     <div>
                       <Label htmlFor="hargaSatuan">Harga Satuan *</Label>
                       <Input
@@ -306,7 +290,6 @@ const WarehousePage = () => {
                         Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
                       </p>
                     </div>
-
                     <div>
                       <Label htmlFor="minimum">Stok Minimum *</Label>
                       <Input
@@ -332,38 +315,36 @@ const WarehousePage = () => {
                       <Input
                         id="tanggalKadaluwarsa"
                         type="date"
-                        value={getDateInputValue(newItem.tanggalKadaluwarsa)} // MODIFIED: Gunakan getDateInputValue
+                        value={getDateInputValue(newItem.tanggalKadaluwarsa)}
                         onChange={(e) => setNewItem({ ...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                         className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
                       />
                     </div>
                   </div>
-
-                  {/* Detail Pembelian Section */}
                   <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
                     <CardHeader>
-                      <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle> {/* MODIFIED: Hapus "(Opsional)" */}
+                      <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
+                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan *</Label>
                           <Input
                             id="purchaseQuantity"
                             type="number"
-                            value={getInputValue(newItem.jumlahBeliKemasan)} // MODIFIED: Gunakan getInputValue
+                            value={getInputValue(newItem.jumlahBeliKemasan)}
                             onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
-                            required // MODIFIED: Tambahkan required
+                            required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="purchaseUnit">Satuan Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
+                          <Label htmlFor="purchaseUnit">Satuan Kemasan *</Label>
                           <Select
-                            value={getInputValue(newItem.satuanKemasan) as string} // MODIFIED: Gunakan getInputValue
+                            value={getInputValue(newItem.satuanKemasan) as string}
                             onValueChange={(value) => setNewItem({ ...newItem, satuanKemasan: value })}
-                            required // MODIFIED: Tambahkan required
+                            required
                           >
                             <SelectTrigger className="rounded-md">
                               <SelectValue placeholder="Pilih satuan" />
@@ -376,7 +357,7 @@ const WarehousePage = () => {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
+                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan *</Label>
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
@@ -384,7 +365,7 @@ const WarehousePage = () => {
                             onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
                             className="rounded-md"
-                            required // MODIFIED: Tambahkan required
+                            required
                           />
                         </div>
                       </div>
@@ -393,7 +374,6 @@ const WarehousePage = () => {
                       </p>
                     </CardContent>
                   </Card>
-
                   <div className="flex gap-2">
                     <Button type="submit" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200">
                       Simpan
@@ -408,7 +388,6 @@ const WarehousePage = () => {
           </div>
         )}
 
-        {/* Items List */}
         <div className="space-y-4">
           {filteredItems.length === 0 ? (
             <Card className="text-center p-8 bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg">
@@ -428,7 +407,7 @@ const WarehousePage = () => {
           ) : (
             filteredItems.map((item) => (
               <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-4"> {/* MODIFIED: p-6 changed to p-4 */}
+                <CardContent className="p-4">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
@@ -442,8 +421,6 @@ const WarehousePage = () => {
                           </Badge>
                         )}
                       </div>
-
-                      {/* MODIFIED: Item grid layout */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
                         <div>
                           <p className="text-sm text-gray-500">Stok</p>
@@ -474,18 +451,16 @@ const WarehousePage = () => {
                             </p>
                           </div>
                         )}
-                        {/* MODIFIED: Tampilkan Detail Pembelian dalam 1 baris */}
                         {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
-                           <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3">
-                              <p className="text-sm text-gray-500 font-semibold">Detail Pembelian</p>
-                              <p className="text-xs text-gray-700">
-                                {item.jumlahBeliKemasan || '0'} {item.satuanKemasan || ''} @ {formatCurrency(item.hargaTotalBeliKemasan || 0)}
-                              </p>
-                            </div>
+                          <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3">
+                            <p className="text-sm text-gray-500 font-semibold">Detail Pembelian</p>
+                            <p className="text-xs text-gray-700">
+                              {item.jumlahBeliKemasan || '0'} {item.satuanKemasan || ''} @ {formatCurrency(item.hargaTotalBeliKemasan || 0)}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
-
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -513,7 +488,6 @@ const WarehousePage = () => {
           )}
         </div>
 
-        {/* Edit Dialog */}
         {editingItem && (
           <BahanBakuEditDialog
             item={editingItem}

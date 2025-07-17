@@ -1,22 +1,35 @@
-import { Calendar, ChefHat, Home, Package, ShoppingCart, FileText, TrendingUp, Settings, Users, ShoppingBag, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { SidebarClose, SidebarTrigger } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { DashboardIcon } from "@radix-ui/react-icons";
+import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, Building2, LogOut, Settings, Download } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { toast } from "sonner";
+import { performSignOut } from "@/lib/authUtils";
+import { usePaymentContext } from "@/contexts/PaymentContext";
+import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
+import CloudSyncButton from "@/components/CloudSyncButton";
+import DateTimeDisplay from "@/components/DateTimeDisplay";
+import NotificationBell from "@/components/NotificationBell";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useAppData } from "@/contexts/AppDataContext";
+import React, { useState } from "react"; // MODIFIED: Import useState
 
+// MODIFIED: Import AlertDialog components
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  useSidebar
-} from "@/components/ui/sidebar"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { supabase } from "@/integrations/supabase/client"
-import { toast } from "sonner"
-import { performSignOut } from "@/lib/authUtils"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Menu items grouped by category
 const menuGroups = [
@@ -31,7 +44,7 @@ const menuGroups = [
       {
         title: "Kalkulator HPP Cepat",
         url: "/hpp",
-        icon: TrendingUp,
+        icon: Calculator,
       },
     ]
   },
@@ -61,7 +74,7 @@ const menuGroups = [
       {
         title: "Pembelian Bahan Baku",
         url: "/pembelian",
-        icon: ShoppingBag,
+        icon: ShoppingCart, // Ganti icon jika ada yang lebih cocok untuk pesanan
       },
       {
         title: "Pesanan",
@@ -81,7 +94,7 @@ const menuGroups = [
       {
         title: "Manajemen Aset",
         url: "/aset",
-        icon: Calendar,
+        icon: Building2, // MODIFIED: Ganti icon Calendar ke Building2
       },
     ]
   }
@@ -99,15 +112,21 @@ export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { state } = useSidebar()
+  const { isPaid } = usePaymentContext();
+  const { getStatistics, bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // MODIFIED: Tambahkan state
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(true); // MODIFIED: Hanya buka dialog
+  };
+
+  const confirmLogout = async () => { // MODIFIED: Fungsi konfirmasi logout
     try {
       const success = await performSignOut();
       
       if (success) {
         toast.success("Berhasil keluar");
-        
-        // Force page reload for complete cleanup
         setTimeout(() => {
           window.location.reload();
         }, 500);
@@ -117,14 +136,30 @@ export function AppSidebar() {
     } catch (error) {
       toast.error("Gagal keluar");
     }
-  }
+  };
+
+  // MODIFIED: Fungsi untuk memicu ekspor semua data
+  const handleExportAllData = () => {
+    const allAppData = {
+      bahanBaku,
+      suppliers,
+      purchases,
+      recipes,
+      hppResults,
+      activities,
+      orders,
+      assets,
+      financialTransactions,
+    };
+    exportAllDataToExcel(allAppData);
+  };
 
   return (
     <Sidebar className="border-r border-gray-200 bg-white">
       <SidebarHeader className={`p-4 border-b border-gray-200 ${state === "collapsed" ? "flex justify-center items-center" : ""}`}>
         <div className={`flex items-center ${state === "collapsed" ? "justify-center" : "space-x-3"}`}>
           <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl flex items-center justify-center">
-            <TrendingUp className="h-6 w-6 text-white" />
+            <TrendingUp className="h-6 w-6" />
           </div>
           {state === "expanded" && (
             <div>
@@ -152,13 +187,12 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild
                       isActive={location.pathname === item.url}
-                      className={`
-                        px-3 py-2 rounded-lg text-base font-medium transition-all duration-200
-                        ${location.pathname === item.url 
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-base font-medium transition-all duration-200",
+                        location.pathname === item.url 
                           ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md' 
                           : 'text-gray-700 hover:bg-gray-100'
-                        }
-                      `}
+                      )}
                       tooltip={item.title}
                     >
                       <Link to={item.url} className="flex items-center space-x-3">
@@ -183,13 +217,12 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild
                     isActive={location.pathname === item.url}
-                    className={`
-                      px-3 py-2 rounded-lg text-base font-medium transition-all duration-200
-                      ${location.pathname === item.url 
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-base font-medium transition-all duration-200",
+                      location.pathname === item.url 
                         ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md' 
                         : 'text-gray-700 hover:bg-gray-100'
-                      }
-                    `}
+                    )}
                     tooltip={item.title}
                   >
                     <Link to={item.url} className="flex items-center space-x-3">
@@ -201,7 +234,7 @@ export function AppSidebar() {
               ))}
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={handleLogout}
+                  onClick={handleLogout} // MODIFIED: Panggil handleLogout
                   className="px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full"
                   tooltip="Keluar"
                 >
@@ -215,6 +248,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarFooter>
+
+      {/* MODIFIED: AlertDialog untuk konfirmasi logout */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
-  )
+  );
 }

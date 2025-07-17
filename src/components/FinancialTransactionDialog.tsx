@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;

@@ -37,7 +37,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           jenis: item.jenis,
           nilaiAwal: parseFloat(item.nilai_awal) || 0, // DB: nilai_awal -> local: nilaiAwal
           umurManfaat: parseFloat(item.umur_manfaat) || 0, // DB: umur_manfaat -> local: umurManfaat
-          tanggalPembelian: item.tanggal_pembelian ? safeParseDate(item.tanggal_pembelian) : undefined, // MODIFIED: Gunakan safeParseDate
+          tanggalPembelian: item.tanggal_beli ? safeParseDate(item.tanggal_beli) : undefined, // MODIFIED: Gunakan safeParseDate
           penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // DB: penyusutan_per_bulan -> local: penyusutanPerBulan
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // DB: nilai_sekarang -> local: nilaiSaatIni
           kondisi: item.kondisi,
@@ -78,7 +78,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         jenis: asset.jenis,
         nilai_awal: asset.nilaiAwal,
         umur_manfaat: asset.umurManfaat,
-        tanggal_pembelian: asset.tanggalPembelian instanceof Date ? asset.tanggalPembelian.toISOString() : null, // MODIFIED: Cek instanceof Date
+        tanggal_beli: asset.tanggalPembelian instanceof Date ? asset.tanggalPembelian.toISOString() : null, // MODIFIED: Cek instanceof Date
         penyusutan_per_bulan: asset.penyusutanPerBulan,
         nilai_sekarang: asset.nilaiSaatIni,
         kondisi: asset.kondisi,
@@ -125,9 +125,9 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       if (updates.nilaiAwal !== undefined) updateData.nilai_awal = updates.nilaiAwal;
       if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat;
       if (updates.tanggalPembelian !== undefined) {
-        updateData.tanggal_pembelian = updates.tanggalPembelian instanceof Date ? updates.tanggalPembelian.toISOString() : null; // MODIFIED: Cek instanceof Date
+        updateData.tanggal_beli = updates.tanggalPembelian instanceof Date ? updates.tanggalPembelian.toISOString() : null; // MODIFIED: Cek instanceof Date
       } else if (updates.tanggalPembelian === null) {
-        updateData.tanggal_pembelian = null;
+        updateData.tanggal_beli = null;
       }
       if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan;
       if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni;

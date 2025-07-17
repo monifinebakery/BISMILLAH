@@ -19,7 +19,7 @@ import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 const FinancialReportPage = () => {
-  const { transactions = [], loading, addTransaction, updateTransaction, deleteTransaction } = useAppData() || {};
+  const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
@@ -31,7 +31,6 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     return (transactions || []).filter(t => {
-      // Pastikan tanggal diubah menjadi objek Date jika berupa string ISO
       const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
       if (dateRange?.from && transactionDate < dateRange.from) return false;
       if (dateRange?.to && transactionDate > dateRange.to) return false;

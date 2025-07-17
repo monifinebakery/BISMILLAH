@@ -56,8 +56,8 @@ export const useRecipes = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
-          createdAt: new Date(item.created_at),
-          updatedAt: new Date(item.updated_at),
+          createdAt: safeParseDate(item.created_at) || new Date(), // Gunakan safeParseDate, fallback ke new Date() jika gagal
+          updatedAt: safeParseDate(item.updated_at) || new Date(), // Gunakan safeParseDate, fallback ke new Date() jika gagal
           category: item.category, // MODIFIED: Baca kolom category dari database
         };
       }) || [];

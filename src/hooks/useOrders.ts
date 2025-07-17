@@ -55,7 +55,7 @@ export const useOrders = () => {
       const formattedOrders = data?.map((item: any) => ({
         id: item.id,
         nomorPesanan: item.nomor_pesanan,
-        tanggal: new Date(item.tanggal),
+        tanggal: safeParseDate(item.tanggal) || new Date(), // Gunakan safeParseDate dengan fallback
         namaPelanggan: item.nama_pelanggan,
         emailPelanggan: item.email_pelanggan,
         teleponPelanggan: item.telepon_pelanggan,

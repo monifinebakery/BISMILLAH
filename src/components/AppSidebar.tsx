@@ -4,8 +4,8 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarClose, SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { DashboardIcon } from "@radix-ui/react-icons";
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, Building2, LogOut, Settings, Download } from "lucide-react";
+import { DashboardIcon } from "@radix-ui/react-icons"; // Pastikan ini diimpor
+import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react"; // MODIFIED: Hapus Home dari sini
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
@@ -16,9 +16,8 @@ import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAppData } from "@/contexts/AppDataContext";
-import React, { useState } from "react"; // MODIFIED: Import useState
+import React, { useState } from "react";
 
-// MODIFIED: Import AlertDialog components
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,97 +30,91 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Menu items grouped by category
-const menuGroups = [
-  {
-    label: "Dashboard",
-    items: [
-      {
-        title: "Dashboard",
-        url: "/",
-        icon: Home,
-      },
-      {
-        title: "Kalkulator HPP Cepat",
-        url: "/hpp",
-        icon: Calculator,
-      },
-    ]
-  },
-  {
-    label: "Produksi",
-    items: [
-      {
-        title: "Manajemen Resep",
-        url: "/resep",
-        icon: ChefHat,
-      },
-      {
-        title: "Gudang Bahan Baku",
-        url: "/gudang",
-        icon: Package,
-      },
-    ]
-  },
-  {
-    label: "Bisnis",
-    items: [
-      {
-        title: "Supplier",
-        url: "/supplier",
-        icon: Users,
-      },
-      {
-        title: "Pembelian Bahan Baku",
-        url: "/pembelian",
-        icon: ShoppingCart, // Ganti icon jika ada yang lebih cocok untuk pesanan
-      },
-      {
-        title: "Pesanan",
-        url: "/pesanan",
-        icon: ShoppingCart
-      },
-    ]
-  },
-  {
-    label: "Laporan & Analisis",
-    items: [
-      {
-        title: "Laporan Keuangan",
-        url: "/laporan",
-        icon: FileText,
-      },
-      {
-        title: "Manajemen Aset",
-        url: "/aset",
-        icon: Building2, // MODIFIED: Ganti icon Calendar ke Building2
-      },
-    ]
-  }
-]
-
-const settingsItems = [
-  {
-    title: "Pengaturan",
-    url: "/pengaturan",
-    icon: Settings,
-  },
-]
-
 export function AppSidebar() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { state } = useSidebar()
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { state } = useSidebar();
   const { isPaid } = usePaymentContext();
   const { getStatistics, bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
 
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // MODIFIED: Tambahkan state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const navItems = [
+    {
+      title: "Dashboard",
+      icon: DashboardIcon, // MODIFIED: Gunakan DashboardIcon
+      href: "/",
+      section: "Dashboard",
+    },
+    {
+      title: "Kalkulator HPP Cepat",
+      icon: Calculator,
+      href: "/hpp",
+      section: "Dashboard",
+    },
+    {
+      title: "Manajemen Resep",
+      icon: ChefHat,
+      href: "/resep",
+      section: "Produksi",
+    },
+    {
+      title: "Gudang Bahan Baku",
+      icon: Package,
+      href: "/gudang",
+      section: "Produksi",
+    },
+    {
+      title: "Supplier",
+      icon: Users,
+      href: "/supplier",
+      section: "Bisnis",
+    },
+    {
+      title: "Pembelian Bahan Baku",
+      icon: ShoppingCart,
+      href: "/pembelian",
+      section: "Bisnis",
+    },
+    {
+      title: "Pesanan",
+      icon: ShoppingCart,
+      href: "/pesanan",
+      section: "Bisnis",
+    },
+    {
+      title: "Laporan Keuangan",
+      icon: FileText,
+      href: "/laporan",
+      section: "Laporan & Analisis",
+    },
+    {
+      title: "Manajemen Aset",
+      icon: Building2,
+      href: "/aset",
+      section: "Laporan & Analisis",
+    },
+    {
+      title: "Pengaturan",
+      icon: Settings,
+      href: "/pengaturan",
+      section: "Lainnya",
+    },
+  ];
+
+  const settingsItems = [
+    {
+      title: "Pengaturan",
+      url: "/pengaturan",
+      icon: Settings,
+    },
+  ];
 
   const handleLogout = async () => {
-    setShowLogoutConfirm(true); // MODIFIED: Hanya buka dialog
+    setShowLogoutConfirm(true);
   };
 
-  const confirmLogout = async () => { // MODIFIED: Fungsi konfirmasi logout
+  const confirmLogout = async () => {
     try {
       const success = await performSignOut();
       
@@ -138,7 +131,6 @@ export function AppSidebar() {
     }
   };
 
-  // MODIFIED: Fungsi untuk memicu ekspor semua data
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -153,6 +145,7 @@ export function AppSidebar() {
     };
     exportAllDataToExcel(allAppData);
   };
+
 
   return (
     <Sidebar className="border-r border-gray-200 bg-white">
@@ -234,7 +227,7 @@ export function AppSidebar() {
               ))}
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={handleLogout} // MODIFIED: Panggil handleLogout
+                  onClick={handleLogout}
                   className="px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full"
                   tooltip="Keluar"
                 >
@@ -249,7 +242,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarFooter>
 
-      {/* MODIFIED: AlertDialog untuk konfirmasi logout */}
+      {/* AlertDialog untuk konfirmasi logout */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

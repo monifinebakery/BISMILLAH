@@ -1,163 +1,143 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FinancialTransaction } from '@/types/financial';
-import { Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { useAppData } from '@/contexts/AppDataContext';
+import { toast } from 'sonner';
 
 interface FinancialTransactionDialogProps {
-  onAddTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'createdAt'>) => Promise<boolean>;
-  categories: {
-    income: string[];
-    expense: string[];
-  };
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const FinancialTransactionDialog = ({ 
-  onAddTransaction,
-  categories
-}: FinancialTransactionDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose }) => {
+  const { addFinancialTransaction } = useAppData();
   const [formData, setFormData] = useState({
-    type: 'income' as 'income' | 'expense',
+    user_id: '',
+    type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
     category: '',
     amount: 0,
     description: '',
     date: new Date().toISOString().split('T')[0],
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSave = async () => {
-    if (!formData.category || !formData.amount || !formData.description) {
+    if (!formData.user_id || !formData.category || formData.amount <= 0 || !formData.description || !formData.date) {
+      toast.error('Semua field wajib diisi dan jumlah harus lebih dari 0.');
       return;
     }
 
-    // Validasi dan konversi tanggal
-    const transactionDate = new Date(formData.date);
-    if (isNaN(transactionDate.getTime())) {
-      // Jika tanggal tidak valid, gunakan tanggal saat ini
-      console.warn('Tanggal tidak valid, menggunakan tanggal saat ini');
-      transactionDate.setTime(Date.now());
-    }
+    const session = (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    const userId = (await session).data.session?.user.id || '';
 
-    const success = await onAddTransaction({
-      ...formData,
-      date: transactionDate, // Gunakan objek Date yang sudah divalidasi
-    });
+    const transactionData = {
+      user_id: userId,
+      type: formData.type,
+      category: formData.category,
+      amount: parseFloat(formData.amount.toString()),
+      description: formData.description,
+      date: new Date(formData.date),
+    };
 
+    const success = await addFinancialTransaction(transactionData);
     if (success) {
-      setIsOpen(false);
+      onClose();
       setFormData({
-        type: 'income',
+        user_id: '',
+        type: 'pemasukan',
         category: '',
         amount: 0,
         description: '',
         date: new Date().toISOString().split('T')[0],
       });
+      toast.success('Transaksi berhasil ditambahkan!');
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Tambah Transaksi
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tambah Transaksi</DialogTitle>
-        </DialogHeader>
-        
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Tambah Transaksi Keuangan</h2>
         <div className="space-y-4">
           <div>
-            <Label>Tipe Transaksi</Label>
-            <Select
+            <label className="block text-sm font-medium text-gray-700">Tipe Transaksi</label>
+            <select
+              name="type"
               value={formData.type}
-              onValueChange={(value: 'income' | 'expense') =>
-                setFormData({ ...formData, type: value, category: '' })
-              }
+              onChange={handleChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Pemasukan</SelectItem>
-                <SelectItem value="expense">Pengeluaran</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="pemasukan">Pemasukan</option>
+              <option value="pengeluaran">Pengeluaran</option>
+            </select>
           </div>
-
           <div>
-            <Label>Kategori</Label>
-            <Select
+            <label className="block text-sm font-medium text-gray-700">Kategori</label>
+            <input
+              type="text"
+              name="category"
               value={formData.category}
-              onValueChange={(value) =>
-                setFormData({ ...formData, category: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                {(formData.type === 'income' ? categories.income : categories.expense).map(
-                  (category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
+              onChange={handleChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              placeholder="Masukkan kategori"
+            />
           </div>
-
           <div>
-            <Label>Jumlah (Rp)</Label>
-            <Input
+            <label className="block text-sm font-medium text-gray-700">Jumlah</label>
+            <input
               type="number"
-              value={formData.amount || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-              }
-              placeholder="0"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              placeholder="Masukkan jumlah"
             />
           </div>
-
           <div>
-            <Label>Deskripsi</Label>
-            <Input
+            <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
+            <input
+              type="text"
+              name="description"
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Deskripsi transaksi"
+              onChange={handleChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              placeholder="Masukkan deskripsi"
             />
           </div>
-
           <div>
-            <Label>Tanggal</Label>
-            <Input
+            <label className="block text-sm font-medium text-gray-700">Tanggal</label>
+            <input
               type="date"
+              name="date"
               value={formData.date}
-              onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
-              }
+              onChange={handleChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
             />
           </div>
         </div>
-
-        <div className="flex gap-2 mt-6">
-          <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+        <div className="mt-6 flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400"
+          >
             Batal
-          </Button>
-          <Button onClick={handleSave} className="flex-1">
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
             Simpan
-          </Button>
+          </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 

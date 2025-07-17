@@ -148,7 +148,7 @@ export const useOrders = () => {
         .from('orders')
         .update({
           ...(order.nomorPesanan ? { nomor_pesanan: order.nomorPesanan } : {}),
-          ...(order.tanggal ? { tanggal: order.tanggal.toISOString() } : {}),
+          ...(order.tanggal instanceof Date && !isNaN(order.tanggal.getTime()) ? { tanggal: order.tanggal.toISOString() } : { tanggal: null }),
           ...(order.namaPelanggan ? { nama_pelanggan: order.namaPelanggan } : {}),
           ...(order.emailPelanggan ? { email_pelanggan: order.emailPelanggan } : {}),
           ...(order.teleponPelanggan ? { telepon_pelanggan: order.teleponPelanggan } : {}),

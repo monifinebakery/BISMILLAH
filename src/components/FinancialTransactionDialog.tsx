@@ -27,13 +27,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   };
 
   const handleSave = async () => {
-    if (!formData.user_id || !formData.category || formData.amount <= 0 || !formData.description || !formData.date) {
-      toast.error('Semua field wajib diisi dan jumlah harus lebih dari 0.');
+    if (!formData.category || formData.amount <= 0 || !formData.description || !formData.date) {
+      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    const session = (await import('@/integrations/supabase/client')).supabase.auth.getSession();
-    const userId = (await session).data.session?.user.id || '';
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user.id || '';
 
     const transactionData = {
       user_id: userId,

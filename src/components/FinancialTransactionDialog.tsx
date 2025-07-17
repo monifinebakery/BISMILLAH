@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea'; // Tambahkan Textarea jika dibutuhkan, ada di import list
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
 
@@ -16,13 +16,36 @@ interface FinancialTransactionDialogProps {
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
   const [formData, setFormData] = useState({
-    user_id: '', // Akan diisi saat handleSave
+    user_id: '', // Ini akan diisi saat handleSave
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
     category: '', // Akan menjadi string kosong jika tidak ada pilihan
     amount: 0,
     description: '',
     date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string
   });
+
+  // NEW: getInputValue helper (copied from BahanBakuEditDialog)
+  // Ini adalah fungsi yang memastikan nilai selalu string/number yang aman untuk input
+  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    // Jika itu objek Date, konversi ke YYYY-MM-DD
+    if (value instanceof Date) {
+      // Pastikan tanggal valid sebelum memanggil toISOString
+      if (isNaN(value.getTime())) {
+        return ''; // Tanggal tidak valid, kembalikan string kosong
+      }
+      return value.toISOString().split('T')[0];
+    }
+    // Jika nilai bukan Date, string, atau number, kembalikan string kosong
+    // Ini menangani kasus di mana 'value' mungkin objek kosong atau array
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return '';
+    }
+    return value;
+  };
+
 
   // useEffect untuk mereset form saat dialog dibuka/ditutup
   useEffect(() => {
@@ -33,7 +56,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '', // Reset ke string kosong untuk placeholder
         amount: 0,
         description: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getInputValue(new Date()) as string, // MODIFIED: Pastikan inisialisasi juga melalui getInputValue
       });
     }
   }, [isOpen]);
@@ -42,7 +65,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   const handleChange = (name: string, value: string | number) => {
     // Penanganan khusus untuk Select category jika nilainya adalah nilai placeholder atau string kosong
     if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
-      setFormData(prev => ({ ...prev, [name]: '' })); // Pastikan selalu string kosong untuk 'tidak dipilih'
+      setFormData(prev => ({ ...prev, [name]: '' })); // Simpan sebagai string kosong
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -56,18 +79,11 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       !formData.description.trim() || // Deskripsi harus diisi
       !formData.date             // Tanggal harus diisi
     ) {
-      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi. Jumlah harus lebih dari 0.');
+      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    // Pastikan tanggal adalah Date object yang valid
-    const parsedDate = new Date(formData.date);
-    if (isNaN(parsedDate.getTime())) {
-      toast.error('Tanggal tidak valid.');
-      return;
-    }
-
-    const { supabase } = await import('@/integrations/supabase/client');
+    const { supabase } = await import('@/integrations/supabase/client'); // Dynamic import
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user.id || '';
 
@@ -75,9 +91,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       user_id: userId,
       type: formData.type,
       category: formData.category,
-      amount: Number(formData.amount), // Pastikan ini number (gunakan Number() daripada parseFloat(toString()))
+      amount: Number(formData.amount), // Pastikan ini number
       description: formData.description,
-      date: parsedDate, // Gunakan Date object yang sudah diparsing dan divalidasi
+      date: new Date(formData.date), // Konversi string tanggal ke Date object
     };
 
     const success = await onAddTransaction(transactionData);
@@ -102,7 +118,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
               <Select
                 name="type"
-                value={String(formData.type)} // Pastikan string
+                value={getInputValue(formData.type) as string} // MODIFIED: Gunakan getInputValue
                 onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
@@ -118,23 +134,15 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
               <Select
                 name="category"
-                value={String(formData.category)} // Pastikan string. Jika "" akan menampilkan placeholder
+                value={getInputValue(formData.category) as string} // MODIFIED: Gunakan getInputValue
                 onValueChange={(value) => handleChange('category', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* MODIFIED: Hapus SelectItem value="" yang menyebabkan error. */}
-                  {/* Gunakan SelectValue placeholder di atas untuk placeholder. */}
-                  {/* Jika Anda benar-benar membutuhkan opsi "Pilih Kategori", berikan nilai unik non-kosong dan non-pilih. */}
-                  {/* Contoh: <SelectItem value="default_placeholder_value" disabled>Pilih Kategori</SelectItem> */}
-                  {/* atau biarkan kosong dan biarkan placeholder Shadcn UI bekerja. */}
-
-                  {/* Kita bisa menambahkan SelectItem placeholder dengan value unik yang akan dihandle di handleChange */}
                   <SelectItem value="-placeholder-category-" disabled>Pilih Kategori</SelectItem>
                   {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
-                    // Asumsi `cat` dari categories.income/expense tidak akan menjadi string kosong
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -145,8 +153,8 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="number"
                 name="amount"
-                value={String(formData.amount)} // Pastikan string untuk input value
-                onChange={(e) => handleChange('amount', Number(e.target.value))} // Parse ke number
+                value={getInputValue(formData.amount)} // MODIFIED: Gunakan getInputValue
+                onChange={(e) => handleChange('amount', Number(e.target.value))}
                 className="mt-1 w-full"
                 placeholder="Masukkan jumlah"
               />
@@ -156,7 +164,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="text"
                 name="description"
-                value={String(formData.description)} // Pastikan string
+                value={getInputValue(formData.description)} // MODIFIED: Gunakan getInputValue
                 onChange={(e) => handleChange('description', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan deskripsi"
@@ -167,7 +175,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="date"
                 name="date"
-                value={String(formData.date)} // Pastikan string (YYYY-MM-DD)
+                value={getInputValue(formData.date) as string} // MODIFIED: Gunakan getInputValue
                 onChange={(e) => handleChange('date', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan tanggal"

@@ -4,10 +4,9 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarClose, SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { DashboardIcon } from "@radix-ui/react-icons"; // Pastikan ini diimpor
-// MODIFIED: Hapus Home dari import lucide-react
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react"; 
-import { Link, useLocation } from "react-router-dom";
+import { DashboardIcon } from "@radix-ui/react-icons";
+import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // MODIFIED: Tambahkan useNavigate
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "@/contexts/PaymentContext";
@@ -33,7 +32,7 @@ import {
 
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // MODIFIED: Panggil hook useNavigate
   const { state } = useSidebar();
   const { isPaid } = usePaymentContext();
   const { getStatistics, bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
@@ -43,7 +42,7 @@ export function AppSidebar() {
   const navItems = [
     {
       title: "Dashboard",
-      icon: DashboardIcon, // Gunakan DashboardIcon
+      icon: DashboardIcon,
       href: "/",
       section: "Dashboard",
     },

@@ -51,6 +51,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   useEffect(() => {
     if (item) {
+      // MODIFIED: Menggunakan optional chaining untuk tanggalKadaluwarsa
+      const formattedDate = item.tanggalKadaluwarsa?.toISOString().split('T')[0] || '';
+
       setFormData({
         nama: item.nama,
         kategori: item.kategori,
@@ -59,7 +62,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa,
+        tanggalKadaluwarsa: formattedDate, // Simpan sebagai string YYYY-MM-DD
         jumlahBeliKemasan: item.jumlahBeliKemasan,
         satuanKemasan: item.satuanKemasan,
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
@@ -118,12 +121,17 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       return;
     }
 
+    // Konversi tanggalKadaluwarsa dari string YYYY-MM-DD kembali ke Date object
+    const tanggalKadaluwarsaDate = formData.tanggalKadaluwarsa 
+      ? new Date(formData.tanggalKadaluwarsa) 
+      : undefined;
+
     const updatesToSend: Partial<BahanBaku> = {
       ...formData,
       stok: parseFloat(String(formData.stok)) || 0,
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
-      tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
+      tanggalKadaluwarsa: tanggalKadaluwarsaDate, // Kirim sebagai Date object atau undefined
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
@@ -152,15 +160,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      {/* MODIFIED: Tambahkan flex-col dan atur tinggi untuk scrollability di mobile */}
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-orange-600">Edit Bahan Baku</DialogTitle>
         </DialogHeader>
 
-        {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
-        <div className="flex-grow overflow-y-auto pr-4 -mr-4"> {/* pr-4 -mr-4 untuk estetika scrollbar */}
-          <div className="space-y-4"> {/* Konten form utama */}
+        <div className="flex-grow overflow-y-auto pr-4 -mr-4">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="nama" className="text-gray-700">Nama Bahan</Label>
               <Input
@@ -245,7 +251,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="tanggalKadaluwarsa"
                 type="date"
-                value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
+                value={formData.tanggalKadaluwarsa?.toISOString().split('T')[0] || ''} // MODIFIED: Optional chaining
                 onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -304,9 +310,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             </Card>
           </div>
 
-        </div> {/* End flex-grow overflow div */}
+        </div>
 
-        {/* Buttons remain fixed at the bottom */}
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={handleClose} className="flex-1 border-gray-300 hover:bg-gray-50 rounded-md">
             Batal
@@ -320,4 +325,4 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   );
 };
 
-export default BahanBakuEditDialog;
+export default BahanBakuEditDial

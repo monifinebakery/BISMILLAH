@@ -73,7 +73,6 @@ export const useBahanBaku = (userId: string | undefined) => {
   }, [bahanBaku]);
 
 
-  // MODIFIED: addBahanBaku function
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -154,10 +153,17 @@ export const useBahanBaku = (userId: string | undefined) => {
       } else if (Object.prototype.hasOwnProperty.call(updates, 'tanggalKadaluwarsa') && updates.tanggalKadaluwarsa === null) {
         updateData.tanggal_kadaluwarsa = null;
       }
-      // MODIFIED: Menulis ke kolom database yang benar
-      if (updates.jumlahBeliKemasan !== undefined) updateData.jumlah_beli_kemasan = updates.jumlahBeliKemasan ?? null; // Gunakan ?? null
-      if (updates.satuanKemasan !== undefined) updateData.satuan_kemasan = updates.satuanKemasan ?? null;         // Gunakan ?? null
-      if (updates.hargaTotalBeliKemasan !== undefined) updateData.harga_total_beli_kemasan = updates.hargaTotalBeliKemasan ?? null; // Gunakan ?? null
+
+      // MODIFIED: Gunakan operator 'in' untuk memastikan properti detail pembelian disertakan
+      if ('jumlahBeliKemasan' in updates) {
+        updateData.jumlah_beli_kemasan = updates.jumlahBeliKemasan ?? null;
+      }
+      if ('satuanKemasan' in updates) {
+        updateData.satuan_kemasan = updates.satuanKemasan ?? null;
+      }
+      if ('hargaTotalBeliKemasan' in updates) {
+        updateData.harga_total_beli_kemasan = updates.hargaTotalBeliKemasan ?? null;
+      }
 
 
       const { error } = await supabase

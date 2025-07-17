@@ -577,3 +577,18 @@ export const useAppData = () => {
   }
   return context;
 };
+
+  return (
+    <AppDataContext.Provider value={value}>
+      {children}
+    </AppDataContext.Provider>
+  );
+};
+
+export const useAppData = () => {
+  const context = useContext(AppDataContext);
+  if (context === undefined) {
+    throw new Error('useAppData must be used within an AppDataProvider');
+  }
+  return context;
+};

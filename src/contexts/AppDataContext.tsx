@@ -823,3 +823,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading
   };
 };
+
+export const useAppData = () => {
+  const context = useContext(AppDataContext);
+  if (context === undefined) {
+    throw new Error('useAppData must be used within an AppDataProvider');
+  }
+  return context;
+};

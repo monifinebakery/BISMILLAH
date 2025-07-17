@@ -402,7 +402,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => {
       console.log('Membersihkan langganan realtime.');
       channels.forEach(channel => supabase.removeChannel(channel));
-      authListener?.unsubscribe(); // Pastikan listener dibersihkan
+      authListener?.subscription?.unsubscribe(); // Pastikan listener dibersihkan
     };
   }, [externalLoadFromCloud]); // Dependensi hanya pada fungsi externalLoadFromCloud
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
-import { format, subDays } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 const FinancialReportPage = () => {
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useAppData();
+  const { transactions = [], loading, addTransaction, updateTransaction, deleteTransaction } = useAppData() || {};
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
@@ -31,7 +31,8 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     return (transactions || []).filter(t => {
-      const transactionDate = t.tanggal;
+      // Pastikan tanggal diubah menjadi objek Date jika berupa string ISO
+      const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
       if (dateRange?.from && transactionDate < dateRange.from) return false;
       if (dateRange?.to && transactionDate > dateRange.to) return false;
       return true;
@@ -39,11 +40,11 @@ const FinancialReportPage = () => {
   }, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
-    return filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((sum, t) => sum + t.jumlah, 0);
+    return filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((sum, t) => sum + (t.jumlah || 0), 0);
   }, [filteredTransactions]);
 
   const totalExpense = useMemo(() => {
-    return filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((sum, t) => sum + t.jumlah, 0);
+    return filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((sum, t) => sum + (t.jumlah || 0), 0);
   }, [filteredTransactions]);
 
   const balance = useMemo(() => {
@@ -57,11 +58,11 @@ const FinancialReportPage = () => {
     const expenseByCategory: { [key: string]: number } = {};
 
     filteredTransactions.forEach(t => {
-      const categoryName = t.deskripsi;
+      const categoryName = t.deskripsi || 'Uncategorized';
       if (t.jenis === 'pemasukan') {
-        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + t.jumlah;
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.jumlah || 0);
       } else {
-        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + t.jumlah;
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.jumlah || 0);
       }
     });
 
@@ -75,14 +76,15 @@ const FinancialReportPage = () => {
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
     filteredTransactions.forEach(t => {
-      const monthYear = format(t.tanggal, 'yyyy-MM');
+      const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
+      const monthYear = format(transactionDate, 'yyyy-MM');
       if (!monthlyData[monthYear]) {
-        monthlyData[monthYear] = { income: 0, expense: 0, date: t.tanggal };
+        monthlyData[monthYear] = { income: 0, expense: 0, date: transactionDate };
       }
       if (t.jenis === 'pemasukan') {
-        monthlyData[monthYear].income += t.jumlah;
+        monthlyData[monthYear].income += t.jumlah || 0;
       } else {
-        monthlyData[monthYear].expense += t.jumlah;
+        monthlyData[monthYear].expense += t.jumlah || 0;
       }
     });
 

@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { SidebarClose, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarClose, SidebarTrigger, useSidebarContext } from "@/components/ui/sidebar"; // MODIFIED: Ganti useSidebar dengan useSidebarContext
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom"; // MODIFIED: Tambahkan useNavigate
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "@/contexts/PaymentContext";
@@ -30,12 +30,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// MODIFIED: Import exportAllDataToExcel
+import { exportAllDataToExcel } from '@/utils/globalExport'; 
+
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate(); // MODIFIED: Panggil hook useNavigate
-  const { state } = useSidebar();
+  const navigate = useNavigate();
+  // MODIFIED: Gunakan useSidebarContext untuk mendapatkan state sidebar
+  const { state } = useSidebarContext(); 
   const { isPaid } = usePaymentContext();
-  const { getStatistics, bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
+  const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 

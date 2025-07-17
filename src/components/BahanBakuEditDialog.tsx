@@ -166,7 +166,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       if (isNaN(value.getTime())) {
         return '';
       }
-      const isoString = value.toISOString();
+      const isoString = value.toISOString() || '';
       return isoString ? isoString.split('T')[0] : '';
     }
     

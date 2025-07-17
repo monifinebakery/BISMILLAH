@@ -10,44 +10,55 @@ import { toast } from "sonner";
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: any) => Promise<boolean>;
+  onAddTransaction: (transaction: FinancialTransaction) => Promise<boolean>;
   categories: { income: string[]; expense: string[] };
 }
 
-const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
-  const [formData, setFormData] = useState({
+interface FinancialTransaction {
+  user_id: string;
+  type: 'pemasukan' | 'pengeluaran';
+  category: string;
+  amount: number;
+  description: string;
+  date: string; // ISO string format
+}
+
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ 
+  isOpen, 
+  onClose, 
+  onAddTransaction, 
+  categories 
+}) => {
+  const [formData, setFormData] = useState<FinancialTransaction>({
     user_id: '',
-    type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
+    type: 'pemasukan',
     category: '',
     amount: 0,
     description: '',
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
+    date: new Date().toISOString(),
   });
 
-  // Helper function to safely render values in inputs as string or number
-  // Ini tetap ada untuk input lain, tapi tidak akan digunakan untuk input tanggal
-  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    // Jika itu objek Date, konversi ke YYYY-MM-DD
-    if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Safe date formatter that never throws
+  const formatDateForInput = (date: Date | string): string => {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
         return '';
       }
-      const isoString = value.toISOString();
-      if (isoString === null || isoString === undefined) {
-          return '';
-      }
+
+      const isoString = dateObj.toISOString();
       return isoString.split('T')[0];
-    }
-    if (typeof value !== 'string' && typeof value !== 'number') {
+    } catch (error) {
+      console.error('Error formatting date:', error);
       return '';
     }
-    return value;
   };
 
-  // useEffect untuk mereset form saat dialog dibuka/ditutup
+  // Reset form when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -56,12 +67,12 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '',
         amount: 0,
         description: '',
-        date: getInputValue(new Date()) as string, // Pastikan inisialisasi juga melalui getInputValue agar konsisten
+        date: new Date().toISOString(),
       });
     }
   }, [isOpen]);
 
-  const handleChange = (name: string, value: string | number) => {
+  const handleChange = (name: keyof FinancialTransaction, value: string | number) => {
     if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
       setFormData(prev => ({ ...prev, [name]: '' }));
     } else {
@@ -69,33 +80,73 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   };
 
+  const handleDateChange = (value: string) => {
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+      handleChange('date', date.toISOString());
+    } catch (error) {
+      console.error('Invalid date:', error);
+      handleChange('date', '');
+    }
+  };
+
   const handleSave = async () => {
-    if (
-      !formData.category.trim() ||
-      formData.amount <= 0 ||
-      !formData.description.trim() ||
-      !formData.date
-    ) {
-      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
+    // Validation
+    if (!formData.category.trim()) {
+      toast.error('Kategori harus diisi');
       return;
     }
 
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user.id || '';
+    if (formData.amount <= 0) {
+      toast.error('Jumlah harus lebih dari 0');
+      return;
+    }
 
-    const transactionData = {
-      user_id: userId,
-      type: formData.type,
-      category: formData.category,
-      amount: Number(formData.amount),
-      date: new Date(formData.date), // Konversi string tanggal ke Date object
-    };
+    if (!formData.description.trim()) {
+      toast.error('Deskripsi harus diisi');
+      return;
+    }
 
-    const success = await onAddTransaction(transactionData);
-    if (success) {
-      onClose();
-      toast.success('Transaksi berhasil ditambahkan!');
+    // Date validation
+    try {
+      const date = new Date(formData.date);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+    } catch (error) {
+      toast.error('Tanggal tidak valid');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const transactionData: FinancialTransaction = {
+        ...formData,
+        user_id: session.user.id,
+      };
+
+      const success = await onAddTransaction(transactionData);
+      
+      if (success) {
+        toast.success('Transaksi berhasil ditambahkan!');
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      toast.error('Gagal menambahkan transaksi');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,12 +159,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
         <div className="flex-grow overflow-y-auto pr-4 -mr-4">
           <div className="space-y-4">
+            {/* Transaction Type */}
             <div>
-              <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
+              <Label htmlFor="type">Tipe Transaksi</Label>
               <Select
-                name="type"
-                value={getInputValue(formData.type) as string}
-                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
+                value={formData.type}
+                onValueChange={(value: 'pemasukan' | 'pengeluaran') => 
+                  handleChange('type', value)
+                }
               >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih tipe transaksi" />
@@ -124,80 +177,84 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Category */}
             <div>
-              <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
+              <Label htmlFor="category">Kategori</Label>
               <Select
-                name="category"
-                value={getInputValue(formData.category) as string}
+                value={formData.category}
                 onValueChange={(value) => handleChange('category', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="-placeholder-category-" disabled>Pilih Kategori</SelectItem>
+                  <SelectItem value="-placeholder-category-" disabled>
+                    Pilih Kategori
+                  </SelectItem>
                   {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Amount */}
             <div>
-              <Label htmlFor="amount" className="block text-sm font-medium text-gray-700">Jumlah</Label>
+              <Label htmlFor="amount">Jumlah</Label>
               <Input
                 type="number"
-                name="amount"
-                value={getInputValue(formData.amount)}
+                min="0"
+                step="0.01"
+                value={formData.amount}
                 onChange={(e) => handleChange('amount', Number(e.target.value))}
                 className="mt-1 w-full"
                 placeholder="Masukkan jumlah"
               />
             </div>
+
+            {/* Description */}
             <div>
-              <Label htmlFor="description" className="block text-sm font-medium text-gray-700">Deskripsi</Label>
-              <Input
-                type="text"
-                name="description"
-                value={getInputValue(formData.description)}
+              <Label htmlFor="description">Deskripsi</Label>
+              <Textarea
+                value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan deskripsi"
+                rows={3}
               />
             </div>
+
+            {/* Date */}
             <div>
-              <Label htmlFor="date" className="block text-sm font-medium text-gray-700">Tanggal</Label>
+              <Label htmlFor="date">Tanggal</Label>
               <Input
                 type="date"
-                name="date"
-                // MODIFIED: Gunakan konversi inline yang sangat eksplisit
-                value={
-                  formData.date instanceof Date && !isNaN(formData.date.getTime())
-                    ? formData.date.toISOString().split('T')[0] // Jika Date valid
-                    : (typeof formData.date === 'string' && formData.date !== '') // Jika string non-kosong
-                      ? formData.date.split('T')[0] // Coba split string (asumsi ISO atau YYYY-MM-DD)
-                      : '' // Default ke string kosong
-                }
-                onChange={(e) => handleChange('date', e.target.value)}
+                value={formatDateForInput(formData.date)}
+                onChange={(e) => handleDateChange(e.target.value)}
                 className="mt-1 w-full"
-                placeholder="Masukkan tanggal"
               />
             </div>
           </div>
         </div>
 
+        {/* Actions */}
         <div className="mt-6 flex justify-end space-x-4">
           <Button
             onClick={onClose}
             variant="outline"
-            className="px-4 py-2"
+            disabled={isLoading}
           >
             Batal
           </Button>
           <Button
             onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700"
           >
-            Simpan
+            {isLoading ? 'Menyimpan...' : 'Simpan'}
           </Button>
         </div>
       </DialogContent>

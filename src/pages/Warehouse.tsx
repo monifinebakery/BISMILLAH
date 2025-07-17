@@ -173,7 +173,7 @@ const WarehousePage = () => {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  Gudang
+                  Gudang Bahan Baku
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
                   Kelola inventori bahan baku

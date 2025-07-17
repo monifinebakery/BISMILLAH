@@ -21,15 +21,17 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       let content = `LAPORAN ${menuType.toUpperCase()}\n`;
       content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n`;
       content += `Total Records: ${data.length}\n\n`;
-      
+
       data.forEach((item, index) => {
         content += `${index + 1}. `;
         Object.entries(item).forEach(([key, value]) => {
-          if (!['id', 'user_id'].includes(key)) { 
+          if (!['id', 'user_id'].includes(key)) {
             let displayValue = value;
+            // MODIFIED: Tambahkan pemeriksaan isNaN(value.getTime())
             if (value instanceof Date) {
-              displayValue = value.toISOString();
+              displayValue = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
             } else if (typeof value === 'object' && value !== null) {
+              // Jika objek kompleks (misal: array ingredients), stringify
               displayValue = JSON.stringify(value);
             }
             content += `${key}: ${displayValue} | `;
@@ -47,7 +49,7 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success('Data berhasil diekspor sebagai PDF/Text');
     } catch (error) {
       console.error('Export error:', error);
@@ -62,59 +64,55 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
         return;
       }
 
-      const CSV_DELIMITER = ';'; // MODIFIED: Gunakan titik koma sebagai pemisah CSV
+      const CSV_DELIMITER = ';';
 
-      // Collect all unique keys from all objects in the data array
       const allKeys = new Set<string>();
       data.forEach(item => {
-        Object.keys(item).forEach(key => {    
-          if (!['id', 'user_id'].includes(key)) { 
+        Object.keys(item).forEach(key => {
+          if (!['id', 'user_id'].includes(key)) {
             allKeys.add(key);
           }
         });
       });
-      
-      // Convert Set to Array for headers
+
       const headers = Array.from(allKeys);
-      
-      // Create CSV content with all headers
+
       const csvContent = [
         headers.map(header => {
-          // Escape header if it contains delimiter or quotes
           let headerValue = header;
           if (headerValue.includes(CSV_DELIMITER) || headerValue.includes('"') || headerValue.includes('\n') || headerValue.includes('\r')) {
             headerValue = `"${headerValue.replace(/"/g, '""')}"`;
           }
           return headerValue;
-        }).join(CSV_DELIMITER), // MODIFIED: Gunakan CSV_DELIMITER
-        ...data.map(item => 
+        }).join(CSV_DELIMITER),
+        ...data.map(item =>
           headers.map(header => {
             let value = item[header];
-            
+
             // Handle null or undefined values
             if (value === null || value === undefined) {
               value = '';
-            } 
-            // Handle Date objects specifically: convert to ISO string
+            }
+            // MODIFIED: Handle Date objects specifically: convert to ISO string with validation
             else if (value instanceof Date) {
-              value = value.toISOString();
-            } 
+              value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
+            }
             // Handle other complex objects (like arrays, nested objects) by stringifying
             else if (typeof value === 'object') {
               value = JSON.stringify(value);
             }
-            
+
             // Apply CSV escaping: enclose in double quotes if it contains delimiter, double quotes, or newlines
             // And double internal double quotes
-            if (typeof value === 'string' && (value.includes(CSV_DELIMITER) || value.includes('"') || value.includes('\n') || value.includes('\r'))) { // MODIFIED: Gunakan CSV_DELIMITER
+            if (typeof value === 'string' && (value.includes(CSV_DELIMITER) || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
               value = `"${value.replace(/"/g, '""')}"`;
             }
-            
+
             return value;
-          }).join(CSV_DELIMITER) // MODIFIED: Gunakan CSV_DELIMITER
+          }).join(CSV_DELIMITER)
         )
       ].join('\n');
-      
+
       // Add BOM for proper UTF-8 encoding in Excel
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
@@ -126,7 +124,7 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success(`Data ${menuType} berhasil diekspor sebagai Excel/CSV`);
     } catch (error) {
       console.error('Export error:', error);
@@ -137,21 +135,21 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
-          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700 rounded-md shadow-sm transition-colors duration-200" 
+          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700 rounded-md shadow-sm transition-colors duration-200"
         >
           <Download className="h-4 w-4 mr-2" />
           Export Data
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg rounded-md"> 
-        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md"> 
+      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg rounded-md">
+        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md">
           <FileText className="h-4 w-4 mr-2 text-blue-600" />
           Export sebagai PDF/Text
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50 rounded-md"> 
+        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50 rounded-md">
           <FileText className="h-4 w-4 mr-2 text-green-600" />
           Export sebagai Excel/CSV
         </DropdownMenuItem>

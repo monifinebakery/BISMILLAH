@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // MODIFIED: Import exportAllDataToExcel
-import { exportAllDataToExcel } from '@/utils/globalExport'; 
 
 export function AppSidebar() {
   const location = useLocation();

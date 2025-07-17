@@ -146,7 +146,7 @@ const FinancialReportPage = () => {
                 isOpen={isDialogOpen}
                 onClose={closeDialog}
                 onAddTransaction={addTransaction}
-                categories={settings.financialCategories}
+                categories={settings.financialCategories || []}
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ const FinancialReportPage = () => {
             loading={loading}
             onUpdateTransaction={updateTransaction}
             onDeleteTransaction={deleteTransaction}
-            categories={settings.financialCategories}
+            categories={settings.financialCategories || []}
           />
         </div>
       </div>

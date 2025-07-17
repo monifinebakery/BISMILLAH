@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { validateAuthSession } from '@/lib/authUtils';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Pastikan safeParseDate diimpor dengan benar
-import { RealtimeChannel } from '@supabase/supabase-js'; // Tambahkan import ini
+import { safeParseDate } from '@/hooks/useSupabaseSync';
+import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supabase/supabase-js'; // Ensure correct imports
 
 export interface PaymentStatus {
   id: string;
@@ -15,14 +15,14 @@ export interface PaymentStatus {
   order_id: string | null;
   email: string | null;
   payment_status: string;
-  created_at: Date | undefined; // Ubah dari string menjadi Date | undefined
-  updated_at: Date | undefined; // Ubah dari string menjadi Date | undefined
+  created_at: Date | undefined;
+  updated_at: Date | undefined;
 }
 
 export const usePaymentStatus = () => {
   const queryClient = useQueryClient();
 
-  const { data: paymentStatus, isLoading, error, refetch } = useQuery({
+  const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({ // Add Error type for consistency
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
       const isValid = await validateAuthSession();
@@ -30,13 +30,12 @@ export const usePaymentStatus = () => {
         return null;
       }
 
-      // Perbaikan di sini agar lebih tangguh
-      const { data, error: getUserError } = await supabase.auth.getUser();
+      const { data, error: getUserError }: UserResponse = await supabase.auth.getUser(); // Explicitly type UserResponse
       if (getUserError) {
         console.error("Error getting user in usePaymentStatus:", getUserError);
-        return null; // Tangani kasus error
+        return null;
       }
-      const user = data?.user; // Akses properti user dengan aman menggunakan optional chaining
+      const user = data?.user;
 
       if (!user) {
         return null;
@@ -53,7 +52,6 @@ export const usePaymentStatus = () => {
         return null;
       }
 
-      // Konversi string tanggal menjadi objek Date
       if (paymentData) {
         return {
           ...paymentData,
@@ -62,33 +60,34 @@ export const usePaymentStatus = () => {
         };
       }
 
-      return null; // Mengembalikan null jika tidak ada data pembayaran
+      return null;
     },
     enabled: true,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 
   // Set up real-time subscription for payment status updates
   useEffect(() => {
-    let realtimeChannel: RealtimeChannel | null = null; // Deklarasikan variabel untuk menampung channel
+    let realtimeChannel: RealtimeChannel | null = null;
+    let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null; // Store the auth subscription here
 
     const setupSubscription = async () => {
-      // Pastikan user ada sebelum mencoba berlangganan
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Hapus channel sebelumnya jika ada untuk menghindari duplikasi langganan
+      // Clean up previous real-time channel if it exists
       if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
+        realtimeChannel.unsubscribe();
+        supabase.removeChannel(realtimeChannel); // Also remove the channel from Supabase client's memory
         realtimeChannel = null;
       }
 
       if (!user) {
-        console.log('Tidak ada pengguna, tidak berlangganan realtime.');
+        console.log('No user, skipping real-time subscription setup.');
         return;
       }
 
-      realtimeChannel = supabase // Tetapkan ke variabel
+      realtimeChannel = supabase
         .channel('payment-status-changes')
         .on(
           'postgres_changes',
@@ -106,28 +105,34 @@ export const usePaymentStatus = () => {
         .subscribe();
     };
 
-    // Ini akan memicu setupSubscription saat komponen di-mount.
+    // Initial setup when the component mounts
     setupSubscription();
 
-    // Listener untuk perubahan sesi autentikasi, agar langganan diperbarui saat login/logout.
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Panggil setupSubscription jika ada perubahan status auth yang relevan
-      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
-        setupSubscription();
-      }
+    // Listener for auth state changes
+    authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => { // Explicitly type event and session
+        console.log('Auth state changed:', _event, session);
+        // Only re-setup subscription if the user session actually changes (login/logout)
+        // This avoids unnecessary re-subscriptions on token refresh, etc.
+        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+            setupSubscription();
+        }
     });
 
 
     return () => {
-      // Dalam fungsi cleanup, unsubscribe dari channel jika ada
+      // Cleanup for real-time channel
       if (realtimeChannel) {
-        realtimeChannel.unsubscribe(); // Panggil unsubscribe langsung pada objek channel
+        realtimeChannel.unsubscribe();
+        supabase.removeChannel(realtimeChannel);
         console.log('Realtime channel dibersihkan.');
       }
-      authListener?.unsubscribe(); // Pastikan listener auth juga dibersihkan
-      console.log('Auth listener dibersihkan.');
+      // Cleanup for auth listener
+      if (authSubscription?.data?.subscription) { // Access the subscription object correctly
+        authSubscription.data.subscription.unsubscribe();
+        console.log('Auth listener dibersihkan.');
+      }
     };
-  }, [queryClient]); // Dependensi hanya queryClient, untuk memastikan hook tidak sering di-run ulang
+  }, [queryClient]); // Dependency remains queryClient
 
   return {
     paymentStatus,
@@ -136,6 +141,6 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid: paymentStatus?.is_paid === true,
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    userName: null // Tetap null karena 'name' dihapus dari interface
+    userName: null
   };
 };

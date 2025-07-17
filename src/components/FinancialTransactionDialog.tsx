@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from '@/components/ui/textarea'; // Tambahkan Textarea jika dibutuhkan, ada di import list
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Hapus jika tidak digunakan
-// import { Plus, X } from 'lucide-react'; // Hapus jika tidak digunakan
 import { toast } from "sonner";
 
 interface FinancialTransactionDialogProps {
@@ -18,21 +16,20 @@ interface FinancialTransactionDialogProps {
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
   const [formData, setFormData] = useState({
-    user_id: '', // Ini akan diisi saat handleSave
+    user_id: '',
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '',
+    category: '', // Nilai awal adalah string kosong untuk "no selection"
     amount: 0,
     description: '',
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string
+    date: new Date().toISOString().split('T')[0],
   });
 
-  // MODIFIED: useEffect untuk mereset form saat dialog dibuka/ditutup
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        user_id: '', // Akan diisi saat handleSave
+        user_id: '',
         type: 'pemasukan',
-        category: '',
+        category: '', // Pastikan reset ke string kosong
         amount: 0,
         description: '',
         date: new Date().toISOString().split('T')[0],
@@ -40,21 +37,23 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   }, [isOpen]);
 
-
   const handleChange = (name: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    // MODIFIED: Handle nilai placeholder khusus untuk kategori
+    if (name === 'category' && value === "-placeholder-category-") {
+      setFormData(prev => ({ ...prev, [name]: '' })); // Simpan sebagai string kosong
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = async () => {
-    if (!formData.category || formData.amount <= 0 || !formData.description || !formData.date) {
+    // MODIFIED: Validasi untuk kategori agar tidak kosong (setelah dikonversi dari placeholder)
+    if (!formData.category.trim() || formData.amount <= 0 || !formData.description || !formData.date) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    const { supabase } = await import('@/integrations/supabase/client'); // Dynamic import
+    const { supabase } = await import('@/integrations/supabase/client');
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user.id || '';
 
@@ -62,23 +61,21 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       user_id: userId,
       type: formData.type,
       category: formData.category,
-      amount: parseFloat(formData.amount.toString()), // Pastikan ini number
+      amount: parseFloat(formData.amount.toString()),
       description: formData.description,
-      date: new Date(formData.date), // Konversi string tanggal ke Date object
+      date: new Date(formData.date),
     };
 
     const success = await onAddTransaction(transactionData);
     if (success) {
-      onClose(); // Tutup dialog setelah berhasil
-      // Tidak perlu reset formData di sini, karena useEffect di atas akan meresetnya saat isOpen berubah
+      onClose();
       toast.success('Transaksi berhasil ditambahkan!');
     }
   };
 
-  // MODIFIED: Bungkus DialogContent dengan Dialog dan hapus conditional return null
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}> {/* Controlled by isOpen and onClose props */}
-      <DialogContent className="max-w-md"> {/* Tidak ada perubahan kelas di sini sesuai instruksi terakhir */}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>
         </DialogHeader>
@@ -86,7 +83,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         <div className="space-y-4">
           <div>
             <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
-            <Select name="type" value={String(formData.type)} onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}> {/* MODIFIED: String() */}
+            <Select name="type" value={String(formData.type)} onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}>
               <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Pilih tipe transaksi" />
               </SelectTrigger>
@@ -98,12 +95,18 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
           </div>
           <div>
             <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
-            <Select name="category" value={String(formData.category)} onValueChange={(value) => handleChange('category', value)}> {/* MODIFIED: String() */}
+            <Select
+              name="category"
+              // MODIFIED: Value untuk Select harus string (formData.category bisa '' jika tidak ada pilihan)
+              value={formData.category} // Nilai yang dipilih (string atau '')
+              onValueChange={(value) => handleChange('category', value)}
+            >
               <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Pilih Kategori</SelectItem>
+                {/* MODIFIED: Item placeholder dengan nilai unik non-kosong dan disabled */}
+                <SelectItem value="" disabled>Pilih Kategori</SelectItem>
                 {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -115,7 +118,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="number"
               name="amount"
-              value={String(formData.amount)} // MODIFIED: String()
+              value={String(formData.amount)}
               onChange={(e) => handleChange('amount', Number(e.target.value))}
               className="mt-1 w-full"
               placeholder="Masukkan jumlah"
@@ -126,7 +129,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="text"
               name="description"
-              value={String(formData.description)} // MODIFIED: String()
+              value={String(formData.description)}
               onChange={(e) => handleChange('description', e.target.value)}
               className="mt-1 w-full"
               placeholder="Masukkan deskripsi"
@@ -137,7 +140,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="date"
               name="date"
-              value={String(formData.date)} // MODIFIED: String()
+              value={String(formData.date)}
               onChange={(e) => handleChange('date', e.target.value)}
               className="mt-1 w-full"
               placeholder="Masukkan tanggal"

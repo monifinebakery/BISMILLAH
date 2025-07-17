@@ -90,7 +90,7 @@ export const useOrders = () => {
         .insert({
           user_id: session.user.id,
           nomor_pesanan: order.nomorPesanan,
-          tanggal: order.tanggal.toISOString(),
+          tanggal: order.tanggal instanceof Date && !isNaN(order.tanggal.getTime()) ? order.tanggal.toISOString() : null,
           nama_pelanggan: order.namaPelanggan,
           email_pelanggan: order.emailPelanggan,
           telepon_pelanggan: order.teleponPelanggan,

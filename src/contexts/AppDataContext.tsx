@@ -1424,6 +1424,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
+      tanggal: transaction.tanggal || new Date(), // Default ke tanggal saat ini jika undefined
     };
 
     const transactionToInsert = {
@@ -1460,7 +1461,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...updatedTransaction,
       updated_at: new Date().toISOString(),
     };
-    if (transactionToUpdate.tanggal) transactionToUpdate.tanggal = updatedTransaction.tanggal.toISOString();
+    if (transactionToUpdate.tanggal) transactionToUpdate.tanggal = updatedTransaction.tanggal?.toISOString() || new Date().toISOString();
     if (transactionToUpdate.jenis) transactionToUpdate.type = updatedTransaction.jenis;
     if (transactionToUpdate.deskripsi) transactionToUpdate.deskripsi = updatedTransaction.deskripsi;
     if (transactionToUpdate.jumlah) transactionToUpdate.amount = updatedTransaction.jumlah;

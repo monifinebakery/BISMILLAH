@@ -87,13 +87,14 @@ export interface Asset {
 
 export interface FinancialTransaction {
   id: string;
-  tanggal: Date;
-  jenis: 'pemasukan' | 'pengeluaran';
-  description: string; // Diperbarui dari 'deskripsi' ke 'description'
-  jumlah: number;
-  user_id?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  user_id: string;
+  type: 'pemasukan' | 'pengeluaran';
+  category: string;
+  amount: number;
+  description: string;
+  date: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface AppDataContextType {
@@ -138,7 +139,7 @@ interface AppDataContextType {
   deleteAsset: (id: string) => Promise<boolean>;
 
   financialTransactions: FinancialTransaction[];
-  addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id'>) => Promise<boolean>;
+  addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   updateFinancialTransaction: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
   deleteFinancialTransaction: (id: string) => Promise<boolean>;
 
@@ -233,7 +234,9 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
       if (key === STORAGE_KEYS.FINANCIAL_TRANSACTIONS) {
         return parsed.map((item: any) => ({
           ...item,
-          tanggal: safeParseDate(item.tanggal) || new Date(),
+          date: safeParseDate(item.date) || new Date(),
+          created_at: safeParseDate(item.created_at) || new Date(),
+          updated_at: safeParseDate(item.updated_at) || new Date(),
         }));
       }
       return parsed;
@@ -525,13 +528,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         })),
         financialTransactions: financialTransactions.map(item => ({
           id: item.id,
-          tanggal: item.tanggal.toISOString(),
-          type: item.jenis,
-          description: item.description, // Diperbarui dari 'deskripsi' ke 'description'
-          amount: item.jumlah,
-          user_id: session.user.id,
-          created_at: item.createdAt?.toISOString(),
-          updated_at: item.updatedAt?.toISOString(),
+          user_id: item.user_id,
+          type: item.type,
+          category: item.category,
+          amount: item.amount,
+          description: item.description,
+          date: item.date.toISOString(),
+          created_at: item.created_at.toISOString(),
+          updated_at: item.updated_at.toISOString(),
         })),
       };
 
@@ -1417,25 +1421,26 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return true;
   };
 
-  const addFinancialTransaction = async (transaction: Omit<FinancialTransaction, 'id'>) => {
+  const addFinancialTransaction = async (transaction: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>) => {
     const newTransaction: FinancialTransaction = {
       ...transaction,
       id: generateUUID(),
       user_id: (await supabase.auth.getSession()).data.session?.user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      tanggal: transaction.tanggal || new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
+      date: transaction.date || new Date(),
     };
 
     const transactionToInsert = {
       id: newTransaction.id,
-      tanggal: newTransaction.tanggal.toISOString(),
-      type: newTransaction.jenis,
-      description: newTransaction.description, // Diperbarui dari 'deskripsi' ke 'description'
-      amount: newTransaction.jumlah,
       user_id: newTransaction.user_id,
-      created_at: newTransaction.createdAt?.toISOString(),
-      updated_at: newTransaction.updatedAt?.toISOString(),
+      type: newTransaction.type,
+      category: newTransaction.category,
+      amount: newTransaction.amount,
+      description: newTransaction.description,
+      date: newTransaction.date.toISOString(),
+      created_at: newTransaction.created_at.toISOString(),
+      updated_at: newTransaction.updated_at.toISOString(),
     };
 
     const { error } = await supabase.from('financial_transactions').insert([transactionToInsert]);
@@ -1449,7 +1454,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await syncToCloud();
     addActivity({
       title: 'Transaksi Keuangan Ditambahkan',
-      description: `${transaction.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.jumlah.toLocaleString()}`,
+      description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.amount.toLocaleString()}`,
       type: 'stok',
     });
     toast.success(`Transaksi berhasil ditambahkan!`);
@@ -1461,11 +1466,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...updatedTransaction,
       updated_at: new Date().toISOString(),
     };
-    if (transactionToUpdate.tanggal) transactionToUpdate.tanggal = updatedTransaction.tanggal?.toISOString() || new Date().toISOString();
-    if (transactionToUpdate.jenis) transactionToUpdate.type = updatedTransaction.jenis;
-    if (transactionToUpdate.description) transactionToUpdate.description = updatedTransaction.description; // Diperbarui dari 'deskripsi' ke 'description'
-    if (transactionToUpdate.jumlah) transactionToUpdate.amount = updatedTransaction.jumlah;
-    delete transactionToUpdate.createdAt;
+    if (updatedTransaction.user_id) transactionToUpdate.user_id = updatedTransaction.user_id;
+    if (updatedTransaction.type) transactionToUpdate.type = updatedTransaction.type;
+    if (updatedTransaction.category) transactionToUpdate.category = updatedTransaction.category;
+    if (updatedTransaction.amount) transactionToUpdate.amount = updatedTransaction.amount;
+    if (updatedTransaction.description) transactionToUpdate.description = updatedTransaction.description;
+    if (updatedTransaction.date) transactionToUpdate.date = updatedTransaction.date.toISOString();
+    delete transactionToUpdate.created_at;
 
     const { error } = await supabase.from('financial_transactions').update(transactionToUpdate).eq('id', id);
     if (error) {
@@ -1476,7 +1483,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setFinancialTransactions(prev =>
       prev.map(transaction =>
-        transaction.id === id ? { ...transaction, ...updatedTransaction, updatedAt: new Date() } : transaction
+        transaction.id === id ? { ...transaction, ...updatedTransaction, updated_at: new Date() } : transaction
       )
     );
     await syncToCloud();
@@ -1499,7 +1506,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (transaction) {
       addActivity({
         title: 'Transaksi Keuangan Dihapus',
-        description: `${transaction.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.jumlah.toLocaleString()} dihapus`,
+        description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.amount.toLocaleString()} dihapus`,
         type: 'stok',
       });
       toast.success(`Transaksi berhasil dihapus!`);

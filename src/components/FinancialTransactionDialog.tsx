@@ -10,21 +10,21 @@ import { toast } from "sonner";
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: any) => Promise<boolean>;
+  onAddTransaction: (transaction: any) => Promise<boolean>; // Asumsi tipe transaksi dari hook
   categories: { income: string[]; expense: string[] };
 }
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
   const [formData, setFormData] = useState({
-    user_id: '',
+    user_id: '', // Ini akan diisi saat handleSave
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '',
+    category: '', // Akan menjadi string kosong jika tidak ada pilihan
     amount: 0,
     description: '',
     date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
   });
 
-  // MODIFIED: getInputValue helper function (diperkuat)
+  // MODIFIED: getInputValue helper function dengan pemeriksaan hasil toISOString()
   const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -34,13 +34,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       if (isNaN(value.getTime())) { // Pastikan tanggal valid
         return ''; // Tanggal tidak valid, kembalikan string kosong
       }
-      return value.toISOString().split('T')[0];
+      // NEW: Periksa hasil toISOString() sebelum memanggil .split()
+      const isoString = value.toISOString();
+      if (isoString === null || isoString === undefined) { // Ini adalah pemeriksaan tambahan yang diminta
+          return ''; // Jika hasil toISOString entah bagaimana null/undefined, kembalikan string kosong
+      }
+      return isoString.split('T')[0];
     }
-    // Jika itu string, tapi mungkin string kosong untuk input date yang tidak diisi
-    if (typeof value === 'string' && value === '') {
-        return '';
-    }
-    // Jika nilai bukan Date, string, atau number yang valid, kembalikan string kosong
+    // Jika nilai bukan Date, string, atau number, kembalikan string kosong
     if (typeof value !== 'string' && typeof value !== 'number') {
       return '';
     }
@@ -56,13 +57,12 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '',
         amount: 0,
         description: '',
-        date: getInputValue(new Date()) as string, // MODIFIED: Pastikan inisialisasi juga melalui getInputValue agar konsisten
+        date: getInputValue(new Date()) as string, // Pastikan inisialisasi juga melalui getInputValue agar konsisten
       });
     }
   }, [isOpen]);
 
   const handleChange = (name: string, value: string | number) => {
-    // Penanganan khusus untuk Select category jika nilainya adalah nilai placeholder atau string kosong
     if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
       setFormData(prev => ({ ...prev, [name]: '' }));
     } else {
@@ -71,12 +71,11 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   };
 
   const handleSave = async () => {
-    // Validasi yang lebih ketat
     if (
       !formData.category.trim() ||
       formData.amount <= 0 ||
       !formData.description.trim() ||
-      !formData.date // formData.date adalah string YYYY-MM-DD
+      !formData.date
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
@@ -171,7 +170,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="date"
                 name="date"
-                value={getInputValue(formData.date) as string} // MODIFIED: Gunakan getInputValue
+                value={getInputValue(formData.date) as string}
                 onChange={(e) => handleChange('date', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan tanggal"

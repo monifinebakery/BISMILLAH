@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import FinancialTransactionList from '@/components/FinancialTransactionList';
-import { useFinancialTransactions } from '@/hooks/useFinancialTransactions';
+import { useAppData } from '@/contexts/AppDataContext';
 import ExportButtons from '@/components/ExportButtons';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
@@ -19,7 +19,7 @@ import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 const FinancialReportPage = () => {
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useFinancialTransactions();
+  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useAppData();
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';

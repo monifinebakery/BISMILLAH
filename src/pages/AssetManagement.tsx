@@ -12,6 +12,7 @@ import { Building2, Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Packag
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 const AssetManagement = () => {
   const isMobile = useIsMobile();
@@ -30,6 +31,7 @@ const AssetManagement = () => {
     kondisi: undefined,    // Gunakan undefined untuk Select
     lokasi: '',
     deskripsi: '',
+    depresiasi: null, // Default
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,7 +70,6 @@ const AssetManagement = () => {
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
       depresiasi: formData.depresiasi, // Include depresiasi if it's part of the form/logic
-      // Other fields (like umurManfaat, penyusutanPerBulan) are not in DB asset table based on your screenshot
     };
 
     let success = false;
@@ -99,13 +100,22 @@ const AssetManagement = () => {
   };
 
   // Helper untuk mendapatkan nilai input yang aman dari null/undefined
-  const getInputValue = <T extends string | number | Date | undefined>(value: T): string | number => {
+  const getInputValue = <T extends string | number | Date | undefined | null>(value: T): string | number => {
     if (value === undefined || value === null) {
       return '';
     }
     // Jika itu objek Date, konversi ke YYYY-MM-DD
     if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
+      // Pastikan tanggal valid sebelum memanggil toISOString
+      if (isNaN(value.getTime())) { // Check for Invalid Date
+        return ''; // Tanggal tidak valid, kembalikan string kosong
+      }
+      // MODIFIED: Tambahkan || '' setelah toISOString()
+      return value.toISOString() || ''; // Ensure result is string before splitting
+    }
+    // Ini menangani kasus di mana 'value' mungkin objek kosong atau array, atau string/number biasa.
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return '';
     }
     return value;
   };
@@ -527,7 +537,7 @@ const AssetManagement = () => {
                                     kategori: asset.kategori,
                                     nilaiAwal: asset.nilaiAwal,
                                     nilaiSekarang: asset.nilaiSekarang,
-                                    tanggalBeli: asset.tanggalBeli, // Date object
+                                    tanggalBeli: asset.tanggalBeli,
                                     kondisi: asset.kondisi,
                                     lokasi: asset.lokasi,
                                     deskripsi: asset.deskripsi,

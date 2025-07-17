@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { BahanBaku } from '@/types/recipe';
-import { generateUUID } from '@/utils/uuid';
-import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; 
+import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku dari types/recipe
+import { generateUUID } from '@/utils/uuid'; // Asumsi generateUUID ada
+import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers'; // Asumsi ini ada
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate
 
 const STORAGE_KEY = 'hpp_app_bahan_baku';
 
 export const useBahanBaku = (userId: string | undefined) => {
-  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() => 
+  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEY, [])
   );
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export const useBahanBaku = (userId: string | undefined) => {
         return;
       }
 
-      const formattedBahanBaku = data?.map((item: any) => ({
+      const formattedBahanBaku: BahanBaku[] = data?.map((item: any) => ({
         id: item.id,
         nama: item.nama,
         kategori: item.kategori,
@@ -48,9 +48,10 @@ export const useBahanBaku = (userId: string | undefined) => {
         tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
         createdAt: safeParseDate(item.created_at),
         updatedAt: safeParseDate(item.updated_at),
-        lastPurchaseQuantity: parseFloat(item.last_purchase_quantity) || undefined,
-        lastPurchaseUnit: item.last_purchase_unit || undefined,
-        lastPurchaseTotalPrice: parseFloat(item.last_purchase_total_price) || undefined,
+        // MODIFIED: Membaca kolom database yang benar (jumlah_beli_kemasan, satuan_kemasan, harga_total_beli_kemasan)
+        jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) ?? null, // Gunakan ?? null
+        satuanKemasan: item.satuan_kemasan ?? null,                       // Gunakan ?? null
+        hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) ?? null, // Gunakan ?? null
       })) || [];
 
       setBahanBaku(formattedBahanBaku);
@@ -72,6 +73,7 @@ export const useBahanBaku = (userId: string | undefined) => {
   }, [bahanBaku]);
 
 
+  // MODIFIED: addBahanBaku function
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -98,9 +100,10 @@ export const useBahanBaku = (userId: string | undefined) => {
           tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa instanceof Date ? bahan.tanggalKadaluwarsa.toISOString() : null,
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
-          last_purchase_quantity: bahan.lastPurchaseQuantity || null,
-          last_purchase_unit: bahan.lastPurchaseUnit || null,
-          last_purchase_total_price: bahan.lastPurchaseTotalPrice || null,
+          // MODIFIED: Menulis ke kolom database yang benar
+          jumlah_beli_kemasan: bahan.jumlahBeliKemasan ?? null, // Gunakan ?? null
+          satuan_kemasan: bahan.satuanKemasan ?? null,         // Gunakan ?? null
+          harga_total_beli_kemasan: bahan.hargaTotalBeliKemasan ?? null, // Gunakan ?? null
         })
         .select()
         .single();
@@ -113,9 +116,9 @@ export const useBahanBaku = (userId: string | undefined) => {
 
       setBahanBaku(prev => [...prev, {
         ...bahan,
-        id: newBahanId,
-        createdAt: now,
-        updatedAt: now,
+        id: data.id, // Gunakan ID dari response Supabase
+        createdAt: safeParseDate(data.created_at)!, // Konversi kembali ke Date
+        updatedAt: safeParseDate(data.updated_at)!, // Konversi kembali ke Date
       }]);
       toast.success('Bahan baku berhasil ditambahkan');
       return true;
@@ -126,15 +129,16 @@ export const useBahanBaku = (userId: string | undefined) => {
     }
   };
 
+  // MODIFIED: updateBahanBaku function
   const updateBahanBaku = async (id: string, updates: Partial<BahanBaku>) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } = {} } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Anda harus login untuk mengupdate bahan baku');
         return false;
       }
 
-      const updateData: Partial<any> = {
+      const updateData: { [key: string]: any } = {
         updated_at: new Date().toISOString(),
       };
 
@@ -147,12 +151,13 @@ export const useBahanBaku = (userId: string | undefined) => {
       if (updates.supplier !== undefined) updateData.supplier = updates.supplier;
       if (updates.tanggalKadaluwarsa !== undefined) {
         updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa instanceof Date ? updates.tanggalKadaluwarsa.toISOString() : null;
-      } else if (updates.tanggalKadaluwarsa === null) {
+      } else if (Object.prototype.hasOwnProperty.call(updates, 'tanggalKadaluwarsa') && updates.tanggalKadaluwarsa === null) {
         updateData.tanggal_kadaluwarsa = null;
       }
-      if (updates.lastPurchaseQuantity !== undefined) updateData.last_purchase_quantity = updates.lastPurchaseQuantity;
-      if (updates.lastPurchaseUnit !== undefined) updateData.last_purchase_unit = updates.lastPurchaseUnit;
-      if (updates.lastPurchaseTotalPrice !== undefined) updateData.last_purchase_total_price = updates.lastPurchaseTotalPrice;
+      // MODIFIED: Menulis ke kolom database yang benar
+      if (updates.jumlahBeliKemasan !== undefined) updateData.jumlah_beli_kemasan = updates.jumlahBeliKemasan ?? null; // Gunakan ?? null
+      if (updates.satuanKemasan !== undefined) updateData.satuan_kemasan = updates.satuanKemasan ?? null;         // Gunakan ?? null
+      if (updates.hargaTotalBeliKemasan !== undefined) updateData.harga_total_beli_kemasan = updates.hargaTotalBeliKemasan ?? null; // Gunakan ?? null
 
 
       const { error } = await supabase
@@ -183,7 +188,7 @@ export const useBahanBaku = (userId: string | undefined) => {
 
   const deleteBahanBaku = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } = {} } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Anda harus login untuk menghapus bahan baku');
         return false;

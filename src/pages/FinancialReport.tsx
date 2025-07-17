@@ -32,13 +32,21 @@ const FinancialReportPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
-    return (transactions || []).filter(t => {
-      const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
-      if (dateRange?.from && transactionDate < dateRange.from) return false;
-      if (dateRange?.to && transactionDate > dateRange.to) return false;
-      return true;
-    });
-  }, [transactions, dateRange]);
+  return (transactions || []).filter(t => {
+    // t.tanggal sudah berupa Date | undefined dari useFinancialTransactions
+    const transactionDate = t.tanggal;
+
+    // Filter keluar transaksi dengan tanggal yang tidak valid atau undefined
+    if (!transactionDate || isNaN(transactionDate.getTime())) {
+      return false;
+    }
+    
+    // Sekarang transactionDate dijamin sebagai objek Date yang valid
+    if (dateRange?.from && transactionDate < dateRange.from) return false;
+    if (dateRange?.to && transactionDate > dateRange.to) return false;
+    return true;
+  });
+}, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
     return filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((sum, t) => sum + (t.jumlah || 0), 0);

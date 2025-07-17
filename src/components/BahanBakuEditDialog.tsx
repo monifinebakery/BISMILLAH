@@ -15,7 +15,26 @@ interface BahanBakuEditDialogProps {
   item: BahanBaku | null; // item ini adalah data asli dari database (sudah camelCase dari hook)
 }
 
+// NEW: useDebounce hook (dipindahkan ke luar komponen agar bisa dipakai di sini)
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+
 const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDialogProps) => {
+  // MODIFIED: formData sekarang akan mengelola SEMUA input
   const [formData, setFormData] = useState<Partial<BahanBaku>>({
     nama: '',
     kategori: '',
@@ -25,20 +44,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     hargaSatuan: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: null,
-    satuanKemasan: null,
-    hargaTotalBeliKemasan: null,
+    jumlahBeliKemasan: null, // Sekarang ada di formData
+    satuanKemasan: null,     // Sekarang ada di formData
+    hargaTotalBeliKemasan: null, // Sekarang ada di formData
   });
 
-  const [purchaseDetails, setPurchaseDetails] = useState<{
-    purchaseQuantity: number | null;
-    purchaseUnit: string | null;
-    purchaseTotalPrice: number | null;
-  }>({
-    purchaseQuantity: null,
-    purchaseUnit: null,
-    purchaseTotalPrice: null,
-  });
+  // MODIFIED: Hapus state purchaseDetails
+  // const [purchaseDetails, setPurchaseDetails] = useState<{ ... }>({ ... });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
     'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592, 'ons': 28.3495 },
@@ -49,8 +61,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
+  // MODIFIED: useEffect pertama (Inisialisasi data form saat dialog dibuka/item berubah)
   useEffect(() => {
     if (item) {
+      // --- DEBUG LOG START ---
+      console.log('BahanBakuEditDialog: Item received in useEffect (initialization):', item);
+      // --- DEBUG LOG END ---
+
       setFormData({
         nama: item.nama,
         kategori: item.kategori,
@@ -60,29 +77,48 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
         tanggalKadaluwarsa: item.tanggalKadaluwarsa,
+        // Inisialisasi properti detail pembelian langsung dari item ke formData
         jumlahBeliKemasan: item.jumlahBeliKemasan,
         satuanKemasan: item.satuanKemasan,
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
 
-      setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan,
-        purchaseUnit: item.satuanKemasan,
-        purchaseTotalPrice: item.hargaTotalBeliKemasan,
+      // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
+      // setPurchaseDetails({ ... });
+
+      // --- DEBUG LOG START ---
+      console.log('BahanBakuEditDialog: formData after initialization:', {
+          jumlahBeliKemasan: item.jumlahBeliKemasan,
+          satuanKemasan: item.satuanKemasan,
+          hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
       });
+      // --- DEBUG LOG END ---
 
     } else {
+      // Reset form jika item null (misal saat dialog ditutup atau untuk item baru)
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
         jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
       });
-      setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
+      // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
+      // setPurchaseDetails({ ... });
     }
   }, [item, isOpen]);
 
+  // MODIFIED: Debounce dependencies for hargaSatuan calculation
+  // Gunakan properti langsung dari formData
+  const debouncedJumlahBeliKemasan = useDebounce(formData.jumlahBeliKemasan, 300);
+  const debouncedSatuanKemasan = useDebounce(formData.satuanKemasan, 300);
+  const debouncedHargaTotalBeliKemasan = useDebounce(formData.hargaTotalBeliKemasan, 300);
+  const debouncedSatuanUtama = useDebounce(formData.satuan, 300);
+
+
+  // MODIFIED: useEffect kedua (Perhitungan harga satuan) - menggunakan nilai debounced dari formData
   useEffect(() => {
-    const { purchaseQuantity, purchaseUnit, purchaseTotalPrice } = purchaseDetails;
-    const baseUnit = formData.satuan?.toLowerCase();
+    const purchaseQuantity = debouncedJumlahBeliKemasan;
+    const purchaseUnit = debouncedSatuanKemasan;
+    const purchaseTotalPrice = debouncedHargaTotalBeliKemasan;
+    const baseUnit = debouncedSatuanUtama?.toLowerCase(); // Gunakan satuan utama dari formData
 
     let calculatedHarga = 0;
 
@@ -110,23 +146,22 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
     setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
 
-  }, [purchaseDetails, formData.satuan]);
+  }, [debouncedJumlahBeliKemasan, debouncedSatuanKemasan, debouncedHargaTotalBeliKemasan, debouncedSatuanUtama]);
+
 
   const handleSave = async () => {
+    // Validasi dasar
     if (!formData.nama || !formData.kategori || formData.stok === undefined || formData.stok < 0 || formData.hargaSatuan === undefined || formData.hargaSatuan < 0 || formData.minimum === undefined || formData.minimum < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
 
+    // MODIFIED: updatesToSend cukup menggunakan formData langsung
     const updatesToSend: Partial<BahanBaku> = {
       ...formData,
-      stok: parseFloat(String(formData.stok)) || 0,
-      minimum: parseFloat(String(formData.minimum)) || 0,
-      hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
-      tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
-      jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
-      satuanKemasan: purchaseDetails.purchaseUnit,
-      hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
+      // Stok, minimum, hargaSatuan sudah di-parse ke float di dalam onChange handler
+      // tanggalKadaluwarsa sudah Date|undefined, tidak perlu konversi di sini
+      // jumlahBeliKemasan, satuanKemasan, hargaTotalBeliKemasan juga sudah ada di formData
     };
 
     await onSave(updatesToSend);
@@ -135,15 +170,17 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   };
 
   const handleClose = () => {
+    // MODIFIED: Reset semua field di formData ke null/undefined default
     setFormData({
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
       jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
     });
-    setPurchaseDetails({ purchaseQuantity: null, purchaseUnit: null, purchaseTotalPrice: null });
+    // MODIFIED: Hapus setPurchaseDetails karena tidak ada lagi
+    // setPurchaseDetails({ ... });
     onClose();
   };
 
-  // MODIFIED: getInputValue helper function with more robust checks
+  // Helper function to safely render values in inputs as string or number
   const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
@@ -257,7 +294,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="tanggalKadaluwarsa"
                 type="date"
-                value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
+                value={getInputValue(formData.tanggalKadaluwarsa) as string} // MODIFIED: Use getInputValue
                 onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -275,8 +312,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                     <Input
                       id="purchaseQuantity"
                       type="number"
-                      value={getInputValue(purchaseDetails.purchaseQuantity)}
-                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || null })}
+                      value={getInputValue(formData.jumlahBeliKemasan)} // MODIFIED: Gunakan getInputValue langsung
+                      onChange={(e) => setFormData({ ...formData, jumlahBeliKemasan: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
                     />
@@ -284,8 +321,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                   <div>
                     <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
                     <Select
-                      value={getInputValue(purchaseDetails.purchaseUnit) as string}
-                      onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
+                      value={getInputValue(formData.satuanKemasan) as string} // MODIFIED: Gunakan getInputValue langsung
+                      onValueChange={(value) => setFormData({ ...formData, satuanKemasan: value })}
                     >
                       <SelectTrigger className="rounded-md">
                         <SelectValue placeholder="Pilih satuan" />
@@ -302,8 +339,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                     <Input
                       id="purchaseTotalPrice"
                       type="number"
-                      value={getInputValue(purchaseDetails.purchaseTotalPrice)}
-                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || null })}
+                      value={getInputValue(formData.hargaTotalBeliKemasan)} // MODIFIED: Gunakan getInputValue langsung
+                      onChange={(e) => setFormData({ ...formData, hargaTotalBeliKemasan: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
                     />

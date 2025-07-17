@@ -86,7 +86,7 @@ export const usePurchases = () => {
         .from('purchases')
         .insert({
           user_id: session.user.id,
-          tanggal: purchase.tanggal.toISOString(),
+          tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())   ? purchase.tanggal.toISOString()   : null,
           supplier: purchase.supplierName,
           items: JSON.parse(JSON.stringify(purchase.items)), // Convert to JSON
           total_nilai: purchase.totalAmount,
@@ -124,7 +124,7 @@ export const usePurchases = () => {
       const { error } = await supabase
         .from('purchases')
         .update({
-          tanggal: purchase.tanggal.toISOString(),
+          tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())   ? purchase.tanggal.toISOString()   : null,
           supplier: purchase.supplierName,
           items: JSON.parse(JSON.stringify(purchase.items)), // Convert to JSON
           total_nilai: purchase.totalAmount,

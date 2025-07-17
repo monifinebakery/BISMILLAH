@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 // MODIFIED: Tambahkan Sidebar ke import
-import { Sidebar, SidebarClose, SidebarTrigger, useSidebar, SidebarHeader } from "@/components/ui/sidebar"; 
+import { Sidebar, SidebarClose, SidebarTrigger, useSidebar, SidebarHeader, SidebarContent } from "@/components/ui/sidebar"; 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";

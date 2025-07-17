@@ -137,7 +137,7 @@ const WarehousePage = () => {
       hargaSatuan: item.hargaSatuan, // Gunakan hargaSatuan (camelCase)
       minimum: item.minimum,
       supplier: item.supplier,
-      tanggalKadaluwarsa: formattedDate, // String YYYY-MM-DD untuk input date
+      tanggalKadaluwarsa: item.tanggalKadaluwarsa, // String YYYY-MM-DD untuk input date
       lastPurchaseQuantity: item.lastPurchaseQuantity || null, // Pastikan null jika undefined
       lastPurchaseUnit: item.lastPurchaseUnit || null,
       lastPurchaseTotalPrice: item.lastPurchaseTotalPrice || null,

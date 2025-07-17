@@ -29,6 +29,8 @@ const FinancialReportPage = () => {
     to: new Date(),
   });
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const filteredTransactions = useMemo(() => {
     return (transactions || []).filter(t => {
       const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
@@ -97,6 +99,14 @@ const FinancialReportPage = () => {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [filteredTransactions]);
 
+  const openDialog = () => {
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
@@ -129,7 +139,15 @@ const FinancialReportPage = () => {
               </Popover>
               <FinancialCategoryManager />
               <ExportButtons data={filteredTransactions} filename="laporan-keuangan" type="financial" />
-              <FinancialTransactionDialog onAddTransaction={addTransaction} categories={settings.financialCategories} />
+              <Button onClick={openDialog} className="bg-green-600 text-white hover:bg-green-700">
+                Tambah Transaksi
+              </Button>
+              <FinancialTransactionDialog
+                isOpen={isDialogOpen}
+                onClose={closeDialog}
+                onAddTransaction={addTransaction}
+                categories={settings.financialCategories}
+              />
             </div>
           </div>
         </div>

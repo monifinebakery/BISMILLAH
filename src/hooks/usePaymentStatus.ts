@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { validateAuthSession } from '@/lib/authUtils';
-import { safeParseDate } from '@/hooks/useSupabaseSync';
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // Pastikan safeParseDate diimpor dengan benar
 
 export interface PaymentStatus {
   id: string;
@@ -13,15 +13,11 @@ export interface PaymentStatus {
   pg_reference_id: string | null;
   order_id: string | null;
   email: string | null;
-  // name: string | null; // <--- BARIS INI DIHAPUS
   payment_status: string;
-  created_at: Date | undefined; // Ubah dari string menjadi Date
-  updated_at: Date | undefined; // Ubah dari string menjadi Date
+  created_at: Date | undefined; // Ubah dari string menjadi Date | undefined
+  updated_at: Date | undefined; // Ubah dari string menjadi Date | undefined
 }
 
-// Ini adalah fungsi yang perlu diekspor.
-// Berdasarkan kode Anda sebelumnya, 'export' sudah ada di sini.
-// Jika Anda mendapatkan error "is not exported", mungkin ada masalah dengan proses build caching atau file-nya sendiri.
 export const usePaymentStatus = () => {
   const queryClient = useQueryClient();
 
@@ -41,7 +37,6 @@ export const usePaymentStatus = () => {
 
       const { data, error } = await supabase
         .from('user_payments')
-        // PERBAIKAN DI SINI: Ubah menjadi satu baris tanpa newline atau spasi berlebihan
         .select(`id,user_id,is_paid,pg_reference_id,order_id,email,payment_status,created_at,updated_at`)
         .eq('user_id', user.id)
         .maybeSingle();
@@ -51,7 +46,16 @@ export const usePaymentStatus = () => {
         return null;
       }
 
-      return data;
+      // MODIFIKASI SESUAI INSTRUKSI: Konversi string tanggal menjadi objek Date
+      if (data) {
+        return {
+          ...data,
+          created_at: safeParseDate(data.created_at),
+          updated_at: safeParseDate(data.updated_at),
+        };
+      }
+
+      return null; // Mengembalikan null jika tidak ada data
     },
     enabled: true,
     staleTime: 30000, // 30 seconds
@@ -87,8 +91,21 @@ export const usePaymentStatus = () => {
       };
     };
 
-    setupSubscription();
-  }, [queryClient]);
+    // Panggil setupSubscription saat komponen di-mount atau user berubah
+    // Tambahkan listener untuk perubahan sesi autentikasi
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id !== supabase.auth.getUser().data.user?.id) { // Cek jika user ID berubah
+        setupSubscription();
+      }
+    });
+
+    setupSubscription(); // Panggil saat komponen pertama kali di-mount
+
+    return () => {
+      supabase.removeChannel('payment-status-changes'); // Pastikan channel dibersihkan
+      authListener?.unsubscribe(); // Bersihkan listener auth
+    };
+  }, [queryClient]); // Dependensi hanya queryClient
 
   return {
     paymentStatus,
@@ -97,6 +114,6 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid: paymentStatus?.is_paid === true,
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    userName: null
+    userName: null // Tetap null karena 'name' dihapus dari interface
   };
 };

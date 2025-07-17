@@ -3,49 +3,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from '@/components/ui/textarea'; // Tambahkan Textarea jika dibutuhkan, ada di import list
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: any) => Promise<boolean>; // Asumsi tipe transaksi dari hook
+  onAddTransaction: (transaction: any) => Promise<boolean>;
   categories: { income: string[]; expense: string[] };
 }
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
   const [formData, setFormData] = useState({
-    user_id: '', // Ini akan diisi saat handleSave
+    user_id: '',
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '', // Akan menjadi string kosong jika tidak ada pilihan
+    category: '',
     amount: 0,
     description: '',
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string
+    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
   });
 
-  // NEW: getInputValue helper (copied from BahanBakuEditDialog)
-  // Ini adalah fungsi yang memastikan nilai selalu string/number yang aman untuk input
+  // MODIFIED: getInputValue helper function (diperkuat)
   const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
     }
     // Jika itu objek Date, konversi ke YYYY-MM-DD
     if (value instanceof Date) {
-      // Pastikan tanggal valid sebelum memanggil toISOString
-      if (isNaN(value.getTime())) {
+      if (isNaN(value.getTime())) { // Pastikan tanggal valid
         return ''; // Tanggal tidak valid, kembalikan string kosong
       }
       return value.toISOString().split('T')[0];
     }
-    // Jika nilai bukan Date, string, atau number, kembalikan string kosong
-    // Ini menangani kasus di mana 'value' mungkin objek kosong atau array
+    // Jika itu string, tapi mungkin string kosong untuk input date yang tidak diisi
+    if (typeof value === 'string' && value === '') {
+        return '';
+    }
+    // Jika nilai bukan Date, string, atau number yang valid, kembalikan string kosong
     if (typeof value !== 'string' && typeof value !== 'number') {
       return '';
     }
     return value;
   };
-
 
   // useEffect untuk mereset form saat dialog dibuka/ditutup
   useEffect(() => {
@@ -53,19 +53,18 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       setFormData({
         user_id: '',
         type: 'pemasukan',
-        category: '', // Reset ke string kosong untuk placeholder
+        category: '',
         amount: 0,
         description: '',
-        date: getInputValue(new Date()) as string, // MODIFIED: Pastikan inisialisasi juga melalui getInputValue
+        date: getInputValue(new Date()) as string, // MODIFIED: Pastikan inisialisasi juga melalui getInputValue agar konsisten
       });
     }
   }, [isOpen]);
 
-  // Helper untuk menangani perubahan input secara umum
   const handleChange = (name: string, value: string | number) => {
     // Penanganan khusus untuk Select category jika nilainya adalah nilai placeholder atau string kosong
     if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
-      setFormData(prev => ({ ...prev, [name]: '' })); // Simpan sebagai string kosong
+      setFormData(prev => ({ ...prev, [name]: '' }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -74,16 +73,16 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   const handleSave = async () => {
     // Validasi yang lebih ketat
     if (
-      !formData.category.trim() || // Kategori harus diisi (trim untuk cek spasi kosong)
-      formData.amount <= 0 ||    // Jumlah harus > 0
-      !formData.description.trim() || // Deskripsi harus diisi
-      !formData.date             // Tanggal harus diisi
+      !formData.category.trim() ||
+      formData.amount <= 0 ||
+      !formData.description.trim() ||
+      !formData.date // formData.date adalah string YYYY-MM-DD
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    const { supabase } = await import('@/integrations/supabase/client'); // Dynamic import
+    const { supabase } = await import('@/integrations/supabase/client');
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user.id || '';
 
@@ -91,8 +90,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       user_id: userId,
       type: formData.type,
       category: formData.category,
-      amount: Number(formData.amount), // Pastikan ini number
-      description: formData.description,
+      amount: Number(formData.amount),
       date: new Date(formData.date), // Konversi string tanggal ke Date object
     };
 
@@ -105,20 +103,18 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* MODIFIED: Tambahkan flex-col dan atur tinggi untuk scrollability di mobile */}
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>
         </DialogHeader>
 
-        {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
         <div className="flex-grow overflow-y-auto pr-4 -mr-4">
           <div className="space-y-4">
             <div>
               <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
               <Select
                 name="type"
-                value={getInputValue(formData.type) as string} // MODIFIED: Gunakan getInputValue
+                value={getInputValue(formData.type) as string}
                 onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
@@ -134,7 +130,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
               <Select
                 name="category"
-                value={getInputValue(formData.category) as string} // MODIFIED: Gunakan getInputValue
+                value={getInputValue(formData.category) as string}
                 onValueChange={(value) => handleChange('category', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
@@ -153,7 +149,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="number"
                 name="amount"
-                value={getInputValue(formData.amount)} // MODIFIED: Gunakan getInputValue
+                value={getInputValue(formData.amount)}
                 onChange={(e) => handleChange('amount', Number(e.target.value))}
                 className="mt-1 w-full"
                 placeholder="Masukkan jumlah"
@@ -164,7 +160,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="text"
                 name="description"
-                value={getInputValue(formData.description)} // MODIFIED: Gunakan getInputValue
+                value={getInputValue(formData.description)}
                 onChange={(e) => handleChange('description', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan deskripsi"
@@ -182,7 +178,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               />
             </div>
           </div>
-        </div> {/* End flex-grow overflow div */}
+        </div>
 
         <div className="mt-6 flex justify-end space-x-4">
           <Button

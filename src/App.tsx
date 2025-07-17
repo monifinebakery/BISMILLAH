@@ -1,8 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
-import { QueryClient, QueryClientProvider, QueryClientProviderProps } from "@tanstack/react-query";
+import { useEffect, useState } from "react"; // MODIFIED: Tambahkan useState
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -35,6 +35,21 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "./contexts/PaymentContext";
+import ThemeToggle from "@/components/ThemeToggle"; 
+import { usePaymentStatus } from "@/hooks/usePaymentStatus"; // MODIFIED: Import usePaymentStatus
+
+// MODIFIED: Import AlertDialog components
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Konfigurasi QueryClient dengan retry yang lebih sedikit untuk mengurangi beban server
 const queryClient = new QueryClient({
@@ -50,9 +65,16 @@ const queryClient = new QueryClient({
 // MODIFIED: Logika layout dipindahkan ke komponen baru agar bisa mengakses context
 const AppLayout = () => {
   const isMobile = useIsMobile();
-  const { isPaid } = usePaymentContext(); // Mengambil status pembayaran
+  const { isPaid } = usePaymentContext();
+  const { refetch: refetchPaymentStatus } = usePaymentStatus(); // Pastikan ini ada
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // Tambahkan baris ini
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(true); // Ubah ini agar hanya membuka dialog
+  };
+
+  // MODIFIED: Fungsi untuk logout yang dikonfirmasi
+  const confirmLogout = async () => {
     try {
       const success = await performSignOut();
       if (success) {
@@ -66,27 +88,27 @@ const AppLayout = () => {
     } catch (error) {
       toast.error("Gagal keluar");
     }
-  }
+  };
 
   return (
     <>
       {isMobile ? (
         // Mobile layout
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
           <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
             <div className="flex-1">
               <h1 className="text-lg font-bold text-primary">HPP by Monifine</h1>
             </div>
             <div className="flex items-center space-x-2">
-              {/* MODIFIED: Indikator hanya tampil di header jika sudah bayar */}
               {isPaid && <PaymentStatusIndicator />}
               <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
+              <ThemeToggle /> 
               <NotificationBell />
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleLogout}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1"
+                onClick={handleLogout} // Ubah onClick ini
+                className="text-destructive hover:bg-destructive/10 px-2 py-1"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -110,17 +132,31 @@ const AppLayout = () => {
             </Routes>
           </main>
           <BottomTabBar />
-          {/* MODIFIED: Tombol upgrade mengambang jika belum bayar */}
           {!isPaid && (
             <div className="fixed bottom-20 right-4 z-50">
               <PaymentStatusIndicator size="lg" />
             </div>
           )}
+          {/* MODIFIED: Tambahkan AlertDialog di sini, di dalam AppLayout */}
+          <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : (
-        // Desktop layout - tidak ada perubahan
+        // Desktop layout
         <SidebarProvider>
-          <div className="min-h-screen flex w-full">
+          <div className="min-h-screen flex w-full bg-background">
             <AppSidebar />
             <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
               <header className="sticky top-0 z-40 flex h-12 sm:h-14 lg:h-[60px] items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-2 sm:px-4 lg:px-6 w-full">
@@ -129,8 +165,17 @@ const AppLayout = () => {
                 <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
                   <PaymentStatusIndicator />
                   <CloudSyncButton variant="upload" />
+                  <ThemeToggle /> 
                   <DateTimeDisplay />
                   <NotificationBell />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout} // Ubah onClick ini
+                    className="text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
                 </div>
               </header>
               <main className="flex-1 w-full min-w-0 overflow-auto">
@@ -154,6 +199,21 @@ const AppLayout = () => {
               </main>
             </SidebarInset>
           </div>
+          {/* MODIFIED: Tambahkan AlertDialog di sini, di dalam AppLayout */}
+          <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </SidebarProvider>
       )}
     </>

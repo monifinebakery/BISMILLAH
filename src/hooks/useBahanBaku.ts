@@ -49,9 +49,10 @@ export const useBahanBaku = (userId: string | undefined) => {
         createdAt: safeParseDate(item.created_at),
         updatedAt: safeParseDate(item.updated_at),
         // MODIFIED: Membaca kolom database yang benar (jumlah_beli_kemasan, satuan_kemasan, harga_total_beli_kemasan)
-        jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) ?? null, // Gunakan ?? null
-        satuanKemasan: item.satuan_kemasan ?? null,                       // Gunakan ?? null
-        hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) ?? null, // Gunakan ?? null
+        // Pastikan null dari DB dikonversi ke 0 atau '' sesuai tipe non-nullable
+        jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) || 0, // MODIFIED: Gunakan || 0 untuk konversi null ke 0
+        satuanKemasan: item.satuan_kemasan || '',                     // MODIFIED: Gunakan || '' untuk konversi null ke ''
+        hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) || 0, // MODIFIED: Gunakan || 0
       })) || [];
 
       setBahanBaku(formattedBahanBaku);
@@ -73,6 +74,7 @@ export const useBahanBaku = (userId: string | undefined) => {
   }, [bahanBaku]);
 
 
+  // MODIFIED: addBahanBaku function
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -99,10 +101,10 @@ export const useBahanBaku = (userId: string | undefined) => {
           tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa instanceof Date ? bahan.tanggalKadaluwarsa.toISOString() : null,
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
-          // MODIFIED: Menulis ke kolom database yang benar
-          jumlah_beli_kemasan: bahan.jumlahBeliKemasan ?? null, // Gunakan ?? null
-          satuan_kemasan: bahan.satuanKemasan ?? null,         // Gunakan ?? null
-          harga_total_beli_kemasan: bahan.hargaTotalBeliKemasan ?? null, // Gunakan ?? null
+          // MODIFIED: Mengirim langsung nilai dari BahanBaku (yang sudah non-nullable)
+          jumlah_beli_kemasan: bahan.jumlahBeliKemasan, // MODIFIED: Tidak perlu ?? null lagi
+          satuan_kemasan: bahan.satuanKemasan,         // MODIFIED: Tidak perlu ?? null lagi
+          harga_total_beli_kemasan: bahan.hargaTotalBeliKemasan, // MODIFIED: Tidak perlu ?? null lagi
         })
         .select()
         .single();
@@ -154,15 +156,15 @@ export const useBahanBaku = (userId: string | undefined) => {
         updateData.tanggal_kadaluwarsa = null;
       }
 
-      // MODIFIED: Gunakan operator 'in' untuk memastikan properti detail pembelian disertakan
+      // MODIFIED: Mengirim langsung nilai dari updates (yang sudah non-nullable)
       if ('jumlahBeliKemasan' in updates) {
-        updateData.jumlah_beli_kemasan = updates.jumlahBeliKemasan ?? null;
+        updateData.jumlah_beli_kemasan = updates.jumlahBeliKemasan; // MODIFIED: Tidak perlu ?? null lagi
       }
       if ('satuanKemasan' in updates) {
-        updateData.satuan_kemasan = updates.satuanKemasan ?? null;
+        updateData.satuan_kemasan = updates.satuanKemasan;         // MODIFIED: Tidak perlu ?? null lagi
       }
       if ('hargaTotalBeliKemasan' in updates) {
-        updateData.harga_total_beli_kemasan = updates.hargaTotalBeliKemasan ?? null;
+        updateData.harga_total_beli_kemasan = updates.hargaTotalBeliKemasan; // MODIFIED: Tidak perlu ?? null lagi
       }
 
 

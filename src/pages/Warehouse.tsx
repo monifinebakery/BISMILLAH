@@ -94,16 +94,20 @@ const WarehousePage = () => {
     }
   };
 
-  const handleEdit = (item: BahanBaku) => {
-    setEditingItem({
-        ...item,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
-    });
-    setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0,
-        purchaseUnit: item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
-    });
+  // MODIFIED: handleEdit function - Ambil item lengkap dari bahanBaku array
+  const handleEdit = (itemToEdit: BahanBaku) => { // Parameter diganti namanya agar lebih jelas
+    // Temukan objek item lengkap yang segar dari array bahanBaku utama (source of truth)
+    const fullItem = bahanBaku.find(b => b.id === itemToEdit.id);
+
+    if (fullItem) {
+      setEditingItem(fullItem); // MODIFIED: Set editingItem ke objek lengkap yang ditemukan
+      // purchaseDetails di WarehousePage TIDAK perlu diinisialisasi di sini lagi,
+      // karena dialog akan mengambil datanya dari prop `item` (yaitu `editingItem`).
+      // Hapus baris ini: setPurchaseDetails({ purchaseQuantity: item.jumlahBeliKemasan || 0, ... });
+    } else {
+      console.error("Error: Item tidak ditemukan di daftar bahanBaku untuk diedit.", itemToEdit);
+      toast.error("Gagal mengedit: Item tidak ditemukan.");
+    }
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
@@ -173,7 +177,7 @@ const WarehousePage = () => {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  Gudang Bahan Baku
+                  Gudang
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
                   Kelola inventori bahan baku
@@ -338,26 +342,28 @@ const WarehousePage = () => {
                   {/* Detail Pembelian Section */}
                   <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
                     <CardHeader>
-                      <CardTitle className="text-base text-gray-800">Detail Pembelian (Opsional)</CardTitle>
+                      <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle> {/* MODIFIED: Hapus "(Opsional)" */}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
+                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                           <Input
                             id="purchaseQuantity"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseQuantity)}
-                            onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
+                            value={getInputValue(newItem.jumlahBeliKemasan)} // MODIFIED: Gunakan getInputValue
+                            onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || null })}
                             placeholder="0"
                             className="rounded-md"
+                            required // MODIFIED: Tambahkan required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
+                          <Label htmlFor="purchaseUnit">Satuan Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                           <Select
-                            value={getInputValue(purchaseDetails.purchaseUnit) as string}
-                            onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
+                            value={getInputValue(newItem.satuanKemasan) as string} // MODIFIED: Gunakan getInputValue
+                            onValueChange={(value) => setNewItem({ ...newItem, satuanKemasan: value })}
+                            required // MODIFIED: Tambahkan required
                           >
                             <SelectTrigger className="rounded-md">
                               <SelectValue placeholder="Pilih satuan" />
@@ -370,14 +376,15 @@ const WarehousePage = () => {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
+                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan *</Label> {/* MODIFIED: Tambahkan "*" */}
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
-                            value={getInputValue(purchaseDetails.purchaseTotalPrice)}
-                            onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
+                            value={getInputValue(newItem.hargaTotalBeliKemasan)}
+                            onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || null })}
                             placeholder="0"
                             className="rounded-md"
+                            required // MODIFIED: Tambahkan required
                           />
                         </div>
                       </div>

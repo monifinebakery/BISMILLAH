@@ -164,7 +164,6 @@ const AppLayout = () => {
                 <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
                   <PaymentStatusIndicator />
                   <CloudSyncButton variant="upload" />
-                  <ThemeToggle /> 
                   <DateTimeDisplay />
                   <NotificationBell />
                   <Button

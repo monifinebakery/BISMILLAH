@@ -30,9 +30,9 @@ const WarehousePage = () => {
     minimum: 0,
     supplier: '',
     tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: null,
-    satuanKemasan: null,
-    hargaTotalBeliKemasan: null,
+    jumlahBeliKemasan: 0,
+    satuanKemasan: '',
+    hargaTotalBeliKemasan: 0,
   });
 
   const [purchaseDetails, setPurchaseDetails] = useState({

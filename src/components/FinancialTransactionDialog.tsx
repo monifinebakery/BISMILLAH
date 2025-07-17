@@ -3,62 +3,70 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } => { /* ... */ }; // Tambahkan Textarea jika dibutuhkan, ada di import list
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: FinancialTransaction) => Promise<boolean>;
+  onAddTransaction: (transaction: any) => Promise<boolean>;
   categories: { income: string[]; expense: string[] };
 }
 
-interface FinancialTransaction {
-  user_id: string;
-  type: 'pemasukan' | 'pengeluaran';
-  category: string;
-  amount: number;
-  description: string;
-  date: string; // ISO string format
-}
-
-const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ 
-  isOpen, 
-  onClose, 
-  onAddTransaction, 
-  categories 
-}) => {
-  const [formData, setFormData] = useState<FinancialTransaction>({
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
+  const [formData, setFormData] = useState({
     user_id: '',
-    type: 'pemasukan',
+    type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
     category: '',
     amount: 0,
     description: '',
-    date: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Safe date formatter that never throws
-  const formatDateForInput = (date: Date | string): string => {
+  // MODIFIED: getInputValue helper function (sekarang sebagai formatDateForInput, lebih spesifik)
+  // Nama fungsinya diubah untuk kejelasan agar fokus pada formatting input tanggal
+  const formatDateForInput = (date: Date | string | null | undefined): string => {
     try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      
-      // Check if date is valid
-      if (isNaN(dateObj.getTime())) {
+      // Jika nilai null/undefined/string kosong, kembalikan string kosong
+      if (date === null || date === undefined || date === '') {
         return '';
       }
 
+      let dateObj: Date;
+      // Jika sudah objek Date, gunakan langsung
+      if (date instanceof Date) {
+        dateObj = date;
+      } else if (typeof date === 'string') {
+        // Coba parse string ke Date
+        dateObj = new Date(date);
+      } else {
+        // Tangani tipe yang tidak terduga
+        console.warn('formatDateForInput received unexpected type:', typeof date, date);
+        return '';
+      }
+
+      // Pastikan objek Date yang dihasilkan valid
+      if (isNaN(dateObj.getTime())) {
+        return ''; // Tanggal tidak valid (misalnya dari string "invalid date"), kembalikan string kosong
+      }
+
+      // Dapatkan string ISO, lalu pastikan itu adalah string sebelum di-split
       const isoString = dateObj.toISOString();
-      return isoString.split('T')[0];
+      if (typeof isoString !== 'string' || isoString === null || isoString === undefined || isoString.trim() === '') {
+          console.warn('toISOString() returned non-string or empty:', isoString);
+          return ''; // Jika toISOString entah bagaimana gagal atau mengembalikan string kosong/null/undefined
+      }
+
+      return isoString.split('T')[0]; // Ambil bagian YYYY-MM-DD
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return '';
+      console.error('Error formatting date for input (caught):', error, date);
+      return ''; // Jika ada error di tengah jalan, kembalikan string kosong
     }
   };
 
-  // Reset form when dialog opens/closes
+
+  // useEffect untuk mereset form saat dialog dibuka/ditutup
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -67,12 +75,12 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '',
         amount: 0,
         description: '',
-        date: new Date().toISOString(),
+        date: formatDateForInput(new Date()), // MODIFIED: Gunakan formatDateForInput
       });
     }
   }, [isOpen]);
 
-  const handleChange = (name: keyof FinancialTransaction, value: string | number) => {
+  const handleChange = (name: string, value: string | number) => {
     if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
       setFormData(prev => ({ ...prev, [name]: '' }));
     } else {
@@ -80,73 +88,53 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   };
 
-  const handleDateChange = (value: string) => {
-    try {
-      const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid date');
-      }
-      handleChange('date', date.toISOString());
-    } catch (error) {
-      console.error('Invalid date:', error);
-      handleChange('date', '');
-    }
+  const handleDateChange = (value: string) => { // Fungsi ini menerima string YYYY-MM-DD dari Input
+    // Simpan string YYYY-MM-DD langsung ke state
+    setFormData(prev => ({ ...prev, date: value }));
   };
 
+
   const handleSave = async () => {
-    // Validation
-    if (!formData.category.trim()) {
-      toast.error('Kategori harus diisi');
+    // Validasi
+    if (
+      !formData.category.trim() ||
+      formData.amount <= 0 ||
+      !formData.description.trim() ||
+      !formData.date // formData.date adalah string YYYY-MM-DD
+    ) {
+      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    if (formData.amount <= 0) {
-      toast.error('Jumlah harus lebih dari 0');
-      return;
-    }
-
-    if (!formData.description.trim()) {
-      toast.error('Deskripsi harus diisi');
-      return;
-    }
-
-    // Date validation
+    // Validasi tanggal lebih ketat sebelum dikirim ke onAddTransaction
+    let finalDate: Date;
     try {
-      const date = new Date(formData.date);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid date');
+      const parsedDate = new Date(formData.date);
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error('Tanggal tidak valid');
       }
+      finalDate = parsedDate;
     } catch (error) {
-      toast.error('Tanggal tidak valid');
+      toast.error('Tanggal tidak valid.');
       return;
     }
 
-    setIsLoading(true);
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user.id || '';
 
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user.id) {
-        throw new Error('User not authenticated');
-      }
+    const transactionData = {
+      user_id: userId,
+      type: formData.type,
+      category: formData.category,
+      amount: Number(formData.amount),
+      date: finalDate.toISOString(), // Kirim sebagai ISO string ke onAddTransaction
+    };
 
-      const transactionData: FinancialTransaction = {
-        ...formData,
-        user_id: session.user.id,
-      };
-
-      const success = await onAddTransaction(transactionData);
-      
-      if (success) {
-        toast.success('Transaksi berhasil ditambahkan!');
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      toast.error('Gagal menambahkan transaksi');
-    } finally {
-      setIsLoading(false);
+    const success = await onAddTransaction(transactionData);
+    if (success) {
+      onClose();
+      toast.success('Transaksi berhasil ditambahkan!');
     }
   };
 
@@ -159,14 +147,12 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
         <div className="flex-grow overflow-y-auto pr-4 -mr-4">
           <div className="space-y-4">
-            {/* Transaction Type */}
             <div>
-              <Label htmlFor="type">Tipe Transaksi</Label>
+              <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value: 'pemasukan' | 'pengeluaran') => 
-                  handleChange('type', value)
-                }
+                name="type"
+                value={formatDateForInput(formData.type) as string} // MODIFIED: Gunakan formatDateForInput
+                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih tipe transaksi" />
@@ -177,84 +163,73 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Category */}
             <div>
-              <Label htmlFor="category">Kategori</Label>
+              <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
               <Select
-                value={formData.category}
+                name="category"
+                value={formatDateForInput(formData.category) as string} // MODIFIED: Gunakan formatDateForInput
                 onValueChange={(value) => handleChange('category', value)}
               >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="-placeholder-category-" disabled>
-                    Pilih Kategori
-                  </SelectItem>
+                  <SelectItem value="-placeholder-category-" disabled>Pilih Kategori</SelectItem>
                   {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Amount */}
             <div>
-              <Label htmlFor="amount">Jumlah</Label>
+              <Label htmlFor="amount" className="block text-sm font-medium text-gray-700">Jumlah</Label>
               <Input
                 type="number"
-                min="0"
-                step="0.01"
-                value={formData.amount}
+                name="amount"
+                value={formatDateForInput(formData.amount)} // MODIFIED: Gunakan formatDateForInput
                 onChange={(e) => handleChange('amount', Number(e.target.value))}
                 className="mt-1 w-full"
                 placeholder="Masukkan jumlah"
               />
             </div>
-
-            {/* Description */}
             <div>
-              <Label htmlFor="description">Deskripsi</Label>
-              <Textarea
-                value={formData.description}
+              <Label htmlFor="description" className="block text-sm font-medium text-gray-700">Deskripsi</Label>
+              <Input
+                type="text"
+                name="description"
+                value={formatDateForInput(formData.description)} // MODIFIED: Gunakan formatDateForInput
                 onChange={(e) => handleChange('description', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan deskripsi"
-                rows={3}
               />
             </div>
-
-            {/* Date */}
             <div>
-              <Label htmlFor="date">Tanggal</Label>
+              <Label htmlFor="date" className="block text-sm font-medium text-gray-700">Tanggal</Label>
               <Input
                 type="date"
-                value={formatDateForInput(formData.date)}
+                name="date"
+                value={formatDateForInput(formData.date)} // MODIFIED: Gunakan formatDateForInput
                 onChange={(e) => handleDateChange(e.target.value)}
                 className="mt-1 w-full"
+                placeholder="Masukkan tanggal"
               />
             </div>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="mt-6 flex justify-end space-x-4">
           <Button
             onClick={onClose}
             variant="outline"
-            disabled={isLoading}
+            className="px-4 py-2"
           >
             Batal
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
           >
-            {isLoading ? 'Menyimpan...' : 'Simpan'}
+            Simpan
           </Button>
         </div>
       </DialogContent>

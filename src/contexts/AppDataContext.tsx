@@ -557,15 +557,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
         })),
         assets: assets.map(item => ({
-          id: item.id, nama: item.nama, jenis: item.jenis, nilai_awal: item.nilai, // Changed from nilai to nilai_awal
+          id: item.id, nama: item.nama, jenis: item.jenis, nilai_awal: item.nilai,
           umur_manfaat: item.umurManfaat, tanggal_pembelian: toSafeISOString(item.tanggalPembelian),
-          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_sekarang: item.nilaiSaatIni, // Changed from nilaiSaatIni to nilai_sekarang
+          penyusutan_per_bulan: item.penyusutanPerBulan, nilai_sekarang: item.nilaiSaatIni,
           user_id: session.user.id, created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
         })),
         financialTransactions: financialTransactions.map(item => ({
-          id: item.id, user_id: item.user_id, // Add user_id
+          id: item.id, user_id: item.user_id,
           type: item.type, category: item.category, amount: item.amount, description: item.description,
-          tanggal: toSafeISOString(item.tanggal), // Changed from date to tanggal
+          tanggal: toSafeISOString(item.date),
           created_at: toSafeISOString(item.created_at), updated_at: toSafeISOString(item.updatedAt),
         })),
       };
@@ -642,9 +642,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         bahanBaku: bahanBakuRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
-          kategori: item.kategori || '', // MODIFIED
+          kategori: item.kategori || '',
           stok: parseFloat(item.stok) || 0,
-          satuan: item.satuan || '', // MODIFIED
+          satuan: item.satuan || '',
           minimum: parseFloat(item.minimum) || 0,
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier || '',
@@ -652,18 +652,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
-          jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) || 0, // MODIFIED || 0
-          satuanKemasan: item.satuan_kemasan || '', // MODIFIED || ''
-          hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) || 0, // MODIFIED || 0
+          jumlahBeliKemasan: parseFloat(item.jumlah_beli_kemasan) || 0,
+          satuanKemasan: item.satuan_kemasan || '',
+          hargaTotalBeliKemasan: parseFloat(item.harga_total_beli_kemasan) || 0,
         })) || [],
         suppliers: suppliersRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama,
-          kontak: item.kontak || '', // MODIFIED
-          email: item.email || '', // MODIFIED
-          telepon: item.telepon || '', // MODIFIED
-          alamat: item.alamat || '', // MODIFIED
-          catatan: item.catatan || '', // MODIFIED
+          kontak: item.kontak || '',
+          email: item.email || '',
+          telepon: item.telepon || '',
+          alamat: item.alamat || '',
+          catatan: item.catatan || '',
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
@@ -671,21 +671,21 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         purchases: purchasesRes.data?.map((item: any) => ({
           id: item.id,
           tanggal: safeParseDate(item.tanggal),
-          supplier: item.supplier || '', // MODIFIED
+          supplier: item.supplier || '',
           items: item.items || [],
           totalNilai: parseFloat(item.total_nilai) || 0,
-          status: item.status || '', // MODIFIED
-          metodePerhitungan: item.metode_perhitungan || '', // MODIFIED
-          catatan: item.catatan || '', // MODIFIED
+          status: item.status || '',
+          metodePerhitungan: item.metode_perhitungan || '',
+          catatan: item.catatan || '',
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
         recipes: recipesRes.data?.map((item: any) => ({
           id: item.id,
-          namaResep: item.nama_resep || '', // MODIFIED
-          deskripsi: item.deskripsi || '', // MODIFIED
-          porsi: parseFloat(item.porsi) || 0, // MODIFIED
+          namaResep: item.nama_resep || '',
+          deskripsi: item.deskripsi || '',
+          porsi: parseFloat(item.porsi) || 0,
           ingredients: item.ingredients || [],
           biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
@@ -693,14 +693,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
-          category: item.category || '', // MODIFIED
+          category: item.category || '',
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
         hppResults: hppResultsRes.data?.map((item: any) => ({
           id: item.id,
-          nama: item.nama || '', // MODIFIED
+          nama: item.nama || '',
           ingredients: item.ingredients || [],
           biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
@@ -716,10 +716,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         })) || [],
         activities: activitiesRes.data?.map((item: any) => ({
           id: item.id,
-          title: item.title || '', // MODIFIED
-          description: item.description || '', // MODIFIED
-          type: item.type || '', // MODIFIED
-          value: item.value || '', // MODIFIED
+          title: item.title || '',
+          description: item.description || '',
+          type: item.type || '',
+          value: item.value || '',
           timestamp: safeParseDate(item.created_at),
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
@@ -727,32 +727,32 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         })) || [],
         orders: ordersRes.data?.map((item: any) => ({
           id: item.id,
-          nomorPesanan: item.nomor_pesanan || '', // MODIFIED
+          nomorPesanan: item.nomor_pesanan || '',
           tanggal: safeParseDate(item.tanggal),
-          namaPelanggan: item.nama_pelanggan || '', // MODIFIED
-          emailPelanggan: item.email_pelanggan || '', // MODIFIED
-          teleponPelanggan: item.telepon_pelanggan || '', // MODIFIED
-          alamatPelanggan: item.alamat_pengiriman || '', // MODIFIED
+          namaPelanggan: item.nama_pelanggan || '',
+          emailPelanggan: item.email_pelanggal || '', // Typo: email_penggalan
+          teleponPelanggan: item.telepon_pelanggan || '',
+          alamatPelanggan: item.alamat_pengiriman || '',
           items: item.items || [],
           subtotal: parseFloat(item.subtotal) || 0,
           pajak: parseFloat(item.pajak) || 0,
           totalPesanan: parseFloat(item.total_pesanan) || 0,
-          status: item.status || '', // MODIFIED
-          catatan: item.catatan || '', // MODIFIED
+          status: item.status || '',
+          catatan: item.catatan || '',
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
-          nama: item.nama || '', // MODIFIED
-          kategori: item.kategori || '', // MODIFIED (Changed from jenis to kategori)
+          nama: item.nama || '',
+          kategori: item.kategori || '', // Changed from jenis to kategori
           nilaiAwal: parseFloat(item.nilai_awal) || 0,
           nilaiSekarang: parseFloat(item.nilai_sekarang) || 0,
           tanggalBeli: safeParseDate(item.tanggal_beli), // Changed from tanggal_pembelian
-          kondisi: item.kondisi || '', // MODIFIED
-          lokasi: item.lokasi || '', // MODIFIED
-          deskripsi: item.deskripsi || '', // MODIFIED
+          kondisi: item.kondisi || '',
+          lokasi: item.lokasi || '',
+          deskripsi: item.deskripsi || '',
           depresiasi: parseFloat(item.depresiasi) || 0, // MODIFIED || 0 (from || null)
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
@@ -761,8 +761,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
           tanggal: safeParseDate(item.tanggal),
-          jenis: item.type || '', // MODIFIED (Changed from type to jenis)
-          deskripsi: item.description || '', // MODIFIED (Changed from deskripsi)
+          jenis: item.type || '', // Changed from type to jenis
+          deskripsi: item.description || '', // Changed from deskripsi
           jumlah: parseFloat(item.amount) || 0,
           user_id: item.user_id,
           createdAt: safeParseDate(item.created_at),
@@ -818,16 +818,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   return {
     syncToSupabase,
-    loadFromSupabase,
+    loadFromCloud,
     getCloudStats,
     isLoading
   };
-};
-
-export const useAppData = () => {
-  const context = useContext(AppDataContext);
-  if (context === undefined) {
-    throw new Error('useAppData must be used within an AppDataProvider');
-  }
-  return context;
 };

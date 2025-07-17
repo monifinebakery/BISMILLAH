@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { validateAuthSession } from '@/lib/authUtils';
+import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 export interface PaymentStatus {
   id: string;
@@ -14,8 +15,8 @@ export interface PaymentStatus {
   email: string | null;
   // name: string | null; // <--- BARIS INI DIHAPUS
   payment_status: string;
-  created_at: string;
-  updated_at: string;
+  created_at: date; // Ubah dari string menjadi Date
+  updated_at: date; // Ubah dari string menjadi Date
 }
 
 // Ini adalah fungsi yang perlu diekspor.

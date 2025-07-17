@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea }area from '@/components/ui/textarea'; // Tambahkan Textarea jika dibutuhkan, ada di import list
+import { Textarea } from '@/components/ui/textarea'; // Tambahkan Textarea jika dibutuhkan, ada di import list
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Hapus jika tidak digunakan
 // import { Plus, X } from 'lucide-react'; // Hapus jika tidak digunakan
@@ -86,7 +86,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         <div className="space-y-4">
           <div>
             <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
-            <Select name="type" value={formData.type} onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}>
+            <Select name="type" value={String(formData.type)} onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}> {/* MODIFIED: String() */}
               <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Pilih tipe transaksi" />
               </SelectTrigger>
@@ -98,7 +98,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
           </div>
           <div>
             <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
-            <Select name="category" value={formData.category} onValueChange={(value) => handleChange('category', value)}>
+            <Select name="category" value={String(formData.category)} onValueChange={(value) => handleChange('category', value)}> {/* MODIFIED: String() */}
               <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
@@ -115,8 +115,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="number"
               name="amount"
-              value={formData.amount}
-              // MODIFIED: Konversi e.target.value menjadi Number secara eksplisit
+              value={String(formData.amount)} // MODIFIED: String()
               onChange={(e) => handleChange('amount', Number(e.target.value))}
               className="mt-1 w-full"
               placeholder="Masukkan jumlah"
@@ -127,7 +126,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="text"
               name="description"
-              value={formData.description}
+              value={String(formData.description)} // MODIFIED: String()
               onChange={(e) => handleChange('description', e.target.value)}
               className="mt-1 w-full"
               placeholder="Masukkan deskripsi"
@@ -138,7 +137,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Input
               type="date"
               name="date"
-              value={formData.date}
+              value={String(formData.date)} // MODIFIED: String()
               onChange={(e) => handleChange('date', e.target.value)}
               className="mt-1 w-full"
               placeholder="Masukkan tanggal"

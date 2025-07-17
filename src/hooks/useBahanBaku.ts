@@ -1,68 +1,243 @@
-const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
-  console.log('Received updatedBahan:', updatedBahan); // Log input
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { BahanBaku } from '@/types/recipe';
+import { generateUUID } from '@/utils/uuid';
+import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
+import { safeParseDate } from '@/hooks/useSupabaseSync'; 
 
-  const bahanToUpdate: Partial<any> = {
-    updated_at: new Date().toISOString(),
+const STORAGE_KEY = 'hpp_app_bahan_baku';
+
+export const useBahanBaku = (userId: string | undefined) => {
+  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() => 
+    loadFromStorage(STORAGE_KEY, [])
+  );
+  const [loading, setLoading] = useState(true);
+
+  const loadBahanBaku = async () => {
+    try {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', userId)
+        .order('nama', { ascending: true });
+
+      if (error) {
+        console.error('Error loading bahan baku:', error);
+        toast.error('Gagal memuat data bahan baku');
+        const savedBahanBaku = loadFromStorage(STORAGE_KEY, []);
+        setBahanBaku(savedBahanBaku);
+        return;
+      }
+
+      const formattedBahanBaku = data?.map((item: any) => ({
+        id: item.id,
+        nama: item.nama,
+        kategori: item.kategori,
+        stok: parseFloat(item.stok) || 0,
+        satuan: item.satuan,
+        minimum: parseFloat(item.minimum) || 0,
+        hargaSatuan: parseFloat(item.harga_satuan) || 0,
+        supplier: item.supplier || '',
+        tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
+        createdAt: safeParseDate(item.created_at),
+        updatedAt: safeParseDate(item.updated_at),
+        lastPurchaseQuantity: parseFloat(item.last_purchase_quantity) || undefined,
+        lastPurchaseUnit: item.last_purchase_unit || undefined,
+        lastPurchaseTotalPrice: parseFloat(item.last_purchase_total_price) || undefined,
+      })) || [];
+
+      setBahanBaku(formattedBahanBaku);
+      saveToStorage(STORAGE_KEY, formattedBahanBaku);
+    } catch (error) {
+      console.error('Error in loadBahanBaku:', error);
+      toast.error('Gagal memuat data bahan baku');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Pastikan semua field yang mungkin diubah selalu dimasukkan
-  if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
-  if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
-  if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
-  if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
-  if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
-  if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-  if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
-  if (updatedBahan.tanggalKadaluwarsa !== undefined) {
-    bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa?.toISOString() || null;
-  } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
-    bahanToUpdate.tanggal_kadaluwarsa = null;
-  }
+  useEffect(() => {
+    loadBahanBaku();
+  }, [userId]);
 
-  // Pastikan purchase details selalu diperbarui, bahkan jika null
-  bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-  bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-  bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY, bahanBaku);
+  }, [bahanBaku]);
 
-  console.log('Final bahanToUpdate before update:', bahanToUpdate); // Log sebelum update
 
-  const { error, data } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).select();
+  const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Anda harus login untuk menambah bahan baku');
+        return false;
+      }
 
-  if (error) {
-    console.error('Error updating bahan baku in DB:', error);
-    toast.error(`Gagal memperbarui bahan baku: ${error.message}`);
-    return false;
-  }
+      const newBahanId = generateUUID();
+      const now = new Date();
 
-  if (data && data.length > 0) {
-    const updatedItem = data[0];
-    setBahanBaku(prev =>
-      prev.map(item =>
-        item.id === id
-          ? {
-              ...item,
-              ...updatedBahan,
-              tanggalKadaluwarsa: safeParseDate(updatedItem.tanggal_kadaluwarsa),
-              hargaSatuan: parseFloat(updatedItem.harga_satuan) || 0,
-              jumlahBeliKemasan: updatedItem.jumlah_beli_kemasan !== null ? parseFloat(updatedItem.jumlah_beli_kemasan) : null,
-              satuanKemasan: updatedItem.satuan_kemasan || null,
-              hargaTotalBeliKemasan: updatedItem.harga_total_beli_kemasan !== null ? parseFloat(updatedItem.harga_total_beli_kemasan) : null,
-              updatedAt: safeParseDate(updatedItem.updated_at),
-            }
-          : item
-      )
-    );
-    console.log('Updated bahanBaku state:', bahanBaku); // Log state setelah update
-  } else {
-    console.warn('No data returned from Supabase update, falling back to local update');
-    setBahanBaku(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item
-      )
-    );
-  }
+      const { data, error } = await supabase
+        .from('bahan_baku')
+        .insert({
+          id: newBahanId,
+          user_id: session.user.id,
+          nama: bahan.nama,
+          kategori: bahan.kategori,
+          stok: bahan.stok,
+          satuan: bahan.satuan,
+          minimum: bahan.minimum,
+          harga_satuan: bahan.hargaSatuan,
+          supplier: bahan.supplier,
+          tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa instanceof Date ? bahan.tanggalKadaluwarsa.toISOString() : null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+          last_purchase_quantity: bahan.lastPurchaseQuantity || null,
+          last_purchase_unit: bahan.lastPurchaseUnit || null,
+          last_purchase_total_price: bahan.lastPurchaseTotalPrice || null,
+        })
+        .select()
+        .single();
 
-  await syncToCloud();
-  toast.success(`Bahan baku berhasil diperbarui!`);
-  return true;
+      if (error) {
+        console.error('Error adding bahan baku:', error);
+        toast.error(`Gagal menambah bahan baku: ${error.message}`);
+        return false;
+      }
+
+      setBahanBaku(prev => [...prev, {
+        ...bahan,
+        id: newBahanId,
+        createdAt: now,
+        updatedAt: now,
+      }]);
+      toast.success('Bahan baku berhasil ditambahkan');
+      return true;
+    } catch (error) {
+      console.error('Error in addBahanBaku:', error);
+      toast.error('Gagal menambah bahan baku');
+      return false;
+    }
+  };
+
+  const updateBahanBaku = async (id: string, updates: Partial<BahanBaku>) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Anda harus login untuk mengupdate bahan baku');
+        return false;
+      }
+
+      const updateData: Partial<any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (updates.nama !== undefined) updateData.nama = updates.nama;
+      if (updates.kategori !== undefined) updateData.kategori = updates.kategori;
+      if (updates.stok !== undefined) updateData.stok = updates.stok;
+      if (updates.satuan !== undefined) updateData.satuan = updates.satuan;
+      if (updates.minimum !== undefined) updateData.minimum = updates.minimum;
+      if (updates.hargaSatuan !== undefined) updateData.harga_satuan = updates.hargaSatuan;
+      if (updates.supplier !== undefined) updateData.supplier = updates.supplier;
+      if (updates.tanggalKadaluwarsa !== undefined) {
+        updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa instanceof Date ? updates.tanggalKadaluwarsa.toISOString() : null;
+      } else if (updates.tanggalKadaluwarsa === null) {
+        updateData.tanggal_kadaluwarsa = null;
+      }
+      if (updates.lastPurchaseQuantity !== undefined) updateData.last_purchase_quantity = updates.lastPurchaseQuantity;
+      if (updates.lastPurchaseUnit !== undefined) updateData.last_purchase_unit = updates.lastPurchaseUnit;
+      if (updates.lastPurchaseTotalPrice !== undefined) updateData.last_purchase_total_price = updates.lastPurchaseTotalPrice;
+
+
+      const { error } = await supabase
+        .from('bahan_baku')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error updating bahan baku:', error);
+        toast.error(`Gagal mengupdate bahan baku: ${error.message}`);
+        return false;
+      }
+
+      setBahanBaku(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, ...updates, updatedAt: new Date() } : item
+        )
+      );
+      toast.success('Bahan baku berhasil diupdate');
+      return true;
+    } catch (error) {
+      console.error('Error in updateBahanBaku:', error);
+      toast.error('Gagal mengupdate bahan baku');
+      return false;
+    }
+  };
+
+  const deleteBahanBaku = async (id: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Anda harus login untuk menghapus bahan baku');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('bahan_baku')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error deleting bahan baku:', error);
+        toast.error(`Gagal menghapus bahan baku: ${error.message}`);
+        return false;
+      }
+
+      setBahanBaku(prev => prev.filter(item => item.id !== id));
+      toast.success('Bahan baku berhasil dihapus');
+      return true;
+    } catch (error) {
+      console.error('Error in deleteBahanBaku:', error);
+      toast.error('Gagal menghapus bahan baku');
+      return false;
+    }
+  };
+
+  const getBahanBakuByName = (nama: string): BahanBaku | undefined => {
+    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
+  };
+
+  const reduceStok = (nama: string, jumlah: number): boolean => {
+    const bahan = getBahanBakuByName(nama);
+    if (!bahan) {
+      toast.error(`Stok ${nama} tidak ditemukan.`);
+      return false;
+    }
+    if (bahan.stok < jumlah) {
+      toast.error(`Stok ${nama} tidak cukup. Tersisa ${bahan.stok} ${bahan.satuan}.`);
+      return false;
+    }
+    updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
+    return true;
+  };
+
+  return {
+    bahanBaku,
+    loading,
+    loadBahanBaku,
+    addBahanBaku,
+    updateBahanBaku,
+    deleteBahanBaku,
+    getBahanBakuByName,
+    reduceStok,
+    setBahanBaku,
+  };
 };

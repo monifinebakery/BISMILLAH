@@ -51,9 +51,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
   useEffect(() => {
     if (item) {
-      // MODIFIED: Menggunakan optional chaining untuk tanggalKadaluwarsa
-      const formattedDate = item.tanggalKadaluwarsa?.toISOString().split('T')[0] || '';
-
       setFormData({
         nama: item.nama,
         kategori: item.kategori,
@@ -62,7 +59,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: formattedDate, // Simpan sebagai string YYYY-MM-DD
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa,
         jumlahBeliKemasan: item.jumlahBeliKemasan,
         satuanKemasan: item.satuanKemasan,
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan,
@@ -121,17 +118,12 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       return;
     }
 
-    // Konversi tanggalKadaluwarsa dari string YYYY-MM-DD kembali ke Date object
-    const tanggalKadaluwarsaDate = formData.tanggalKadaluwarsa 
-      ? new Date(formData.tanggalKadaluwarsa) 
-      : undefined;
-
     const updatesToSend: Partial<BahanBaku> = {
       ...formData,
       stok: parseFloat(String(formData.stok)) || 0,
       minimum: parseFloat(String(formData.minimum)) || 0,
       hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
-      tanggalKadaluwarsa: tanggalKadaluwarsaDate, // Kirim sebagai Date object atau undefined
+      tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
       jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
       satuanKemasan: purchaseDetails.purchaseUnit,
       hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
@@ -151,8 +143,22 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
+  // MODIFIED: getInputValue helper function with more robust checks
+  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
+      return '';
+    }
+    // Jika itu objek Date, konversi ke YYYY-MM-DD
+    if (value instanceof Date) {
+      // Pastikan tanggal valid sebelum memanggil toISOString
+      if (isNaN(value.getTime())) {
+        return ''; // Tanggal tidak valid, kembalikan string kosong
+      }
+      return value.toISOString().split('T')[0];
+    }
+    // Jika nilai bukan Date, string, atau number, kembalikan string kosong
+    // Ini menangani kasus di mana 'value' mungkin objek kosong atau array
+    if (typeof value !== 'string' && typeof value !== 'number') {
       return '';
     }
     return value;
@@ -251,7 +257,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="tanggalKadaluwarsa"
                 type="date"
-                value={formData.tanggalKadaluwarsa?.toISOString().split('T')[0] || ''} // MODIFIED: Optional chaining
+                value={formData.tanggalKadaluwarsa instanceof Date ? formData.tanggalKadaluwarsa.toISOString().split('T')[0] : ''}
                 onChange={(e) => setFormData({ ...formData, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
@@ -270,7 +276,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                       id="purchaseQuantity"
                       type="number"
                       value={getInputValue(purchaseDetails.purchaseQuantity)}
-                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
                     />
@@ -297,7 +303,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                       id="purchaseTotalPrice"
                       type="number"
                       value={getInputValue(purchaseDetails.purchaseTotalPrice)}
-                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || null })}
                       placeholder="0"
                       className="rounded-md"
                     />
@@ -310,9 +316,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             </Card>
           </div>
 
-        </div>
+        </div> {/* End flex-grow overflow div */}
 
-        <div className="flex gap-2 mt-6">
+        <div className="flex gap-2 pt-4"> {/* Buttons */}
           <Button variant="outline" onClick={handleClose} className="flex-1 border-gray-300 hover:bg-gray-50 rounded-md">
             Batal
           </Button>
@@ -325,4 +331,4 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   );
 };
 
-export default BahanBakuEditDialog.tsx
+export default BahanBakuEditDialog;

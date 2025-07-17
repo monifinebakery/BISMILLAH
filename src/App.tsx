@@ -102,7 +102,6 @@ const AppLayout = () => {
             <div className="flex items-center space-x-2">
               {isPaid && <PaymentStatusIndicator />}
               <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
-              <ThemeToggle /> 
               <NotificationBell />
               <Button
                 variant="ghost"

@@ -90,7 +90,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Pilih Kategori</SelectItem>
-              {categories.map((cat) => (
+              {(categories || []).map((cat) => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>

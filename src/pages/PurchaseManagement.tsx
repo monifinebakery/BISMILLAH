@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { ShoppingCart, Plus, Edit, Trash2, Package, Search } from 'lucide-react'
 import { usePurchases, PurchaseTransaction, PurchaseItem } from '@/hooks/usePurchases';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAppData } from '@/contexts/AppDataContext';
+import { toast } from 'sonner';
 
 const PurchaseManagement = () => {
   const { purchases, loading, addPurchase, updatePurchase, deletePurchase } = usePurchases();
@@ -26,7 +26,7 @@ const PurchaseManagement = () => {
   const [newPurchase, setNewPurchase] = useState({
     supplierId: '',
     supplierName: '',
-    tanggal: new Date().toISOString().split('T')[0],
+    tanggal: new Date().toISOString().split('T')[0], // Initial date as YYYY-MM-DD string
     items: [] as PurchaseItem[],
     status: 'pending' as 'pending' | 'completed' | 'cancelled',
     metodePerhitungan: 'FIFO',
@@ -51,20 +51,25 @@ const PurchaseManagement = () => {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
+    // MODIFIED: Tambahkan validasi untuk objek Date
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }).format(date);
+    }
+    return 'Tanggal tidak valid'; // Fallback for invalid dates
   };
 
   const handleAddItem = () => {
     if (!newItem.namaBarang || !newItem.kuantitas || !newItem.hargaSatuan) {
+      toast.error('Nama barang, kuantitas, dan harga satuan wajib diisi.');
       return;
     }
 
     const item: PurchaseItem = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // Unique ID for list item
       bahanBakuId: newItem.bahanBakuId,
       namaBarang: newItem.namaBarang,
       kuantitas: newItem.kuantitas,
@@ -73,38 +78,64 @@ const PurchaseManagement = () => {
       totalHarga: newItem.kuantitas * newItem.hargaSatuan,
     };
 
-    setNewPurchase({
-      ...newPurchase,
-      items: [...newPurchase.items, item],
-    });
+    setNewPurchase(prev => ({
+      ...prev,
+      items: [...prev.items, item],
+    }));
 
-    setNewItem({
+    setNewItem({ // Reset for next item
       bahanBakuId: '',
       namaBarang: '',
       kuantitas: 0,
       satuan: '',
       hargaSatuan: 0,
     });
+    toast.success('Item berhasil ditambahkan.');
   };
 
   const handleRemoveItem = (itemId: string) => {
-    setNewPurchase({
-      ...newPurchase,
-      items: newPurchase.items.filter(item => item.id !== itemId),
-    });
+    if (newPurchase.items.length > 1) { // Ensure at least one item remains
+      setNewPurchase(prev => ({
+        ...prev,
+        items: prev.items.filter(item => item.id !== itemId),
+      }));
+      toast.success('Item berhasil dihapus.');
+    } else {
+      toast.error('Pembelian harus memiliki setidaknya satu item.');
+    }
   };
 
   const handleSavePurchase = async () => {
     if (!newPurchase.supplierId || newPurchase.items.length === 0) {
+      toast.error('Supplier dan minimal satu item wajib diisi.');
       return;
+    }
+
+    // Validate items more thoroughly before saving
+    if (newPurchase.items.some(item => !item.namaBarang.trim() || item.kuantitas <= 0 || item.hargaSatuan < 0)) {
+        toast.error('Semua item harus memiliki nama, kuantitas > 0, dan harga satuan >= 0.');
+        return;
     }
 
     const totalAmount = newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0);
 
+    // MODIFIED: Validate and parse date string to Date object
+    let parsedTanggal: Date;
+    try {
+      const dateObj = new Date(newPurchase.tanggal);
+      if (isNaN(dateObj.getTime())) {
+        throw new Error('Invalid date');
+      }
+      parsedTanggal = dateObj;
+    } catch (error) {
+      toast.error('Tanggal pembelian tidak valid.');
+      return;
+    }
+
     const purchaseData = {
       ...newPurchase,
-      tanggal: new Date(newPurchase.tanggal),
-      totalAmount,
+      tanggal: parsedTanggal, // Use the validated Date object
+      totalAmount, // Ensure totalAmount is added to the data
     };
 
     let success = false;
@@ -117,15 +148,16 @@ const PurchaseManagement = () => {
     if (success) {
       setIsDialogOpen(false);
       setEditingPurchase(null);
-      setNewPurchase({
+      setNewPurchase({ // Reset form after save
         supplierId: '',
         supplierName: '',
-        tanggal: new Date().toISOString().split('T')[0],
+        tanggal: new Date().toISOString().split('T')[0], // Reset to current date string
         items: [],
         status: 'pending',
         metodePerhitungan: 'FIFO',
         catatan: '',
       });
+      toast.success('Pembelian berhasil disimpan.');
     }
   };
 
@@ -134,8 +166,11 @@ const PurchaseManagement = () => {
     setNewPurchase({
       supplierId: purchase.supplierId,
       supplierName: purchase.supplierName,
-      tanggal: purchase.tanggal.toISOString().split('T')[0],
-      items: purchase.items,
+      // MODIFIED: Validasi purchase.tanggal sebelum mengonversi ke string
+      tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())
+                ? purchase.tanggal.toISOString().split('T')[0] // Pastikan hanya Date yang valid yang dipanggil .toISOString()
+                : '', // Jika tidak valid, set ke string kosong
+      items: purchase.items, // Items should be directly assignable
       status: purchase.status,
       metodePerhitungan: purchase.metodePerhitungan || 'FIFO',
       catatan: purchase.catatan || '',
@@ -145,7 +180,12 @@ const PurchaseManagement = () => {
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus pembelian ini?')) {
-      await deletePurchase(id);
+      const success = await deletePurchase(id);
+      if (success) {
+        toast.success('Pembelian berhasil dihapus.');
+      } else {
+        toast.error('Gagal menghapus pembelian.');
+      }
     }
   };
 
@@ -157,14 +197,10 @@ const PurchaseManagement = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Selesai</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800">Dibatalkan</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+      case 'completed': return <Badge className="bg-green-100 text-green-800">Selesai</Badge>;
+      case 'pending': return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'cancelled': return <Badge className="bg-red-100 text-red-800">Dibatalkan</Badge>;
+      default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -349,20 +385,20 @@ const PurchaseManagement = () => {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Nama Barang</TableHead>
+                                <TableHead className="min-w-[80px]">Nama Barang</TableHead>
                                 <TableHead>Kuantitas</TableHead>
                                 <TableHead>Harga Satuan</TableHead>
-                                <TableHead>Total</TableHead>
+                                <TableHead className="text-right">Total</TableHead>
                                 <TableHead>Aksi</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {newPurchase.items.map((item) => (
                                 <TableRow key={item.id}>
-                                  <TableCell>{item.namaBarang}</TableCell>
+                                  <TableCell className="font-medium">{item.namaBarang}</TableCell>
                                   <TableCell>{item.kuantitas} {item.satuan}</TableCell>
                                   <TableCell>{formatCurrency(item.hargaSatuan)}</TableCell>
-                                  <TableCell>{formatCurrency(item.totalHarga)}</TableCell>
+                                  <TableCell className="text-right">{formatCurrency(item.totalHarga)}</TableCell>
                                   <TableCell>
                                     <Button
                                       variant="ghost"
@@ -417,7 +453,7 @@ const PurchaseManagement = () => {
               <div className="w-full sm:w-48">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
@@ -487,7 +523,7 @@ const PurchaseManagement = () => {
 
         {filteredPurchases.length === 0 && (
           <Card className="text-center p-6 sm:p-8 lg:p-12 shadow-lg border-0 bg-white/60 backdrop-blur-sm w-full">
-            <Package className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 text-gray-400 mx-auto mb-4" />
+            <Package className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-700 mb-2">
               {searchTerm ? 'Pembelian tidak ditemukan' : 'Belum ada pembelian'}
             </h3>

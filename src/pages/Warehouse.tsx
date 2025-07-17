@@ -1,4 +1,3 @@
-// src/pages/Warehouse.tsx
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,37 +5,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
-import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku dari types/recipe
-import { useAppData } from '@/contexts/AppDataContext';
-
+import { useBahanBaku } from '@/hooks/useBahanBaku';
+import { BahanBaku } from '@/types/recipe'; 
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useAppData();
-
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku } = useBahanBaku();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // MODIFIED: Inisialisasi newItem dengan null untuk properti pembelian detail
-  const [newItem, setNewItem] = useState<Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>({
+  const [newItem, setNewItem] = useState({
     nama: '',
     kategori: '',
     stok: 0,
     satuan: '',
-    hargaSatuan: 0,
+    hargaSatuan: 0, 
     minimum: 0,
     supplier: '',
-    tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: null,   // MODIFIED: Default ke null
-    satuanKemasan: null,       // MODIFIED: Default ke null
-    hargaTotalBeliKemasan: null, // MODIFIED: Default ke null
+    tanggalKadaluwarsa: undefined as Date | undefined, 
   });
 
-  // purchaseDetails ini untuk form ADD, jadi default 0/'' itu wajar
   const [purchaseDetails, setPurchaseDetails] = useState({
     purchaseQuantity: 0,
     purchaseUnit: '',
@@ -44,10 +36,12 @@ const WarehousePage = () => {
   });
 
   const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
-    'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592 },
+    'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592, 'ons': 28.3495 },
     'ml': { 'liter': 1000, 'ml': 1, 'galon': 3785.41 },
     'pcs': { 'pcs': 1, 'lusin': 12, 'gross': 144, 'box': 1, 'bungkus': 1 },
     'butir': { 'butir': 1, 'tray': 30, 'lusin': 12 },
+    'kg': { 'kg': 1, 'gram': 0.001, 'ons': 0.0283495 }, 
+    'liter': { 'liter': 1, 'ml': 0.001 },
   };
 
   useEffect(() => {
@@ -61,8 +55,10 @@ const WarehousePage = () => {
     if (isPurchaseDetailsActive) {
       if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
         const conversionRates = unitConversionMap[baseUnit];
+
         if (conversionRates) {
           const factor = conversionRates[purchaseUnit.toLowerCase()];
+
           if (factor !== undefined && factor > 0) {
             calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
           } else if (purchaseUnit.toLowerCase() === baseUnit) {
@@ -72,59 +68,109 @@ const WarehousePage = () => {
       }
       setNewItem(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
     } else {
-      setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
+      if (editingItem) { 
+        setNewItem(prev => ({ ...prev, hargaSatuan: editingItem.hargaSatuan })); 
+      } else {
+        setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
+      }
     }
-  }, [purchaseDetails, newItem.satuan]);
+  }, [purchaseDetails, newItem.satuan, editingItem]); 
 
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validasi field utama
     if (!newItem.nama || !newItem.kategori || newItem.stok <= 0 || !newItem.satuan || newItem.hargaSatuan <= 0 || newItem.minimum < 0) {
       toast.error('Harap lengkapi semua field yang wajib diisi dan pastikan Stok serta Harga Satuan lebih dari 0.');
       return;
     }
 
-    const success = await addBahanBaku(newItem);
+    // MODIFIED: Validasi tambahan untuk detail pembelian jika diisi
+    if (purchaseDetails.purchaseQuantity > 0 || purchaseDetails.purchaseTotalPrice > 0 || purchaseDetails.purchaseUnit) {
+      if (purchaseDetails.purchaseQuantity <= 0 || !purchaseDetails.purchaseUnit || purchaseDetails.purchaseTotalPrice <= 0) {
+        toast.error('Jika mengisi Detail Pembelian, harap lengkapi Jumlah Beli Kemasan, Satuan Kemasan, dan Harga Total Beli Kemasan dengan nilai yang valid (lebih dari 0).');
+        return;
+      }
+    }
+
+    const itemData: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt'> = {
+      nama: newItem.nama,
+      kategori: newItem.kategori,
+      stok: newItem.stok,
+      satuan: newItem.satuan,
+      hargaSatuan: newItem.hargaSatuan, 
+      minimum: newItem.minimum,
+      supplier: newItem.supplier,
+      tanggalKadaluwarsa: newItem.tanggalKadaluwarsa, 
+      // MODIFIED: Sertakan detail pembelian saat menambah item baru
+      lastPurchaseQuantity: purchaseDetails.purchaseQuantity > 0 ? purchaseDetails.purchaseQuantity : null,
+      lastPurchaseUnit: purchaseDetails.purchaseUnit || null,
+      lastPurchaseTotalPrice: purchaseDetails.purchaseTotalPrice > 0 ? purchaseDetails.purchaseTotalPrice : null,
+    };
+
+    const success = await addBahanBaku(itemData);
     if (success) {
       setShowAddForm(false);
       setNewItem({
         nama: '', kategori: '', stok: 0, satuan: '', hargaSatuan: 0, minimum: 0, supplier: '', tanggalKadaluwarsa: undefined,
-        jumlahBeliKemasan: null, satuanKemasan: null, hargaTotalBeliKemasan: null,
+        lastPurchaseQuantity: null, lastPurchaseUnit: null, lastPurchaseTotalPrice: null,
       });
       setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchaseDetails for Add form
+      toast.success("Bahan baku berhasil ditambahkan!");
+    } else {
+      toast.error("Gagal menambahkan bahan baku. Silakan coba lagi.");
     }
   };
 
   const handleEdit = (item: BahanBaku) => {
-    setEditingItem({
-        ...item,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa, // Langsung assign Date | undefined dari item
+    const formattedDate = item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime())
+      ? item.tanggalKadaluwarsa.toISOString().split('T')[0]
+      : '';
+
+    setEditingItem(item); // Set item yang sedang diedit
+    setNewItem({ // Isi form dengan data item yang akan diedit
+      nama: item.nama,
+      kategori: item.kategori,
+      stok: item.stok,
+      satuan: item.satuan,
+      hargaSatuan: item.hargaSatuan, // Gunakan hargaSatuan (camelCase)
+      minimum: item.minimum,
+      supplier: item.supplier,
+      tanggalKadaluwarsa: formattedDate, // String YYYY-MM-DD untuk input date
+      lastPurchaseQuantity: item.lastPurchaseQuantity || null, // Pastikan null jika undefined
+      lastPurchaseUnit: item.lastPurchaseUnit || null,
+      lastPurchaseTotalPrice: item.lastPurchaseTotalPrice || null,
     });
+    // MODIFIED: Isi purchaseDetails untuk edit form
     setPurchaseDetails({
-        purchaseQuantity: item.jumlahBeliKemasan || 0,
-        purchaseUnit: item.satuanKemasan || '',
-        purchaseTotalPrice: item.hargaTotalBeliKemasan || 0,
+      purchaseQuantity: item.lastPurchaseQuantity || 0,
+      purchaseUnit: item.lastPurchaseUnit || '',
+      purchaseTotalPrice: item.lastPurchaseTotalPrice || 0,
     });
+    setShowAddForm(true); // Tampilkan form edit
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (editingItem && editingItem.id) {
+        // MODIFIED: Sertakan detail pembelian dari purchaseDetails saat mengedit
         const updatedItemData = {
             ...updates,
-            jumlahBeliKemasan: purchaseDetails.purchaseQuantity,
-            satuanKemasan: purchaseDetails.purchaseUnit,
-            hargaTotalBeliKemasan: purchaseDetails.purchaseTotalPrice,
+            lastPurchaseQuantity: purchaseDetails.purchaseQuantity > 0 ? purchaseDetails.purchaseQuantity : null,
+            lastPurchaseUnit: purchaseDetails.purchaseUnit || null,
+            lastPurchaseTotalPrice: purchaseDetails.purchaseTotalPrice > 0 ? purchaseDetails.purchaseTotalPrice : null,
         };
         
         await updateBahanBaku(editingItem.id, updatedItemData);
         setEditingItem(null);
+        setShowAddForm(false); // Tutup form setelah save
         setPurchaseDetails({ purchaseQuantity: 0, purchaseUnit: '', purchaseTotalPrice: 0 }); // Reset purchaseDetails di WarehousePage setelah save
         toast.success("Bahan baku berhasil diperbarui!");
     } else {
       toast.error("Gagal memperbarui bahan baku.");
     }
   };
+
 
   const handleDelete = async (id: string, nama: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
@@ -183,7 +229,7 @@ const WarehousePage = () => {
                 filename="gudang"
                 menuType="Gudang"
               />
-              <Button
+              <Button 
                 onClick={() => setShowAddForm(true)}
                 className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200"
               >
@@ -228,7 +274,7 @@ const WarehousePage = () => {
               placeholder="Cari bahan baku..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
+              className="pl-10 bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md shadow-sm"
             />
           </div>
         </div>
@@ -340,23 +386,24 @@ const WarehousePage = () => {
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan</Label>
+                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan *</Label>
                           <Input
                             id="purchaseQuantity"
                             type="number"
                             value={getInputValue(purchaseDetails.purchaseQuantity)}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseQuantity: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
+                            required
                             className="rounded-md"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="purchaseUnit">Satuan Kemasan</Label>
+                          <Label htmlFor="purchaseUnit">Satuan Kemasan *</Label>
                           <Select
                             value={getInputValue(purchaseDetails.purchaseUnit) as string}
                             onValueChange={(value) => setPurchaseDetails({ ...purchaseDetails, purchaseUnit: value })}
                           >
-                            <SelectTrigger className="rounded-md">
+                            <SelectTrigger className="rounded-md" required>
                               <SelectValue placeholder="Pilih satuan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -367,13 +414,14 @@ const WarehousePage = () => {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan</Label>
+                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan *</Label>
                           <Input
                             id="purchaseTotalPrice"
                             type="number"
                             value={getInputValue(purchaseDetails.purchaseTotalPrice)}
                             onChange={(e) => setPurchaseDetails({ ...purchaseDetails, purchaseTotalPrice: parseFloat(e.target.value) || 0 })}
                             placeholder="0"
+                            required
                             className="rounded-md"
                           />
                         </div>
@@ -407,7 +455,7 @@ const WarehousePage = () => {
                 {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
               </p>
               {!searchTerm && (
-                <Button
+                <Button 
                   onClick={() => setShowAddForm(true)}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200"
                 >
@@ -418,7 +466,7 @@ const WarehousePage = () => {
           ) : (
             filteredItems.map((item) => (
               <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-4"> {/* MODIFIED: p-6 changed to p-4 */}
+                <CardContent className="p-4"> 
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
@@ -432,8 +480,7 @@ const WarehousePage = () => {
                           </Badge>
                         )}
                       </div>
-
-                      {/* MODIFIED: Item grid layout */}
+                      
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
                         <div>
                           <p className="text-sm text-gray-500">Stok</p>
@@ -452,26 +499,25 @@ const WarehousePage = () => {
                           <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
                         </div>
                         {item.tanggalKadaluwarsa && (
-                          (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
-                          <div>
-                            <p className="text-sm text-gray-500">Kadaluwarsa</p>
-                            <p className="font-semibold text-gray-800">
-                              {item.tanggalKadaluwarsa.toLocaleDateString('id-ID', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        )}
-                        {/* MODIFIED: Tampilkan Detail Pembelian dalam 1 baris */}
-                        {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
-                           <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3"> {/* MODIFIED */}
-                              <p className="text-sm text-gray-500 font-semibold">Detail Pembelian</p> {/* MODIFIED */}
-                              <p className="text-xs text-gray-700"> {/* MODIFIED */}
-                                {item.jumlahBeliKemasan || '0'} {item.satuanKemasan || ''} @ {formatCurrency(item.hargaTotalBeliKemasan || 0)}
-                              </p>
+                            (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
+                            <div>
+                                <p className="text-sm text-gray-500">Kadaluwarsa</p>
+                                <p className="font-semibold text-gray-800">
+                                    {item.tanggalKadaluwarsa.toLocaleDateString('id-ID', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                    })}
+                                </p>
                             </div>
+                        )}
+                        {Boolean(item.lastPurchaseQuantity || item.lastPurchaseUnit || item.lastPurchaseTotalPrice) && (
+                           <div className="col-span-full flex justify-between items-center border-t border-gray-100 pt-3 mt-3">
+                               <p className="text-sm text-gray-500 font-semibold">Detail Pembelian Terakhir</p>
+                               <p className="text-xs text-gray-700">
+                                 {item.lastPurchaseQuantity || '0'} {item.lastPurchaseUnit || ''} @ {formatCurrency(item.lastPurchaseTotalPrice || 0)}
+                               </p>
+                           </div>
                         )}
                       </div>
                     </div>

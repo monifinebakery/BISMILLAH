@@ -13,18 +13,21 @@ export interface FinancialTransaction {
 export interface Asset {
   id: string;
   nama: string;
-  kategori: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi';
+  // Kategori akan menjadi string saja, karena sudah diatur secara default di select/map
+  kategori: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi'; // Tetap sebagai union literal
   nilaiAwal: number;
   nilaiSaatIni: number;
-  tanggalPembelian: Date | null;
-  kondisi: 'Baik' | 'Cukup' | 'Buruk';
+  // MODIFIED: Jika di fetchAssets selalu menghasilkan Date, maka di sini Date
+  tanggalPembelian: Date; // <-- Diubah dari Date | null menjadi Date
+  kondisi: 'Baik' | 'Cukup' | 'Buruk'; // Tetap sebagai union literal
   lokasi: string;
-  deskripsi?: string;
-  depresiasi?: number | null;
-  penyusutanPerBulan: number; // Placeholder, bisa dihitung jika diperlukan
+  // MODIFIED: Diubah dari deskripsi?: string menjadi deskripsi: string | null
+  deskripsi: string | null; // <-- Diubah dari string | undefined menjadi string | null
+  depresiasi: number | null;
+  penyusutanPerBulan: number;
   user_id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date; // Tetap Date karena sudah ada fallback new Date()
+  updatedAt: Date; // Tetap Date karena sudah ada fallback new Date()
 }
 
 export interface Notification {

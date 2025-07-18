@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Asset } from '@/types/asset'; // Pastikan Asset diimpor dari types/asset
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // MODIFIED: Import safeParseDate
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 const STORAGE_KEY = 'hpp_app_assets';
 

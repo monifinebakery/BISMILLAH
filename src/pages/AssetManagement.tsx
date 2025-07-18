@@ -15,7 +15,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 
-
 const AssetManagement = () => {
   const isMobile = useIsMobile();
 

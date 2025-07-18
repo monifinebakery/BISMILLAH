@@ -33,7 +33,7 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       } else {
         const transformedData = data.map((item: any) => ({
           id: item.id,
-          tanggal: item.tanggal ? safeParseDate(item.tanggal) : undefined, // MODIFIED: Gunakan safeParseDate
+          tanggal: safeParseDate(item.tanggal), // Gunakan safeParseDate secara langsung, sekarang mengembalikan Date | null
           jenis: item.type, // DB: type -> local: jenis
           deskripsi: item.deskripsi,
           jumlah: parseFloat(item.amount) || 0, // DB: amount -> local: jumlah

@@ -8,7 +8,6 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner'; // Pastikan baris ini ada
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay } from '@/utils/dateUtils';
@@ -17,7 +16,7 @@ import { formatCurrency } from '@/utils/currencyUtils';
 interface FinancialTransactionListProps {
   transactions: FinancialTransaction[];
   loading: boolean;
-  onUpdateTransaction: (id: string, transaction: Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>; // Tambahkan updatedAt
+  onUpdateTransaction: (id: string, transaction: Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   onDeleteTransaction: (id: string) => Promise<boolean>;
   categories: {
     income: string[];
@@ -34,24 +33,20 @@ const FinancialTransactionList = ({
 }: FinancialTransactionListProps) => {
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   const [formData, setFormData] = useState({
-    type: 'income' as 'income' | 'expense',
-    category: '',
-    amount: 0,
-    description: '',
+    type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
+    category: '' as string | null,
+    amount: 0 as number,
+    description: '' as string | null,
     date: new Date().toISOString().split('T')[0],
   });
-
-  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI
-  // const formatCurrency = (value: number) => { ... };
 
   const handleEdit = (transaction: FinancialTransaction) => {
     setEditingTransaction(transaction);
     setFormData({
       type: transaction.type,
-      category: transaction.category || '', // Pastikan category string
-      amount: transaction.amount,
-      description: transaction.description || '', // Pastikan description string
-      // Pastikan transaction.date adalah objek Date yang valid sebelum memanggil toISOString
+      category: transaction.category || '',
+      amount: transaction.amount || 0,
+      description: transaction.description || '',
       date: transaction.date instanceof Date && !isNaN(transaction.date.getTime())
         ? transaction.date.toISOString().split('T')[0]
         : '',
@@ -61,21 +56,26 @@ const FinancialTransactionList = ({
   const handleSave = async () => {
     if (!editingTransaction) return;
 
-    // Pastikan nilai yang dikirim sesuai dengan interface Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>
-    // Category dan Description bisa null di interface, jadi tidak perlu cek !formData.category
-    if (!formData.amount) {
-        toast.error('Jumlah tidak boleh kosong.');
+    if (formData.amount === '' || isNaN(Number(formData.amount))) {
+        toast.error('Jumlah tidak boleh kosong dan harus berupa angka.');
         return;
     }
+    if (!formData.description?.trim()) {
+      toast.error('Deskripsi transaksi wajib diisi.');
+      return;
+    }
+    if (!formData.category?.trim()) {
+      toast.error('Kategori transaksi wajib dipilih.');
+      return;
+    }
+
 
     const success = await onUpdateTransaction(editingTransaction.id, {
       type: formData.type,
-      category: formData.category || null, // Kirim null jika string kosong
-      amount: formData.amount,
-      description: formData.description || null, // Kirim null jika string kosong
-      date: new Date(formData.date), // Pastikan ini Date objek
-      // createdAt dan updatedAt tidak perlu disertakan di sini karena Omit<...>
-      // userId juga tidak perlu
+      category: formData.category || null,
+      amount: parseFloat(String(formData.amount)) || 0,
+      description: formData.description || null,
+      date: new Date(formData.date),
     });
 
     if (success) {
@@ -86,7 +86,7 @@ const FinancialTransactionList = ({
     }
   };
 
-  const handleDelete = async (id: string, description: string | null) => { // description bisa null
+  const handleDelete = async (id: string, description: string | null) => {
     if (confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
       const success = await onDeleteTransaction(id);
       if (success) {
@@ -124,13 +124,15 @@ const FinancialTransactionList = ({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge 
+                      // MODIFIED: Perbaikan perbandingan tipe transaksi
                       className={
-                        transaction.type === 'income' 
+                        transaction.type === 'pemasukan' // <-- DIUBAH KE 'pemasukan'
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }
                     >
-                      {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                      {/* MODIFIED: Perbaikan teks tampilan tipe transaksi */}
+                      {transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} {/* <-- DIUBAH KE 'pemasukan' */}
                     </Badge>
                     <span className="text-sm text-gray-500">{transaction.category || 'Tidak Berkategori'}</span>
                   </div>
@@ -145,9 +147,9 @@ const FinancialTransactionList = ({
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
                       <span className={`font-medium ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'pemasukan' ? 'text-green-600' : 'text-red-600' // <-- DIUBAH KE 'pemasukan'
                       }`}>
-                        {formatCurrency(transaction.amount ?? 0)}
+                        {formatCurrency(transaction.amount)}
                       </span>
                     </div>
                   </div>
@@ -189,17 +191,15 @@ const FinancialTransactionList = ({
             <div>
               <Label>Tipe Transaksi</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value: 'income' | 'expense') =>
-                  setFormData({ ...formData, type: value, category: '' })
-                }
+                value={getInputValue(formData.type) as string}
+                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">Pemasukan</SelectItem>
-                  <SelectItem value="expense">Pengeluaran</SelectItem>
+                  <SelectItem value="pemasukan">Pemasukan</SelectItem>
+                  <SelectItem value="pengeluaran">Pengeluaran</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -207,46 +207,42 @@ const FinancialTransactionList = ({
             <div>
               <Label>Kategori</Label>
               <Select
-                value={formData.category}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, category: value })
-                }
+                value={getInputValue(formData.category) as string}
+                onValueChange={(value) => handleChange('category', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(formData.type === 'income' ? categories.income : categories.expense).map(
-                    (category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    )
-                  )}
+                  <SelectItem value="-placeholder-category-" disabled>Pilih Kategori</SelectItem>
+                  {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label>Jumlah (Rp)</Label>
+              <Label>Jumlah</Label>
               <Input
                 type="number"
-                value={formData.amount || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-                }
-                placeholder="0"
+                name="amount"
+                value={getInputValue(formData.amount)}
+                onChange={(e) => handleChange('amount', Number(e.target.value))}
+                className="mt-1 w-full"
+                placeholder="Masukkan jumlah"
               />
             </div>
 
             <div>
               <Label>Deskripsi</Label>
               <Input
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Deskripsi transaksi"
+                type="text"
+                name="description"
+                value={getInputValue(formData.description)}
+                onChange={(e) => handleChange('description', e.target.value)}
+                className="mt-1 w-full"
+                placeholder="Masukkan deskripsi"
               />
             </div>
 
@@ -254,19 +250,27 @@ const FinancialTransactionList = ({
               <Label>Tanggal</Label>
               <Input
                 type="date"
-                value={formData.date}
-                onChange={(e) =>
-                  setFormData({ ...formData, date: e.target.value })
-                }
+                name="date"
+                value={formatDateToYYYYMMDD(formData.date)}
+                onChange={(e) => handleChange('date', e.target.value)}
+                className="mt-1 w-full"
+                placeholder="Masukkan tanggal"
               />
             </div>
           </div>
 
-          <div className="flex gap-2 mt-6">
-            <Button variant="outline" onClick={() => setEditingTransaction(null)} className="flex-1">
+          <div className="mt-6 flex justify-end space-x-4">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="px-4 py-2"
+            >
               Batal
             </Button>
-            <Button onClick={handleSave} className="flex-1">
+            <Button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+            >
               Simpan
             </Button>
           </div>

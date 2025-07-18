@@ -16,8 +16,7 @@ import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
-import { formatDateForDisplay } from '@/utils/dateUtils'; // formatDateForDisplay dari utils
+import { safeParseDate, formatDateForDisplay } from '@/utils/dateUtils'; // safeParseDate dan formatDateForDisplay dari utils
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -33,7 +32,7 @@ const FinancialReportPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
-    return (transactions || []).filter(t => {
+    const filtered = (transactions || []).filter(t => {
       const transactionDate = t.date;
       
       console.log('DEBUG FilteredTransactions: Processing transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
@@ -47,6 +46,8 @@ const FinancialReportPage = () => {
       if (dateRange?.to && transactionDate > dateRange.to) return false;
       return true;
     });
+    console.log('DEBUG FinancialReportPage: Filtered transactions result:', filtered); // <-- LOG INI DITAMBAHKAN
+    return filtered;
   }, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
@@ -85,6 +86,8 @@ const FinancialReportPage = () => {
   const transactionData = useMemo(() => {
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {};
 
+    console.log('DEBUG TransactionData: Input filteredTransactions for aggregation:', filteredTransactions); // <-- LOG INI DITAMBAHKAN
+
     filteredTransactions.forEach(t => {
       const transactionDate = t.date;
       
@@ -101,8 +104,11 @@ const FinancialReportPage = () => {
       }
       if (t.type === 'pemasukan') {
         monthlyData[monthYear].income += t.amount || 0;
-      } else {
+      } else if (t.type === 'pengeluaran') { // MODIFIED: Penanganan type yang lebih eksplisit
         monthlyData[monthYear].expense += t.amount || 0;
+      }
+      else { // MODIFIED: Log warning untuk type yang tidak dikenali
+        console.warn(`DEBUG TransactionData: Unrecognized type for transaction ${t.id}: ${t.type}`);
       }
     });
 
@@ -111,22 +117,19 @@ const FinancialReportPage = () => {
 
     const finalResult = valuesToMap
       .filter(value => {
-        // LOG DITAMBAHKAN UNTUK DEBUGGING
         console.log('DEBUG TransactionData: Filter for map/sort - Value date:', value.date, 'Type:', typeof value.date, 'isNaN:', value.date instanceof Date ? isNaN(value.date.getTime()) : 'N/A');
         return value.date instanceof Date && !isNaN(value.date.getTime());
       })
       .map(value => {
-        // MODIFIKASI DISINI: Tambahkan pemeriksaan eksplisit untuk value.date sebelum pemformatan
-        const dateToFormat = (value.date instanceof Date && !isNaN(value.date.getTime())) ? value.date : new Date(); // Fallback ke new Date() jika tidak valid
+        const dateToFormat = (value.date instanceof Date && !isNaN(value.date.getTime())) ? value.date : new Date();
         return {
           month: format(dateToFormat, 'MMM yy', { locale: id }),
           income: value.income,
           expense: value.expense,
-          date: value.date, // Tetap gunakan value.date asli untuk properti 'date' di objek yang dikembalikan
+          date: value.date,
         };
       })
       .sort((a, b) => {
-        // LOG DITAMBAHKAN UNTUK DEBUGGING
         console.log('DEBUG TransactionData: Sorting - a.date:', a.date, 'b.date:', b.date);
         const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;
         const dateB = (b.date instanceof Date && !isNaN(b.date.getTime())) ? b.date.getTime() : -Infinity;

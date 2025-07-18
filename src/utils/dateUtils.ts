@@ -6,25 +6,31 @@
  * @returns A Date object if valid, otherwise null.
  */
 export const safeParseDate = (dateValue: any): Date | null => {
+  // console.log('DEBUG safeParseDate: Input:', dateValue, 'Type:', typeof dateValue); // Log ini bisa dihidupkan untuk debugging
   try {
-    if (!dateValue || (typeof dateValue === 'string' && dateValue.trim() === '')) {
+    if (dateValue === null || dateValue === undefined || (typeof dateValue === 'string' && dateValue.trim() === '')) {
+      // console.log('DEBUG safeParseDate: Input is null/undefined/empty string, returning null.');
       return null;
     }
 
+    let parsedDate: Date;
+
     if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? null : dateValue;
+      parsedDate = dateValue;
+    } else {
+      parsedDate = new Date(dateValue);
     }
 
-    if (typeof dateValue === 'string') {
-      const parsed = new Date(dateValue);
-      return isNaN(parsed.getTime()) ? null : parsed;
+    if (isNaN(parsedDate.getTime())) {
+      // console.log('DEBUG safeParseDate: Parsed date is Invalid Date, returning null.');
+      return null;
     }
 
-    const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? null : parsed;
+    // console.log('DEBUG safeParseDate: Successfully parsed, returning:', parsedDate);
+    return parsedDate;
 
   } catch (error) {
-    console.error('Error in safeParseDate for value:', dateValue, error);
+    console.error('DEBUG safeParseDate: CRITICAL ERROR during parsing for value:', dateValue, error);
     return null;
   }
 };
@@ -36,9 +42,8 @@ export const safeParseDate = (dateValue: any): Date | null => {
  * @returns A formatted date string (e.g., "18 Jul 2025") or a fallback if the date is invalid.
  */
 export const formatDateForDisplay = (date: Date | null | undefined): string => {
-  // MODIFIKASI DISINI: Perkuat pengecekan Invalid Date
   if (!date || (date instanceof Date && isNaN(date.getTime()))) {
-    return 'Invalid Date'; // Pastikan ini menangkap semua kasus Invalid Date
+    return 'Invalid Date';
   }
 
   return new Intl.DateTimeFormat('id-ID', {
@@ -58,4 +63,28 @@ export const formatDateToYYYYMMDD = (date: Date | null | undefined): string => {
     return '';
   }
   return date.toISOString().split('T')[0];
+};
+
+/**
+ * Safely converts a Date object or date-like string/null to an ISO 8601 string or null for database storage.
+ * @param dateValue The date value to convert.
+ * @returns An ISO 8601 string (e.g., "2025-07-18T00:00:00.000Z") or null.
+ */
+export const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
+  if (!dateValue) return null;
+
+  let dateObj: Date;
+  if (dateValue instanceof Date) {
+    dateObj = dateValue;
+  } else if (typeof dateValue === 'string') {
+    dateObj = new Date(dateValue);
+  } else {
+    console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
+    return null;
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
+  return dateObj.toISOString();
 };

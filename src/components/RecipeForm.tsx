@@ -8,7 +8,7 @@ import { Plus, Trash2, Calculator, RefreshCw } from "lucide-react";
 import { Recipe, NewRecipe, RecipeIngredient } from "@/types/recipe";
 import { useAppData } from "@/contexts/AppDataContext";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserSettings } from "@/hooks/useUserSettings"; // MODIFIED: Import useUserSettings
 

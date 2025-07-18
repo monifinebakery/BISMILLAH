@@ -12,8 +12,10 @@ import { Plus, X } from 'lucide-react';
 import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
 // PASTIKAN safeParseDate DIIMPORT DARI LOKASI YANG BENAR
-// Asumsi ini berasal dari useSupabaseSync atau helper util lainnya
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // <-- BARIS INI DITAMBAHKAN/VERIFIKASI
+import { safeParseDate } from '@/hooks/useSupabaseSync';
+
+// BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
+import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay
 
 interface OrderFormProps {
   open: boolean;
@@ -47,13 +49,10 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
         catatan: initialData?.catatan || '',
       });
       // Pastikan items setidaknya memiliki 1 baris kosong jika tidak ada data awal
-      // Jika initialData.items ada dan berisi data, gunakan itu. Jika tidak, sediakan 1 baris kosong.
       setItems(initialData?.items && initialData.items.length > 0
         ? initialData.items.map(item => ({
             ...item,
-            // Pastikan id adalah number jika Date.now() digunakan sebagai id
             id: item.id || Date.now(),
-            // Pastikan quantity dan hargaSatuan adalah number
             quantity: Number(item.quantity) || 0,
             hargaSatuan: Number(item.hargaSatuan) || 0,
             totalHarga: Number(item.totalHarga) || 0,
@@ -72,7 +71,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
   };
 
   const removeItem = (id: number) => {
-    if (items.length > 1) { // Hanya izinkan hapus jika ada lebih dari 1 item
+    if (items.length > 1) {
       setItems(items.filter(item => item.id !== id));
     } else {
       toast.error('Pesanan harus memiliki setidaknya satu item.');
@@ -83,7 +82,6 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        // Pastikan quantity dan hargaSatuan adalah angka sebelum perhitungan
         const quantity = parseFloat(String(updatedItem.quantity)) || 0;
         const hargaSatuan = parseFloat(String(updatedItem.hargaSatuan)) || 0;
         
@@ -97,20 +95,21 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
 
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
-    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(String(pajakInput)); // Gunakan String() untuk keamanan
-    const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1; // Pajak default 10% jika tidak valid
+    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(String(pajakInput));
+    const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1;
     const total = subtotal + pajak;
     return { subtotal, pajak, total };
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI, SEKARANG DIIMPORT
+  // const formatCurrency = (value: number) => {
+  //   return new Intl.NumberFormat('id-ID', {
+  //     style: 'currency',
+  //     currency: 'IDR',
+  //     minimumFractionDigits: 0,
+  //     maximumFractionDigits: 0,
+  //   }).format(value);
+  // };
 
   const { subtotal, pajak, total } = calculateTotals();
 
@@ -122,7 +121,6 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
       toast.error('Nama dan Nomor Telepon pelanggan wajib diisi.');
       return;
     }
-    // Filter out items with empty names or invalid quantities/prices before validation
     const validItems = items.filter(item =>
       item.nama?.trim() && parseFloat(String(item.quantity)) > 0 && parseFloat(String(item.hargaSatuan)) >= 0
     );
@@ -135,21 +133,19 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     const { subtotal: finalSubtotal, pajak: finalPajak, total: finalTotal } = calculateTotals();
     const commonData = {
         ...formData,
-        items: validItems as OrderItem[], // Pastikan hanya item yang valid yang disubmit
+        items: validItems as OrderItem[],
         subtotal: finalSubtotal,
         pajak: finalPajak,
         totalPesanan: finalTotal
     };
 
     if (initialData) {
-      // Pastikan initialData.tanggal adalah objek Date yang valid atau null sebelum meneruskan
-      const orderDate = safeParseDate(initialData.tanggal); // Gunakan safeParseDate
-      // Fallback ke initialData.tanggal jika sudah Date atau new Date() jika benar-benar tidak valid
+      const orderDate = safeParseDate(initialData.tanggal);
       onSubmit({ ...initialData, tanggal: orderDate || initialData.tanggal || new Date(), ...commonData });
     } else {
       onSubmit({ ...commonData, tanggal: new Date() });
     }
-    onOpenChange(false); // Tutup dialog setelah submit
+    onOpenChange(false);
   };
 
   return (
@@ -277,7 +273,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                 placeholder="10%"
                 className="h-8 w-24 text-right"
                 readOnly={isViewMode}
-                min="0" // Pajak tidak boleh negatif
+                min="0"
               />
             </div>
             <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">

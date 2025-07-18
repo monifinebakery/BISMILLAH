@@ -8,7 +8,7 @@ import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 import { AssetCategory, AssetCondition } from '@/types/asset'; 
 import { generateUUID } from '@/utils/uuid'; 
-import { RealtimeChannel } from '@supabase/supabase-js'; // PERBAIKAN: Import RealtimeChannel
+import { RealtimeChannel } from '@supabase/supabase-js'; // Import RealtimeChannel
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -401,8 +401,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (eventType === 'INSERT') {
         const processedNewRecord = parseRecordDates(newRecord);
         if (existingIndex > -1) {
-          // Update jika sudah ada (misal, dari add lokal yang sudah push ke DB dan Realtime firing)
-          return prev.map(item => item.id === processedNewRecord.id ? processedNewRecord : item);
+            // Update jika sudah ada (misal, dari add lokal yang sudah push ke DB dan Realtime firing)
+            return prev.map(item => item.id === processedNewRecord.id ? processedNewRecord : item);
         }
         // Tambah jika benar-benar baru
         const newState = [...prev, processedNewRecord];
@@ -476,10 +476,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       channels.forEach(channel => {
         supabase.removeChannel(channel);
       });
-      // Important: clear channels array to prevent stale closures or re-use of removed channels
       channels = []; 
     };
-  }, []); // Dependensi kosong, karena akan mendengarkan perubahan session (yang memicu re-render dan setup ulang)
+  }, []); 
 
   // Efek untuk memuat data awal dari cloud (hanya sekali saat startup atau user login)
   useEffect(() => {
@@ -508,7 +507,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
 
   // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
-  // Ini tetap dipertahankan sebagai fallback atau untuk memastikan konsistensi setelah lama tidak aktif
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {

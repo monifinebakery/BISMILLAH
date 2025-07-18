@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'; // MODIFIED: Tambahkan useCallback
+import React, { useState, useMemo, useCallback } from 'react';
 import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import FinancialTransactionList from '@/components/FinancialTransactionList';
-import { useAppData } from '@/contexts/AppDataContext';
+import { useAppData } => '@/contexts/AppDataContext';
 import ExportButtons from '@/components/ExportButtons';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
@@ -18,6 +18,7 @@ import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { safeParseDate } from '@/utils/dateUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatLargeNumber } from '@/utils/currencyUtils'; // MODIFIED: Import formatLargeNumber
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -26,8 +27,8 @@ const FinancialReportPage = () => {
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date('2020-01-01'), // Contoh: Mulai dari awal tahun 2020
-    to: new Date('2026-12-31'),   // Contoh: Hingga akhir tahun 2026 (atau new Date() untuk hari ini)
+    from: new Date('2020-01-01'),
+    to: new Date('2026-12-31'),
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -94,6 +95,8 @@ const FinancialReportPage = () => {
       const transactionDate = t.date;
       
       console.log('DEBUG TransactionData: Aggregating transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
+      console.log(`DEBUG Aggregation Check: Transaction ID: ${t.id}, Type value: '${t.type}', Is 'pemasukan'?: ${t.type === 'pemasukan'}, Is 'pengeluaran'?: ${t.type === 'pengeluaran'}`);
+
 
       if (!transactionDate || isNaN(transactionDate.getTime())) {
           console.log('DEBUG TransactionData: Skipping invalid date for aggregation:', t.id);
@@ -142,10 +145,30 @@ const FinancialReportPage = () => {
     setIsDialogOpen(true);
   };
 
-  // MODIFIED: closeDialog dibungkus dengan useCallback
   const closeDialog = useCallback(() => {
     setIsDialogOpen(false);
-  }, []); // Dependensi kosong karena tidak bergantung pada nilai eksternal yang berubah
+  }, []);
+
+  // MODIFIED: CustomPieLabel component untuk label pie chart
+  const CustomPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value, name }: any) => {
+    const RADIAN = Math.PI / 180;
+    const x = cx + outerRadius * Math.cos(-midAngle * RADIAN) * 1.0; // Position slightly outside
+    const y = cy + outerRadius * Math.sin(-midAngle * RADIAN) * 1.0;
+    const formattedValue = formatLargeNumber(value, 0); // Format value with 0 decimal places for labels
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="black" // Warna teks label
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        fontSize="12px"
+      >
+        {`${name}: ${formattedValue} (${(percent * 100).toFixed(0)}%)`}
+      </text>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">
@@ -221,21 +244,81 @@ const FinancialReportPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle></CardHeader>
-              <CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="income" stroke="#82ca9d" name="Pemasukan" /><Line type="monotone" dataKey="expense" stroke="#e47272" name="Pengeluaran" /></LineChart></ResponsiveContainer></CardContent>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis width={80} tickFormatter={formatLargeNumber} /> {/* MODIFIED: YAxis width dan tickFormatter */}
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="income" stroke="#82ca9d" name="Pemasukan" />
+                    <Line type="monotone" dataKey="expense" stroke="#e47272" name="Pengeluaran" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
-              <CardContent><ResponsiveContainer width="100%" height={300}><PieChart><Pie dataKey="value" isAnimationActive={false} data={categoryData.incomeData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>{categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      dataKey="value"
+                      isAnimationActive={false}
+                      data={categoryData.incomeData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      label={CustomPieLabel} // MODIFIED: Gunakan CustomPieLabel
+                    >
+                      {categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
-              <CardContent><ResponsiveContainer width="100%" height={300}><PieChart><Pie dataKey="value" isAnimationActive={false} data={categoryData.expenseData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>{categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      dataKey="value"
+                      isAnimationActive={false}
+                      data={categoryData.expenseData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      label={CustomPieLabel} // MODIFIED: Gunakan CustomPieLabel
+                    >
+                      {categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <CardHeader><CardTitle>Pemasukan vs Pengeluaran Bulanan</CardTitle></CardHeader>
-              <CardContent><ResponsiveContainer width="100%" height={300}><BarChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip /><Legend /><Bar dataKey="income" fill="#82ca9d" name="Pemasukan" /><Bar dataKey="expense" fill="#e47272" name="Pengeluaran" /></BarChart></ResponsiveContainer></CardContent>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis width={80} tickFormatter={formatLargeNumber} /> {/* MODIFIED: YAxis width dan tickFormatter */}
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="income" fill="#82ca9d" name="Pemasukan" />
+                    <Bar dataKey="expense" fill="#e47272" name="Pengeluaran" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
           </div>
         </div>

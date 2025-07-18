@@ -55,7 +55,7 @@ export const usePurchases = () => {
         id: item.id,
         supplierId: item.supplier || '',
         supplierName: item.supplier || '',
-        tanggal: new Date(item.tanggal),
+        tanggal: safeParseDate(item.tanggal) || new Date(), // Pastikan selalu Date yang valid
         items: item.items || [],
         totalAmount: parseFloat(item.total_nilai) || 0,
         status: item.status || 'pending',

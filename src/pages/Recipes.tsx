@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from '@/components/ui/input';
 
 // BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
-import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
+import { formatDateForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
 
 const RecipesPage = () => {
   const { recipes, loading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();

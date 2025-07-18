@@ -118,7 +118,7 @@ const RecipeList = ({ recipes, onEdit, onDelete }: RecipeListProps) => {
               <div>Dibuat: {formatDateForDisplay(recipe.createdAt)}</div>
               {/* BARIS INI DIUBAH (dan memastikan updatedAt bukan null sebelum memanggil getTime()) */}
               {recipe.updatedAt && recipe.createdAt && recipe.updatedAt.getTime() !== recipe.createdAt.getTime() && (
-                <div>Diupdate: {formatDateTimeForDisplay(recipe.updatedAt)}</div>
+                <div>Diupdate: {formatDateForDisplay(recipe.updatedAt)}</div>
               )}
             </div>
 

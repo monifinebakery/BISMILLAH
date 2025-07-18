@@ -108,7 +108,7 @@ const OrdersPage = () => {
         if (isNaN(date.getTime())) return 'Tanggal tidak valid';
         return date.toLocaleDateString('id-ID');
       }
-      const parsedDate = new Date(date);
+      const parsedDate = safeParseDate(date);
       if (isNaN(parsedDate.getTime())) return 'Tanggal tidak valid';
       return parsedDate.toLocaleDateString('id-ID');
     } catch (error) {

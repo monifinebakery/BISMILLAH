@@ -1,10 +1,12 @@
+// src/hooks/useAssets.ts
+
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Asset } from '@/types/asset';
+import { Asset } from '@/types/asset'; // Pastikan Asset diimpor dari types/asset
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // Import toSafeISOString juga
 
 const STORAGE_KEY = 'hpp_app_assets';
 
@@ -49,10 +51,10 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
             const rawUpdatedAt = item.updated_at;
 
             const parsedTanggalPembelian = safeParseDate(rawTanggalPembelian);
-            const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date();
-            const parsedUpdatedAt = safeParseDate(rawUpdatedAt) || new Date();
+            const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date(); // Pastikan Date valid
+            const parsedUpdatedAt = safeParseDate(rawUpdatedAt) || new Date(); // Pastikan Date valid
 
-            console.log('DEBUG Raw vs Parsed Dates:', {
+            console.log('DEBUG Raw vs Parsed Dates:', { // <-- LOG INI DITAMBAHKAN
               id: item.id,
               rawTanggalPembelian,
               parsedTanggalPembelian: {
@@ -73,16 +75,16 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
 
             return {
               id: item.id,
-              nama: item.nama,
-              kategori: item.kategori,
+              nama: item.nama || '',
+              kategori: item.kategori || 'Peralatan', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kategori`
               nilaiAwal: parseFloat(item.nilai_awal) || 0,
               nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-              tanggalPembelian: parsedTanggalPembelian,
-              kondisi: item.kondisi,
-              lokasi: item.lokasi,
-              deskripsi: item.deskripsi || undefined,
+              tanggalPembelian: parsedTanggalPembelian || new Date('1970-01-01T00:00:00Z'), // <-- Jaminan Date valid
+              kondisi: item.kondisi || 'Baik', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kondisi`
+              lokasi: item.lokasi || '',
+              deskripsi: item.deskripsi || null, // MODIFIED: Gunakan null
               depresiasi: parseFloat(item.depresiasi) || null,
-              penyusutanPerBulan: 0,
+              penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // Fallback ke 0
               user_id: item.user_id,
               createdAt: parsedCreatedAt,
               updatedAt: parsedUpdatedAt,
@@ -118,7 +120,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
     saveToStorage(STORAGE_KEY, assets);
   }, [assets]);
 
-  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'user_id' | 'penyusutanPerBulan'>) => { // tambahkan penyusutanPerBulan ke Omit
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -126,19 +128,30 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         return false;
       }
 
+      // Validasi tanggalPembelian di sini
+      if (!(asset.tanggalPembelian instanceof Date) || isNaN(asset.tanggalPembelian.getTime())) {
+        toast.error('Tanggal Pembelian tidak valid');
+        return false;
+      }
+
       const newAssetId = generateUUID();
       const now = new Date();
+      
+      const calculatedPenyusutanPerBulan = asset.nilaiAwal / (asset.umurManfaat * 12); // Hitung di sini
+      const calculatedNilaiSaatIni = asset.nilaiAwal; // Nilai awal sama dengan nilai saat ini saat penambahan
+
+      console.log('Adding Asset with tanggal_beli:', asset.tanggalPembelian.toISOString());
 
       const { error } = await supabase.from('assets').insert({
         id: newAssetId,
         user_id: session.user.id,
         nama: asset.nama,
-        kategori: asset.kategori,
+        jenis: asset.kategori, // MODIFIED: Map kategori ke jenis di DB
         nilai_awal: asset.nilaiAwal,
-        nilai_sekarang: asset.nilaiSaatIni,
-        tanggal_beli: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime())
-          ? asset.tanggalPembelian.toISOString()
-          : null,
+        umur_manfaat: asset.umurManfaat,
+        tanggal_beli: asset.tanggalPembelian.toISOString(),
+        penyusutan_per_bulan: calculatedPenyusutanPerBulan, // Gunakan yang dihitung
+        nilai_sekarang: calculatedNilaiSaatIni, // Gunakan yang dihitung
         kondisi: asset.kondisi,
         lokasi: asset.lokasi,
         deskripsi: asset.deskripsi || null,
@@ -157,6 +170,9 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         createdAt: now,
         updatedAt: now,
+        userId: session.user.id, // Pastikan userId juga diset
+        penyusutanPerBulan: calculatedPenyusutanPerBulan,
+        nilaiSaatIni: calculatedNilaiSaatIni,
       }]);
       toast.success(`${asset.nama} berhasil ditambahkan!`);
       return true;
@@ -180,7 +196,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       };
 
       if (updates.nama !== undefined) updateData.nama = updates.nama;
-      if (updates.kategori !== undefined) updateData.kategori = updates.kategori;
+      if (updates.kategori !== undefined) updateData.jenis = updates.kategori; // MODIFIED: Map kategori ke jenis di DB
       if (updates.nilaiAwal !== undefined) updateData.nilai_awal = updates.nilaiAwal;
       if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni;
       if (updates.tanggalPembelian !== undefined) {
@@ -192,11 +208,11 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       }
       if (updates.kondisi !== undefined) updateData.kondisi = updates.kondisi;
       if (updates.lokasi !== undefined) updateData.lokasi = updates.lokasi;
-      if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi;
-      else if (Object.prototype.hasOwnProperty.call(updates, 'deskripsi') && updates.deskripsi === null) {
-        updateData.deskripsi = null;
-      }
+      if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi || null; // MODIFIED: Gunakan null
       if (updates.depresiasi !== undefined) updateData.depresiasi = updates.depresiasi;
+      if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat; // Pastikan umurManfaat diupdate juga
+      if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan; // Pastikan penyusutanPerBulan diupdate juga
+
 
       const { error } = await supabase.from('assets').update(updateData).eq('id', id).eq('user_id', session.user.id);
       if (error) {

@@ -7,7 +7,8 @@ import { BahanBaku } from '@/types/recipe';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // Make sure this import is correct
+import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT safeParseDate
+
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     minimum: 0,
     hargaSatuan: 0,
     supplier: '',
-    tanggalKadaluwarsa: null, // Inisialisasi dengan null
+    tanggalKadaluwarsa: null,
     jumlahBeliKemasan: 0,
     satuanKemasan: '',
     hargaTotalBeliKemasan: 0,
@@ -66,7 +67,8 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa || null, // Pastikan itu Date atau null
+        // MODIFIKASI DISINI: Gunakan safeParseDate untuk memastikan konsistensi
+        tanggalKadaluwarsa: safeParseDate(item.tanggalKadaluwarsa),
         jumlahBeliKemasan: item.jumlahBeliKemasan ?? 0,
         satuanKemasan: item.satuanKemasan ?? '',
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? 0,
@@ -74,9 +76,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     } else {
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
-        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: item.tanggalKadaluwarsa && isValidDate(item.tanggalKadaluwarsa) 
-        ? item.tanggalKadaluwarsa 
-        : null
+        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null,
         jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
       });
     }
@@ -154,7 +154,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   const handleClose = () => {
     setFormData({
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
-      hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null, // Inisialisasi dengan null
+      hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null,
       jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
     });
     onClose();
@@ -268,7 +268,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)}
                 onChange={(e) => setFormData({
                   ...formData,
-                  tanggalKadaluwarsa: safeParseDate(e.target.value)
+                  tanggalKadaluwarsa: e.target.value
+                    ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
+                    : null
                 })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />

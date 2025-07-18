@@ -15,7 +15,8 @@ import { toast } from 'sonner';
 import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
-import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay
+import { formatCurrency } from '@/utils/currencyUtils'; // Import fungsi formatCurrency
+import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
 
 interface OrderFormProps {
   open: boolean;
@@ -101,16 +102,6 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     return { subtotal, pajak, total };
   };
 
-  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI, SEKARANG DIIMPORT
-  // const formatCurrency = (value: number) => {
-  //   return new Intl.NumberFormat('id-ID', {
-  //     style: 'currency',
-  //     currency: 'IDR',
-  //     minimumFractionDigits: 0,
-  //     maximumFractionDigits: 0,
-  //   }).format(value);
-  // };
-
   const { subtotal, pajak, total } = calculateTotals();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,8 +131,10 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     };
 
     if (initialData) {
-      const orderDate = safeParseDate(initialData.tanggal);
-      onSubmit({ ...initialData, tanggal: orderDate || initialData.tanggal || new Date(), ...commonData });
+      // MODIFIKASI SESUAI INSTRUKSI
+      const parsedInitialDate = safeParseDate(initialData.tanggal);
+      const finalDate = parsedInitialDate || new Date(); // Fallback ke new Date() jika parsing gagal atau hasilnya null
+      onSubmit({ ...initialData, tanggal: finalDate, ...commonData });
     } else {
       onSubmit({ ...commonData, tanggal: new Date() });
     }

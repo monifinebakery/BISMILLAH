@@ -36,8 +36,8 @@ export const useSuppliers = () => {
         telepon: item.telepon || '',
         alamat: item.alamat || '',
         catatan: item.catatan || '',
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at || item.created_at),
+        createdAt: safeParseDate(item.created_at) || new Date(), // Gunakan safeParseDate dengan fallback
+        updatedAt: safeParseDate(item.updated_at || item.created_at) || new Date(), // Gunakan safeParseDate dengan fallback
       })) || [];
 
       setSuppliers(formattedSuppliers);

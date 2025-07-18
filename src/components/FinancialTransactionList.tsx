@@ -146,7 +146,7 @@ const FinancialTransactionList = ({
                       <span className={`font-medium ${
                         transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatCurrency(transaction.amount)}
+                        {formatCurrency(transaction.amount ?? 0)}
                       </span>
                     </div>
                   </div>

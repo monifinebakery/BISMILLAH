@@ -59,7 +59,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '',
         amount: 0,
         description: '',
-        date: getInputValue(new Date()) as string, // Pastikan inisialisasi juga melalui getInputValue agar konsisten
+        date: formatDateToYYYYMMDD(new Date()), // Pastikan inisialisasi juga melalui getInputValue agar konsisten
       });
     }
   }, [isOpen]);
@@ -172,7 +172,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="date"
                 name="date"
-                value={getInputValue(formData.date) as string}
+                value={formatDateToYYYYMMDD(formData.date as Date)}
                 onChange={(e) => handleChange('date', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan tanggal"

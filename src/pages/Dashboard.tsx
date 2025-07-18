@@ -149,7 +149,7 @@ const Dashboard = () => {
                   <div className="flex-1">
                     <p className="font-medium text-sm sm:text-base">{activity.title}</p>
                     {/* BARIS INI DIUBAH */}
-                    <p className="text-xs sm:text-sm text-gray-600">{formatDateTimeForDisplay(activity.timestamp)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">{formatDateForDisplay(activity.timestamp)}</p>
                   </div>
                   {activity.value && (
                     <span className={`font-semibold text-sm sm:text-base ${

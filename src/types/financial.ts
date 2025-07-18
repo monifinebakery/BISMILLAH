@@ -1,12 +1,13 @@
 
 export interface FinancialTransaction {
   id: string;
-  type: 'income' | 'expense';
-  category: string;
+  type: 'income' | 'expense'; // Sesuaikan dengan nilai aktual di DB: 'pemasukan' | 'pengeluaran'
+  category: string | null;     // Sesuai DB is_nullable: YES
   amount: number;
-  description: string;
-  date: Date;
-  createdAt: Date;
+  description: string | null;  // Sesuai DB is_nullable: YES
+  date: Date | null;           // Sesuai DB is_nullable: YES
+  createdAt: Date | null;      // Sesuai DB is_nullable: YES
+  updatedAt: Date | null;      // <-- DITAMBAHKAN/DIUBAH UNTUK KONSISTENSI DENGAN DB is_nullable: YES
 }
 
 export interface Asset {

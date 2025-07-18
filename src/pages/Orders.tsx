@@ -109,7 +109,7 @@ const OrdersPage = () => {
         return date.toLocaleDateString('id-ID');
       }
       const parsedDate = safeParseDate(date);
-      if (isNaN(parsedDate.getTime())) return 'Tanggal tidak valid';
+      if (!parsedDate) return 'Tanggal tidak tersedia'; // Jika null, kembalikan string fallback
       return parsedDate.toLocaleDateString('id-ID');
     } catch (error) {
       console.error('Error formatting date:', error, date);

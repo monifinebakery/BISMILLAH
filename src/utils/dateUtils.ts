@@ -58,8 +58,21 @@ export const formatDateForDisplay = (date: Date | null | undefined): string => {
  * @param date - The Date object to format. Can be null or undefined.
  * @returns A string in "yyyy-MM-dd" format (e.g., "2025-07-18") or an empty string if the date is invalid/null.
  */
-export const formatDateToYYYYMMDD = (date: Date | null | undefined): string => {
-  if (!date || isNaN(date.getTime())) {
+export const formatDateToYYYYMMDD = (date: Date | null | undefined | string): string => { // <-- PERUBAHAN TIPE
+  if (!date) { // Tangani null/undefined/string kosong
+    return '';
+  }
+  // Jika sudah string dan sudah dalam format YYYY-MM-DD, gunakan langsung
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+  // Jika bukan Date instance, coba parse dulu (untuk jaga-jaga kalau string lain masuk)
+  if (!(date instanceof Date)) {
+    date = safeParseDate(date);
+    if (!date) return ''; // Jika parsing gagal, kembalikan kosong
+  }
+  
+  if (isNaN(date.getTime())) { // Setelah parsing, cek lagi
     return '';
   }
   return date.toISOString().split('T')[0];

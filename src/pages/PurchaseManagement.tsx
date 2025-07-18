@@ -12,6 +12,7 @@ import { usePurchases, PurchaseTransaction, PurchaseItem } from '@/hooks/usePurc
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAppData } from '@/contexts/AppDataContext';
 import { toast } from 'sonner';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const PurchaseManagement = () => {
   const { purchases, loading, addPurchase, updatePurchase, deletePurchase } = usePurchases();

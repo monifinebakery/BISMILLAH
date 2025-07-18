@@ -1,4 +1,3 @@
-// src/pages/FinancialReportPage.tsx (Penuh)
 import React, { useState, useMemo } from 'react';
 import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -17,7 +16,8 @@ import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { safeParseDate, formatDateForDisplay } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/dateUtils';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -26,9 +26,9 @@ const FinancialReportPage = () => {
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    // MODIFIED: Ubah rentang tanggal default agar mencakup data sampel Anda
-    from: new Date('2020-01-01'), // Contoh: dari awal tahun 2020
-    to: new Date(),                  // Hingga hari ini
+    // MODIFIED: Ubah rentang tanggal default agar mencakup data sampel Anda (lebih luas)
+    from: new Date('2020-01-01'), // Contoh: Mulai dari awal tahun 2020
+    to: new Date('2026-12-31'),   // Contoh: Hingga akhir tahun 2026 (atau new Date() untuk hari ini)
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,8 +44,19 @@ const FinancialReportPage = () => {
         return false;
       }
       
-      if (dateRange?.from && transactionDate < dateRange.from) return false;
-      if (dateRange?.to && transactionDate > dateRange.to) return false;
+      // Filter berdasarkan dateRange
+      // Pastikan dateRange.from dan dateRange.to adalah objek Date yang valid
+      const rangeFrom = dateRange?.from instanceof Date && !isNaN(dateRange.from.getTime()) ? dateRange.from : null;
+      const rangeTo = dateRange?.to instanceof Date && !isNaN(dateRange.to.getTime()) ? dateRange.to : null;
+
+      if (rangeFrom && transactionDate < rangeFrom) return false;
+      // Tambahkan 1 hari ke dateRange.to agar termasuk hari terakhir yang dipilih
+      if (rangeTo) {
+          const adjustedRangeTo = new Date(rangeTo);
+          adjustedRangeTo.setDate(adjustedRangeTo.getDate() + 1); // Tambah 1 hari untuk rentang inklusif
+          if (transactionDate >= adjustedRangeTo) return false; // Gunakan >= karena sudah ditambah 1 hari
+      }
+      
       return true;
     });
     console.log('DEBUG FinancialReportPage: Filtered transactions result:', filtered);
@@ -122,15 +133,12 @@ const FinancialReportPage = () => {
         console.log('DEBUG TransactionData: Filter for map/sort - Value date:', value.date, 'Type:', typeof value.date, 'isNaN:', value.date instanceof Date ? isNaN(value.date.getTime()) : 'N/A');
         return value.date instanceof Date && !isNaN(value.date.getTime());
       })
-      .map(value => {
-        const dateToFormat = (value.date instanceof Date && !isNaN(value.date.getTime())) ? value.date : new Date();
-        return {
-          month: format(dateToFormat, 'MMM yy', { locale: id }),
-          income: value.income,
-          expense: value.expense,
-          date: value.date,
-        };
-      })
+      .map(value => ({
+        month: format(value.date as Date, 'MMM yy', { locale: id }),
+        income: value.income,
+        expense: value.expense,
+        date: value.date,
+      }))
       .sort((a, b) => {
         console.log('DEBUG TransactionData: Sorting - a.date:', a.date, 'b.date:', b.date);
         const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;

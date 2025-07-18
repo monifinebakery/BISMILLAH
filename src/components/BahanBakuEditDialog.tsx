@@ -158,24 +158,24 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   };
 
   const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) {
+      return ''; // Tanggal tidak valid, kembalikan string kosong
     }
-    
-    if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
-        return '';
-      }
-      const isoString = value.toISOString() || '';
-      return isoString ? isoString.split('T')[0] : '';
-    }
-    
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      return '';
-    }
-    
+    const isoString = value.toISOString();
+    return isoString.split('T')[0];
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
     return value;
-  };
+  }
+
+  return ''; // Fallback untuk tipe yang tidak diharapkan
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

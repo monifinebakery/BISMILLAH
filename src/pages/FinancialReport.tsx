@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react'; // MODIFIED: Tambahkan useCallback
 import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { safeParseDate } from '@/utils/dateUtils';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -26,7 +26,6 @@ const FinancialReportPage = () => {
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    // MODIFIED: Ubah rentang tanggal default agar mencakup data sampel Anda (lebih luas)
     from: new Date('2020-01-01'), // Contoh: Mulai dari awal tahun 2020
     to: new Date('2026-12-31'),   // Contoh: Hingga akhir tahun 2026 (atau new Date() untuk hari ini)
   });
@@ -44,18 +43,8 @@ const FinancialReportPage = () => {
         return false;
       }
       
-      // Filter berdasarkan dateRange
-      // Pastikan dateRange.from dan dateRange.to adalah objek Date yang valid
-      const rangeFrom = dateRange?.from instanceof Date && !isNaN(dateRange.from.getTime()) ? dateRange.from : null;
-      const rangeTo = dateRange?.to instanceof Date && !isNaN(dateRange.to.getTime()) ? dateRange.to : null;
-
-      if (rangeFrom && transactionDate < rangeFrom) return false;
-      // Tambahkan 1 hari ke dateRange.to agar termasuk hari terakhir yang dipilih
-      if (rangeTo) {
-          const adjustedRangeTo = new Date(rangeTo);
-          adjustedRangeTo.setDate(adjustedRangeTo.getDate() + 1); // Tambah 1 hari untuk rentang inklusif
-          if (transactionDate >= adjustedRangeTo) return false; // Gunakan >= karena sudah ditambah 1 hari
-      }
+      if (dateRange?.from && transactionDate < dateRange.from) return false;
+      if (dateRange?.to && transactionDate > dateRange.to) return false;
       
       return true;
     });
@@ -153,9 +142,10 @@ const FinancialReportPage = () => {
     setIsDialogOpen(true);
   };
 
-  const closeDialog = () => {
+  // MODIFIED: closeDialog dibungkus dengan useCallback
+  const closeDialog = useCallback(() => {
     setIsDialogOpen(false);
-  };
+  }, []); // Dependensi kosong karena tidak bergantung pada nilai eksternal yang berubah
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">

@@ -38,8 +38,8 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
           deskripsi: item.deskripsi,
           jumlah: parseFloat(item.amount) || 0, // DB: amount -> local: jumlah
           category: item.category, // MODIFIED: Muat category
-          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
-          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
+          createdAt: safeParseDate(item.created_at) || new Date(), // Pastikan selalu Date yang valid
+          updatedAt: safeParseDate(item.updated_at) || new Date(), // Pastikan selalu Date yang valid
         }));
         setFinancialTransactions(transformedData);
         saveToStorage(STORAGE_KEY, transformedData);

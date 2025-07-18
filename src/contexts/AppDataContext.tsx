@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
-// PERBAIKAN: Import AssetCategory dan AssetCondition untuk type safety
+// Import AssetCategory dan AssetCondition untuk type safety
 import { AssetCategory, AssetCondition } from '@/types/asset'; 
 
 // =============================================================
@@ -36,7 +36,7 @@ export interface Purchase {
   supplier: string;
   items: {
     id?: number | string;
-    namaBarang: string; // PERBAIKAN: Pastikan ini ada agar `addPurchase` tidak error
+    namaBarang: string; // PERBAIKAN: Tambahkan ini agar addPurchase tidak error
     kategori?: string;
     jumlah: number;
     satuan?: string;
@@ -251,31 +251,36 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
             const parsedTanggalPembelian = safeParseDate(item.tanggalPembelian || item.tanggal_beli);
             const parsedCreatedAt = safeParseDate(item.createdAt || item.created_at);
             const parsedUpdatedAt = safeParseDate(item.updatedAt || item.updated_at);
+            
+            // PERBAIKAN UTAMA: Pastikan semua properti dari item dipertahankan
             return {
-              id: item.id,
+              ...item, // Ini penting! Mempertahankan semua properti lainnya
+              id: item.id, // Pastikan ID selalu ada
               nama: item.nama || '',
-              // PERBAIKAN: Gunakan 'kategori', fallback ke 'jenis' jika ada data lama
-              kategori: item.kategori || item.jenis || null, 
-              // PERBAIKAN: Gunakan 'nilaiAwal', fallback ke 'nilai' jika ada data lama
-              nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0, 
-              nilaiSaatIni: parseFloat(item.nilaiSaatIni || item.nilai_sekarang) || 0,
-              // Pastikan tanggalPembelian selalu Date yang valid
+              // PERBAIKAN: Mapping properti lama/beda nama ke properti Asset yang baru
+              kategori: item.kategori || item.jenis || null, // Prefer 'kategori', fallback ke 'jenis' jika ada data lama di localstorage
+              nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0, // Prefer 'nilaiAwal', fallback ke 'nilai'
+              nilaiSaatIni: parseFloat(item.nilaiSaatIni || item.nilai_sekarang) || 0, // Prefer 'nilaiSaatIni', fallback ke 'nilai_sekarang'
+              
+              // Pastikan tanggalPembelian selalu Date yang valid. Jika tidak, pakai fallback.
               tanggalPembelian: (parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()))
                                 ? parsedTanggalPembelian
                                 : new Date('1970-01-01T00:00:00Z'), // Fallback date jika invalid
-              // PERBAIKAN: Gunakan 'kondisi', fallback ke kondisi lama jika ada
-              kondisi: item.kondisi || item.kondisi_lama || null,
+              
+              kondisi: item.kondisi || null,
               lokasi: item.lokasi || '',
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
-              // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
+              
+              // userId juga penting, kadang bisa beda nama
               userId: item.userId || item.user_id,
+
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
                          ? parsedCreatedAt
-                         : new Date(),
+                         : new Date(), // Fallback ke current date jika invalid
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
                          ? parsedUpdatedAt
-                         : new Date(),
+                         : new Date(), // Fallback ke current date jika invalid
             };
           });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
@@ -534,17 +539,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           nama: item.nama,
           kategori: item.kategori ?? null, // Menggunakan kategori dari frontend
           nilai_awal: item.nilaiAwal, // Menggunakan nilaiAwal dari frontend
-          // --- DIHAPUS: umur_manfaat
           tanggal_beli: toSafeISOString(item.tanggalPembelian || new Date('1970-01-01T00:00:00Z')), 
-          // --- DIHAPUS: penyusutan_per_bulan
           nilai_sekarang: item.nilaiSaatIni, // Menggunakan nilaiSaatIni dari frontend
-          user_id: userId,
-          created_at: toSafeISOString(item.createdAt || new Date()),
-          updated_at: toSafeISOString(item.updatedAt || new Date()),
           kondisi: item.kondisi ?? null,
           lokasi: item.lokasi ?? null,
           deskripsi: item.deskripsi ?? null,
           depresiasi: item.depresiasi ?? null,
+          user_id: userId,
+          created_at: toSafeISOString(item.createdAt || new Date()),
+          updated_at: toSafeISOString(item.updatedAt || new Date()),
         })),
         financialTransactions: financialTransactions.map(item => ({
           id: item.id,
@@ -555,7 +558,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           description: item.description ?? null,
           date: toSafeISOString(item.date || new Date()),
           created_at: toSafeISOString(item.created_at || new Date()),
-          updated_at: toSafeISOString(item.updated_at || new Date()),
+          updated_at: toSafeISOString(item.updatedAt || new Date()),
         })),
       };
 
@@ -864,7 +867,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setPurchases(prev => [...prev, newPurchase]);
 
     await Promise.all(purchase.items.map(async item => {
-      // PERBAIKAN: Periksa properti namaBarang
+      // PERBAIKAN: Periksa properti namaBarang. Ini harus ada di item (Purchase.items)
       if (!item.namaBarang) {
         console.warn('Purchase item missing namaBarang, skipping stock update for:', item);
         return;

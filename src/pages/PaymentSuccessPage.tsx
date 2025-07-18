@@ -72,7 +72,7 @@ const PaymentSuccessPage = () => {
                 {paymentStatus.order_id && <p>Order ID: {paymentStatus.order_id}</p>}
                 {paymentStatus.name && <p>Nama: {paymentStatus.name}</p>}
                 {paymentStatus.email && <p>Email: {paymentStatus.email}</p>}
-                <p>Tanggal: {new Date(paymentStatus.updated_at).toLocaleDateString('id-ID')}</p>
+                <p>Tanggal: {formatDateForDisplay(paymentStatus.updated_at)}</p>
               </div>
             )}
 

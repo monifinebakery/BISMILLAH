@@ -12,9 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 
-// BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
-import { formatCurrency } from '@/utils/currencyUtils'; // <-- IMPORT FUNGSI formatCurrency
-
 interface FinancialTransactionListProps {
   transactions: FinancialTransaction[];
   loading: boolean;

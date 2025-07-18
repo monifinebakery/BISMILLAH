@@ -12,7 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { getInputValue } from '@/utils/inputUtils';
+
+// MODIFIED: Import getInputValue dari inputUtils
+import { getInputValue } from '@/utils/inputUtils'; 
 
 interface FinancialTransactionListProps {
   transactions: FinancialTransaction[];
@@ -40,6 +42,8 @@ const FinancialTransactionList = ({
     description: '' as string | null,
     date: new Date().toISOString().split('T')[0],
   });
+
+  // Fungsi formatCurrency sudah diimpor
 
   const handleEdit = (transaction: FinancialTransaction) => {
     setEditingTransaction(transaction);
@@ -125,15 +129,13 @@ const FinancialTransactionList = ({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge 
-                      // MODIFIED: Perbaikan perbandingan tipe transaksi
                       className={
-                        transaction.type === 'pemasukan' // <-- DIUBAH KE 'pemasukan'
+                        transaction.type === 'pemasukan' 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }
                     >
-                      {/* MODIFIED: Perbaikan teks tampilan tipe transaksi */}
-                      {transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} {/* <-- DIUBAH KE 'pemasukan' */}
+                      {transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}
                     </Badge>
                     <span className="text-sm text-gray-500">{transaction.category || 'Tidak Berkategori'}</span>
                   </div>
@@ -148,7 +150,7 @@ const FinancialTransactionList = ({
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
                       <span className={`font-medium ${
-                        transaction.type === 'pemasukan' ? 'text-green-600' : 'text-red-600' // <-- DIUBAH KE 'pemasukan'
+                        transaction.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {formatCurrency(transaction.amount)}
                       </span>
@@ -248,7 +250,7 @@ const FinancialTransactionList = ({
             </div>
 
             <div>
-              <Label>Tanggal</Label>
+              <Label htmlFor="date" className="block text-sm font-medium text-gray-700">Tanggal</Label>
               <Input
                 type="date"
                 name="date"

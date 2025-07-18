@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { getInputValue } from '@/utils/inputUtils';
 
 interface FinancialTransactionListProps {
   transactions: FinancialTransaction[];

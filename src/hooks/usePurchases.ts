@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Pastikan baris ini ada
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 export interface PurchaseItem {
   id: string;

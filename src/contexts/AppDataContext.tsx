@@ -44,9 +44,9 @@ export interface Purchase {
   totalNilai: number; // camelCase
   status: 'pending' | 'completed' | 'cancelled';
   metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // camelCase
-  catatan?: string; // Opsional
-  createdAt?: Date; // Opsional
-  updatedAt?: Date; // Opsional
+  catatan: string | null; // <-- UBAH KE string | null
+  createdAt: Date | null;          // <-- UBAH KE Date | null
+  updatedAt: Date | null;          // <-- UBAH KE Date | null
 }
 
 export interface Activity {

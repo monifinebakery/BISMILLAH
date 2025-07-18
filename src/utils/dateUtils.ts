@@ -36,7 +36,8 @@ export const safeParseDate = (dateValue: any): Date | null => {
  * @returns A formatted date string (e.g., "18 Jul, 13:30") or a fallback if the date is invalid.
  */
 export const formatDateForDisplay = (date: Date | null | undefined): string => {
-  if (!date || isNaN(date.getTime())) {
+  // Tambahkan pemeriksaan instanceof Date di sini
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
     return 'Invalid Date'; // Atau string fallback lain yang sesuai
   }
 

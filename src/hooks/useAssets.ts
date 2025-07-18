@@ -125,10 +125,12 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       if (updates.nilaiAwal !== undefined) updateData.nilai_awal = updates.nilaiAwal;
       if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat;
       if (updates.tanggalPembelian !== undefined) {
-        updateData.tanggal_beli = updates.tanggalPembelian instanceof Date ? updates.tanggalPembelian.toISOString() : null; // MODIFIED: Cek instanceof Date
-      } else if (updates.tanggalPembelian === null) {
-        updateData.tanggal_beli = null;
-      }
+  updateData.tanggal_beli = updates.tanggalPembelian instanceof Date && !isNaN(updates.tanggalPembelian.getTime())
+    ? updates.tanggalPembelian.toISOString()
+    : null; // Jika null atau Invalid Date, simpan sebagai null
+} else if (Object.prototype.hasOwnProperty.call(updates, 'tanggalPembelian') && updates.tanggalPembelian === null) {
+  updateData.tanggal_beli = null;
+}
       if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan;
       if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni;
       if (updates.kondisi !== undefined) updateData.kondisi = updates.kondisi;

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Asset } from '@/types/asset'; // Pastikan Asset diimpor dari types/asset
+import { Asset } from '@/types/asset';
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
 import { safeParseDate } from '@/utils/dateUtils';
@@ -12,17 +12,19 @@ const STORAGE_KEY = 'hpp_app_assets';
 
 export const useAssets = (userId: string | undefined, initialData?: Asset[]) => {
   const [assets, setAssets] = useState<Asset[]>(() => 
-    loadFromStorage(STORAGE_KEY, []) // Mulai dengan data dari localStorage
+    loadFromStorage(STORAGE_KEY, [])
   );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true; // Flag untuk mencegah update state pada unmounted component
+
     const fetchAssets = async () => {
       setLoading(true);
       try {
         if (!userId) {
           console.warn('No userId provided, using local storage data only');
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
@@ -35,9 +37,8 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         if (error) {
           console.error('Error loading assets from Supabase:', error);
           toast.error(`Gagal memuat aset dari server: ${error.message}`);
-          // Fallback ke data lokal jika fetch gagal
           const localData = loadFromStorage(STORAGE_KEY, []);
-          if (localData.length > 0) {
+          if (isMounted && localData.length > 0) {
             setAssets(localData);
             console.log('Falling back to local storage data:', localData);
           }
@@ -73,32 +74,38 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
               lokasi: item.lokasi,
               deskripsi: item.deskripsi || undefined,
               depresiasi: parseFloat(item.depresiasi) || null,
-              penyusutanPerBulan: 0, // Placeholder, karena tidak ada di tabel
+              penyusutanPerBulan: 0,
               user_id: item.user_id,
               createdAt: parsedCreatedAt,
               updatedAt: parsedUpdatedAt,
             } as Asset;
           });
-          setAssets(transformedData);
-          saveToStorage(STORAGE_KEY, transformedData);
-          console.log('Assets loaded and saved to local storage:', transformedData);
+          if (isMounted) {
+            setAssets(transformedData);
+            saveToStorage(STORAGE_KEY, transformedData);
+            console.log('Assets loaded and saved to local storage:', transformedData);
+          }
         }
       } catch (error) {
         console.error('Unexpected error fetching assets:', error);
         toast.error('Terjadi kesalahan tak terduga saat memuat aset');
-        // Fallback ke data lokal
         const localData = loadFromStorage(STORAGE_KEY, []);
-        if (localData.length > 0) {
+        if (isMounted && localData.length > 0) {
           setAssets(localData);
           console.log('Falling back to local storage data:', localData);
         }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchAssets();
-  }, [userId]); // Tetap gunakan userId sebagai dependency, tapi pastikan fetch dijalankan
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   useEffect(() => {
     saveToStorage(STORAGE_KEY, assets);

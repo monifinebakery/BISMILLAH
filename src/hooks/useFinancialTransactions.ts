@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FinancialTransaction } from '@/types/financial'; // Pastikan FinancialTransaction diimpor dari types/financial
+import { FinancialTransaction } from '@/types/financial';
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-// MODIFIED: Import safeParseDate dari utils/dateUtils.ts (lokasi yang benar)
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // toSafeISOString juga dari utils
+// --- PERBAIKAN KRITIS DISINI ---
+// MODIFIED: Import safeParseDate dan toSafeISOString dari utils/dateUtils.ts (lokasi yang benar)
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 
 const STORAGE_KEY = 'hpp_app_financial_transactions'; // Pastikan ini benar untuk financial transactions
 

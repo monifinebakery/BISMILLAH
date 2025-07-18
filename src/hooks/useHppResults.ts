@@ -52,7 +52,7 @@ export const useHppResults = () => {
         hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
         hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
         jumlahPorsi: item.jumlah_porsi || 1,
-        timestamp: new Date(item.created_at),
+        timestamp: safeParseDate(item.created_at) || new Date(), // Gunakan safeParseDate dengan fallback
       })) || [];
 
       setHppResults(formattedResults);

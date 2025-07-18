@@ -16,7 +16,7 @@ import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
 import { formatCurrency } from '@/utils/currencyUtils';
-import { formatDateForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
+import { formatDateForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateForDisplay (meskipun tidak langsung digunakan di sini)
 
 interface OrderFormProps {
   open: boolean;

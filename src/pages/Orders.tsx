@@ -199,7 +199,7 @@ const OrdersPage = () => {
       // MODIFIED: Periksa apakah order.tanggal adalah instance Date sebelum memformat
       const orderDate = safeParseDate(order.tanggal); // Gunakan safeParseDate
       
-      const matchesDate = dateRange?.from && dateRange?.to && orderDate instanceof Date && !isNaN(orderDate.getTime()) // Tambahkan pemeriksaan validitas tanggal
+      const matchesDate = dateRange?.from && dateRange?.to && orderDate // Periksa apakah orderDate tidak null
         ? orderDate >= dateRange.from && orderDate <= dateRange.to
         : true; // Jika tidak ada rentang tanggal yang dipilih, semua tanggal cocok
 

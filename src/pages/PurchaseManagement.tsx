@@ -13,12 +13,12 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAppData } from '@/contexts/AppDataContext';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { useIsMobile } from '@/hooks/use-mobile'; // PERBAIKAN: Import useIsMobile
-import { generateUUID } from '@/utils/uuid'; // PERBAIKAN: Import generateUUID (penting untuk item.id)
-import { formatCurrency } from '@/utils/currencyUtils'; // PERBAIKAN: Tambahkan baris import ini
+import { useIsMobile } from '@/hooks/use-mobile'; 
+import { generateUUID } from '@/utils/uuid'; 
+import { formatCurrency } from '@/utils/currencyUtils'; 
 
 const PurchaseManagement = () => {
-  const isMobile = useIsMobile(); // Panggil hook useIsMobile
+  const isMobile = useIsMobile(); 
   const { purchases, loading, addPurchase, updatePurchase, deletePurchase } = usePurchases();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { bahanBaku } = useAppData();
@@ -31,7 +31,7 @@ const PurchaseManagement = () => {
   const [newPurchase, setNewPurchase] = useState({
     supplierId: '',
     supplierName: '',
-    tanggal: new Date().toISOString().split('T')[0], // Initial date as YYYY-MM-DD string
+    tanggal: new Date().toISOString().split('T')[0], 
     items: [] as PurchaseItem[],
     status: 'pending' as 'pending' | 'completed' | 'cancelled',
     metodePerhitungan: 'FIFO',
@@ -46,12 +46,6 @@ const PurchaseManagement = () => {
     hargaSatuan: 0,
   });
 
-  // formatCurrency sudah diimpor dari '@/utils/currencyUtils', tidak perlu didefinisikan ulang
-  // const formatCurrency = (value: number) => { /* ... */ };
-
-  // formatDate ini sebenarnya sudah ada di formatDateForDisplay, bisa dihapus jika tidak ada fungsi lain yang menggunakan
-  // const formatDate = (date: Date) => { /* ... */ };
-
   const handleAddItem = () => {
     if (!newItem.namaBarang || !newItem.kuantitas || !newItem.hargaSatuan) {
       toast.error('Nama barang, kuantitas, dan harga satuan wajib diisi.');
@@ -59,7 +53,7 @@ const PurchaseManagement = () => {
     }
 
     const item: PurchaseItem = {
-      id: generateUUID(), // PERBAIKAN: Gunakan generateUUID untuk ID item
+      id: generateUUID(), 
       bahanBakuId: newItem.bahanBakuId,
       namaBarang: newItem.namaBarang,
       kuantitas: newItem.kuantitas,
@@ -73,7 +67,7 @@ const PurchaseManagement = () => {
       items: [...prev.items, item],
     }));
 
-    setNewItem({ // Reset for next item
+    setNewItem({ 
       bahanBakuId: '',
       namaBarang: '',
       kuantitas: 0,
@@ -84,7 +78,7 @@ const PurchaseManagement = () => {
   };
 
   const handleRemoveItem = (itemId: string) => {
-    if (newPurchase.items.length > 1) { // Ensure at least one item remains
+    if (newPurchase.items.length > 1) { 
       setNewPurchase(prev => ({
         ...prev,
         items: prev.items.filter(item => item.id !== itemId),
@@ -101,7 +95,6 @@ const PurchaseManagement = () => {
       return;
     }
 
-    // Validate items more thoroughly before saving
     if (newPurchase.items.some(item => !item.namaBarang.trim() || item.kuantitas <= 0 || item.hargaSatuan < 0)) {
         toast.error('Semua item harus memiliki nama, kuantitas > 0, dan harga satuan >= 0.');
         return;
@@ -109,7 +102,6 @@ const PurchaseManagement = () => {
 
     const totalAmount = newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0);
 
-    // Validate and parse date string to Date object
     let parsedTanggal: Date;
     try {
       const dateObj = new Date(newPurchase.tanggal);
@@ -124,13 +116,12 @@ const PurchaseManagement = () => {
 
     const purchaseData = {
       ...newPurchase,
-      tanggal: parsedTanggal, // Use the validated Date object
-      totalAmount, // Ensure totalAmount is added to the data
+      tanggal: parsedTanggal, 
+      totalAmount, 
     };
 
     let success = false;
     if (editingPurchase) {
-      // PERBAIKAN: Pastikan `totalAmount` diperbarui saat edit
       success = await updatePurchase(editingPurchase.id, { ...purchaseData, totalAmount: totalAmount });
     } else {
       success = await addPurchase(purchaseData);
@@ -139,16 +130,16 @@ const PurchaseManagement = () => {
     if (success) {
       setIsDialogOpen(false);
       setEditingPurchase(null);
-      setNewPurchase({ // Reset form after save
+      setNewPurchase({ 
         supplierId: '',
         supplierName: '',
-        tanggal: new Date().toISOString().split('T')[0], // Reset to current date string
+        tanggal: new Date().toISOString().split('T')[0], 
         items: [],
         status: 'pending',
         metodePerhitungan: 'FIFO',
         catatan: '',
       });
-      setNewItem({ // Reset newItem juga
+      setNewItem({ 
         bahanBakuId: '',
         namaBarang: '',
         kuantitas: 0,
@@ -166,14 +157,13 @@ const PurchaseManagement = () => {
       supplierName: purchase.supplierName,
       tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())
           ? purchase.tanggal.toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0], // Fallback ke tanggal hari ini jika tidak valid
-      // PERBAIKAN: Pastikan ID item ada saat diedit
-      items: purchase.items.map(item => ({...item, id: item.id || generateUUID()})), // Ensure IDs for existing items
+          : new Date().toISOString().split('T')[0], 
+      items: purchase.items.map(item => ({...item, id: item.id || generateUUID()})), 
       status: purchase.status,
       metodePerhitungan: purchase.metodePerhitungan || 'FIFO',
       catatan: purchase.catatan || '',
     });
-    setNewItem({ // Reset newItem form
+    setNewItem({ 
       bahanBakuId: '',
       namaBarang: '',
       kuantitas: 0,
@@ -245,8 +235,8 @@ const PurchaseManagement = () => {
                 <Button 
                   className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-xs sm:text-sm"
                   onClick={() => {
-                      setEditingPurchase(null); // Reset editing purchase saat membuka dialog tambah baru
-                      setNewPurchase({ // Reset form
+                      setEditingPurchase(null); 
+                      setNewPurchase({ 
                         supplierId: '',
                         supplierName: '',
                         tanggal: new Date().toISOString().split('T')[0],
@@ -255,7 +245,7 @@ const PurchaseManagement = () => {
                         metodePerhitungan: 'FIFO',
                         catatan: '',
                       });
-                      setNewItem({ // Reset newItem juga
+                      setNewItem({ 
                         bahanBakuId: '',
                         namaBarang: '',
                         kuantitas: 0,
@@ -268,195 +258,211 @@ const PurchaseManagement = () => {
                   Tambah Pembelian
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              {/* PERBAIKAN: Conditional class for DialogContent */}
+              <DialogContent className={isMobile ? "w-[95vw] max-w-md h-[90vh] flex flex-col" : "max-w-4xl max-h-[90vh] flex flex-col"}>
                 <DialogHeader>
                   <DialogTitle>
                     {editingPurchase ? 'Edit Pembelian' : 'Tambah Pembelian Baru'}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-6">
-                  {/* Purchase Header */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="supplier">Supplier *</Label>
-                      <Select
-                        value={newPurchase.supplierId}
-                        onValueChange={(value) => {
-                          const supplier = suppliers.find(s => s.id === value);
-                          setNewPurchase({
-                            ...newPurchase,
-                            supplierId: value,
-                            supplierName: supplier?.nama || '',
-                          });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map(supplier => (
-                            <SelectItem key={supplier.id} value={supplier.id}>
-                              {supplier.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="tanggal">Tanggal *</Label>
-                      <Input
-                        id="tanggal"
-                        type="date"
-                        value={newPurchase.tanggal}
-                        onChange={(e) => setNewPurchase({ ...newPurchase, tanggal: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={newPurchase.status}
-                        onValueChange={(value: 'pending' | 'completed' | 'cancelled') =>
-                          setNewPurchase({ ...newPurchase, status: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="completed">Selesai</SelectItem>
-                          <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Add Item Form */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Tambah Item</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-                        <div>
-                          <Label>Bahan Baku</Label>
-                          <Select
-                            value={newItem.bahanBakuId}
-                            onValueChange={(value) => {
-                              const bahan = bahanBaku.find(b => b.id === value);
-                              setNewItem({
-                                ...newItem,
-                                bahanBakuId: value,
-                                namaBarang: bahan?.nama || '',
-                                satuan: bahan?.satuan || '',
-                              });
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih bahan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {bahanBaku.map(bahan => (
-                                <SelectItem key={bahan.id} value={bahan.id}>
-                                  {bahan.nama}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>Kuantitas</Label>
-                          <Input
-                            type="number"
-                            value={newItem.kuantitas || ''}
-                            onChange={(e) => setNewItem({ ...newItem, kuantitas: parseFloat(e.target.value) || 0 })}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <Label>Satuan</Label>
-                          <Input
-                            value={newItem.satuan}
-                            readOnly
-                            placeholder="Satuan"
-                          />
-                        </div>
-                        <div>
-                          <Label>Harga/Satuan</Label>
-                          <Input
-                            type="number"
-                            value={newItem.hargaSatuan || ''}
-                            onChange={(e) => setNewItem({ ...newItem, hargaSatuan: parseFloat(e.target.value) || 0 })}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button onClick={handleAddItem} className="w-full">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah
-                          </Button>
-                        </div>
+                {/* PERBAIKAN: Tambahkan div pembungkus untuk scrolling content */}
+                <div className="flex-grow overflow-y-auto pr-4 -mr-4 custom-scrollbar">
+                  <div className="space-y-6">
+                    {/* Purchase Header */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="supplier">Supplier *</Label>
+                        <Select
+                          value={newPurchase.supplierId}
+                          onValueChange={(value) => {
+                            const supplier = suppliers.find(s => s.id === value);
+                            setNewPurchase({
+                              ...newPurchase,
+                              supplierId: value,
+                              supplierName: supplier?.nama || '',
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suppliers.map(supplier => (
+                              <SelectItem key={supplier.id} value={supplier.id}>
+                                {supplier.nama}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div>
+                        <Label htmlFor="tanggal">Tanggal *</Label>
+                        <Input
+                          id="tanggal"
+                          type="date"
+                          value={newPurchase.tanggal}
+                          onChange={(e) => setNewPurchase({ ...newPurchase, tanggal: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={newPurchase.status}
+                          onValueChange={(value: 'pending' | 'completed' | 'cancelled') =>
+                            setNewPurchase({ ...newPurchase, status: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="completed">Selesai</SelectItem>
+                            <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                  {/* Items List */}
-                  {newPurchase.items.length > 0 && (
+                    {/* Add Item Form */}
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg">Daftar Item</CardTitle>
+                        <CardTitle className="text-lg">Tambah Item</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[120px]">Nama Barang</TableHead> {/* Lebar disesuaikan */}
-                                <TableHead className="min-w-[80px]">Kuantitas</TableHead> {/* Lebar disesuaikan */}
-                                <TableHead className="min-w-[120px]">Harga Satuan</TableHead> {/* Lebar disesuaikan */}
-                                <TableHead className="text-right min-w-[100px]">Total</TableHead> {/* Lebar disesuaikan */}
-                                <TableHead className="w-[60px]">Aksi</TableHead> {/* Lebar disesuaikan */}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {newPurchase.items.map((item) => (
-                                <TableRow key={item.id}>
-                                  <TableCell className="font-medium">{item.namaBarang}</TableCell>
-                                  <TableCell>{item.kuantitas} {item.satuan}</TableCell>
-                                  <TableCell>{formatCurrency(item.hargaSatuan)}</TableCell>
-                                  <TableCell className="text-right">{formatCurrency(item.totalHarga)}</TableCell>
-                                  <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveItem(item.id)}
-                                      className="hover:bg-red-50 hover:text-red-600"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                        <div className="mt-4 text-right">
-                          <div className="text-lg font-semibold">
-                            Total: {formatCurrency(newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0))}
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                          <div>
+                            <Label>Bahan Baku</Label>
+                            <Select
+                              value={newItem.bahanBakuId}
+                              onValueChange={(value) => {
+                                const bahan = bahanBaku.find(b => b.id === value);
+                                setNewItem({
+                                  ...newItem,
+                                  bahanBakuId: value,
+                                  namaBarang: bahan?.nama || '',
+                                  satuan: bahan?.satuan || '',
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih bahan" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {bahanBaku.map(bahan => (
+                                  <SelectItem key={bahan.id} value={bahan.id}>
+                                    {bahan.nama}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Kuantitas</Label>
+                            <Input
+                              type="number"
+                              value={newItem.kuantitas || ''}
+                              onChange={(e) => setNewItem({ ...newItem, kuantitas: parseFloat(e.target.value) || 0 })}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label>Satuan</Label>
+                            <Input
+                              value={newItem.satuan}
+                              readOnly
+                              placeholder="Satuan"
+                            />
+                          </div>
+                          <div>
+                            <Label>Harga/Satuan</Label>
+                            <Input
+                              type="number"
+                              value={newItem.hargaSatuan || ''}
+                              onChange={(e) => setNewItem({ ...newItem, hargaSatuan: parseFloat(e.target.value) || 0 })}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <Button onClick={handleAddItem} className="w-full">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Tambah
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                  )}
 
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Batal
-                    </Button>
-                    <Button onClick={handleSavePurchase}>
-                      {editingPurchase ? 'Perbarui' : 'Simpan'}
-                    </Button>
+                    {/* Items List */}
+                    {newPurchase.items.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Daftar Item</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="min-w-[120px]">Nama Barang</TableHead> 
+                                  <TableHead className="min-w-[80px]">Kuantitas</TableHead> 
+                                  <TableHead className="min-w-[120px]">Harga Satuan</TableHead> 
+                                  <TableHead className="text-right min-w-[100px]">Total</TableHead> 
+                                  <TableHead className="w-[60px]">Aksi</TableHead> 
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {newPurchase.items.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.namaBarang}</TableCell>
+                                    <TableCell>{item.kuantitas} {item.satuan}</TableCell>
+                                    <TableCell>{formatCurrency(item.hargaSatuan)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(item.totalHarga)}</TableCell>
+                                    <TableCell>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemoveItem(item.id)}
+                                        className="hover:bg-red-50 hover:text-red-600"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                          <div className="mt-4 text-right">
+                            <div className="text-lg font-semibold">
+                              Total: {formatCurrency(newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Catatan (jika ada) */}
+                    <div>
+                        <Label htmlFor="catatan">Catatan</Label>
+                        <Input
+                            id="catatan"
+                            value={newPurchase.catatan}
+                            onChange={(e) => setNewPurchase({ ...newPurchase, catatan: e.target.value })}
+                            placeholder="Catatan tambahan untuk pembelian ini"
+                        />
+                    </div>
                   </div>
+                </div> {/* End of scrollable div */}
+
+                {/* Dialog Footer */}
+                <div className="flex justify-end space-x-2 pt-6 border-t border-gray-200"> {/* Tambah border-t untuk pemisah */}
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Batal
+                  </Button>
+                  <Button onClick={handleSavePurchase}>
+                    {editingPurchase ? 'Perbarui' : 'Simpan'}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -554,7 +560,6 @@ const PurchaseManagement = () => {
                           <p>Catatan: <span className="font-medium text-gray-900">{purchase.catatan}</span></p>
                         )}
                       </div>
-                      {/* Optional: Display items details on mobile card if needed */}
                       {purchase.items.length > 0 && (
                         <div className="mt-3 border-t pt-3">
                           <h4 className="font-medium text-xs mb-1">Item Detail:</h4>

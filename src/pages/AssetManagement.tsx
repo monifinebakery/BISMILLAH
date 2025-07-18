@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets'; // Pastikan Asset dari useAssets atau types
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT
+import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 
 
 const AssetManagement = () => {
@@ -23,13 +23,14 @@ const AssetManagement = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  // Pastikan inisialisasi formData mencakup semua properti Asset yang relevan
+  
+  // MODIFIED: Inisialisasi tanggalBeli dengan null
   const [formData, setFormData] = useState<Partial<Asset>>({
     nama: '',
     kategori: undefined,
     nilaiAwal: 0,
     nilaiSekarang: 0,
-    tanggalBeli: undefined, // Gunakan Date | undefined
+    tanggalBeli: null, // <-- UBAH KE null
     kondisi: undefined,
     lokasi: '',
     deskripsi: '',
@@ -53,19 +54,27 @@ const AssetManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.nama || !formData.kategori || !formData.tanggalBeli || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
+    // Validasi: Pastikan tanggalBeli tidak null/undefined
+    if (!formData.nama || !formData.kategori || formData.tanggalBeli === null || formData.tanggalBeli === undefined || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
       toast.error("Harap lengkapi semua field yang wajib diisi dan pastikan nilai tidak negatif.");
+      return;
+    }
+
+    // Validasi tanggalBeli agar benar-benar Date object yang valid
+    if (!(formData.tanggalBeli instanceof Date) || isNaN(formData.tanggalBeli.getTime())) {
+      toast.error("Tanggal Beli tidak valid.");
       return;
     }
 
     setIsSubmitting(true);
 
+    // Sekarang kita yakin formData.tanggalBeli adalah Date object yang valid
     const assetData: Omit<Asset, 'id'> = {
       nama: formData.nama,
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
       nilaiAwal: formData.nilaiAwal,
       nilaiSekarang: formData.nilaiSekarang,
-      tanggalBeli: formData.tanggalBeli, // Harusnya sudah Date object dari input onChange
+      tanggalBeli: formData.tanggalBeli, 
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
@@ -83,9 +92,9 @@ const AssetManagement = () => {
       setIsEditing(false);
       setShowAddForm(false);
       setSelectedAsset(null);
-      // Reset formData setelah save
+      // MODIFIED: Reset tanggalBeli ke null saat form direset
       setFormData({
-        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
       });
     }
 
@@ -100,7 +109,7 @@ const AssetManagement = () => {
   };
 
   // Helper untuk mendapatkan nilai input yang aman dari null/undefined (hanya untuk string/number)
-  const getInputValue = <T extends string | number | undefined | null>(value: T): string | number => { // <-- Tipe diubah
+  const getInputValue = <T extends string | number | undefined | null>(value: T): string | number => {
     if (value === undefined || value === null) {
       return '';
     }
@@ -215,8 +224,9 @@ const AssetManagement = () => {
                   <Button
                     className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={() => {
-                      setFormData({ // Reset form data for new asset
-                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+                      // MODIFIED: Reset tanggalBeli ke null saat form direset
+                      setFormData({
+                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
                       });
                       setIsEditing(false);
                     }}
@@ -296,8 +306,12 @@ const AssetManagement = () => {
                         <Input
                           id="tanggalBeli"
                           type="date"
-                          value={formatDateToYYYYMMDD(formData.tanggalBeli)} // <-- MODIFIKASI DISINI
-                          onChange={(e) => setFormData({...formData, tanggalBeli: e.target.value ? new Date(e.target.value) : undefined})}
+                          // MODIFIED: Menggunakan formatDateToYYYYMMDD dan mengatur ke null jika input kosong
+                          value={formatDateToYYYYMMDD(formData.tanggalBeli)}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            tanggalBeli: e.target.value ? new Date(e.target.value) : null // <-- UBAH KE null
+                          })}
                           className="border-orange-200 focus:border-orange-400"
                           required
                         />
@@ -362,9 +376,9 @@ const AssetManagement = () => {
                         />
                       </div>
                     </div>
-                  </div> {/* End flex-grow overflow div */}
+                  </div>
 
-                  <div className="flex gap-2 pt-4"> {/* Buttons */}
+                  <div className="flex gap-2 pt-4">
                     <Button
                       onClick={handleSave}
                       className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
@@ -377,7 +391,10 @@ const AssetManagement = () => {
                       onClick={() => {
                         setShowAddForm(false);
                         setIsEditing(false);
-                        setFormData({}); // Reset form data on cancel
+                        // MODIFIED: Reset tanggalBeli ke null saat form dibatalkan
+                        setFormData({
+                            nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+                        });
                       }}
                       className="flex-1 border-gray-300 hover:bg-gray-50"
                       disabled={isSubmitting}
@@ -391,7 +408,6 @@ const AssetManagement = () => {
           </CardHeader>
           <CardContent className="p-4">
             {isMobile ? (
-              // Mobile Card Layout
               <div className="space-y-4">
                 {assets.map((asset) => (
                   <Card key={asset.id} className="border border-orange-200">
@@ -404,7 +420,6 @@ const AssetManagement = () => {
                             variant="outline"
                             onClick={() => {
                               setSelectedAsset(asset);
-                              // Ensure all form fields are loaded correctly, including depresiasi
                               setFormData({
                                 nama: asset.nama,
                                 kategori: asset.kategori,
@@ -414,7 +429,7 @@ const AssetManagement = () => {
                                 kondisi: asset.kondisi,
                                 lokasi: asset.lokasi,
                                 deskripsi: asset.deskripsi,
-                                depresiasi: asset.depresiasi // Load depresiasi
+                                depresiasi: asset.depresiasi
                               });
                               setIsEditing(true);
                               setShowAddForm(true);
@@ -446,7 +461,6 @@ const AssetManagement = () => {
                           <span className="text-gray-600">Nilai Sekarang:</span>
                           <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSekarang)}</span>
                         </div>
-                           {/* Display Depresiasi */}
                         {asset.depresiasi !== undefined && asset.depresiasi !== null && (
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Depresiasi:</span>
@@ -473,7 +487,6 @@ const AssetManagement = () => {
                 ))}
               </div>
             ) : (
-              // Desktop Table Layout
               <ScrollArea className="w-full">
                 <div className="min-w-[800px]">
                   <Table>
@@ -483,7 +496,7 @@ const AssetManagement = () => {
                         <TableHead className="text-gray-700">Kategori</TableHead>
                         <TableHead className="text-gray-700">Nilai Awal</TableHead>
                         <TableHead className="text-gray-700">Nilai Sekarang</TableHead>
-                        <TableHead className="text-gray-700">Depresiasi</TableHead> {/* NEW */}
+                        <TableHead className="text-gray-700">Depresiasi</TableHead>
                         <TableHead className="text-gray-700">Kondisi</TableHead>
                         <TableHead className="text-gray-700">Lokasi</TableHead>
                         <TableHead className="text-gray-700">Tanggal Beli</TableHead>
@@ -499,7 +512,7 @@ const AssetManagement = () => {
                           </TableCell>
                           <TableCell className="text-gray-900">{formatCurrency(asset.nilaiAwal)}</TableCell>
                           <TableCell className="text-gray-900">{formatCurrency(asset.nilaiSekarang)}</TableCell>
-                          <TableCell className="text-gray-900">{asset.depresiasi?.toFixed(1) || 0}%</TableCell> {/* NEW */}
+                          <TableCell className="text-gray-900">{asset.depresiasi?.toFixed(1) || 0}%</TableCell>
                           <TableCell>
                             <Badge className={kondisiColors[asset.kondisi]}>
                               {asset.kondisi}
@@ -514,7 +527,6 @@ const AssetManagement = () => {
                                 variant="outline"
                                 onClick={() => {
                                   setSelectedAsset(asset);
-                                  // MODIFIED: Load all asset data, including depresiasi
                                   setFormData({
                                     nama: asset.nama,
                                     kategori: asset.kategori,
@@ -524,7 +536,7 @@ const AssetManagement = () => {
                                     kondisi: asset.kondisi,
                                     lokasi: asset.lokasi,
                                     deskripsi: asset.deskripsi,
-                                    depresiasi: asset.depresiasi // Load depresiasi
+                                    depresiasi: asset.depresiasi
                                   });
                                   setIsEditing(true);
                                   setShowAddForm(true);
@@ -551,7 +563,7 @@ const AssetManagement = () => {
               </ScrollArea>
             )}
             {
-              assets.length === 0 && !isMobile && ( // Tampilkan pesan jika tidak ada aset di desktop
+              assets.length === 0 && !isMobile && (
                 <div className="text-center py-8 text-gray-500">
                   <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-base">Belum ada aset yang terdaftar</p>

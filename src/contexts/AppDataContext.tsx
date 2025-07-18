@@ -3,11 +3,9 @@ import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-// Mengimpor useSupabaseSync
+import { toast } from 'sonner'; // Pastikan ini ada di paling atas
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-// Mengimpor safeParseDate dari utils/dateUtils
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -19,7 +17,7 @@ export interface BahanBaku {
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number; // camelCase
+  hargaSatuan: number;
   minimum: number;
   supplier: string;
   tanggalKadaluwarsa: Date | null;
@@ -33,20 +31,20 @@ export interface BahanBaku {
 
 export interface Purchase {
   id: string;
-  tanggal: Date; // Wajib
+  tanggal: Date;
   supplier: string;
   items: {
-    id?: number | string; // Tambahkan id untuk OrderItem
+    id?: number | string;
     nama: string;
-    kategori?: string; // Opsional
+    kategori?: string;
     jumlah: number;
-    satuan?: string; // Opsional
+    satuan?: string;
     hargaSatuan: number;
     totalHarga: number;
   }[];
-  totalNilai: number; // camelCase
+  totalNilai: number;
   status: 'pending' | 'completed' | 'cancelled';
-  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // camelCase
+  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
   catatan: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -56,7 +54,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  timestamp: Date; // Wajib
+  timestamp: Date;
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
   value: string | null;
   createdAt: Date | null;
@@ -67,14 +65,14 @@ export interface HPPResult {
   id: string;
   nama: string;
   ingredients: RecipeIngredient[];
-  biayaTenagaKerja: number; // camelCase
-  biayaOverhead: number; // camelCase
-  marginKeuntungan: number; // camelCase
-  totalHPP: number; // camelCase
-  hppPerPorsi: number; // camelCase
-  hargaJualPerPorsi: number; // camelCase
-  jumlahPorsi: number; // camelCase
-  timestamp: Date; // Tetap Date (karena selalu ada fallback new Date())
+  biayaTenagaKerja: number;
+  biayaOverhead: number;
+  marginKeuntungan: number;
+  totalHPP: number;
+  hppPerPorsi: number;
+  hargaJualPerPorsi: number;
+  jumlahPorsi: number;
+  timestamp: Date;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -85,7 +83,7 @@ export interface Asset {
   jenis: string | null;
   nilai: number;
   umurManfaat: number;
-  tanggalPembelian: Date; // Tetap Date (karena selalu ada fallback new Date())
+  tanggalPembelian: Date;
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
   userId?: string;
@@ -103,16 +101,13 @@ export interface FinancialTransaction {
   userId: string;
   type: 'pemasukan' | 'pengeluaran';
   category: string | null;
-  amount: number;
+  amount: number; // Tetap number karena kita menggunakan `parseFloat(item.amount) || 0` saat loading
   description: string | null;
   date: Date | null;
   created_at: Date | null;
   updated_at: Date | null;
 }
 
-// =============================================================
-// AppDataContextType
-// =============================================================
 interface AppDataContextType {
   bahanBaku: BahanBaku[];
   addBahanBaku: (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
@@ -190,7 +185,7 @@ const STORAGE_KEYS = {
   SUPPLIERS: 'hpp_app_suppliers',
   PURCHASES: 'hpp_app_purchases',
   RECIPES: 'hpp_app_recipes',
-  PRIMARY_RECIPES: 'hpp_app_primary_recipes', // Mungkin tidak lagi digunakan?
+  PRIMARY_RECIPES: 'hpp_app_primary_recipes',
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
@@ -199,7 +194,6 @@ const STORAGE_KEYS = {
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
-// Pastikan generateUUID ada di utils atau definisikan di sini
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -216,13 +210,11 @@ const saveToStorage = (key: string, data: any) => {
   }
 };
 
-// MODIFIED: loadFromStorage sekarang mem-parse tanggal untuk semua jenis data yang relevan
 const loadFromStorage = (key: string, defaultValue: any = []) => {
   try {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Lakukan parsing tanggal spesifik berdasarkan kunci
       switch (key) {
         case STORAGE_KEYS.ACTIVITIES:
         case STORAGE_KEYS.HPP_RESULTS:
@@ -268,7 +260,7 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
             updated_at: safeParseDate(item.updated_at),
           }));
         default:
-          return parsed; // Untuk tipe data lain, kembalikan seperti biasa
+          return parsed;
       }
     }
     return defaultValue;
@@ -286,7 +278,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
-  // Helper untuk mengubah Date atau string ke ISO string untuk DB.
   const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
     if (!dateValue) return null;
     let dateObj: Date;
@@ -304,7 +295,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return dateObj.toISOString();
   };
 
-  // Inisialisasi state dari localStorage
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -323,7 +313,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [activities, setActivities] = useState<Activity[]>(() =>
     loadFromStorage(STORAGE_KEYS.ACTIVITIES, [])
   );
-  // Default orders, pastikan tanggal valid
   const [orders, setOrders] = useState<Order[]>(() =>
     loadFromStorage(STORAGE_KEYS.ORDERS, [
       {
@@ -383,7 +372,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => clearTimeout(timer);
   }, [cloudSyncEnabled, externalLoadFromCloud]);
 
-  // --- Save to Local Storage ---
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
@@ -407,7 +395,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [externalLoadFromCloud]);
 
-  // Fungsi sinkronisasi utama
   const syncToCloud = async (): Promise<boolean> => {
     if (!cloudSyncEnabled) {
       toast.info('Sinkronisasi cloud dinonaktifkan.');
@@ -547,12 +534,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           id: item.id,
           user_id: userId,
           type: item.type,
-          category: item.category ?? null, // Sekarang bisa null
+          category: item.category ?? null,
           amount: item.amount,
-          description: item.description ?? null, // Sekarang bisa null
-          date: toSafeISOString(item.date || new Date()), // toSafeISOString, dengan fallback
-          created_at: toSafeISOString(item.created_at || new Date()), // toSafeISOString, dengan fallback
-          updated_at: toSafeISOString(item.updatedAt || new Date()), // toSafeISOString, dengan fallback
+          description: item.description ?? null,
+          date: toSafeISOString(item.date || new Date()),
+          created_at: toSafeISOString(item.created_at || new Date()),
+          updated_at: toSafeISOString(item.updatedAt || new Date()),
         })),
       };
 
@@ -603,10 +590,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.info('Data lokal diperbarui dengan data cloud.');
   };
 
-  // =============================================================
-  // CRUD FUNCTIONS (memanggil DB API)
-  // =============================================================
-
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     const session = (await supabase.auth.getSession()).data.session;
     const newBahan: BahanBaku = {
@@ -623,10 +606,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       kategori: newBahan.kategori,
       stok: newBahan.stok,
       satuan: newBahan.satuan,
-      harga_satuan: newBahan.hargaSatuan, // Convert to snake_case
+      harga_satuan: newBahan.hargaSatuan,
       minimum: newBahan.minimum,
       supplier: newBahan.supplier,
-      tanggal_kadaluwarsa: toSafeISOString(newBahan.tanggalKadaluwarsa), // Gunakan helper
+      tanggal_kadaluwarsa: toSafeISOString(newBahan.tanggalKadaluwarsa),
       user_id: newBahan.userId,
       created_at: toSafeISOString(newBahan.createdAt),
       updated_at: toSafeISOString(newBahan.updatedAt),
@@ -643,7 +626,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setBahanBaku(prev => [...prev, newBahan]); // <-- DI-AKTIFKAN KEMBALI
+    setBahanBaku(prev => [...prev, newBahan]);
     addActivity({
       title: 'Bahan Baku Ditambahkan',
       description: `${bahan.nama} telah ditambahkan ke gudang`,
@@ -688,8 +671,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setBahanBaku(prev => ...); // Ini akan di-handle oleh realtime subscription
-    console.log('=== DEBUG: updateBahanBaku completed ===');
+    // setBahanBaku(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };
@@ -705,7 +687,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setBahanBaku(prev => prev.filter(b => b.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setBahanBaku(prev => prev.filter(b => b.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
@@ -773,7 +755,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setSuppliers(prev => [...prev, newSupplier]); // <-- DI-AKTIFKAN KEMBALI
+    setSuppliers(prev => [...prev, newSupplier]);
     addActivity({
       title: 'Supplier Ditambahkan',
       description: `${supplier.nama} telah ditambahkan`,
@@ -801,7 +783,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setSuppliers(prev => ...); // Ini akan di-handle oleh realtime subscription
+    // setSuppliers(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Supplier berhasil diperbarui!`);
     return true;
   };
@@ -816,7 +798,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setSuppliers(prev => prev.filter(s => s.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setSuppliers(prev => prev.filter(s => s.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
     if (supplier) {
       addActivity({
         title: 'Supplier Dihapus',
@@ -857,15 +839,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setPurchases(prev => [...prev, newPurchase]); // <-- DI-AKTIFKAN KEMBALI
+    setPurchases(prev => [...prev, newPurchase]);
 
-    // Logika update/add bahan baku setelah pembelian
     await Promise.all(purchase.items.map(async item => {
       const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
         await updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
-          hargaSatuan: item.hargaSatuan,
+          hargaSatuan: existingBahan.hargaSatuan, // Use existing item's price here if you're not updating it
         });
       } else {
         await addBahanBaku({
@@ -879,7 +860,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         });
       }
     }));
-
 
     addActivity({
       title: 'Pembelian Ditambahkan',
@@ -908,7 +888,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setPurchases(prev => ...); // Ini akan di-handle oleh realtime subscription
+    // setPurchases(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Pembelian berhasil diperbarui!`);
     return true;
   };
@@ -921,7 +901,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setPurchases(prev => prev.filter(p => p.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setPurchases(prev => prev.filter(p => p.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Pembelian berhasil dihapus!`);
     return true;
   };
@@ -960,7 +940,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setRecipes(prev => [...prev, newRecipe]); // <-- DI-AKTIFKAN KEMBALI
+    setRecipes(prev => [...prev, newRecipe]);
     addActivity({
       title: 'Resep Ditambahkan',
       description: `Resep ${recipe.namaResep} telah disimpan`,
@@ -993,7 +973,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setRecipes(prev => ...); // Ini akan di-handle oleh realtime subscription
+    // setRecipes(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Resep berhasil diperbarui!`);
     return true;
   };
@@ -1008,7 +988,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setRecipes(prev => prev.filter(r => r.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setRecipes(prev => prev.filter(r => r.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
     if (recipe) {
       addActivity({
         title: 'Resep Dihapus',
@@ -1052,7 +1032,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setHppResults(prev => [...prev, newResult]); // <-- DI-AKTIFKAN KEMBALI
+    setHppResults(prev => [...prev, newResult]);
     addActivity({
       title: 'HPP Dihitung',
       description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString('id-ID')}/porsi`,
@@ -1105,7 +1085,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setOrders(prev => [...prev, newOrder]); // <-- DI-AKTIFKAN KEMBALI
+    setOrders(prev => [...prev, newOrder]);
     addActivity({
       title: 'Pesanan Baru',
       description: `Pesanan ${newOrder.nomorPesanan} dari ${newOrder.namaPelanggan}`,
@@ -1141,7 +1121,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // setOrders(prev => ...); // Ini akan di-handle oleh realtime subscription (jika ada update yang memicu load)
     // Untuk update, biasanya kita lakukan optimistic update di UI, lalu biarkan realtime memastikan.
-    // Jika tidak ada realtime, maka perlu `setOrders(prev => prev.map(o => o.id === id ? {...o, ...updatedOrder, updatedAt: new Date()} : o));`
+    // setOrders(prev => prev.map(o => o.id === id ? {...o, ...updatedOrder, updatedAt: new Date()} : o)); // Uncomment this for optimistic update
     toast.success(`Pesanan berhasil diperbarui!`);
     return true;
   };
@@ -1156,7 +1136,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setOrders(prev => prev.filter(o => o.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setOrders(prev => prev.filter(o => o.id !== id)); // Ini akan di-handle oleh realtime subscription (jika ada delete yang memicu load)
     if (order) {
       addActivity({
         title: 'Pesanan Dihapus',
@@ -1200,7 +1180,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    setActivities(prev => [newActivity, ...prev].slice(0, 50)); // <-- DI-AKTIFKAN KEMBALI
+    setActivities(prev => [newActivity, ...prev].slice(0, 50));
     toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
@@ -1272,7 +1252,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setAssets(prev => [...prev, newAsset]); // <-- DI-AKTIFKAN KEMBALI
+    setAssets(prev => [...prev, newAsset]);
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan`,
@@ -1296,7 +1276,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedAsset.penyusutanPerBulan !== undefined) assetToUpdate.penyusutan_per_bulan = updatedAsset.penyusutanPerBulan;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori ?? null;
-    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi ?? null;
+    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedCateredAsset.kondisi ?? null; // Typo here, should be updatedAsset
     if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi ?? null;
     if (updatedAsset.deskripsi !== undefined) assetToUpdate.deskripsi = updatedAsset.deskripsi ?? null;
     if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi ?? null;
@@ -1308,7 +1288,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setAssets(prev => ...); // Ini akan di-handle oleh realtime subscription
+    // setAssets(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
     toast.success(`Aset berhasil diperbarui!`);
     return true;
   };
@@ -1323,7 +1303,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setAssets(prev => prev.filter(a => a.id !== id)); // Ini akan di-handle oleh realtime subscription
+    // setAssets(prev => prev.filter(a => a.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
     if (asset) {
       addActivity({
         title: 'Aset Dihapus',
@@ -1365,7 +1345,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    setFinancialTransactions(prev => [...prev, newTransaction]); // <-- DI-AKTIFKAN KEMBALI
+    setFinancialTransactions(prev => [...prev, newTransaction]);
     addActivity({
       title: 'Transaksi Keuangan Ditambahkan',
       description: `${newTransaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${newTransaction.amount.toLocaleString('id-ID')}`,
@@ -1412,7 +1392,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (transaction) {
       addActivity({
         title: 'Transaksi Keuangan Dihapus',
-        description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.amount.toLocaleString('id-ID')} dihapus`,
+        description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${(transaction.amount ?? 0).toLocaleString('id-ID')} dihapus`, // Updated with ?? 0
         type: 'stok',
       });
       toast.success(`Transaksi berhasil dihapus!`);

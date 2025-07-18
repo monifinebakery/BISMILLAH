@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Asset } from '@/types/asset'; // Pastikan Asset diimpor dari types/asset
+import { Asset } from '@/types/asset';
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // Import toSafeISOString juga
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 
 const STORAGE_KEY = 'hpp_app_assets';
 
@@ -50,41 +50,48 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
             const rawCreatedAt = item.created_at;
             const rawUpdatedAt = item.updated_at;
 
-            const parsedTanggalPembelian = safeParseDate(rawTanggalPembelian);
-            const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date(); // Pastikan Date valid
-            const parsedUpdatedAt = safeParseDate(rawUpdatedAt) || new Date(); // Pastikan Date valid
+            let parsedTanggalPembelian = safeParseDate(rawTanggalPembelian);
+            // Explicit check for invalid Date
+            if (!(parsedTanggalPembelian instanceof Date) || isNaN(parsedTanggalPembelian.getTime())) {
+              console.warn(`Invalid tanggalPembelian for asset ${item.id}: ${rawTanggalPembelian}, falling back to default date`);
+              parsedTanggalPembelian = new Date('1970-01-01T00:00:00Z');
+            }
 
-            console.log('DEBUG Raw vs Parsed Dates:', { // <-- LOG INI DITAMBAHKAN
-              id: item.id,
-              rawTanggalPembelian,
-              parsedTanggalPembelian: {
-                value: parsedTanggalPembelian,
-                isValid: parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()),
+            const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date();
+            const parsedUpdatedAt = safeParseDate(rawUpdatedAt) || new Date();
+
+            // Debug logging for each asset's date processing
+            console.log('Asset date processing:', {
+              assetId: item.id,
+              tanggalPembelian: {
+                raw: rawTanggalPembelian,
+                parsed: parsedTanggalPembelian.toISOString(),
+                isValid: parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime())
               },
-              rawCreatedAt,
-              parsedCreatedAt: {
-                value: parsedCreatedAt,
-                isValid: parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()),
+              createdAt: {
+                raw: rawCreatedAt,
+                parsed: parsedCreatedAt.toISOString(),
+                isValid: parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime())
               },
-              rawUpdatedAt,
-              parsedUpdatedAt: {
-                value: parsedUpdatedAt,
-                isValid: parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()),
-              },
+              updatedAt: {
+                raw: rawUpdatedAt,
+                parsed: parsedUpdatedAt.toISOString(),
+                isValid: parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime())
+              }
             });
 
             return {
               id: item.id,
               nama: item.nama || '',
-              kategori: item.kategori || 'Peralatan', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kategori`
+              kategori: item.kategori || 'Peralatan',
               nilaiAwal: parseFloat(item.nilai_awal) || 0,
               nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-              tanggalPembelian: parsedTanggalPembelian || new Date('1970-01-01T00:00:00Z'), // <-- Jaminan Date valid
-              kondisi: item.kondisi || 'Baik', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kondisi`
+              tanggalPembelian: parsedTanggalPembelian,
+              kondisi: item.kondisi || 'Baik',
               lokasi: item.lokasi || '',
-              deskripsi: item.deskripsi || null, // MODIFIED: Gunakan null
+              deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) || null,
-              penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // Fallback ke 0
+              penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
               user_id: item.user_id,
               createdAt: parsedCreatedAt,
               updatedAt: parsedUpdatedAt,
@@ -120,7 +127,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
     saveToStorage(STORAGE_KEY, assets);
   }, [assets]);
 
-  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'user_id' | 'penyusutanPerBulan'>) => { // tambahkan penyusutanPerBulan ke Omit
+  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'user_id' | 'penyusutanPerBulan'>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -137,8 +144,8 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       const newAssetId = generateUUID();
       const now = new Date();
       
-      const calculatedPenyusutanPerBulan = asset.nilaiAwal / (asset.umurManfaat * 12); // Hitung di sini
-      const calculatedNilaiSaatIni = asset.nilaiAwal; // Nilai awal sama dengan nilai saat ini saat penambahan
+      const calculatedPenyusutanPerBulan = asset.nilaiAwal / (asset.umurManfaat * 12);
+      const calculatedNilaiSaatIni = asset.nilaiAwal;
 
       console.log('Adding Asset with tanggal_beli:', asset.tanggalPembelian.toISOString());
 
@@ -146,12 +153,12 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         user_id: session.user.id,
         nama: asset.nama,
-        jenis: asset.kategori, // MODIFIED: Map kategori ke jenis di DB
+        jenis: asset.kategori,
         nilai_awal: asset.nilaiAwal,
         umur_manfaat: asset.umurManfaat,
         tanggal_beli: asset.tanggalPembelian.toISOString(),
-        penyusutan_per_bulan: calculatedPenyusutanPerBulan, // Gunakan yang dihitung
-        nilai_sekarang: calculatedNilaiSaatIni, // Gunakan yang dihitung
+        penyusutan_per_bulan: calculatedPenyusutanPerBulan,
+        nilai_sekarang: calculatedNilaiSaatIni,
         kondisi: asset.kondisi,
         lokasi: asset.lokasi,
         deskripsi: asset.deskripsi || null,
@@ -170,7 +177,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         createdAt: now,
         updatedAt: now,
-        userId: session.user.id, // Pastikan userId juga diset
+        userId: session.user.id,
         penyusutanPerBulan: calculatedPenyusutanPerBulan,
         nilaiSaatIni: calculatedNilaiSaatIni,
       }]);
@@ -196,7 +203,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       };
 
       if (updates.nama !== undefined) updateData.nama = updates.nama;
-      if (updates.kategori !== undefined) updateData.jenis = updates.kategori; // MODIFIED: Map kategori ke jenis di DB
+      if (updates.kategori !== undefined) updateData.jenis = updates.kategori;
       if (updates.nilaiAwal !== undefined) updateData.nilai_awal = updates.nilaiAwal;
       if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni;
       if (updates.tanggalPembelian !== undefined) {
@@ -208,11 +215,10 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       }
       if (updates.kondisi !== undefined) updateData.kondisi = updates.kondisi;
       if (updates.lokasi !== undefined) updateData.lokasi = updates.lokasi;
-      if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi || null; // MODIFIED: Gunakan null
+      if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi || null;
       if (updates.depresiasi !== undefined) updateData.depresiasi = updates.depresiasi;
-      if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat; // Pastikan umurManfaat diupdate juga
-      if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan; // Pastikan penyusutanPerBulan diupdate juga
-
+      if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat;
+      if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan;
 
       const { error } = await supabase.from('assets').update(updateData).eq('id', id).eq('user_id', session.user.id);
       if (error) {

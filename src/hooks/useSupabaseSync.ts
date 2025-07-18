@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'; // PERBAIKAN: Import useCallback
+import { useState, useEffect, useCallback } from 'react'; // Import useCallback
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supabase/supabase-js';
@@ -6,7 +6,7 @@ import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supaba
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 
 // Import semua tipe yang dibutuhkan dari AppDataContext.tsx atau file tipe spesifik Anda
-// PERBAIKAN: Hapus Invoice dari import, karena sudah tidak digunakan.
+// Pastikan semua tipe yang diimpor di sini konsisten dengan AppDataContext Anda.
 import {
   BahanBaku,
   Supplier,
@@ -17,6 +17,7 @@ import {
   Order,
   Asset,
   FinancialTransaction,
+  // Invoice - DIHAPUS karena fitur Invoice dibatalkan
 } from '@/contexts/AppDataContext'; 
 
 // DIHAPUS: Import tipe-tipe spesifik dari invoice.ts (jika ada)
@@ -32,6 +33,9 @@ import {
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
 // ===============================================
+// Ini adalah representasi data saat berinteraksi dengan Supabase (nama kolom snake_case).
+// Disesuaikan agar konsisten dengan skema DB Anda saat ini tanpa Invoice.
+
 interface TransformedBahanBaku {
   id: string;
   nama: string;
@@ -67,7 +71,7 @@ interface TransformedPurchase {
   id: string;
   tanggal: string;
   supplier: string;
-  items: any[];
+  items: any[]; // Items Purchase bisa jadi array of objects (JSONB)
   total_nilai: number;
   metode_perhitungan: string;
   catatan: string | null;
@@ -81,7 +85,7 @@ interface TransformedRecipe {
   nama_resep: string;
   deskripsi: string | null;
   porsi: number;
-  ingredients: any[];
+  ingredients: any[]; // Ingredients Recipe bisa jadi array of objects (JSONB)
   biaya_tenaga_kerja: number;
   biaya_overhead: number;
   total_hpp: number;
@@ -97,7 +101,7 @@ interface TransformedRecipe {
 interface TransformedHPPResult {
   id: string;
   nama: string;
-  ingredients: any[];
+  ingredients: any[]; // Ingredients HPPResult bisa jadi array of objects (JSONB)
   biaya_tenaga_kerja: number;
   biaya_overhead: number;
   margin_keuntungan: number;
@@ -129,7 +133,7 @@ interface TransformedOrder {
   email_pelanggan: string;
   telepon_pelanggan: string;
   alamat_pengiriman: string;
-  items: any[];
+  items: any[]; // Items Order bisa jadi array of objects (JSONB)
   subtotal: number;
   pajak: number;
   total_pesanan: number;
@@ -143,10 +147,10 @@ interface TransformedOrder {
 interface TransformedAsset {
   id: string;
   nama: string;
-  kategori: string | null;
-  nilai_awal: number;
-  tanggal_beli: string;
-  nilai_sekarang: number;
+  kategori: string | null; // Kolom DB 'kategori'
+  nilai_awal: number; // Kolom DB 'nilai_awal'
+  tanggal_beli: string; // Kolom DB 'tanggal_beli'
+  nilai_sekarang: number; // Kolom DB 'nilai_sekarang'
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -156,7 +160,7 @@ interface TransformedAsset {
   depresiasi: number | null;
 }
 
-// DIHAPUS: TransformedInvoice
+// DIHAPUS: TransformedInvoice - karena fitur Invoice dibatalkan
 // interface TransformedInvoice { /* ... */ }
 
 interface TransformedFinancialTransaction {
@@ -180,18 +184,19 @@ interface TransformedUserSettings {
   address: string | null;
   currency: string | null;
   language: string | null;
-  notifications: any;
-  backup_settings: any;
-  security_settings: any;
-  recipe_categories: string[];
-  financial_categories: string[];
+  notifications: any; // JSONB
+  backup_settings: any; // JSONB
+  security_settings: any; // JSONB
+  recipe_categories: string[]; // TEXT[]
+  financial_categories: string[]; // TEXT[]
 }
 
 // ===============================================
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
+// Ini adalah interface yang mendefinisikan struktur data saat disinkronkan ke Supabase (SyncPayload)
+// dan dimuat dari Supabase (LoadedData) dalam format frontend (camelCase).
 
-// DIHAPUS: invoices dari SyncPayload
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
   suppliers: TransformedSupplier[];
@@ -202,11 +207,10 @@ export interface SyncPayload {
   orders: TransformedOrder[];
   assets: TransformedAsset[];
   financialTransactions: TransformedFinancialTransaction[];
-  // invoices: TransformedInvoice[]; 
+  // invoices: TransformedInvoice[]; // DIHAPUS
   userSettings?: TransformedUserSettings;
 }
 
-// DIHAPUS: invoices dari LoadedData
 export interface LoadedData {
   bahanBaku: BahanBaku[];
   suppliers: Supplier[];
@@ -217,8 +221,8 @@ export interface LoadedData {
   orders: Order[];
   assets: Asset[];
   financialTransactions: FinancialTransaction[];
-  // invoices: Invoice[]; 
-  userSettings?: any;
+  // invoices: Invoice[]; // DIHAPUS
+  userSettings?: any; // AppDataContext's UserSettings type
 }
 
 // ===============================================
@@ -228,7 +232,8 @@ export interface LoadedData {
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  // PERBAIKAN: Bungkus syncToSupabase dengan useCallback
+  // Fungsi untuk menyinkronkan data dari lokal ke Supabase (overwrite)
+  // Dibungkus dengan useCallback untuk stabilitas
   const syncToSupabase = useCallback(async (transformedPayload: SyncPayload): Promise<boolean> => {
     setIsLoading(true);
     try {
@@ -240,11 +245,12 @@ export const useSupabaseSync = () => {
 
       console.log('Starting sync to Supabase...');
 
-      // DIHAPUS: invoices dari destructing transformedPayload
+      // Destructuring payload: pastikan tidak ada `invoices` di sini
       const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload; 
       const userId = session.user.id;
 
-      // DIHAPUS: delete promise untuk invoices
+      // Hapus semua data lama user di Supabase sebelum upload yang baru (full replace strategy)
+      // Pastikan semua tabel yang relevan terdaftar di sini, dan `invoices` DIHAPUS
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -255,7 +261,7 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
-        // supabase.from('invoices').delete().eq('user_id', userId), 
+        // supabase.from('invoices').delete().eq('user_id', userId), // DIHAPUS
       ];
 
       const deleteResults = await Promise.all(deletePromises);
@@ -263,6 +269,8 @@ export const useSupabaseSync = () => {
         if (res.error) throw res.error;
       }
 
+      // Upsert (insert or update) data baru ke Supabase
+      // Pastikan semua tabel yang relevan terdaftar di sini, dan `invoices` DIHAPUS
       const upsertPromises = [];
 
       if (bahanBaku && bahanBaku.length > 0) {
@@ -292,8 +300,7 @@ export const useSupabaseSync = () => {
       if (financialTransactions && financialTransactions.length > 0) {
         upsertPromises.push(supabase.from('financial_transactions').upsert(financialTransactions, { onConflict: 'id', ignoreDuplicates: false }));
       }
-      // DIHAPUS: upsert promise untuk invoices
-      // if (invoices && invoices.length > 0) {
+      // if (invoices && invoices.length > 0) { // DIHAPUS
       //   upsertPromises.push(supabase.from('invoices').upsert(invoices, { onConflict: 'id', ignoreDuplicates: false }));
       // }
 
@@ -314,14 +321,16 @@ export const useSupabaseSync = () => {
       return true;
     } catch (error: any) {
       console.error('Sync to Supabase failed:', error);
-      toast.error(`Gagal menyinkronkan data ke cloud: ${error.message}`);
+      // Pesan error lebih robust
+      toast.error(`Gagal menyinkronkan data ke cloud: ${error.message || 'Terjadi kesalahan tidak terduga'}`); 
       return false;
     } finally {
       setIsLoading(false);
     }
   }, []); // Dependensi kosong karena semua variabel dari scope terluar adalah konstanta atau fungsi Supabase yang stabil
 
-  // PERBAIKAN: Bungkus loadFromSupabase dengan useCallback
+  // Fungsi untuk memuat semua data user dari Supabase
+  // Dibungkus dengan useCallback untuk stabilitas
   const loadFromSupabase = useCallback(async (): Promise<LoadedData | null> => {
     setIsLoading(true);
     try {
@@ -334,7 +343,8 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
-      // PERBAIKAN: Hapus select query untuk invoices
+      // Ambil data dari semua tabel user
+      // Pastikan semua tabel yang relevan terdaftar di sini, dan `invoices` DIHAPUS
       const [
         bahanBakuRes,
         suppliersRes,
@@ -356,10 +366,11 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('financial_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-        // supabase.from('invoices').select('*').eq('user_id', userId).order('issue_date', { ascending: false }), 
+        // supabase.from('invoices').select('*').eq('user_id', userId).order('issue_date', { ascending: false }), // DIHAPUS
         supabase.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
+      // Tangani error dari setiap query secara individual
       if (bahanBakuRes.error) throw bahanBakuRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
       if (purchasesRes.error) throw purchasesRes.error;
@@ -369,12 +380,10 @@ export const useSupabaseSync = () => {
       if (ordersRes.error) throw ordersRes.error;
       if (assetsRes.error) throw assetsRes.error;
       if (financialTransactionsRes.error) throw financialTransactionsRes.error;
-      // PERBAIKAN: Hapus penanganan error untuk invoices
-      // if (invoicesRes.error) throw invoicesRes.error; 
+      // if (invoicesRes.error) throw invoicesRes.error; // DIHAPUS
 
-      // Placeholder for default settings
+      // Proses user settings
       const defaultSettings = { financialCategories: [] };
-
       let userSettingsData = null;
       if (settingsRes.data && !settingsRes.error) {
         userSettingsData = {
@@ -391,11 +400,13 @@ export const useSupabaseSync = () => {
           recipeCategories: settingsRes.data.recipe_categories || [],
           financialCategories: settingsRes.data.financial_categories || defaultSettings.financialCategories,
         };
-      } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
+      } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') { // PGRST116 berarti 'No rows found', jadi ini bukan error fatal jika settings belum ada
         console.error('Error loading user settings:', settingsRes.error);
-        toast.error(`Gagal memuat pengaturan pengguna: ${settingsRes.error.message}`);
+        // Pesan error lebih robust
+        toast.error(`Gagal memuat pengaturan pengguna: ${settingsRes.error.message || 'Error tidak diketahui'}`); 
       }
 
+      // Transformasi data yang dimuat dari Supabase (snake_case) ke format frontend (camelCase)
       const cloudData: LoadedData = {
         bahanBaku: bahanBakuRes.data?.map((item: any) => ({
           id: item.id,
@@ -410,6 +421,7 @@ export const useSupabaseSync = () => {
           userId: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
+          // Pastikan properti ini ada di DB dan konsisten
           jumlahBeliKemasan: item.jumlah_beli_kemasan !== null ? parseFloat(item.jumlah_beli_kemasan) : null,
           satuanKemasan: item.satuan_kemasan || null,
           hargaTotalBeliKemasan: item.harga_total_beli_kemasan !== null ? parseFloat(item.harga_total_beli_kemasan) : null,
@@ -458,7 +470,7 @@ export const useSupabaseSync = () => {
           id: item.id,
           nama: item.nama || '',
           ingredients: item.ingredients || [],
-          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
+          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0, // PERBAIKAN: Fix typo sudah diterapkan di sini
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           totalHPP: parseFloat(item.total_hpp) || 0,
@@ -522,8 +534,7 @@ export const useSupabaseSync = () => {
           createdAt: safeParseDate(item.created_at) || new Date(),
           updatedAt: safeParseDate(item.updated_at) || new Date(),
         })) || [],
-        // DIHAPUS: Invoices dari LoadedData jika fitur dibatalkan
-        // invoices: invoicesRes.data?.map((item: any) => { /* ... */ }) || [],
+        // invoices: invoicesRes.data?.map((item: any) => { /* ... */ }) || [], // DIHAPUS
         userSettings: userSettingsData,
       };
 
@@ -532,21 +543,23 @@ export const useSupabaseSync = () => {
       return cloudData;
     } catch (error: any) {
       console.error('Load error:', error);
-      toast.error('Gagal memuat data dari cloud');
+      // Pesan error lebih robust
+      toast.error(`Gagal memuat data dari cloud: ${error.message || 'Terjadi kesalahan tidak terduga'}`); 
       return null;
     } finally {
       setIsLoading(false);
     }
   }, []); // Dependensi kosong karena semua variabel dari scope terluar adalah konstanta atau fungsi Supabase yang stabil
 
-  // PERBAIKAN: Bungkus getCloudStats dengan useCallback
+  // Fungsi untuk mendapatkan statistik jumlah data di cloud
+  // Dibungkus dengan useCallback untuk stabilitas
   const getCloudStats = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
       const userId = session.user.id;
 
-      // PERBAIKAN: Hapus select count untuk invoices
+      // Ambil count dari semua tabel yang relevan, dan `invoices` DIHAPUS
       const [bahanBakuRes, suppliersRes, purchasesRes, recipesRes, hppResultsRes, ordersRes, assetsRes, financialTransactionsRes] = await Promise.all([
         supabase.from('bahan_baku').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('suppliers').select('*', { count: 'exact', head: true }).eq('user_id', userId),
@@ -556,7 +569,7 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('assets').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        // supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', userId), 
+        // supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', userId), // DIHAPUS
       ]);
 
       return {
@@ -568,8 +581,7 @@ export const useSupabaseSync = () => {
         totalOrders: ordersRes.count || 0,
         totalAssets: assetsRes.count || 0,
         totalFinancialTransactions: financialTransactionsRes.count || 0,
-        // DIHAPUS: totalInvoices
-        // totalInvoices: invoicesRes.count || 0, 
+        // totalInvoices: invoicesRes.count || 0, // DIHAPUS
       };
     } catch (error: any) {
       console.error('Stats error:', error);
@@ -577,61 +589,11 @@ export const useSupabaseSync = () => {
     }
   }, []); // Dependensi kosong
 
-  const value: AppDataContextType = {
-    bahanBaku,
-    addBahanBaku,
-    updateBahanBaku,
-    deleteBahanBaku,
-    getBahanBakuByName,
-    reduceStok,
-    suppliers,
-    addSupplier,
-    updateSupplier,
-    deleteSupplier,
-    purchases,
-    addPurchase,
-    updatePurchase,
-    deletePurchase,
-    recipes,
-    addRecipe,
-    updateRecipe,
-    deleteRecipe,
-    hppResults,
-    addHPPResult,
-    addHPPCalculation,
-    activities,
-    addActivity,
-    orders,
-    addOrder,
-    updateOrder,
-    deleteOrder,
-    updateOrderStatus,
-    assets,
-    addAsset,
-    updateAsset,
-    deleteAsset,
-    financialTransactions,
-    addFinancialTransaction,
-    updateFinancialTransaction,
-    deleteFinancialTransaction,
-    syncToCloud, 
-    loadFromCloud, 
-    replaceAllData,
-    getStatistics,
-    getDashboardStats,
+  // Mengembalikan fungsi-fungsi hook ini untuk digunakan oleh komponen lain
+  return {
+    syncToSupabase,
+    loadFromSupabase,
+    getCloudStats,
+    isLoading
   };
-
-  return (
-    <AppDataContext.Provider value={value}>
-      {children}
-    </AppDataContext.Provider>
-  );
-};
-
-export const useAppData = () => {
-  const context = useContext(AppDataContext);
-  if (context === undefined) {
-    throw new Error('useAppData must be used within an AppDataProvider');
-  }
-  return context;
 };

@@ -44,8 +44,8 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           lokasi: item.lokasi,
           deskripsi: item.deskripsi || undefined, // Pastikan undefined jika null
           user_id: item.user_id,
-          createdAt: safeParseDate(item.created_at), // MODIFIED: Gunakan safeParseDate
-          updatedAt: safeParseDate(item.updated_at), // MODIFIED: Gunakan safeParseDate
+          createdAt: safeParseDate(item.created_at) || new Date(), // Pastikan selalu Date yang valid
+          updatedAt: safeParseDate(item.updated_at) || new Date(), // Pastikan selalu Date yang valid
         }));
         setAssets(transformedData);
         saveToStorage(STORAGE_KEY, transformedData);

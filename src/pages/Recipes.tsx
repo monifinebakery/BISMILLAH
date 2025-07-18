@@ -11,6 +11,9 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 
+// BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
+import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
+
 const RecipesPage = () => {
   const { recipes, loading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
   const { settings } = useUserSettings();
@@ -41,20 +44,23 @@ const RecipesPage = () => {
     setEditingRecipe(null);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI
+  // const formatCurrency = (value: number) => {
+  //   return new Intl.NumberFormat('id-ID', {
+  //     style: 'currency',
+  //     currency: 'IDR',
+  //     minimumFractionDigits: 0,
+  //     maximumFractionDigits: 0
+  //   }).format(value);
+  // };
 
   // MODIFIED: Logika pemfilteran resep menggunakan useMemo
   const filteredRecipes = useMemo(() => {
     return recipes.filter(recipe => {
+      // Pastikan recipe.deskripsi ada sebelum memanggil toLowerCase
+      const deskripsiText = recipe.deskripsi || ''; // Fallback ke string kosong
       const matchesSearch = recipe.namaResep.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            recipe.deskripsi.toLowerCase().includes(searchTerm.toLowerCase());
+                            deskripsiText.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || recipe.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
@@ -155,14 +161,14 @@ const RecipesPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kategori</SelectItem>
-                    {settings.recipeCategories.length > 0 && ( // Hanya render jika ada kategori
+                    {settings.recipeCategories && settings.recipeCategories.length > 0 && ( // Hanya render jika ada kategori
                       settings.recipeCategories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
                       ))
                     )}
-                    {/* Hapus baris ini:
+                    {/* Baris yang dihapus:
                     {settings.recipeCategories.length === 0 ? (
                       <SelectItem value="" disabled>
                         Belum ada kategori. Tambahkan di Pengaturan.

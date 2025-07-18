@@ -18,6 +18,7 @@ import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { safeParseDate } from '@/hooks/useSupabaseSync';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};

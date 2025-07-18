@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { format, subDays, parseISO } from 'date-fns';
+// MODIFIED: Import fungsi-fungsi date-fns yang diperlukan
+import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { safeParseDate } from '@/utils/dateUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { formatLargeNumber } from '@/utils/currencyUtils'; // MODIFIED: Import formatLargeNumber
+import { formatLargeNumber } from '@/utils/currencyUtils';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -44,8 +45,15 @@ const FinancialReportPage = () => {
         return false;
       }
       
-      if (dateRange?.from && transactionDate < dateRange.from) return false;
-      if (dateRange?.to && transactionDate > dateRange.to) return false;
+      const rangeFrom = dateRange?.from instanceof Date && !isNaN(dateRange.from.getTime()) ? dateRange.from : null;
+      const rangeTo = dateRange?.to instanceof Date && !isNaN(dateRange.to.getTime()) ? dateRange.to : null;
+
+      if (rangeFrom && transactionDate < rangeFrom) return false;
+      if (rangeTo) {
+          const adjustedRangeTo = new Date(rangeTo);
+          adjustedRangeTo.setDate(adjustedRangeTo.getDate() + 1);
+          if (transactionDate >= adjustedRangeTo) return false;
+      }
       
       return true;
     });
@@ -152,15 +160,15 @@ const FinancialReportPage = () => {
   // MODIFIED: CustomPieLabel component untuk label pie chart
   const CustomPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value, name }: any) => {
     const RADIAN = Math.PI / 180;
-    const x = cx + outerRadius * Math.cos(-midAngle * RADIAN) * 1.0; // Position slightly outside
+    const x = cx + outerRadius * Math.cos(-midAngle * RADIAN) * 1.0;
     const y = cy + outerRadius * Math.sin(-midAngle * RADIAN) * 1.0;
-    const formattedValue = formatLargeNumber(value, 0); // Format value with 0 decimal places for labels
+    const formattedValue = formatLargeNumber(value, 0); // Format value dengan 0 desimal
 
     return (
       <text
         x={x}
         y={y}
-        fill="black" // Warna teks label
+        fill="black"
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         fontSize="12px"
@@ -205,6 +213,14 @@ const FinancialReportPage = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
+                  {/* MODIFIED: Tambahkan div untuk tombol-tombol rentang tanggal cepat */}
+                  <div className="flex flex-col p-2 space-y-1 border-b">
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: new Date(), to: new Date() })}>Hari ini</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) })}>Kemarin</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 29), to: new Date() })}>30 Hari Terakhir</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Kemarin</Button>
+                  </div>
                   <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
                 </PopoverContent>
               </Popover>

@@ -7,7 +7,7 @@ import { BahanBaku } from '@/types/recipe';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateToYYYYMMDD } from '@/utils/dateUtils'; // <-- DITAMBAHKAN IMPORT INI
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
@@ -152,31 +152,23 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   const handleClose = () => {
     setFormData({
       nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
-      hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
+      hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null, // Inisialisasi dengan null
       jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
     });
     onClose();
   };
 
-  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  if (value instanceof Date) {
-    if (isNaN(value.getTime())) {
-      return ''; // Tanggal tidak valid, kembalikan string kosong
+  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => { // Hapus Date dari T
+    if (value === null || value === undefined) {
+      return '';
     }
-    const isoString = value.toISOString();
-    return isoString.split('T')[0];
-  }
 
-  if (typeof value === 'string' || typeof value === 'number') {
-    return value;
-  }
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value;
+    }
 
-  return ''; // Fallback untuk tipe yang tidak diharapkan
-};
+    return ''; // Fallback untuk tipe yang tidak diharapkan
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -269,18 +261,17 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <div>
               <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
               <Input
-  id="tanggalKadaluwarsa"
-  type="date"
-  value={getInputValue(formData.tanggalKadaluwarsa) as string}
-  onChange={(e) => setFormData({
-    ...formData,
-    // Jika e.target.value kosong, set ke null. Jika tidak, buat objek Date dan periksa validitasnya.
-    tanggalKadaluwarsa: e.target.value
-      ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
-      : null
-  })}
-  className="border-orange-200 focus:border-orange-400 rounded-md"
-/>
+                id="tanggalKadaluwarsa"
+                type="date"
+                value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)} // <-- MODIFIKASI DISINI
+                onChange={(e) => setFormData({
+                  ...formData,
+                  tanggalKadaluwarsa: e.target.value
+                    ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
+                    : null
+                })}
+                className="border-orange-200 focus:border-orange-400 rounded-md"
+              />
             </div>
 
             <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">

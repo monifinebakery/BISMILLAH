@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { RecipeIngredient, Recipe } from '@/types/recipe'; // Pastikan ini diimpor dari lokasi yang benar
-import { Supplier } from '@/types/supplier'; // Pastikan ini diimpor dari lokasi yang benar
-import { Order, NewOrder, OrderItem } from '@/types/order'; // Pastikan ini diimpor dari lokasi yang benar
+import { RecipeIngredient, Recipe } from '@/types/recipe';
+import { Supplier } from '@/types/supplier';
+import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-// Mengimpor useSupabaseSync dan safeParseDate dari hooks/useSupabaseSync
-import { useSupabaseSync, safeParseDate } from '@/hooks/useSupabaseSync';
+// Mengimpor useSupabaseSync
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+// Mengimpor safeParseDate dari utils/dateUtils
+import { safeParseDate } from '@/utils/dateUtils';
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -20,13 +22,13 @@ export interface BahanBaku {
   hargaSatuan: number; // camelCase
   minimum: number;
   supplier: string;
-  tanggalKadaluwarsa: Date | null; // <-- UBAH KE Date | null
-  createdAt: Date | null;          // <-- UBAH KE Date | null
-  updatedAt: Date | null;          // <-- UBAH KE Date | null
-  jumlahBeliKemasan?: number | null; // Opsional, bisa null
-  satuanKemasan?: string | null; // Opsional, bisa null
-  hargaTotalBeliKemasan?: number | null; // Opsional, bisa null
-  userId?: string; // Pastikan ini ada jika user_id dikelola di frontend
+  tanggalKadaluwarsa: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  jumlahBeliKemasan?: number | null;
+  satuanKemasan?: string | null;
+  hargaTotalBeliKemasan?: number | null;
+  userId?: string;
 }
 
 export interface Purchase {
@@ -34,19 +36,20 @@ export interface Purchase {
   tanggal: Date; // Wajib
   supplier: string;
   items: {
-    namaBarang: string;
-    kategori: string;
+    id?: number | string; // Tambahkan id untuk OrderItem
+    nama: string;
+    kategori?: string; // Opsional
     jumlah: number;
-    satuan: string;
+    satuan?: string; // Opsional
     hargaSatuan: number;
     totalHarga: number;
   }[];
   totalNilai: number; // camelCase
   status: 'pending' | 'completed' | 'cancelled';
   metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // camelCase
-  catatan: string | null; // <-- UBAH KE string | null
-  createdAt: Date | null;          // <-- UBAH KE Date | null
-  updatedAt: Date | null;          // <-- UBAH KE Date | null
+  catatan: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface Activity {
@@ -55,9 +58,9 @@ export interface Activity {
   description: string;
   timestamp: Date; // Wajib
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
-  value?: string; // Opsional
-  createdAt: Date | null;          // <-- UBAH KE Date | null
-  updatedAt: Date | null;          // <-- UBAH KE Date | null
+  value: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface HPPResult {
@@ -72,26 +75,26 @@ export interface HPPResult {
   hargaJualPerPorsi: number; // camelCase
   jumlahPorsi: number; // camelCase
   timestamp: Date; // Tetap Date (karena selalu ada fallback new Date())
-  createdAt: Date | null;          // <-- UBAH KE Date | null
-  updatedAt: Date | null;          // <-- UBAH KE Date | null
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface Asset {
   id: string;
   nama: string;
-  jenis: string | null; // <-- UBAH KE string | null
+  jenis: string | null;
   nilai: number;
   umurManfaat: number;
   tanggalPembelian: Date; // Tetap Date (karena selalu ada fallback new Date())
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
   userId?: string;
-  createdAt: Date | null;          // <-- UBAH KE Date | null
-  updatedAt: Date | null;          // <-- UBAH KE Date | null
-  kategori: string | null; // <-- UBAH KE string | null
-  kondisi: string | null;   // <-- UBAH KE string | null
-  lokasi: string | null;    // <-- UBAH KE string | null
-  deskripsi: string | null; // <-- UBAH KE string | null
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  kategori: string | null;
+  kondisi: string | null;
+  lokasi: string | null;
+  deskripsi: string | null;
   depresiasi: number | null;
 }
 
@@ -99,12 +102,12 @@ export interface FinancialTransaction {
   id: string;
   userId: string;
   type: 'pemasukan' | 'pengeluaran';
-  category: string;
+  category: string | null;
   amount: number;
-  description: string;
-  date: Date; // Tetap Date (karena selalu ada fallback new Date())
-  created_at: Date; // Tetap Date (karena selalu ada fallback new Date())
-  updated_at: Date; // Tetap Date (karena selalu ada fallback new Date())
+  description: string | null;
+  date: Date | null;
+  created_at: Date | null;
+  updated_at: Date | null;
 }
 
 // =============================================================
@@ -196,8 +199,7 @@ const STORAGE_KEYS = {
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
-// Pastikan generateUUID, saveToStorage, loadFromStorage ada di utils
-// Jika tidak, definisikan di sini
+// Pastikan generateUUID ada di utils atau definisikan di sini
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -214,12 +216,60 @@ const saveToStorage = (key: string, data: any) => {
   }
 };
 
-// loadFromStorage kini lebih sederhana karena parsing tanggal dilakukan di useSupabaseSync
+// MODIFIED: loadFromStorage sekarang mem-parse tanggal untuk semua jenis data yang relevan
 const loadFromStorage = (key: string, defaultValue: any = []) => {
   try {
     const stored = localStorage.getItem(key);
     if (stored) {
-      return JSON.parse(stored); // Cukup parse
+      const parsed = JSON.parse(stored);
+      // Lakukan parsing tanggal spesifik berdasarkan kunci
+      switch (key) {
+        case STORAGE_KEYS.ACTIVITIES:
+        case STORAGE_KEYS.HPP_RESULTS:
+          return parsed.map((item: any) => ({
+            ...item,
+            timestamp: safeParseDate(item.timestamp),
+            createdAt: safeParseDate(item.createdAt),
+            updatedAt: safeParseDate(item.updatedAt),
+          }));
+        case STORAGE_KEYS.PURCHASES:
+          return parsed.map((item: any) => ({
+            ...item,
+            tanggal: safeParseDate(item.tanggal),
+            createdAt: safeParseDate(item.createdAt),
+            updatedAt: safeParseDate(item.updatedAt),
+          }));
+        case STORAGE_KEYS.BAHAN_BAKU:
+          return parsed.map((item: any) => ({
+            ...item,
+            tanggalKadaluwarsa: safeParseDate(item.tanggalKadaluwarsa),
+            createdAt: safeParseDate(item.createdAt),
+            updatedAt: safeParseDate(item.updatedAt),
+          }));
+        case STORAGE_KEYS.ORDERS:
+          return parsed.map((item: any) => ({
+            ...item,
+            tanggal: safeParseDate(item.tanggal),
+            createdAt: safeParseDate(item.createdAt),
+            updatedAt: safeParseDate(item.updatedAt),
+          }));
+        case STORAGE_KEYS.ASSETS:
+          return parsed.map((item: any) => ({
+            ...item,
+            tanggalPembelian: safeParseDate(item.tanggalPembelian),
+            createdAt: safeParseDate(item.createdAt),
+            updatedAt: safeParseDate(item.updatedAt),
+          }));
+        case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
+          return parsed.map((item: any) => ({
+            ...item,
+            date: safeParseDate(item.date),
+            created_at: safeParseDate(item.created_at),
+            updated_at: safeParseDate(item.updated_at),
+          }));
+        default:
+          return parsed; // Untuk tipe data lain, kembalikan seperti biasa
+      }
     }
     return defaultValue;
   } catch (error) {
@@ -233,11 +283,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const {
     syncToSupabase: externalSyncToCloud,
     loadFromSupabase: externalLoadFromCloud,
-    isLoading: isSyncingCloud, // Dapatkan status loading dari hook sync
+    isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
   // Helper untuk mengubah Date atau string ke ISO string untuk DB.
-  // Ini diperlukan di AppDataContext untuk fungsi-fungsi CRUD
   const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
     if (!dateValue) return null;
     let dateObj: Date;
@@ -255,7 +304,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     return dateObj.toISOString();
   };
 
-  // Inisialisasi state dari localStorage, tanpa parsing tanggal karena akan ditangani saat load dari cloud
+  // Inisialisasi state dari localStorage
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -274,14 +323,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [activities, setActivities] = useState<Activity[]>(() =>
     loadFromStorage(STORAGE_KEYS.ACTIVITIES, [])
   );
-  // Default orders harus konsisten dengan tipe Order.
-  // Pastikan tanggal adalah objek Date yang valid
+  // Default orders, pastikan tanggal valid
   const [orders, setOrders] = useState<Order[]>(() =>
     loadFromStorage(STORAGE_KEYS.ORDERS, [
       {
         id: generateUUID(),
         nomorPesanan: 'ORD-001',
-        tanggal: new Date('2024-12-28T10:00:00Z'), // Gunakan format ISO string untuk default
+        tanggal: new Date('2024-12-28T10:00:00Z'),
         namaPelanggan: 'John Doe',
         emailPelanggan: 'john@example.com',
         teleponPelanggan: '081234567890',
@@ -323,22 +371,19 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     loadFromStorage(STORAGE_KEYS.CLOUD_SYNC, false)
   );
 
-  // useEffect untuk memuat data dari cloud saat pertama kali atau saat cloudSyncEnabled berubah
   useEffect(() => {
     const checkAndLoadFromCloud = async () => {
       if (cloudSyncEnabled) {
         console.log('Cloud sync enabled, attempting to load from cloud...');
         const loadedData = await externalLoadFromCloud();
-        // replaceAllData akan dipanggil di dalam externalLoadFromCloud jika sukses
       }
     };
 
     const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
-  }, [cloudSyncEnabled, externalLoadFromCloud]); // Hapus dependensi array data, agar tidak memicu berulang
+  }, [cloudSyncEnabled, externalLoadFromCloud]);
 
   // --- Save to Local Storage ---
-  // Ini akan menyimpan data lokal setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
@@ -350,29 +395,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.CLOUD_SYNC, cloudSyncEnabled); }, [cloudSyncEnabled]);
 
-  // Realtime Subscriptions
-  // Perhatikan: realtime subscription dan loadFromCloud di useEffect useSupabaseSync
-  // sudah menangani pembaruan data. AppDataContext ini cukup bergantung pada
-  // perubahan state yang dipicu oleh fungsi CRUD atau replaceAllData.
-  // useEffect ini di AppDataContext mungkin tidak lagi diperlukan jika useSupabaseSync sudah mengelola realtime secara global.
-  // Namun, jika Anda ingin AppDataContext juga memicu update berdasarkan visibility atau auth, biarkan ini.
-  // Untuk kesederhanaan dan menghindari potensi duplikasi, saya akan menghapus realtime logic di sini
-  // dan mengandalkan `useSupabaseSync` sebagai single source of truth untuk realtime updates.
-
-  // Jika Anda tetap ingin logic visibility change di sini (selain di useSupabaseSync)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('Tab aplikasi terlihat, memeriksa pembaruan...');
         externalLoadFromCloud().then(loadedData => {
-          // replaceAllData akan dipanggil di dalam externalLoadFromCloud jika sukses
         });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [externalLoadFromCloud]);
-
 
   // Fungsi sinkronisasi utama
   const syncToCloud = async (): Promise<boolean> => {
@@ -398,9 +431,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           stok: item.stok,
           satuan: item.satuan,
           minimum: item.minimum,
-          harga_satuan: item.hargaSatuan, // Konversi camelCase ke snake_case
+          harga_satuan: item.hargaSatuan,
           supplier: item.supplier,
-          tanggal_kadaluwarsa: toSafeISOString(item.tanggalKadaluwarsa), // Gunakan helper
+          tanggal_kadaluwarsa: toSafeISOString(item.tanggalKadaluwarsa),
           user_id: userId,
           created_at: toSafeISOString(item.createdAt || new Date()),
           updated_at: toSafeISOString(item.updatedAt || new Date()),
@@ -461,7 +494,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           harga_jual_per_porsi: item.hargaJualPerPorsi,
           jumlah_porsi: item.jumlahPorsi,
           user_id: userId,
-          created_at: toSafeISOString(item.timestamp || new Date()), // Menggunakan timestamp dari frontend untuk created_at
+          created_at: toSafeISOString(item.timestamp || new Date()),
           updated_at: toSafeISOString(item.updatedAt || new Date()),
         })),
         activities: activities.map(item => ({
@@ -471,7 +504,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           type: item.type,
           value: item.value ?? null,
           user_id: userId,
-          created_at: toSafeISOString(item.timestamp || new Date()), // Menggunakan timestamp dari frontend untuk created_at
+          created_at: toSafeISOString(item.timestamp || new Date()),
           updated_at: toSafeISOString(item.updatedAt || new Date()),
         })),
         orders: orders.map(item => ({
@@ -514,19 +547,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           id: item.id,
           user_id: userId,
           type: item.type,
-          category: item.category,
+          category: item.category ?? null, // Sekarang bisa null
           amount: item.amount,
-          description: item.description,
-          date: toSafeISOString(item.date || new Date()),
-          created_at: toSafeISOString(item.created_at || new Date()),
-          updated_at: toSafeISOString(item.updated_at || new Date()),
+          description: item.description ?? null, // Sekarang bisa null
+          date: toSafeISOString(item.date || new Date()), // toSafeISOString, dengan fallback
+          created_at: toSafeISOString(item.created_at || new Date()), // toSafeISOString, dengan fallback
+          updated_at: toSafeISOString(item.updatedAt || new Date()), // toSafeISOString, dengan fallback
         })),
       };
 
       const success = await externalSyncToCloud(transformedPayload);
-      // loadFromCloud akan dipanggil di sini jika sync sukses untuk memastikan konsistensi
       if (success) {
-        await externalLoadFromCloud(); // Memuat ulang data setelah sync berhasil
+        await externalLoadFromCloud();
       }
       return success;
     } catch (error: any) {
@@ -543,10 +575,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const loadedData = await externalLoadFromCloud(); // externalLoadFromCloud sudah mengembalikan LoadedData
+      const loadedData = await externalLoadFromCloud();
       if (loadedData) {
         replaceAllData(loadedData);
-        // toast.success('Data berhasil dimuat dari cloud!'); // Toast ini sudah ada di externalLoadFromCloud
       } else {
         toast.info('Tidak ada data baru yang dimuat dari cloud.');
       }
@@ -556,7 +587,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // replaceAllData kini hanya mengatur state, karena data sudah diproses di useSupabaseSync
   const replaceAllData = (data: any) => {
     if (data.bahanBaku) setBahanBaku(data.bahanBaku);
     if (data.suppliers) setSuppliers(data.suppliers);
@@ -568,8 +598,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (data.assets) setAssets(data.assets);
     if (data.financialTransactions) setFinancialTransactions(data.financialTransactions);
     if (data.userSettings) {
-      // Ini mungkin perlu penanganan khusus jika userSettings disimpan sebagai state di AppDataContext
-      // Jika user_settings ditangani oleh useUserSettings hook, maka tidak perlu di-set di sini
       console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
     }
     toast.info('Data lokal diperbarui dengan data cloud.');
@@ -577,10 +605,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // =============================================================
   // CRUD FUNCTIONS (memanggil DB API)
-  // Catatan: Panggilan `syncToCloud()` telah dihapus dari fungsi-fungsi CRUD ini.
-  // Ini karena `useSupabaseSync` memiliki realtime subscription yang akan memicu `loadFromCloud`
-  // dan memperbarui state lokal secara otomatis setelah perubahan DB.
-  // Jika realtime subscription tidak digunakan, `syncToCloud()` perlu dipanggil setelah setiap operasi.
   // =============================================================
 
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
@@ -619,7 +643,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setBahanBaku(prev => [...prev, newBahan]); // Ini akan di-handle oleh realtime subscription
+    setBahanBaku(prev => [...prev, newBahan]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Bahan Baku Ditambahkan',
       description: `${bahan.nama} telah ditambahkan ke gudang`,
@@ -749,7 +773,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setSuppliers(prev => [...prev, newSupplier]); // Ini akan di-handle oleh realtime subscription
+    setSuppliers(prev => [...prev, newSupplier]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Supplier Ditambahkan',
       description: `${supplier.nama} telah ditambahkan`,
@@ -833,17 +857,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setPurchases(prev => [...prev, newPurchase]); // Ini akan di-handle oleh realtime subscription
+    setPurchases(prev => [...prev, newPurchase]); // <-- DI-AKTIFKAN KEMBALI
 
     // Logika update/add bahan baku setelah pembelian
-    // Ini harus berjalan setelah purchase berhasil disimpan ke DB agar data konsisten
     await Promise.all(purchase.items.map(async item => {
       const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
-        // Hati-hati: updateBahanBaku akan memicu update DB lagi.
-        // Jika Anda ingin update stok tanpa memicu realtime atau toast lain,
-        // pertimbangkan fungsi internal tanpa side effect toast/activity.
-        // Untuk saat ini, kita biarkan saja karena updateBahanBaku sudah aman.
         await updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
           hargaSatuan: item.hargaSatuan,
@@ -851,9 +870,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       } else {
         await addBahanBaku({
           nama: item.namaBarang,
-          kategori: item.kategori,
+          kategori: item.kategori || '',
           stok: item.jumlah,
-          satuan: item.satuan,
+          satuan: item.satuan || '',
           minimum: 10,
           hargaSatuan: item.hargaSatuan,
           supplier: purchase.supplier,
@@ -941,7 +960,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setRecipes(prev => [...prev, newRecipe]); // Ini akan di-handle oleh realtime subscription
+    setRecipes(prev => [...prev, newRecipe]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Resep Ditambahkan',
       description: `Resep ${recipe.namaResep} telah disimpan`,
@@ -1033,7 +1052,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setHppResults(prev => [...prev, newResult]); // Ini akan di-handle oleh realtime subscription
+    setHppResults(prev => [...prev, newResult]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'HPP Dihitung',
       description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString('id-ID')}/porsi`,
@@ -1086,7 +1105,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setOrders(prev => [...prev, newOrder]); // Ini akan di-handle oleh realtime subscription
+    setOrders(prev => [...prev, newOrder]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Pesanan Baru',
       description: `Pesanan ${newOrder.nomorPesanan} dari ${newOrder.namaPelanggan}`,
@@ -1120,18 +1139,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setOrders(prev => ...); // Ini akan di-handle oleh realtime subscription
-
-    if (updatedOrder.status) {
-      const order = orders.find(o => o.id === id);
-      if (order && order.status !== updatedOrder.status) {
-        addActivity({
-          title: 'Status Pesanan Diubah',
-          description: `Pesanan ${order.nomorPesanan} diubah ke ${updatedOrder.status}`,
-          type: 'purchase',
-        });
-      }
-    }
+    // setOrders(prev => ...); // Ini akan di-handle oleh realtime subscription (jika ada update yang memicu load)
+    // Untuk update, biasanya kita lakukan optimistic update di UI, lalu biarkan realtime memastikan.
+    // Jika tidak ada realtime, maka perlu `setOrders(prev => prev.map(o => o.id === id ? {...o, ...updatedOrder, updatedAt: new Date()} : o));`
     toast.success(`Pesanan berhasil diperbarui!`);
     return true;
   };
@@ -1190,8 +1200,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    // Batasi jumlah aktivitas yang disimpan secara lokal
-    // setActivities(prev => [newActivity, ...prev].slice(0, 50)); // Ini akan di-handle oleh realtime subscription
+    setActivities(prev => [newActivity, ...prev].slice(0, 50)); // <-- DI-AKTIFKAN KEMBALI
     toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
@@ -1263,7 +1272,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setAssets(prev => [...prev, newAsset]); // Ini akan di-handle oleh realtime subscription
+    setAssets(prev => [...prev, newAsset]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan`,
@@ -1331,7 +1340,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newTransaction: FinancialTransaction = {
       ...transaction,
       id: generateUUID(),
-      userId: session?.user.id,
+      userId: session?.user.id || '',
       created_at: new Date(),
       updated_at: new Date(),
       date: transaction.date || new Date(),
@@ -1341,9 +1350,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: newTransaction.id,
       user_id: newTransaction.userId,
       type: newTransaction.type,
-      category: newTransaction.category,
+      category: newTransaction.category ?? null,
       amount: newTransaction.amount,
-      description: newTransaction.description,
+      description: newTransaction.description ?? null,
       date: toSafeISOString(newTransaction.date),
       created_at: toSafeISOString(newTransaction.created_at),
       updated_at: toSafeISOString(newTransaction.updated_at),
@@ -1356,10 +1365,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setFinancialTransactions(prev => [...prev, newTransaction]); // Ini akan di-handle oleh realtime subscription
+    setFinancialTransactions(prev => [...prev, newTransaction]); // <-- DI-AKTIFKAN KEMBALI
     addActivity({
       title: 'Transaksi Keuangan Ditambahkan',
-      description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.amount.toLocaleString('id-ID')}`,
+      description: `${newTransaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${newTransaction.amount.toLocaleString('id-ID')}`,
       type: 'stok',
     });
     toast.success(`Transaksi berhasil ditambahkan!`);
@@ -1372,9 +1381,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     if (updatedTransaction.userId !== undefined) transactionToUpdate.user_id = updatedTransaction.userId;
     if (updatedTransaction.type !== undefined) transactionToUpdate.type = updatedTransaction.type;
-    if (updatedTransaction.category !== undefined) transactionToUpdate.category = updatedTransaction.category;
+    if (updatedTransaction.category !== undefined) transactionToUpdate.category = updatedTransaction.category ?? null;
     if (updatedTransaction.amount !== undefined) transactionToUpdate.amount = updatedTransaction.amount;
-    if (updatedTransaction.description !== undefined) transactionToUpdate.description = updatedTransaction.description;
+    if (updatedTransaction.description !== undefined) transactionToUpdate.description = updatedTransaction.description ?? null;
     if (updatedTransaction.date !== undefined) transactionToUpdate.date = toSafeISOString(updatedTransaction.date);
 
     const { error } = await supabase.from('financial_transactions').update(transactionToUpdate).eq('id', id);

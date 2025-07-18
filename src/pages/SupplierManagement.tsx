@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import CloudSyncButton from '@/components/CloudSyncButton';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const SupplierManagement = () => {
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();

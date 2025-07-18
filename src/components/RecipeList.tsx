@@ -1,8 +1,11 @@
-
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Edit, Trash2, ChefHat, Users, DollarSign } from "lucide-react";
 import { Recipe } from "@/types/recipe";
+
+// BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
+import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay
 
 interface RecipeListProps {
   recipes: Recipe[];
@@ -11,28 +14,29 @@ interface RecipeListProps {
 }
 
 const RecipeList = ({ recipes, onEdit, onDelete }: RecipeListProps) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI
+  // const formatCurrency = (value: number) => {
+  //   return new Intl.NumberFormat('id-ID', {
+  //     style: 'currency',
+  //     currency: 'IDR',
+  //     minimumFractionDigits: 0,
+  //     maximumFractionDigits: 0
+  //   }).format(value);
+  // };
 
-  const formatDate = (date: Date) => {
-  // Periksa apakah objek Date valid sebelum memformat
-  if (date instanceof Date && !isNaN(date.getTime())) {
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  }
-  return 'Tanggal tidak valid'; // Fallback jika tanggal tidak valid
-};
+  // FUNGSI formatDate LOKAL DIHAPUS DARI SINI
+  // const formatDate = (date: Date) => {
+  //   if (date instanceof Date && !isNaN(date.getTime())) {
+  //     return new Intl.DateTimeFormat('id-ID', {
+  //       year: 'numeric',
+  //       month: 'short',
+  //       day: 'numeric',
+  //       hour: '2-digit',
+  //       minute: '2-digit',
+  //     }).format(date);
+  //   }
+  //   return 'Tanggal tidak valid';
+  // };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -110,9 +114,11 @@ const RecipeList = ({ recipes, onEdit, onDelete }: RecipeListProps) => {
 
             {/* Timestamps */}
             <div className="text-xs text-gray-400 border-t pt-3">
-              <div>Dibuat: {formatDate(recipe.createdAt)}</div>
-              {recipe.updatedAt.getTime() !== recipe.createdAt.getTime() && (
-                <div>Diupdate: {formatDate(recipe.updatedAt)}</div>
+              {/* BARIS INI DIUBAH */}
+              <div>Dibuat: {formatDateTimeForDisplay(recipe.createdAt)}</div>
+              {/* BARIS INI DIUBAH (dan memastikan updatedAt bukan null sebelum memanggil getTime()) */}
+              {recipe.updatedAt && recipe.createdAt && recipe.updatedAt.getTime() !== recipe.createdAt.getTime() && (
+                <div>Diupdate: {formatDateTimeForDisplay(recipe.updatedAt)}</div>
               )}
             </div>
 

@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react'; // MODIFIED: Tambahkan useMemo
-import { format, subDays } from 'date-fns'; // MODIFIED: Tambahkan format, subDays
-import { Calendar as CalendarIcon } from 'lucide-react'; // MODIFIED: Tambahkan CalendarIcon
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // MODIFIED: Tambahkan Popover components
-import { Calendar } from '@/components/ui/calendar'; // MODIFIED: Tambahkan Calendar
-import { cn } from '@/lib/utils'; // MODIFIED: Tambahkan cn
-import { DateRange } from 'react-day-picker'; // MODIFIED: Tambahkan DateRange
+import React, { useState, useMemo } from 'react';
+import { format, subDays } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-// Hapus import Badge karena tidak lagi digunakan
-// import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import CloudSyncButton from '@/components/CloudSyncButton';
@@ -18,7 +16,6 @@ import OrderForm from '@/components/OrderForm';
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';
 import WhatsappFollowUpModal from '@/components/WhatsappFollowUpModal';
-// Import komponen Select dari Shadcn UI
 import {
   Select,
   SelectContent,
@@ -27,16 +24,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Import fungsi formatDateForDisplay dari dateUtils
+import { formatDateForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // Tetap diperlukan untuk safeParseDate
+
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
 
-  // MODIFIED: Tambahkan State untuk Filter
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30), // Default: 30 hari terakhir
+    from: subDays(new Date(), 30),
     to: new Date(),
   });
-  const [statusFilter, setStatusFilter] = useState<string>('all'); // Default: 'all'
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
@@ -49,7 +49,6 @@ const OrdersPage = () => {
     setIsWhatsappModalOpen(true);
   };
 
-  // Definisikan semua kemungkinan status pesanan
   const orderStatuses = [
     { key: 'pending', label: 'Menunggu' },
     { key: 'confirmed', label: 'Dikonfirmasi' },
@@ -59,11 +58,10 @@ const OrdersPage = () => {
     { key: 'cancelled', label: 'Dibatalkan' },
   ];
 
-  // Fungsi untuk memperbarui status pesanan dari dropdown
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (orderToUpdate) {
-      const success = await updateOrder(orderId, { ...orderToUpdate, status: newStatus });
+      const success = await updateOrder(orderId, { ...orderToUpdate, status: newStatus as Order['status'] }); // Cast to ensure type compatibility
       if (success) {
         toast.success(`Status pesanan #${orderToUpdate.nomorPesanan} berhasil diubah menjadi "${getStatusText(newStatus)}".`);
       } else {
@@ -72,10 +70,11 @@ const OrdersPage = () => {
     }
   };
 
-  const getWhatsappTemplateByStatus = (status: string, orderData: any): string => {
-    const formattedDate = formatDate(orderData.tanggal);
-    const items = orderData.items.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ');
-    const total = orderData.totalPesanan.toLocaleString('id-ID');
+  const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => { // Tipe orderData sebagai Order
+    // BARIS INI DIUBAH
+    const formattedDate = formatDateForDisplay(orderData.tanggal); // Gunakan formatDateForDisplay
+    const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || ''; // Null check untuk items
+    const total = orderData.totalPesanan?.toLocaleString('id-ID') || '0'; // Null check untuk totalPesanan
 
     switch (status) {
       case 'pending':
@@ -101,23 +100,23 @@ const OrdersPage = () => {
     }
   };
 
-  const formatDate = (date: any) => {
-    try {
-      if (!date) return 'Tanggal tidak tersedia';
-      if (date instanceof Date) {
-        if (isNaN(date.getTime())) return 'Tanggal tidak valid';
-        return date.toLocaleDateString('id-ID');
-      }
-      const parsedDate = safeParseDate(date);
-      if (!parsedDate) return 'Tanggal tidak tersedia'; // Jika null, kembalikan string fallback
-      return parsedDate.toLocaleDateString('id-ID');
-    } catch (error) {
-      console.error('Error formatting date:', error, date);
-      return 'Tanggal tidak valid';
-    }
-  };
+  // FUNGSI formatDate LOKAL DIHAPUS DARI SINI
+  // const formatDate = (date: any) => {
+  //   try {
+  //     if (!date) return 'Tanggal tidak tersedia';
+  //     if (date instanceof Date) {
+  //       if (isNaN(date.getTime())) return 'Tanggal tidak valid';
+  //       return date.toLocaleDateString('id-ID');
+  //     }
+  //     const parsedDate = safeParseDate(date);
+  //     if (!parsedDate) return 'Tanggal tidak tersedia';
+  //     return parsedDate.toLocaleDateString('id-ID');
+  //   } catch (error) {
+  //     console.error('Error formatting date:', error, date);
+  //     return 'Tanggal tidak valid';
+  //   }
+  // };
 
-  // Fungsi getStatusColor dan getStatusText tetap dipertahankan untuk SelectTrigger
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -141,12 +140,6 @@ const OrdersPage = () => {
       default: return status;
     }
   };
-
-  // Hapus fungsi-fungsi handle status spesifik karena digantikan oleh handleStatusChange
-  // const handleConfirmOrder = async (orderId: string) => { ... };
-  // const handleCancelOrder = async (orderId: string) => { ... };
-  // const handleProcessOrder = async (orderId: string) => { ... };
-  // const handleShipOrder = async (orderId: string) => { ... };
 
   const handleEditOrder = (order: Order) => {
     setEditingOrder(order);
@@ -173,8 +166,7 @@ const OrdersPage = () => {
       const { id, ...updateData } = data as Order;
       success = await updateOrder(editingOrder.id, updateData);
     } else {
-      // MODIFIED: Buat nomor pesanan sebelum memanggil addOrder
-      const nextId = Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', ''))) || [0]) + 1; // Perbaiki parsing ID
+      const nextId = Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', ''))) || [0]) + 1;
       const newOrderData = {
         ...data,
         nomorPesanan: `ORD-${String(nextId).padStart(3, '0')}`,
@@ -189,19 +181,17 @@ const OrdersPage = () => {
     }
   };
 
-  // MODIFIED: Perbarui Logika filteredOrders
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       
-      // MODIFIED: Periksa apakah order.tanggal adalah instance Date sebelum memformat
-      const orderDate = safeParseDate(order.tanggal); // Gunakan safeParseDate
+      const orderDate = safeParseDate(order.tanggal);
       
       const matchesDate = dateRange?.from && dateRange?.to && orderDate // Periksa apakah orderDate tidak null
         ? orderDate >= dateRange.from && orderDate <= dateRange.to
-        : true; // Jika tidak ada rentang tanggal yang dipilih, semua tanggal cocok
+        : true;
 
       return matchesSearch && matchesStatus && matchesDate;
     });
@@ -238,15 +228,14 @@ const OrdersPage = () => {
         <CardHeader>
           <CardTitle>Filter Pesanan</CardTitle>
         </CardHeader>
-        {/* MODIFIED: Tambahkan UI Filter di Card "Filter Pesanan" */}
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4"> {/* Gunakan flexbox untuk menata input dan filter */}
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Cari berdasarkan nomor pesanan atau nama pelanggan..."
                 value={searchTerm}
-                onChange={(e) => setSearchFilter(e.target.value)} // Fix: Should update searchTerm
+                onChange={(e) => setSearchTerm(e.target.value)} // Fix: Should update searchTerm directly
                 className="pl-10"
               />
             </div>
@@ -261,9 +250,8 @@ const OrdersPage = () => {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {/* MODIFIED: Periksa instanceof Date sebelum memformat */}
-                  {dateRange?.from && dateRange.from instanceof Date ? (
-                    dateRange.to && dateRange.to instanceof Date ? (
+                  {dateRange?.from ? (
+                    dateRange.to ? (
                       `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
                     ) : (
                       format(dateRange.from, "LLL dd, y")
@@ -309,11 +297,11 @@ const OrdersPage = () => {
                 <div>
                   <CardTitle className="text-lg">{order.nomorPesanan}</CardTitle>
                   <CardDescription>
-                    {order.namaPelanggan} • {formatDate(order.tanggal)}
+                    {/* BARIS INI DIUBAH */}
+                    {order.namaPelanggan} • {formatDateForDisplay(order.tanggal)}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Ganti Badge dengan Select */}
                   <Select
                     onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
                     value={order.status}
@@ -387,7 +375,7 @@ const OrdersPage = () => {
                   <MessageSquare className="h-4 w-4" />
                   Follow-up
                 </Button>
-                {order.status !== 'cancelled' && order.status !== 'delivered' && ( // hanya tampilkan hapus jika belum selesai atau dibatalkan
+                {order.status !== 'cancelled' && order.status !== 'delivered' && (
                   <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
                     <X className="h-4 w-4" />
                     Hapus

@@ -86,7 +86,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         user_id: session.user.id,
         nama: asset.nama,
-        jenis: asset.kategori, // Adjusted to match schema if needed
+        kategori: asset.kategori, // Adjusted to match schema if needed
         nilai_awal: asset.nilaiAwal,
         umur_manfaat: asset.umurManfaat,
         tanggal_beli: asset.tanggalPembelian.toISOString(),

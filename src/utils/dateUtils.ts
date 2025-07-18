@@ -8,6 +8,7 @@
 export const safeParseDate = (dateValue: any): Date | null => {
   try {
     if (dateValue === null || dateValue === undefined || (typeof dateValue === 'string' && dateValue.trim() === '')) {
+      console.log('DEBUG safeParseDate: Input is null/undefined/empty string:', dateValue);
       return null;
     }
 
@@ -15,14 +16,30 @@ export const safeParseDate = (dateValue: any): Date | null => {
 
     if (dateValue instanceof Date) {
       parsedDate = dateValue;
-    } else {
+    } else if (typeof dateValue === 'string') {
+      // Coba parse sebagai ISO string terlebih dahulu
       parsedDate = new Date(dateValue);
-    }
-
-    if (isNaN(parsedDate.getTime())) {
+      if (isNaN(parsedDate.getTime())) {
+        console.warn('DEBUG safeParseDate: Failed to parse string as Date:', dateValue);
+        // Coba normalisasi dengan menghapus zona waktu jika ada
+        const normalized = dateValue.replace(/Z|[+-]\d{2}:\d{2}$/, '');
+        parsedDate = new Date(normalized);
+        if (isNaN(parsedDate.getTime())) {
+          console.error('DEBUG safeParseDate: CRITICAL ERROR - Invalid date string after normalization:', dateValue);
+          return null;
+        }
+      }
+    } else {
+      console.warn('DEBUG safeParseDate: Unexpected input type:', typeof dateValue, dateValue);
       return null;
     }
 
+    if (isNaN(parsedDate.getTime())) {
+      console.error('DEBUG safeParseDate: CRITICAL ERROR - Parsed Date is NaN:', dateValue);
+      return null;
+    }
+
+    console.log('DEBUG safeParseDate: Successfully parsed:', { input: dateValue, output: parsedDate });
     return parsedDate;
   } catch (error) {
     console.error('DEBUG safeParseDate: CRITICAL ERROR during parsing for value:', dateValue, error);

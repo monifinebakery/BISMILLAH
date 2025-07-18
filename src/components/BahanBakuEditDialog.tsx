@@ -266,7 +266,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)}
                 onChange={(e) => setFormData({
                   ...formData,
-                  tanggalKadaluwarsa: e.target.value
+                  tanggalKadaluwarsa: safeParseDate(e.target.value)
                     ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
                     : null
                 })}

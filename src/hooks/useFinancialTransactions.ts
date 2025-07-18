@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner'; // <-- PASTIKAN BARIS INI ADA DI PALING ATAS
+import { toast } from 'sonner';
 import { FinancialTransaction } from '@/types/financial'; // Pastikan FinancialTransaction diimpor dari types/financial
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate } from '@/utils/dateUtils'; // <-- MODIFIKASI: Import safeParseDate dari utils/dateUtils.ts
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // MODIFIED: Import toSafeISOString juga
 
-const STORAGE_KEY = 'hpp_app_financial_transactions';
+const STORAGE_KEY = 'hpp_app_assets'; // Pastikan ini benar, sebelumnya 'hpp_app_financial_transactions'
 
 export const useFinancialTransactions = (userId: string | undefined, initialData?: FinancialTransaction[]) => {
   const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
@@ -25,7 +25,7 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
         .from('financial_transactions')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false }); // Urutkan berdasarkan created_at, lebih umum untuk transaksi
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading financial transactions:', error);
@@ -34,13 +34,14 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
         const transformedData = data.map((item: any) => ({
           id: item.id,
           date: safeParseDate(item.date) || null, // safeParseDate sekarang mengembalikan Date | null
-          type: item.type || 'pengeluaran', // DB: type -> local: type (default ke pengeluaran jika null)
+          // MODIFIED: Map DB 'type' langsung ke properti 'type' di objek lokal
+          type: item.type || 'pengeluaran', // DB: 'type' -> lokal: 'type'
           description: item.description || null,
-          amount: parseFloat(item.amount) || 0, // Pastikan selalu number
+          amount: parseFloat(item.amount) || 0,
           category: item.category || null,
-          createdAt: safeParseDate(item.created_at) || null, // Pastikan Date | null
-          updatedAt: safeParseDate(item.updated_at) || null, // Pastikan Date | null
-          userId: item.user_id, // Tambahkan userId agar lengkap
+          createdAt: safeParseDate(item.created_at) || null,
+          updatedAt: safeParseDate(item.updated_at) || null,
+          userId: item.user_id,
         }));
         setFinancialTransactions(transformedData);
         saveToStorage(STORAGE_KEY, transformedData);
@@ -69,8 +70,8 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       const { error } = await supabase.from('financial_transactions').insert({
         id: newTransactionId,
         user_id: session.user.id,
-        date: transaction.date ? transaction.date.toISOString() : toSafeISOString(now), // Pastikan tanggal selalu dikirim
-        type: transaction.type,
+        date: toSafeISOString(transaction.date || now), // Gunakan toSafeISOString
+        type: transaction.type, // Sudah benar: properti 'type'
         description: transaction.description,
         amount: transaction.amount,
         category: transaction.category,
@@ -88,7 +89,7 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
         id: newTransactionId,
         createdAt: now,
         updatedAt: now,
-        userId: session.user.id, // Pastikan userId ada
+        userId: session.user.id,
       }]);
       toast.success(`Transaksi keuangan berhasil ditambahkan!`);
       return true;
@@ -108,16 +109,14 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       }
 
       const updateData: Partial<any> = {
-        updated_at: new Date().toISOString(),
+        updated_at: toSafeISOString(new Date()),
       };
 
-      // Konversi tanggal ke ISO string dengan aman
-      if (updates.date !== undefined) updateData.date = updates.date ? updates.date.toISOString() : null;
-      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.date !== undefined) updateData.date = toSafeISOString(updates.date); // Gunakan toSafeISOString
+      if (updates.type !== undefined) updateData.type = updates.type; // Sudah benar: properti 'type'
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.amount !== undefined) updateData.amount = updates.amount;
       if (updates.category !== undefined) updateData.category = updates.category;
-      // Jangan update created_at atau user_id dari sini
 
       const { error } = await supabase.from('financial_transactions').update(updateData).eq('id', id).eq('user_id', session.user.id);
       if (error) {
@@ -155,7 +154,7 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
         return false;
       }
 
-      setFinancialTransactions(prev => prev.filter(t => t.id !== id)); // <-- AKTIFKAN KEMBALI UNTUK OPTIMISTIC UI
+      setFinancialTransactions(prev => prev.filter(t => t.id !== id));
       toast.success(`Transaksi keuangan berhasil dihapus!`);
       return true;
     } catch (error) {
@@ -171,6 +170,6 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
     addFinancialTransaction,
     updateFinancialTransaction,
     deleteFinancialTransaction,
-    setFinancialTransactions, // Mungkin perlu diekspor jika diubah di luar hook
+    setFinancialTransactions,
   };
 };

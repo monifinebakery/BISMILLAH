@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getInputValue } from '@/utils/inputUtils';
 
@@ -27,12 +27,13 @@ const AssetManagement = () => {
     nama: '',
     kategori: undefined,
     nilaiAwal: 0,
-    nilaiSekarang: 0,
-    tanggalBeli: null,
+    nilaiSaatIni: 0,
+    tanggalPembelian: null,
     kondisi: undefined,
     lokasi: '',
     deskripsi: '',
     depresiasi: null,
+    penyusutanPerBulan: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,44 +49,46 @@ const AssetManagement = () => {
       nama: asset.nama,
       kategori: asset.kategori,
       nilaiAwal: asset.nilaiAwal,
-      nilaiSekarang: asset.nilaiSekarang,
-      tanggalBeli: asset.tanggalBeli instanceof Date && !isNaN(asset.tanggalBeli.getTime()) ? asset.tanggalBeli : new Date(),
+      nilaiSaatIni: asset.nilaiSaatIni,
+      tanggalPembelian: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()) ? asset.tanggalPembelian : new Date(),
       kondisi: asset.kondisi,
       lokasi: asset.lokasi,
       deskripsi: asset.deskripsi,
       depresiasi: asset.depresiasi,
+      penyusutanPerBulan: asset.penyusutanPerBulan,
     });
     setIsEditing(true);
     setShowAddForm(true);
   };
 
   const handleSave = async () => {
-    if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
+    if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSaatIni === undefined || formData.nilaiSaatIni < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
     
-    if (formData.tanggalBeli === null || formData.tanggalBeli === undefined) {
-      toast.error("Tanggal Beli wajib diisi.");
+    if (formData.tanggalPembelian === null || formData.tanggalPembelian === undefined) {
+      toast.error("Tanggal Pembelian wajib diisi.");
       return;
     }
-    if (!(formData.tanggalBeli instanceof Date) || isNaN(formData.tanggalBeli.getTime())) {
-      toast.error("Tanggal Beli tidak valid.");
+    if (!(formData.tanggalPembelian instanceof Date) || isNaN(formData.tanggalPembelian.getTime())) {
+      toast.error("Tanggal Pembelian tidak valid.");
       return;
     }
 
     setIsSubmitting(true);
 
-    const assetData: Omit<Asset, 'id'> = {
+    const assetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'> = {
       nama: formData.nama,
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
       nilaiAwal: formData.nilaiAwal,
-      nilaiSekarang: formData.nilaiSekarang,
-      tanggalPembelian: formData.tanggalBeli,
+      nilaiSaatIni: formData.nilaiSaatIni,
+      tanggalPembelian: formData.tanggalPembelian,
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
       depresiasi: formData.depresiasi,
+      penyusutanPerBulan: formData.penyusutanPerBulan || 0,
     };
 
     let success = false;
@@ -100,7 +103,16 @@ const AssetManagement = () => {
       setShowAddForm(false);
       setSelectedAsset(null);
       setFormData({
-        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+        nama: '',
+        kategori: undefined,
+        nilaiAwal: 0,
+        nilaiSaatIni: 0,
+        tanggalPembelian: null,
+        kondisi: undefined,
+        lokasi: '',
+        deskripsi: '',
+        depresiasi: null,
+        penyusutanPerBulan: 0,
       });
     }
 
@@ -126,7 +138,7 @@ const AssetManagement = () => {
   }
 
   const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
-  const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSaatIni, 0);
+  const totalNilaiSaatIni = assets.reduce((sum, asset) => sum + asset.nilaiSaatIni, 0);
   const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0);
 
   console.log('--- Assets List Date Debug ---');
@@ -159,7 +171,7 @@ const AssetManagement = () => {
 
         <div className={`grid gap-4 mb-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           <Card className="shadow-lg border-orange-200 bg-white">
-            <CardContent classCuboid="p-4">
+            <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-orange-100 rounded-full p-2 mr-3">
                   <Package className="text-orange-600 h-5 w-5" />
@@ -194,7 +206,7 @@ const AssetManagement = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-600 text-sm">Nilai Sekarang</p>
-                  <p className="font-bold text-gray-900 text-sm sm:text-base">{formatCurrency(totalNilaiSekarang)}</p>
+                  <p className="font-bold text-gray-900 text-sm sm:text-base">{formatCurrency(totalNilaiSaatIni)}</p>
                 </div>
               </div>
             </CardContent>
@@ -225,7 +237,16 @@ const AssetManagement = () => {
                     className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={() => {
                       setFormData({
-                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+                        nama: '',
+                        kategori: undefined,
+                        nilaiAwal: 0,
+                        nilaiSaatIni: 0,
+                        tanggalPembelian: null,
+                        kondisi: undefined,
+                        lokasi: '',
+                        deskripsi: '',
+                        depresiasi: null,
+                        penyusutanPerBulan: 0,
                       });
                       setIsEditing(false);
                     }}
@@ -288,12 +309,12 @@ const AssetManagement = () => {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="nilaiSekarang" className="text-gray-700">Nilai Sekarang</Label>
+                          <Label htmlFor="nilaiSaatIni" className="text-gray-700">Nilai Sekarang</Label>
                           <Input
-                            id="nilaiSekarang"
+                            id="nilaiSaatIni"
                             type="number"
-                            value={getInputValue(formData.nilaiSekarang)}
-                            onChange={(e) => setFormData({...formData, nilaiSekarang: Number(e.target.value)})}
+                            value={getInputValue(formData.nilaiSaatIni)}
+                            onChange={(e) => setFormData({...formData, nilaiSaatIni: Number(e.target.value)})}
                             placeholder="0"
                             className="border-orange-200 focus:border-orange-400"
                           />
@@ -301,14 +322,14 @@ const AssetManagement = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="tanggalBeli" className="text-gray-700">Tanggal Beli *</Label>
+                        <Label htmlFor="tanggalPembelian" className="text-gray-700">Tanggal Pembelian *</Label>
                         <Input
-                          id="tanggalBeli"
+                          id="tanggalPembelian"
                           type="date"
-                          value={formatDateToYYYYMMDD(formData.tanggalBeli)}
+                          value={formatDateToYYYYMMDD(formData.tanggalPembelian)}
                           onChange={(e) => setFormData({
                             ...formData,
-                            tanggalBeli: e.target.value ? new Date(e.target.value) : null
+                            tanggalPembelian: e.target.value ? new Date(e.target.value) : null
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required
@@ -389,7 +410,16 @@ const AssetManagement = () => {
                         setShowAddForm(false);
                         setIsEditing(false);
                         setFormData({
-                          nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+                          nama: '',
+                          kategori: undefined,
+                          nilaiAwal: 0,
+                          nilaiSaatIni: 0,
+                          tanggalPembelian: null,
+                          kondisi: undefined,
+                          lokasi: '',
+                          deskripsi: '',
+                          depresiasi: null,
+                          penyusutanPerBulan: 0,
                         });
                       }}
                       className="flex-1 border-gray-300 hover:bg-gray-50"
@@ -459,7 +489,7 @@ const AssetManagement = () => {
                           <span className="font-medium text-gray-900">{asset.lokasi}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Tanggal Beli:</span>
+                          <span className="text-gray-600">Tanggal Pembelian:</span>
                           <span className="font-medium text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</span>
                         </div>
                       </div>
@@ -480,7 +510,7 @@ const AssetManagement = () => {
                         <TableHead className="text-gray-700">Depresiasi</TableHead>
                         <TableHead className="text-gray-700">Kondisi</TableHead>
                         <TableHead className="text-gray-700">Lokasi</TableHead>
-                        <TableHead className="text-gray-700">Tanggal Beli</TableHead>
+                        <TableHead className="text-gray-700">Tanggal Pembelian</TableHead>
                         <TableHead className="text-right text-gray-700">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -500,7 +530,7 @@ const AssetManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</TableCell>
+                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</span></TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Button

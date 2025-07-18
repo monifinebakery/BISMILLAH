@@ -6,7 +6,6 @@ import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supaba
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 
 // Import semua tipe yang dibutuhkan dari AppDataContext.tsx atau file tipe spesifik Anda
-// PERBAIKAN: Pastikan Invoice diimpor.
 import {
   BahanBaku,
   Supplier,
@@ -17,18 +16,7 @@ import {
   Order,
   Asset,
   FinancialTransaction,
-  Invoice, // PERBAIKAN: Import tipe Invoice
 } from '@/contexts/AppDataContext'; // Asumsi tipe diekspor dari AppDataContext
-
-// PERBAIKAN: Import tipe-tipe spesifik dari invoice.ts
-import { 
-    InvoiceCustomerInfo, 
-    InvoiceBusinessInfo, 
-    OrderItem, 
-    InvoicePaymentStatus, 
-    InvoiceTemplateStyle 
-} from '@/types/invoice';
-
 
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
@@ -157,30 +145,6 @@ interface TransformedAsset {
   depresiasi: number | null;
 }
 
-// PERBAIKAN: Tambahkan TransformedInvoice interface
-interface TransformedInvoice {
-  id: string;
-  user_id: string;
-  -- order_id UUID, // DIHAPUS karena tidak lagi dikaitkan
-  invoice_number: string;
-  issue_date: string;
-  due_date: string | null;
-  customer_info: InvoiceCustomerInfo; // JSONB (sesuai tipe frontend)
-  business_info: InvoiceBusinessInfo; // JSONB (sesuai tipe frontend)
-  items: OrderItem[]; // JSONB (sesuai tipe frontend OrderItem)
-  subtotal: number;
-  tax_amount: number;
-  discount_amount: number | null;
-  shipping_cost: number | null;
-  total_amount: number;
-  amount_paid: number;
-  payment_status: InvoicePaymentStatus; // TEXT
-  notes: string | null;
-  template_style: InvoiceTemplateStyle; // TEXT
-  created_at: string;
-  updated_at: string;
-}
-
 interface TransformedFinancialTransaction {
   id: string;
   user_id: string;
@@ -213,7 +177,6 @@ interface TransformedUserSettings {
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
 
-// PERBAIKAN: Tambahkan invoices ke SyncPayload
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
   suppliers: TransformedSupplier[];
@@ -224,11 +187,9 @@ export interface SyncPayload {
   orders: TransformedOrder[];
   assets: TransformedAsset[];
   financialTransactions: TransformedFinancialTransaction[];
-  invoices: TransformedInvoice[]; // PERBAIKAN: Tambahkan ini
   userSettings?: TransformedUserSettings;
 }
 
-// PERBAIKAN: Tambahkan invoices ke LoadedData
 export interface LoadedData {
   bahanBaku: BahanBaku[];
   suppliers: Supplier[];
@@ -239,7 +200,6 @@ export interface LoadedData {
   orders: Order[];
   assets: Asset[];
   financialTransactions: FinancialTransaction[];
-  invoices: Invoice[]; // PERBAIKAN: Tambahkan ini
   userSettings?: any;
 }
 
@@ -261,10 +221,9 @@ export const useSupabaseSync = () => {
 
       console.log('Starting sync to Supabase...');
 
-      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, invoices, userSettings } = transformedPayload; // PERBAIKAN: Tambahkan invoices
+      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
       const userId = session.user.id;
 
-      // PERBAIKAN: Tambahkan delete promise untuk invoices
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -275,7 +234,6 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
-        supabase.from('invoices').delete().eq('user_id', userId), // PERBAIKAN: Tambahkan ini
       ];
 
       const deleteResults = await Promise.all(deletePromises);
@@ -312,11 +270,7 @@ export const useSupabaseSync = () => {
       if (financialTransactions && financialTransactions.length > 0) {
         upsertPromises.push(supabase.from('financial_transactions').upsert(financialTransactions, { onConflict: 'id', ignoreDuplicates: false }));
       }
-      // PERBAIKAN: Tambahkan upsert promise untuk invoices
-      if (invoices && invoices.length > 0) {
-        upsertPromises.push(supabase.from('invoices').upsert(invoices, { onConflict: 'id', ignoreDuplicates: false }));
-      }
-
+     
       if (userSettings) {
         upsertPromises.push(supabase.from('user_settings').upsert(userSettings, { onConflict: 'user_id' }));
       }
@@ -353,7 +307,6 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
-      // PERBAIKAN: Tambahkan select query untuk invoices
       const [
         bahanBakuRes,
         suppliersRes,
@@ -364,7 +317,6 @@ export const useSupabaseSync = () => {
         ordersRes,
         assetsRes,
         financialTransactionsRes,
-        invoicesRes, // PERBAIKAN: Tambahkan ini
         settingsRes
       ] = await Promise.all([
         supabase.from('bahan_baku').select('*').eq('user_id', userId),
@@ -376,7 +328,6 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('financial_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-        supabase.from('invoices').select('*').eq('user_id', userId).order('issue_date', { ascending: false }), // PERBAIKAN: Tambahkan ini
         supabase.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
@@ -389,7 +340,6 @@ export const useSupabaseSync = () => {
       if (ordersRes.error) throw ordersRes.error;
       if (assetsRes.error) throw assetsRes.error;
       if (financialTransactionsRes.error) throw financialTransactionsRes.error;
-      if (invoicesRes.error) throw invoicesRes.error; // PERBAIKAN: Tangani error untuk invoices
 
       // Placeholder for default settings
       const defaultSettings = { financialCategories: [] };
@@ -541,41 +491,6 @@ export const useSupabaseSync = () => {
           createdAt: safeParseDate(item.created_at) || new Date(),
           updatedAt: safeParseDate(item.updated_at) || new Date(),
         })) || [],
-        // PERBAIKAN: Mapping untuk Invoices
-        invoices: invoicesRes.data?.map((item: any) => {
-          const parsedIssueDate = safeParseDate(item.issue_date);
-          const parsedDueDate = safeParseDate(item.due_date);
-          const parsedCreatedAt = safeParseDate(item.created_at);
-          const parsedUpdatedAt = safeParseDate(item.updated_at);
-
-          return {
-            id: item.id,
-            userId: item.user_id,
-            // orderId: item.order_id || null, // Tidak lagi dikaitkan, jadi tidak perlu di-map
-            invoiceNumber: item.invoice_number,
-            issueDate: (parsedIssueDate instanceof Date && !isNaN(parsedIssueDate.getTime())) ? parsedIssueDate : new Date(),
-            dueDate: (parsedDueDate instanceof Date && !isNaN(parsedDueDate.getTime())) ? parsedDueDate : null,
-            
-            customerInfo: item.customer_info || {}, 
-            businessInfo: item.business_info || {}, 
-            items: item.items || [], 
-            
-            subtotal: parseFloat(item.subtotal) || 0,
-            taxAmount: parseFloat(item.tax_amount) || 0,
-            discountAmount: parseFloat(item.discount_amount) ?? null,
-            shippingCost: parseFloat(item.shipping_cost) ?? null,
-            totalAmount: parseFloat(item.total_amount) || 0,
-            amountPaid: parseFloat(item.amount_paid) || 0,
-            paymentStatus: item.payment_status || 'Belum Dibayar',
-            notes: item.notes || null,
-            templateStyle: item.template_style || 'Simple',
-
-            createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime())) ? parsedCreatedAt : null,
-            updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime())) ? parsedUpdatedAt : null,
-          } as Invoice;
-        }) || [], // Pastikan ini array kosong jika tidak ada data
-        userSettings: userSettingsData,
-      };
 
       console.log('Data loaded from cloud:', cloudData);
       toast.success('Data berhasil dimuat dari cloud');
@@ -595,8 +510,7 @@ export const useSupabaseSync = () => {
       if (!session) return null;
       const userId = session.user.id;
 
-      // PERBAIKAN: Tambahkan select count untuk invoices
-      const [bahanBakuRes, suppliersRes, purchasesRes, recipesRes, hppResultsRes, ordersRes, assetsRes, financialTransactionsRes, invoicesRes] = await Promise.all([
+      const [bahanBakuRes, suppliersRes, purchasesRes, recipesRes, hppResultsRes, ordersRes, assetsRes, financialTransactionsRes] = await Promise.all([
         supabase.from('bahan_baku').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('suppliers').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('purchases').select('*', { count: 'exact', head: true }).eq('user_id', userId),
@@ -605,7 +519,6 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('assets').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', userId), // PERBAIKAN: Tambahkan ini
       ]);
 
       return {
@@ -617,7 +530,6 @@ export const useSupabaseSync = () => {
         totalOrders: ordersRes.count || 0,
         totalAssets: assetsRes.count || 0,
         totalFinancialTransactions: financialTransactionsRes.count || 0,
-        totalInvoices: invoicesRes.count || 0, // PERBAIKAN: Tambahkan ini
       };
     } catch (error: any) {
       console.error('Stats error:', error);

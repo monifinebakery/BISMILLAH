@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
 import { useAppData } from '@/contexts/AppDataContext';
 import { supabase } from '@/integrations/supabase/client'; // Tetap import supabase jika digunakan di tempat lain
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate jika digunakan secara internal di sini
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 interface Notification {
   id: string;

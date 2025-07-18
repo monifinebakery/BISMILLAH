@@ -435,67 +435,69 @@ const AssetManagement = () => {
           <CardContent className="p-4">
             {isMobile ? (
               <div className="space-y-4">
-                {assets.map((asset) => (
-                  <Card key={asset.id} className="border border-orange-200">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-sm text-gray-900">{asset.nama}</h3>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(asset)}
-                            className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-50"
-                          >
-                            <Edit className="h-3 w-3 text-orange-600" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(asset.id)}
-                            className="h-8 w-8 p-0 bg-red-600 hover:bg-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Kategori:</span>
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Nilai Awal:</span>
-                          <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiAwal)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Nilai Sekarang:</span>
-                          <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</span>
-                        </div>
-                        {asset.depresiasi !== undefined && asset.depresiasi !== null && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Depresiasi:</span>
-                            <span className="font-medium text-gray-900">{asset.depresiasi}%</span>
+                {assets
+                  .filter(asset => asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()))
+                  .map((asset) => (
+                    <Card key={asset.id} className="border border-orange-200">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-sm text-gray-900">{asset.nama}</h3>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(asset)}
+                              className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-50"
+                            >
+                              <Edit className="h-3 w-3 text-orange-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(asset.id)}
+                              className="h-8 w-8 p-0 bg-red-600 hover:bg-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Kondisi:</span>
-                          <Badge className={`${kondisiColors[asset.kondisi]} text-xs`}>
-                            {asset.kondisi}
-                          </Badge>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Lokasi:</span>
-                          <span className="font-medium text-gray-900">{asset.lokasi}</span>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Kategori:</span>
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Nilai Awal:</span>
+                            <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiAwal)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Nilai Sekarang:</span>
+                            <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</span>
+                          </div>
+                          {asset.depresiasi !== undefined && asset.depresiasi !== null && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Depresiasi:</span>
+                              <span className="font-medium text-gray-900">{asset.depresiasi}%</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Kondisi:</span>
+                            <Badge className={`${kondisiColors[asset.kondisi]} text-xs`}>
+                              {asset.kondisi}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Lokasi:</span>
+                            <span className="font-medium text-gray-900">{asset.lokasi}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tanggal Pembelian:</span>
+                            <span className="font-medium text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tanggal Pembelian:</span>
-                          <span className="font-medium text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             ) : (
               <ScrollArea className="w-full">
@@ -515,44 +517,46 @@ const AssetManagement = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {assets.map((asset) => (
-                        <TableRow key={asset.id}>
-                          <TableCell className="font-medium text-gray-900">{asset.nama}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
-                          </TableCell>
-                          <TableCell className="text-gray-900">{formatCurrency(asset.nilaiAwal)}</TableCell>
-                          <TableCell className="text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</TableCell>
-                          <TableCell className="text-gray-900">{asset.depresiasi?.toFixed(1) || 0}%</TableCell>
-                          <TableCell>
-                            <Badge className={kondisiColors[asset.kondisi]}>
-                              {asset.kondisi}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-1 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(asset)}
-                                className="border-orange-300 hover:bg-orange-50"
-                              >
-                                <Edit className="h-4 w-4 text-orange-600" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(asset.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {assets
+                        .filter(asset => asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()))
+                        .map((asset) => (
+                          <TableRow key={asset.id}>
+                            <TableCell className="font-medium text-gray-900">{asset.nama}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-900">{formatCurrency(asset.nilaiAwal)}</TableCell>
+                            <TableCell className="text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</TableCell>
+                            <TableCell className="text-gray-900">{asset.depresiasi?.toFixed(1) || 0}%</TableCell>
+                            <TableCell>
+                              <Badge className={kondisiColors[asset.kondisi]}>
+                                {asset.kondisi}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
+                            <TableCell className="text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEdit(asset)}
+                                  className="border-orange-300 hover:bg-orange-50"
+                                >
+                                  <Edit className="h-4 w-4 text-orange-600" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(asset.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </div>

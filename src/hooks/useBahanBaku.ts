@@ -45,7 +45,7 @@ export const useBahanBaku = (userId: string | undefined) => {
         minimum: parseFloat(item.minimum) || 0,
         hargaSatuan: parseFloat(item.harga_satuan) || 0,
         supplier: item.supplier || '',
-        tanggalKadaluwarsa: item.tanggal_kadaluwarsa ? safeParseDate(item.tanggal_kadaluwarsa) : undefined,
+        tanggalKadaluwarsa: safeParseDate(item.tanggal_kadaluwarsa), // Gunakan safeParseDate secara langsung,  sekarang mengembalikan Date | null
         createdAt: safeParseDate(item.created_at),
         updatedAt: safeParseDate(item.updated_at),
         // MODIFIED: Membaca kolom database yang benar (jumlah_beli_kemasan, satuan_kemasan, harga_total_beli_kemasan)
@@ -150,11 +150,14 @@ export const useBahanBaku = (userId: string | undefined) => {
       if (updates.minimum !== undefined) updateData.minimum = updates.minimum;
       if (updates.hargaSatuan !== undefined) updateData.harga_satuan = updates.hargaSatuan;
       if (updates.supplier !== undefined) updateData.supplier = updates.supplier;
-      if (updates.tanggalKadaluwarsa !== undefined) {
-        updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa instanceof Date ? updates.tanggalKadaluwarsa.toISOString() : null;
-      } else if (Object.prototype.hasOwnProperty.call(updates, 'tanggalKadaluwarsa') && updates.tanggalKadaluwarsa === null) {
-        updateData.tanggal_kadaluwarsa = null;
-      }
+     if (updates.tanggalKadaluwarsa !== undefined) {
+  // Pastikan itu adalah objek Date yang valid sebelum memanggil toISOString, jika tidak, null
+  updateData.tanggal_kadaluwarsa = updates.tanggalKadaluwarsa instanceof Date && !isNaN(updates.tanggalKadaluwarsa.getTime())
+    ? updates.tanggalKadaluwarsa.toISOString()
+    : null; // Jika null atau Invalid Date, simpan sebagai null
+} else if (Object.prototype.hasOwnProperty.call(updates, 'tanggalKadaluwarsa') && updates.tanggalKadaluwarsa === null) {
+  updateData.tanggal_kadaluwarsa = null;
+}
 
       // MODIFIED: Mengirim langsung nilai dari updates (yang sudah non-nullable)
       if ('jumlahBeliKemasan' in updates) {

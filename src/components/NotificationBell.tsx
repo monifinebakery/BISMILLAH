@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
 import { useAppData } from '@/contexts/AppDataContext';
 import { supabase } from '@/integrations/supabase/client'; // Tetap import supabase jika digunakan di tempat lain
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate jika digunakan secara internal di sini
 
 interface Notification {
   id: string;
@@ -13,11 +14,10 @@ interface Notification {
   message: string;
   type: 'error' | 'warning' | 'info' | 'success';
   read: boolean;
-  timestamp: Date;
+  timestamp: Date; // Pastikan ini Date karena diharapkan selalu valid
 }
 
 const NotificationBell = () => {
-  // MODIFIED: Menambahkan loadFromCloud dari context
   const { bahanBaku, activities, loadFromCloud } = useAppData();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -32,7 +32,7 @@ const NotificationBell = () => {
       message: `${item.nama} tersisa ${item.stok} ${item.satuan}`,
       type: 'warning' as const,
       read: false,
-      timestamp: currentTime,
+      timestamp: currentTime, // currentTime selalu Date valid
     }));
 
     // Generate activity notifications (latest 3)
@@ -41,64 +41,30 @@ const NotificationBell = () => {
       title: activity.title,
       message: activity.description,
       type: activity.type === 'hpp' ? 'success' : 
-             activity.type === 'stok' ? 'info' : 
-             activity.type === 'resep' ? 'info' : 'info',
+           activity.type === 'stok' ? 'info' : 
+           activity.type === 'resep' ? 'info' : 'info',
       read: false,
-      timestamp: activity.timestamp,
+      // Pastikan activity.timestamp selalu Date yang valid dari AppDataContext.
+      // Jika masih ada kemungkinan null/undefined, perlu fallback di sini juga.
+      // (Berdasarkan AppDataContext, activity.timestamp sudah Date || new Date())
+      timestamp: activity.timestamp, 
     }));
 
     // Combine and sort by timestamp
     const allNotifications = [...lowStockNotifications, ...activityNotifications]
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .sort((a, b) => {
+        // MODIFIKASI DISINI: Defensif check untuk memastikan timestamp adalah Date yang valid
+        const timeA = (a.timestamp instanceof Date && !isNaN(a.timestamp.getTime())) ? a.timestamp.getTime() : 0;
+        const timeB = (b.timestamp instanceof Date && !isNaN(b.timestamp.getTime())) ? b.timestamp.getTime() : 0;
+        return timeB - timeA; // Sort descending (terbaru di atas)
+      })
       .slice(0, 10); // Keep only latest 10
 
     setNotifications(allNotifications);
   }, [bahanBaku, activities]);
 
   // MODIFIED: Hapus seluruh blok useEffect yang berisi supabase.channel('notification-updates').on(...)
-  // useEffect(() => {
-  //   const channel = supabase
-  //     .channel('notification-updates')
-  //     .on(
-  //       'postgres_changes',
-  //       {
-  //         event: '*',
-  //         schema: 'public',
-  //         table: 'bahan_baku'
-  //       },
-  //       (payload) => {
-  //         console.log('Realtime update:', payload);
-  //         loadFromCloud();
-  //       }
-  //     )
-  //     .on(
-  //       'postgres_changes',
-  //       {
-  //         event: '*',
-  //         schema: 'public',
-  //         table: 'orders'
-  //       },
-  //       (payload) => {
-  //         console.log('New order update:', payload);
-  //         if (payload.eventType === 'INSERT') {
-  //           const newNotification: Notification = {
-  //             id: `order-${payload.new.id}`,
-  //             title: 'Pesanan Baru',
-  //             message: `Pesanan dari ${payload.new.nama_pelanggan}`,
-  //             type: 'info',
-  //             read: false,
-  //             timestamp: new Date(),
-  //           };
-  //           setNotifications(prev => [newNotification, ...prev].slice(0, 10));
-  //         }
-  //       }
-  //     )
-  //     .subscribe();
-
-  //   return () => {
-  //     supabase.removeChannel(channel);
-  //   };
-  // }, [loadFromCloud]); // loadFromCloud tidak lagi menjadi dependensi di useEffect ini
+  // Karena manajemen realtime sudah disentralisasi di useSupabaseSync.ts
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -117,11 +83,17 @@ const NotificationBell = () => {
       case 'error': return 'destructive';
       case 'warning': return 'secondary';
       case 'success': return 'default';
+      case 'info': return 'outline'; // Tambahkan case 'info' jika Anda ingin badge berbeda
       default: return 'outline';
     }
   };
 
   const formatTime = (date: Date) => {
+    // Pastikan date adalah objek Date yang valid
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return 'Tanggal tidak valid'; // Fallback jika tanggal tidak valid
+    }
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));

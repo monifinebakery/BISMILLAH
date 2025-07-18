@@ -1,22 +1,19 @@
 import React, { useState, useMemo } from 'react';
-// MODIFIED: Import useIsMobile
-import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile
-// MODIFIED: Import fungsi-fungsi date-fns yang diperlukan
+import { useIsMobile } from '@/hooks/use-mobile'; 
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
-import { Badge } from '@/components/ui/badge'; // PASTIKAN BARIS INI ADA
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-// MODIFIED: Tambah icon Eye untuk View Details
 import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, Eye } from 'lucide-react'; 
 import { useOrders } from '@/hooks/useOrders';
 import CloudSyncButton from '@/components/CloudSyncButton';
-import OrderForm from '@/components/OrderForm'; // Komponen OrderForm
+import OrderForm from '@/components/OrderForm'; 
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';
 import WhatsappFollowUpModal from '@/components/WhatsappFollowUpModal';
@@ -27,16 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from '@/components/ui/badge'; // PASTIKAN BARIS INI ADA
 
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 
 const OrdersPage = () => {
-  const isMobile = useIsMobile(); // Panggil hook useIsMobile
+  const isMobile = useIsMobile(); 
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOrderForm, setShowOrderForm] = useState(false); // Mengontrol visibilitas dialog form/detail
+  const [showOrderForm, setShowOrderForm] = useState(false); 
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
@@ -44,8 +42,8 @@ const OrdersPage = () => {
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null); // Data pesanan yang sedang diedit/dilihat
-  const [isViewMode, setIsViewMode] = useState(false); // MODIFIED: State baru untuk mode lihat detail
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null); 
+  const [isViewMode, setIsViewMode] = useState(false); 
 
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
@@ -131,23 +129,21 @@ const OrdersPage = () => {
     }
   };
 
-  // MODIFIED: Fungsi untuk membuka form dalam mode EDIT
   const handleOpenEditOrderForm = (order: Order) => {
     setEditingOrder(order);
-    setIsViewMode(false); // Pastikan mode edit
+    setIsViewMode(false); 
     setShowOrderForm(true);
   };
 
-  // MODIFIED: Fungsi untuk membuka form dalam mode LIHAT DETAIL
   const handleOpenViewOrderForm = (order: Order) => {
     setEditingOrder(order);
-    setIsViewMode(true); // Pastikan mode lihat detail
+    setIsViewMode(true); 
     setShowOrderForm(true);
   };
 
   const handleNewOrder = () => {
     setEditingOrder(null);
-    setIsViewMode(false); // Pastikan mode tambah baru
+    setIsViewMode(false); 
     setShowOrderForm(true);
   };
 
@@ -159,17 +155,16 @@ const OrdersPage = () => {
   };
 
   const handleSubmit = async (data: Order | NewOrder) => {
-    const isEditingMode = !!editingOrder; // Cek apakah sedang mode edit
+    const isEditingMode = !!editingOrder; 
     let success = false;
 
     if (isEditingMode) {
-      // Pastikan kita tidak mencoba submit saat dalam mode lihat detail
       if (isViewMode) {
         toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
         return;
       }
-      const { id, ...updateData } = data as Order; // Ambil ID dari data jika ada, sisanya updateData
-      success = await updateOrder(editingOrder!.id, updateData); // Gunakan editingOrder.id yang sudah pasti ada
+      const { id, ...updateData } = data as Order; 
+      success = await updateOrder(editingOrder!.id, updateData); 
     } else {
       const nextId = Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', ''))) || [0]) + 1;
       const newOrderData = {
@@ -183,7 +178,7 @@ const OrdersPage = () => {
       toast.success(isEditingMode ? 'Pesanan berhasil diperbarui.' : 'Pesanan baru berhasil ditambahkan.');
       setShowOrderForm(false);
       setEditingOrder(null);
-      setIsViewMode(false); // Reset mode setelah submit
+      setIsViewMode(false); 
     }
   };
 
@@ -270,7 +265,6 @@ const OrdersPage = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
-                {/* MODIFIED: Tambahkan div untuk tombol-tombol rentang tanggal cepat */}
                 <div className="flex flex-col p-2 space-y-1 border-b">
                   <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Hari ini</Button>
                   <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(subDays(new Date(), 1)), to: endOfDay(subDays(new Date(), 1)) })}>Kemarin</Button>
@@ -307,7 +301,6 @@ const OrdersPage = () => {
 
       <div className="grid gap-4">
         {filteredOrders.map((order) => (
-          // MODIFIED: Kondisional render konten card
           <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -354,7 +347,8 @@ const OrdersPage = () => {
                     <span className="text-muted-foreground">Status:</span>
                     <Badge className={getStatusColor(order.status)}>{getStatusText(order.status)}</Badge>
                   </div>
-                  <div className="flex justify-end mt-4">
+                  {/* PERBAIKAN: Tambahkan kembali tombol follow-up WhatsApp untuk Mobile */}
+                  <div className="flex justify-end mt-4 gap-2"> {/* Tambahkan gap-2 jika ada lebih dari 1 tombol */}
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -363,6 +357,15 @@ const OrdersPage = () => {
                     >
                       <Eye className="h-4 w-4" />
                       Lihat Detail
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFollowUpClick(order)} // Tombol Follow-up
+                      className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Follow-up
                     </Button>
                   </div>
                 </div>
@@ -412,6 +415,7 @@ const OrdersPage = () => {
                       <Edit className="h-4 w-4" />
                       Edit Detail
                     </Button>
+                    {/* Tombol Follow-up WhatsApp untuk Desktop */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -446,19 +450,18 @@ const OrdersPage = () => {
         </Card>
       )}
 
-      {/* MODIFIED: Panggil OrderForm dengan prop isViewMode */}
       <OrderForm
         open={showOrderForm}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setEditingOrder(null);
-            setIsViewMode(false); // Pastikan mode lihat direset saat dialog ditutup
+            setIsViewMode(false); 
           }
           setShowOrderForm(isOpen);
         }}
         onSubmit={handleSubmit}
         initialData={editingOrder}
-        isViewMode={isViewMode} // Prop baru untuk OrderForm
+        isViewMode={isViewMode} 
       />
 
       <WhatsappFollowUpModal

@@ -14,6 +14,7 @@ import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
 // PASTIKAN safeParseDate DIIMPORT DARI LOKASI YANG BENAR
 import { safeParseDate } from '@/utils/dateUtils'; 
+import { generateUUID } from '@/utils/uuid'; // PASTIKAN BARIS INI ADA
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
 import { formatCurrency } from '@/utils/currencyUtils';

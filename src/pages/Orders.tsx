@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+// MODIFIED: Import useIsMobile
+import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile
 // MODIFIED: Import fungsi-fungsi date-fns yang diperlukan
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -10,10 +12,11 @@ import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare } from 'lucide-react';
+// MODIFIED: Tambah icon Eye untuk View Details
+import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, Eye } from 'lucide-react'; 
 import { useOrders } from '@/hooks/useOrders';
 import CloudSyncButton from '@/components/CloudSyncButton';
-import OrderForm from '@/components/OrderForm';
+import OrderForm from '@/components/OrderForm'; // Komponen OrderForm
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';
 import WhatsappFollowUpModal from '@/components/WhatsappFollowUpModal';
@@ -30,8 +33,10 @@ import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
 
 
 const OrdersPage = () => {
+  const isMobile = useIsMobile(); // Panggil hook useIsMobile
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showOrderForm, setShowOrderForm] = useState(false); // Mengontrol visibilitas dialog form/detail
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
@@ -39,7 +44,9 @@ const OrdersPage = () => {
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null); // Data pesanan yang sedang diedit/dilihat
+  const [isViewMode, setIsViewMode] = useState(false); // MODIFIED: State baru untuk mode lihat detail
+
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
 
@@ -124,13 +131,23 @@ const OrdersPage = () => {
     }
   };
 
-  const handleEditOrder = (order: Order) => {
+  // MODIFIED: Fungsi untuk membuka form dalam mode EDIT
+  const handleOpenEditOrderForm = (order: Order) => {
     setEditingOrder(order);
+    setIsViewMode(false); // Pastikan mode edit
+    setShowOrderForm(true);
+  };
+
+  // MODIFIED: Fungsi untuk membuka form dalam mode LIHAT DETAIL
+  const handleOpenViewOrderForm = (order: Order) => {
+    setEditingOrder(order);
+    setIsViewMode(true); // Pastikan mode lihat detail
     setShowOrderForm(true);
   };
 
   const handleNewOrder = () => {
     setEditingOrder(null);
+    setIsViewMode(false); // Pastikan mode tambah baru
     setShowOrderForm(true);
   };
 
@@ -142,12 +159,17 @@ const OrdersPage = () => {
   };
 
   const handleSubmit = async (data: Order | NewOrder) => {
-    const isEditing = !!editingOrder;
+    const isEditingMode = !!editingOrder; // Cek apakah sedang mode edit
     let success = false;
 
-    if (isEditing) {
-      const { id, ...updateData } = data as Order;
-      success = await updateOrder(editingOrder.id, updateData);
+    if (isEditingMode) {
+      // Pastikan kita tidak mencoba submit saat dalam mode lihat detail
+      if (isViewMode) {
+        toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
+        return;
+      }
+      const { id, ...updateData } = data as Order; // Ambil ID dari data jika ada, sisanya updateData
+      success = await updateOrder(editingOrder!.id, updateData); // Gunakan editingOrder.id yang sudah pasti ada
     } else {
       const nextId = Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', ''))) || [0]) + 1;
       const newOrderData = {
@@ -158,9 +180,10 @@ const OrdersPage = () => {
     }
 
     if (success) {
-      toast.success(isEditing ? 'Pesanan berhasil diperbarui.' : 'Pesanan baru berhasil ditambahkan.');
+      toast.success(isEditingMode ? 'Pesanan berhasil diperbarui.' : 'Pesanan baru berhasil ditambahkan.');
       setShowOrderForm(false);
       setEditingOrder(null);
+      setIsViewMode(false); // Reset mode setelah submit
     }
   };
 
@@ -284,6 +307,7 @@ const OrdersPage = () => {
 
       <div className="grid gap-4">
         {filteredOrders.map((order) => (
+          // MODIFIED: Kondisional render konten card
           <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -315,65 +339,97 @@ const OrdersPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Pesanan</p>
-                  <p className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</p>
+              {isMobile ? (
+                // Konten untuk Mobile (lebih ringkas)
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Pelanggan:</span>
+                    <span className="font-semibold">{order.namaPelanggan}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">No Whatsapp:</span>
+                    <span className="font-semibold">{order.teleponPelanggan || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status:</span>
+                    <Badge className={getStatusColor(order.status)}>{getStatusText(order.status)}</Badge>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                      onClick={() => handleOpenViewOrderForm(order)} // Tombol Lihat Detail
+                    >
+                      <Eye className="h-4 w-4" />
+                      Lihat Detail
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Jumlah Item</p>
-                  <p className="font-semibold">{order.items?.length || 0} item</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">No Whatsapp</p>
-                  <p className="font-semibold">{order.teleponPelanggan || 'Tidak tersedia'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-semibold text-sm">{order.emailPelanggan || 'Tidak tersedia'}</p>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Detail Pesanan
-                </h4>
-                <div className="space-y-2">
-                  {order.items?.map((item, index) => (
-                    <div key={item.id || index} className="flex justify-between items-center text-sm">
-                      <span>{item.nama} x {item.quantity}</span>
-                      <span className="font-medium">Rp {item.totalHarga?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</span>
+              ) : (
+                // Konten untuk Desktop (detail lengkap seperti sebelumnya)
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Pesanan</p>
+                      <p className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</p>
                     </div>
-                  )) || <p className="text-sm text-muted-foreground">Tidak ada item</p>}
-                </div>
-                <div className="border-t mt-2 pt-2 flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>Rp {order.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</span>
-                </div>
-              </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Jumlah Item</p>
+                      <p className="font-semibold">{order.items?.length || 0} item</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">No Whatsapp</p>
+                      <p className="font-semibold">{order.teleponPelanggan || 'Tidak tersedia'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-semibold text-sm">{order.emailPelanggan || 'Tidak tersedia'}</p>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => handleEditOrder(order)}>
-                  <Edit className="h-4 w-4" />
-                  Edit Detail
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFollowUpClick(order)}
-                  className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Follow-up
-                </Button>
-                {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
-                    <X className="h-4 w-4" />
-                    Hapus
-                  </Button>
-                )}
-              </div>
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Detail Pesanan
+                    </h4>
+                    <div className="space-y-2">
+                      {order.items?.map((item, index) => (
+                        <div key={item.id || index} className="flex justify-between items-center text-sm">
+                          <span>{item.nama} x {item.quantity}</span>
+                          <span className="font-medium">Rp {item.totalHarga?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</span>
+                        </div>
+                      )) || <p className="text-sm text-muted-foreground">Tidak ada item</p>}
+                    </div>
+                    <div className="border-t mt-2 pt-2 flex justify-between font-semibold">
+                      <span>Total</span>
+                      <span>Rp {order.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => handleOpenEditOrderForm(order)}>
+                      <Edit className="h-4 w-4" />
+                      Edit Detail
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFollowUpClick(order)}
+                      className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Follow-up
+                    </Button>
+                    {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
+                        <X className="h-4 w-4" />
+                        Hapus
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -390,16 +446,19 @@ const OrdersPage = () => {
         </Card>
       )}
 
+      {/* MODIFIED: Panggil OrderForm dengan prop isViewMode */}
       <OrderForm
         open={showOrderForm}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setEditingOrder(null);
+            setIsViewMode(false); // Pastikan mode lihat direset saat dialog ditutup
           }
           setShowOrderForm(isOpen);
         }}
         onSubmit={handleSubmit}
         initialData={editingOrder}
+        isViewMode={isViewMode} // Prop baru untuk OrderForm
       />
 
       <WhatsappFollowUpModal

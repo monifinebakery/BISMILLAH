@@ -16,8 +16,8 @@ import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { safeParseDate } from '@/hooks/useSupabaseSync';
-import { formatDateForDisplay } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
+import { formatDateForDisplay } from '@/utils/dateUtils'; // formatDateForDisplay dari utils
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -36,7 +36,11 @@ const FinancialReportPage = () => {
     return (transactions || []).filter(t => {
       const transactionDate = t.date;
       
+      // LOG DITAMBAHKAN UNTUK DEBUGGING
+      console.log('DEBUG FilteredTransactions: Processing transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
+
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+        console.log('DEBUG FilteredTransactions: Skipping invalid date for transaction:', t.id);
         return false;
       }
       
@@ -85,7 +89,11 @@ const FinancialReportPage = () => {
     filteredTransactions.forEach(t => {
       const transactionDate = t.date;
       
-      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+      // LOG DITAMBAHKAN UNTUK DEBUGGING
+      console.log('DEBUG TransactionData: Aggregating transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
+
+      if (!transactionDate || isNaN(transactionDate.getTime())) {
+          console.log('DEBUG TransactionData: Skipping invalid date for aggregation:', t.id);
           return;
       }
 
@@ -100,8 +108,15 @@ const FinancialReportPage = () => {
       }
     });
 
-    return Object.values(monthlyData)
-      .filter(value => value.date instanceof Date && !isNaN(value.date.getTime())) // <-- BARIS INI DITAMBAHKAN
+    const valuesToMap = Object.values(monthlyData);
+    console.log('DEBUG TransactionData: Values before final filter/map/sort:', valuesToMap);
+
+    const finalResult = valuesToMap
+      .filter(value => {
+        // LOG DITAMBAHKAN UNTUK DEBUGGING
+        console.log('DEBUG TransactionData: Filter for map/sort - Value date:', value.date, 'Type:', typeof value.date, 'isNaN:', value.date instanceof Date ? isNaN(value.date.getTime()) : 'N/A');
+        return value.date instanceof Date && !isNaN(value.date.getTime());
+      })
       .map(value => ({
         month: format(value.date as Date, 'MMM yy', { locale: id }),
         income: value.income,
@@ -109,10 +124,14 @@ const FinancialReportPage = () => {
         date: value.date,
       }))
       .sort((a, b) => {
+        // LOG DITAMBAHKAN UNTUK DEBUGGING
+        console.log('DEBUG TransactionData: Sorting - a.date:', a.date, 'b.date:', b.date);
         const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;
         const dateB = (b.date instanceof Date && !isNaN(b.date.getTime())) ? b.date.getTime() : -Infinity;
         return dateA - dateB;
       });
+    console.log('DEBUG TransactionData: Final sorted result:', finalResult);
+    return finalResult;
   }, [filteredTransactions]);
 
   const openDialog = () => {

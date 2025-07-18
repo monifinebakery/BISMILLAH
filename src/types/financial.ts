@@ -16,11 +16,11 @@ export interface Asset {
   category: string;
   purchasePrice: number;
   currentValue: number;
-  purchaseDate: Date;
+  purchaseDate: Date; | null; 
   condition: 'excellent' | 'good' | 'fair' | 'poor';
   description: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date; | null; 
+  updatedAt: Date; | null; 
 }
 
 export interface Notification {

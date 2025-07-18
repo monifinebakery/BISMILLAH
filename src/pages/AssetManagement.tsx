@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getInputValue } from '@/utils/inputUtils';
 
@@ -329,7 +329,7 @@ const AssetManagement = () => {
                           value={formatDateToYYYYMMDD(formData.tanggalPembelian)}
                           onChange={(e) => setFormData({
                             ...formData,
-                            tanggalPembelian: e.target.value ? new Date(e.target.value) : null
+                            tanggalPembelian: safeParseDate(e.target.value)
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required
@@ -530,7 +530,7 @@ const AssetManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</span></TableCell>
+                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Button

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Asset, AssetCategory, AssetCondition } from '@/types/asset'; // PERBAIKAN: Import AssetCategory dan AssetCondition
+import { Asset } from '@/types/asset'; // PERBAIKAN: Import hanya Asset
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
@@ -27,7 +27,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           console.warn('No userId provided, using local storage data only');
           const localData = loadFromStorage(STORAGE_KEY, []);
           if (isMounted.current) {
-            setAssets(localData); // PERBAIKAN: Pastikan state terupdate meskipun tanpa userId
+            setAssets(localData);
             setLoading(false);
           }
           return;
@@ -57,7 +57,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
             let parsedTanggalPembelian = safeParseDate(rawTanggalPembelian);
             if (!(parsedTanggalPembelian instanceof Date) || isNaN(parsedTanggalPembelian.getTime())) {
               console.warn(`Invalid tanggalPembelian for asset ${item.id}: ${rawTanggalPembelian}, falling back to default date`);
-              parsedTanggalPembelian = new Date('1970-01-01T00:00:00Z'); // Atau Date yang lebih sesuai
+              parsedTanggalPembelian = new Date('1970-01-01T00:00:00Z');
             }
 
             const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date();
@@ -66,17 +66,16 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
             return {
               id: item.id,
               nama: item.nama || '',
-              kategori: item.kategori || 'Peralatan', // PERBAIKAN: Gunakan item.kategori
+              kategori: item.kategori || 'Peralatan',
               nilaiAwal: parseFloat(item.nilai_awal) || 0,
-              nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // PERBAIKAN: Sesuaikan dengan nilai_sekarang
+              nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
               tanggalPembelian: parsedTanggalPembelian,
               kondisi: item.kondisi || 'Baik',
               lokasi: item.lokasi || '',
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) || null,
-              umurManfaat: parseFloat(item.umur_manfaat) || 0, // PERBAIKAN: Tambahkan umurManfaat
-              penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // PERBAIKAN: Tambahkan penyusutanPerBulan
-              userId: item.user_id, // PERBAIKAN: Ubah ke userId (camelCase)
+              // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
+              userId: item.user_id,
               createdAt: parsedCreatedAt,
               updatedAt: parsedUpdatedAt,
             } as Asset;
@@ -111,8 +110,9 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
     saveToStorage(STORAGE_KEY, assets);
   }, [assets]);
 
-  // PERBAIKAN: Sesuaikan Omit agar match dengan Asset input yang dibutuhkan
-  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'penyusutanPerBulan' | 'nilaiSaatIni'>) => {
+  // PERBAIKAN: Sesuaikan Omit, hapus umurManfaat dan penyusutanPerBulan
+  // Sekarang nilaiSaatIni juga di-input dari form, bukan di-omit
+  const addAsset = async (asset: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -127,21 +127,8 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
 
       const newAssetId = generateUUID();
       const now = new Date();
-
-      // Pastikan asset.umurManfaat tersedia dan valid
-      if (typeof asset.umurManfaat !== 'number' || asset.umurManfaat <= 0) {
-        toast.error('Umur Manfaat tidak valid atau tidak boleh nol.');
-        return false;
-      }
-
-      // Pastikan asset.nilaiAwal tersedia dan valid
-      if (typeof asset.nilaiAwal !== 'number' || asset.nilaiAwal < 0) {
-        toast.error('Nilai Awal tidak valid.');
-        return false;
-      }
       
-      const calculatedPenyusutanPerBulan = asset.nilaiAwal / (asset.umurManfaat * 12);
-      const calculatedNilaiSaatIni = asset.nilaiAwal; // Nilai saat ini adalah nilai awal saat baru ditambahkan
+      const nilaiSaatIniOnAdd = asset.nilaiSaatIni; 
 
       console.log('Adding Asset with tanggal_beli:', asset.tanggalPembelian.toISOString());
 
@@ -149,12 +136,10 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         user_id: session.user.id,
         nama: asset.nama,
-        kategori: asset.kategori, // PERBAIKAN: Ubah 'jenis' menjadi 'kategori'
+        kategori: asset.kategori,
         nilai_awal: asset.nilaiAwal,
-        umur_manfaat: asset.umurManfaat, // PERBAIKAN: Pastikan ini ada di DB
         tanggal_beli: asset.tanggalPembelian.toISOString(),
-        penyusutan_per_bulan: calculatedPenyusutanPerBulan, // PERBAIKAN: Pastikan ini ada di DB
-        nilai_sekarang: calculatedNilaiSaatIni, // PERBAIKAN: Pastikan ini ada di DB
+        nilai_sekarang: nilaiSaatIniOnAdd,
         kondisi: asset.kondisi,
         lokasi: asset.lokasi,
         deskripsi: asset.deskripsi || null,
@@ -173,9 +158,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         id: newAssetId,
         createdAt: now,
         updatedAt: now,
-        userId: session.user.id, // PERBAIKAN: Gunakan userId
-        penyusutanPerBulan: calculatedPenyusutanPerBulan,
-        nilaiSaatIni: calculatedNilaiSaatIni,
+        userId: session.user.id,
       }]);
       toast.success(`${asset.nama} berhasil ditambahkan!`);
       return true;
@@ -199,9 +182,9 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       };
 
       if (updates.nama !== undefined) updateData.nama = updates.nama;
-      if (updates.kategori !== undefined) updateData.kategori = updates.kategori; // PERBAIKAN: Ubah 'jenis' menjadi 'kategori'
+      if (updates.kategori !== undefined) updateData.kategori = updates.kategori;
       if (updates.nilaiAwal !== undefined) updateData.nilai_awal = updates.nilaiAwal;
-      if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni; // PERBAIKAN: Tambahkan nilai_sekarang
+      if (updates.nilaiSaatIni !== undefined) updateData.nilai_sekarang = updates.nilaiSaatIni;
       if (updates.tanggalPembelian !== undefined) {
         updateData.tanggal_beli = updates.tanggalPembelian instanceof Date && !isNaN(updates.tanggalPembelian.getTime())
           ? updates.tanggalPembelian.toISOString()
@@ -213,9 +196,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
       if (updates.lokasi !== undefined) updateData.lokasi = updates.lokasi;
       if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi || null;
       if (updates.depresiasi !== undefined) updateData.depresiasi = updates.depresiasi;
-      if (updates.umurManfaat !== undefined) updateData.umur_manfaat = updates.umurManfaat; // PERBAIKAN: Tambahkan umur_manfaat
-      if (updates.penyusutanPerBulan !== undefined) updateData.penyusutan_per_bulan = updates.penyusutanPerBulan; // PERBAIKAN: Tambahkan penyusutan_per_bulan
-
+      // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
 
       const { error } = await supabase.from('assets').update(updateData).eq('id', id).eq('user_id', session.user.id);
       if (error) {
@@ -224,8 +205,8 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         return false;
       }
 
-      setAssets(prev =>
-        prev.map(asset =>
+      setAssets(prev => 
+        prev.map(asset => 
           asset.id === id ? { ...asset, ...updates, updatedAt: new Date() } : asset
         )
       );

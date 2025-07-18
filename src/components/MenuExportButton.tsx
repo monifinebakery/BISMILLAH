@@ -90,16 +90,16 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
 
             // Handle null or undefined values
             if (value === null || value === undefined) {
-              value = '';
-            }
-            // MODIFIED: Handle Date objects specifically: convert to ISO string with validation
-            else if (value instanceof Date) {
-              value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
-            }
-            // Handle other complex objects (like arrays, nested objects) by stringifying
-            else if (typeof value === 'object') {
-              value = JSON.stringify(value);
-            }
+  value = '';
+}
+// Handle Date objects specifically: convert to ISO string with validation
+else if (value instanceof Date) {
+  value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
+}
+// Handle other complex objects (like arrays, nested objects) by stringifying
+else if (typeof value === 'object') {
+  value = JSON.stringify(value);
+}
 
             // Apply CSV escaping: enclose in double quotes if it contains delimiter, double quotes, or newlines
             // And double internal double quotes

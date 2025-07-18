@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Recipe, NewRecipe } from '@/types/recipe';
 import { toast } from 'sonner';
-import { safeParseDate } from '@/hooks/useSupabaseSync';
+import { safeParseDate } from '@/utils/dateUtils';
 
 export const useRecipes = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);

@@ -7,10 +7,8 @@ import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 import { AssetCategory, AssetCondition } from '@/types/asset'; 
-// DIHAPUS: Import Invoice dan tipe terkait
-// DIHAPUS: Import useInvoiceService
 import { generateUUID } from '@/utils/uuid'; 
-import { RealtimeChannel } from '@supabase/supabase-js'; // Import RealtimeChannel
+import { RealtimeChannel } from '@supabase/supabase-js'; // PERBAIKAN: Import RealtimeChannel
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -187,7 +185,7 @@ const STORAGE_KEYS = {
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
-  CLOUD_SYNC: 'hpp_app_cloud_sync', // Tetap ada kunci ini, tapi tidak digunakan sebagai state lokal lagi
+  CLOUD_SYNC: 'hpp_app_cloud_sync', 
   ASSETS: 'hpp_app_assets',
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
@@ -362,18 +360,138 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   ));
 
-  // PERBAIKAN: useEffect untuk selalu mencoba memuat dari cloud jika ada user login
+  // --- Real-time Subscriptions ---
+  // Fungsi helper untuk memproses payload realtime dari Supabase
+  const processRealtimePayload = (payload: any, setState: React.Dispatch<React.SetStateAction<any[]>>, dateFields: string[], itemArrayKey?: string) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+  
+    // Helper untuk mem-parse tanggal di record
+    const parseRecordDates = (record: any) => {
+      const parsed: any = { ...record };
+      dateFields.forEach(field => {
+        if (parsed[field]) {
+          // Hanya parse jika field adalah string, jika sudah Date biarkan
+          if (typeof parsed[field] === 'string') {
+            parsed[field] = safeParseDate(parsed[field]);
+          }
+        }
+      });
+      // Handle camelCase conversion for specific fields if needed
+      if (parsed.user_id !== undefined) parsed.userId = parsed.user_id;
+      // Convert created_at and updated_at to Date objects if they are strings
+      if (typeof parsed.created_at === 'string') parsed.createdAt = safeParseDate(parsed.created_at);
+      if (typeof parsed.updated_at === 'string') parsed.updatedAt = safeParseDate(parsed.updated_at);
+
+      // Handle nested items array for unique IDs if needed
+      if (itemArrayKey && parsed[itemArrayKey] && Array.isArray(parsed[itemArrayKey])) {
+        parsed[itemArrayKey] = parsed[itemArrayKey].map((item: any) => ({
+          ...item,
+          id: item.id || generateUUID(), // Pastikan item memiliki ID unik
+        }));
+      }
+      return parsed;
+    };
+  
+    setState(prev => {
+      // Jika record yang sedang diproses sudah ada di state (misal dari local CRUD),
+      // update saja, jangan tambahkan duplikat.
+      // Ini penting untuk mencegah duplikasi data jika realtime event datang setelah local update.
+      const existingIndex = prev.findIndex(item => item.id === (newRecord?.id || oldRecord?.id));
+
+      if (eventType === 'INSERT') {
+        const processedNewRecord = parseRecordDates(newRecord);
+        if (existingIndex > -1) {
+          // Update jika sudah ada (misal, dari add lokal yang sudah push ke DB dan Realtime firing)
+          return prev.map(item => item.id === processedNewRecord.id ? processedNewRecord : item);
+        }
+        // Tambah jika benar-benar baru
+        const newState = [...prev, processedNewRecord];
+        // Urutkan berdasarkan createdAt untuk konsistensi UI
+        return newState.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)); 
+      } else if (eventType === 'UPDATE') {
+        const processedNewRecord = parseRecordDates(newRecord);
+        return prev.map(item => item.id === oldRecord.id ? processedNewRecord : item);
+      } else if (eventType === 'DELETE') {
+        return prev.filter(item => item.id !== oldRecord.id);
+      }
+      return prev; // Seharusnya tidak terjadi
+    });
+  };
+
+  // Efek untuk real-time subscriptions
+  useEffect(() => {
+    let channels: RealtimeChannel[] = [];
+
+    const setupSubscriptions = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session, skipping real-time subscriptions setup.');
+        return;
+      }
+
+      const userId = session.user.id;
+      console.log(`Setting up real-time subscriptions for user ${userId}...`);
+
+      const tablesToSubscribe = [
+        { name: 'bahan_baku', setState: setBahanBaku, dateFields: ['tanggal_kadaluwarsa', 'created_at', 'updated_at'] },
+        { name: 'suppliers', setState: setSuppliers, dateFields: ['created_at', 'updated_at'] },
+        { name: 'purchases', setState: setPurchases, dateFields: ['tanggal', 'created_at', 'updated_at'], itemArrayKey: 'items' },
+        { name: 'hpp_recipes', setState: setRecipes, dateFields: ['created_at', 'updated_at'] },
+        { name: 'hpp_results', setState: setHppResults, dateFields: ['created_at', 'updated_at'] },
+        { name: 'activities', setState: setActivities, dateFields: ['created_at', 'updated_at'] },
+        { name: 'orders', setState: setOrders, dateFields: ['tanggal', 'created_at', 'updated_at'], itemArrayKey: 'items' },
+        { name: 'assets', setState: setAssets, dateFields: ['tanggal_beli', 'created_at', 'updated_at'] },
+        { name: 'financial_transactions', setState: setFinancialTransactions, dateFields: ['date', 'created_at', 'updated_at'] },
+      ];
+
+      tablesToSubscribe.forEach(table => {
+        const channel = supabase
+          .channel(`public_${table.name}_changes_for_user_${userId}`) // Channel name harus unik per user
+          .on('postgres_changes', {
+            event: '*', 
+            schema: 'public',
+            table: table.name,
+            filter: `user_id=eq.${userId}` 
+          }, (payload) => {
+            console.log(`Realtime change in ${table.name}:`, payload);
+            processRealtimePayload(payload, table.setState, table.dateFields, table.itemArrayKey);
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log(`Subscribed to ${table.name} changes.`);
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error(`Error subscribing to ${table.name} channel.`, status);
+            }
+          });
+        channels.push(channel);
+      });
+    };
+
+    // Panggil setup subscriptions
+    setupSubscriptions();
+
+    // Cleanup function: Unsubscribe dari semua channel saat komponen unmount atau user logout
+    return () => {
+      console.log('Unsubscribing from real-time channels...');
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+      // Important: clear channels array to prevent stale closures or re-use of removed channels
+      channels = []; 
+    };
+  }, []); // Dependensi kosong, karena akan mendengarkan perubahan session (yang memicu re-render dan setup ulang)
+
+  // Efek untuk memuat data awal dari cloud (hanya sekali saat startup atau user login)
   useEffect(() => {
     const checkAndLoadFromCloud = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        console.log('User logged in, attempting to load from cloud...');
+        console.log('User logged in, attempting initial load from cloud...');
         await externalLoadFromCloud(); 
       } else {
-        console.log('No user session, using local storage data.');
+        console.log('No user session, using local storage data for initial load.');
       }
     };
-    // Memberi sedikit penundaan untuk menghindari blocking render awal, tapi tetap proaktif
     const timer = setTimeout(checkAndLoadFromCloud, 1000); 
     return () => clearTimeout(timer);
   }, [externalLoadFromCloud]); 
@@ -390,12 +508,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
 
   // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
+  // Ini tetap dipertahankan sebagai fallback atau untuk memastikan konsistensi setelah lama tidak aktif
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) { // Hanya refresh jika ada user login
-          console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud...');
+        if (session) { 
+          console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud (visibilitychange)...');
           await externalLoadFromCloud();
         } else {
           console.log('Tab aplikasi terlihat, tapi user tidak login. Tidak ada pembaruan dari cloud.');
@@ -413,7 +532,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       toast.error('Anda harus login untuk menyinkronkan data');
       return false;
     }
-    // Implementasi ini sudah ada di useSupabaseSync.ts, jadi cukup panggil saja
     const success = await externalSyncToCloud({
       bahanBaku: bahanBaku.map(item => ({
         id: item.id, nama: item.nama, kategori: item.kategori, stok: item.stok, satuan: item.satuan, minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier, tanggal_kadaluwarsa: toSafeISOString(item.tanggalKadaluwarsa), user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()), jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null, satuan_kemasan: item.satuanKemasan ?? null, harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null,
@@ -654,7 +772,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateSupplier = async (id: string, updatedSupplier: Partial<Supplier>) => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui supplier'); return false; }
 
     const supplierToUpdate: Partial<any> = {
@@ -768,7 +886,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>) => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui pembelian'); return false; }
 
     const purchaseToUpdate: Partial<any> = {
@@ -854,7 +972,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui resep'); return false; }
 
     const recipeToUpdate: Partial<any> = {
@@ -1004,7 +1122,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui pesanan'); return false; }
 
     const orderToUpdate: Partial<any> = {
@@ -1271,7 +1389,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateFinancialTransaction = async (id: string, updatedTransaction: Partial<FinancialTransaction>) => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui transaksi keuangan'); return false; }
 
     const transactionToUpdate: Partial<any> = {

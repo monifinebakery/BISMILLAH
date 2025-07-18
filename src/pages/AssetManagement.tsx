@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const AssetManagement = () => {
   const isMobile = useIsMobile();

@@ -50,7 +50,7 @@ const AssetManagement = () => {
       kategori: asset.kategori,
       nilaiAwal: asset.nilaiAwal,
       nilaiSaatIni: asset.nilaiSaatIni,
-      tanggalPembelian: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()) ? asset.tanggalPembelian : new Date(),
+      tanggalPembelian: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()) ? new Date(asset.tanggalPembelian) : new Date(),
       kondisi: asset.kondisi,
       lokasi: asset.lokasi,
       deskripsi: asset.deskripsi,
@@ -490,7 +490,7 @@ const AssetManagement = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Tanggal Pembelian:</span>
-                          <span className="font-medium text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</span>
+                          <span className="font-medium text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -530,7 +530,7 @@ const AssetManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</TableCell>
+                          <TableCell className="text-gray-900">{asset.tanggalPembelian ? formatDateForDisplay(asset.tanggalPembelian) : 'N/A'}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Button

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 
 // Import fungsi formatDateForDisplay dari dateUtils
-import { formatDateForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
+import { formatDateForDisplay } from '@/utils/dateUtils';
 import { safeParseDate } from '@/hooks/useSupabaseSync'; // Tetap diperlukan untuk safeParseDate
 
 const OrdersPage = () => {
@@ -61,7 +61,7 @@ const OrdersPage = () => {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (orderToUpdate) {
-      const success = await updateOrder(orderId, { ...orderToUpdate, status: newStatus as Order['status'] }); // Cast to ensure type compatibility
+      const success = await updateOrder(orderId, { ...orderToUpdate, status: newStatus as Order['status'] });
       if (success) {
         toast.success(`Status pesanan #${orderToUpdate.nomorPesanan} berhasil diubah menjadi "${getStatusText(newStatus)}".`);
       } else {
@@ -70,11 +70,10 @@ const OrdersPage = () => {
     }
   };
 
-  const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => { // Tipe orderData sebagai Order
-    // BARIS INI DIUBAH
-    const formattedDate = formatDateForDisplay(orderData.tanggal); // Gunakan formatDateForDisplay
-    const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || ''; // Null check untuk items
-    const total = orderData.totalPesanan?.toLocaleString('id-ID') || '0'; // Null check untuk totalPesanan
+  const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => {
+    const formattedDate = formatDateForDisplay(orderData.tanggal);
+    const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || '';
+    const total = orderData.totalPesanan?.toLocaleString('id-ID') || '0';
 
     switch (status) {
       case 'pending':
@@ -99,23 +98,6 @@ const OrdersPage = () => {
         return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan}.\n\nJika ada pertanyaan, silakan hubungi kami kembali.`;
     }
   };
-
-  // FUNGSI formatDate LOKAL DIHAPUS DARI SINI
-  // const formatDate = (date: any) => {
-  //   try {
-  //     if (!date) return 'Tanggal tidak tersedia';
-  //     if (date instanceof Date) {
-  //       if (isNaN(date.getTime())) return 'Tanggal tidak valid';
-  //       return date.toLocaleDateString('id-ID');
-  //     }
-  //     const parsedDate = safeParseDate(date);
-  //     if (!parsedDate) return 'Tanggal tidak tersedia';
-  //     return parsedDate.toLocaleDateString('id-ID');
-  //   } catch (error) {
-  //     console.error('Error formatting date:', error, date);
-  //     return 'Tanggal tidak valid';
-  //   }
-  // };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -187,9 +169,12 @@ const OrdersPage = () => {
                             order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       
-      const orderDate = safeParseDate(order.tanggal);
+      // BARIS INI DIUBAH
+      const orderDate = order.tanggal instanceof Date && !isNaN(order.tanggal.getTime())
+                          ? order.tanggal
+                          : null; // Jika tidak valid, set ke null
       
-      const matchesDate = dateRange?.from && dateRange?.to && orderDate // Periksa apakah orderDate tidak null
+      const matchesDate = dateRange?.from && dateRange?.to && orderDate
         ? orderDate >= dateRange.from && orderDate <= dateRange.to
         : true;
 
@@ -235,7 +220,7 @@ const OrdersPage = () => {
               <Input
                 placeholder="Cari berdasarkan nomor pesanan atau nama pelanggan..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)} // Fix: Should update searchTerm directly
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -297,7 +282,6 @@ const OrdersPage = () => {
                 <div>
                   <CardTitle className="text-lg">{order.nomorPesanan}</CardTitle>
                   <CardDescription>
-                    {/* BARIS INI DIUBAH */}
                     {order.namaPelanggan} • {formatDateForDisplay(order.tanggal)}
                   </CardDescription>
                 </div>

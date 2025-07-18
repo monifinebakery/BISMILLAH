@@ -169,8 +169,8 @@ const PurchaseManagement = () => {
       supplierName: purchase.supplierName,
       // MODIFIED: Validasi purchase.tanggal sebelum mengonversi ke string
       tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())
-                ? purchase.tanggal.toISOString().split('T')[0] // Pastikan hanya Date yang valid yang dipanggil .toISOString()
-                : '', // Jika tidak valid, set ke string kosong
+          ? purchase.tanggal.toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0], // Fallback ke tanggal hari ini jika tidak valid
       items: purchase.items, // Items should be directly assignable
       status: purchase.status,
       metodePerhitungan: purchase.metodePerhitungan || 'FIFO',

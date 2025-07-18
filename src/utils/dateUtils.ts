@@ -31,26 +31,30 @@ export const safeParseDate = (dateValue: any): Date | null => {
 
 
 /**
- * Formats a Date object into a readable string for display.
+ * Formats a Date object into a readable date string (without time) for display.
  * @param date - The Date object to format. Can be null or undefined.
- * @returns A formatted date string (e.g., "18 Jul, 13:30") or a fallback if the date is invalid.
+ * @returns A formatted date string (e.g., "18 Jul 2025") or a fallback if the date is invalid.
  */
 export const formatDateForDisplay = (date: Date | null | undefined): string => {
-  // Tambahkan pemeriksaan instanceof Date di sini
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
-    return 'Invalid Date'; // Atau string fallback lain yang sesuai
+  // MODIFIKASI DISINI: Perkuat pengecekan Invalid Date
+  if (!date || (date instanceof Date && isNaN(date.getTime()))) {
+    return 'Invalid Date'; // Pastikan ini menangkap semua kasus Invalid Date
   }
 
   return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
+    year: 'numeric',
     month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: 'numeric',
   }).format(date);
 };
 
+/**
+ * Formats a Date object into a "yyyy-MM-dd" string required by <input type="date">.
+ * @param date - The Date object to format. Can be null or undefined.
+ * @returns A string in "yyyy-MM-dd" format (e.g., "2025-07-18") or an empty string if the date is invalid/null.
+ */
 export const formatDateToYYYYMMDD = (date: Date | null | undefined): string => {
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
+  if (!date || isNaN(date.getTime())) {
     return '';
   }
   return date.toISOString().split('T')[0];

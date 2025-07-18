@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { BahanBaku } from '@/types/recipe'; // Pastikan BahanBaku dari types/recipe
 import { generateUUID } from '@/utils/uuid'; // Asumsi generateUUID ada
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers'; // Asumsi ini ada
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Import safeParseDate
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 const STORAGE_KEY = 'hpp_app_bahan_baku';
 

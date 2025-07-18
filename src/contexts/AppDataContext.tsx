@@ -79,20 +79,20 @@ export interface HPPResult {
 export interface Asset {
   id: string;
   nama: string;
-  jenis: string; // `jenis` di frontend (dan juga di DB)
-  nilai: number; // `nilai_awal` di DB
-  umurManfaat: number; // `umur_manfaat` di DB
-  tanggalPembelian: Date; // `tanggal_pembelian` di DB
-  penyusutanPerBulan: number; // `penyusutan_per_bulan` di DB
-  nilaiSaatIni: number; // `nilai_sekarang` di DB
-  userId?: string; // Pastikan ini ada jika user_id dikelola di frontend
-  createdAt?: Date; // Opsional
-  updatedAt?: Date; // Opsional
-  kategori?: string; // Tambahan, jika ada di DB dan relevan di frontend
-  kondisi?: string;   // Tambahan
-  lokasi?: string;    // Tambahan
-  deskripsi?: string; // Tambahan
-  depresiasi?: number | null; // Tambahan, bisa null
+  jenis: string | null; // <-- UBAH KE string | null
+  nilai: number;
+  umurManfaat: number;
+  tanggalPembelian: Date; // Tetap Date (karena selalu ada fallback new Date())
+  penyusutanPerBulan: number;
+  nilaiSaatIni: number;
+  userId?: string;
+  createdAt: Date | null;          // <-- UBAH KE Date | null
+  updatedAt: Date | null;          // <-- UBAH KE Date | null
+  kategori: string | null; // <-- UBAH KE string | null
+  kondisi: string | null;   // <-- UBAH KE string | null
+  lokasi: string | null;    // <-- UBAH KE string | null
+  deskripsi: string | null; // <-- UBAH KE string | null
+  depresiasi: number | null;
 }
 
 export interface FinancialTransaction {

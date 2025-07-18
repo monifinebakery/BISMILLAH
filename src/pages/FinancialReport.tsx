@@ -140,7 +140,15 @@ const FinancialReportPage = () => {
                 <PopoverTrigger asChild>
                   <Button id="date" variant={"outline"} className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (dateRange.to ? (`${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`) : format(dateRange.from, "LLL dd, y")) : (<span>Pilih tanggal</span>)}
+                    {dateRange?.from && dateRange.from instanceof Date ? (
+    dateRange.to && dateRange.to instanceof Date ? (
+        `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}`
+    ) : (
+        formatDateForDisplay(dateRange.from)
+    )
+) : (
+    <span>Pilih tanggal</span>
+)}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">

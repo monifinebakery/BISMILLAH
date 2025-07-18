@@ -3,21 +3,21 @@ import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner'; // Pastikan ini ada di paling atas
+import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
+// MODIFIED: Import safeParseDate dan toSafeISOString dari utils/dateUtils
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
 // =============================================================
-// Ini adalah definisi tipe data untuk frontend (camelCase, Date objects)
 export interface BahanBaku {
   id: string;
   nama: string;
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number;
+  hargaSatuan: number; // camelCase
   minimum: number;
   supplier: string;
   tanggalKadaluwarsa: Date | null;
@@ -31,7 +31,7 @@ export interface BahanBaku {
 
 export interface Purchase {
   id: string;
-  tanggal: Date;
+  tanggal: Date; // Wajib
   supplier: string;
   items: {
     id?: number | string;
@@ -42,9 +42,9 @@ export interface Purchase {
     hargaSatuan: number;
     totalHarga: number;
   }[];
-  totalNilai: number;
+  totalNilai: number; // camelCase
   status: 'pending' | 'completed' | 'cancelled';
-  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
+  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // camelCase
   catatan: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -54,7 +54,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  timestamp: Date;
+  timestamp: Date; // Wajib
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
   value: string | null;
   createdAt: Date | null;
@@ -65,14 +65,14 @@ export interface HPPResult {
   id: string;
   nama: string;
   ingredients: RecipeIngredient[];
-  biayaTenagaKerja: number;
-  biayaOverhead: number;
-  marginKeuntungan: number;
-  totalHPP: number;
-  hppPerPorsi: number;
-  hargaJualPerPorsi: number;
-  jumlahPorsi: number;
-  timestamp: Date;
+  biayaTenagaKerja: number; // camelCase
+  biayaOverhead: number; // camelCase
+  marginKeuntungan: number; // camelCase
+  totalHPP: number; // camelCase
+  hppPerPorsi: number; // camelCase
+  hargaJualPerPorsi: number; // camelCase
+  jumlahPorsi: number; // camelCase
+  timestamp: Date; // Tetap Date (karena selalu ada fallback new Date())
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -83,7 +83,7 @@ export interface Asset {
   jenis: string | null;
   nilai: number;
   umurManfaat: number;
-  tanggalPembelian: Date;
+  tanggalPembelian: Date | null; // <-- Diperbarui di sini agar konsisten dengan AssetsPage.tsx
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
   userId?: string;
@@ -101,7 +101,7 @@ export interface FinancialTransaction {
   userId: string;
   type: 'pemasukan' | 'pengeluaran';
   category: string | null;
-  amount: number; // Tetap number karena kita menggunakan `parseFloat(item.amount) || 0` saat loading
+  amount: number;
   description: string | null;
   date: Date | null;
   created_at: Date | null;
@@ -278,22 +278,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
-  const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
-    if (!dateValue) return null;
-    let dateObj: Date;
-    if (dateValue instanceof Date) {
-      dateObj = dateValue;
-    } else if (typeof dateValue === 'string') {
-      dateObj = new Date(dateValue);
-    } else {
-      console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
-      return null;
-    }
-    if (isNaN(dateObj.getTime())) {
-      return null;
-    }
-    return dateObj.toISOString();
-  };
+  // MODIFIED: toSafeISOString definisi lokal dihapus, sekarang diimpor dari utils/dateUtils.ts
+  // const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => { ... };
 
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
@@ -518,7 +504,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           jenis: item.jenis ?? null,
           nilai_awal: item.nilai,
           umur_manfaat: item.umurManfaat,
-          tanggal_pembelian: toSafeISOString(item.tanggalPembelian || new Date()),
+          tanggal_pembelian: toSafeISOString(item.tanggalPembelian || new Date('1970-01-01T00:00:00Z')), // Jaminan valid Date
           penyusutan_per_bulan: item.penyusutanPerBulan,
           nilai_sekarang: item.nilaiSaatIni,
           user_id: userId,
@@ -539,7 +525,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           description: item.description ?? null,
           date: toSafeISOString(item.date || new Date()),
           created_at: toSafeISOString(item.created_at || new Date()),
-          updated_at: toSafeISOString(item.updatedAt || new Date()),
+          updated_at: toSafeISOString(item.updated_at || new Date()),
         })),
       };
 
@@ -650,7 +636,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
     if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
     if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan; // MODIFIED
     if (updatedBahan.tanggalKadaluwarsa !== undefined) {
       bahanToUpdate.tanggal_kadaluwarsa = toSafeISOString(updatedBahan.tanggalKadaluwarsa);
     }
@@ -671,7 +657,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setBahanBaku(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
+    setBahanBaku(prev => prev.map(item => item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item));
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };
@@ -687,7 +673,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setBahanBaku(prev => prev.filter(b => b.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
+    setBahanBaku(prev => prev.filter(b => b.id !== id));
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
@@ -783,7 +769,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setSuppliers(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
+    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...updatedSupplier, updatedAt: new Date() } : s));
     toast.success(`Supplier berhasil diperbarui!`);
     return true;
   };
@@ -798,7 +784,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setSuppliers(prev => prev.filter(s => s.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
+    setSuppliers(prev => prev.filter(s => s.id !== id));
     if (supplier) {
       addActivity({
         title: 'Supplier Dihapus',
@@ -846,7 +832,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (existingBahan) {
         await updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
-          hargaSatuan: existingBahan.hargaSatuan, // Use existing item's price here if you're not updating it
+          hargaSatuan: existingBahan.hargaSatuan,
         });
       } else {
         await addBahanBaku({
@@ -888,7 +874,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setPurchases(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
+    setPurchases(prev => prev.map(p => p.id === id ? { ...p, ...updatedPurchase, updatedAt: new Date() } : p));
     toast.success(`Pembelian berhasil diperbarui!`);
     return true;
   };
@@ -901,7 +887,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setPurchases(prev => prev.filter(p => p.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
+    setPurchases(prev => prev.filter(p => p.id !== id));
     toast.success(`Pembelian berhasil dihapus!`);
     return true;
   };
@@ -973,7 +959,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setRecipes(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
+    setRecipes(prev => prev.map(r => r.id === id ? { ...r, ...updatedRecipe, updatedAt: new Date() } : r));
     toast.success(`Resep berhasil diperbarui!`);
     return true;
   };
@@ -988,7 +974,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setRecipes(prev => prev.filter(r => r.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
+    setRecipes(prev => prev.filter(r => r.id !== id));
     if (recipe) {
       addActivity({
         title: 'Resep Dihapus',
@@ -1119,9 +1105,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setOrders(prev => ...); // Ini akan di-handle oleh realtime subscription (jika ada update yang memicu load)
-    // Untuk update, biasanya kita lakukan optimistic update di UI, lalu biarkan realtime memastikan.
-    // setOrders(prev => prev.map(o => o.id === id ? {...o, ...updatedOrder, updatedAt: new Date()} : o)); // Uncomment this for optimistic update
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updatedOrder, updatedAt: new Date() } : o));
     toast.success(`Pesanan berhasil diperbarui!`);
     return true;
   };
@@ -1136,7 +1120,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setOrders(prev => prev.filter(o => o.id !== id)); // Ini akan di-handle oleh realtime subscription (jika ada delete yang memicu load)
+    setOrders(prev => prev.filter(o => o.id !== id));
     if (order) {
       addActivity({
         title: 'Pesanan Dihapus',
@@ -1258,7 +1242,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       description: `${asset.nama} telah ditambahkan`,
       type: 'stok',
     });
-    toast.success(`${asset.nama} berhasil ditambahkan!`);
+    toast.success(`Aset berhasil ditambahkan!`);
     return true;
   };
 
@@ -1276,7 +1260,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedAsset.penyusutanPerBulan !== undefined) assetToUpdate.penyusutan_per_bulan = updatedAsset.penyusutanPerBulan;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori ?? null;
-    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedCateredAsset.kondisi ?? null; // Typo here, should be updatedAsset
+    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi ?? null; // Typo here, should be updatedAsset
     if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi ?? null;
     if (updatedAsset.deskripsi !== undefined) assetToUpdate.deskripsi = updatedAsset.deskripsi ?? null;
     if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi ?? null;
@@ -1288,7 +1272,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setAssets(prev => ...); // Ini akan di-handle oleh realtime subscription jika ada
+    setAssets(prev => prev.map(item => item.id === id ? { ...item, ...updatedAsset, updatedAt: new Date() } : item));
     toast.success(`Aset berhasil diperbarui!`);
     return true;
   };
@@ -1303,7 +1287,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setAssets(prev => prev.filter(a => a.id !== id)); // Ini akan di-handle oleh realtime subscription jika ada
+    setAssets(prev => prev.filter(a => a.id !== id));
     if (asset) {
       addActivity({
         title: 'Aset Dihapus',
@@ -1373,7 +1357,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setFinancialTransactions(prev => ...); // Ini akan di-handle oleh realtime subscription
+    setFinancialTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTransaction, updatedAt: new Date() } : t));
     toast.success(`Transaksi berhasil diperbarui!`);
     return true;
   };
@@ -1388,11 +1372,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    // setFinancialTransactions(prev => prev.filter(t => t.id !== id)); // Ini akan di-handle oleh realtime subscription
+    setFinancialTransactions(prev => prev.filter(t => t.id !== id));
     if (transaction) {
       addActivity({
         title: 'Transaksi Keuangan Dihapus',
-        description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${(transaction.amount ?? 0).toLocaleString('id-ID')} dihapus`, // Updated with ?? 0
+        description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${(transaction.amount ?? 0).toLocaleString('id-ID')} dihapus`,
         type: 'stok',
       });
       toast.success(`Transaksi berhasil dihapus!`);

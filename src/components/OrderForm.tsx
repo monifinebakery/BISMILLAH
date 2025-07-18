@@ -1,10 +1,12 @@
+// src/components/OrderForm.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// MODIFIED: Badge tidak perlu diimpor di OrderForm ini
+// MODIFIED: Pastikan Badge tidak diimpor di sini (karena tidak digunakan secara langsung)
 // import { Badge } from '@/components/ui/badge'; 
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,19 +16,18 @@ import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
 // PASTIKAN safeParseDate DIIMPORT DARI LOKASI YANG BENAR
 import { safeParseDate } from '@/utils/dateUtils'; 
-import { generateUUID } from '@/utils/uuid'; // PASTIKAN BARIS INI ADA
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
 import { formatCurrency } from '@/utils/currencyUtils';
-// MODIFIED: formatDateForDisplay tidak langsung digunakan di sini, bisa dihapus importnya jika tidak ada error
-// import { formatDateForDisplay } from '@/utils/dateUtils'; 
+// MODIFIED: Import generateUUID dari utils/uuid
+import { generateUUID } from '@/utils/uuid'; // PASTIKAN BARIS INI ADA
 
 interface OrderFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (order: NewOrder | Order) => void;
   initialData?: Order | null;
-  isViewMode?: boolean; // Prop baru untuk mode lihat
+  isViewMode?: boolean;
 }
 
 const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = false }: OrderFormProps) => {
@@ -38,9 +39,11 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     status: 'pending',
     catatan: '',
   });
+
+  // MODIFIED: Gunakan generateUUID untuk id item baru
   const [items, setItems] = useState<Partial<OrderItem>[]>([]);
   const [pajakInput, setPajakInput] = useState<number | string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false); // Tambahkan state isSubmitting lokal
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   useEffect(() => {
     if (open) {
@@ -52,35 +55,31 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
         status: initialData?.status || 'pending',
         catatan: initialData?.catatan || '',
       });
-      // Pastikan items setidaknya memiliki 1 baris kosong jika tidak ada data awal
       setItems(initialData?.items && initialData.items.length > 0
         ? initialData.items.map(item => ({
             ...item,
-            id: item.id || Date.now(),
+            id: item.id || generateUUID(), // MODIFIED: Gunakan generateUUID
             quantity: Number(item.quantity) || 0,
             hargaSatuan: Number(item.hargaSatuan) || 0,
             totalHarga: Number(item.totalHarga) || 0,
           }))
-        : [{ id: Date.now(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
+        : [{ id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]); // MODIFIED: Gunakan generateUUID
       setPajakInput(initialData?.pajak || '');
-      setIsSubmitting(false); // Reset submitting state saat dialog dibuka
+      setIsSubmitting(false);
     }
   }, [open, initialData]);
 
   const handleInputChange = (field: string, value: string) => {
-    // MODIFIED: Mencegah perubahan saat isViewMode
     if (isViewMode) return;
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const addItem = () => {
-    // MODIFIED: Mencegah perubahan saat isViewMode
     if (isViewMode) return;
-    setItems([...items, { id: Date.now(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
+    setItems([...items, { id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]); // MODIFIED: Gunakan generateUUID
   };
 
-  const removeItem = (id: number) => {
-    // MODIFIED: Mencegah perubahan saat isViewMode
+  const removeItem = (id: string | number) => { // ID sekarang bisa string atau number dari UUID
     if (isViewMode) return;
     if (items.length > 1) {
       setItems(items.filter(item => item.id !== id));
@@ -89,8 +88,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
     }
   };
 
-  const updateItem = (id: number, field: keyof OrderItem, value: string | number) => {
-    // MODIFIED: Mencegah perubahan saat isViewMode
+  const updateItem = (id: string | number, field: keyof OrderItem, value: string | number) => { // ID bisa string atau number
     if (isViewMode) return;
     setItems(items.map(item => {
       if (item.id === id) {
@@ -109,8 +107,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
     const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(String(pajakInput));
-    // MODIFIED: Pajak dihitung dari subtotal jika pajakInput tidak valid
-    const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1; // Default 10% jika pajakInput kosong/invalid
+    const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1;
     const total = subtotal + pajak;
     return { subtotal, pajak, total };
   };
@@ -119,13 +116,12 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // MODIFIED: Langsung keluar jika dalam mode lihat
     if (isViewMode) {
       toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
       return;
     }
 
-    setIsSubmitting(true); // Mulai loading
+    setIsSubmitting(true);
 
     if (!formData.namaPelanggan.trim() || !formData.teleponPelanggan.trim()) {
       toast.error('Nama dan Nomor Telepon pelanggan wajib diisi.');
@@ -159,12 +155,11 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
         } else {
             onSubmit({ ...commonData, tanggal: new Date() });
         }
-        // onOpenChange(false); // Dihapus karena onOpenChange sekarang dipanggil di OrdersPage setelah onSubmit selesai
     } catch (error) {
         console.error("Error submitting OrderForm:", error);
         toast.error("Terjadi kesalahan saat menyimpan pesanan.");
     } finally {
-        setIsSubmitting(false); // Selesai loading
+        setIsSubmitting(false);
     }
   };
 
@@ -186,8 +181,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                 value={formData.namaPelanggan} 
                 onChange={(e) => handleInputChange('namaPelanggan', e.target.value)} 
                 required 
-                readOnly={isViewMode} // MODIFIED: readOnly
-                disabled={isSubmitting} // Dinonaktifkan saat submit
+                readOnly={isViewMode} 
+                disabled={isSubmitting} 
               />
             </div>
             <div>
@@ -197,8 +192,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                 value={formData.teleponPelanggan} 
                 onChange={(e) => handleInputChange('teleponPelanggan', e.target.value)} 
                 required 
-                readOnly={isViewMode} // MODIFIED: readOnly
-                disabled={isSubmitting} // Dinonaktifkan saat submit
+                readOnly={isViewMode} 
+                disabled={isSubmitting} 
               />
             </div>
           </div>
@@ -208,8 +203,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
               id="alamatPelanggan" 
               value={formData.alamatPelanggan} 
               onChange={(e) => handleInputChange('alamatPelanggan', e.target.value)} 
-              readOnly={isViewMode} // MODIFIED: readOnly
-              disabled={isSubmitting} // Dinonaktifkan saat submit
+              readOnly={isViewMode} 
+              disabled={isSubmitting} 
               rows={2} 
             />
           </div>
@@ -221,8 +216,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
               type="email" 
               value={formData.emailPelanggan} 
               onChange={(e) => handleInputChange('emailPelanggan', e.target.value)} 
-              readOnly={isViewMode} // MODIFIED: readOnly
-              disabled={isSubmitting} // Dinonaktifkan saat submit
+              readOnly={isViewMode} 
+              disabled={isSubmitting} 
             />
           </div>
           {/* Status Pesanan (hanya untuk view/edit, bukan new order) */}
@@ -231,8 +226,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
               <Label htmlFor="status">Status Pesanan</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: any) => handleInputChange('status', value)} // Pastikan value string
-                disabled={isViewMode || isSubmitting} // MODIFIED: disabled
+                onValueChange={(value: any) => handleInputChange('status', value)} 
+                disabled={isViewMode || isSubmitting} 
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Status" />
@@ -252,7 +247,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="font-semibold">Item Pesanan</Label>
-              {!isViewMode && ( // MODIFIED: Sembunyikan tombol Tambah saat isViewMode
+              {!isViewMode && ( 
                 <Button type="button" onClick={addItem} size="sm" className="h-8" disabled={isSubmitting}>
                   <Plus className="h-4 w-4 mr-1" /> Tambah
                 </Button>
@@ -267,19 +262,19 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                       <TableHead className="px-1 text-center">Jml</TableHead>
                       <TableHead className="px-2">Harga</TableHead>
                       <TableHead className="text-right px-2">Total</TableHead>
-                      {!isViewMode && <TableHead className="w-10 p-0"></TableHead>} {/* MODIFIED: Sembunyikan header tombol hapus */}
+                      {!isViewMode && <TableHead className="w-10 p-0"></TableHead>} 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {items.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id}> {/* Menggunakan item.id sebagai key */}
                         <TableCell className="font-medium p-1">
                           <Input 
                             value={item.nama || ''} 
                             onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} 
                             className="h-8 px-2" 
-                            readOnly={isViewMode} // MODIFIED: readOnly
-                            disabled={isSubmitting} // Dinonaktifkan saat submit
+                            readOnly={isViewMode} 
+                            disabled={isSubmitting} 
                           />
                         </TableCell>
                         <TableCell className="p-1">
@@ -288,8 +283,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                             value={item.quantity || ''} 
                             onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 0)} 
                             className="h-8 w-14 text-center px-1" 
-                            readOnly={isViewMode} // MODIFIED: readOnly
-                            disabled={isSubmitting} // Dinonaktifkan saat submit
+                            readOnly={isViewMode} 
+                            disabled={isSubmitting} 
                             min="0" 
                           />
                         </TableCell>
@@ -299,15 +294,15 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                             value={item.hargaSatuan || ''} 
                             onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} 
                             className="h-8 px-2" 
-                            readOnly={isViewMode} // MODIFIED: readOnly
-                            disabled={isSubmitting} // Dinonaktifkan saat submit
+                            readOnly={isViewMode} 
+                            disabled={isSubmitting} 
                             min="0" 
                           />
                         </TableCell>
                         <TableCell className="text-right p-2 text-xs">
                           {formatCurrency(item.totalHarga || 0)}
                         </TableCell>
-                        {!isViewMode && ( // MODIFIED: Sembunyikan tombol hapus item
+                        {!isViewMode && ( 
                           <TableCell className="p-0 text-center">
                             {items.length > 1 && (
                               <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id!)} disabled={isSubmitting}>
@@ -330,8 +325,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
               id="catatan" 
               value={formData.catatan} 
               onChange={(e) => handleInputChange('catatan', e.target.value)} 
-              readOnly={isViewMode} // MODIFIED: readOnly
-              disabled={isSubmitting} // Dinonaktifkan saat submit
+              readOnly={isViewMode} 
+              disabled={isSubmitting} 
               rows={2} 
             />
           </div>
@@ -349,8 +344,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                 onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')}
                 placeholder="10%"
                 className="h-8 w-24 text-right"
-                readOnly={isViewMode} // MODIFIED: readOnly
-                disabled={isSubmitting} // Dinonaktifkan saat submit
+                readOnly={isViewMode} 
+                disabled={isSubmitting} 
                 min="0"
               />
             </div>
@@ -367,19 +362,19 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
             type="button" 
             variant="outline" 
             onClick={() => onOpenChange(false)} 
-            disabled={isSubmitting} // Dinonaktifkan saat submit
+            disabled={isSubmitting} 
           >
-            {isViewMode ? 'Tutup' : 'Batal'} {/* MODIFIED: Ubah teks tombol */}
+            {isViewMode ? 'Tutup' : 'Batal'} 
           </Button>
-          {!isViewMode && ( // MODIFIED: Sembunyikan tombol submit saat isViewMode
+          {!isViewMode && ( 
             <Button 
               type="submit" 
               onClick={handleSubmit} 
-              disabled={isSubmitting} // Dinonaktifkan saat submit
+              disabled={isSubmitting} 
             >
               {isSubmitting ? 
                 (initialData ? 'Memperbarui...' : 'Membuat...') 
-                : (initialData ? 'Update Pesanan' : 'Buat Pesanan')} {/* MODIFIED: Teks loading */}
+                : (initialData ? 'Update Pesanan' : 'Buat Pesanan')} 
             </Button>
           )}
         </div>

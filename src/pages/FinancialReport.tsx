@@ -17,6 +17,7 @@ import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -85,7 +86,7 @@ const FinancialReportPage = () => {
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
     filteredTransactions.forEach(t => {
-      const transactionDate = t.tanggal instanceof Date ? t.tanggal : parseISO(t.tanggal);
+      const transactionDate = safeParseDate(t.tanggal);
       const monthYear = format(transactionDate, 'yyyy-MM');
       if (!monthlyData[monthYear]) {
         monthlyData[monthYear] = { income: 0, expense: 0, date: transactionDate };

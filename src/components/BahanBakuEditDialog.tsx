@@ -40,7 +40,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     minimum: 0,
     hargaSatuan: 0,
     supplier: '',
-    tanggalKadaluwarsa: undefined,
+    tanggalKadaluwarsa: null, // Inisialisasi dengan null alih-alih undefined
     jumlahBeliKemasan: 0,
     satuanKemasan: '',
     hargaTotalBeliKemasan: 0,
@@ -65,7 +65,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
         minimum: item.minimum,
         hargaSatuan: item.hargaSatuan,
         supplier: item.supplier,
-        tanggalKadaluwarsa: item.tanggalKadaluwarsa,
+        tanggalKadaluwarsa: item.tanggalKadaluwarsa || null, // Pastikan itu Date atau null
         jumlahBeliKemasan: item.jumlahBeliKemasan ?? 0,
         satuanKemasan: item.satuanKemasan ?? '',
         hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? 0,
@@ -73,7 +73,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     } else {
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
-        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: undefined,
+        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null, // Inisialisasi dengan null
         jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
       });
     }

@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets'; // Pastikan Asset dari useAssets atau types
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT safeParseDate
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
+import { getInputValue } from '@/utils/inputUtils';
 
 
 const AssetManagement = () => {

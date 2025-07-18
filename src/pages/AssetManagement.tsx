@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getInputValue } from '@/utils/inputUtils';
 

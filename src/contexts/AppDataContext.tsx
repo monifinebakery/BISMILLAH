@@ -97,14 +97,14 @@ export interface Asset {
 
 export interface FinancialTransaction {
   id: string;
-  userId: string; // Pastikan ini ada jika user_id dikelola di frontend
-  type: 'pemasukan' | 'pengeluaran'; // `type` di frontend (dan juga di DB)
+  userId: string;
+  type: 'pemasukan' | 'pengeluaran';
   category: string;
   amount: number;
   description: string;
-  date: Date; // Wajib
-  created_at: Date; // Wajib (dari DB `created_at`)
-  updated_at: Date; // Wajib (dari DB `updated_at`)
+  date: Date; // Tetap Date (karena selalu ada fallback new Date())
+  created_at: Date; // Tetap Date (karena selalu ada fallback new Date())
+  updated_at: Date; // Tetap Date (karena selalu ada fallback new Date())
 }
 
 // =============================================================

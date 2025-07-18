@@ -5,7 +5,6 @@ import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-// MODIFIED: Import safeParseDate dan toSafeISOString dari utils/dateUtils
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 
 // =============================================================
@@ -17,7 +16,7 @@ export interface BahanBaku {
   kategori: string;
   stok: number;
   satuan: string;
-  hargaSatuan: number; // camelCase
+  hargaSatuan: number;
   minimum: number;
   supplier: string;
   tanggalKadaluwarsa: Date | null;
@@ -80,19 +79,20 @@ export interface HPPResult {
 export interface Asset {
   id: string;
   nama: string;
-  kategori: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi';
-  nilaiAwal: number;
+  jenis: string | null;
+  nilai: number;
   umurManfaat: number;
-  tanggalPembelian: Date;
+  tanggalPembelian: Date | null; // <-- Diperbarui di sini agar konsisten dengan AssetsPage.tsx
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
-  kondisi: 'Baik' | 'Cukup' | 'Buruk';
-  lokasi: string;
-  deskripsi?: string;
-  user_id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  depresiasi?: number | null;
+  userId?: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  kategori: string | null;
+  kondisi: string | null;
+  lokasi: string | null;
+  deskripsi: string | null;
+  depresiasi: number | null;
 }
 
 export interface FinancialTransaction {
@@ -244,12 +244,13 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
             createdAt: safeParseDate(item.createdAt),
             updatedAt: safeParseDate(item.updatedAt),
           }));
-        case STORAGE_KEYS.ASSETS:
+        case STORAGE_KEYS.ASSETS: // MODIFIED: Tambahkan parsing tanggal untuk ASSETS
           return parsed.map((item: any) => ({
             ...item,
-            tanggalPembelian: safeParseDate(item.tanggalPembelian),
-            createdAt: safeParseDate(item.createdAt),
-            updatedAt: safeParseDate(item.updatedAt),
+            // Perhatikan bahwa nama properti lokal (camelCase) harus sesuai
+            tanggalPembelian: safeParseDate(item.tanggalPembelian || item.tanggal_beli), // Coba kedua nama jika ada inkonsistensi
+            createdAt: safeParseDate(item.createdAt || item.created_at),
+            updatedAt: safeParseDate(item.updatedAt || item.updated_at),
           }));
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
           return parsed.map((item: any) => ({
@@ -277,8 +278,22 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
-  // MODIFIED: toSafeISOString definisi lokal dihapus, sekarang diimpor dari utils/dateUtils.ts
-  // const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => { ... };
+  const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
+    if (!dateValue) return null;
+    let dateObj: Date;
+    if (dateValue instanceof Date) {
+      dateObj = dateValue;
+    } else if (typeof dateValue === 'string') {
+      dateObj = new Date(dateValue);
+    } else {
+      console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
+      return null;
+    }
+    if (isNaN(dateObj.getTime())) {
+      return null;
+    }
+    return dateObj.toISOString();
+  };
 
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
@@ -434,8 +449,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           metode_perhitungan: item.metodePerhitungan,
           catatan: item.catatan ?? null,
           user_id: userId,
-          created_at: toSafeISOString(item.createdAt || new Date()),
-          updated_at: toSafeISOString(item.updatedAt || new Date()),
+          created_at: toSafeISOString(item.createdAt),
+          updated_at: toSafeISOString(item.updatedAt),
         })),
         recipes: recipes.map(item => ({
           id: item.id,
@@ -494,8 +509,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           status: item.status,
           catatan: item.catatan ?? null,
           user_id: userId,
-          created_at: toSafeISOString(item.createdAt || new Date()),
-          updated_at: toSafeISOString(item.updatedAt || new Date()),
+          created_at: toSafeISOString(item.createdAt),
+          updated_at: toSafeISOString(item.updatedAt),
         })),
         assets: assets.map(item => ({
           id: item.id,
@@ -635,7 +650,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
     if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
     if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan; // MODIFIED
+    if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
     if (updatedBahan.tanggalKadaluwarsa !== undefined) {
       bahanToUpdate.tanggal_kadaluwarsa = toSafeISOString(updatedBahan.tanggalKadaluwarsa);
     }
@@ -1254,17 +1269,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedAsset.nilai !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilai;
     if (updatedAsset.umurManfaat !== undefined) assetToUpdate.umur_manfaat = updatedAsset.umurManfaat;
     if (updatedAsset.tanggalPembelian !== undefined) {
-      assetToUpdate.tanggal_pembelian = toSafeISOString(updatedAsset.tanggalPembelian);
+      updateData.tanggal_pembelian = toSafeISOString(updatedAsset.tanggalPembelian);
     }
     if (updatedAsset.penyusutanPerBulan !== undefined) assetToUpdate.penyusutan_per_bulan = updatedAsset.penyusutanPerBulan;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori ?? null;
-    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi ?? null; // Typo here, should be updatedAsset
+    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi ?? null;
     if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi ?? null;
     if (updatedAsset.deskripsi !== undefined) assetToUpdate.deskripsi = updatedAsset.deskripsi ?? null;
     if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi ?? null;
 
-    const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id);
+    const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating asset in DB:', error);
       toast.error(`Gagal memperbarui aset: ${error.message}`);

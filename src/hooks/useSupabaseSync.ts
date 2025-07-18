@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // PERBAIKAN: Import useCallback
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supabase/supabase-js';
 
-// Import all necessary types from AppDataContext.tsx or your specific types files
-// Adjust these paths if your types are structured differently
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
+
+// Import semua tipe yang dibutuhkan dari AppDataContext.tsx atau file tipe spesifik Anda
+// PERBAIKAN: Hapus Invoice dari import, karena sudah tidak digunakan.
 import {
   BahanBaku,
   Supplier,
@@ -15,65 +17,21 @@ import {
   Order,
   Asset,
   FinancialTransaction,
-} from '@/contexts/AppDataContext'; // Assuming types are exported from AppDataContext
+} from '@/contexts/AppDataContext'; 
 
-// ===============================================
-// HELPER FUNCTIONS
-// ===============================================
+// DIHAPUS: Import tipe-tipe spesifik dari invoice.ts (jika ada)
+// import { 
+//     InvoiceCustomerInfo, 
+//     InvoiceBusinessInfo, 
+//     OrderItem, 
+//     InvoicePaymentStatus, 
+//     InvoiceTemplateStyle 
+// } from '@/types/invoice';
 
-// src/hooks/useSupabaseSync.ts
-export const safeParseDate = (dateValue: any): Date | null => {
-  try {
-    // Jika sudah objek Date, validasi dan kembalikan
-    if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? null : dateValue;
-    }
-
-    // Jika null atau undefined, kembalikan null
-    if (dateValue === null || dateValue === undefined) {
-      return null;
-    }
-
-    // BARU: Jika bukan string atau number, anggap tidak valid dan kembalikan null
-    // Ini mencegah konstruktor Date dipanggil dengan tipe yang tidak terduga
-    if (typeof dateValue !== 'string' && typeof dateValue !== 'number') {
-      console.warn('safeParseDate menerima nilai non-string/non-number yang tidak terduga:', dateValue);
-      return null;
-    }
-
-    const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? null : parsed;
-  } catch (error) {
-    console.error('Error parsing date:', error, dateValue);
-    return null;
-  }
-};
-
-const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
-  if (!dateValue) return null;
-
-  let dateObj: Date;
-  if (dateValue instanceof Date) {
-    dateObj = dateValue;
-  } else if (typeof dateValue === 'string') {
-    dateObj = new Date(dateValue);
-  } else {
-    console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
-    return null;
-  }
-
-  if (isNaN(dateObj.getTime())) {
-    return null;
-  }
-  return dateObj.toISOString();
-};
 
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
 // ===============================================
-// These interfaces represent the structure of data AS IT IS STORED IN SUPABASE
-// and passed to/from `syncToSupabase` and `loadFromSupabase`.
-
 interface TransformedBahanBaku {
   id: string;
   nama: string;
@@ -148,7 +106,7 @@ interface TransformedHPPResult {
   harga_jual_per_porsi: number;
   jumlah_porsi: number;
   user_id: string;
-  created_at: string; // `timestamp` dari frontend akan disimpan di sini
+  created_at: string;
   updated_at: string;
 }
 
@@ -159,7 +117,7 @@ interface TransformedActivity {
   type: string;
   value: string | null;
   user_id: string;
-  created_at: string; // `timestamp` dari frontend akan disimpan di sini
+  created_at: string;
   updated_at: string;
 }
 
@@ -185,30 +143,30 @@ interface TransformedOrder {
 interface TransformedAsset {
   id: string;
   nama: string;
-  jenis: string | null; // Corresponds to `Asset.jenis` (camelCase)
-  nilai_awal: number; // Corresponds to `Asset.nilai`
-  umur_manfaat: number; // Corresponds to `Asset.umurManfaat`
-  tanggal_pembelian: string; // Corresponds to `Asset.tanggalPembelian`
-  penyusutan_per_bulan: number;
-  nilai_sekarang: number; // Corresponds to `Asset.nilaiSaatIni`
+  kategori: string | null;
+  nilai_awal: number;
+  tanggal_beli: string;
+  nilai_sekarang: number;
   user_id: string;
   created_at: string;
   updated_at: string;
-  kategori: string | null;
   kondisi: string | null;
   lokasi: string | null;
   deskripsi: string | null;
   depresiasi: number | null;
 }
 
+// DIHAPUS: TransformedInvoice
+// interface TransformedInvoice { /* ... */ }
+
 interface TransformedFinancialTransaction {
   id: string;
   user_id: string;
-  type: string; // Corresponds to `FinancialTransaction.type`
+  type: string;
   category: string;
   amount: number;
   description: string;
-  date: string; // Corresponds to `FinancialTransaction.date`
+  date: string;
   created_at: string;
   updated_at: string;
 }
@@ -233,7 +191,7 @@ interface TransformedUserSettings {
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
 
-// This interface is for data sent TO `syncToSupabase`
+// DIHAPUS: invoices dari SyncPayload
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
   suppliers: TransformedSupplier[];
@@ -244,11 +202,11 @@ export interface SyncPayload {
   orders: TransformedOrder[];
   assets: TransformedAsset[];
   financialTransactions: TransformedFinancialTransaction[];
+  // invoices: TransformedInvoice[]; 
   userSettings?: TransformedUserSettings;
 }
 
-// This interface is for data returned FROM `loadFromSupabase`
-// Uses camelCase and Date objects as expected by frontend
+// DIHAPUS: invoices dari LoadedData
 export interface LoadedData {
   bahanBaku: BahanBaku[];
   suppliers: Supplier[];
@@ -259,7 +217,8 @@ export interface LoadedData {
   orders: Order[];
   assets: Asset[];
   financialTransactions: FinancialTransaction[];
-  userSettings?: any; // Consider creating a specific interface for UserSettings if complex
+  // invoices: Invoice[]; 
+  userSettings?: any;
 }
 
 // ===============================================
@@ -269,7 +228,8 @@ export interface LoadedData {
 export const useSupabaseSync = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const syncToSupabase = async (transformedPayload: SyncPayload): Promise<boolean> => {
+  // PERBAIKAN: Bungkus syncToSupabase dengan useCallback
+  const syncToSupabase = useCallback(async (transformedPayload: SyncPayload): Promise<boolean> => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -280,11 +240,11 @@ export const useSupabaseSync = () => {
 
       console.log('Starting sync to Supabase...');
 
-      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
+      // DIHAPUS: invoices dari destructing transformedPayload
+      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload; 
       const userId = session.user.id;
 
-      // Use a batch update strategy: delete all user-specific data, then upsert new data
-      // This ensures data consistency (items deleted locally are also deleted in cloud)
+      // DIHAPUS: delete promise untuk invoices
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -295,13 +255,12 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
-        // user_settings is typically not deleted, but upserted
+        // supabase.from('invoices').delete().eq('user_id', userId), 
       ];
 
-      // Execute all delete operations concurrently
       const deleteResults = await Promise.all(deletePromises);
       for (const res of deleteResults) {
-        if (res.error) throw res.error; // Throw on any delete error
+        if (res.error) throw res.error;
       }
 
       const upsertPromises = [];
@@ -333,6 +292,10 @@ export const useSupabaseSync = () => {
       if (financialTransactions && financialTransactions.length > 0) {
         upsertPromises.push(supabase.from('financial_transactions').upsert(financialTransactions, { onConflict: 'id', ignoreDuplicates: false }));
       }
+      // DIHAPUS: upsert promise untuk invoices
+      // if (invoices && invoices.length > 0) {
+      //   upsertPromises.push(supabase.from('invoices').upsert(invoices, { onConflict: 'id', ignoreDuplicates: false }));
+      // }
 
       if (userSettings) {
         upsertPromises.push(supabase.from('user_settings').upsert(userSettings, { onConflict: 'user_id' }));
@@ -356,9 +319,10 @@ export const useSupabaseSync = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Dependensi kosong karena semua variabel dari scope terluar adalah konstanta atau fungsi Supabase yang stabil
 
-  const loadFromSupabase = async (): Promise<LoadedData | null> => {
+  // PERBAIKAN: Bungkus loadFromSupabase dengan useCallback
+  const loadFromSupabase = useCallback(async (): Promise<LoadedData | null> => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -370,6 +334,7 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
+      // PERBAIKAN: Hapus select query untuk invoices
       const [
         bahanBakuRes,
         suppliersRes,
@@ -391,6 +356,7 @@ export const useSupabaseSync = () => {
         supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('assets').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('financial_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+        // supabase.from('invoices').select('*').eq('user_id', userId).order('issue_date', { ascending: false }), 
         supabase.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
@@ -403,6 +369,8 @@ export const useSupabaseSync = () => {
       if (ordersRes.error) throw ordersRes.error;
       if (assetsRes.error) throw assetsRes.error;
       if (financialTransactionsRes.error) throw financialTransactionsRes.error;
+      // PERBAIKAN: Hapus penanganan error untuk invoices
+      // if (invoicesRes.error) throw invoicesRes.error; 
 
       // Placeholder for default settings
       const defaultSettings = { financialCategories: [] };
@@ -439,7 +407,7 @@ export const useSupabaseSync = () => {
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier || '',
           tanggalKadaluwarsa: safeParseDate(item.tanggal_kadaluwarsa),
-          userId: item.user_id, // Map DB user_id to frontend userId
+          userId: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
           jumlahBeliKemasan: item.jumlah_beli_kemasan !== null ? parseFloat(item.jumlah_beli_kemasan) : null,
@@ -454,7 +422,7 @@ export const useSupabaseSync = () => {
           telepon: item.telepon || '',
           alamat: item.alamat || '',
           catatan: item.catatan || '',
-          userId: item.user_id, // Map DB user_id to frontend userId
+          userId: item.user_id,
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -467,7 +435,6 @@ export const useSupabaseSync = () => {
           status: item.status || '',
           metodePerhitungan: item.metode_perhitungan || '',
           catatan: item.catatan || '',
-          // No user_id in frontend Purchase interface (it's handled by AppDataContext)
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -484,7 +451,6 @@ export const useSupabaseSync = () => {
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           category: item.category || '',
-          // No user_id in frontend Recipe interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -492,15 +458,14 @@ export const useSupabaseSync = () => {
           id: item.id,
           nama: item.nama || '',
           ingredients: item.ingredients || [],
-          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
+          biayaTenagaKerja: parseFloat(item.biaya_tenega_kerja) || 0,
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           totalHPP: parseFloat(item.total_hpp) || 0,
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           jumlahPorsi: parseFloat(item.jumlah_porsi) || 1,
-          timestamp: safeParseDate(item.created_at) || new Date(), // Using created_at for timestamp
-          // No user_id in frontend HPPResult interface
+          timestamp: safeParseDate(item.created_at) || new Date(),
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -510,8 +475,7 @@ export const useSupabaseSync = () => {
           description: item.description || '',
           type: item.type || '',
           value: item.value || '',
-          timestamp: safeParseDate(item.created_at) || new Date(), // Using created_at for timestamp
-          // No user_id in frontend Activity interface
+          timestamp: safeParseDate(item.created_at) || new Date(),
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -529,39 +493,37 @@ export const useSupabaseSync = () => {
           totalPesanan: parseFloat(item.total_pesanan) || 0,
           status: item.status || '',
           catatan: item.catatan || '',
-          // No user_id in frontend Order interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama || '',
-          jenis: item.jenis || '', // Corresponds to DB `jenis`
-          nilai: parseFloat(item.nilai_awal) || 0, // Corresponds to DB `nilai_awal`
-          umurManfaat: parseFloat(item.umur_manfaat) || 0,
-          tanggalPembelian: safeParseDate(item.tanggal_pembelian) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date
-          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
-          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-          userId: item.user_id, // Map DB user_id to frontend userId
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
           kategori: item.kategori || '',
+          nilaiAwal: parseFloat(item.nilai_awal) || 0,
+          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
+          tanggalPembelian: safeParseDate(item.tanggal_beli) || new Date('1970-01-01T00:00:00Z'),
           kondisi: item.kondisi || '',
           lokasi: item.lokasi || '',
           deskripsi: item.deskripsi || '',
           depresiasi: parseFloat(item.depresiasi) ?? null,
+          userId: item.user_id,
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
-          userId: item.user_id, // Map DB user_id to frontend userId
-          type: item.type || '', // Corresponds to DB `type`
+          userId: item.user_id,
+          type: item.type || '',
           category: item.category || '',
           amount: parseFloat(item.amount) || 0,
           description: item.description || '',
           date: safeParseDate(item.date) || new Date(),
-          created_at: safeParseDate(item.created_at) || new Date(),
-          updated_at: safeParseDate(item.updated_at) || new Date(),
+          createdAt: safeParseDate(item.created_at) || new Date(),
+          updatedAt: safeParseDate(item.updated_at) || new Date(),
         })) || [],
+        // DIHAPUS: Invoices dari LoadedData jika fitur dibatalkan
+        // invoices: invoicesRes.data?.map((item: any) => { /* ... */ }) || [],
         userSettings: userSettingsData,
       };
 
@@ -575,14 +537,16 @@ export const useSupabaseSync = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Dependensi kosong karena semua variabel dari scope terluar adalah konstanta atau fungsi Supabase yang stabil
 
-  const getCloudStats = async () => {
+  // PERBAIKAN: Bungkus getCloudStats dengan useCallback
+  const getCloudStats = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
       const userId = session.user.id;
 
+      // PERBAIKAN: Hapus select count untuk invoices
       const [bahanBakuRes, suppliersRes, purchasesRes, recipesRes, hppResultsRes, ordersRes, assetsRes, financialTransactionsRes] = await Promise.all([
         supabase.from('bahan_baku').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('suppliers').select('*', { count: 'exact', head: true }).eq('user_id', userId),
@@ -591,7 +555,8 @@ export const useSupabaseSync = () => {
         supabase.from('hpp_results').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('assets').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+        supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        // supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', userId), 
       ]);
 
       return {
@@ -603,17 +568,70 @@ export const useSupabaseSync = () => {
         totalOrders: ordersRes.count || 0,
         totalAssets: assetsRes.count || 0,
         totalFinancialTransactions: financialTransactionsRes.count || 0,
+        // DIHAPUS: totalInvoices
+        // totalInvoices: invoicesRes.count || 0, 
       };
     } catch (error: any) {
       console.error('Stats error:', error);
       return null;
     }
+  }, []); // Dependensi kosong
+
+  const value: AppDataContextType = {
+    bahanBaku,
+    addBahanBaku,
+    updateBahanBaku,
+    deleteBahanBaku,
+    getBahanBakuByName,
+    reduceStok,
+    suppliers,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
+    purchases,
+    addPurchase,
+    updatePurchase,
+    deletePurchase,
+    recipes,
+    addRecipe,
+    updateRecipe,
+    deleteRecipe,
+    hppResults,
+    addHPPResult,
+    addHPPCalculation,
+    activities,
+    addActivity,
+    orders,
+    addOrder,
+    updateOrder,
+    deleteOrder,
+    updateOrderStatus,
+    assets,
+    addAsset,
+    updateAsset,
+    deleteAsset,
+    financialTransactions,
+    addFinancialTransaction,
+    updateFinancialTransaction,
+    deleteFinancialTransaction,
+    syncToCloud, 
+    loadFromCloud, 
+    replaceAllData,
+    getStatistics,
+    getDashboardStats,
   };
 
-  return {
-    syncToSupabase,
-    loadFromSupabase,
-    getCloudStats,
-    isLoading
-  };
+  return (
+    <AppDataContext.Provider value={value}>
+      {children}
+    </AppDataContext.Provider>
+  );
+};
+
+export const useAppData = () => {
+  const context = useContext(AppDataContext);
+  if (context === undefined) {
+    throw new Error('useAppData must be used within an AppDataProvider');
+  }
+  return context;
 };

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Tambahkan baris ini
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 export const useSuppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);

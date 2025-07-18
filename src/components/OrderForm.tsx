@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Edit as EditIcon } from 'lucide-react'; // PERBAIKAN: Import EditIcon
+import { Plus, X } from 'lucide-react'; 
 import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
 import { safeParseDate } from '@/utils/dateUtils'; 
@@ -19,10 +19,12 @@ interface OrderFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (order: NewOrder | Order) => void;
   initialData?: Order | null;
-  isViewMode?: boolean; // Prop dari OrdersPage
+  // MODIFIED: Hapus isViewMode prop
+  // isViewMode?: boolean; 
 }
 
-const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: initialIsViewMode = false }: OrderFormProps) => {
+// MODIFIED: Hapus isViewMode dari destructuring props
+const OrderForm = ({ open, onOpenChange, onSubmit, initialData }: OrderFormProps) => {
   const [formData, setFormData] = useState({
     namaPelanggan: '',
     emailPelanggan: '',
@@ -34,8 +36,6 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
   const [items, setItems] = useState<Partial<OrderItem>[]>([]);
   const [pajakInput, setPajakInput] = useState<number | string>('');
   const [isSubmitting, setIsSubmitting] = useState(false); 
-  // PERBAIKAN UTAMA: State lokal untuk mode lihat, diinisialisasi dari prop
-  const [currentIsViewMode, setCurrentIsViewMode] = useState(initialIsViewMode); 
 
   useEffect(() => {
     if (open) {
@@ -58,26 +58,26 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
         : [{ id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
       setPajakInput(initialData?.pajak || '');
       setIsSubmitting(false); 
-      // PERBAIKAN: Set state mode lihat lokal saat dialog dibuka
-      setCurrentIsViewMode(initialIsViewMode); 
+      // MODIFIED: Hapus pengaturan state mode lihat lokal
+      // setCurrentIsViewMode(initialIsViewMode); 
     }
-  }, [open, initialData, initialIsViewMode]);
+  }, [open, initialData]);
 
   const handleInputChange = (field: string, value: string) => {
-    // MODIFIED: Mencegah perubahan saat currentIsViewMode
-    if (currentIsViewMode) return;
+    // MODIFIED: Hapus pengecekan isViewMode
+    // if (currentIsViewMode) return;
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const addItem = () => {
-    // MODIFIED: Mencegah perubahan saat currentIsViewMode
-    if (currentIsViewMode) return;
+    // MODIFIED: Hapus pengecekan isViewMode
+    // if (currentIsViewMode) return;
     setItems([...items, { id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
   };
 
   const removeItem = (id: string | number) => { 
-    // MODIFIED: Mencegah perubahan saat currentIsViewMode
-    if (currentIsViewMode) return;
+    // MODIFIED: Hapus pengecekan isViewMode
+    // if (currentIsViewMode) return;
     if (items.length > 1) {
       setItems(items.filter(item => item.id !== id));
     } else {
@@ -86,8 +86,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
   };
 
   const updateItem = (id: string | number, field: keyof OrderItem, value: string | number) => { 
-    // MODIFIED: Mencegah perubahan saat currentIsViewMode
-    if (currentIsViewMode) return;
+    // MODIFIED: Hapus pengecekan isViewMode
+    // if (currentIsViewMode) return;
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
@@ -114,11 +114,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // MODIFIED: Langsung keluar jika dalam mode lihat
-    if (currentIsViewMode) {
-      toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
-      return;
-    }
+    // MODIFIED: Hapus pengecekan isViewMode di awal handleSubmit
+    // if (currentIsViewMode) { ... }
 
     setIsSubmitting(true); 
 
@@ -167,11 +164,11 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
-            {currentIsViewMode ? 'Detail Pesanan' : (initialData ? 'Edit Pesanan' : 'Tambah Pesanan Baru')}
+            {/* MODIFIED: Judul dialog selalu Edit/Tambah */}
+            {initialData ? 'Edit Pesanan' : 'Tambah Pesanan Baru'}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Menggunakan form sebagai pembungkus untuk semua input */}
         <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -181,7 +178,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                 value={formData.namaPelanggan} 
                 onChange={(e) => handleInputChange('namaPelanggan', e.target.value)} 
                 required 
-                readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                readOnly={false} // MODIFIED: Selalu false (tidak ada readOnly mode)
                 disabled={isSubmitting} 
               />
             </div>
@@ -192,7 +189,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                 value={formData.teleponPelanggan} 
                 onChange={(e) => handleInputChange('teleponPelanggan', e.target.value)} 
                 required 
-                readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                readOnly={false} // MODIFIED: Selalu false
                 disabled={isSubmitting} 
               />
             </div>
@@ -203,7 +200,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
               id="alamatPelanggan" 
               value={formData.alamatPelanggan} 
               onChange={(e) => handleInputChange('alamatPelanggan', e.target.value)} 
-              readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+              readOnly={false} // MODIFIED: Selalu false
               disabled={isSubmitting} 
               rows={2} 
             />
@@ -216,7 +213,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
               type="email" 
               value={formData.emailPelanggan} 
               onChange={(e) => handleInputChange('emailPelanggan', e.target.value)} 
-              readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+              readOnly={false} // MODIFIED: Selalu false
               disabled={isSubmitting} 
             />
           </div>
@@ -227,7 +224,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
               <Select
                 value={formData.status}
                 onValueChange={(value: any) => handleInputChange('status', value)} 
-                disabled={currentIsViewMode || isSubmitting} // MODIFIED: Pakai currentIsViewMode
+                disabled={isSubmitting} // MODIFIED: Hanya disabled saat submitting
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Status" />
@@ -247,22 +244,21 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="font-semibold">Item Pesanan</Label>
-              {!currentIsViewMode && ( // MODIFIED: Sembunyikan tombol Tambah saat currentIsViewMode
-                <Button type="button" onClick={addItem} size="sm" className="h-8" disabled={isSubmitting}>
-                  <Plus className="h-4 w-4 mr-1" /> Tambah
-                </Button>
-              )}
+              {/* MODIFIED: Tombol Tambah Item selalu terlihat kecuali saat submit */}
+              <Button type="button" onClick={addItem} size="sm" className="h-8" disabled={isSubmitting}>
+                <Plus className="h-4 w-4 mr-1" /> Tambah
+              </Button>
             </div>
             <ScrollArea className="max-h-[300px] rounded-md border">
               <div className="w-full">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[120px] px-2">Nama</TableHead>
-                      <TableHead className="px-1 text-center">Jml</TableHead>
-                      <TableHead className="px-2">Harga</TableHead>
+                      <TableHead className="w-[100px] px-2">Nama</TableHead> {/* MODIFIED: Lebar kolom */}
+                      <TableHead className="px-1 text-center w-[70px]">Jml</TableHead> {/* MODIFIED: Lebar kolom */}
+                      <TableHead className="px-2 w-[100px]">Harga Satuan</TableHead> {/* MODIFIED: Tambah teks "Satuan", lebar kolom */}
                       <TableHead className="text-right px-2">Total</TableHead>
-                      {!currentIsViewMode && <TableHead className="w-10 p-0"></TableHead>} {/* MODIFIED: Sembunyikan header tombol hapus */}
+                      <TableHead className="w-10 p-0"></TableHead> {/* MODIFIED: Kolom aksi selalu terlihat */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -273,7 +269,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                             value={item.nama || ''} 
                             onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} 
                             className="h-8 px-2" 
-                            readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                            readOnly={false} // MODIFIED: Selalu false
                             disabled={isSubmitting} 
                           />
                         </TableCell>
@@ -283,7 +279,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                             value={item.quantity || ''} 
                             onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 0)} 
                             className="h-8 w-14 text-center px-1" 
-                            readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                            readOnly={false} // MODIFIED: Selalu false
                             disabled={isSubmitting} 
                             min="0" 
                           />
@@ -294,7 +290,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                             value={item.hargaSatuan || ''} 
                             onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} 
                             className="h-8 px-2" 
-                            readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                            readOnly={false} // MODIFIED: Selalu false
                             disabled={isSubmitting} 
                             min="0" 
                           />
@@ -302,15 +298,14 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                         <TableCell className="text-right p-2 text-xs">
                           {formatCurrency(item.totalHarga || 0)}
                         </TableCell>
-                        {!currentIsViewMode && ( // MODIFIED: Sembunyikan tombol hapus item
-                          <TableCell className="p-0 text-center">
-                            {items.length > 1 && (
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id!)} disabled={isSubmitting}>
-                                <X className="h-4 w-4 text-red-500" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        )}
+                        {/* MODIFIED: Tombol hapus item selalu terlihat kecuali saat submit */}
+                        <TableCell className="p-0 text-center">
+                          {items.length > 1 && (
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id!)} disabled={isSubmitting}>
+                              <X className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -325,7 +320,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
               id="catatan" 
               value={formData.catatan} 
               onChange={(e) => handleInputChange('catatan', e.target.value)} 
-              readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+              readOnly={false} // MODIFIED: Selalu false
               disabled={isSubmitting} 
               rows={2} 
             />
@@ -344,7 +339,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
                 onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')}
                 placeholder="10%"
                 className="h-8 w-24 text-right"
-                readOnly={currentIsViewMode} // MODIFIED: Pakai currentIsViewMode
+                readOnly={false} // MODIFIED: Selalu false
                 disabled={isSubmitting} 
                 min="0"
               />
@@ -358,38 +353,24 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode: init
 
         {/* Tombol Footer - di luar form, jadi tetap di bawah */}
         <div className="flex justify-end space-x-2 pt-2">
-          {currentIsViewMode && ( // Hanya tampilkan tombol Edit jika dalam mode lihat
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setCurrentIsViewMode(false)} // Mengubah mode ke edit
-              disabled={isSubmitting} 
-              className="border-orange-300 text-orange-600 hover:bg-orange-50"
-            >
-              <EditIcon className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-
           <Button 
             type="button" 
             variant="outline" 
             onClick={() => onOpenChange(false)} 
             disabled={isSubmitting} 
           >
-            {currentIsViewMode ? 'Tutup' : 'Batal'} 
+            Batal {/* MODIFIED: Selalu Batal */}
           </Button>
-          {!currentIsViewMode && ( // MODIFIED: Sembunyikan tombol submit saat currentIsViewMode
-            <Button 
-              type="submit" 
-              onClick={handleSubmit} 
-              disabled={isSubmitting} 
-            >
-              {isSubmitting ? 
-                (initialData ? 'Memperbarui...' : 'Membuat...') 
-                : (initialData ? 'Update Pesanan' : 'Buat Pesanan')} 
-            </Button>
-          )}
+          {/* MODIFIED: Tombol submit selalu terlihat kecuali saat submitting */}
+          <Button 
+            type="submit" 
+            onClick={handleSubmit} 
+            disabled={isSubmitting} 
+          >
+            {isSubmitting ? 
+              (initialData ? 'Memperbarui...' : 'Membuat...') 
+              : (initialData ? 'Update Pesanan' : 'Buat Pesanan')} 
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

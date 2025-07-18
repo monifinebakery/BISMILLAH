@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { FinancialTransaction } from '@/types/financial'; // Pastikan FinancialTransaction diimpor dari types/financial
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // MODIFIED: Import toSafeISOString juga
+import { safeParseDate, toSafeISOString, formatDateToYYYYMMDD } from '@/utils/dateUtils'; // MODIFIED: Import toSafeISOString juga
 
 const STORAGE_KEY = 'hpp_app_assets'; // Pastikan ini benar, sebelumnya 'hpp_app_financial_transactions'
 

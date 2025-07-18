@@ -267,8 +267,6 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 onChange={(e) => setFormData({
                   ...formData,
                   tanggalKadaluwarsa: safeParseDate(e.target.value)
-                    ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
-                    : null
                 })}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />

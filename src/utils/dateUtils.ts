@@ -48,3 +48,10 @@ export const formatDateForDisplay = (date: Date | null | undefined): string => {
     minute: '2-digit',
   }).format(date);
 };
+
+export const formatDateToYYYYMMDD = (date: Date | null | undefined): string => {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toISOString().split('T')[0];
+};

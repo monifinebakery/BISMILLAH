@@ -6,25 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils'; // <-- Impor yang benar
+import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 import { getInputValue } from '@/utils/inputUtils';
 
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: () => void; // <-- onClose didefinisikan sebagai prop di sini
   onAddTransaction: (transaction: any) => Promise<boolean>;
   categories: { income: string[]; expense: string[] };
 }
 
-const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => { // <-- onClose di-destrukturisasi di sini
   const [formData, setFormData] = useState({
     user_id: '',
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '' as string | null, // Pastikan bisa null
+    category: '' as string | null,
     amount: 0 as number,
-    description: '' as string | null, // Pastikan bisa null
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
+    description: '' as string | null,
+    date: new Date().toISOString().split('T')[0],
   });
 
   const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
@@ -58,7 +58,6 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   }, [isOpen]);
 
   const handleChange = (name: string, value: string | number) => {
-    // MODIFIED: Pastikan category dan description bisa menerima null jika value kosong
     if (name === 'category') {
       setFormData(prev => ({ ...prev, [name]: (value === "" || value === "-placeholder-category-") ? null : value }));
     } else if (name === 'description') {
@@ -70,10 +69,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   const handleSave = async () => {
     if (
-      // MODIFIED: Tambahkan optional chaining untuk .trim()
-      !formData.category?.trim() || // Akan bernilai true jika category null/undefined/string kosong
+      !formData.category?.trim() ||
       formData.amount <= 0 ||
-      !formData.description?.trim() || // Akan bernilai true jika description null/undefined/string kosong
+      !formData.description?.trim() ||
       !formData.date
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
@@ -102,13 +100,13 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
     const success = await onAddTransaction(transactionData);
     if (success) {
-      onClose();
+      onClose(); // <-- onClose dipanggil di sini
       toast.success('Transaksi berhasil ditambahkan!');
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}> // <-- onClose dipanggil di sini
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>
@@ -188,7 +186,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
         <div className="mt-6 flex justify-end space-x-4">
           <Button
-            onClick={onClose}
+            onClick={onClose} // <-- onClose dipanggil di sini
             variant="outline"
             className="px-4 py-2"
           >

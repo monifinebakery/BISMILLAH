@@ -13,8 +13,11 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAppData } from '@/contexts/AppDataContext';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/utils/dateUtils';
+import { useIsMobile } from '@/hooks/use-mobile'; // PERBAIKAN: Import useIsMobile
+import { generateUUID } from '@/utils/uuid'; // PERBAIKAN: Import generateUUID (penting untuk item.id)
 
 const PurchaseManagement = () => {
+  const isMobile = useIsMobile(); // Panggil hook useIsMobile
   const { purchases, loading, addPurchase, updatePurchase, deletePurchase } = usePurchases();
   const { suppliers, loading: suppliersLoading } = useSuppliers();
   const { bahanBaku } = useAppData();
@@ -42,26 +45,11 @@ const PurchaseManagement = () => {
     hargaSatuan: 0,
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // formatCurrency sudah diimpor dari '@/utils/currencyUtils', tidak perlu didefinisikan ulang
+  // const formatCurrency = (value: number) => { /* ... */ };
 
-  const formatDate = (date: Date) => {
-    // MODIFIED: Tambahkan validasi untuk objek Date
-    if (date instanceof Date && !isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat('id-ID', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }).format(date);
-    }
-    return 'Tanggal tidak valid'; // Fallback for invalid dates
-  };
+  // formatDate ini sebenarnya sudah ada di formatDateForDisplay, bisa dihapus jika tidak ada fungsi lain yang menggunakan
+  // const formatDate = (date: Date) => { /* ... */ };
 
   const handleAddItem = () => {
     if (!newItem.namaBarang || !newItem.kuantitas || !newItem.hargaSatuan) {
@@ -70,7 +58,7 @@ const PurchaseManagement = () => {
     }
 
     const item: PurchaseItem = {
-      id: Date.now().toString(), // Unique ID for list item
+      id: generateUUID(), // PERBAIKAN: Gunakan generateUUID untuk ID item
       bahanBakuId: newItem.bahanBakuId,
       namaBarang: newItem.namaBarang,
       kuantitas: newItem.kuantitas,
@@ -120,7 +108,7 @@ const PurchaseManagement = () => {
 
     const totalAmount = newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0);
 
-    // MODIFIED: Validate and parse date string to Date object
+    // Validate and parse date string to Date object
     let parsedTanggal: Date;
     try {
       const dateObj = new Date(newPurchase.tanggal);
@@ -141,7 +129,8 @@ const PurchaseManagement = () => {
 
     let success = false;
     if (editingPurchase) {
-      success = await updatePurchase(editingPurchase.id, purchaseData);
+      // PERBAIKAN: Pastikan `totalAmount` diperbarui saat edit
+      success = await updatePurchase(editingPurchase.id, { ...purchaseData, totalAmount: totalAmount });
     } else {
       success = await addPurchase(purchaseData);
     }
@@ -158,6 +147,13 @@ const PurchaseManagement = () => {
         metodePerhitungan: 'FIFO',
         catatan: '',
       });
+      setNewItem({ // Reset newItem juga
+        bahanBakuId: '',
+        namaBarang: '',
+        kuantitas: 0,
+        satuan: '',
+        hargaSatuan: 0,
+      });
       toast.success('Pembelian berhasil disimpan.');
     }
   };
@@ -167,14 +163,21 @@ const PurchaseManagement = () => {
     setNewPurchase({
       supplierId: purchase.supplierId,
       supplierName: purchase.supplierName,
-      // MODIFIED: Validasi purchase.tanggal sebelum mengonversi ke string
       tanggal: purchase.tanggal instanceof Date && !isNaN(purchase.tanggal.getTime())
           ? purchase.tanggal.toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0], // Fallback ke tanggal hari ini jika tidak valid
-      items: purchase.items, // Items should be directly assignable
+      // PERBAIKAN: Pastikan ID item ada saat diedit
+      items: purchase.items.map(item => ({...item, id: item.id || generateUUID()})), // Ensure IDs for existing items
       status: purchase.status,
       metodePerhitungan: purchase.metodePerhitungan || 'FIFO',
       catatan: purchase.catatan || '',
+    });
+    setNewItem({ // Reset newItem form
+      bahanBakuId: '',
+      namaBarang: '',
+      kuantitas: 0,
+      satuan: '',
+      hargaSatuan: 0,
     });
     setIsDialogOpen(true);
   };
@@ -238,7 +241,28 @@ const PurchaseManagement = () => {
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-xs sm:text-sm">
+                <Button 
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-xs sm:text-sm"
+                  onClick={() => {
+                      setEditingPurchase(null); // Reset editing purchase saat membuka dialog tambah baru
+                      setNewPurchase({ // Reset form
+                        supplierId: '',
+                        supplierName: '',
+                        tanggal: new Date().toISOString().split('T')[0],
+                        items: [],
+                        status: 'pending',
+                        metodePerhitungan: 'FIFO',
+                        catatan: '',
+                      });
+                      setNewItem({ // Reset newItem juga
+                        bahanBakuId: '',
+                        namaBarang: '',
+                        kuantitas: 0,
+                        satuan: '',
+                        hargaSatuan: 0,
+                      });
+                  }}
+                >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Tambah Pembelian
                 </Button>
@@ -386,11 +410,11 @@ const PurchaseManagement = () => {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="min-w-[80px]">Nama Barang</TableHead>
-                                <TableHead>Kuantitas</TableHead>
-                                <TableHead>Harga Satuan</TableHead>
-                                <TableHead className="text-right">Total</TableHead>
-                                <TableHead>Aksi</TableHead>
+                                <TableHead className="min-w-[120px]">Nama Barang</TableHead> {/* Lebar disesuaikan */}
+                                <TableHead className="min-w-[80px]">Kuantitas</TableHead> {/* Lebar disesuaikan */}
+                                <TableHead className="min-w-[120px]">Harga Satuan</TableHead> {/* Lebar disesuaikan */}
+                                <TableHead className="text-right min-w-[100px]">Total</TableHead> {/* Lebar disesuaikan */}
+                                <TableHead className="w-[60px]">Aksi</TableHead> {/* Lebar disesuaikan */}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -469,79 +493,134 @@ const PurchaseManagement = () => {
         </Card>
 
         {/* Purchase List */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm w-full">
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg p-3 sm:p-4">
             <CardTitle className="text-sm sm:text-lg lg:text-xl">Daftar Pembelian</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[80px] text-xs sm:text-sm">Tanggal</TableHead>
-                    <TableHead className="min-w-[120px] text-xs sm:text-sm">Supplier</TableHead>
-                    <TableHead className="min-w-[80px] text-xs sm:text-sm">Items</TableHead>
-                    <TableHead className="min-w-[100px] text-xs sm:text-sm">Total</TableHead>
-                    <TableHead className="min-w-[80px] text-xs sm:text-sm">Status</TableHead>
-                    <TableHead className="min-w-[100px] text-xs sm:text-sm">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPurchases.map((purchase) => (
-                    <TableRow key={purchase.id}>
-                      <TableCell className="text-xs sm:text-sm">{formatDateForDisplay(purchase.tanggal)}</TableCell>
-                      <TableCell className="font-medium text-xs sm:text-sm">{purchase.supplierName}</TableCell>
-                      <TableCell className="text-xs sm:text-sm">{purchase.items.length} item(s)</TableCell>
-                      <TableCell className="text-xs sm:text-sm">{formatCurrency(purchase.totalAmount)}</TableCell>
-                      <TableCell>{getStatusBadge(purchase.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1 sm:space-x-2">
+            {filteredPurchases.length === 0 ? (
+              <div className="text-center p-6 sm:p-8 text-gray-500">
+                <Package className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-700 mb-2">
+                  {searchTerm ? 'Pembelian tidak ditemukan' : 'Belum ada pembelian'}
+                </h3>
+                <p className="text-xs sm:text-sm lg:text-base text-gray-500 mb-4">
+                  {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan pembelian pertama'}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-xs sm:text-sm"
+                  >
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    Tambah Pembelian
+                  </Button>
+                )}
+              </div>
+            ) : isMobile ? (
+              // Tampilan Mobile (Card per Pembelian)
+              <div className="p-4 space-y-4">
+                {filteredPurchases.map((purchase) => (
+                  <Card key={purchase.id} className="border border-green-200 shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-base text-gray-900">{purchase.supplierName}</h3>
+                        <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(purchase)}
-                            className="hover:bg-blue-50 hover:text-blue-600 p-1 sm:p-2"
+                            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
                           >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(purchase.id)}
-                            className="hover:bg-red-50 hover:text-red-600 p-1 sm:p-2"
+                            className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                           >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-700">
+                        <p>Tanggal: <span className="font-medium text-gray-900">{formatDateForDisplay(purchase.tanggal)}</span></p>
+                        <p>Jumlah Item: <span className="font-medium text-gray-900">{purchase.items.length} item(s)</span></p>
+                        <p>Total: <span className="font-medium text-gray-900">{formatCurrency(purchase.totalAmount)}</span></p>
+                        <p>Status: {getStatusBadge(purchase.status)}</p>
+                        {purchase.catatan && (
+                          <p>Catatan: <span className="font-medium text-gray-900">{purchase.catatan}</span></p>
+                        )}
+                      </div>
+                      {/* Optional: Display items details on mobile card if needed */}
+                      {purchase.items.length > 0 && (
+                        <div className="mt-3 border-t pt-3">
+                          <h4 className="font-medium text-xs mb-1">Item Detail:</h4>
+                          <ul className="text-xs space-y-0.5">
+                            {purchase.items.map(item => (
+                              <li key={item.id} className="flex justify-between">
+                                <span>{item.namaBarang} ({item.kuantitas} {item.satuan})</span>
+                                <span>{formatCurrency(item.totalHarga)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              // Tampilan Desktop (Table)
+              <div className="overflow-x-auto w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[80px] text-xs sm:text-sm">Tanggal</TableHead>
+                      <TableHead className="min-w-[120px] text-xs sm:text-sm">Supplier</TableHead>
+                      <TableHead className="min-w-[80px] text-xs sm:text-sm">Items</TableHead>
+                      <TableHead className="min-w-[100px] text-xs sm:text-sm">Total</TableHead>
+                      <TableHead className="min-w-[80px] text-xs sm:text-sm">Status</TableHead>
+                      <TableHead className="min-w-[100px] text-xs sm:text-sm">Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPurchases.map((purchase) => (
+                      <TableRow key={purchase.id}>
+                        <TableCell className="text-xs sm:text-sm">{formatDateForDisplay(purchase.tanggal)}</TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">{purchase.supplierName}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{purchase.items.length} item(s)</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{formatCurrency(purchase.totalAmount)}</TableCell>
+                        <TableCell>{getStatusBadge(purchase.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1 sm:space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(purchase)}
+                              className="hover:bg-blue-50 hover:text-blue-600 p-1 sm:p-2"
+                            >
+                              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(purchase.id)}
+                              className="hover:bg-red-50 hover:text-red-600 p-1 sm:p-2"
+                            >
+                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {filteredPurchases.length === 0 && (
-          <Card className="text-center p-6 sm:p-8 lg:p-12 shadow-lg border-0 bg-white/60 backdrop-blur-sm w-full">
-            <Package className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-700 mb-2">
-              {searchTerm ? 'Pembelian tidak ditemukan' : 'Belum ada pembelian'}
-            </h3>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-500 mb-4">
-              {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan pembelian pertama'}
-            </p>
-            {!searchTerm && (
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-xs sm:text-sm"
-              >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                Tambah Pembelian
-              </Button>
-            )}
-          </Card>
-        )}
       </div>
     </div>
   );

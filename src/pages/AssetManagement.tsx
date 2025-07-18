@@ -61,10 +61,10 @@ const AssetManagement = () => {
     }
 
     // Validasi tanggalBeli agar benar-benar Date object yang valid
-    if (!(formData.tanggalBeli instanceof Date) || isNaN(formData.tanggalBeli.getTime())) {
-      toast.error("Tanggal Beli tidak valid.");
-      return;
-    }
+    if (!formData.tanggalBeli || !isValidDate(formData.tanggalBeli)) {
+    toast.error("Tanggal Beli tidak valid");
+    return;
+  }
 
     setIsSubmitting(true);
 

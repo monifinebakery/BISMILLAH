@@ -483,7 +483,7 @@ const AssetManagement = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Tanggal Beli:</span>
-                          <span className="font-medium text-gray-900">{new Date(asset.tanggalBeli).toLocaleDateString('id-ID')}</span>
+                          <span className="font-medium text-gray-900">{formatDateForDisplay(asset.tanggalBeli)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -524,7 +524,7 @@ const AssetManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{new Date(asset.tanggalBeli).toLocaleDateString('id-ID')}</TableCell>
+                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalBeli)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Button

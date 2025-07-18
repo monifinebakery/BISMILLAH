@@ -21,19 +21,31 @@ import {
 // HELPER FUNCTIONS
 // ===============================================
 
-export const safeParseDate = (dateValue: any): Date | null => { // Ubah tipe kembalian menjadi Date | null
+// src/hooks/useSupabaseSync.ts
+export const safeParseDate = (dateValue: any): Date | null => {
   try {
-    if (!dateValue) return null; // Kembalikan null alih-alih undefined
-
+    // Jika sudah objek Date, validasi dan kembalikan
     if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? null : dateValue; // Kembalikan null alih-alih undefined
+      return isNaN(dateValue.getTime()) ? null : dateValue;
+    }
+
+    // Jika null atau undefined, kembalikan null
+    if (dateValue === null || dateValue === undefined) {
+      return null;
+    }
+
+    // BARU: Jika bukan string atau number, anggap tidak valid dan kembalikan null
+    // Ini mencegah konstruktor Date dipanggil dengan tipe yang tidak terduga
+    if (typeof dateValue !== 'string' && typeof dateValue !== 'number') {
+      console.warn('safeParseDate menerima nilai non-string/non-number yang tidak terduga:', dateValue);
+      return null;
     }
 
     const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? null : parsed; // Kembalikan null alih-alih undefined
+    return isNaN(parsed.getTime()) ? null : parsed;
   } catch (error) {
     console.error('Error parsing date:', error, dateValue);
-    return null; // Kembalikan null alih-alih undefined
+    return null;
   }
 };
 

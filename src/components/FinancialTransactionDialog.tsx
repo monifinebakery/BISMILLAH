@@ -90,9 +90,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       type: formData.type,
       category: formData.category,
       amount: Number(formData.amount),
-      date: new Date(formData.date) instanceof Date && !isNaN(new Date(formData.date).getTime())
-        ? new Date(formData.date)
-        : new Date(), // Fallback ke tanggal saat ini jika tanggal tidak valid
+     date: safeParseDate(formData.date) || new Date(), // Fallback ke new Date() jika parsing gagal
     };
 
     const success = await onAddTransaction(transactionData);

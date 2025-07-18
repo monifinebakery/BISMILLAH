@@ -7,7 +7,7 @@ import { BahanBaku } from '@/types/recipe';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { formatDateToYYYYMMDD } from '@/utils/dateUtils'; // <-- DITAMBAHKAN IMPORT INI
+import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // Make sure this import is correct
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;

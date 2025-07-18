@@ -12,12 +12,12 @@ import { getInputValue } from '@/utils/inputUtils';
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
-  onClose: () => void; // <-- onClose didefinisikan sebagai prop di sini
+  onClose: () => void;
   onAddTransaction: (transaction: any) => Promise<boolean>;
   categories: { income: string[]; expense: string[] };
 }
 
-const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => { // <-- onClose di-destrukturisasi di sini
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => {
   const [formData, setFormData] = useState({
     user_id: '',
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
@@ -68,10 +68,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   };
 
   const handleSave = async () => {
+    // MODIFIED: Gunakan variabel perantara untuk validasi trim
+    const categoryToValidate = typeof formData.category === 'string' ? formData.category : '';
+    const descriptionToValidate = typeof formData.description === 'string' ? formData.description : '';
+
     if (
-      !formData.category?.trim() ||
+      !categoryToValidate.trim() || // Sekarang aman untuk dipanggil .trim()
       formData.amount <= 0 ||
-      !formData.description?.trim() ||
+      !descriptionToValidate.trim() || // Sekarang aman untuk dipanggil .trim()
       !formData.date
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
@@ -100,13 +104,13 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
     const success = await onAddTransaction(transactionData);
     if (success) {
-      onClose(); // <-- onClose dipanggil di sini
+      onClose();
       toast.success('Transaksi berhasil ditambahkan!');
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}> // <-- onClose dipanggil di sini
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>
@@ -186,7 +190,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
         <div className="mt-6 flex justify-end space-x-4">
           <Button
-            onClick={onClose} // <-- onClose dipanggil di sini
+            onClick={onClose}
             variant="outline"
             className="px-4 py-2"
           >

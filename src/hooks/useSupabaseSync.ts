@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supabase/supabase-js';
 
+// MODIFIED: Import safeParseDate dan toSafeISOString dari utils/dateUtils
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
+
 // Import all necessary types from AppDataContext.tsx or your specific types files
 // Adjust these paths if your types are structured differently
 import {
@@ -18,62 +21,18 @@ import {
 } from '@/contexts/AppDataContext'; // Assuming types are exported from AppDataContext
 
 // ===============================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (safeParseDate dan toSafeISOString sekarang diimpor)
 // ===============================================
 
-// src/hooks/useSupabaseSync.ts
-export const safeParseDate = (dateValue: any): Date | null => {
-  try {
-    // Jika sudah objek Date, validasi dan kembalikan
-    if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? null : dateValue;
-    }
+// DEFINISI safeParseDate LOKAL DIHAPUS DARI SINI
+// export const safeParseDate = (dateValue: any): Date | null => { ... };
 
-    // Jika null atau undefined, kembalikan null
-    if (dateValue === null || dateValue === undefined) {
-      return null;
-    }
-
-    // BARU: Jika bukan string atau number, anggap tidak valid dan kembalikan null
-    // Ini mencegah konstruktor Date dipanggil dengan tipe yang tidak terduga
-    if (typeof dateValue !== 'string' && typeof dateValue !== 'number') {
-      console.warn('safeParseDate menerima nilai non-string/non-number yang tidak terduga:', dateValue);
-      return null;
-    }
-
-    const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? null : parsed;
-  } catch (error) {
-    console.error('Error parsing date:', error, dateValue);
-    return null;
-  }
-};
-
-const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
-  if (!dateValue) return null;
-
-  let dateObj: Date;
-  if (dateValue instanceof Date) {
-    dateObj = dateValue;
-  } else if (typeof dateValue === 'string') {
-    dateObj = new Date(dateValue);
-  } else {
-    console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
-    return null;
-  }
-
-  if (isNaN(dateObj.getTime())) {
-    return null;
-  }
-  return dateObj.toISOString();
-};
+// DEFINISI toSafeISOString LOKAL DIHAPUS DARI SINI
+// const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => { ... };
 
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
 // ===============================================
-// These interfaces represent the structure of data AS IT IS STORED IN SUPABASE
-// and passed to/from `syncToSupabase` and `loadFromSupabase`.
-
 interface TransformedBahanBaku {
   id: string;
   nama: string;
@@ -148,7 +107,7 @@ interface TransformedHPPResult {
   harga_jual_per_porsi: number;
   jumlah_porsi: number;
   user_id: string;
-  created_at: string; // `timestamp` dari frontend akan disimpan di sini
+  created_at: string;
   updated_at: string;
 }
 
@@ -159,7 +118,7 @@ interface TransformedActivity {
   type: string;
   value: string | null;
   user_id: string;
-  created_at: string; // `timestamp` dari frontend akan disimpan di sini
+  created_at: string;
   updated_at: string;
 }
 
@@ -185,12 +144,12 @@ interface TransformedOrder {
 interface TransformedAsset {
   id: string;
   nama: string;
-  jenis: string | null; // Corresponds to `Asset.jenis` (camelCase)
-  nilai_awal: number; // Corresponds to `Asset.nilai`
-  umur_manfaat: number; // Corresponds to `Asset.umurManfaat`
-  tanggal_pembelian: string; // Corresponds to `Asset.tanggalPembelian`
+  jenis: string | null;
+  nilai_awal: number;
+  umur_manfaat: number;
+  tanggal_pembelian: string;
   penyusutan_per_bulan: number;
-  nilai_sekarang: number; // Corresponds to `Asset.nilaiSaatIni`
+  nilai_sekarang: number;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -204,11 +163,11 @@ interface TransformedAsset {
 interface TransformedFinancialTransaction {
   id: string;
   user_id: string;
-  type: string; // Corresponds to `FinancialTransaction.type`
+  type: string;
   category: string;
   amount: number;
   description: string;
-  date: string; // Corresponds to `FinancialTransaction.date`
+  date: string;
   created_at: string;
   updated_at: string;
 }
@@ -233,7 +192,6 @@ interface TransformedUserSettings {
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
 
-// This interface is for data sent TO `syncToSupabase`
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
   suppliers: TransformedSupplier[];
@@ -247,8 +205,6 @@ export interface SyncPayload {
   userSettings?: TransformedUserSettings;
 }
 
-// This interface is for data returned FROM `loadFromSupabase`
-// Uses camelCase and Date objects as expected by frontend
 export interface LoadedData {
   bahanBaku: BahanBaku[];
   suppliers: Supplier[];
@@ -259,7 +215,7 @@ export interface LoadedData {
   orders: Order[];
   assets: Asset[];
   financialTransactions: FinancialTransaction[];
-  userSettings?: any; // Consider creating a specific interface for UserSettings if complex
+  userSettings?: any;
 }
 
 // ===============================================
@@ -283,8 +239,6 @@ export const useSupabaseSync = () => {
       const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
       const userId = session.user.id;
 
-      // Use a batch update strategy: delete all user-specific data, then upsert new data
-      // This ensures data consistency (items deleted locally are also deleted in cloud)
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -295,13 +249,11 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
-        // user_settings is typically not deleted, but upserted
       ];
 
-      // Execute all delete operations concurrently
       const deleteResults = await Promise.all(deletePromises);
       for (const res of deleteResults) {
-        if (res.error) throw res.error; // Throw on any delete error
+        if (res.error) throw res.error;
       }
 
       const upsertPromises = [];

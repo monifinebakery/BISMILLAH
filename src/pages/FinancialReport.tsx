@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import FinancialTransactionList from '@/components/FinancialTransactionList';
-import { useAppData } => '@/contexts/AppDataContext';
+import { useAppData } from '@/contexts/AppDataContext';
 import ExportButtons from '@/components/ExportButtons';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';

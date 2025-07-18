@@ -458,7 +458,7 @@ export const useSupabaseSync = () => {
           id: item.id,
           nama: item.nama || '',
           ingredients: item.ingredients || [],
-          biayaTenagaKerja: parseFloat(item.biaya_tenega_kerja) || 0,
+          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           totalHPP: parseFloat(item.total_hpp) || 0,

@@ -280,7 +280,7 @@ const SupplierManagement = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {formatDate(supplier.createdAt)}
+                        {formatDateForDisplay(supplier.createdAt)}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">

@@ -12,18 +12,20 @@ const STORAGE_KEY = 'hpp_app_assets';
 
 export const useAssets = (userId: string | undefined, initialData?: Asset[]) => {
   const [assets, setAssets] = useState<Asset[]>(() => 
-    initialData || loadFromStorage(STORAGE_KEY, [])
+    loadFromStorage(STORAGE_KEY, []) // Mulai dengan data dari localStorage
   );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAssets = async () => {
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
       setLoading(true);
       try {
+        if (!userId) {
+          console.warn('No userId provided, using local storage data only');
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('assets')
           .select('*')
@@ -31,13 +33,23 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.error('Error loading assets:', error);
-          toast.error(`Gagal memuat aset: ${error.message}`);
+          console.error('Error loading assets from Supabase:', error);
+          toast.error(`Gagal memuat aset dari server: ${error.message}`);
+          // Fallback ke data lokal jika fetch gagal
+          const localData = loadFromStorage(STORAGE_KEY, []);
+          if (localData.length > 0) {
+            setAssets(localData);
+            console.log('Falling back to local storage data:', localData);
+          }
         } else {
           const transformedData = data.map((item: any) => {
             const parsedTanggalPembelian = safeParseDate(item.tanggal_beli);
             const parsedCreatedAt = safeParseDate(item.created_at) || new Date();
             const parsedUpdatedAt = safeParseDate(item.updated_at) || new Date();
+
+            if (!parsedTanggalPembelian) {
+              console.warn(`Failed to parse tanggal_beli for asset ${item.id}:`, item.tanggal_beli);
+            }
 
             console.log('DEBUG Asset Transformation:', {
               id: item.id,
@@ -53,14 +65,14 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
             return {
               id: item.id,
               nama: item.nama,
-              kategori: item.kategori, // Sesuaikan dengan kolom kategori
+              kategori: item.kategori,
               nilaiAwal: parseFloat(item.nilai_awal) || 0,
               nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-              tanggalPembelian: parsedTanggalPembelian || null, // Null jika parsing gagal
+              tanggalPembelian: parsedTanggalPembelian || null,
               kondisi: item.kondisi,
               lokasi: item.lokasi,
               deskripsi: item.deskripsi || undefined,
-              depresiasi: parseFloat(item.depresiasi) || null, // Sesuaikan dengan tipe depresiasi
+              depresiasi: parseFloat(item.depresiasi) || null,
               penyusutanPerBulan: 0, // Placeholder, karena tidak ada di tabel
               user_id: item.user_id,
               createdAt: parsedCreatedAt,
@@ -69,17 +81,24 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           });
           setAssets(transformedData);
           saveToStorage(STORAGE_KEY, transformedData);
+          console.log('Assets loaded and saved to local storage:', transformedData);
         }
       } catch (error) {
         console.error('Unexpected error fetching assets:', error);
         toast.error('Terjadi kesalahan tak terduga saat memuat aset');
+        // Fallback ke data lokal
+        const localData = loadFromStorage(STORAGE_KEY, []);
+        if (localData.length > 0) {
+          setAssets(localData);
+          console.log('Falling back to local storage data:', localData);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchAssets();
-  }, [userId]);
+  }, [userId]); // Tetap gunakan userId sebagai dependency, tapi pastikan fetch dijalankan
 
   useEffect(() => {
     saveToStorage(STORAGE_KEY, assets);

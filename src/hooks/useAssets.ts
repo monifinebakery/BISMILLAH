@@ -1,5 +1,3 @@
-// src/hooks/useAssets.ts
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,7 +17,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
 
   useEffect(() => {
     const fetchAssets = async () => {
-      if (!isMounted.current) return; // Hentikan jika sudah unmounted
+      if (!isMounted.current) return;
       setLoading(true);
 
       try {
@@ -34,7 +32,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .timeout(5000); // Tambahkan timeout eksplisit untuk mencegah hang
+          .timeout(5000);
 
         if (error) {
           console.error('Error loading assets from Supabase:', error);
@@ -46,23 +44,31 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           }
         } else {
           const transformedData = data.map((item: any) => {
-            const parsedTanggalPembelian = safeParseDate(item.tanggal_beli);
-            const parsedCreatedAt = safeParseDate(item.created_at) || new Date();
-            const parsedUpdatedAt = safeParseDate(item.updated_at) || new Date();
+            const rawTanggalPembelian = item.tanggal_beli;
+            const rawCreatedAt = item.created_at;
+            const rawUpdatedAt = item.updated_at;
 
-            if (!parsedTanggalPembelian) {
-              console.warn(`Failed to parse tanggal_beli for asset ${item.id}:`, item.tanggal_beli);
-            }
+            const parsedTanggalPembelian = safeParseDate(rawTanggalPembelian);
+            const parsedCreatedAt = safeParseDate(rawCreatedAt) || new Date();
+            const parsedUpdatedAt = safeParseDate(rawUpdatedAt) || new Date();
 
-            console.log('DEBUG Asset Transformation:', {
+            console.log('DEBUG Raw vs Parsed Dates:', {
               id: item.id,
-              nama: item.nama,
-              tanggal_beli: item.tanggal_beli,
-              parsedTanggalPembelian,
-              created_at: item.created_at,
-              parsedCreatedAt,
-              updated_at: item.updated_at,
-              parsedUpdatedAt,
+              rawTanggalPembelian,
+              parsedTanggalPembelian: {
+                value: parsedTanggalPembelian,
+                isValid: parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()),
+              },
+              rawCreatedAt,
+              parsedCreatedAt: {
+                value: parsedCreatedAt,
+                isValid: parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()),
+              },
+              rawUpdatedAt,
+              parsedUpdatedAt: {
+                value: parsedUpdatedAt,
+                isValid: parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()),
+              },
             });
 
             return {
@@ -71,7 +77,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
               kategori: item.kategori,
               nilaiAwal: parseFloat(item.nilai_awal) || 0,
               nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-              tanggalPembelian: parsedTanggalPembelian || null,
+              tanggalPembelian: parsedTanggalPembelian,
               kondisi: item.kondisi,
               lokasi: item.lokasi,
               deskripsi: item.deskripsi || undefined,
@@ -103,7 +109,6 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
 
     fetchAssets();
 
-    // Cleanup
     return () => {
       isMounted.current = false;
     };

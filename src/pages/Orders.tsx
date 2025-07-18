@@ -26,7 +26,7 @@ import {
 
 // Import fungsi formatDateForDisplay dari dateUtils
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { safeParseDate } from '@/hooks/useSupabaseSync'; // Tetap diperlukan untuk safeParseDate
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');

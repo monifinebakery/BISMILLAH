@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,8 +12,10 @@ import { Supplier } from '@/types/supplier';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import CloudSyncButton from '@/components/CloudSyncButton';
 import { formatDateForDisplay } from '@/utils/dateUtils';
+import { useIsMobile } from '@/hooks/use-mobile'; // PERBAIKAN: Import useIsMobile
 
 const SupplierManagement = () => {
+  const isMobile = useIsMobile(); // Panggil hook useIsMobile
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -25,12 +26,14 @@ const SupplierManagement = () => {
     email: '',
     telepon: '',
     alamat: '',
-    catatan: '',
+    catatan: '', // Akan diubah ke null saat disimpan jika string kosong
   });
 
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.kontak.toLowerCase().includes(searchTerm.toLowerCase())
+    supplier.kontak.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) || // Bisa juga filter by email
+    supplier.telepon.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSaveSupplier = async () => {
@@ -39,23 +42,29 @@ const SupplierManagement = () => {
       return;
     }
 
+    // Pastikan catatan menjadi null jika string kosong
+    const supplierDataToSave: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+        ...newSupplier,
+        catatan: newSupplier.catatan === '' ? null : newSupplier.catatan,
+    };
+
     let success = false;
     if (editingSupplier) {
-      success = await updateSupplier(editingSupplier.id, newSupplier);
+      success = await updateSupplier(editingSupplier.id, supplierDataToSave);
     } else {
-      success = await addSupplier(newSupplier);
+      success = await addSupplier(supplierDataToSave);
     }
 
     if (success) {
       setIsDialogOpen(false);
       setEditingSupplier(null);
-      setNewSupplier({
+      setNewSupplier({ // Reset form, pastikan catatan direset ke string kosong
         nama: '',
         kontak: '',
         email: '',
         telepon: '',
         alamat: '',
-        catatan: '',
+        catatan: '', 
       });
     }
   };
@@ -65,25 +74,32 @@ const SupplierManagement = () => {
     setNewSupplier({
       nama: supplier.nama,
       kontak: supplier.kontak,
-      email: supplier.email,
-      telepon: supplier.telepon,
-      alamat: supplier.alamat,
-      catatan: supplier.catatan,
+      email: supplier.email || '', // Pastikan ini string kosong jika null/undefined
+      telepon: supplier.telepon || '',
+      alamat: supplier.alamat || '',
+      catatan: supplier.catatan || '', // Pastikan ini string kosong jika null/undefined
     });
     setIsDialogOpen(true);
   };
 
   const handleDeleteSupplier = async (id: string) => {
-    await deleteSupplier(id);
+    if (confirm("Apakah Anda yakin ingin menghapus supplier ini?")) {
+      await toast.promise(deleteSupplier(id), {
+        loading: 'Menghapus supplier...',
+        success: 'Supplier berhasil dihapus!',
+        error: (err) => `Gagal menghapus supplier: ${err.message || 'Terjadi kesalahan'}`,
+      });
+    }
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
-  };
+  // formatDate ini sebenarnya sudah ada di formatDateForDisplay, bisa dihapus jika tidak ada fungsi lain yang menggunakan
+  // const formatDate = (date: Date) => {
+  //   return new Intl.DateTimeFormat('id-ID', {
+  //     year: 'numeric',
+  //     month: 'short',
+  //     day: 'numeric',
+  //   }).format(date);
+  // };
 
   if (loading) {
     return (
@@ -122,7 +138,13 @@ const SupplierManagement = () => {
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 w-full sm:w-auto">
+                  <Button 
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 w-full sm:w-auto"
+                    onClick={() => {
+                        setEditingSupplier(null); // Reset editing supplier saat membuka dialog tambah baru
+                        setNewSupplier({ nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '' }); // Reset form
+                    }}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Tambah Supplier
                   </Button>
@@ -142,6 +164,7 @@ const SupplierManagement = () => {
                           value={newSupplier.nama}
                           onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })}
                           placeholder="Nama perusahaan supplier"
+                          required // Field wajib
                         />
                       </div>
                       <div>
@@ -150,7 +173,8 @@ const SupplierManagement = () => {
                           id="kontak"
                           value={newSupplier.kontak}
                           onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })}
-                          placeholder="Nama person in charge"
+                          placeholder="Nama penanggung jawab"
+                          required // Field wajib
                         />
                       </div>
                     </div>
@@ -169,6 +193,7 @@ const SupplierManagement = () => {
                         <Label htmlFor="telepon">Telepon</Label>
                         <Input
                           id="telepon"
+                          type="tel" // Menggunakan type="tel"
                           value={newSupplier.telepon}
                           onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })}
                           placeholder="08123456789"
@@ -225,70 +250,49 @@ const SupplierManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Supplier List */}
+        {/* Supplier List - Conditional Rendering */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
             <CardTitle className="text-lg sm:text-xl">Daftar Supplier</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[150px]">Nama Supplier</TableHead>
-                    <TableHead className="min-w-[120px]">Kontak</TableHead>
-                    <TableHead className="min-w-[150px]">Email</TableHead>
-                    <TableHead className="min-w-[120px]">Telepon</TableHead>
-                    <TableHead className="min-w-[200px]">Alamat</TableHead>
-                    <TableHead className="min-w-[100px]">Tanggal</TableHead>
-                    <TableHead className="min-w-[120px]">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSuppliers.map((supplier) => (
-                    <TableRow key={supplier.id}>
-                      <TableCell className="font-medium">{supplier.nama}</TableCell>
-                      <TableCell>{supplier.kontak}</TableCell>
-                      <TableCell>
-                        {supplier.email ? (
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-1 text-gray-400" />
-                            {supplier.email}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {supplier.telepon ? (
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-1 text-gray-400" />
-                            {supplier.telepon}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {supplier.alamat ? (
-                          <div className="flex items-start">
-                            <MapPin className="h-4 w-4 mr-1 text-gray-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{supplier.alamat}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {formatDateForDisplay(supplier.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
+          <CardContent className="p-0"> {/* P0 agar CardContent mobile punya padding sendiri */}
+            {filteredSuppliers.length === 0 ? (
+              <div className="text-center p-8 text-gray-500">
+                <Users className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">
+                  {searchTerm ? 'Supplier tidak ditemukan' : 'Belum ada supplier'}
+                </h3>
+                <p className="text-sm sm:text-base text-gray-500 mb-4">
+                  {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan supplier pertama'}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => {
+                        setIsDialogOpen(true);
+                        setEditingSupplier(null);
+                        setNewSupplier({ nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '' });
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Tambah Supplier
+                  </Button>
+                )}
+              </div>
+            ) : isMobile ? (
+              // Tampilan Mobile (Card per Supplier)
+              <div className="p-4 space-y-4"> {/* Padding dan spasi antar kartu */}
+                {filteredSuppliers.map((supplier) => (
+                  <Card key={supplier.id} className="border border-purple-200 shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-base text-gray-900">{supplier.nama}</h3>
+                        <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditSupplier(supplier)}
-                            className="hover:bg-blue-50 hover:text-blue-600"
+                            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -296,40 +300,124 @@ const SupplierManagement = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteSupplier(supplier.id)}
-                            className="hover:bg-red-50 hover:text-red-600"
+                            className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-700">
+                        <p>Kontak: <span className="font-medium text-gray-900">{supplier.kontak}</span></p>
+                        {supplier.email && (
+                          <p className="flex items-center">
+                            <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                            {supplier.email}
+                          </p>
+                        )}
+                        {supplier.telepon && (
+                          <p className="flex items-center">
+                            <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                            {supplier.telepon}
+                          </p>
+                        )}
+                        {supplier.alamat && (
+                          <p className="flex items-start">
+                            <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+                            <span className="flex-1">{supplier.alamat}</span>
+                          </p>
+                        )}
+                        {supplier.createdAt && (
+                           <p>Ditambahkan: <span className="font-medium text-gray-900">{formatDateForDisplay(supplier.createdAt)}</span></p>
+                        )}
+                        {supplier.catatan && (
+                          <p>Catatan: <span className="font-medium text-gray-900">{supplier.catatan}</span></p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              // Tampilan Desktop (Table)
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[150px]">Nama Supplier</TableHead>
+                      <TableHead className="min-w-[120px]">Kontak</TableHead>
+                      <TableHead className="min-w-[150px]">Email</TableHead>
+                      <TableHead className="min-w-[120px]">Telepon</TableHead>
+                      <TableHead className="min-w-[200px]">Alamat</TableHead>
+                      <TableHead className="min-w-[100px]">Tanggal</TableHead>
+                      <TableHead className="min-w-[120px]">Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSuppliers.map((supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.nama}</TableCell>
+                        <TableCell>{supplier.kontak}</TableCell>
+                        <TableCell>
+                          {supplier.email ? (
+                            <div className="flex items-center">
+                              <Mail className="h-4 w-4 mr-1 text-gray-400" />
+                              {supplier.email}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {supplier.telepon ? (
+                            <div className="flex items-center">
+                              <Phone className="h-4 w-4 mr-1 text-gray-400" />
+                              {supplier.telepon}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {supplier.alamat ? (
+                            <div className="flex items-start">
+                              <MapPin className="h-4 w-4 mr-1 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">{supplier.alamat}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {supplier.createdAt ? formatDateForDisplay(supplier.createdAt) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditSupplier(supplier)}
+                              className="hover:bg-blue-50 hover:text-blue-600"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSupplier(supplier.id)}
+                              className="hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {filteredSuppliers.length === 0 && (
-          <Card className="text-center p-8 sm:p-12 shadow-lg border-0 bg-white/60 backdrop-blur-sm mt-6">
-            <Users className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">
-              {searchTerm ? 'Supplier tidak ditemukan' : 'Belum ada supplier'}
-            </h3>
-            <p className="text-sm sm:text-base text-gray-500 mb-4">
-              {searchTerm ? 'Coba kata kunci lain' : 'Mulai dengan menambahkan supplier pertama'}
-            </p>
-            {!searchTerm && (
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Tambah Supplier
-              </Button>
-            )}
-          </Card>
-        )}
       </div>
     </div>
   );

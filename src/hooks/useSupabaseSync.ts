@@ -3,9 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supabase/supabase-js';
 
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
-
-// Import semua tipe yang dibutuhkan dari AppDataContext.tsx atau file tipe spesifik Anda
+// Import all necessary types from AppDataContext.tsx or your specific types files
+// Adjust these paths if your types are structured differently
 import {
   BahanBaku,
   Supplier,
@@ -16,11 +15,65 @@ import {
   Order,
   Asset,
   FinancialTransaction,
-} from '@/contexts/AppDataContext'; // Asumsi tipe diekspor dari AppDataContext
+} from '@/contexts/AppDataContext'; // Assuming types are exported from AppDataContext
+
+// ===============================================
+// HELPER FUNCTIONS
+// ===============================================
+
+// src/hooks/useSupabaseSync.ts
+export const safeParseDate = (dateValue: any): Date | null => {
+  try {
+    // Jika sudah objek Date, validasi dan kembalikan
+    if (dateValue instanceof Date) {
+      return isNaN(dateValue.getTime()) ? null : dateValue;
+    }
+
+    // Jika null atau undefined, kembalikan null
+    if (dateValue === null || dateValue === undefined) {
+      return null;
+    }
+
+    // BARU: Jika bukan string atau number, anggap tidak valid dan kembalikan null
+    // Ini mencegah konstruktor Date dipanggil dengan tipe yang tidak terduga
+    if (typeof dateValue !== 'string' && typeof dateValue !== 'number') {
+      console.warn('safeParseDate menerima nilai non-string/non-number yang tidak terduga:', dateValue);
+      return null;
+    }
+
+    const parsed = new Date(dateValue);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  } catch (error) {
+    console.error('Error parsing date:', error, dateValue);
+    return null;
+  }
+};
+
+const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => {
+  if (!dateValue) return null;
+
+  let dateObj: Date;
+  if (dateValue instanceof Date) {
+    dateObj = dateValue;
+  } else if (typeof dateValue === 'string') {
+    dateObj = new Date(dateValue);
+  } else {
+    console.warn('toSafeISOString received unexpected type:', typeof dateValue, dateValue);
+    return null;
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
+  return dateObj.toISOString();
+};
 
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
 // ===============================================
+// These interfaces represent the structure of data AS IT IS STORED IN SUPABASE
+// and passed to/from `syncToSupabase` and `loadFromSupabase`.
+
 interface TransformedBahanBaku {
   id: string;
   nama: string;
@@ -95,7 +148,7 @@ interface TransformedHPPResult {
   harga_jual_per_porsi: number;
   jumlah_porsi: number;
   user_id: string;
-  created_at: string;
+  created_at: string; // `timestamp` dari frontend akan disimpan di sini
   updated_at: string;
 }
 
@@ -106,7 +159,7 @@ interface TransformedActivity {
   type: string;
   value: string | null;
   user_id: string;
-  created_at: string;
+  created_at: string; // `timestamp` dari frontend akan disimpan di sini
   updated_at: string;
 }
 
@@ -132,13 +185,16 @@ interface TransformedOrder {
 interface TransformedAsset {
   id: string;
   nama: string;
-  kategori: string | null;
-  nilai_awal: number;
-  tanggal_beli: string;
-  nilai_sekarang: number;
+  jenis: string | null; // Corresponds to `Asset.jenis` (camelCase)
+  nilai_awal: number; // Corresponds to `Asset.nilai`
+  umur_manfaat: number; // Corresponds to `Asset.umurManfaat`
+  tanggal_pembelian: string; // Corresponds to `Asset.tanggalPembelian`
+  penyusutan_per_bulan: number;
+  nilai_sekarang: number; // Corresponds to `Asset.nilaiSaatIni`
   user_id: string;
   created_at: string;
   updated_at: string;
+  kategori: string | null;
   kondisi: string | null;
   lokasi: string | null;
   deskripsi: string | null;
@@ -148,11 +204,11 @@ interface TransformedAsset {
 interface TransformedFinancialTransaction {
   id: string;
   user_id: string;
-  type: string;
+  type: string; // Corresponds to `FinancialTransaction.type`
   category: string;
   amount: number;
   description: string;
-  date: string;
+  date: string; // Corresponds to `FinancialTransaction.date`
   created_at: string;
   updated_at: string;
 }
@@ -177,6 +233,7 @@ interface TransformedUserSettings {
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
 
+// This interface is for data sent TO `syncToSupabase`
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
   suppliers: TransformedSupplier[];
@@ -190,6 +247,8 @@ export interface SyncPayload {
   userSettings?: TransformedUserSettings;
 }
 
+// This interface is for data returned FROM `loadFromSupabase`
+// Uses camelCase and Date objects as expected by frontend
 export interface LoadedData {
   bahanBaku: BahanBaku[];
   suppliers: Supplier[];
@@ -200,7 +259,7 @@ export interface LoadedData {
   orders: Order[];
   assets: Asset[];
   financialTransactions: FinancialTransaction[];
-  userSettings?: any;
+  userSettings?: any; // Consider creating a specific interface for UserSettings if complex
 }
 
 // ===============================================
@@ -224,6 +283,8 @@ export const useSupabaseSync = () => {
       const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
       const userId = session.user.id;
 
+      // Use a batch update strategy: delete all user-specific data, then upsert new data
+      // This ensures data consistency (items deleted locally are also deleted in cloud)
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -234,11 +295,13 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
+        // user_settings is typically not deleted, but upserted
       ];
 
+      // Execute all delete operations concurrently
       const deleteResults = await Promise.all(deletePromises);
       for (const res of deleteResults) {
-        if (res.error) throw res.error;
+        if (res.error) throw res.error; // Throw on any delete error
       }
 
       const upsertPromises = [];
@@ -270,7 +333,7 @@ export const useSupabaseSync = () => {
       if (financialTransactions && financialTransactions.length > 0) {
         upsertPromises.push(supabase.from('financial_transactions').upsert(financialTransactions, { onConflict: 'id', ignoreDuplicates: false }));
       }
-     
+
       if (userSettings) {
         upsertPromises.push(supabase.from('user_settings').upsert(userSettings, { onConflict: 'user_id' }));
       }
@@ -376,7 +439,7 @@ export const useSupabaseSync = () => {
           hargaSatuan: parseFloat(item.harga_satuan) || 0,
           supplier: item.supplier || '',
           tanggalKadaluwarsa: safeParseDate(item.tanggal_kadaluwarsa),
-          userId: item.user_id,
+          userId: item.user_id, // Map DB user_id to frontend userId
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
           jumlahBeliKemasan: item.jumlah_beli_kemasan !== null ? parseFloat(item.jumlah_beli_kemasan) : null,
@@ -391,7 +454,7 @@ export const useSupabaseSync = () => {
           telepon: item.telepon || '',
           alamat: item.alamat || '',
           catatan: item.catatan || '',
-          userId: item.user_id,
+          userId: item.user_id, // Map DB user_id to frontend userId
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -404,6 +467,7 @@ export const useSupabaseSync = () => {
           status: item.status || '',
           metodePerhitungan: item.metode_perhitungan || '',
           catatan: item.catatan || '',
+          // No user_id in frontend Purchase interface (it's handled by AppDataContext)
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -420,6 +484,7 @@ export const useSupabaseSync = () => {
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           category: item.category || '',
+          // No user_id in frontend Recipe interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -434,7 +499,8 @@ export const useSupabaseSync = () => {
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
           jumlahPorsi: parseFloat(item.jumlah_porsi) || 1,
-          timestamp: safeParseDate(item.created_at) || new Date(),
+          timestamp: safeParseDate(item.created_at) || new Date(), // Using created_at for timestamp
+          // No user_id in frontend HPPResult interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -444,7 +510,8 @@ export const useSupabaseSync = () => {
           description: item.description || '',
           type: item.type || '',
           value: item.value || '',
-          timestamp: safeParseDate(item.created_at) || new Date(),
+          timestamp: safeParseDate(item.created_at) || new Date(), // Using created_at for timestamp
+          // No user_id in frontend Activity interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -462,35 +529,41 @@ export const useSupabaseSync = () => {
           totalPesanan: parseFloat(item.total_pesanan) || 0,
           status: item.status || '',
           catatan: item.catatan || '',
+          // No user_id in frontend Order interface
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama || '',
-          kategori: item.kategori || '',
-          nilaiAwal: parseFloat(item.nilai_awal) || 0,
+          jenis: item.jenis || '', // Corresponds to DB `jenis`
+          nilai: parseFloat(item.nilai_awal) || 0, // Corresponds to DB `nilai_awal`
+          umurManfaat: parseFloat(item.umur_manfaat) || 0,
+          tanggalPembelian: safeParseDate(item.tanggal_pembelian) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date
+          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-          tanggalPembelian: safeParseDate(item.tanggal_beli) || new Date('1970-01-01T00:00:00Z'),
+          userId: item.user_id, // Map DB user_id to frontend userId
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
+          kategori: item.kategori || '',
           kondisi: item.kondisi || '',
           lokasi: item.lokasi || '',
           deskripsi: item.deskripsi || '',
           depresiasi: parseFloat(item.depresiasi) ?? null,
-          userId: item.user_id,
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
-          userId: item.user_id,
-          type: item.type || '',
+          userId: item.user_id, // Map DB user_id to frontend userId
+          type: item.type || '', // Corresponds to DB `type`
           category: item.category || '',
           amount: parseFloat(item.amount) || 0,
           description: item.description || '',
           date: safeParseDate(item.date) || new Date(),
-          createdAt: safeParseDate(item.created_at) || new Date(),
-          updatedAt: safeParseDate(item.updated_at) || new Date(),
+          created_at: safeParseDate(item.created_at) || new Date(),
+          updated_at: safeParseDate(item.updated_at) || new Date(),
         })) || [],
+        userSettings: userSettingsData,
+      };
 
       console.log('Data loaded from cloud:', cloudData);
       toast.success('Data berhasil dimuat dari cloud');
@@ -518,7 +591,7 @@ export const useSupabaseSync = () => {
         supabase.from('hpp_results').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('assets').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('financial_transactions').select('*', { count: 'exact', head: true }).eq('user_id', userId)
       ]);
 
       return {

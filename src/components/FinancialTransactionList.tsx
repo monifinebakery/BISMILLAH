@@ -124,7 +124,7 @@ const FinancialTransactionList = ({
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {format(transaction.date, 'dd MMM yyyy', { locale: id })}
+                      {formatDateForDisplay(transaction.date)}
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />

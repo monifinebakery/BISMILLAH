@@ -10,7 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAssets, Asset } from '@/hooks/useAssets';
+import { useAssets } from '@/hooks/useAssets';
+import { Asset, AssetCategory, AssetCondition } from '@/types/asset';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
@@ -23,6 +24,8 @@ const AssetManagement = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // PERBAIKAN: Hapus umurManfaat dan penyusutanPerBulan dari formData
   const [formData, setFormData] = useState<Partial<Asset>>({
     nama: '',
     kategori: undefined,
@@ -33,14 +36,14 @@ const AssetManagement = () => {
     lokasi: '',
     deskripsi: '',
     depresiasi: null,
-    penyusutanPerBulan: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const kondisiColors: { [key: string]: string } = {
-    'Baik': 'bg-orange-100 text-orange-800',
-    'Cukup': 'bg-red-100 text-red-800',
-    'Buruk': 'bg-red-200 text-red-900'
+  // PERBAIKAN: Sesuaikan dengan AssetCondition enum
+  const kondisiColors: { [key in AssetCondition]: string } = {
+    'Baik': 'bg-green-100 text-green-800',
+    'Rusak Ringan': 'bg-yellow-100 text-yellow-800',
+    'Rusak Berat': 'bg-red-100 text-red-800'
   };
 
   const handleEdit = (asset: Asset) => {
@@ -50,19 +53,28 @@ const AssetManagement = () => {
       kategori: asset.kategori,
       nilaiAwal: asset.nilaiAwal,
       nilaiSaatIni: asset.nilaiSaatIni,
-      tanggalPembelian: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()) ? new Date(asset.tanggalPembelian) : new Date(),
+      // PERBAIKAN: Pastikan tanggalPembelian adalah Date object yang valid
+      tanggalPembelian: asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime()) ? new Date(asset.tanggalPembelian) : null,
       kondisi: asset.kondisi,
       lokasi: asset.lokasi,
       deskripsi: asset.deskripsi,
       depresiasi: asset.depresiasi,
-      penyusutanPerBulan: asset.penyusutanPerBulan,
+      // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
     });
     setIsEditing(true);
     setShowAddForm(true);
   };
 
   const handleSave = async () => {
-    if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSaatIni === undefined || formData.nilaiSaatIni < 0) {
+    // PERBAIKAN: Hapus validasi untuk umurManfaat
+    if (
+        !formData.nama ||
+        !formData.kategori ||
+        !formData.kondisi ||
+        !formData.lokasi ||
+        formData.nilaiAwal === undefined || formData.nilaiAwal < 0 ||
+        formData.nilaiSaatIni === undefined || formData.nilaiSaatIni < 0
+    ) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
@@ -78,17 +90,18 @@ const AssetManagement = () => {
 
     setIsSubmitting(true);
 
-    const assetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'> = {
+    // PERBAIKAN: Sesuaikan Omit type yang dikirim ke addAsset/updateAsset
+    const assetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
       nama: formData.nama,
-      kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
+      kategori: formData.kategori as AssetCategory,
       nilaiAwal: formData.nilaiAwal,
-      nilaiSaatIni: formData.nilaiSaatIni,
+      nilaiSaatIni: formData.nilaiSaatIni, // nilaiSaatIni sekarang diinput langsung
       tanggalPembelian: formData.tanggalPembelian,
-      kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
+      kondisi: formData.kondisi as AssetCondition,
       lokasi: formData.lokasi,
-      deskripsi: formData.deskripsi || '',
+      deskripsi: formData.deskripsi || null, // Ubah '' menjadi null jika ingin kolom nullable
       depresiasi: formData.depresiasi,
-      penyusutanPerBulan: formData.penyusutanPerBulan || 0,
+      // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
     };
 
     let success = false;
@@ -102,6 +115,7 @@ const AssetManagement = () => {
       setIsEditing(false);
       setShowAddForm(false);
       setSelectedAsset(null);
+      // PERBAIKAN: Reset formData secara lengkap
       setFormData({
         nama: '',
         kategori: undefined,
@@ -112,7 +126,7 @@ const AssetManagement = () => {
         lokasi: '',
         deskripsi: '',
         depresiasi: null,
-        penyusutanPerBulan: 0,
+        // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
       });
     }
 
@@ -120,10 +134,12 @@ const AssetManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus aset ini?")) {
-      await deleteAsset(id);
-      toast.success("Aset berhasil dihapus!");
-    }
+    // PERBAIKAN: Gunakan toast.promise untuk feedback loading/sukses/gagal yang lebih baik
+    await toast.promise(deleteAsset(id), {
+        loading: 'Menghapus aset...',
+        success: 'Aset berhasil dihapus!',
+        error: (err) => `Gagal menghapus aset: ${err.message || 'Terjadi kesalahan'}`,
+    });
   };
 
   if (loading) {
@@ -139,7 +155,7 @@ const AssetManagement = () => {
 
   const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
   const totalNilaiSaatIni = assets.reduce((sum, asset) => sum + asset.nilaiSaatIni, 0);
-  const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0);
+  const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0); // Jika depresiasi adalah jumlah nominal yang di-input/diakumulasi
 
   console.log('--- Assets List Date Debug ---');
   assets.forEach(asset => {
@@ -219,7 +235,7 @@ const AssetManagement = () => {
                   <Calendar className="text-red-600 h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-600 text-sm">Depresiasi</p>
+                  <p className="font-medium text-gray-600 text-sm">Total Depresiasi</p>
                   <p className="font-bold text-gray-900 text-sm sm:text-base">{formatCurrency(totalDepresiasi)}</p>
                 </div>
               </div>
@@ -246,7 +262,7 @@ const AssetManagement = () => {
                         lokasi: '',
                         deskripsi: '',
                         depresiasi: null,
-                        penyusutanPerBulan: 0,
+                        // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
                       });
                       setIsEditing(false);
                     }}
@@ -279,7 +295,7 @@ const AssetManagement = () => {
                           <Label htmlFor="kategori" className="text-gray-700">Kategori *</Label>
                           <Select
                             value={getInputValue(formData.kategori) as string}
-                            onValueChange={(value: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi') =>
+                            onValueChange={(value: AssetCategory) =>
                               setFormData({...formData, kategori: value})
                             }
                           >
@@ -289,8 +305,9 @@ const AssetManagement = () => {
                             <SelectContent>
                               <SelectItem value="Peralatan">Peralatan</SelectItem>
                               <SelectItem value="Kendaraan">Kendaraan</SelectItem>
-                              <SelectItem value="Properti">Properti</SelectItem>
-                              <SelectItem value="Teknologi">Teknologi</SelectItem>
+                              <SelectItem value="Bangunan">Bangunan</SelectItem>
+                              <SelectItem value="Mesin">Mesin</SelectItem>
+                              <SelectItem value="Lain-lain">Lain-lain</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -298,7 +315,7 @@ const AssetManagement = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="nilaiAwal" className="text-gray-700">Nilai Awal</Label>
+                          <Label htmlFor="nilaiAwal" className="text-gray-700">Nilai Awal *</Label>
                           <Input
                             id="nilaiAwal"
                             type="number"
@@ -309,7 +326,7 @@ const AssetManagement = () => {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="nilaiSaatIni" className="text-gray-700">Nilai Sekarang</Label>
+                          <Label htmlFor="nilaiSaatIni" className="text-gray-700">Nilai Sekarang *</Label>
                           <Input
                             id="nilaiSaatIni"
                             type="number"
@@ -335,7 +352,7 @@ const AssetManagement = () => {
                           required
                         />
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="depresiasi" className="text-gray-700">Depresiasi (%)</Label>
                         <Input
@@ -355,7 +372,7 @@ const AssetManagement = () => {
                           <Label htmlFor="kondisi" className="text-gray-700">Kondisi *</Label>
                           <Select
                             value={getInputValue(formData.kondisi) as string}
-                            onValueChange={(value: 'Baik' | 'Cukup' | 'Buruk') =>
+                            onValueChange={(value: AssetCondition) =>
                               setFormData({...formData, kondisi: value})
                             }
                           >
@@ -364,8 +381,8 @@ const AssetManagement = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Baik">Baik</SelectItem>
-                              <SelectItem value="Cukup">Cukup</SelectItem>
-                              <SelectItem value="Buruk">Buruk</SelectItem>
+                              <SelectItem value="Rusak Ringan">Rusak Ringan</SelectItem>
+                              <SelectItem value="Rusak Berat">Rusak Berat</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -419,7 +436,7 @@ const AssetManagement = () => {
                           lokasi: '',
                           deskripsi: '',
                           depresiasi: null,
-                          penyusutanPerBulan: 0,
+                          // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
                         });
                       }}
                       className="flex-1 border-gray-300 hover:bg-gray-50"
@@ -476,7 +493,7 @@ const AssetManagement = () => {
                           </div>
                           {asset.depresiasi !== undefined && asset.depresiasi !== null && (
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Depresiasi:</span>
+                              <span className="text-gray-600">Depresiasi (%):</span>
                               <span className="font-medium text-gray-900">{asset.depresiasi}%</span>
                             </div>
                           )}
@@ -501,15 +518,16 @@ const AssetManagement = () => {
               </div>
             ) : (
               <ScrollArea className="w-full">
+                {/* PERBAIKAN: Sesuaikan min-width karena kolom berkurang */}
                 <div className="min-w-[800px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[200px] text-gray-700">Nama Aset</TableHead>
+                        <TableHead className="w-[180px] text-gray-700">Nama Aset</TableHead>
                         <TableHead className="text-gray-700">Kategori</TableHead>
                         <TableHead className="text-gray-700">Nilai Awal</TableHead>
                         <TableHead className="text-gray-700">Nilai Sekarang</TableHead>
-                        <TableHead className="text-gray-700">Depresiasi</TableHead>
+                        <TableHead className="text-gray-700">Depresiasi (%)</TableHead>
                         <TableHead className="text-gray-700">Kondisi</TableHead>
                         <TableHead className="text-gray-700">Lokasi</TableHead>
                         <TableHead className="text-gray-700">Tanggal Pembelian</TableHead>

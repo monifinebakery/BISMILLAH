@@ -539,7 +539,7 @@ export const useSupabaseSync = () => {
           jenis: item.jenis || '', // Corresponds to DB `jenis`
           nilai: parseFloat(item.nilai_awal) || 0, // Corresponds to DB `nilai_awal`
           umurManfaat: parseFloat(item.umur_manfaat) || 0,
-          tanggalPembelian: safeParseDate(item.tanggal_pembelian) || new Date(),
+          tanggalPembelian: safeParseDate(item.tanggal_pembelian) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date
           penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
           userId: item.user_id, // Map DB user_id to frontend userId

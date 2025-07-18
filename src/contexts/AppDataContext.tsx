@@ -71,9 +71,9 @@ export interface HPPResult {
   hppPerPorsi: number; // camelCase
   hargaJualPerPorsi: number; // camelCase
   jumlahPorsi: number; // camelCase
-  timestamp: Date; // Wajib (ini akan jadi `created_at` di DB)
-  createdAt?: Date; // Opsional (jika Anda ingin menyimpan keduanya, atau biarkan timestamp yang jadi created_at)
-  updatedAt?: Date; // Opsional
+  timestamp: Date; // Tetap Date (karena selalu ada fallback new Date())
+  createdAt: Date | null;          // <-- UBAH KE Date | null
+  updatedAt: Date | null;          // <-- UBAH KE Date | null
 }
 
 export interface Asset {

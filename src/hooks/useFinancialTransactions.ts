@@ -4,9 +4,10 @@ import { toast } from 'sonner';
 import { FinancialTransaction } from '@/types/financial'; // Pastikan FinancialTransaction diimpor dari types/financial
 import { generateUUID } from '@/utils/uuid';
 import { saveToStorage, loadFromStorage } from '@/utils/localStorageHelpers';
-import { safeParseDate, toSafeISOString, formatDateToYYYYMMDD } from '@/utils/dateUtils'; // MODIFIED: Import toSafeISOString juga
+// MODIFIED: Import safeParseDate dari utils/dateUtils.ts (lokasi yang benar)
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // toSafeISOString juga dari utils
 
-const STORAGE_KEY = 'hpp_app_assets'; // Pastikan ini benar, sebelumnya 'hpp_app_financial_transactions'
+const STORAGE_KEY = 'hpp_app_financial_transactions'; // Pastikan ini benar untuk financial transactions
 
 export const useFinancialTransactions = (userId: string | undefined, initialData?: FinancialTransaction[]) => {
   const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => 
@@ -33,9 +34,8 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       } else {
         const transformedData = data.map((item: any) => ({
           id: item.id,
-          date: safeParseDate(item.date) || null, // safeParseDate sekarang mengembalikan Date | null
-          // MODIFIED: Map DB 'type' langsung ke properti 'type' di objek lokal
-          type: item.type || 'pengeluaran', // DB: 'type' -> lokal: 'type'
+          date: safeParseDate(item.date) || null,
+          type: item.type || 'pengeluaran',
           description: item.description || null,
           amount: parseFloat(item.amount) || 0,
           category: item.category || null,
@@ -70,8 +70,8 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       const { error } = await supabase.from('financial_transactions').insert({
         id: newTransactionId,
         user_id: session.user.id,
-        date: toSafeISOString(transaction.date || now), // Gunakan toSafeISOString
-        type: transaction.type, // Sudah benar: properti 'type'
+        date: toSafeISOString(transaction.date || now),
+        type: transaction.type,
         description: transaction.description,
         amount: transaction.amount,
         category: transaction.category,
@@ -112,8 +112,8 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
         updated_at: toSafeISOString(new Date()),
       };
 
-      if (updates.date !== undefined) updateData.date = toSafeISOString(updates.date); // Gunakan toSafeISOString
-      if (updates.type !== undefined) updateData.type = updates.type; // Sudah benar: properti 'type'
+      if (updates.date !== undefined) updateData.date = toSafeISOString(updates.date);
+      if (updates.type !== undefined) updateData.type = updates.type;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.amount !== undefined) updateData.amount = updates.amount;
       if (updates.category !== undefined) updateData.category = updates.category;

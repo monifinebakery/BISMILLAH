@@ -109,7 +109,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}> // <-- onClose dipanggil di sini
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>

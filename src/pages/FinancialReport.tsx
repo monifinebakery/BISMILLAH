@@ -34,18 +34,12 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     return (transactions || []).filter(t => {
-      // t.tanggal sudah berupa Date | null dari useFinancialTransactions.
-      // safeParseDate sekarang mengembalikan Date | null.
-      // Pastikan t.tanggal adalah Date object yang valid.
-      const transactionDate = t.date; // Menggunakan t.date sesuai interface FinancialTransaction
-                                    // asumsikan t.date sudah diproses oleh useAppData/useSupabaseSync
-
-      // Filter keluar transaksi dengan tanggal yang tidak valid atau null
+      const transactionDate = t.date;
+      
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
         return false;
       }
       
-      // Sekarang transactionDate dijamin sebagai objek Date yang valid
       if (dateRange?.from && transactionDate < dateRange.from) return false;
       if (dateRange?.to && transactionDate > dateRange.to) return false;
       return true;
@@ -53,11 +47,11 @@ const FinancialReportPage = () => {
   }, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0); // t.jenis -> t.type, t.jumlah -> t.amount
+    return filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
   }, [filteredTransactions]);
 
   const totalExpense = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0); // t.jenis -> t.type, t.jumlah -> t.amount
+    return filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
   }, [filteredTransactions]);
 
   const balance = useMemo(() => {
@@ -71,11 +65,11 @@ const FinancialReportPage = () => {
     const expenseByCategory: { [key: string]: number } = {};
 
     filteredTransactions.forEach(t => {
-      const categoryName = t.category || 'Uncategorized'; // t.deskripsi -> t.category
-      if (t.type === 'pemasukan') { // t.jenis -> t.type
-        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0); // t.jumlah -> t.amount
+      const categoryName = t.category || 'Uncategorized';
+      if (t.type === 'pemasukan') {
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
       } else {
-        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0); // t.jumlah -> t.amount
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
       }
     });
 
@@ -86,36 +80,35 @@ const FinancialReportPage = () => {
   }, [filteredTransactions]);
 
   const transactionData = useMemo(() => {
-    const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {}; // date bisa null
+    const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {};
 
     filteredTransactions.forEach(t => {
-      const transactionDate = t.date; // Ambil langsung t.date (sudah Date | null)
+      const transactionDate = t.date;
       
-      // Pastikan transactionDate valid sebelum format dan digunakan sebagai key
-      if (!transactionDate || isNaN(transactionDate.getTime())) {
-          return; // Lewati transaksi dengan tanggal tidak valid
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+          return;
       }
 
       const monthYear = format(transactionDate, 'yyyy-MM');
       if (!monthlyData[monthYear]) {
         monthlyData[monthYear] = { income: 0, expense: 0, date: transactionDate };
       }
-      if (t.type === 'pemasukan') { // t.jenis -> t.type
-        monthlyData[monthYear].income += t.amount || 0; // t.jumlah -> t.amount
+      if (t.type === 'pemasukan') {
+        monthlyData[monthYear].income += t.amount || 0;
       } else {
-        monthlyData[monthYear].expense += t.amount || 0; // t.jumlah -> t.amount
+        monthlyData[monthYear].expense += t.amount || 0;
       }
     });
 
     return Object.values(monthlyData)
+      .filter(value => value.date instanceof Date && !isNaN(value.date.getTime())) // <-- BARIS INI DITAMBAHKAN
       .map(value => ({
-        month: format(value.date as Date, 'MMM yy', { locale: id }), // Cast ke Date karena sudah difilter valid
+        month: format(value.date as Date, 'MMM yy', { locale: id }),
         income: value.income,
         expense: value.expense,
         date: value.date,
       }))
       .sort((a, b) => {
-        // Memastikan a.date dan b.date adalah objek Date yang valid sebelum memanggil .getTime()
         const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;
         const dateB = (b.date instanceof Date && !isNaN(b.date.getTime())) ? b.date.getTime() : -Infinity;
         return dateA - dateB;

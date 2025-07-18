@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets'; // Pastikan Asset dari useAssets atau types
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT safeParseDate
 
 
 const AssetManagement = () => {
@@ -24,13 +24,12 @@ const AssetManagement = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   
-  // MODIFIED: Inisialisasi tanggalBeli dengan null
   const [formData, setFormData] = useState<Partial<Asset>>({
     nama: '',
     kategori: undefined,
     nilaiAwal: 0,
     nilaiSekarang: 0,
-    tanggalBeli: null, // <-- UBAH KE null
+    tanggalBeli: null, // <-- UBAH KE null (Konsisten)
     kondisi: undefined,
     lokasi: '',
     deskripsi: '',
@@ -54,27 +53,30 @@ const AssetManagement = () => {
   };
 
   const handleSave = async () => {
-    // Validasi: Pastikan tanggalBeli tidak null/undefined
-    if (!formData.nama || !formData.kategori || formData.tanggalBeli === null || formData.tanggalBeli === undefined || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
-      toast.error("Harap lengkapi semua field yang wajib diisi dan pastikan nilai tidak negatif.");
+    // Validasi umum untuk field wajib dan nilai negatif
+    if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
+      toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
+      return;
+    }
+    
+    // MODIFIKASI DISINI: Validasi kuat untuk tanggalBeli
+    if (formData.tanggalBeli === null || formData.tanggalBeli === undefined) {
+      toast.error("Tanggal Beli wajib diisi.");
+      return;
+    }
+    if (!(formData.tanggalBeli instanceof Date) || isNaN(formData.tanggalBeli.getTime())) {
+      toast.error("Tanggal Beli tidak valid.");
       return;
     }
 
-    // Validasi tanggalBeli agar benar-benar Date object yang valid
-    if (!formData.tanggalBeli || !isValidDate(formData.tanggalBeli)) {
-    toast.error("Tanggal Beli tidak valid");
-    return;
-  }
-
     setIsSubmitting(true);
 
-    // Sekarang kita yakin formData.tanggalBeli adalah Date object yang valid
     const assetData: Omit<Asset, 'id'> = {
       nama: formData.nama,
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
       nilaiAwal: formData.nilaiAwal,
       nilaiSekarang: formData.nilaiSekarang,
-      tanggalBeli: formData.tanggalBeli, 
+      tanggalBeli: formData.tanggalBeli, // Sekarang kita yakin ini adalah objek Date yang valid
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
@@ -92,7 +94,6 @@ const AssetManagement = () => {
       setIsEditing(false);
       setShowAddForm(false);
       setSelectedAsset(null);
-      // MODIFIED: Reset tanggalBeli ke null saat form direset
       setFormData({
         nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
       });
@@ -108,7 +109,6 @@ const AssetManagement = () => {
     }
   };
 
-  // Helper untuk mendapatkan nilai input yang aman dari null/undefined (hanya untuk string/number)
   const getInputValue = <T extends string | number | undefined | null>(value: T): string | number => {
     if (value === undefined || value === null) {
       return '';
@@ -224,7 +224,6 @@ const AssetManagement = () => {
                   <Button
                     className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={() => {
-                      // MODIFIED: Reset tanggalBeli ke null saat form direset
                       setFormData({
                         nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
                       });
@@ -306,11 +305,10 @@ const AssetManagement = () => {
                         <Input
                           id="tanggalBeli"
                           type="date"
-                          // MODIFIED: Menggunakan formatDateToYYYYMMDD dan mengatur ke null jika input kosong
                           value={formatDateToYYYYMMDD(formData.tanggalBeli)}
                           onChange={(e) => setFormData({
                             ...formData,
-                             tanggalBeli: safeParseDate(e.target.value)
+                            tanggalBeli: e.target.value ? safeParseDate(e.target.value) : null // <-- UBAH KE safeParseDate
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required
@@ -391,7 +389,6 @@ const AssetManagement = () => {
                       onClick={() => {
                         setShowAddForm(false);
                         setIsEditing(false);
-                        // MODIFIED: Reset tanggalBeli ke null saat form dibatalkan
                         setFormData({
                             nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
                         });

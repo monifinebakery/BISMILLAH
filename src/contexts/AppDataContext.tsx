@@ -10,6 +10,7 @@ import { AssetCategory, AssetCondition } from '@/types/asset';
 // DIHAPUS: Import Invoice dan tipe terkait
 // DIHAPUS: Import useInvoiceService
 import { generateUUID } from '@/utils/uuid'; 
+import { RealtimeChannel } from '@supabase/supabase-js'; // Import RealtimeChannel
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)

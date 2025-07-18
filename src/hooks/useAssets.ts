@@ -1,6 +1,6 @@
 // src/hooks/useAssets.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Asset } from '@/types/asset';
@@ -15,16 +15,17 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
     loadFromStorage(STORAGE_KEY, [])
   );
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    let isMounted = true; // Flag untuk mencegah update state pada unmounted component
-
     const fetchAssets = async () => {
+      if (!isMounted.current) return; // Hentikan jika sudah unmounted
       setLoading(true);
+
       try {
         if (!userId) {
           console.warn('No userId provided, using local storage data only');
-          if (isMounted) setLoading(false);
+          if (isMounted.current) setLoading(false);
           return;
         }
 
@@ -32,13 +33,14 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           .from('assets')
           .select('*')
           .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .timeout(5000); // Tambahkan timeout eksplisit untuk mencegah hang
 
         if (error) {
           console.error('Error loading assets from Supabase:', error);
           toast.error(`Gagal memuat aset dari server: ${error.message}`);
           const localData = loadFromStorage(STORAGE_KEY, []);
-          if (isMounted && localData.length > 0) {
+          if (isMounted.current && localData.length > 0) {
             setAssets(localData);
             console.log('Falling back to local storage data:', localData);
           }
@@ -80,7 +82,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
               updatedAt: parsedUpdatedAt,
             } as Asset;
           });
-          if (isMounted) {
+          if (isMounted.current) {
             setAssets(transformedData);
             saveToStorage(STORAGE_KEY, transformedData);
             console.log('Assets loaded and saved to local storage:', transformedData);
@@ -90,12 +92,12 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
         console.error('Unexpected error fetching assets:', error);
         toast.error('Terjadi kesalahan tak terduga saat memuat aset');
         const localData = loadFromStorage(STORAGE_KEY, []);
-        if (isMounted && localData.length > 0) {
+        if (isMounted.current && localData.length > 0) {
           setAssets(localData);
           console.log('Falling back to local storage data:', localData);
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted.current) setLoading(false);
       }
     };
 
@@ -103,7 +105,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
 
     // Cleanup
     return () => {
-      isMounted = false;
+      isMounted.current = false;
     };
   }, [userId]);
 

@@ -10,10 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAssets, Asset } from '@/hooks/useAssets';
+import { useAssets, Asset } from '@/hooks/useAssets'; // Pastikan Asset dari useAssets atau types
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT
+
 
 const AssetManagement = () => {
   const isMobile = useIsMobile();
@@ -25,14 +26,14 @@ const AssetManagement = () => {
   // Pastikan inisialisasi formData mencakup semua properti Asset yang relevan
   const [formData, setFormData] = useState<Partial<Asset>>({
     nama: '',
-    kategori: undefined, // Gunakan undefined untuk Select
+    kategori: undefined,
     nilaiAwal: 0,
     nilaiSekarang: 0,
     tanggalBeli: undefined, // Gunakan Date | undefined
-    kondisi: undefined,    // Gunakan undefined untuk Select
+    kondisi: undefined,
     lokasi: '',
     deskripsi: '',
-    depresiasi: null, // Default
+    depresiasi: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,7 +53,6 @@ const AssetManagement = () => {
   };
 
   const handleSave = async () => {
-    // Perbaikan validasi: Pastikan nilai yang diharapkan dari form tidak undefined/null
     if (!formData.nama || !formData.kategori || !formData.tanggalBeli || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
       toast.error("Harap lengkapi semua field yang wajib diisi dan pastikan nilai tidak negatif.");
       return;
@@ -60,7 +60,6 @@ const AssetManagement = () => {
 
     setIsSubmitting(true);
 
-    // Pastikan nilai-nilai dikonversi ke tipe yang benar jika diperlukan oleh hook
     const assetData: Omit<Asset, 'id'> = {
       nama: formData.nama,
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
@@ -70,7 +69,7 @@ const AssetManagement = () => {
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
-      depresiasi: formData.depresiasi, // Include depresiasi if it's part of the form/logic
+      depresiasi: formData.depresiasi,
     };
 
     let success = false;
@@ -86,7 +85,7 @@ const AssetManagement = () => {
       setSelectedAsset(null);
       // Reset formData setelah save
       setFormData({
-        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null // Reset depresiasi juga
+        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
       });
     }
 
@@ -100,25 +99,15 @@ const AssetManagement = () => {
     }
   };
 
-  // Helper untuk mendapatkan nilai input yang aman dari null/undefined
-  const getInputValue = <T extends string | number | Date | undefined | null>(value: T): string | number => {
+  // Helper untuk mendapatkan nilai input yang aman dari null/undefined (hanya untuk string/number)
+  const getInputValue = <T extends string | number | undefined | null>(value: T): string | number => { // <-- Tipe diubah
     if (value === undefined || value === null) {
       return '';
     }
-    // Jika itu objek Date, konversi ke YYYY-MM-DD
-    if (value instanceof Date) {
-      // Pastikan tanggal valid sebelum memanggil toISOString
-      if (isNaN(value.getTime())) { // Check for Invalid Date
-        return ''; // Tanggal tidak valid, kembalikan string kosong
-      }
-      // MODIFIED: Tambahkan || '' setelah toISOString()
-      return value.toISOString() || ''; // Ensure result is string before splitting
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value;
     }
-    // Ini menangani kasus di mana 'value' mungkin objek kosong atau array, atau string/number biasa.
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      return '';
-    }
-    return value;
+    return '';
   };
 
   if (loading) {
@@ -134,7 +123,6 @@ const AssetManagement = () => {
 
   const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
   const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSekarang, 0);
-  // Pastikan asset.depresiasi adalah number
   const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0);
 
 
@@ -228,7 +216,7 @@ const AssetManagement = () => {
                     className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={() => {
                       setFormData({ // Reset form data for new asset
-                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null // Reset depresiasi juga
+                        nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: undefined, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
                       });
                       setIsEditing(false);
                     }}
@@ -237,17 +225,14 @@ const AssetManagement = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                {/* MODIFIED: DialogContent for Add/Edit Form - Added flex-col and responsive height */}
                 <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh] flex flex-col' : 'w-[95vw] max-w-md max-h-[90vh] flex flex-col'} mx-auto`}>
                   <DialogHeader>
                     <DialogTitle className="text-orange-600">
                       {isEditing ? 'Edit Aset' : 'Tambah Aset Baru'}
                     </DialogTitle>
                   </DialogHeader>
-                  {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
                   <div className="flex-grow overflow-y-auto pr-4 -mr-4 custom-scrollbar">
                     <div className="space-y-4">
-                      {/* MODIFIED: Nama Aset & Kategori dalam satu baris grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="nama" className="text-gray-700">Nama Aset *</Label>
@@ -281,7 +266,6 @@ const AssetManagement = () => {
                         </div>
                       </div>
 
-                      {/* Nilai Awal & Nilai Sekarang dalam satu baris grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="nilaiAwal" className="text-gray-700">Nilai Awal</Label>
@@ -312,14 +296,13 @@ const AssetManagement = () => {
                         <Input
                           id="tanggalBeli"
                           type="date"
-                          value={getInputValue(formData.tanggalBeli)}
+                          value={formatDateToYYYYMMDD(formData.tanggalBeli)} // <-- MODIFIKASI DISINI
                           onChange={(e) => setFormData({...formData, tanggalBeli: e.target.value ? new Date(e.target.value) : undefined})}
                           className="border-orange-200 focus:border-orange-400"
                           required
                         />
                       </div>
                       
-                      {/* NEW: Depresiasi input field */}
                       <div>
                         <Label htmlFor="depresiasi" className="text-gray-700">Depresiasi (%)</Label>
                         <Input
@@ -335,7 +318,6 @@ const AssetManagement = () => {
                       </div>
 
 
-                      {/* Kondisi & Lokasi dalam satu baris grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="kondisi" className="text-gray-700">Kondisi *</Label>
@@ -454,7 +436,7 @@ const AssetManagement = () => {
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Kategori:</span>
-                          <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">{asset.kategori}</Badge>
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Nilai Awal:</span>
@@ -464,7 +446,7 @@ const AssetManagement = () => {
                           <span className="text-gray-600">Nilai Sekarang:</span>
                           <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSekarang)}</span>
                         </div>
-                         {/* Display Depresiasi */}
+                           {/* Display Depresiasi */}
                         {asset.depresiasi !== undefined && asset.depresiasi !== null && (
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Depresiasi:</span>

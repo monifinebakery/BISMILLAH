@@ -23,21 +23,21 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       content += `Total Records: ${data.length}\n\n`;
 
       data.forEach((item, index) => {
-  content += `${index + 1}. `;
-  Object.entries(item).forEach(([key, value]) => {
-    if (!['id', 'user_id'].includes(key)) {
-      let displayValue = value;
-      if (value instanceof Date) {
-        // Pastikan tanggal valid sebelum memanggil toISOString
-        displayValue = !isNaN(value.getTime()) ? value.toISOString() : 'Invalid Date';
-      } else if (typeof value === 'object' && value !== null) {
-        displayValue = JSON.stringify(value);
-      }
-      content += `${key}: ${displayValue} | `;
-    }
-  });
-  content += '\n';
-});
+        content += `${index + 1}. `;
+        Object.entries(item).forEach(([key, value]) => {
+          if (!['id', 'user_id'].includes(key)) {
+            let displayValue = value;
+            if (value instanceof Date) {
+              // MODIFIKASI DISINI: Jika tidak valid, kembalikan string kosong
+              displayValue = !isNaN(value.getTime()) ? value.toISOString() : '';
+            } else if (typeof value === 'object' && value !== null) {
+              displayValue = JSON.stringify(value);
+            }
+            content += `${key}: ${displayValue} | `;
+          }
+        });
+        content += '\n';
+      });
 
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -90,16 +90,17 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
 
             // Handle null or undefined values
             if (value === null || value === undefined) {
-  value = '';
-}
-// Handle Date objects specifically: convert to ISO string with validation
-else if (value instanceof Date) {
-  value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
-}
-// Handle other complex objects (like arrays, nested objects) by stringifying
-else if (typeof value === 'object') {
-  value = JSON.stringify(value);
-}
+              value = '';
+            }
+            // Handle Date objects specifically: convert to ISO string with validation
+            else if (value instanceof Date) {
+              // INI SUDAH BENAR SESUAI TUJUAN
+              value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
+            }
+            // Handle other complex objects (like arrays, nested objects) by stringifying
+            else if (typeof value === 'object') {
+              value = JSON.stringify(value);
+            }
 
             // Apply CSV escaping: enclose in double quotes if it contains delimiter, double quotes, or newlines
             // And double internal double quotes

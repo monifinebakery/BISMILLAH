@@ -489,7 +489,7 @@ const PurchaseManagement = () => {
                 <TableBody>
                   {filteredPurchases.map((purchase) => (
                     <TableRow key={purchase.id}>
-                      <TableCell className="text-xs sm:text-sm">{formatDate(purchase.tanggal)}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{formatDateForDisplay(purchase.tanggal)}</TableCell>
                       <TableCell className="font-medium text-xs sm:text-sm">{purchase.supplierName}</TableCell>
                       <TableCell className="text-xs sm:text-sm">{purchase.items.length} item(s)</TableCell>
                       <TableCell className="text-xs sm:text-sm">{formatCurrency(purchase.totalAmount)}</TableCell>

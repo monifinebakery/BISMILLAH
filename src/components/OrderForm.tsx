@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { safeParseDate } from '@/hooks/useSupabaseSync';
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
+import { formatCurrency } from '@/utils/currencyUtils';
 import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay (meskipun tidak langsung digunakan di sini)
 
 interface OrderFormProps {

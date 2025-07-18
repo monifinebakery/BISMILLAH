@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { DateRange } from 'react-day-picker';
 import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, FileText } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -34,28 +33,31 @@ const FinancialReportPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
-  return (transactions || []).filter(t => {
-    // t.tanggal sudah berupa Date | undefined dari useFinancialTransactions
-    const transactionDate = t.tanggal;
+    return (transactions || []).filter(t => {
+      // t.tanggal sudah berupa Date | null dari useFinancialTransactions.
+      // safeParseDate sekarang mengembalikan Date | null.
+      // Pastikan t.tanggal adalah Date object yang valid.
+      const transactionDate = t.date; // Menggunakan t.date sesuai interface FinancialTransaction
+                                    // asumsikan t.date sudah diproses oleh useAppData/useSupabaseSync
 
-    // Filter keluar transaksi dengan tanggal yang tidak valid atau undefined
-    if (!transactionDate || isNaN(transactionDate.getTime())) {
-      return false;
-    }
-    
-    // Sekarang transactionDate dijamin sebagai objek Date yang valid
-    if (dateRange?.from && transactionDate < dateRange.from) return false;
-    if (dateRange?.to && transactionDate > dateRange.to) return false;
-    return true;
-  });
-}, [transactions, dateRange]);
+      // Filter keluar transaksi dengan tanggal yang tidak valid atau null
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+        return false;
+      }
+      
+      // Sekarang transactionDate dijamin sebagai objek Date yang valid
+      if (dateRange?.from && transactionDate < dateRange.from) return false;
+      if (dateRange?.to && transactionDate > dateRange.to) return false;
+      return true;
+    });
+  }, [transactions, dateRange]);
 
   const totalIncome = useMemo(() => {
-    return filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((sum, t) => sum + (t.jumlah || 0), 0);
+    return filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0); // t.jenis -> t.type, t.jumlah -> t.amount
   }, [filteredTransactions]);
 
   const totalExpense = useMemo(() => {
-    return filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((sum, t) => sum + (t.jumlah || 0), 0);
+    return filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0); // t.jenis -> t.type, t.jumlah -> t.amount
   }, [filteredTransactions]);
 
   const balance = useMemo(() => {
@@ -69,11 +71,11 @@ const FinancialReportPage = () => {
     const expenseByCategory: { [key: string]: number } = {};
 
     filteredTransactions.forEach(t => {
-      const categoryName = t.deskripsi || 'Uncategorized';
-      if (t.jenis === 'pemasukan') {
-        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.jumlah || 0);
+      const categoryName = t.category || 'Uncategorized'; // t.deskripsi -> t.category
+      if (t.type === 'pemasukan') { // t.jenis -> t.type
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0); // t.jumlah -> t.amount
       } else {
-        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.jumlah || 0);
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0); // t.jumlah -> t.amount
       }
     });
 
@@ -84,29 +86,40 @@ const FinancialReportPage = () => {
   }, [filteredTransactions]);
 
   const transactionData = useMemo(() => {
-    const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
+    const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {}; // date bisa null
 
     filteredTransactions.forEach(t => {
-      const transactionDate = safeParseDate(t.tanggal);
+      const transactionDate = t.date; // Ambil langsung t.date (sudah Date | null)
+      
+      // Pastikan transactionDate valid sebelum format dan digunakan sebagai key
+      if (!transactionDate || isNaN(transactionDate.getTime())) {
+          return; // Lewati transaksi dengan tanggal tidak valid
+      }
+
       const monthYear = format(transactionDate, 'yyyy-MM');
       if (!monthlyData[monthYear]) {
         monthlyData[monthYear] = { income: 0, expense: 0, date: transactionDate };
       }
-      if (t.jenis === 'pemasukan') {
-        monthlyData[monthYear].income += t.jumlah || 0;
+      if (t.type === 'pemasukan') { // t.jenis -> t.type
+        monthlyData[monthYear].income += t.amount || 0; // t.jumlah -> t.amount
       } else {
-        monthlyData[monthYear].expense += t.jumlah || 0;
+        monthlyData[monthYear].expense += t.amount || 0; // t.jumlah -> t.amount
       }
     });
 
     return Object.values(monthlyData)
       .map(value => ({
-        month: format(value.date, 'MMM yy', { locale: id }),
+        month: format(value.date as Date, 'MMM yy', { locale: id }), // Cast ke Date karena sudah difilter valid
         income: value.income,
         expense: value.expense,
         date: value.date,
       }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+      .sort((a, b) => {
+        // Memastikan a.date dan b.date adalah objek Date yang valid sebelum memanggil .getTime()
+        const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;
+        const dateB = (b.date instanceof Date && !isNaN(b.date.getTime())) ? b.date.getTime() : -Infinity;
+        return dateA - dateB;
+      });
   }, [filteredTransactions]);
 
   const openDialog = () => {
@@ -140,15 +153,15 @@ const FinancialReportPage = () => {
                 <PopoverTrigger asChild>
                   <Button id="date" variant={"outline"} className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from && dateRange.from instanceof Date ? (
-    dateRange.to && dateRange.to instanceof Date ? (
-        `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}`
-    ) : (
-        formatDateForDisplay(dateRange.from)
-    )
-) : (
-    <span>Pilih tanggal</span>
-)}
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}`
+                      ) : (
+                        formatDateForDisplay(dateRange.from)
+                      )
+                    ) : (
+                      <span>Pilih tanggal</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">

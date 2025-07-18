@@ -36,7 +36,7 @@ export interface Purchase {
   supplier: string;
   items: {
     id?: number | string;
-    nama: string;
+    namaBarang: string; // PERBAIKAN: Pastikan ini ada agar `addPurchase` tidak error
     kategori?: string;
     jumlah: number;
     satuan?: string;
@@ -56,7 +56,7 @@ export interface Activity {
   title: string;
   description: string;
   timestamp: Date; // Wajib
-  type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
+  type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier' | 'aset' | 'keuangan'; // PERBAIKAN: Tambah tipe 'aset' dan 'keuangan'
   value: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -78,24 +78,22 @@ export interface HPPResult {
   updatedAt: Date | null;
 }
 
-// PERBAIKAN UTAMA: Interface Asset
+// PERBAIKAN UTAMA: Interface Asset (konsisten dengan useAssets.ts)
 export interface Asset {
   id: string;
   nama: string;
-  // PERBAIKAN: Gunakan 'kategori' bukan 'jenis'
   kategori: AssetCategory | null; 
-  nilaiAwal: number; // PERBAIKAN: Rename dari 'nilai' menjadi 'nilaiAwal'
-  // --- DIHAPUS: umurManfaat: number;
-  tanggalPembelian: Date | null;
-  // --- DIHAPUS: penyusutanPerBulan: number;
+  nilaiAwal: number; 
   nilaiSaatIni: number;
-  userId?: string;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  kondisi: AssetCondition | null; // PERBAIKAN: Gunakan AssetCondition
+  tanggalPembelian: Date | null;
+  kondisi: AssetCondition | null; 
   lokasi: string | null;
   deskripsi: string | null;
   depresiasi: number | null;
+  // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
+  userId?: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface FinancialTransaction {
@@ -147,7 +145,7 @@ interface AppDataContextType {
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
 
   assets: Asset[];
-  // PERBAIKAN: Omit type untuk addAsset, nilaiSaatIni tidak di-omit lagi (karena input manual)
+  // PERBAIKAN: Omit type untuk addAsset
   addAsset: (asset: Omit<Asset, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   updateAsset: (id: string, asset: Partial<Asset>) => Promise<boolean>;
   deleteAsset: (id: string) => Promise<boolean>;
@@ -248,23 +246,38 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
             createdAt: safeParseDate(item.createdAt),
             updatedAt: safeParseDate(item.updatedAt),
           }));
-        case STORAGE_KEYS.ASSETS: // MODIFIED: Tambahkan parsing tanggal untuk ASSETS
-          return parsed.map((item: any) => ({
-            id: item.id,
-            nama: item.nama || '',
-            kategori: item.kategori || null, // PERBAIKAN: Gunakan kategori
-            nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0, // PERBAIKAN: Coba nilaiAwal atau nilai lama
-            nilaiSaatIni: parseFloat(item.nilaiSaatIni) || 0,
-            tanggalPembelian: safeParseDate(item.tanggalPembelian || item.tanggal_beli),
-            kondisi: item.kondisi || null,
-            lokasi: item.lokasi || '',
-            deskripsi: item.deskripsi || null,
-            depresiasi: parseFloat(item.depresiasi) ?? null,
-            userId: item.userId || item.user_id,
-            createdAt: safeParseDate(item.createdAt || item.created_at),
-            updatedAt: safeParseDate(item.updatedAt || item.updated_at),
-            // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
-          }));
+        case STORAGE_KEYS.ASSETS: // MODIFIED: Tambahkan parsing tanggal dan properti lainnya untuk ASSETS
+          return parsed.map((item: any) => {
+            const parsedTanggalPembelian = safeParseDate(item.tanggalPembelian || item.tanggal_beli);
+            const parsedCreatedAt = safeParseDate(item.createdAt || item.created_at);
+            const parsedUpdatedAt = safeParseDate(item.updatedAt || item.updated_at);
+            return {
+              id: item.id,
+              nama: item.nama || '',
+              // PERBAIKAN: Gunakan 'kategori', fallback ke 'jenis' jika ada data lama
+              kategori: item.kategori || item.jenis || null, 
+              // PERBAIKAN: Gunakan 'nilaiAwal', fallback ke 'nilai' jika ada data lama
+              nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0, 
+              nilaiSaatIni: parseFloat(item.nilaiSaatIni || item.nilai_sekarang) || 0,
+              // Pastikan tanggalPembelian selalu Date yang valid
+              tanggalPembelian: (parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()))
+                                ? parsedTanggalPembelian
+                                : new Date('1970-01-01T00:00:00Z'), // Fallback date jika invalid
+              // PERBAIKAN: Gunakan 'kondisi', fallback ke kondisi lama jika ada
+              kondisi: item.kondisi || item.kondisi_lama || null,
+              lokasi: item.lokasi || '',
+              deskripsi: item.deskripsi || null,
+              depresiasi: parseFloat(item.depresiasi) ?? null,
+              // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
+              userId: item.userId || item.user_id,
+              createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
+                         ? parsedCreatedAt
+                         : new Date(),
+              updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
+                         ? parsedUpdatedAt
+                         : new Date(),
+            };
+          });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
           return parsed.map((item: any) => ({
             ...item,
@@ -291,9 +304,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
-  // toSafeISOString ini sudah diimpor dari utils/dateUtils, tidak perlu didefinisikan ulang
-  // const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => { ... };
-
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -314,6 +324,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   );
   const [orders, setOrders] = useState<Order[]>(() =>
     loadFromStorage(STORAGE_KEYS.ORDERS, [
+      // Data dummy awal Anda
       {
         id: generateUUID(),
         nomorPesanan: 'ORD-001',
@@ -322,7 +333,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'john@example.com',
         teleponPelanggan: '081234567890',
         alamatPelanggan: 'Jl. Merdeka No. 123, Jakarta',
-        items: [{ id: 1, nama: 'Kue Coklat', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 }],
+        items: [{ id: 1, namaBarang: 'Kue Coklat', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 }], // PERBAIKAN: namaBarang
         subtotal: 100000,
         pajak: 10000,
         totalPesanan: 110000,
@@ -339,7 +350,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'jane@example.com',
         teleponPelanggan: '081234567891',
         alamatPelanggan: 'Jl. Sudirman No. 456, Jakarta',
-        items: [{ id: 1, nama: 'Roti Tawar', quantity: 5, hargaSatuan: 15000, totalHarga: 75000 }],
+        items: [{ id: 1, namaBarang: 'Roti Tawar', quantity: 5, hargaSatuan: 15000, totalHarga: 75000 }], // PERBAIKAN: namaBarang
         subtotal: 75000,
         pajak: 7500,
         totalPesanan: 82500,
@@ -363,14 +374,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const checkAndLoadFromCloud = async () => {
       if (cloudSyncEnabled) {
         console.log('Cloud sync enabled, attempting to load from cloud...');
-        const loadedData = await externalLoadFromCloud();
+        // Memuat data dari cloud ke state internal AppDataContext
+        // AppDataContext akan memicu penyimpanan ke localStorage sendiri melalui useEffect lain
+        await externalLoadFromCloud(); 
       }
     };
 
+    // Memberi sedikit penundaan untuk menghindari blocking render awal
     const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
   }, [cloudSyncEnabled, externalLoadFromCloud]);
 
+  // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
@@ -387,6 +402,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (document.visibilityState === 'visible') {
         console.log('Tab aplikasi terlihat, memeriksa pembaruan...');
         externalLoadFromCloud().then(loadedData => {
+           // Data sudah diatur di replaceAllData() jika ada.
+           // Atau jika tidak ada loadedData, berarti tidak ada perubahan dari cloud atau error
         });
       }
     };
@@ -511,17 +528,16 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           created_at: toSafeISOString(item.createdAt),
           updated_at: toSafeISOString(item.updatedAt),
         })),
+        // PERBAIKAN: Mapping aset untuk sync ke cloud
         assets: assets.map(item => ({
           id: item.id,
           nama: item.nama,
-          // PERBAIKAN: Gunakan kategori (DB) dari kategori (frontend)
-          kategori: item.kategori ?? null, 
-          nilai_awal: item.nilaiAwal, // PERBAIKAN: Gunakan nilaiAwal dari frontend
-          // --- DIHAPUS: umur_manfaat: item.umurManfaat,
-          // PERBAIKAN: Gunakan tanggal_beli (DB) dari tanggalPembelian (frontend)
+          kategori: item.kategori ?? null, // Menggunakan kategori dari frontend
+          nilai_awal: item.nilaiAwal, // Menggunakan nilaiAwal dari frontend
+          // --- DIHAPUS: umur_manfaat
           tanggal_beli: toSafeISOString(item.tanggalPembelian || new Date('1970-01-01T00:00:00Z')), 
-          // --- DIHAPUS: penyusutan_per_bulan: item.penyusutanPerBulan,
-          nilai_sekarang: item.nilaiSaatIni, // PERBAIKAN: Gunakan nilaiSaatIni dari frontend
+          // --- DIHAPUS: penyusutan_per_bulan
+          nilai_sekarang: item.nilaiSaatIni, // Menggunakan nilaiSaatIni dari frontend
           user_id: userId,
           created_at: toSafeISOString(item.createdAt || new Date()),
           updated_at: toSafeISOString(item.updatedAt || new Date()),
@@ -545,7 +561,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       const success = await externalSyncToCloud(transformedPayload);
       if (success) {
-        await externalLoadFromCloud();
+        // Setelah sync sukses, panggil load dari cloud lagi untuk memastikan konsistensi
+        // dan memperbarui state lokal dengan data terbaru dari cloud.
+        await externalLoadFromCloud(); 
       }
       return success;
     } catch (error: any) {
@@ -562,9 +580,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const loadedData = await externalLoadFromCloud();
+      const loadedData = await externalLoadFromCloud(); // Memuat data dari hook useSupabaseSync
       if (loadedData) {
-        replaceAllData(loadedData);
+        replaceAllData(loadedData); // Memperbarui semua state lokal
       } else {
         toast.info('Tidak ada data baru yang dimuat dari cloud.');
       }
@@ -575,6 +593,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const replaceAllData = (data: any) => {
+    // Memperbarui semua state dengan data yang dimuat dari cloud
+    // Perhatikan bahwa properti di `data` harus sesuai dengan nama state lokal (camelCase)
     if (data.bahanBaku) setBahanBaku(data.bahanBaku);
     if (data.suppliers) setSuppliers(data.suppliers);
     if (data.purchases) setPurchases(data.purchases);
@@ -585,6 +605,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (data.assets) setAssets(data.assets);
     if (data.financialTransactions) setFinancialTransactions(data.financialTransactions);
     if (data.userSettings) {
+      // userSettings mungkin ditangani oleh hook lain (mis. useUserSettings),
+      // jadi tidak perlu diatur di sini jika tidak ada state langsung untuk itu.
       console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
     }
     toast.info('Data lokal diperbarui dengan data cloud.');
@@ -841,15 +863,12 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setPurchases(prev => [...prev, newPurchase]);
 
-    // PERBAIKAN: Jika item.namaBarang tidak ada di tipe item, ini akan error.
-    // Pastikan `items` di Purchase interface punya `namaBarang`.
     await Promise.all(purchase.items.map(async item => {
-      // Periksa apakah item.namaBarang benar-benar ada di dalam item
-      if (!('namaBarang' in item) || typeof item.namaBarang !== 'string') {
-          console.warn('Item in purchase missing namaBarang or it is not a string:', item);
-          return; // Lewati item ini jika tidak valid
+      // PERBAIKAN: Periksa properti namaBarang
+      if (!item.namaBarang) {
+        console.warn('Purchase item missing namaBarang, skipping stock update for:', item);
+        return;
       }
-
       const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
         await updateBahanBaku(existingBahan.id, {
@@ -1229,28 +1248,23 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       userId: session?.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
-      // --- DIHAPUS: penyusutanPerBulan dan nilaiSaatIni dari perhitungan otomatis
-      // `nilaiSaatIni` dan `depresiasi` langsung dari input `asset`
+      // nilaiSaatIni dan depresiasi sudah datang dari input `asset` sekarang
     };
 
     const assetToInsert = {
       id: newAsset.id,
       nama: newAsset.nama,
-      // PERBAIKAN: Gunakan kategori (DB) dari kategori (frontend)
-      kategori: newAsset.kategori ?? null, 
-      nilai_awal: newAsset.nilaiAwal, // PERBAIKAN: Gunakan nilaiAwal dari frontend
-      // --- DIHAPUS: umur_manfaat
-      // PERBAIKAN: Gunakan tanggal_beli (DB) dari tanggalPembelian (frontend)
-      tanggal_beli: toSafeISOString(newAsset.tanggalPembelian), 
-      // --- DIHAPUS: penyusutan_per_bulan
-      nilai_sekarang: newAsset.nilaiSaatIni, // PERBAIKAN: Gunakan nilaiSaatIni dari frontend
+      kategori: newAsset.kategori, // Menggunakan `kategori` dari frontend
+      nilai_awal: newAsset.nilaiAwal,
+      tanggal_beli: toSafeISOString(newAsset.tanggalPembelian), // Menggunakan `tanggal_beli` di DB
+      nilai_sekarang: newAsset.nilaiSaatIni,
+      kondisi: newAsset.kondisi,
+      lokasi: newAsset.lokasi,
+      deskripsi: newAsset.deskripsi ?? null,
+      depresiasi: newAsset.depresiasi ?? null,
       user_id: newAsset.userId,
       created_at: toSafeISOString(newAsset.createdAt),
       updated_at: toSafeISOString(newAsset.updatedAt),
-      kondisi: newAsset.kondisi ?? null,
-      lokasi: newAsset.lokasi ?? null,
-      deskripsi: newAsset.deskripsi ?? null,
-      depresiasi: newAsset.depresiasi ?? null,
     };
 
     const { error } = await supabase.from('assets').insert([assetToInsert]);
@@ -1264,7 +1278,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan`,
-      type: 'stok', // Anda mungkin ingin tipe aktivitas yang lebih spesifik seperti 'aset'
+      type: 'aset', // PERBAIKAN: Tipe aktivitas 'aset'
     });
     toast.success(`Aset berhasil ditambahkan!`);
     return true;
@@ -1272,8 +1286,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // PERBAIKAN: updateAsset function
   const updateAsset = async (id: string, updatedAsset: Partial<Asset>) => {
-    const { data: { session } } = await supabase.auth.getSession(); // PERBAIKAN: Tambahkan ini
-    if (!session) { // PERBAIKAN: Tambahkan ini
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
         toast.error('Anda harus login untuk memperbarui aset');
         return false;
     }
@@ -1282,18 +1296,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: toSafeISOString(new Date()),
     };
     if (updatedAsset.nama !== undefined) assetToUpdate.nama = updatedAsset.nama;
-    // PERBAIKAN: Gunakan kategori (DB) dari kategori (frontend)
-    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori ?? null; 
-    if (updatedAsset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilaiAwal; // PERBAIKAN: Gunakan nilaiAwal
-    // --- DIHAPUS: umurManfaat
+    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori; // Menggunakan `kategori`
+    if (updatedAsset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilaiAwal;
+    if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.tanggalPembelian !== undefined) {
-      // PERBAIKAN: Perbaiki typo 'updateData' menjadi 'assetToUpdate' dan gunakan 'tanggal_beli'
-      assetToUpdate.tanggal_beli = toSafeISOString(updatedAsset.tanggalPembelian);
+      assetToUpdate.tanggal_beli = toSafeISOString(updatedAsset.tanggalPembelian); // Menggunakan `tanggal_beli`
     }
-    // --- DIHAPUS: penyusutanPerBulan
-    if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni; // PERBAIKAN: Gunakan nilaiSaatIni
-    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi ?? null;
-    if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi ?? null;
+    if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi;
+    if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi;
     if (updatedAsset.deskripsi !== undefined) assetToUpdate.deskripsi = updatedAsset.deskripsi ?? null;
     if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi ?? null;
 
@@ -1311,14 +1321,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteAsset = async (id: string) => {
     const asset = assets.find(a => a.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // PERBAIKAN: Tambahkan ini
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) { // PERBAIKAN: Tambahkan ini
+    if (!session) {
         toast.error('Anda harus login untuk menghapus aset');
         return false;
     }
 
-    const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', session.user.id); // PERBAIKAN: Tambahkan user_id
+    const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting asset from DB:', error);
       toast.error(`Gagal menghapus aset: ${error.message}`);
@@ -1330,7 +1340,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       addActivity({
         title: 'Aset Dihapus',
         description: `${asset.nama} telah dihapus`,
-        type: 'stok', // Anda mungkin ingin tipe aktivitas yang lebih spesifik seperti 'aset'
+        type: 'aset', // PERBAIKAN: Tipe aktivitas 'aset'
       });
       toast.success(`Aset ${asset.nama} berhasil dihapus!`);
     }
@@ -1371,7 +1381,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addActivity({
       title: 'Transaksi Keuangan Ditambahkan',
       description: `${newTransaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${newTransaction.amount.toLocaleString('id-ID')}`,
-      type: 'stok',
+      type: 'keuangan', // PERBAIKAN: Tipe aktivitas 'keuangan'
     });
     toast.success(`Transaksi berhasil ditambahkan!`);
     return true;
@@ -1415,7 +1425,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       addActivity({
         title: 'Transaksi Keuangan Dihapus',
         description: `${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${(transaction.amount ?? 0).toLocaleString('id-ID')} dihapus`,
-        type: 'stok',
+        type: 'keuangan', // PERBAIKAN: Tipe aktivitas 'keuangan'
       });
       toast.success(`Transaksi berhasil dihapus!`);
     }

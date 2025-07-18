@@ -3,7 +3,7 @@ export interface FinancialTransaction {
   id: string;
   type: 'income' | 'expense'; // Sesuaikan dengan nilai aktual di DB: 'pemasukan' | 'pengeluaran'
   category: string | null;     // Sesuai DB is_nullable: YES
-  amount: number;
+  amount?: number;
   description: string | null;  // Sesuai DB is_nullable: YES
   date: Date | null;           // Sesuai DB is_nullable: YES
   createdAt: Date | null;      // Sesuai DB is_nullable: YES

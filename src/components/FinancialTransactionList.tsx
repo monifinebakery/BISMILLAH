@@ -265,7 +265,7 @@ const FinancialTransactionList = ({
 
           <div className="mt-6 flex justify-end space-x-4">
             <Button
-              onClick={onClose}
+              onClick={() => setEditingTransaction(null)}
               variant="outline"
               className="px-4 py-2"
             >

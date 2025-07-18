@@ -13,20 +13,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
-
-// MODIFIED: Import getInputValue dari inputUtils
-import { getInputValue } from '@/utils/inputUtils'; 
+import { getInputValue } from '@/utils/inputUtils';
 
 const AssetManagement = () => {
   const isMobile = useIsMobile();
-
   const { assets, loading, addAsset, updateAsset, deleteAsset } = useAssets();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  
   const [formData, setFormData] = useState<Partial<Asset>>({
     nama: '',
     kategori: undefined,
@@ -46,7 +42,22 @@ const AssetManagement = () => {
     'Buruk': 'bg-red-200 text-red-900'
   };
 
-  // Fungsi formatCurrency sudah diimpor
+  const handleEdit = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setFormData({
+      nama: asset.nama,
+      kategori: asset.kategori,
+      nilaiAwal: asset.nilaiAwal,
+      nilaiSekarang: asset.nilaiSekarang,
+      tanggalBeli: asset.tanggalBeli instanceof Date && !isNaN(asset.tanggalBeli.getTime()) ? asset.tanggalBeli : new Date(),
+      kondisi: asset.kondisi,
+      lokasi: asset.lokasi,
+      deskripsi: asset.deskripsi,
+      depresiasi: asset.depresiasi,
+    });
+    setIsEditing(true);
+    setShowAddForm(true);
+  };
 
   const handleSave = async () => {
     if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
@@ -70,7 +81,7 @@ const AssetManagement = () => {
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
       nilaiAwal: formData.nilaiAwal,
       nilaiSekarang: formData.nilaiSekarang,
-      tanggalBeli: formData.tanggalBeli,
+      tanggalPembelian: formData.tanggalBeli,
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
@@ -103,8 +114,6 @@ const AssetManagement = () => {
     }
   };
 
-  // getInputValue lokal dihapus
-
   if (loading) {
     return (
       <div className="w-full min-h-screen bg-white flex items-center justify-center p-4">
@@ -117,23 +126,21 @@ const AssetManagement = () => {
   }
 
   const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
-  const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSekarang, 0);
+  const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSaatIni, 0);
   const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0);
 
   console.log('--- Assets List Date Debug ---');
   assets.forEach(asset => {
     console.log(`Asset ID: ${asset.id || asset.nama}`);
-    console.log(`  tanggalBeli: ${asset.tanggalBeli}, Valid: ${asset.tanggalBeli instanceof Date && !isNaN(asset.tanggalBeli.getTime())}`);
+    console.log(`  tanggalPembelian: ${asset.tanggalPembelian}, Valid: ${asset.tanggalPembelian instanceof Date && !isNaN(asset.tanggalPembelian.getTime())}`);
     console.log(`  createdAt: ${asset.createdAt}, Valid: ${asset.createdAt instanceof Date && !isNaN(asset.createdAt.getTime())}`);
     console.log(`  updatedAt: ${asset.updatedAt}, Valid: ${asset.updatedAt instanceof Date && !isNaN(asset.updatedAt.getTime())}`);
   });
   console.log('------------------------------');
 
-
   return (
     <div className="w-full min-h-screen bg-white">
       <div className={`w-full max-w-none px-4 py-4 ${isMobile ? 'pb-20' : ''}`}>
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center">
             <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full mr-4">
@@ -150,10 +157,9 @@ const AssetManagement = () => {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className={`grid gap-4 mb-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           <Card className="shadow-lg border-orange-200 bg-white">
-            <CardContent className="p-4">
+            <CardContent classCuboid="p-4">
               <div className="flex items-center">
                 <div className="bg-orange-100 rounded-full p-2 mr-3">
                   <Package className="text-orange-600 h-5 w-5" />
@@ -209,7 +215,6 @@ const AssetManagement = () => {
           </Card>
         </div>
 
-        {/* Assets List */}
         <Card className="shadow-lg border-orange-200 bg-white">
           <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -303,7 +308,7 @@ const AssetManagement = () => {
                           value={formatDateToYYYYMMDD(formData.tanggalBeli)}
                           onChange={(e) => setFormData({
                             ...formData,
-                            tanggalBeli: e.target.value ? safeParseDate(e.target.value) : null
+                            tanggalBeli: e.target.value ? new Date(e.target.value) : null
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required
@@ -323,7 +328,6 @@ const AssetManagement = () => {
                           max="100"
                         />
                       </div>
-
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -385,7 +389,7 @@ const AssetManagement = () => {
                         setShowAddForm(false);
                         setIsEditing(false);
                         setFormData({
-                            nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
+                          nama: '', kategori: undefined, nilaiAwal: 0, nilaiSekarang: 0, tanggalBeli: null, kondisi: undefined, lokasi: '', deskripsi: '', depresiasi: null
                         });
                       }}
                       className="flex-1 border-gray-300 hover:bg-gray-50"
@@ -410,22 +414,7 @@ const AssetManagement = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              setSelectedAsset(asset);
-                              setFormData({
-                                nama: asset.nama,
-                                kategori: asset.kategori,
-                                nilaiAwal: asset.nilaiAwal,
-                                nilaiSekarang: asset.nilaiSekarang,
-                                tanggalBeli: asset.tanggalBeli,
-                                kondisi: asset.kondisi,
-                                lokasi: asset.lokasi,
-                                deskripsi: asset.deskripsi,
-                                depresiasi: asset.depresiasi
-                              });
-                              setIsEditing(true);
-                              setShowAddForm(true);
-                            }}
+                            onClick={() => handleEdit(asset)}
                             className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-50"
                           >
                             <Edit className="h-3 w-3 text-orange-600" />
@@ -451,13 +440,13 @@ const AssetManagement = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Nilai Sekarang:</span>
-                          <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSekarang)}</span>
+                          <span className="font-medium text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</span>
                         </div>
                         {asset.depresiasi !== undefined && asset.depresiasi !== null && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Depresiasi:</span>
-                                <span className="font-medium text-gray-900">{asset.depresiasi}%</span>
-                            </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Depresiasi:</span>
+                            <span className="font-medium text-gray-900">{asset.depresiasi}%</span>
+                          </div>
                         )}
                         <div className="flex justify-between">
                           <span className="text-gray-600">Kondisi:</span>
@@ -471,7 +460,7 @@ const AssetManagement = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Tanggal Beli:</span>
-                          <span className="font-medium text-gray-900">{formatDateForDisplay(asset.tanggalBeli)}</span>
+                          <span className="font-medium text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -503,7 +492,7 @@ const AssetManagement = () => {
                             <Badge variant="secondary" className="bg-orange-100 text-orange-800">{asset.kategori}</Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{formatCurrency(asset.nilaiAwal)}</TableCell>
-                          <TableCell className="text-gray-900">{formatCurrency(asset.nilaiSekarang)}</TableCell>
+                          <TableCell className="text-gray-900">{formatCurrency(asset.nilaiSaatIni)}</TableCell>
                           <TableCell className="text-gray-900">{asset.depresiasi?.toFixed(1) || 0}%</TableCell>
                           <TableCell>
                             <Badge className={kondisiColors[asset.kondisi]}>
@@ -511,28 +500,13 @@ const AssetManagement = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-900">{asset.lokasi}</TableCell>
-                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalBeli)}</TableCell>
+                          <TableCell className="text-gray-900">{formatDateForDisplay(asset.tanggalPembelian)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  setSelectedAsset(asset);
-                                  setFormData({
-                                    nama: asset.nama,
-                                    kategori: asset.kategori,
-                                    nilaiAwal: asset.nilaiAwal,
-                                    nilaiSekarang: asset.nilaiSekarang,
-                                    tanggalBeli: asset.tanggalBeli,
-                                    kondisi: asset.kondisi,
-                                    lokasi: asset.lokasi,
-                                    deskripsi: asset.deskripsi,
-                                    depresiasi: asset.depresiasi
-                                  });
-                                  setIsEditing(true);
-                                  setShowAddForm(true);
-                                }}
+                                onClick={() => handleEdit(asset)}
                                 className="border-orange-300 hover:bg-orange-50"
                               >
                                 <Edit className="h-4 w-4 text-orange-600" />
@@ -554,15 +528,13 @@ const AssetManagement = () => {
                 </div>
               </ScrollArea>
             )}
-            {
-              assets.length === 0 && !isMobile && (
-                <div className="text-center py-8 text-gray-500">
-                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-base">Belum ada aset yang terdaftar</p>
-                  <p className="text-sm mt-1">Klik tombol "Tambah Aset" untuk memulai</p>
-                </div>
-              )
-            }
+            {assets.length === 0 && !isMobile && (
+              <div className="text-center py-8 text-gray-500">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-base">Belum ada aset yang terdaftar</p>
+                <p className="text-sm mt-1">Klik tombol "Tambah Aset" untuk memulai</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

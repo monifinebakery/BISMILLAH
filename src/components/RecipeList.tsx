@@ -5,7 +5,7 @@ import { Edit, Trash2, ChefHat, Users, DollarSign } from "lucide-react";
 import { Recipe } from "@/types/recipe";
 
 // BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
-import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay
+import { formatDateForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateTimeForDisplay
 
 interface RecipeListProps {
   recipes: Recipe[];

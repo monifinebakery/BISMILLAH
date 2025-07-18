@@ -3,7 +3,7 @@ import { BarChart3, Calculator, Warehouse, TrendingUp, Package, DollarSign } fro
 import { Link } from "react-router-dom";
 import { useAppData } from "@/contexts/AppDataContext";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
-import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
+import { formatDateForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
 
 const Dashboard = () => {
   const { getDashboardStats, activities } = useAppData();

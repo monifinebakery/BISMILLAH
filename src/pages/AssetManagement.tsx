@@ -10,12 +10,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAssets, Asset } from '@/hooks/useAssets'; // Pastikan Asset dari useAssets atau types
+import { useAssets, Asset } from '@/hooks/useAssets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
-import { getInputValue } from '@/utils/inputUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 
+// MODIFIED: Import getInputValue dari inputUtils
+import { getInputValue } from '@/utils/inputUtils'; 
 
 const AssetManagement = () => {
   const isMobile = useIsMobile();
@@ -30,7 +32,7 @@ const AssetManagement = () => {
     kategori: undefined,
     nilaiAwal: 0,
     nilaiSekarang: 0,
-    tanggalBeli: null, // <-- UBAH KE null (Konsisten)
+    tanggalBeli: null,
     kondisi: undefined,
     lokasi: '',
     deskripsi: '',
@@ -38,29 +40,20 @@ const AssetManagement = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const kondisiColors = {
+  const kondisiColors: { [key: string]: string } = {
     'Baik': 'bg-orange-100 text-orange-800',
     'Cukup': 'bg-red-100 text-red-800',
     'Buruk': 'bg-red-200 text-red-900'
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Fungsi formatCurrency sudah diimpor
 
   const handleSave = async () => {
-    // Validasi umum untuk field wajib dan nilai negatif
     if (!formData.nama || !formData.kategori || !formData.kondisi || !formData.lokasi || formData.nilaiAwal === undefined || formData.nilaiAwal < 0 || formData.nilaiSekarang === undefined || formData.nilaiSekarang < 0) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
     
-    // MODIFIKASI DISINI: Validasi kuat untuk tanggalBeli
     if (formData.tanggalBeli === null || formData.tanggalBeli === undefined) {
       toast.error("Tanggal Beli wajib diisi.");
       return;
@@ -77,7 +70,7 @@ const AssetManagement = () => {
       kategori: formData.kategori as 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi',
       nilaiAwal: formData.nilaiAwal,
       nilaiSekarang: formData.nilaiSekarang,
-      tanggalBeli: formData.tanggalBeli, // Sekarang kita yakin ini adalah objek Date yang valid
+      tanggalBeli: formData.tanggalBeli,
       kondisi: formData.kondisi as 'Baik' | 'Cukup' | 'Buruk',
       lokasi: formData.lokasi,
       deskripsi: formData.deskripsi || '',
@@ -110,15 +103,7 @@ const AssetManagement = () => {
     }
   };
 
-  const getInputValue = <T extends string | number | undefined | null>(value: T): string | number => {
-    if (value === undefined || value === null) {
-      return '';
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-      return value;
-    }
-    return '';
-  };
+  // getInputValue lokal dihapus
 
   if (loading) {
     return (
@@ -134,6 +119,15 @@ const AssetManagement = () => {
   const totalNilaiAwal = assets.reduce((sum, asset) => sum + asset.nilaiAwal, 0);
   const totalNilaiSekarang = assets.reduce((sum, asset) => sum + asset.nilaiSekarang, 0);
   const totalDepresiasi = assets.reduce((sum, asset) => sum + (asset.depresiasi || 0), 0);
+
+  console.log('--- Assets List Date Debug ---');
+  assets.forEach(asset => {
+    console.log(`Asset ID: ${asset.id || asset.nama}`);
+    console.log(`  tanggalBeli: ${asset.tanggalBeli}, Valid: ${asset.tanggalBeli instanceof Date && !isNaN(asset.tanggalBeli.getTime())}`);
+    console.log(`  createdAt: ${asset.createdAt}, Valid: ${asset.createdAt instanceof Date && !isNaN(asset.createdAt.getTime())}`);
+    console.log(`  updatedAt: ${asset.updatedAt}, Valid: ${asset.updatedAt instanceof Date && !isNaN(asset.updatedAt.getTime())}`);
+  });
+  console.log('------------------------------');
 
 
   return (
@@ -309,7 +303,7 @@ const AssetManagement = () => {
                           value={formatDateToYYYYMMDD(formData.tanggalBeli)}
                           onChange={(e) => setFormData({
                             ...formData,
-                            tanggalBeli: e.target.value ? safeParseDate(e.target.value) : null // <-- UBAH KE safeParseDate
+                            tanggalBeli: e.target.value ? safeParseDate(e.target.value) : null
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required

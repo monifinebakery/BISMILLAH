@@ -56,8 +56,8 @@ export interface Activity {
   timestamp: Date; // Wajib
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier';
   value?: string; // Opsional
-  createdAt?: Date; // Opsional
-  updatedAt?: Date; // Opsional
+  createdAt: Date | null;          // <-- UBAH KE Date | null
+  updatedAt: Date | null;          // <-- UBAH KE Date | null
 }
 
 export interface HPPResult {

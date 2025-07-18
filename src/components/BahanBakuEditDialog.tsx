@@ -74,7 +74,9 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     } else {
       setFormData({
         nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
-        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null, // Inisialisasi dengan null
+        hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: item.tanggalKadaluwarsa && isValidDate(item.tanggalKadaluwarsa) 
+        ? item.tanggalKadaluwarsa 
+        : null
         jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
       });
     }

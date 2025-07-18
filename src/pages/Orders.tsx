@@ -10,7 +10,8 @@ import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, Eye } from 'lucide-react'; 
+// MODIFIED: Hapus Eye icon karena tidak lagi dipakai untuk mode view
+import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare } from 'lucide-react'; 
 import { useOrders } from '@/hooks/useOrders';
 import CloudSyncButton from '@/components/CloudSyncButton';
 import OrderForm from '@/components/OrderForm'; 
@@ -24,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from '@/components/ui/badge'; // PASTIKAN BARIS INI ADA
+import { Badge } from '@/components/ui/badge'; 
 
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { safeParseDate } from '@/utils/dateUtils'; 
@@ -43,7 +44,8 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const [editingOrder, setEditingOrder] = useState<Order | null>(null); 
-  const [isViewMode, setIsViewMode] = useState(false); 
+  // MODIFIED: Hapus state isViewMode
+  // const [isViewMode, setIsViewMode] = useState(false); 
 
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
@@ -129,21 +131,25 @@ const OrdersPage = () => {
     }
   };
 
+  // MODIFIED: handleOpenEditOrderForm sekarang akan menjadi fungsi utama untuk membuka dialog
   const handleOpenEditOrderForm = (order: Order) => {
     setEditingOrder(order);
-    setIsViewMode(false); 
+    // MODIFIED: isViewMode tidak lagi di set, karena langsung edit
+    // setIsViewMode(false); 
     setShowOrderForm(true);
   };
 
-  const handleOpenViewOrderForm = (order: Order) => {
-    setEditingOrder(order);
-    setIsViewMode(true); 
-    setShowOrderForm(true);
-  };
+  // MODIFIED: Fungsi handleOpenViewOrderForm dihapus
+  // const handleOpenViewOrderForm = (order: Order) => {
+  //   setEditingOrder(order);
+  //   setIsViewMode(true); 
+  //   setShowOrderForm(true);
+  // };
 
   const handleNewOrder = () => {
     setEditingOrder(null);
-    setIsViewMode(false); 
+    // MODIFIED: isViewMode tidak lagi di set
+    // setIsViewMode(false); 
     setShowOrderForm(true);
   };
 
@@ -159,10 +165,11 @@ const OrdersPage = () => {
     let success = false;
 
     if (isEditingMode) {
-      if (isViewMode) {
-        toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
-        return;
-      }
+      // MODIFIED: Hapus pengecekan isViewMode di sini, karena selalu edit
+      // if (isViewMode) {
+      //   toast.info('Tidak bisa menyimpan perubahan saat dalam mode Lihat Detail. Silakan masuk ke mode Edit.');
+      //   return;
+      // }
       const { id, ...updateData } = data as Order; 
       success = await updateOrder(editingOrder!.id, updateData); 
     } else {
@@ -178,7 +185,8 @@ const OrdersPage = () => {
       toast.success(isEditingMode ? 'Pesanan berhasil diperbarui.' : 'Pesanan baru berhasil ditambahkan.');
       setShowOrderForm(false);
       setEditingOrder(null);
-      setIsViewMode(false); 
+      // MODIFIED: isViewMode tidak lagi di set
+      // setIsViewMode(false); 
     }
   };
 
@@ -347,21 +355,21 @@ const OrdersPage = () => {
                     <span className="text-muted-foreground">Status:</span>
                     <Badge className={getStatusColor(order.status)}>{getStatusText(order.status)}</Badge>
                   </div>
-                  {/* PERBAIKAN: Tambahkan kembali tombol follow-up WhatsApp untuk Mobile */}
-                  <div className="flex justify-end mt-4 gap-2"> {/* Tambahkan gap-2 jika ada lebih dari 1 tombol */}
+                  <div className="flex justify-end mt-4 gap-2"> 
+                    {/* MODIFIED: Tombol Lihat Detail sekarang memanggil handleOpenEditOrderForm */}
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-                      onClick={() => handleOpenViewOrderForm(order)} // Tombol Lihat Detail
+                      onClick={() => handleOpenEditOrderForm(order)} // Langsung ke mode edit
                     >
-                      <Eye className="h-4 w-4" />
-                      Lihat Detail
+                      <Edit className="h-4 w-4" /> {/* Ubah icon ke Edit */}
+                      Edit Detail {/* Ubah teks */}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleFollowUpClick(order)} // Tombol Follow-up
+                      onClick={() => handleFollowUpClick(order)} 
                       className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
                     >
                       <MessageSquare className="h-4 w-4" />
@@ -415,7 +423,6 @@ const OrdersPage = () => {
                       <Edit className="h-4 w-4" />
                       Edit Detail
                     </Button>
-                    {/* Tombol Follow-up WhatsApp untuk Desktop */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -450,18 +457,19 @@ const OrdersPage = () => {
         </Card>
       )}
 
+      {/* MODIFIED: Hapus prop isViewMode dari OrderForm */}
       <OrderForm
         open={showOrderForm}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setEditingOrder(null);
-            setIsViewMode(false); 
           }
           setShowOrderForm(isOpen);
         }}
         onSubmit={handleSubmit}
         initialData={editingOrder}
-        isViewMode={isViewMode} 
+        // MODIFIED: Hapus isViewMode prop
+        // isViewMode={isViewMode} 
       />
 
       <WhatsappFollowUpModal

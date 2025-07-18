@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
 import { safeParseDate } from '@/hooks/useSupabaseSync'; // Tambahkan baris ini
+import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils';
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;

@@ -20,9 +20,9 @@ export interface BahanBaku {
   hargaSatuan: number; // camelCase
   minimum: number;
   supplier: string;
-  tanggalKadaluwarsa?: Date; // Opsional
-  createdAt?: Date; // Opsional
-  updatedAt?: Date; // Opsional
+  tanggalKadaluwarsa: Date | null; // <-- UBAH KE Date | null
+  createdAt: Date | null;          // <-- UBAH KE Date | null
+  updatedAt: Date | null;          // <-- UBAH KE Date | null
   jumlahBeliKemasan?: number | null; // Opsional, bisa null
   satuanKemasan?: string | null; // Opsional, bisa null
   hargaTotalBeliKemasan?: number | null; // Opsional, bisa null

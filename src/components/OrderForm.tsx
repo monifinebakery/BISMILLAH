@@ -12,7 +12,7 @@ import { Plus, X } from 'lucide-react';
 import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
 // PASTIKAN safeParseDate DIIMPORT DARI LOKASI YANG BENAR
-import { safeParseDate } from '@/hooks/useSupabaseSync';
+import { safeParseDate } from '@/utils/dateUtils'; 
 
 // BARIS INI DITAMBAHKAN/DIUBAH UNTUK IMPORT UTILS
 import { formatCurrency } from '@/utils/currencyUtils';

@@ -61,8 +61,8 @@ export const usePurchases = () => {
         status: item.status || 'pending',
         metodePerhitungan: item.metode_perhitungan,
         catatan: item.catatan,
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at || item.created_at),
+        createdAt: safeParseDate(item.created_at) || new Date(), // Pastikan selalu Date yang valid
+        updatedAt: safeParseDate(item.updated_at) || new Date(), // Pastikan selalu Date yang valid
       })) || [];
 
       setPurchases(formattedPurchases);

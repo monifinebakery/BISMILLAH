@@ -268,15 +268,18 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
             <div>
               <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
               <Input
-                id="tanggalKadaluwarsa"
-                type="date"
-                value={getInputValue(formData.tanggalKadaluwarsa) as string}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined 
-                })}
-                className="border-orange-200 focus:border-orange-400 rounded-md"
-              />
+  id="tanggalKadaluwarsa"
+  type="date"
+  value={getInputValue(formData.tanggalKadaluwarsa) as string}
+  onChange={(e) => setFormData({
+    ...formData,
+    // Jika e.target.value kosong, set ke null. Jika tidak, buat objek Date dan periksa validitasnya.
+    tanggalKadaluwarsa: e.target.value
+      ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
+      : null
+  })}
+  className="border-orange-200 focus:border-orange-400 rounded-md"
+/>
             </div>
 
             <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg mt-6">

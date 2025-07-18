@@ -21,19 +21,19 @@ import {
 // HELPER FUNCTIONS
 // ===============================================
 
-export const safeParseDate = (dateValue: any): Date | undefined => {
+export const safeParseDate = (dateValue: any): Date | null => { // Ubah tipe kembalian menjadi Date | null
   try {
-    if (!dateValue) return undefined;
+    if (!dateValue) return null; // Kembalikan null alih-alih undefined
 
     if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? undefined : dateValue;
+      return isNaN(dateValue.getTime()) ? null : dateValue; // Kembalikan null alih-alih undefined
     }
 
     const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
+    return isNaN(parsed.getTime()) ? null : parsed; // Kembalikan null alih-alih undefined
   } catch (error) {
     console.error('Error parsing date:', error, dateValue);
-    return undefined;
+    return null; // Kembalikan null alih-alih undefined
   }
 };
 

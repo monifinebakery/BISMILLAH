@@ -41,7 +41,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     minimum: 0,
     hargaSatuan: 0,
     supplier: '',
-    tanggalKadaluwarsa: null, // Inisialisasi dengan null alih-alih undefined
+    tanggalKadaluwarsa: null, // Inisialisasi dengan null
     jumlahBeliKemasan: 0,
     satuanKemasan: '',
     hargaTotalBeliKemasan: 0,
@@ -158,7 +158,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
     onClose();
   };
 
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => { // Hapus Date dari T
+  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
     if (value === null || value === undefined) {
       return '';
     }
@@ -167,7 +167,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
       return value;
     }
 
-    return ''; // Fallback untuk tipe yang tidak diharapkan
+    return '';
   };
 
   return (
@@ -263,7 +263,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
               <Input
                 id="tanggalKadaluwarsa"
                 type="date"
-                value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)} // <-- MODIFIKASI DISINI
+                value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)}
                 onChange={(e) => setFormData({
                   ...formData,
                   tanggalKadaluwarsa: e.target.value

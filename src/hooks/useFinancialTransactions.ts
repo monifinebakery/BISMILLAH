@@ -110,10 +110,12 @@ export const useFinancialTransactions = (userId: string | undefined, initialData
       };
 
       if (updates.tanggal !== undefined) {
-        updateData.tanggal = updates.tanggal instanceof Date ? updates.tanggal.toISOString() : null; // MODIFIED: Cek instanceof Date
-      } else if (updates.tanggal === null) {
-        updateData.tanggal = null;
-      }
+  updateData.tanggal = updates.tanggal instanceof Date && !isNaN(updates.tanggal.getTime())
+    ? updates.tanggal.toISOString()
+    : null; // Jika null atau Invalid Date, simpan sebagai null
+} else if (Object.prototype.hasOwnProperty.call(updates, 'tanggal') && updates.tanggal === null) {
+  updateData.tanggal = null;
+}
       if (updates.jenis !== undefined) updateData.type = updates.jenis;
       if (updates.deskripsi !== undefined) updateData.deskripsi = updates.deskripsi;
       if (updates.jumlah !== undefined) updateData.amount = updates.jumlah;

@@ -44,15 +44,15 @@ const RecipesPage = () => {
     setEditingRecipe(null);
   };
 
-  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI
-  // const formatCurrency = (value: number) => {
-  //   return new Intl.NumberFormat('id-ID', {
-  //     style: 'currency',
-  //     currency: 'IDR',
-  //     minimumFractionDigits: 0,
-  //     maximumFractionDigits: 0
-  //   }).format(value);
-  // };
+  // FUNGSI formatCurrency LOKAL DITAMBAHKAN KEMBALI DI SINI
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
 
   // MODIFIED: Logika pemfilteran resep menggunakan useMemo
   const filteredRecipes = useMemo(() => {

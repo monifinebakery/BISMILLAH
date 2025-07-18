@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { format, subDays } from 'date-fns';
+// MODIFIED: Import fungsi-fungsi date-fns yang diperlukan
+import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,9 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Import fungsi formatDateForDisplay dari dateUtils
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { safeParseDate } from '@/utils/dateUtils'; 
+import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
+
 
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,7 +74,7 @@ const OrdersPage = () => {
   const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => {
     const formattedDate = formatDateForDisplay(orderData.tanggal);
     const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || '';
-    const total = orderData.totalPesanan?.toLocaleString('id-ID') || '0';
+    const total = orderData.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0';
 
     switch (status) {
       case 'pending':
@@ -169,10 +170,9 @@ const OrdersPage = () => {
                             order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       
-      // BARIS INI DIUBAH
       const orderDate = order.tanggal instanceof Date && !isNaN(order.tanggal.getTime())
-                          ? order.tanggal
-                          : null; // Jika tidak valid, set ke null
+                              ? order.tanggal
+                              : null;
       
       const matchesDate = dateRange?.from && dateRange?.to && orderDate
         ? orderDate >= dateRange.from && orderDate <= dateRange.to
@@ -247,6 +247,14 @@ const OrdersPage = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
+                {/* MODIFIED: Tambahkan div untuk tombol-tombol rentang tanggal cepat */}
+                <div className="flex flex-col p-2 space-y-1 border-b">
+                  <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Hari ini</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(subDays(new Date(), 1)), to: endOfDay(subDays(new Date(), 1)) })}>Kemarin</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 29), to: new Date() })}>30 Hari Terakhir</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Kemarin</Button>
+                </div>
                 <Calendar
                   initialFocus
                   mode="range"

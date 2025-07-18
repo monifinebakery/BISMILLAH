@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from '@/components/ui/textarea'; // Perbaikan sintaks import
+import { useState, useEffect } => "react";
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
-import { formatDateToYYYYMMDD } from '@/utils/dateUtils'; // formatDateToYYYYMMDD dari utils
-import { getInputValue } from '@/utils/inputUtils';
+// Import safeParseDate dan formatDateToYYYYMMDD dari utils/dateUtils
+import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils'; 
+// Import getInputValue dari inputUtils
+import { getInputValue } from '@/utils/inputUtils'; // Pastikan ini juga diimpor
+
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
@@ -28,25 +30,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   });
 
   // Helper function to safely render values in inputs as string or number
-  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    // Jika itu objek Date, konversi ke YYYY-MM-DD
-    if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
-        return ''; // Tanggal tidak valid, kembalikan string kosong
-      }
-      const isoString = value.toISOString() || '';
-      return isoString.split('T')[0];
-    }
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      return '';
-    }
-    return value;
-  };
+  // Ini adalah versi yang sudah ada di src/utils/inputUtils.ts, jadi ini hanya komentar
+  // const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => { ... };
 
-  // useEffect untuk mereset form saat dialog dibuka/ditutup
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -73,7 +59,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       !formData.category.trim() ||
       formData.amount <= 0 ||
       !formData.description.trim() ||
-      !formData.date // Pastikan string tanggal tidak kosong
+      !formData.date
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
@@ -83,10 +69,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user.id || '';
 
-    // MODIFIED: Pastikan objek Date dibuat dengan aman
-    const dateToSave = formData.date ? safeParseDate(formData.date) : null; // Gunakan safeParseDate
+    const dateToSave = formData.date ? safeParseDate(formData.date) : null;
 
-    if (dateToSave === null) { // Validasi jika safeParseDate mengembalikan null
+    if (dateToSave === null) {
       toast.error('Tanggal yang dimasukkan tidak valid.');
       return;
     }
@@ -97,7 +82,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
       category: formData.category,
       amount: Number(formData.amount),
       description: formData.description,
-      date: dateToSave, // Gunakan objek Date yang sudah divalidasi
+      date: dateToSave,
     };
 
     const success = await onAddTransaction(transactionData);
@@ -177,7 +162,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Input
                 type="date"
                 name="date"
-                value={formatDateToYYYYMMDD(formData.date)} // Pastikan formatDateToYYYYMMDD menerima string/Date
+                value={formatDateToYYYYMMDD(formData.date)}
                 onChange={(e) => handleChange('date', e.target.value)}
                 className="mt-1 w-full"
                 placeholder="Masukkan tanggal"

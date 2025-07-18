@@ -170,13 +170,8 @@ interface AppDataContextType {
     stokMenurut: number;
   };
 
-  // DIHAPUS: cloudSyncEnabled sebagai state lokal yang bisa diset
-  // cloudSyncEnabled: boolean;
-  // setCloudSyncEnabled: (enabled: boolean) => void;
-
-  // Sync / Load functions yang kini selalu aktif jika user login
-  syncToCloud: () => Promise<boolean>; // Ini lebih menjadi force backup/upload
-  loadFromCloud: () => Promise<void>; // Ini lebih menjadi force refresh/download
+  syncToCloud: () => Promise<boolean>; 
+  loadFromCloud: () => Promise<void>; 
   replaceAllData: (data: any) => void;
 }
 
@@ -191,15 +186,11 @@ const STORAGE_KEYS = {
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
-  // DIHAPUS: Kunci storage untuk cloud_sync
-  // CLOUD_SYNC: 'hpp_app_cloud_sync',
+  CLOUD_SYNC: 'hpp_app_cloud_sync', // Tetap ada kunci ini, tapi tidak digunakan sebagai state lokal lagi
   ASSETS: 'hpp_app_assets',
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
-  // DIHAPUS: Kunci storage untuk invoice
-  // INVOICES: 'hpp_app_invoices', 
 };
 
-// saveToStorage dan loadFromStorage (helper functions)
 const saveToStorage = (key: string, data: any) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -308,9 +299,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     isLoading: isSyncingCloud,
   } = useSupabaseSync();
 
-  // DIHAPUS: Inisialisasi useInvoiceService
-  // const { fetchInvoicesFromDb, addInvoiceToDb, updateInvoiceInDb, deleteInvoiceFromDb } = useInvoiceService();
-
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -372,17 +360,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>((() =>
     loadFromStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, [])
   ));
-  // DIHAPUS: State untuk invoices
-  // const [invoices, setInvoices] = useState<Invoice[]>(() =>
-  //   loadFromStorage(STORAGE_KEYS.INVOICES, [])
-  // );
 
-  // DIHAPUS: cloudSyncEnabled sebagai state lokal yang bisa diset
-  // const [cloudSyncEnabled, setCloudSyncEnabled] = useState<boolean>(() =>
-  //   loadFromStorage(STORAGE_KEYS.CLOUD_SYNC, false)
-  // );
-
-  // PERBAIKAN UTAMA: useEffect untuk selalu mencoba memuat dari cloud jika ada user login
+  // PERBAIKAN: useEffect untuk selalu mencoba memuat dari cloud jika ada user login
   useEffect(() => {
     const checkAndLoadFromCloud = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -396,7 +375,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Memberi sedikit penundaan untuk menghindari blocking render awal, tapi tetap proaktif
     const timer = setTimeout(checkAndLoadFromCloud, 1000); 
     return () => clearTimeout(timer);
-  }, [externalLoadFromCloud]); // Hanya bergantung pada externalLoadFromCloud
+  }, [externalLoadFromCloud]); 
 
   // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
@@ -408,10 +387,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { saveToStorage(STORAGE_KEYS.ORDERS, orders); }, [orders]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.ASSETS, assets); }, [assets]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
-  // DIHAPUS: Save invoices
-  // useEffect(() => { saveToStorage(STORAGE_KEYS.INVOICES, invoices); }, [invoices]); 
-  // DIHAPUS: Save cloudSyncEnabled
-  // useEffect(() => { saveToStorage(STORAGE_KEYS.CLOUD_SYNC, cloudSyncEnabled); }, [cloudSyncEnabled]);
 
   // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
   useEffect(() => {
@@ -464,7 +439,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         id: item.id, nama: item.nama, kategori: item.kategori ?? null, nilai_awal: item.nilaiAwal, tanggal_beli: toSafeISOString(item.tanggalPembelian), nilai_sekarang: item.nilaiSaatIni, kondisi: item.kondisi ?? null, lokasi: item.lokasi ?? null, deskripsi: item.deskripsi ?? null, depresiasi: item.depresiasi ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
       })),
       financialTransactions: financialTransactions.map(item => ({
-        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updated_at || new Date()),
+        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
       })),
     });
     return success;
@@ -554,7 +529,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
-    const session = (await supabase.auth.getSession()).data.session; // Perlu session untuk RLS
+    const session = (await supabase.auth.getSession()).data.session; 
     if (!session) { toast.error('Anda harus login untuk memperbarui bahan baku'); return false; }
 
     const bahanToUpdate: Partial<any> = {
@@ -589,7 +564,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteBahanBaku = async (id: string) => {
     const bahan = bahanBaku.find(b => b.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus bahan baku'); return false; }
 
     const { error } = await supabase.from('bahan_baku').delete().eq('id', id).eq('user_id', session.user.id);
@@ -678,7 +653,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateSupplier = async (id: string, updatedSupplier: Partial<Supplier>) => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk memperbarui supplier'); return false; }
 
     const supplierToUpdate: Partial<any> = {
@@ -705,7 +680,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteSupplier = async (id: string) => {
     const supplier = suppliers.find(s => s.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus supplier'); return false; }
 
     const { error } = await supabase.from('suppliers').delete().eq('id', id).eq('user_id', session.user.id);
@@ -792,7 +767,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>) => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk memperbarui pembelian'); return false; }
 
     const purchaseToUpdate: Partial<any> = {
@@ -818,7 +793,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const deletePurchase = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus pembelian'); return false; }
 
     const { error } = await supabase.from('purchases').delete().eq('id', id).eq('user_id', session.user.id);
@@ -878,7 +853,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk memperbarui resep'); return false; }
 
     const recipeToUpdate: Partial<any> = {
@@ -910,7 +885,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteRecipe = async (id: string) => {
     const recipe = recipes.find(r => r.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus resep'); return false; }
 
     const { error } = await supabase.from('hpp_recipes').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1028,7 +1003,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk memperbarui pesanan'); return false; }
 
     const orderToUpdate: Partial<any> = {
@@ -1061,7 +1036,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteOrder = async (id: string): Promise<boolean> => {
     const order = orders.find(o => o.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus pesanan'); return false; }
 
     const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1295,7 +1270,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateFinancialTransaction = async (id: string, updatedTransaction: Partial<FinancialTransaction>) => {
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk memperbarui transaksi keuangan'); return false; }
 
     const transactionToUpdate: Partial<any> = {
@@ -1322,7 +1297,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteFinancialTransaction = async (id: string) => {
     const transaction = financialTransactions.find(t => t.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); // Perlu session untuk RLS
+    const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus transaksi keuangan'); return false; }
 
     const { error } = await supabase.from('financial_transactions').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1381,8 +1356,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addFinancialTransaction,
     updateFinancialTransaction,
     deleteFinancialTransaction,
-    syncToCloud, // Expose syncToCloud
-    loadFromCloud, // Expose loadFromCloud
+    syncToCloud, 
+    loadFromCloud, 
     replaceAllData,
     getStatistics,
     getDashboardStats,

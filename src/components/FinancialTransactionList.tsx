@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 
+// BARIS INI DITAMBAHKAN UNTUK IMPORT UTILS
+import { formatCurrency } from '@/utils/currencyUtils'; // <-- IMPORT FUNGSI formatCurrency
+
 interface FinancialTransactionListProps {
   transactions: FinancialTransaction[];
   loading: boolean;
-  onUpdateTransaction: (id: string, transaction: Omit<FinancialTransaction, 'id' | 'createdAt'>) => Promise<boolean>;
+  onUpdateTransaction: (id: string, transaction: Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>; // Tambahkan updatedAt
   onDeleteTransaction: (id: string) => Promise<boolean>;
   categories: {
     income: string[];
@@ -40,44 +42,59 @@ const FinancialTransactionList = ({
     date: new Date().toISOString().split('T')[0],
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // FUNGSI formatCurrency LOKAL DIHAPUS DARI SINI
+  // const formatCurrency = (value: number) => { ... };
 
   const handleEdit = (transaction: FinancialTransaction) => {
     setEditingTransaction(transaction);
     setFormData({
       type: transaction.type,
-      category: transaction.category,
+      category: transaction.category || '', // Pastikan category string
       amount: transaction.amount,
-      description: transaction.description,
-      date: transaction.date instanceof Date && !isNaN(transaction.date.getTime())   ? transaction.date.toISOString().split('T')[0]   : '', // Jika tanggal tidak valid atau undefined, gunakan string kosong
+      description: transaction.description || '', // Pastikan description string
+      // Pastikan transaction.date adalah objek Date yang valid sebelum memanggil toISOString
+      date: transaction.date instanceof Date && !isNaN(transaction.date.getTime())
+        ? transaction.date.toISOString().split('T')[0]
+        : '',
     });
   };
 
   const handleSave = async () => {
-    if (!editingTransaction || !formData.category || !formData.amount || !formData.description) {
-      return;
+    if (!editingTransaction) return;
+
+    // Pastikan nilai yang dikirim sesuai dengan interface Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>
+    // Category dan Description bisa null di interface, jadi tidak perlu cek !formData.category
+    if (!formData.amount) {
+        toast.error('Jumlah tidak boleh kosong.');
+        return;
     }
 
     const success = await onUpdateTransaction(editingTransaction.id, {
-      ...formData,
-      date: new Date(formData.date),
+      type: formData.type,
+      category: formData.category || null, // Kirim null jika string kosong
+      amount: formData.amount,
+      description: formData.description || null, // Kirim null jika string kosong
+      date: new Date(formData.date), // Pastikan ini Date objek
+      // createdAt dan updatedAt tidak perlu disertakan di sini karena Omit<...>
+      // userId juga tidak perlu
     });
 
     if (success) {
       setEditingTransaction(null);
+      toast.success('Transaksi berhasil disimpan!');
+    } else {
+      toast.error('Gagal menyimpan transaksi.');
     }
   };
 
-  const handleDelete = async (id: string, description: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus transaksi "${description}"?`)) {
-      await onDeleteTransaction(id);
+  const handleDelete = async (id: string, description: string | null) => { // description bisa null
+    if (confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
+      const success = await onDeleteTransaction(id);
+      if (success) {
+        toast.success('Transaksi berhasil dihapus!');
+      } else {
+        toast.error('Gagal menghapus transaksi.');
+      }
     }
   };
 
@@ -116,10 +133,10 @@ const FinancialTransactionList = ({
                     >
                       {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
                     </Badge>
-                    <span className="text-sm text-gray-500">{transaction.category}</span>
+                    <span className="text-sm text-gray-500">{transaction.category || 'Tidak Berkategori'}</span>
                   </div>
                   
-                  <h3 className="font-semibold text-lg mb-1">{transaction.description}</h3>
+                  <h3 className="font-semibold text-lg mb-1">{transaction.description || 'Tidak Ada Deskripsi'}</h3>
                   
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">

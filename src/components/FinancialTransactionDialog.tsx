@@ -1,15 +1,13 @@
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } => "react";
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-// Import safeParseDate dan formatDateToYYYYMMDD dari utils/dateUtils
-import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils'; 
-// Import getInputValue dari inputUtils
-import { getInputValue } from '@/utils/inputUtils'; // Pastikan ini juga diimpor
+import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils';
+import { getInputValue } from '@/utils/inputUtils';
 
 
 interface FinancialTransactionDialogProps {
@@ -23,15 +21,28 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   const [formData, setFormData] = useState({
     user_id: '',
     type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '',
-    amount: 0,
-    description: '',
+    category: '' as string | null, // Pastikan bisa null
+    amount: 0 as number,
+    description: '' as string | null, // Pastikan bisa null
     date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
   });
 
-  // Helper function to safely render values in inputs as string or number
-  // Ini adalah versi yang sudah ada di src/utils/inputUtils.ts, jadi ini hanya komentar
-  // const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => { ... };
+  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) {
+        return '';
+      }
+      const isoString = value.toISOString() || '';
+      return isoString.split('T')[0];
+    }
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return '';
+    }
+    return value;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -41,14 +52,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
         category: '',
         amount: 0,
         description: '',
-        date: formatDateToYYYYMMDD(new Date()), // Pastikan inisialisasi juga melalui formatDateToYYYYMMDD agar konsisten
+        date: formatDateToYYYYMMDD(new Date()),
       });
     }
   }, [isOpen]);
 
   const handleChange = (name: string, value: string | number) => {
-    if (name === 'category' && (value === "" || value === "-placeholder-category-")) {
-      setFormData(prev => ({ ...prev, [name]: '' }));
+    // MODIFIED: Pastikan category dan description bisa menerima null jika value kosong
+    if (name === 'category') {
+      setFormData(prev => ({ ...prev, [name]: (value === "" || value === "-placeholder-category-") ? null : value }));
+    } else if (name === 'description') {
+      setFormData(prev => ({ ...prev, [name]: typeof value === 'string' && value.trim() === '' ? null : value }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -56,16 +70,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   const handleSave = async () => {
     if (
-      !formData.category.trim() ||
+      // MODIFIED: Tambahkan optional chaining untuk .trim()
+      !formData.category?.trim() || // Akan bernilai true jika category null/undefined/string kosong
       formData.amount <= 0 ||
-      !formData.description.trim() ||
+      !formData.description?.trim() || // Akan bernilai true jika description null/undefined/string kosong
       !formData.date
     ) {
       toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
       return;
     }
 
-    const { supabase } = await import('@/integrations/supabase/client'); // Dynamic import untuk supabase
+    const { supabase } = await import('@/integrations/supabase/client');
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user.id || '';
 

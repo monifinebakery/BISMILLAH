@@ -21,6 +21,8 @@ const RecipeList = ({ recipes, onEdit, onDelete }: RecipeListProps) => {
   };
 
   const formatDate = (date: Date) => {
+  // Periksa apakah objek Date valid sebelum memformat
+  if (date instanceof Date && !isNaN(date.getTime())) {
     return new Intl.DateTimeFormat('id-ID', {
       year: 'numeric',
       month: 'short',
@@ -28,7 +30,9 @@ const RecipeList = ({ recipes, onEdit, onDelete }: RecipeListProps) => {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
-  };
+  }
+  return 'Tanggal tidak valid'; // Fallback jika tanggal tidak valid
+};
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">

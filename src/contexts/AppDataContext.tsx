@@ -80,20 +80,19 @@ export interface HPPResult {
 export interface Asset {
   id: string;
   nama: string;
-  jenis: string | null;
-  nilai: number;
+  kategori: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi';
+  nilaiAwal: number;
   umurManfaat: number;
-  tanggalPembelian: Date | null; // <-- Diperbarui di sini agar konsisten dengan AssetsPage.tsx
+  tanggalPembelian: Date;
   penyusutanPerBulan: number;
   nilaiSaatIni: number;
-  userId?: string;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  kategori: string | null;
-  kondisi: string | null;
-  lokasi: string | null;
-  deskripsi: string | null;
-  depresiasi: number | null;
+  kondisi: 'Baik' | 'Cukup' | 'Buruk';
+  lokasi: string;
+  deskripsi?: string;
+  user_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  depresiasi?: number | null;
 }
 
 export interface FinancialTransaction {

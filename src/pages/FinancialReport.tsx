@@ -36,7 +36,6 @@ const FinancialReportPage = () => {
     return (transactions || []).filter(t => {
       const transactionDate = t.date;
       
-      // LOG DITAMBAHKAN UNTUK DEBUGGING
       console.log('DEBUG FilteredTransactions: Processing transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
 
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
@@ -89,7 +88,6 @@ const FinancialReportPage = () => {
     filteredTransactions.forEach(t => {
       const transactionDate = t.date;
       
-      // LOG DITAMBAHKAN UNTUK DEBUGGING
       console.log('DEBUG TransactionData: Aggregating transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
 
       if (!transactionDate || isNaN(transactionDate.getTime())) {
@@ -117,12 +115,16 @@ const FinancialReportPage = () => {
         console.log('DEBUG TransactionData: Filter for map/sort - Value date:', value.date, 'Type:', typeof value.date, 'isNaN:', value.date instanceof Date ? isNaN(value.date.getTime()) : 'N/A');
         return value.date instanceof Date && !isNaN(value.date.getTime());
       })
-      .map(value => ({
-        month: format(value.date as Date, 'MMM yy', { locale: id }),
-        income: value.income,
-        expense: value.expense,
-        date: value.date,
-      }))
+      .map(value => {
+        // MODIFIKASI DISINI: Tambahkan pemeriksaan eksplisit untuk value.date sebelum pemformatan
+        const dateToFormat = (value.date instanceof Date && !isNaN(value.date.getTime())) ? value.date : new Date(); // Fallback ke new Date() jika tidak valid
+        return {
+          month: format(dateToFormat, 'MMM yy', { locale: id }),
+          income: value.income,
+          expense: value.expense,
+          date: value.date, // Tetap gunakan value.date asli untuk properti 'date' di objek yang dikembalikan
+        };
+      })
       .sort((a, b) => {
         // LOG DITAMBAHKAN UNTUK DEBUGGING
         console.log('DEBUG TransactionData: Sorting - a.date:', a.date, 'b.date:', b.date);

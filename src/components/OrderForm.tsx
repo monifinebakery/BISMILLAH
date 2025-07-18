@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area'; // Pastikan ScrollArea diimport
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, X } from 'lucide-react';
 import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
+// PASTIKAN safeParseDate DIIMPORT DARI LOKASI YANG BENAR
+// Asumsi ini berasal dari useSupabaseSync atau helper util lainnya
+import { safeParseDate } from '@/hooks/useSupabaseSync'; // <-- BARIS INI DITAMBAHKAN/VERIFIKASI
 
 interface OrderFormProps {
   open: boolean;
@@ -44,7 +47,18 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
         catatan: initialData?.catatan || '',
       });
       // Pastikan items setidaknya memiliki 1 baris kosong jika tidak ada data awal
-      setItems(initialData?.items && initialData.items.length > 0 ? initialData.items : [{ id: Date.now(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
+      // Jika initialData.items ada dan berisi data, gunakan itu. Jika tidak, sediakan 1 baris kosong.
+      setItems(initialData?.items && initialData.items.length > 0
+        ? initialData.items.map(item => ({
+            ...item,
+            // Pastikan id adalah number jika Date.now() digunakan sebagai id
+            id: item.id || Date.now(),
+            // Pastikan quantity dan hargaSatuan adalah number
+            quantity: Number(item.quantity) || 0,
+            hargaSatuan: Number(item.hargaSatuan) || 0,
+            totalHarga: Number(item.totalHarga) || 0,
+          }))
+        : [{ id: Date.now(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
       setPajakInput(initialData?.pajak || '');
     }
   }, [open, initialData]);
@@ -83,7 +97,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
 
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
-    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(pajakInput as string); // Handle pajakInput as string
+    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(String(pajakInput)); // Gunakan String() untuk keamanan
     const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1; // Pajak default 10% jika tidak valid
     const total = subtotal + pajak;
     return { subtotal, pajak, total };
@@ -108,16 +122,30 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
       toast.error('Nama dan Nomor Telepon pelanggan wajib diisi.');
       return;
     }
-    if (items.some(item => !item.nama?.trim() || parseFloat(String(item.quantity)) <= 0 || parseFloat(String(item.hargaSatuan)) < 0)) {
-      toast.error('Semua item harus memiliki nama, jumlah > 0, dan harga >= 0.');
-      return;
+    // Filter out items with empty names or invalid quantities/prices before validation
+    const validItems = items.filter(item =>
+      item.nama?.trim() && parseFloat(String(item.quantity)) > 0 && parseFloat(String(item.hargaSatuan)) >= 0
+    );
+
+    if (validItems.length === 0) {
+        toast.error('Pesanan harus memiliki setidaknya satu item yang valid (nama, jumlah > 0, harga >= 0).');
+        return;
     }
 
     const { subtotal: finalSubtotal, pajak: finalPajak, total: finalTotal } = calculateTotals();
-    const commonData = { ...formData, items: items as OrderItem[], subtotal: finalSubtotal, pajak: finalPajak, totalPesanan: finalTotal };
+    const commonData = {
+        ...formData,
+        items: validItems as OrderItem[], // Pastikan hanya item yang valid yang disubmit
+        subtotal: finalSubtotal,
+        pajak: finalPajak,
+        totalPesanan: finalTotal
+    };
 
     if (initialData) {
-      onSubmit({ ...initialData, ...commonData });
+      // Pastikan initialData.tanggal adalah objek Date yang valid atau null sebelum meneruskan
+      const orderDate = safeParseDate(initialData.tanggal); // Gunakan safeParseDate
+      // Fallback ke initialData.tanggal jika sudah Date atau new Date() jika benar-benar tidak valid
+      onSubmit({ ...initialData, tanggal: orderDate || initialData.tanggal || new Date(), ...commonData });
     } else {
       onSubmit({ ...commonData, tanggal: new Date() });
     }
@@ -126,7 +154,6 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* MODIFIED: Tambahkan flex-col dan atur tinggi untuk scrollability di mobile */}
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
@@ -134,8 +161,7 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
           </DialogTitle>
         </DialogHeader>
 
-        {/* MODIFIED: Wrapper untuk konten yang bisa di-scroll */}
-        <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4"> {/* Form juga di-scroll */}
+        <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
@@ -188,9 +214,8 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                 </Button>
               )}
             </div>
-            {/* MODIFIED: Bungkus Table dengan ScrollArea untuk scroll horizontal/vertikal jika banyak item */}
-            <ScrollArea className="max-h-[300px] rounded-md border"> {/* Max height untuk scroll vertikal */}
-              <div className="w-full"> {/* Min-width untuk scroll horizontal jika tabel lebar */}
+            <ScrollArea className="max-h-[300px] rounded-md border">
+              <div className="w-full">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -208,10 +233,10 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
                           <Input value={item.nama || ''} onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} className="h-8 px-2" readOnly={isViewMode} />
                         </TableCell>
                         <TableCell className="p-1">
-                          <Input type="number" value={item.quantity || 1} onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 1)} className="h-8 w-14 text-center px-1" readOnly={isViewMode} />
+                          <Input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 0)} className="h-8 w-14 text-center px-1" readOnly={isViewMode} min="0" />
                         </TableCell>
                         <TableCell className="p-1">
-                          <Input type="number" value={item.hargaSatuan || 0} onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} className="h-8 px-2" readOnly={isViewMode} />
+                          <Input type="number" value={item.hargaSatuan || ''} onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} className="h-8 px-2" readOnly={isViewMode} min="0" />
                         </TableCell>
                         <TableCell className="text-right p-2 text-xs">
                           {formatCurrency(item.totalHarga || 0)}
@@ -245,7 +270,15 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData, isViewMode = fal
             </div>
             <div className="flex justify-between items-center text-sm">
               <span>Pajak</span>
-              <Input type="number" value={pajakInput} onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')} placeholder="10%" className="h-8 w-24 text-right" readOnly={isViewMode} />
+              <Input
+                type="number"
+                value={pajakInput}
+                onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')}
+                placeholder="10%"
+                className="h-8 w-24 text-right"
+                readOnly={isViewMode}
+                min="0" // Pajak tidak boleh negatif
+              />
             </div>
             <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
               <span>Total</span>

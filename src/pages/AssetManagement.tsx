@@ -310,7 +310,7 @@ const AssetManagement = () => {
                           value={formatDateToYYYYMMDD(formData.tanggalBeli)}
                           onChange={(e) => setFormData({
                             ...formData,
-                            tanggalBeli: e.target.value ? new Date(e.target.value) : null // <-- UBAH KE null
+                             tanggalBeli: safeParseDate(e.target.value)
                           })}
                           className="border-orange-200 focus:border-orange-400"
                           required

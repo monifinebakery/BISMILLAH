@@ -66,7 +66,6 @@ const RecipesPage = () => {
     });
   }, [recipes, searchTerm, categoryFilter]);
 
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 flex items-center justify-center font-inter">

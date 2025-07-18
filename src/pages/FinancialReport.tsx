@@ -1,3 +1,4 @@
+// src/pages/FinancialReportPage.tsx (Penuh)
 import React, { useState, useMemo } from 'react';
 import { format, subDays, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -16,7 +17,7 @@ import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { safeParseDate, formatDateForDisplay } from '@/utils/dateUtils'; // safeParseDate dan formatDateForDisplay dari utils
+import { safeParseDate, formatDateForDisplay } from '@/utils/dateUtils';
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
@@ -25,8 +26,9 @@ const FinancialReportPage = () => {
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
-    to: new Date(),
+    // MODIFIED: Ubah rentang tanggal default agar mencakup data sampel Anda
+    from: new Date('2020-01-01'), // Contoh: dari awal tahun 2020
+    to: new Date(),                  // Hingga hari ini
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -46,7 +48,7 @@ const FinancialReportPage = () => {
       if (dateRange?.to && transactionDate > dateRange.to) return false;
       return true;
     });
-    console.log('DEBUG FinancialReportPage: Filtered transactions result:', filtered); // <-- LOG INI DITAMBAHKAN
+    console.log('DEBUG FinancialReportPage: Filtered transactions result:', filtered);
     return filtered;
   }, [transactions, dateRange]);
 
@@ -86,7 +88,7 @@ const FinancialReportPage = () => {
   const transactionData = useMemo(() => {
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {};
 
-    console.log('DEBUG TransactionData: Input filteredTransactions for aggregation:', filteredTransactions); // <-- LOG INI DITAMBAHKAN
+    console.log('DEBUG TransactionData: Input filteredTransactions for aggregation:', filteredTransactions);
 
     filteredTransactions.forEach(t => {
       const transactionDate = t.date;
@@ -104,10 +106,10 @@ const FinancialReportPage = () => {
       }
       if (t.type === 'pemasukan') {
         monthlyData[monthYear].income += t.amount || 0;
-      } else if (t.type === 'pengeluaran') { // MODIFIED: Penanganan type yang lebih eksplisit
+      } else if (t.type === 'pengeluaran') {
         monthlyData[monthYear].expense += t.amount || 0;
       }
-      else { // MODIFIED: Log warning untuk type yang tidak dikenali
+      else {
         console.warn(`DEBUG TransactionData: Unrecognized type for transaction ${t.id}: ${t.type}`);
       }
     });

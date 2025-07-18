@@ -12,15 +12,19 @@ export interface FinancialTransaction {
 
 export interface Asset {
   id: string;
-  name: string;
-  category: string;
-  purchasePrice: number;
-  currentValue: number;
-  purchaseDate: Date | null; 
-  condition: 'excellent' | 'good' | 'fair' | 'poor';
-  description: string;
-  createdAt: Date | null; 
-  updatedAt: Date | null; 
+  nama: string;
+  kategori: 'Peralatan' | 'Kendaraan' | 'Properti' | 'Teknologi';
+  nilaiAwal: number;
+  nilaiSaatIni: number;
+  tanggalPembelian: Date | null;
+  kondisi: 'Baik' | 'Cukup' | 'Buruk';
+  lokasi: string;
+  deskripsi?: string;
+  depresiasi?: number | null;
+  penyusutanPerBulan: number; // Placeholder, bisa dihitung jika diperlukan
+  user_id: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Notification {

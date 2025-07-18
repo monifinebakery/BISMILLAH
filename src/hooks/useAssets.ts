@@ -37,7 +37,7 @@ export const useAssets = (userId: string | undefined, initialData?: Asset[]) => 
           jenis: item.jenis,
           nilaiAwal: parseFloat(item.nilai_awal) || 0, // DB: nilai_awal -> local: nilaiAwal
           umurManfaat: parseFloat(item.umur_manfaat) || 0, // DB: umur_manfaat -> local: umurManfaat
-          tanggalPembelian: item.tanggal_beli ? safeParseDate(item.tanggal_beli) : undefined, // MODIFIED: Gunakan safeParseDate
+          tanggalPembelian: safeParseDate(item.tanggal_beli), // Gunakan safeParseDate secara langsung, sekarang mengembalikan Date | null
           penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0, // DB: penyusutan_per_bulan -> local: penyusutanPerBulan
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // DB: nilai_sekarang -> local: nilaiSaatIni
           kondisi: item.kondisi,

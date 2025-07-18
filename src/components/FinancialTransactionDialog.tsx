@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from "sonner";
 import { safeParseDate } from '@/utils/dateUtils'; // safeParseDate dari utils
 import { formatDateToYYYYMMDD } from '@/utils/dateUtils'; // formatDateToYYYYMMDD dari utils
+import { getInputValue } from '@/utils/inputUtils';
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;

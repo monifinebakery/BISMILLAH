@@ -23,22 +23,21 @@ const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, men
       content += `Total Records: ${data.length}\n\n`;
 
       data.forEach((item, index) => {
-        content += `${index + 1}. `;
-        Object.entries(item).forEach(([key, value]) => {
-          if (!['id', 'user_id'].includes(key)) {
-            let displayValue = value;
-            // MODIFIED: Tambahkan pemeriksaan isNaN(value.getTime())
-            if (value instanceof Date) {
-              displayValue = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
-            } else if (typeof value === 'object' && value !== null) {
-              // Jika objek kompleks (misal: array ingredients), stringify
-              displayValue = JSON.stringify(value);
-            }
-            content += `${key}: ${displayValue} | `;
-          }
-        });
-        content += '\n';
-      });
+  content += `${index + 1}. `;
+  Object.entries(item).forEach(([key, value]) => {
+    if (!['id', 'user_id'].includes(key)) {
+      let displayValue = value;
+      if (value instanceof Date) {
+        // Pastikan tanggal valid sebelum memanggil toISOString
+        displayValue = !isNaN(value.getTime()) ? value.toISOString() : 'Invalid Date';
+      } else if (typeof value === 'object' && value !== null) {
+        displayValue = JSON.stringify(value);
+      }
+      content += `${key}: ${displayValue} | `;
+    }
+  });
+  content += '\n';
+});
 
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { useIsMobile } from '@/hooks/use-mobile'; // PERBAIKAN: Import useIsMobile
 import { generateUUID } from '@/utils/uuid'; // PERBAIKAN: Import generateUUID (penting untuk item.id)
+import { formatCurrency } from '@/utils/currencyUtils'; // PERBAIKAN: Tambahkan baris import ini
 
 const PurchaseManagement = () => {
   const isMobile = useIsMobile(); // Panggil hook useIsMobile

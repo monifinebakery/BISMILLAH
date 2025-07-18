@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAppData } from "@/contexts/AppDataContext";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+import { formatDateTimeForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
 
 const Dashboard = () => {
   const { getDashboardStats, activities } = useAppData();
@@ -32,7 +32,7 @@ const Dashboard = () => {
     {
       title: "Stok Menipis",
       value: stats.stokMenurut.toString(),
-      icon: DollarSign,
+      icon: DollarSign, // Menggunakan DollarSign sesuai kode Anda
       color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400",
     },
   ];
@@ -61,14 +61,15 @@ const Dashboard = () => {
     },
   ];
 
-  const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  };
+  // FUNGSI formatDateTime LOKAL DIHAPUS DI SINI
+  // const formatDateTime = (date: Date) => {
+  //   return new Intl.DateTimeFormat('id-ID', {
+  //     day: 'numeric',
+  //     month: 'short',
+  //     hour: '2-digit',
+  //     minute: '2-digit',
+  //   }).format(date);
+  // };
 
   const getGreeting = () => {
     if (userName) {
@@ -147,7 +148,8 @@ const Dashboard = () => {
                 <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
                   <div className="flex-1">
                     <p className="font-medium text-sm sm:text-base">{activity.title}</p>
-                    <p className="text-xs sm:text-sm text-gray-600">{formatDateTime(activity.timestamp)}</p>
+                    {/* BARIS INI DIUBAH */}
+                    <p className="text-xs sm:text-sm text-gray-600">{formatDateTimeForDisplay(activity.timestamp)}</p>
                   </div>
                   {activity.value && (
                     <span className={`font-semibold text-sm sm:text-base ${

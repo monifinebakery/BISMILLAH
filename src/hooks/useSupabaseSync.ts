@@ -16,7 +16,7 @@ import {
   HPPResult,
   Activity,
   Order,
-  Asset,
+  Asset, // PERBAIKAN: Import Asset
   FinancialTransaction,
 } from '@/contexts/AppDataContext'; // Assuming types are exported from AppDataContext
 
@@ -24,11 +24,8 @@ import {
 // HELPER FUNCTIONS (safeParseDate dan toSafeISOString sekarang diimpor)
 // ===============================================
 
-// DEFINISI safeParseDate LOKAL DIHAPUS DARI SINI
-// export const safeParseDate = (dateValue: any): Date | null => { ... };
-
-// DEFINISI toSafeISOString LOKAL DIHAPUS DARI SINI
-// const toSafeISOString = (dateValue: Date | undefined | string | null): string | null => { ... };
+// DEFINISI safeParseDate LOKAL DIHAPUS DARI SINI (Sudah diimpor)
+// DEFINISI toSafeISOString LOKAL DIHAPUS DARI SINI (Sudah diimpor)
 
 // ===============================================
 // INTERFACES FOR SUPABASE DATA (snake_case)
@@ -141,19 +138,20 @@ interface TransformedOrder {
   updated_at: string;
 }
 
+// PERBAIKAN UTAMA: Interface TransformedAsset
 interface TransformedAsset {
   id: string;
   nama: string;
-  jenis: string | null;
+  // Hapus 'jenis', gunakan 'kategori'
+  kategori: string | null; // Kolom DB harus 'kategori'
   nilai_awal: number;
-  umur_manfaat: number;
-  tanggal_pembelian: string;
-  penyusutan_per_bulan: number;
+  // Hapus umur_manfaat
+  tanggal_beli: string; // Kolom DB harus 'tanggal_beli'
+  // Hapus penyusutan_per_bulan
   nilai_sekarang: number;
   user_id: string;
   created_at: string;
   updated_at: string;
-  kategori: string | null;
   kondisi: string | null;
   lokasi: string | null;
   deskripsi: string | null;
@@ -200,7 +198,7 @@ export interface SyncPayload {
   hppResults: TransformedHPPResult[];
   activities: TransformedActivity[];
   orders: TransformedOrder[];
-  assets: TransformedAsset[];
+  assets: TransformedAsset[]; // Pastikan ini TransformedAsset
   financialTransactions: TransformedFinancialTransaction[];
   userSettings?: TransformedUserSettings;
 }
@@ -213,9 +211,9 @@ export interface LoadedData {
   hppResults: HPPResult[];
   activities: Activity[];
   orders: Order[];
-  assets: Asset[];
+  assets: Asset[]; // Pastikan ini Asset (frontend type)
   financialTransactions: FinancialTransaction[];
-  userSettings?: any;
+  userSettings?: any; // AppDataContext's UserSettings type
 }
 
 // ===============================================
@@ -239,6 +237,7 @@ export const useSupabaseSync = () => {
       const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
       const userId = session.user.id;
 
+      // PERBAIKAN: Pastikan ini sudah sesuai dengan nama tabel Anda
       const deletePromises = [
         supabase.from('bahan_baku').delete().eq('user_id', userId),
         supabase.from('suppliers').delete().eq('user_id', userId),
@@ -258,6 +257,7 @@ export const useSupabaseSync = () => {
 
       const upsertPromises = [];
 
+      // ... (Bagian upsert lainnya tidak berubah)
       if (bahanBaku && bahanBaku.length > 0) {
         upsertPromises.push(supabase.from('bahan_baku').upsert(bahanBaku, { onConflict: 'id', ignoreDuplicates: false }));
       }
@@ -322,6 +322,7 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
+      // PERBAIKAN: Pastikan ini sudah sesuai dengan nama tabel Anda
       const [
         bahanBakuRes,
         suppliersRes,
@@ -485,34 +486,33 @@ export const useSupabaseSync = () => {
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
+        // PERBAIKAN UTAMA: Mapping untuk Assets
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama || '',
-          jenis: item.jenis || '', // Corresponds to DB `jenis`
-          nilai: parseFloat(item.nilai_awal) || 0, // Corresponds to DB `nilai_awal`
-          umurManfaat: parseFloat(item.umur_manfaat) || 0,
-          tanggalPembelian: safeParseDate(item.tanggal_pembelian) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date
-          penyusutanPerBulan: parseFloat(item.penyusutan_per_bulan) || 0,
-          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-          userId: item.user_id, // Map DB user_id to frontend userId
-          createdAt: safeParseDate(item.created_at),
-          updatedAt: safeParseDate(item.updated_at),
-          kategori: item.kategori || '',
+          kategori: item.kategori || '', // PERBAIKAN: Gunakan 'kategori' dari DB
+          nilaiAwal: parseFloat(item.nilai_awal) || 0, // Map DB `nilai_awal` ke frontend `nilaiAwal`
+          nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0, // Map DB `nilai_sekarang` ke frontend `nilaiSaatIni`
+          tanggalPembelian: safeParseDate(item.tanggal_beli) || new Date('1970-01-01T00:00:00Z'), // PERBAIKAN: Gunakan 'tanggal_beli' dari DB
           kondisi: item.kondisi || '',
           lokasi: item.lokasi || '',
           deskripsi: item.deskripsi || '',
           depresiasi: parseFloat(item.depresiasi) ?? null,
+          // --- DIHAPUS: umurManfaat dan penyusutanPerBulan
+          userId: item.user_id, // Map DB user_id to frontend userId
+          createdAt: safeParseDate(item.created_at),
+          updatedAt: safeParseDate(item.updated_at),
         })) || [],
         financialTransactions: financialTransactionsRes.data?.map((item: any) => ({
           id: item.id,
           userId: item.user_id, // Map DB user_id to frontend userId
-          type: item.type || '', // Corresponds to DB `type`
+          type: item.type || '',
           category: item.category || '',
           amount: parseFloat(item.amount) || 0,
           description: item.description || '',
           date: safeParseDate(item.date) || new Date(),
-          created_at: safeParseDate(item.created_at) || new Date(),
-          updated_at: safeParseDate(item.updated_at) || new Date(),
+          createdAt: safeParseDate(item.created_at) || new Date(), // PERBAIKAN: Sesuaikan dengan nama field di AppDataContext jika berbeda (misal `created_at` vs `createdAt`)
+          updatedAt: safeParseDate(item.updated_at) || new Date(), // PERBAIKAN: Sesuaikan dengan nama field di AppDataContext jika berbeda (misal `updated_at` vs `updatedAt`)
         })) || [],
         userSettings: userSettingsData,
       };

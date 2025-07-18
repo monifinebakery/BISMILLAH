@@ -197,7 +197,7 @@ const OrdersPage = () => {
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       
       // MODIFIED: Periksa apakah order.tanggal adalah instance Date sebelum memformat
-      const orderDate = order.tanggal instanceof Date ? order.tanggal : new Date(order.tanggal); 
+      const orderDate = safeParseDate(order.tanggal); // Gunakan safeParseDate
       
       const matchesDate = dateRange?.from && dateRange?.to && orderDate instanceof Date && !isNaN(orderDate.getTime()) // Tambahkan pemeriksaan validitas tanggal
         ? orderDate >= dateRange.from && orderDate <= dateRange.to

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,8 @@ import { useIngredientPrices } from "@/hooks/useIngredientPrices";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// --- IMPOR BARU ---
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
 
 interface EnhancedRecipeFormProps {
   initialData?: Recipe | null;
@@ -19,8 +20,9 @@ interface EnhancedRecipeFormProps {
 }
 
 const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFormProps) => {
-  const { bahanBaku } = useAppData();
-  const { getIngredientPrice, updateIngredientPrices } = useIngredientPrices();
+  // --- MENGGUNAKAN HOOK BARU ---
+  const { bahanBaku } = useBahanBaku();
+  const { updateIngredientPrices } = useIngredientPrices();
   
   const [formData, setFormData] = useState<NewRecipe>({
     namaResep: "",
@@ -43,7 +45,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     if (initialData) {
       setFormData({
         namaResep: initialData.namaResep,
-        deskripsi: initialData.deskripsi,
+        deskripsi: initialData.deskripsi || "",
         porsi: initialData.porsi,
         ingredients: initialData.ingredients,
         biayaTenagaKerja: initialData.biayaTenagaKerja,
@@ -66,7 +68,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         updatedIngredient.hargaPerSatuan = bahanBakuItem.hargaSatuan;
         updatedIngredient.satuan = bahanBakuItem.satuan;
         
-        toast.success(`Data otomatis terisi untuk ${value}`);
+        toast.info(`Data otomatis terisi untuk ${value}`);
       }
     }
     
@@ -74,7 +76,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   };
 
   const addIngredient = () => {
-    if (newIngredient.nama && newIngredient.jumlah > 0 && newIngredient.hargaPerSatuan > 0) {
+    if (newIngredient.nama && newIngredient.jumlah > 0 && newIngredient.hargaPerSatuan >= 0) { // Harga boleh 0
       const ingredient: RecipeIngredient = {
         id: Date.now().toString(),
         ...newIngredient,
@@ -93,7 +95,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       
       toast.success(`${ingredient.nama} berhasil ditambahkan`);
     } else {
-      toast.error("Lengkapi semua field bahan");
+      toast.error("Nama, Jumlah, dan Harga bahan harus diisi");
     }
   };
 
@@ -119,34 +121,30 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       setFormData({ ...formData, ingredients: updatedIngredients });
       toast.success("Harga bahan baku diperbarui sesuai data gudang");
     } else {
-      toast.success("Semua harga sudah menggunakan data terkini");
+      toast.info("Semua harga sudah menggunakan data terkini");
     }
   };
 
   const calculateTotals = () => {
-    const totalBahanBaku = formData.ingredients.reduce((sum, ing) => sum + ing.totalHarga, 0);
+    const totalBahanBaku = formData.ingredients.reduce((sum, ing) => sum + (ing.jumlah * ing.hargaPerSatuan), 0);
     const totalHPP = totalBahanBaku + formData.biayaTenagaKerja + formData.biayaOverhead;
-    const hppPerPorsi = totalHPP / formData.porsi;
+    const hppPerPorsi = formData.porsi > 0 ? totalHPP / formData.porsi : 0;
     const hargaJualPerPorsi = hppPerPorsi * (1 + formData.marginKeuntungan / 100);
 
-    return {
-      totalBahanBaku,
-      totalHPP,
-      hppPerPorsi,
-      hargaJualPerPorsi,
-    };
+    return { totalBahanBaku, totalHPP, hppPerPorsi, hargaJualPerPorsi };
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.namaResep && formData.ingredients.length > 0) {
+      // Validasi ini penting untuk memastikan semua bahan yang dipilih ada di gudang.
+      // Jika Anda ingin mengizinkan bahan custom, logika ini bisa diubah.
       const unavailableIngredients = formData.ingredients.filter(ing => {
-        const bahanBakuItem = bahanBaku.find(item => item.nama === ing.nama);
-        return !bahanBakuItem;
+        return !bahanBaku.some(item => item.nama === ing.nama);
       });
 
       if (unavailableIngredients.length > 0) {
-        toast.error(`Bahan tidak tersedia: ${unavailableIngredients.map(ing => ing.nama).join(', ')}`);
+        toast.error(`Bahan tidak tersedia di gudang: ${unavailableIngredients.map(ing => ing.nama).join(', ')}`);
         return;
       }
 
@@ -161,7 +159,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 2
     }).format(value);
   };
 
@@ -173,39 +171,17 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="namaResep">Nama Resep *</Label>
-          <Input
-            id="namaResep"
-            value={formData.namaResep}
-            onChange={(e) => handleInputChange('namaResep', e.target.value)}
-            placeholder="Masukkan nama resep"
-            required
-            className="mt-1"
-          />
+          <Input id="namaResep" value={formData.namaResep} onChange={(e) => handleInputChange('namaResep', e.target.value)} placeholder="Masukkan nama resep" required className="mt-1" />
         </div>
         <div>
           <Label htmlFor="porsi">Jumlah Porsi *</Label>
-          <Input
-            id="porsi"
-            type="number"
-            min="1"
-            value={formData.porsi}
-            onChange={(e) => handleInputChange('porsi', parseInt(e.target.value) || 1)}
-            required
-            className="mt-1"
-          />
+          <Input id="porsi" type="number" min="1" value={formData.porsi} onChange={(e) => handleInputChange('porsi', parseInt(e.target.value) || 1)} required className="mt-1" />
         </div>
       </div>
 
       <div>
         <Label htmlFor="deskripsi">Deskripsi</Label>
-        <Textarea
-          id="deskripsi"
-          value={formData.deskripsi}
-          onChange={(e) => handleInputChange('deskripsi', e.target.value)}
-          placeholder="Deskripsi resep (opsional)"
-          className="mt-1"
-          rows={3}
-        />
+        <Textarea id="deskripsi" value={formData.deskripsi} onChange={(e) => handleInputChange('deskripsi', e.target.value)} placeholder="Deskripsi resep (opsional)" className="mt-1" rows={3} />
       </div>
 
       {/* Ingredients */}
@@ -214,13 +190,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           <div className="flex items-center justify-between">
             <CardTitle className="text-base sm:text-lg">Daftar Bahan</CardTitle>
             {formData.ingredients.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={refreshIngredientPrices}
-                className="hover:bg-blue-50"
-              >
+              <Button type="button" variant="outline" size="sm" onClick={refreshIngredientPrices} className="hover:bg-blue-50">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Perbarui Harga
               </Button>
@@ -228,21 +198,17 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add Ingredient Form */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
             <div>
               <Label className="text-xs sm:text-sm">Nama Bahan *</Label>
-              <Select
-                value={newIngredient.nama}
-                onValueChange={(value) => handleIngredientChange('nama', value)}
-              >
+              <Select value={newIngredient.nama} onValueChange={(value) => handleIngredientChange('nama', value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Pilih bahan..." />
                 </SelectTrigger>
                 <SelectContent>
                   {bahanBaku.map((item) => (
                     <SelectItem key={item.id} value={item.nama}>
-                      {item.nama} (Stok: {item.stok} {item.satuan})
+                      {item.nama}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -250,58 +216,31 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             </div>
             <div>
               <Label className="text-xs sm:text-sm">Jumlah *</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={newIngredient.jumlah || ''}
-                onChange={(e) => handleIngredientChange('jumlah', parseFloat(e.target.value) || 0)}
-                placeholder="0"
-                className="mt-1"
-              />
+              <Input type="number" step="0.1" value={newIngredient.jumlah || ''} onChange={(e) => handleIngredientChange('jumlah', parseFloat(e.target.value) || 0)} placeholder="0" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs sm:text-sm">Satuan</Label>
-              <Input
-                value={newIngredient.satuan}
-                onChange={(e) => handleIngredientChange('satuan', e.target.value)}
-                placeholder="kg, gram, liter"
-                className="mt-1"
-                readOnly={!!newIngredient.nama}
-              />
+              <Input value={newIngredient.satuan} onChange={(e) => handleIngredientChange('satuan', e.target.value)} placeholder="kg, gram, dll" className="mt-1" readOnly={bahanBaku.some(b => b.nama === newIngredient.nama)} />
             </div>
             <div>
               <Label className="text-xs sm:text-sm">Harga/Satuan</Label>
-              <Input
-                type="number"
-                value={newIngredient.hargaPerSatuan || ''}
-                onChange={(e) => handleIngredientChange('hargaPerSatuan', parseFloat(e.target.value) || 0)}
-                placeholder="0"
-                className="mt-1"
-                readOnly={!!newIngredient.nama}
-              />
+              <Input type="number" value={newIngredient.hargaPerSatuan || ''} onChange={(e) => handleIngredientChange('hargaPerSatuan', parseFloat(e.target.value) || 0)} placeholder="0" className="mt-1" readOnly={bahanBaku.some(b => b.nama === newIngredient.nama)} />
             </div>
             <div className="flex items-end">
-              <Button
-                type="button"
-                onClick={addIngredient}
-                className="w-full bg-green-600 hover:bg-green-700"
-                size="sm"
-              >
+              <Button type="button" onClick={addIngredient} className="w-full bg-green-600 hover:bg-green-700" size="sm">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-sm">+ Tambah</span>
+                <span className="text-xs sm:text-sm">Tambah</span>
               </Button>
             </div>
           </div>
 
-          {/* Ingredients Table */}
           {formData.ingredients.length > 0 && (
-            <div className="border rounded-lg">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama Bahan</TableHead>
                     <TableHead>Jumlah</TableHead>
-                    <TableHead>Satuan</TableHead>
                     <TableHead>Harga/Satuan</TableHead>
                     <TableHead>Total Harga</TableHead>
                     <TableHead>Aksi</TableHead>
@@ -311,18 +250,11 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   {formData.ingredients.map((ingredient) => (
                     <TableRow key={ingredient.id}>
                       <TableCell className="font-medium">{ingredient.nama}</TableCell>
-                      <TableCell>{ingredient.jumlah}</TableCell>
-                      <TableCell>{ingredient.satuan}</TableCell>
+                      <TableCell>{ingredient.jumlah} {ingredient.satuan}</TableCell>
                       <TableCell>{formatCurrency(ingredient.hargaPerSatuan)}</TableCell>
-                      <TableCell className="font-semibold">{formatCurrency(ingredient.totalHarga)}</TableCell>
+                      <TableCell className="font-semibold">{formatCurrency(ingredient.jumlah * ingredient.hargaPerSatuan)}</TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeIngredient(ingredient.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeIngredient(ingredient.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -332,106 +264,50 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
               </Table>
             </div>
           )}
-
-          {formData.ingredients.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Plus className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-              <p>Belum ada bahan ditambahkan</p>
-              <p className="text-sm">Gunakan form di atas untuk menambah bahan</p>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Additional Costs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp)</Label>
-          <Input
-            id="biayaTenagaKerja"
-            type="number"
-            value={formData.biayaTenagaKerja || ''}
-            onChange={(e) => handleInputChange('biayaTenagaKerja', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-            className="mt-1"
-          />
+      {/* Additional Costs & Calculation Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+            <h3 className="font-semibold text-gray-800 text-base">Biaya Lainnya</h3>
+            <div>
+              <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp)</Label>
+              <Input id="biayaTenagaKerja" type="number" value={formData.biayaTenagaKerja || ''} onChange={(e) => handleInputChange('biayaTenagaKerja', parseFloat(e.target.value) || 0)} placeholder="0" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="biayaOverhead">Biaya Overhead (Rp)</Label>
+              <Input id="biayaOverhead" type="number" value={formData.biayaOverhead || ''} onChange={(e) => handleInputChange('biayaOverhead', parseFloat(e.target.value) || 0)} placeholder="0" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="marginKeuntungan">Margin Keuntungan (%)</Label>
+              <Input id="marginKeuntungan" type="number" value={formData.marginKeuntungan || ''} onChange={(e) => handleInputChange('marginKeuntungan', parseFloat(e.target.value) || 0)} placeholder="0" className="mt-1" />
+            </div>
         </div>
-        <div>
-          <Label htmlFor="biayaOverhead">Biaya Overhead (Rp)</Label>
-          <Input
-            id="biayaOverhead"
-            type="number"
-            value={formData.biayaOverhead || ''}
-            onChange={(e) => handleInputChange('biayaOverhead', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="marginKeuntungan">Margin Keuntungan (%)</Label>
-          <Input
-            id="marginKeuntungan"
-            type="number"
-            value={formData.marginKeuntungan || ''}
-            onChange={(e) => handleInputChange('marginKeuntungan', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-            className="mt-1"
-          />
-        </div>
+        <Card className="bg-gray-50 border">
+          <CardHeader>
+            <CardTitle className="flex items-center text-base">
+              <Calculator className="h-5 w-5 mr-2" />
+              Preview Kalkulasi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between"><span>Total Bahan Baku:</span><span className="font-medium">{formatCurrency(totals.totalBahanBaku)}</span></div>
+            <div className="flex justify-between"><span>Biaya Lainnya:</span><span className="font-medium">{formatCurrency(formData.biayaTenagaKerja + formData.biayaOverhead)}</span></div>
+            <hr/>
+            <div className="flex justify-between font-semibold text-base"><span>Total HPP:</span><span>{formatCurrency(totals.totalHPP)}</span></div>
+            <div className="flex justify-between"><span>HPP per Porsi:</span><span className="font-medium">{formatCurrency(totals.hppPerPorsi)}</span></div>
+            <div className="flex justify-between font-bold text-lg text-green-600"><span>Harga Jual / Porsi:</span><span>{formatCurrency(totals.hargaJualPerPorsi)}</span></div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Calculation Preview */}
-      <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="flex items-center text-base sm:text-lg">
-            <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Preview Kalkulasi HPP
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Total Bahan Baku:</span>
-                <span className="font-medium">{formatCurrency(totals.totalBahanBaku)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Biaya Tenaga Kerja:</span>
-                <span className="font-medium">{formatCurrency(formData.biayaTenagaKerja)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Biaya Overhead:</span>
-                <span className="font-medium">{formatCurrency(formData.biayaOverhead)}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between font-semibold text-blue-600 text-base">
-                <span>Total HPP:</span>
-                <span>{formatCurrency(totals.totalHPP)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>HPP per Porsi:</span>
-                <span className="font-medium">{formatCurrency(totals.hppPerPorsi)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-green-600 text-base">
-                <span>Harga Jual per Porsi:</span>
-                <span>{formatCurrency(totals.hargaJualPerPorsi)}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Form Actions */}
-      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} className="flex-1 sm:flex-none">
+      <div className="flex justify-end gap-3 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
           Batal
         </Button>
-        <Button
-          type="submit" 
-          className="flex-1 sm:flex-none bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-          disabled={!formData.namaResep || formData.ingredients.length === 0}
-        >
+        <Button type="submit" disabled={!formData.namaResep || formData.ingredients.length === 0}>
           {initialData ? 'Update Resep' : 'Simpan Resep'}
         </Button>
       </div>

@@ -17,7 +17,7 @@ import { PaymentProvider } from "@/contexts/PaymentContext"; // Asumsi PaymentCo
 import { PurchaseProvider } from "@/contexts/PurchaseContext";
 import { RecipeProvider } from "@/contexts/RecipeContext";
 import { SupplierProvider } from "@/contexts/SupplierContext";
-import { AppProvider } from "@/contexts/AppProvider";
+import { AppProviders } from "@/contexts/AppProviders";
 // =============================================================
 
 // --- Konfigurasi dan Komponen UI ---

@@ -1,13 +1,14 @@
+// App.tsx - VERSI FINAL DENGAN KONTEKS BARU
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react"; // MODIFIED: Tambahkan useState
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { AppDataProvider } from "@/contexts/AppDataContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthGuard from "@/components/AuthGuard";
 import PaymentGuard from "@/components/PaymentGuard";
@@ -35,10 +36,8 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import { usePaymentContext } from "./contexts/PaymentContext";
-import ThemeToggle from "@/components/ThemeToggle"; 
-import { usePaymentStatus } from "@/hooks/usePaymentStatus"; // MODIFIED: Import usePaymentStatus
-
-// MODIFIED: Import AlertDialog components
+import ThemeToggle from "@/components/ThemeToggle";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,10 +47,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AppProviders } from "@/contexts/AppProviders"; // <-- **PERUBAHAN 1: Import AppProviders**
 
-// Konfigurasi QueryClient dengan retry yang lebih sedikit untuk mengurangi beban server
+// Konfigurasi QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -62,25 +61,23 @@ const queryClient = new QueryClient({
   },
 });
 
-// MODIFIED: Logika layout dipindahkan ke komponen baru agar bisa mengakses context
+// Komponen Layout Aplikasi
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { isPaid } = usePaymentContext();
-  const { refetch: refetchPaymentStatus } = usePaymentStatus(); // Pastikan ini ada
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // Tambahkan baris ini
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = async () => {
-    setShowLogoutConfirm(true); // Ubah ini agar hanya membuka dialog
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
-  // MODIFIED: Fungsi untuk logout yang dikonfirmasi
   const confirmLogout = async () => {
     try {
       const success = await performSignOut();
       if (success) {
         toast.success("Berhasil keluar");
         setTimeout(() => {
-          window.location.reload();
+          window.location.href = '/auth'; // Redirect ke halaman auth setelah logout
         }, 500);
       } else {
         toast.error("Gagal keluar");
@@ -90,6 +87,7 @@ const AppLayout = () => {
     }
   };
 
+  // ... (sisa kode AppLayout Anda tetap sama persis)
   return (
     <>
       {isMobile ? (
@@ -106,7 +104,7 @@ const AppLayout = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleLogout} // Ubah onClick ini
+                onClick={handleLogout}
                 className="text-destructive hover:bg-destructive/10 px-2 py-1"
               >
                 <LogOut className="h-4 w-4" />
@@ -115,19 +113,20 @@ const AppLayout = () => {
           </header>
           <main className="flex-1 overflow-auto pb-16">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/hpp" element={<HPPCalculatorPage />} />
-              <Route path="/resep" element={<RecipesPage />} />
-              <Route path="/gudang" element={<WarehousePage />} />
-              <Route path="/supplier" element={<SupplierManagement />} />
-              <Route path="/pembelian" element={<PurchaseManagement />} />
-              <Route path="/pesanan" element={<OrdersPage />} />
-              <Route path="/laporan" element={<FinancialReportPage />} />
-              <Route path="/aset" element={<AssetManagement />} />
-              <Route path="/pengaturan" element={<Settings />} />
-              <Route path="/menu" element={<MenuPage />} />
-              <Route path="/payment-success" element={<PaymentSuccessPage />} />
-              <Route path="*" element={<NotFound />} />
+                {/* ... Routes Anda ... */}
+                 <Route path="/" element={<Dashboard />} />
+                 <Route path="/hpp" element={<HPPCalculatorPage />} />
+                 <Route path="/resep" element={<RecipesPage />} />
+                 <Route path="/gudang" element={<WarehousePage />} />
+                 <Route path="/supplier" element={<SupplierManagement />} />
+                 <Route path="/pembelian" element={<PurchaseManagement />} />
+                 <Route path="/pesanan" element={<OrdersPage />} />
+                 <Route path="/laporan" element={<FinancialReportPage />} />
+                 <Route path="/aset" element={<AssetManagement />} />
+                 <Route path="/pengaturan" element={<Settings />} />
+                 <Route path="/menu" element={<MenuPage />} />
+                 <Route path="/payment-success" element={<PaymentSuccessPage />} />
+                 <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
           <BottomTabBar />
@@ -136,7 +135,6 @@ const AppLayout = () => {
               <PaymentStatusIndicator size="lg" />
             </div>
           )}
-          {/* MODIFIED: Tambahkan AlertDialog di sini, di dalam AppLayout */}
           <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -169,7 +167,7 @@ const AppLayout = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleLogout} // Ubah onClick ini
+                    onClick={handleLogout}
                     className="text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
@@ -179,6 +177,7 @@ const AppLayout = () => {
               <main className="flex-1 w-full min-w-0 overflow-auto">
                 <div className="w-full max-w-none">
                   <Routes>
+                    {/* ... Routes Anda ... */}
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/hpp" element={<HPPCalculatorPage />} />
                     <Route path="/resep" element={<RecipesPage />} />
@@ -197,7 +196,6 @@ const AppLayout = () => {
               </main>
             </SidebarInset>
           </div>
-          {/* MODIFIED: Tambahkan AlertDialog di sini, di dalam AppLayout */}
           <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -218,25 +216,19 @@ const AppLayout = () => {
   );
 };
 
-
+// Komponen utama App
 const App = () => {
-  // Handle Supabase auth hash from URL
+  // ... (useEffect untuk handleAuthFromHash tetap sama)
   useEffect(() => {
     const handleAuthFromHash = async () => {
       try {
-        // Check if URL has a hash that might contain auth data
         if (window.location.hash && window.location.hash.length > 1) {
           console.log("Auth hash detected, processing session...");
-          
-          // Process the hash and set the session
           const { data, error } = await supabase.auth.getSessionFromUrl();
-          
           if (error) {
             console.error("Error getting session from URL:", error);
           } else if (data?.session) {
             console.log("Session successfully retrieved from URL");
-            
-            // Clear the hash from the URL to avoid processing it again
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
         }
@@ -244,29 +236,32 @@ const App = () => {
         console.error("Error handling auth from hash:", error);
       }
     };
-
     handleAuthFromHash();
   }, []);
 
-  // Pastikan QueryClient tidak dibuat ulang pada setiap render
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <AppDataProvider>
+          {/* **PERUBAHAN 2: Ganti AppDataProvider dengan AppProviders** */}
+          <AppProviders>
             <Toaster />
             <Sonner />
             <Routes>
               <Route path="/auth" element={<EmailAuthPage />} />
-              <Route path="*" element={
-                <AuthGuard>
-                  <PaymentGuard>
-                    <AppLayout />
-                  </PaymentGuard>
-                </AuthGuard>
-              } />
+              <Route
+                path="*"
+                element={
+                  <AuthGuard>
+                    <PaymentGuard>
+                      <AppLayout />
+                    </PaymentGuard>
+                  </AuthGuard>
+                }
+              />
             </Routes>
-          </AppDataProvider>
+          </AppProviders>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

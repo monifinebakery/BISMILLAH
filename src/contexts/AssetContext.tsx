@@ -2,7 +2,7 @@
 // VERSI FINAL - MENGGUNAKAN SATU useEffect UTAMA UNTUK MENGHINDARI RACE CONDITION
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAsset, AssetCategory, AssetCondition } from '@/types/asset'; // Pastikan path ke tipe data Anda benar
+import { useAssets, AssetCategory, AssetCondition } from '@/types/asset'; // Pastikan path ke tipe data Anda benar
 import { toast } from 'sonner';
 
 // --- Dependensi ---

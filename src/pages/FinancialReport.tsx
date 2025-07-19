@@ -138,6 +138,7 @@ const FinancialReportPage = () => {
               <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
             </PopoverContent>
           </Popover>
+          <FinancialCategoryManager /> {/* <-- TAMBAHKAN BARIS INI */}
           <Button onClick={() => setIsDialogOpen(true)}>Tambah Transaksi</Button>
         </div>
       </div>

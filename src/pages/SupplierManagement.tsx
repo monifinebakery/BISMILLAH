@@ -134,7 +134,6 @@ const SupplierManagement = () => {
 
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="sm:hidden">
-                <CloudSyncButton variant="upload" className="w-full" />
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>

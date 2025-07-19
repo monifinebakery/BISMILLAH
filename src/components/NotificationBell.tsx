@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
 import { safeParseDate } from '@/utils/dateUtils';
+import { supabase } from '@/integrations/supabase/client';
 // --- IMPOR BARU ---
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { useActivity } from '@/contexts/ActivityContext';

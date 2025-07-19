@@ -1,6 +1,6 @@
 // src/contexts/AppDataContext.tsx
 // VERSI FINAL YANG SUDAH DIPERBAIKI TOTAL - SEMUA FUNGSI LENGKAP DAN TERDEFINISI DENGAN BENAR
-// Diberikan kembali untuk memastikan tidak ada kesalahan copy-paste
+// Diberikan kembali untuk memastikan tidak ada kesalahan copy-paste atau lingkungan.
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
@@ -273,7 +273,6 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
                                ? parsedCreatedAt
                                : null,
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
-                               ? parsedUpdatedAt
                                : null,
             };
           });
@@ -379,7 +378,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.info("Anda telah logout. Semua data lokal dibersihkan.");
   }, []);
 
-  const replaceAllData = useCallback((data: any) => { // Mengubah ke useCallback
+  const replaceAllData = useCallback((data: any) => {
     if (data.bahanBaku) setBahanBaku(data.bahanBaku);
     if (data.suppliers) setSuppliers(data.suppliers);
     if (data.purchases) setPurchases(data.purchases);
@@ -399,7 +398,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
     }
     // toast.info('Data lokal diperbarui dengan data cloud.'); // Hindari spam toast
-  }, []); // Dependensi kosong karena setter state stabil
+  }, []);
 
   const loadFromCloud = useCallback(async (): Promise<void> => {
     const { data: { session } = { session: null } } = await supabase.auth.getSession();
@@ -1294,7 +1293,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: toSafeISOString(new Date()),
     };
     if (updatedAsset.nama !== undefined) assetToUpdate.nama = updatedAsset.nama;
-    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedUpdatedAsset.kategori; // Typo here, should be updatedAsset.kategori
+    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori; // <--- DIUBAH: Typo here, should be updatedAsset.kategori
     if (updatedAsset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilaiAwal;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.tanggalPembelian !== undefined) {

@@ -1,20 +1,37 @@
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Calculator, Warehouse, TrendingUp, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo } from 'react';
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
-import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
+
+// --- Impor Hook Konteks ---
 import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useRecipe } from "@/contexts/RecipeContext";
-import { formatCurrency } from "@/utils/currencyUtils";
+import { useOrder } from "@/contexts/OrderContext";
+
+// Fungsi baru untuk format tanggal dan waktu
+const formatDateTime = (date: Date | null) => {
+  if (!date || !(date instanceof Date)) return 'Waktu tidak valid';
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
 
 const Dashboard = () => {
   const { activities } = useActivity();
   const { bahanBaku } = useBahanBaku();
   const { recipes, hppResults } = useRecipe();
+  const { orders } = useOrder();
   const { userName } = usePaymentStatus();
 
+  // Kalkulasi statistik utama
   const stats = useMemo(() => {
     const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
     const averageHPP = hppResults.length > 0
@@ -30,6 +47,21 @@ const Dashboard = () => {
     };
   }, [recipes, hppResults, bahanBaku]);
 
+  // Kalkulasi produk terlaris
+  const bestSellingProducts = useMemo(() => {
+    const productSales: { [key: string]: number } = {};
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + item.quantity;
+      });
+    });
+
+    return Object.entries(productSales)
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 3); // Ambil 3 produk teratas
+  }, [orders]);
+
   const statsCards = [
     { title: "Total Produk", value: stats.totalProduk.toString(), icon: Package, color: "from-blue-500 to-blue-400" },
     { title: "Total Stok Bahan", value: stats.totalStokBahanBaku.toLocaleString('id-ID'), icon: Warehouse, color: "from-green-500 to-green-400" },
@@ -44,6 +76,7 @@ const Dashboard = () => {
   ];
 
   const getGreeting = () => {
+    // ... (fungsi sapaan tidak berubah)
     const jam = new Date().getHours();
     let sapaan = "datang";
     if (jam >= 4 && jam < 11) sapaan = "pagi";
@@ -64,7 +97,7 @@ const Dashboard = () => {
         <p className="text-muted-foreground">{getGreeting()}</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Kartu Statistik */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((stat, index) => (
           <Card key={index}>
@@ -81,40 +114,78 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* --- PERUBAHAN LAYOUT DIMULAI DARI SINI --- */}
-      
-      {/* Aksi Cepat */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Aksi Cepat</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {quickActions.map((action, index) => (
-            <Link key={index} to={action.link} className="block">
-              <Card className={`${action.color} transition-transform hover:scale-105`}>
-                <CardContent className="p-6 flex flex-col items-center text-center">
-                  <div className="p-3 bg-white rounded-full shadow-md mb-4">
-                    <action.icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold">{action.title}</h3>
+      {/* Aksi Cepat & Produk Terlaris */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => (
+              <Link key={index} to={action.link} className="block">
+                <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
+                  <CardContent className="p-6 flex flex-col items-center text-center justify-center">
+                    <div className="p-3 bg-white rounded-full shadow-md mb-4">
+                      <action.icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-semibold">{action.title}</h3>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+        
+        {/* --- KARTU PRODUK TERLARIS BARU --- */}
+        <div className="lg:col-span-1">
+            <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
+            <Card className="h-full">
+                <CardContent className="p-6">
+                    <div className="space-y-4">
+                        {bestSellingProducts.length > 0 ? (
+                            bestSellingProducts.map((product, index) => (
+                                <div key={product.name} className="flex items-center">
+                                    <Trophy className={`h-6 w-6 mr-4 ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-yellow-700'}`} />
+                                    <div className="flex-1">
+                                        <p className="font-semibold">{product.name}</p>
+                                        <p className="text-sm text-muted-foreground">{product.quantity} Terjual</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-muted-foreground py-4">Belum ada data penjualan.</p>
+                        )}
+                    </div>
                 </CardContent>
-              </Card>
-            </Link>
-          ))}
+            </Card>
         </div>
       </div>
       
-      {/* Aktivitas Terbaru (sekarang di bawah dan full-width) */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Aktivitas Terbaru</h2>
+      {/* --- AKTIVITAS TERBARU DIPERBARUI --- */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
               {activities.length > 0 ? (
-                activities.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between text-sm">
-                    <p className="text-gray-700">{activity.title}</p>
-                    <p className="text-muted-foreground text-xs">{formatDateForDisplay(activity.timestamp)}</p>
-                  </div>
-                ))
+                activities.slice(0, 5).map((activity) => {
+                  const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
+                  const amount = isFinancial ? parseFloat(activity.value || '0') : 0;
+                  return (
+                    <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium">{activity.title}</p>
+                        <p className="text-sm text-muted-foreground">{activity.description}</p>
+                      </div>
+                      <div className="text-sm text-right mt-1 sm:mt-0">
+                        {isFinancial && amount > 0 && (
+                          <p className={`font-semibold ${activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(amount)}
+                          </p>
+                        )}
+                        <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-center text-muted-foreground py-4">Belum ada aktivitas</p>
               )}
@@ -122,7 +193,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 };

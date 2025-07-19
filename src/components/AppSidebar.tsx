@@ -26,7 +26,7 @@ import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useAsset } from "@/contexts/AssetContext";
+import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/contexts/FinancialContext";
 
 export function AppSidebar() {
@@ -41,7 +41,7 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAsset();
+  const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
 
   const menuGroups = [

@@ -176,7 +176,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   return (
-    <BahanBakuContext.Provider value={value}
+    <BahanBakuContext.Provider value={value}>
       {children}
     </BahanBakuContext.Provider>
   );

@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
-// PERBAIKAN: Struktur data untuk kategori dipisah
 interface FinancialCategories {
   income: string[];
   expense: string[];
@@ -19,13 +18,12 @@ interface UserSettings {
 
 interface UserSettingsContextType {
   settings: UserSettings;
-  updateSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>; // Nama fungsi diperbaiki
+  updateSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>;
   isLoading: boolean;
 }
 
 const defaultSettings: UserSettings = {
   backup: { auto: true },
-  // PERBAIKAN: Nilai default disesuaikan dengan struktur baru
   financialCategories: {
     income: ['Penjualan Produk', 'Pendapatan Jasa'],
     expense: ['Gaji', 'Bahan Baku', 'Sewa', 'Marketing', 'Lainnya'],
@@ -49,9 +47,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
+      // PERUBAHAN: Membaca dari satu kolom 'financial_categories'
       const { data, error } = await supabase
         .from('user_settings')
-        .select('backup_settings, income_categories, expense_categories, recipe_categories') // Ambil kolom terpisah
+        .select('backup_settings, financial_categories, recipe_categories')
         .eq('user_id', session.user.id)
         .single();
 
@@ -61,11 +60,8 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         setSettings({
           ...defaultSettings,
           backup: data.backup_settings ?? defaultSettings.backup,
-          // PERBAIKAN: Muat data dari kolom terpisah
-          financialCategories: {
-              income: data.income_categories ?? defaultSettings.financialCategories.income,
-              expense: data.expense_categories ?? defaultSettings.financialCategories.expense,
-          },
+          // PERUBAHAN: Mengambil objek kategori langsung dari kolom 'financial_categories'
+          financialCategories: data.financial_categories ?? defaultSettings.financialCategories,
           recipeCategories: data.recipe_categories ?? defaultSettings.recipeCategories,
         });
       } else {
@@ -83,7 +79,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     loadSettings();
   }, [loadSettings]);
 
-  // PERBAIKAN: Nama fungsi adalah updateSettings
   const updateSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
     if (!session) {
       toast.error("Anda harus login untuk mengubah pengaturan.");
@@ -93,12 +88,11 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     const currentSettings = { ...settings, ...newSettings };
     setSettings(currentSettings); // Update optimis
 
-    // PERBAIKAN: Simpan ke kolom database yang terpisah
+    // PERUBAHAN: Menyimpan objek kategori ke dalam satu kolom 'financial_categories'
     const settingsToSave = {
       user_id: session.user.id,
       backup_settings: currentSettings.backup,
-      income_categories: currentSettings.financialCategories.income,
-      expense_categories: currentSettings.financialCategories.expense,
+      financial_categories: currentSettings.financialCategories,
       recipe_categories: currentSettings.recipeCategories,
     };
 
@@ -106,7 +100,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     if (error) {
       toast.error("Gagal menyimpan pengaturan: " + error.message);
-      loadSettings(); // Kembalikan ke state sebelumnya jika gagal
+      loadSettings();
       return false;
     }
 

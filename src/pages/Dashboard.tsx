@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-// VERSI FINAL DENGAN PERBAIKAN LAYOUT GRID UNTUK MOBILE & DESKTOP
+// VERSI FINAL DENGAN PERBAIKAN LAYOUT GRID DAN FLEXBOX UNTUK MOBILE & DESKTOP
 
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,14 +30,13 @@ const Dashboard = () => {
   const { orders } = useOrder();
   const { userName } = usePaymentStatus();
 
-  // Kalkulasi statistik (tidak berubah)
+  // Kalkulasi statistik utama (tidak berubah)
   const stats = useMemo(() => {
     const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
     const averageHPP = hppResults.length > 0
       ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
       : 0;
     const totalStokBahanBaku = bahanBaku.reduce((sum, item) => sum + item.stok, 0);
-
     return {
       totalProduk: recipes.length,
       totalStokBahanBaku,
@@ -64,9 +63,9 @@ const Dashboard = () => {
     const jam = new Date().getHours();
     let sapaan = "datang";
     if (jam >= 4 && jam < 11) sapaan = "pagi";
-    if (jam >= 11 && jam < 15) sapaan = "siang";
-    if (jam >= 15 && jam < 19) sapaan = "sore";
-    if (jam >= 19 || jam < 4) sapaan = "malam";
+    else if (jam >= 11 && jam < 15) sapaan = "siang";
+    else if (jam >= 15 && jam < 19) sapaan = "sore";
+    else sapaan = "malam";
     return userName ? `Selamat ${sapaan}, kak ${userName}!` : `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
   };
 
@@ -117,14 +116,14 @@ const Dashboard = () => {
       </div>
 
       {/* ============================================================= */}
-      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
+      {/* --- PERBAIKAN LAYOUT "BULLETPROOF" DIMULAI DARI SINI --- */}
       {/* ============================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Kolom Kiri: Produk Terlaris */}
-        <div className="space-y-4">
+        <div className="flex flex-col space-y-4">
             <h2 className="text-xl font-semibold">Produk Terlaris</h2>
-            <Card className="h-full">
+            <Card className="flex-1"> {/* flex-1 agar kartu mengisi ruang vertikal */}
                 <CardContent className="p-6">
                     <div className="space-y-4">
                         {bestSellingProducts.length > 0 ? (
@@ -138,7 +137,9 @@ const Dashboard = () => {
                                 </div>
                             ))
                         ) : (
-                            <p className="text-center text-muted-foreground py-4">Belum ada data penjualan.</p>
+                            <div className="flex items-center justify-center h-24">
+                                <p className="text-center text-muted-foreground">Belum ada data penjualan.</p>
+                            </div>
                         )}
                     </div>
                 </CardContent>
@@ -146,37 +147,34 @@ const Dashboard = () => {
         </div>
         
         {/* Kolom Kanan: Aktivitas Terbaru */}
-        <div className="space-y-4">
+        <div className="flex flex-col space-y-4">
           <h2 className="text-xl font-semibold">Aktivitas Terbaru</h2>
-          <Card className="h-full">
+          <Card className="flex-1"> {/* flex-1 agar kartu mengisi ruang vertikal */}
             <CardContent className="p-6">
               <div className="space-y-4">
                 {activities.length > 0 ? (
                   activities.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div key={activity.id} className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <p className="font-medium">{activity.title}</p>
                           <p className="text-sm text-muted-foreground">{activity.description}</p>
                         </div>
-                        <div className="text-sm sm:text-right flex-shrink-0">
-                          {activity.value && (
-                            <p className={`font-semibold ${activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
-                              {activity.value}
-                            </p>
-                          )}
-                          <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
+                        <div className="text-sm text-right flex-shrink-0">
+                           <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
                         </div>
                       </div>
                     )
                   )
                 ) : (
-                  <p className="text-center text-muted-foreground py-4">Belum ada aktivitas</p>
+                  <div className="flex items-center justify-center h-24">
+                    <p className="text-center text-muted-foreground">Belum ada aktivitas</p>
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

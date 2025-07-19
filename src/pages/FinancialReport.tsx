@@ -37,6 +37,13 @@ const FinancialReportPage = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const openDialog = () => setIsDialogOpen(true);
+
+  // --- TAMBAHKAN KODE INI ---
+  const closeDialog = useCallback(() => {
+    setIsDialogOpen(false);
+  }, []);
+
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
     return transactions.filter(t => {

@@ -58,7 +58,7 @@ const Dashboard = () => {
     return Object.entries(productSales)
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5); // Ambil 5 produk teratas
+      .slice(0, 5);
   }, [orders]);
 
   const statsCards = [
@@ -131,12 +131,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Produk Terlaris & Aktivitas Terbaru */}
+      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Kolom Kiri: Produk Terlaris */}
-        <div>
-            <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Produk Terlaris</h2>
             <Card className="h-full">
                 <CardContent className="p-6">
                     <div className="space-y-4">
@@ -159,8 +159,8 @@ const Dashboard = () => {
         </div>
         
         {/* Kolom Kanan: Aktivitas Terbaru */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Aktivitas Terbaru</h2>
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="space-y-4">

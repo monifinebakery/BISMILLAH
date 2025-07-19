@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 // MODIFIED: Hapus Eye icon karena tidak lagi dipakai untuk mode view
 import { Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare } from 'lucide-react'; 
 import { useOrders } from '@/hooks/useOrders';
-import CloudSyncButton from '@/components/CloudSyncButton';
 import OrderForm from '@/components/OrderForm'; 
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';

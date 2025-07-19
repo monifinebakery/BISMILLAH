@@ -10,7 +10,6 @@ import { useState } from "react";
 import { ChefHat, Save, Calculator } from "lucide-react";
 import RecipeForm from "./RecipeForm";
 import QuickHPPCalculator from "./QuickHPPCalculator";
-import { useAppData } from "@/contexts/AppDataContext";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";
 import { toast } from "sonner";
 

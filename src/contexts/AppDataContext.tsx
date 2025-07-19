@@ -273,6 +273,7 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
                                ? parsedCreatedAt
                                : null,
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
+                               ? parsedUpdatedAt // Ini bagian yang penting!
                                : null,
             };
           });

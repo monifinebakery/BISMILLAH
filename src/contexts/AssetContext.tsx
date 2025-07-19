@@ -1,10 +1,13 @@
+// src/contexts/AssetContext.tsx
+// VERSI FINAL - MENGGUNAKAN SATU useEffect UTAMA UNTUK MENGHINDARI RACE CONDITION
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Asset } from '@/types'; // Pastikan path ke tipe data Anda benar
+import { Asset, AssetCategory, AssetCondition } from '@/types/asset'; // Pastikan path ke tipe data Anda benar
 import { toast } from 'sonner';
 
 // --- Dependensi ---
 import { useAuth } from './AuthContext';
-import { useActivity } from './ActivityContext';
+import { useActivity } from './ActivityContext'; // Asumsi ActivityContext sudah ada dan berfungsi
 import { supabase } from '@/integrations/supabase/client';
 import { generateUUID } from '@/utils/uuid';
 import { toSafeISOString, safeParseDate } from '@/utils/dateUtils';
@@ -22,104 +25,91 @@ const AssetContext = createContext<AssetContextType | undefined>(undefined);
 const STORAGE_KEY = 'hpp_app_assets';
 
 export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { session } = useAuth();
-  const { addActivity } = useActivity();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth(); // Mengambil informasi pengguna dari AuthContext
+  const { addActivity } = useActivity();
 
-  // Efek 1: Muat data dari Local Storage saat pertama kali dibuka
+  // ===================================================================
+  // --- EFEK UTAMA: SATU-SATUNYA SUMBER KEBENARAN UNTUK MEMUAT DATA ---
+  // ===================================================================
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored).map((item: any) => ({
-            ...item,
-            tanggalPembelian: safeParseDate(item.tanggalPembelian),
-            createdAt: safeParseDate(item.createdAt),
-            updatedAt: safeParseDate(item.updatedAt),
-        }));
-        setAssets(parsed);
-      }
-    } catch (error) {
-      console.error("Gagal memuat aset dari localStorage:", error);
+    // Jika status user belum jelas (masih loading dari AuthContext), jangan lakukan apa-apa.
+    if (user === undefined) {
+      return; 
     }
-    setIsLoading(false);
-  }, []);
 
-  // Efek 2: Muat data dari Supabase HANYA JIKA sesi sudah ada
+    if (user) {
+      // Jika pengguna login, ambil datanya dari Supabase.
+      console.log(`[AssetContext] User terdeteksi (${user.id}), memuat data aset dari cloud...`);
+      setIsLoading(true);
+      supabase
+        .from('assets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) {
+            toast.error(`Gagal memuat aset: ${error.message}`);
+          } else if (data) {
+            // Transformasi data dari snake_case (database) ke camelCase (aplikasi)
+            const formattedData = data.map((item: any) => ({
+              id: item.id,
+              nama: item.nama || '',
+              kategori: item.kategori || null,
+              nilaiAwal: parseFloat(item.nilai_awal) || 0,
+              nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
+              tanggalPembelian: safeParseDate(item.tanggal_beli),
+              kondisi: item.kondisi || null,
+              lokasi: item.lokasi || null,
+              deskripsi: item.deskripsi || null,
+              depresiasi: item.depresiasi,
+              userId: item.user_id,
+              createdAt: safeParseDate(item.created_at),
+              updatedAt: safeParseDate(item.updated_at),
+            }));
+            setAssets(formattedData);
+          }
+          setIsLoading(false);
+        });
+    } else {
+      // Jika pengguna logout, bersihkan state aset dan localStorage.
+      console.log("[AssetContext] User logout, membersihkan data aset.");
+      setAssets([]);
+      localStorage.removeItem(STORAGE_KEY);
+      setIsLoading(false);
+    }
+  }, [user]); // KUNCI UTAMA: Bereaksi hanya terhadap perubahan `user`.
+
+  // Efek untuk menyimpan ke Local Storage setiap kali state 'assets' berubah
   useEffect(() => {
-    const loadFromCloud = async () => {
-      if (session) {
-        setIsLoading(true);
-        console.log("Session valid, fetching assets from cloud...");
-        const { data, error } = await supabase
-          .from('assets')
-          .select('*')
-          .eq('user_id', session.user.id);
+    // Hanya simpan jika ada data dan pengguna sedang login
+    if (user && assets.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
+    }
+  }, [assets, user]);
 
-        if (error) {
-          toast.error("Gagal mengambil data aset dari cloud: " + error.message);
-        } else if (data) {
-          const formattedData = data.map((item: any) => ({
-            id: item.id,
-            nama: item.nama || '',
-            kategori: item.kategori || null,
-            nilaiAwal: parseFloat(item.nilai_awal) || 0,
-            nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-            tanggalPembelian: safeParseDate(item.tanggal_beli),
-            kondisi: item.kondisi || null,
-            lokasi: item.lokasi || null,
-            deskripsi: item.deskripsi || null,
-            depresiasi: item.depresiasi,
-            createdAt: safeParseDate(item.created_at),
-            updatedAt: safeParseDate(item.updated_at),
-          }));
-          setAssets(formattedData);
-        }
-        setIsLoading(false);
-      } else {
-         // Jika logout (sesi menjadi null), bersihkan state
-        console.log("No session, clearing local assets.");
-        setAssets([]);
-      }
-    };
 
-    loadFromCloud();
-  }, [session]);
-
-  // Efek 3: Simpan ke Local Storage setiap kali state 'assets' berubah
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
-  }, [assets]);
-
+  // --- FUNGSI-FUNGSI CRUD ---
   const addAsset = async (asset: Omit<Asset, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
-    if (!session) {
+    if (!user) {
       toast.error("Anda harus login untuk menambah aset.");
       return false;
     }
     const newAsset: Asset = {
       ...asset,
       id: generateUUID(),
-      userId: session.user.id,
+      userId: user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     
-    // Konversi ke format snake_case untuk Supabase
     const assetToInsert = {
-        id: newAsset.id,
-        user_id: newAsset.userId,
-        nama: newAsset.nama,
-        kategori: newAsset.kategori,
-        nilai_awal: newAsset.nilaiAwal,
-        nilai_sekarang: newAsset.nilaiSaatIni,
-        tanggal_beli: toSafeISOString(newAsset.tanggalPembelian),
-        kondisi: newAsset.kondisi,
-        lokasi: newAsset.lokasi,
-        deskripsi: newAsset.deskripsi,
-        depresiasi: newAsset.depresiasi,
-        created_at: toSafeISOString(newAsset.createdAt),
-        updated_at: toSafeISOString(newAsset.updatedAt),
+        id: newAsset.id, user_id: newAsset.userId, nama: newAsset.nama,
+        kategori: newAsset.kategori, nilai_awal: newAsset.nilaiAwal, nilai_sekarang: newAsset.nilaiSaatIni,
+        tanggal_beli: toSafeISOString(newAsset.tanggalPembelian), kondisi: newAsset.kondisi,
+        lokasi: newAsset.lokasi, deskripsi: newAsset.deskripsi, depresiasi: newAsset.depresiasi,
+        created_at: toSafeISOString(newAsset.createdAt), updated_at: toSafeISOString(newAsset.updatedAt),
     };
 
     const { error } = await supabase.from('assets').insert([assetToInsert]);
@@ -128,23 +118,31 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return false;
     }
 
-    setAssets(prev => [...prev, newAsset]);
+    setAssets(prev => [newAsset, ...prev]);
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan ke daftar aset.`,
-      type: 'aset',
-      value: null,
+      type: 'aset', value: null,
     });
     toast.success("Aset berhasil ditambahkan.");
     return true;
   };
 
   const updateAsset = async (id: string, asset: Partial<Asset>): Promise<boolean> => {
-     if (!session) {
+    if (!user) {
       toast.error("Anda harus login untuk memperbarui aset.");
       return false;
     }
-    const { error } = await supabase.from('assets').update({ /* ...data snake_case... */ }).eq('id', id);
+    // Buat objek snake_case untuk dikirim ke Supabase
+    const assetToUpdate: { [key: string]: any } = { updated_at: new Date().toISOString() };
+    if (asset.nama !== undefined) assetToUpdate.nama = asset.nama;
+    if (asset.kategori !== undefined) assetToUpdate.kategori = asset.kategori;
+    if (asset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = asset.nilaiAwal;
+    if (asset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = asset.nilaiSaatIni;
+    if (asset.tanggalPembelian !== undefined) assetToUpdate.tanggal_beli = toSafeISOString(asset.tanggalPembelian);
+    // ...tambahkan field lain jika perlu...
+
+    const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id);
     if (error) {
        toast.error("Gagal memperbarui aset: " + error.message);
        return false;
@@ -155,16 +153,22 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const deleteAsset = async (id: string): Promise<boolean> => {
-     if (!session) {
+    if (!user) {
       toast.error("Anda harus login untuk menghapus aset.");
       return false;
     }
+    const assetToDelete = assets.find(a => a.id === id);
+    if (!assetToDelete) return false;
+
     const { error } = await supabase.from('assets').delete().eq('id', id);
     if (error) {
        toast.error("Gagal menghapus aset: " + error.message);
        return false;
     }
     setAssets(prev => prev.filter(a => a.id !== id));
+    addActivity({
+      title: 'Aset Dihapus', description: `${assetToDelete.nama} telah dihapus.`, type: 'aset', value: null,
+    });
     toast.success("Aset berhasil dihapus.");
     return true;
   };
@@ -174,10 +178,10 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return <AssetContext.Provider value={value}>{children}</AssetContext.Provider>;
 };
 
-export const useAsset = () => {
+export const useAssets = () => {
   const context = useContext(AssetContext);
   if (context === undefined) {
-    throw new Error('useAsset must be used within an AssetProvider');
+    throw new Error('useAssets must be used within an AssetProvider');
   }
   return context;
 };

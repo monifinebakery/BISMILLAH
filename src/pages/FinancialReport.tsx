@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
-// MODIFIED: Import fungsi-fungsi date-fns yang diperlukan
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateRange } from 'react-day-picker';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, FileText } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -11,346 +11,185 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import FinancialTransactionList from '@/components/FinancialTransactionList';
-import { useAppData } from '@/contexts/AppDataContext';
 import ExportButtons from '@/components/ExportButtons';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { safeParseDate } from '@/utils/dateUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { formatLargeNumber } from '@/utils/currencyUtils';
 
+// --- IMPOR BARU ---
+import { useFinancial } from '@/contexts/FinancialContext';
+
 const FinancialReportPage = () => {
-  const { financialTransactions: transactions = [], loading, addFinancialTransaction: addTransaction, updateFinancialTransaction: updateTransaction, deleteFinancialTransaction: deleteTransaction } = useAppData() || {};
+  // --- MENGGUNAKAN HOOK BARU ---
+  const { 
+    financialTransactions: transactions, 
+    addFinancialTransaction, 
+    updateFinancialTransaction, 
+    deleteFinancialTransaction 
+  } = useFinancial();
+
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date('2020-01-01'),
-    to: new Date('2026-12-31'),
+    from: startOfMonth(subMonths(new Date(), 5)), // Tampilkan 6 bulan terakhir sebagai default
+    to: new Date(),
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
-    const filtered = (transactions || []).filter(t => {
+    if (!transactions) return [];
+    return transactions.filter(t => {
       const transactionDate = t.date;
-      
-      console.log('DEBUG FilteredTransactions: Processing transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
-
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
-        console.log('DEBUG FilteredTransactions: Skipping invalid date for transaction:', t.id);
         return false;
       }
       
-      const rangeFrom = dateRange?.from instanceof Date && !isNaN(dateRange.from.getTime()) ? dateRange.from : null;
-      const rangeTo = dateRange?.to instanceof Date && !isNaN(dateRange.to.getTime()) ? dateRange.to : null;
+      const rangeFrom = dateRange?.from;
+      const rangeTo = dateRange?.to;
 
       if (rangeFrom && transactionDate < rangeFrom) return false;
       if (rangeTo) {
           const adjustedRangeTo = new Date(rangeTo);
-          adjustedRangeTo.setDate(adjustedRangeTo.getDate() + 1);
-          if (transactionDate >= adjustedRangeTo) return false;
+          adjustedRangeTo.setHours(23, 59, 59, 999); // Pastikan akhir hari termasuk
+          if (transactionDate > adjustedRangeTo) return false;
       }
       
       return true;
     });
-    console.log('DEBUG FinancialReportPage: Filtered transactions result:', filtered);
-    return filtered;
   }, [transactions, dateRange]);
 
-  const totalIncome = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
-  }, [filteredTransactions]);
-
-  const totalExpense = useMemo(() => {
-    return filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
-  }, [filteredTransactions]);
-
-  const balance = useMemo(() => {
-    return totalIncome - totalExpense;
-  }, [totalIncome, totalExpense]);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#9cafff'];
-
-  const categoryData = useMemo(() => {
+  const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
+    const income = filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
+    const expense = filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
+    
     const incomeByCategory: { [key: string]: number } = {};
     const expenseByCategory: { [key: string]: number } = {};
+    const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
     filteredTransactions.forEach(t => {
-      const categoryName = t.category || 'Uncategorized';
+      const categoryName = t.category || 'Lainnya';
       if (t.type === 'pemasukan') {
         incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
       } else {
         expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
       }
-    });
-
-    const incomeData = Object.entries(incomeByCategory).map(([name, value]) => ({ name, value }));
-    const expenseData = Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }));
-
-    return { incomeData, expenseData };
-  }, [filteredTransactions]);
-
-  const transactionData = useMemo(() => {
-    const monthlyData: { [key: string]: { income: number; expense: number; date: Date | null } } = {};
-
-    console.log('DEBUG TransactionData: Input filteredTransactions for aggregation:', filteredTransactions);
-
-    filteredTransactions.forEach(t => {
-      const transactionDate = t.date;
       
-      console.log('DEBUG TransactionData: Aggregating transaction:', t.id, 'Raw date:', t.date, 'Type:', typeof t.date, 'isNaN:', t.date instanceof Date ? isNaN(t.date.getTime()) : 'N/A');
-      console.log(`DEBUG Aggregation Check: Transaction ID: ${t.id}, Type value: '${t.type}', Is 'pemasukan'?: ${t.type === 'pemasukan'}, Is 'pengeluaran'?: ${t.type === 'pengeluaran'}`);
-
-
-      if (!transactionDate || isNaN(transactionDate.getTime())) {
-          console.log('DEBUG TransactionData: Skipping invalid date for aggregation:', t.id);
-          return;
-      }
-
-      const monthYear = format(transactionDate, 'yyyy-MM');
+      const monthYear = format(t.date!, 'yyyy-MM');
       if (!monthlyData[monthYear]) {
-        monthlyData[monthYear] = { income: 0, expense: 0, date: transactionDate };
+        monthlyData[monthYear] = { income: 0, expense: 0, date: t.date! };
       }
-      if (t.type === 'pemasukan') {
-        monthlyData[monthYear].income += t.amount || 0;
-      } else if (t.type === 'pengeluaran') {
-        monthlyData[monthYear].expense += t.amount || 0;
-      }
-      else {
-        console.warn(`DEBUG TransactionData: Unrecognized type for transaction ${t.id}: ${t.type}`);
-      }
+      if (t.type === 'pemasukan') monthlyData[monthYear].income += t.amount || 0;
+      else monthlyData[monthYear].expense += t.amount || 0;
     });
 
-    const valuesToMap = Object.values(monthlyData);
-    console.log('DEBUG TransactionData: Values before final filter/map/sort:', valuesToMap);
-
-    const finalResult = valuesToMap
-      .filter(value => {
-        console.log('DEBUG TransactionData: Filter for map/sort - Value date:', value.date, 'Type:', typeof value.date, 'isNaN:', value.date instanceof Date ? isNaN(value.date.getTime()) : 'N/A');
-        return value.date instanceof Date && !isNaN(value.date.getTime());
-      })
-      .map(value => ({
-        month: format(value.date as Date, 'MMM yy', { locale: id }),
-        income: value.income,
-        expense: value.expense,
-        date: value.date,
-      }))
-      .sort((a, b) => {
-        console.log('DEBUG TransactionData: Sorting - a.date:', a.date, 'b.date:', b.date);
-        const dateA = (a.date instanceof Date && !isNaN(a.date.getTime())) ? a.date.getTime() : -Infinity;
-        const dateB = (b.date instanceof Date && !isNaN(b.date.getTime())) ? b.date.getTime() : -Infinity;
-        return dateA - dateB;
-      });
-    console.log('DEBUG TransactionData: Final sorted result:', finalResult);
-    return finalResult;
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      balance: income - expense,
+      categoryData: {
+        incomeData: Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })),
+        expenseData: Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })),
+      },
+      transactionData: Object.values(monthlyData)
+        .map(value => ({
+          month: format(value.date, 'MMM yy', { locale: id }),
+          income: value.income,
+          expense: value.expense,
+          date: value.date,
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+    };
   }, [filteredTransactions]);
+  
+  const openDialog = () => setIsDialogOpen(true);
+  const closeDialog = useCallback(() => setIsDialogOpen(false), []);
 
-  const openDialog = () => {
-    setIsDialogOpen(true);
-  };
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#9cafff'];
 
-  const closeDialog = useCallback(() => {
-    setIsDialogOpen(false);
-  }, []);
-
-  // MODIFIED: CustomPieLabel component untuk label pie chart
   const CustomPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value, name }: any) => {
     const RADIAN = Math.PI / 180;
-    const x = cx + outerRadius * Math.cos(-midAngle * RADIAN) * 1.0;
-    const y = cy + outerRadius * Math.sin(-midAngle * RADIAN) * 1.0;
-    const formattedValue = formatLargeNumber(value, 0); // Format value dengan 0 desimal
-
+    const x = cx + outerRadius * Math.cos(-midAngle * RADIAN) * 1.1;
+    const y = cy + outerRadius * Math.sin(-midAngle * RADIAN) * 1.1;
+    
     return (
-      <text
-        x={x}
-        y={y}
-        fill="black"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        fontSize="12px"
-      >
-        {`${name}: ${formattedValue} (${(percent * 100).toFixed(0)}%)`}
+      <text x={x} y={y} fill="black" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="12px">
+        {`${name} (${(percent * 100).toFixed(0)}%)`}
       </text>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center">
-              <div className="bg-gradient-to-r from-green-600 to-blue-600 p-3 rounded-full mr-4">
-                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                  Laporan Keuangan
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Analisis keuangan dan laporan bisnis
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button id="date" variant={"outline"} className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}`
-                      ) : (
-                        formatDateForDisplay(dateRange.from)
-                      )
-                    ) : (
-                      <span>Pilih tanggal</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  {/* MODIFIED: Tambahkan div untuk tombol-tombol rentang tanggal cepat */}
-                  <div className="flex flex-col p-2 space-y-1 border-b">
-                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: new Date(), to: new Date() })}>Hari ini</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) })}>Kemarin</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 29), to: new Date() })}>30 Hari Terakhir</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Kemarin</Button>
-                  </div>
-                  <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
-                </PopoverContent>
-              </Popover>
-              <FinancialCategoryManager />
-              <ExportButtons data={filteredTransactions} filename="laporan-keuangan" type="financial" />
-              <Button onClick={openDialog} className="bg-green-600 text-white hover:bg-green-700">
-                Tambah Transaksi
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
+          <p className="text-muted-foreground">Analisis pemasukan, pengeluaran, dan saldo bisnis Anda.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button id="date" variant="outline" className={cn("w-full sm:w-[280px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (dateRange.to ? `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}` : formatDateForDisplay(dateRange.from)) : <span>Pilih tanggal</span>}
               </Button>
-              <FinancialTransactionDialog
-                isOpen={isDialogOpen}
-                onClose={closeDialog}
-                onAddTransaction={addTransaction}
-                categories={settings.financialCategories || []}
-              />
-            </div>
-          </div>
-        </div>
-
-        {!isPaid && <div className="flex justify-center my-4"><PaymentStatusIndicator size="lg"/></div>}
-        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ${premiumContentClass}`}>
-          <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">Rp {totalIncome.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div><p className="text-sm text-muted-foreground">Dalam rentang waktu terpilih</p></CardContent>
-          </Card>
-          <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">Rp {totalExpense.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div><p className="text-sm text-muted-foreground">Dalam rentang waktu terpilih</p></CardContent>
-          </Card>
-          <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Saldo Akhir</CardTitle><DollarSign className="h-4 w-4 text-blue-500" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">Rp {balance.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div><p className="text-sm text-muted-foreground">Dalam rentang waktu terpilih</p></CardContent>
-          </Card>
-        </div>
-
-        {!isPaid && <div className="flex justify-center my-4"><PaymentStatusIndicator size="lg"/></div>}
-        <div className={premiumContentClass}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-              <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis width={80} tickFormatter={formatLargeNumber} /> {/* MODIFIED: YAxis width dan tickFormatter */}
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="income" stroke="#82ca9d" name="Pemasukan" />
-                    <Line type="monotone" dataKey="expense" stroke="#e47272" name="Pengeluaran" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-              <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      dataKey="value"
-                      isAnimationActive={false}
-                      data={categoryData.incomeData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      label={CustomPieLabel} // MODIFIED: Gunakan CustomPieLabel
-                    >
-                      {categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-              <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      dataKey="value"
-                      isAnimationActive={false}
-                      data={categoryData.expenseData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      label={CustomPieLabel} // MODIFIED: Gunakan CustomPieLabel
-                    >
-                      {categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-              <CardHeader><CardTitle>Pemasukan vs Pengeluaran Bulanan</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={transactionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis width={80} tickFormatter={formatLargeNumber} /> {/* MODIFIED: YAxis width dan tickFormatter */}
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="income" fill="#82ca9d" name="Pemasukan" />
-                    <Bar dataKey="expense" fill="#e47272" name="Pengeluaran" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {!isPaid && <div className="flex justify-center my-4"><PaymentStatusIndicator size="lg"/></div>}
-        <div className={`mb-6 ${premiumContentClass}`}>
-          <h2 className="text-xl font-semibold mb-4">Daftar Transaksi</h2>
-          <FinancialTransactionList
-            transactions={filteredTransactions}
-            loading={loading}
-            onUpdateTransaction={updateTransaction}
-            onDeleteTransaction={deleteTransaction}
-            categories={settings.financialCategories || []}
-          />
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="flex flex-col p-2 space-y-1 border-b">
+                <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: new Date(), to: new Date() })}>Hari ini</Button>
+                <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: subDays(new Date(), 29), to: new Date() })}>30 Hari Terakhir</Button>
+                <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>
+                <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Kemarin</Button>
+              </div>
+              <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+            </PopoverContent>
+          </Popover>
+          <Button onClick={openDialog}>Tambah Transaksi</Button>
         </div>
       </div>
+
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6`}>
+        <Card><CardHeader><CardTitle>Total Pemasukan</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-green-600">{formatLargeNumber(totalIncome)}</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Total Pengeluaran</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-red-600">{formatLargeNumber(totalExpense)}</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Saldo Akhir</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatLargeNumber(balance)}</p></CardContent></Card>
+      </div>
+
+      {!isPaid && <div className="flex justify-center my-4"><PaymentStatusIndicator size="lg"/></div>}
+      <div className={premiumContentClass}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle></CardHeader>
+            <CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={transactionData}><CartesianGrid /><XAxis dataKey="month" /><YAxis tickFormatter={formatLargeNumber} /><Tooltip /><Legend /><Line type="monotone" dataKey="income" stroke="#16a34a" name="Pemasukan" /><Line type="monotone" dataKey="expense" stroke="#dc2626" name="Pengeluaran" /></LineChart></ResponsiveContainer></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
+            <CardContent><ResponsiveContainer width="100%" height={300}><PieChart><Pie dataKey="value" data={categoryData.expenseData} cx="50%" cy="50%" outerRadius={80} labelLine={false} label={CustomPieLabel}>{categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Daftar Transaksi</h2>
+        <FinancialTransactionList
+          transactions={filteredTransactions}
+          loading={false} // Dianggap tidak ada loading state dari konteks baru
+          onUpdateTransaction={updateFinancialTransaction}
+          onDeleteTransaction={deleteFinancialTransaction}
+          categories={settings.financialCategories || []}
+        />
+      </div>
+
+      <FinancialTransactionDialog
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
+        onAddTransaction={addFinancialTransaction}
+        categories={settings.financialCategories || []}
+      />
     </div>
   );
 };

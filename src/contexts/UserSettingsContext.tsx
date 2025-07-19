@@ -5,28 +5,31 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
-// Definisikan tipe untuk objek settings
+// PERBAIKAN: Struktur data untuk kategori dipisah
+interface FinancialCategories {
+  income: string[];
+  expense: string[];
+}
+
 interface UserSettings {
-  backup: {
-    auto: boolean;
-  };
-  financialCategories: string[];
+  backup: { auto: boolean; };
+  financialCategories: FinancialCategories;
   recipeCategories: string[];
-  // Tambahkan properti pengaturan lain jika ada
 }
 
 interface UserSettingsContextType {
   settings: UserSettings;
-  updateSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>;
+  updateSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>; // Nama fungsi diperbaiki
   isLoading: boolean;
 }
 
-// Nilai default untuk settings
 const defaultSettings: UserSettings = {
-  backup: {
-    auto: true, // Asumsikan backup otomatis aktif secara default
+  backup: { auto: true },
+  // PERBAIKAN: Nilai default disesuaikan dengan struktur baru
+  financialCategories: {
+    income: ['Penjualan Produk', 'Pendapatan Jasa'],
+    expense: ['Gaji', 'Bahan Baku', 'Sewa', 'Marketing', 'Lainnya'],
   },
-  financialCategories: ['Gaji', 'Bahan Baku', 'Sewa', 'Marketing', 'Lainnya'],
   recipeCategories: ['Makanan Utama', 'Minuman', 'Dessert', 'Snack'],
 };
 
@@ -37,7 +40,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fungsi untuk memuat pengaturan dari Supabase
   const loadSettings = useCallback(async () => {
     if (!session) {
       setSettings(defaultSettings);
@@ -49,40 +51,39 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       const { data, error } = await supabase
         .from('user_settings')
-        .select('*')
+        .select('backup_settings, income_categories, expense_categories, recipe_categories') // Ambil kolom terpisah
         .eq('user_id', session.user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = baris tidak ditemukan, itu bukan error
-        throw error;
-      }
+      if (error && error.code !== 'PGRST116') throw error;
       
       if (data) {
-        // Gabungkan data dari DB dengan default untuk memastikan semua properti ada
         setSettings({
           ...defaultSettings,
           backup: data.backup_settings ?? defaultSettings.backup,
-          financialCategories: data.financial_categories ?? defaultSettings.financialCategories,
+          // PERBAIKAN: Muat data dari kolom terpisah
+          financialCategories: {
+              income: data.income_categories ?? defaultSettings.financialCategories.income,
+              expense: data.expense_categories ?? defaultSettings.financialCategories.expense,
+          },
           recipeCategories: data.recipe_categories ?? defaultSettings.recipeCategories,
         });
       } else {
-        // Jika tidak ada data di DB, gunakan default
         setSettings(defaultSettings);
       }
     } catch (error: any) {
       toast.error("Gagal memuat pengaturan: " + error.message);
-      setSettings(defaultSettings); // Kembali ke default jika gagal
+      setSettings(defaultSettings);
     } finally {
       setIsLoading(false);
     }
   }, [session]);
 
-  // Muat pengaturan saat sesi berubah (login/logout)
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
-  // Fungsi untuk memperbarui pengaturan
+  // PERBAIKAN: Nama fungsi adalah updateSettings
   const updateSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
     if (!session) {
       toast.error("Anda harus login untuk mengubah pengaturan.");
@@ -90,18 +91,18 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     const currentSettings = { ...settings, ...newSettings };
-    setSettings(currentSettings); // Update state secara optimis
+    setSettings(currentSettings); // Update optimis
 
+    // PERBAIKAN: Simpan ke kolom database yang terpisah
     const settingsToSave = {
       user_id: session.user.id,
       backup_settings: currentSettings.backup,
-      financial_categories: currentSettings.financialCategories,
+      income_categories: currentSettings.financialCategories.income,
+      expense_categories: currentSettings.financialCategories.expense,
       recipe_categories: currentSettings.recipeCategories,
     };
 
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert(settingsToSave, { onConflict: 'user_id' });
+    const { error } = await supabase.from('user_settings').upsert(settingsToSave);
 
     if (error) {
       toast.error("Gagal menyimpan pengaturan: " + error.message);

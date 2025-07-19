@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 
-// Import semua provider
+// Import semua provider yang telah kita buat
 import { AuthProvider } from './AuthContext';
 import { ActivityProvider } from './ActivityContext';
 import { BahanBakuProvider } from './BahanBakuContext';
@@ -13,31 +13,33 @@ import { OrderProvider } from './OrderContext';
 import { AssetProvider } from './AssetContext';
 import { FinancialProvider } from './FinancialContext';
 
+// Import PaymentProvider yang Anda gunakan
+import { PaymentProvider } from './PaymentContext'; // Pastikan path ini benar
+
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
-    // 1. AuthProvider sebagai lapisan terluar
+    // Urutan nesting ini penting sesuai dependensi
     <AuthProvider>
-      {/* 2. ActivityProvider karena banyak yg butuh log */}
-      <ActivityProvider>
-        {/* 3. Konteks domain data dasar */}
-        <BahanBakuProvider>
-          <SupplierProvider>
-            <RecipeProvider>
-              <AssetProvider>
-                <FinancialProvider>
-                  {/* 4. Konteks yg punya dependensi ke konteks lain */}
-                  <PurchaseProvider>
-                    <OrderProvider>
-                      {/* Di sini semua konteks sudah tersedia */}
-                      {children}
-                    </OrderProvider>
-                  </PurchaseProvider>
-                </FinancialProvider>
-              </AssetProvider>
-            </RecipeProvider>
-          </SupplierProvider>
-        </BahanBakuProvider>
-      </ActivityProvider>
+      <PaymentProvider> {/* PaymentProvider membutuhkan session dari AuthProvider */}
+        <ActivityProvider>
+          <BahanBakuProvider>
+            <SupplierProvider>
+              <RecipeProvider>
+                <AssetProvider>
+                  <FinancialProvider>
+                    <PurchaseProvider>
+                      <OrderProvider>
+                        {/* Di sini semua konteks sudah tersedia untuk aplikasi */}
+                        {children}
+                      </OrderProvider>
+                    </PurchaseProvider>
+                  </FinancialProvider>
+                </AssetProvider>
+              </RecipeProvider>
+            </SupplierProvider>
+          </BahanBakuProvider>
+        </ActivityProvider>
+      </PaymentProvider>
     </AuthProvider>
   );
 };

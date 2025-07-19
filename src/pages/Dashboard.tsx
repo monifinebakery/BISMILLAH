@@ -11,10 +11,15 @@ import { useRecipe } from "@/contexts/RecipeContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
 
 const Dashboard = () => {
-  // --- Panggil Hook Baru ---
+  // --- PANGGIL HOOK SPESIFIK ---
   const { activities } = useActivity();
-  const { recipes, hppResults } = useRecipe();
   const { bahanBaku } = useBahanBaku();
+  const { recipes } = useRecipe();
+  const { orders } = useOrder();
+  const { financialTransactions } = useFinancial();
+  const { assets } = useAsset();
+  const { purchases } = usePurchase();
+  const { suppliers } = useSupplier();
   const { userName } = usePaymentStatus();
 
   // --- Logika Statistik Diimplementasikan Ulang di Sini ---

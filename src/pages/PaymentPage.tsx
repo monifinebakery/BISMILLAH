@@ -1,102 +1,81 @@
+// src/pages/PaymentPage.tsx atau di mana pun file ini berada
+// VERSI FINAL - Menerapkan arsitektur yang benar dimana frontend hanya mengarahkan ke checkout
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';  
-import { CheckCircle, ExternalLink, Zap, LogIn } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, ExternalLink, Zap, LogIn, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { validateAuthSession } from '@/lib/authUtils';
+
+// Fungsi helper untuk membuat Order ID yang unik.
+// ID ini adalah "benang merah" yang menghubungkan aksi di frontend
+// dengan webhook yang diterima di backend, memastikan data sinkron.
+const generateUniqueOrderId = (userId: string): string => {
+  const now = new Date();
+  const datePart = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+  const userPart = userId.substring(0, 4).toUpperCase();
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `HPP-${datePart}-${userPart}-${randomPart}`;
+};
+
 
 const PaymentPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { paymentStatus, refetch } = usePaymentStatus();
+  // Hook ini sekarang hanya digunakan untuk MENAMPILKAN status, bukan memanipulasi data.
+  const { paymentStatus, refetch, isLoading } = usePaymentStatus();
 
   const handlePayment = async () => {
     setIsProcessing(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('User tidak terautentikasi');
+      if (!user || !user.email) {
+        toast.error('Anda harus login untuk melanjutkan pembayaran.');
+        setIsProcessing(false);
         return;
       }
 
-      // MODIFIED: Menggunakan .maybeSingle() agar tidak error jika record tidak ditemukan
-      const { data: existingPayment } = await supabase
-        .from('user_payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(); // <-- PERUBAHAN DI SINI: dari .single() ke .maybeSingle()
-
-      // Generate unique payment ID for Scalev
-      const paymentId = `hpp_${user.id.substring(0, 8)}_${Date.now()}`;
+      // 1. BUAT ORDER ID UNIK DI SISI KLIEN
+      // ID ini akan kita teruskan ke Scalev, dan Scalev akan mengembalikannya di webhook.
+      const orderId = generateUniqueOrderId(user.id);
       
-      if (existingPayment) {
-        // Update existing record instead of creating new one
-        const { error: updateError } = await supabase
-          .from('user_payments')
-          .update({ 
-            pg_reference_id: paymentId,
-            payment_status: 'pending'
-          })
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error('Error updating payment record:', updateError);
-          toast.error('Gagal memperbarui record pembayaran');
-          return;
-        }
-      } else {
-        // Create new payment record only if it doesn't exist
-        const { error: insertError } = await supabase
-          .from('user_payments')
-          .insert({
-            user_id: user.id,
-            email: String(user.email || 'unknown@example.com'), // <-- DITAMBAHKAN
-            order_id: paymentId, // <-- DITAMBAHKAN
-            is_paid: false,
-            payment_status: 'pending',
-            pg_reference_id: paymentId
-          });
-
-        if (insertError) {
-          console.error('Error creating payment record:', insertError);
-          toast.error('Gagal membuat record pembayaran');
-          return;
-        }
-      }
-
-      // Open payment URL in new tab
-      const scalevPaymentUrl = `https://monifine.my.id/checkout-page-growth-kit?discount_code=HPP2025`;
+      // 2. BANGUN URL CHECKOUT SCALEV DENGAN PARAMETER
+      // Kita meneruskan data penting (order_id, email, nama) sebagai parameter URL.
+      // Scalev akan membaca parameter ini dan menyertakannya di webhook 'order.created'.
+      const scalevCheckoutUrl = new URL(`https://monifine.my.id/checkout-page-growth-kit`);
+      scalevCheckoutUrl.searchParams.append('discount_code', 'HPP2025');
+      scalevCheckoutUrl.searchParams.append('order_id', orderId); // WAJIB
+      scalevCheckoutUrl.searchParams.append('email', user.email); // WAJIB
+      scalevCheckoutUrl.searchParams.append('name', user.user_metadata?.full_name || 'Premium User');
       
-      console.log('Opening Scalev payment URL in new tab:', scalevPaymentUrl);
+      console.log('Membuka URL Checkout Scalev:', scalevCheckoutUrl.toString());
 
-      // Open in new tab instead of redirect
-      window.open(scalevPaymentUrl, '_blank');
+      // 3. BUKA URL DI TAB BARU
+      // Tidak ada lagi interaksi INSERT/UPDATE dengan tabel 'user_payments' di sini!
+      // Semua logika database diserahkan ke webhook.
+      window.open(scalevCheckoutUrl.toString(), '_blank');
       
-      toast.success('Halaman pembayaran dibuka di tab baru. Setelah pembayaran selesai, refresh halaman ini.');
+      toast.success('Halaman pembayaran dibuka di tab baru. Setelah pembayaran selesai, status Anda akan diperbarui secara otomatis.');
       
-    } catch (error: any) { // Menggunakan 'any' untuk error agar bisa mengakses 'error.message'
+    } catch (error: any) {
       console.error('Payment initiation error:', error.message || error);
-      toast.error('Terjadi kesalahan saat memproses pembayaran');
+      toast.error('Terjadi kesalahan saat memulai pembayaran');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleRefreshStatus = async () => {
-    await validateAuthSession();
+    toast.info('Memeriksa status pembayaran...');
     await refetch();
-    toast.info('Status pembayaran diperbarui');
   };
 
-  const handleGoToLogin = async () => {
-    // Sign out current user first
-    await supabase.auth.signOut();
-    // Redirect to login page - this will trigger AuthGuard to show login form
-    window.location.href = '/';
+  const handleGoToApp = () => {
+    // Arahkan pengguna ke halaman utama aplikasi setelah membayar
+    window.location.href = '/dashboard'; 
   };
 
   return (
@@ -106,10 +85,10 @@ const PaymentPage = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Upgrade ke Premium
+              Upgrade Akun Anda ke Premium
             </h1>
             <p className="text-gray-600">
-              Dapatkan akses penuh ke semua fitur aplikasi HPP
+              Buka semua fitur canggih untuk mengelola bisnis kuliner Anda.
             </p>
           </div>
 
@@ -117,150 +96,67 @@ const PaymentPage = () => {
             {/* Features Card */}
             <Card className="border-2 border-blue-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-6 w-6 text-blue-600" />
-                  Fitur Premium
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><Zap className="h-6 w-6 text-blue-600" />Fitur Premium</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-sm">Kalkulator HPP Unlimited</h3>
-                    <p className="text-xs text-gray-600">Hitung HPP tanpa batas</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-sm">Manajemen Resep</h3>
-                    <p className="text-xs text-gray-600">Simpan resep favorit</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-sm">Laporan & Analytics</h3>
-                    <p className="text-xs text-gray-600">Analisis bisnis mendalam</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-sm">Aktivasi Instan</h3>
-                    <p className="text-xs text-gray-600">Langsung aktif setelah pembayaran</p>
-                  </div>
-                </div>
+                <div className="flex items-start gap-3"><CheckCircle className="h-5 w-5 text-green-500 mt-0.5" /><div><h3 className="font-medium text-sm">Kalkulator HPP Tanpa Batas</h3><p className="text-xs text-gray-600">Hitung biaya produksi untuk semua produk Anda.</p></div></div>
+                <div className="flex items-start gap-3"><CheckCircle className="h-5 w-5 text-green-500 mt-0.5" /><div><h3 className="font-medium text-sm">Manajemen Resep & Bahan Baku</h3><p className="text-xs text-gray-600">Simpan dan kelola semua resep Anda secara terpusat.</p></div></div>
+                <div className="flex items-start gap-3"><CheckCircle className="h-5 w-5 text-green-500 mt-0.5" /><div><h3 className="font-medium text-sm">Laporan & Analisis Keuangan</h3><p className="text-xs text-gray-600">Dapatkan wawasan mendalam tentang profitabilitas bisnis.</p></div></div>
+                <div className="flex items-start gap-3"><CheckCircle className="h-5 w-5 text-green-500 mt-0.5" /><div><h3 className="font-medium text-sm">Aktivasi Instan & Akses Selamanya</h3><p className="text-xs text-gray-600">Langsung aktif setelah pembayaran, tanpa biaya bulanan.</p></div></div>
               </CardContent>
             </Card>
 
             {/* Payment Card */}
             <Card className="border-2 border-green-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-6 w-6 text-green-600" />
-                  Paket Premium
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><Zap className="h-6 w-6 text-green-600" />Paket Premium</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-green-600 mb-1">
-                    Rp 145.000
-                  </div>
-                  <Badge variant="secondary" className="mb-2">
-                    Pembayaran Sekali
-                  </Badge>
-                  <p className="text-sm text-gray-600">
-                    Akses selamanya ke semua fitur premium
-                  </p>
+                    <div className="text-4xl font-bold text-green-600 mb-1">Rp 145.000</div>
+                    <Badge variant="secondary" className="mb-2">Pembayaran Sekali</Badge>
+                    <p className="text-sm text-gray-600">Akses selamanya ke semua fitur premium.</p>
                 </div>
-
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>Pembayaran aman dengan Scalev</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>Aktivasi instan setelah pembayaran</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>Dukungan teknis prioritas</span>
+                  <Button onClick={handlePayment} disabled={isProcessing} className="w-full bg-green-600 hover:bg-green-700 text-white py-3" size="lg">
+                    {isProcessing ? 'Memproses...' : <><ExternalLink className="h-4 w-4 mr-2" />Bayar Sekarang</>}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={handleRefreshStatus} variant="outline" className="w-full">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Cek Status
+                    </Button>
+                    <Button onClick={handleGoToApp} variant="secondary" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      <LogIn className="h-4 w-4 mr-2" />Masuk Aplikasi
+                    </Button>
                   </div>
                 </div>
-
-                <div className="space-y-3">
-                  <Button 
-                    onClick={handlePayment}
-                    disabled={isProcessing}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
-                    size="lg"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Memproses...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Bayar Sekarang (Tab Baru)
-                      </>
-                    )}
-                  </Button>
-
-                  <Button 
-                    onClick={handleRefreshStatus}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Refresh Status Pembayaran
-                  </Button>
-
-                  {/* Tombol untuk mengarahkan ke login */}
-                  <Button 
-                    onClick={handleGoToLogin}
-                    variant="secondary"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sudah Bayar? Akses Aplikasi
-                  </Button>
-                </div>
-
                 <p className="text-xs text-gray-500 text-center">
-                  Setelah pembayaran selesai, klik "Sudah Bayar? Akses Aplikasi" untuk login dan mengaktifkan akun premium Anda
+                  Status Anda akan diperbarui secara otomatis setelah pembayaran berhasil.
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Current Status */}
-          {paymentStatus && (
-            <Card className="mt-8 bg-orange-50 border-orange-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-orange-800">Status Pembayaran</h3>
-                    <p className="text-sm text-orange-600">
-                      Status: {paymentStatus.payment_status} | 
-                      {paymentStatus.pg_reference_id && ` ID: ${paymentStatus.pg_reference_id}`}
-                      {paymentStatus.order_id && ` | Order: ${paymentStatus.order_id}`}
-                      {paymentStatus.name && ` | Nama: ${paymentStatus.name}`}
-                      {paymentStatus.email && ` | Email: ${paymentStatus.email}`}
-                    </p>
+          <div className="mt-8">
+            {isLoading && <p className="text-center text-gray-600">Memuat status pembayaran Anda...</p>}
+            {paymentStatus && (
+              <Card className="bg-orange-50 border-orange-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-orange-800">Status Pembayaran Terakhir Anda</h3>
+                      <p className="text-sm text-orange-600">Order ID: {paymentStatus.order_id || 'N/A'}</p>
+                    </div>
+                    <Badge className={paymentStatus.is_paid ? "bg-green-600 text-white" : "bg-gray-500 text-white"}>
+                      {paymentStatus.is_paid ? "Lunas" : "Belum Lunas"}
+                    </Badge>
                   </div>
-                  <Badge variant={paymentStatus.is_paid ? "default" : "secondary"}>
-                    {paymentStatus.is_paid ? "Lunas" : "Belum Lunas"}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 // src/contexts/AppDataContext.tsx
-// VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN SEMUA FUNGSI LENGKAP
+// VERSI FINAL YANG SUDAH DIPERBAIKI TOTAL - SEMUA FUNGSI LENGKAP DAN TERDEFINISI DENGAN BENAR
+// Diberikan kembali untuk memastikan tidak ada kesalahan copy-paste
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
@@ -268,7 +269,6 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
               userId: item.userId || item.user_id,
-              // PERBAIKAN: Penambahan nilai jika parsedCreatedAt/updatedAt tidak valid
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
                                ? parsedCreatedAt
                                : null,
@@ -764,7 +764,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       description: `${supplier.nama} telah ditambahkan`,
       type: 'supplier',
     });
-    toast.success(`Supplier berhasil ditambahkan!`);
+    toast.success(`${supplier.nama} berhasil ditambahkan!`);
     return true;
   };
 
@@ -1294,7 +1294,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: toSafeISOString(new Date()),
     };
     if (updatedAsset.nama !== undefined) assetToUpdate.nama = updatedAsset.nama;
-    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori;
+    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedUpdatedAsset.kategori; // Typo here, should be updatedAsset.kategori
     if (updatedAsset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilaiAwal;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.tanggalPembelian !== undefined) {

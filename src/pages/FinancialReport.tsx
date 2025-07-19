@@ -33,7 +33,7 @@ const FinancialReportPage = () => {
 
   // PERUBAHAN 1: Rentang tanggal default diubah menjadi 6 bulan terakhir
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(subMonths(new Date(), 5)),
+    from: startOfMonth(subMonths(new Date(), 1)),
     to: new Date(),
   });
 

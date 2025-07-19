@@ -1,10 +1,10 @@
 // src/contexts/AppDataContext.tsx
-// VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN PERBAIKAN KOMPILASI
+// VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN SEMUA FUNGSI LENGKAP
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
-import { Order, NewOrder, OrderItem } from '@/types/order';
+import { Order, NewOrder, OrderItem } from '@/types/order'; // Memastikan OrderItem diimpor jika digunakan
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -14,9 +14,8 @@ import { generateUUID } from '@/utils/uuid';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 // =============================================================
-// INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
+// INTERFACES
 // =============================================================
-// <--- PASTE INTERFACE ASLI ANDA DI SINI. JANGAN UBAH BAGIAN INI.
 export interface BahanBaku {
   id: string;
   nama: string;
@@ -37,7 +36,7 @@ export interface BahanBaku {
 
 export interface Purchase {
   id: string;
-  tanggal: Date; // Wajib
+  tanggal: Date;
   supplier: string;
   items: {
     id?: string | number;
@@ -48,9 +47,9 @@ export interface Purchase {
     hargaSatuan: number;
     totalHarga: number;
   }[];
-  totalNilai: number; // camelCase
+  totalNilai: number;
   status: 'pending' | 'completed' | 'cancelled';
-  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // camelCase
+  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
   catatan: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -60,7 +59,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  timestamp: Date; // Wajib
+  timestamp: Date;
   type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier' | 'aset' | 'keuangan';
   value: string | null;
   createdAt: Date | null;
@@ -71,14 +70,14 @@ export interface HPPResult {
   id: string;
   nama: string;
   ingredients: RecipeIngredient[];
-  biayaTenagaKerja: number; // camelCase
-  biayaOverhead: number; // camelCase
-  marginKeuntungan: number; // camelCase
-  totalHPP: number; // camelCase
-  hppPerPorsi: number; // camelCase
-  hargaJualPerPorsi: number; // camelCase
-  jumlahPorsi: number; // camelCase
-  timestamp: Date; // Tetap Date (karena selalu ada fallback new Date())
+  biayaTenagaKerja: number;
+  biayaOverhead: number;
+  marginKeuntungan: number;
+  totalHPP: number;
+  hppPerPorsi: number;
+  hargaJualPerPorsi: number;
+  jumlahPorsi: number;
+  timestamp: Date;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -194,6 +193,7 @@ const STORAGE_KEYS = {
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
+// --- FUNGSI STORAGE HELPER ---
 const saveToStorage = (key: string, data: any) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -298,7 +298,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const {
     syncToSupabase: externalSyncToCloud,
     loadFromSupabase: externalLoadFromCloud,
-    isLoading: isSyncingCloud,
+    isLoading: isSyncingCloud, // Pastikan ini didefinisikan jika digunakan
   } = useSupabaseSync();
 
   // --- INISIALISASI STATE ---
@@ -378,7 +378,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.info("Anda telah logout. Semua data lokal dibersihkan.");
   }, []);
 
-  const replaceAllData = (data: any) => {
+  const replaceAllData = useCallback((data: any) => { // Mengubah ke useCallback
     if (data.bahanBaku) setBahanBaku(data.bahanBaku);
     if (data.suppliers) setSuppliers(data.suppliers);
     if (data.purchases) setPurchases(data.purchases);
@@ -397,44 +397,45 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (data.userSettings) {
       console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
     }
-    toast.info('Data lokal diperbarui dengan data cloud.');
-  };
+    // toast.info('Data lokal diperbarui dengan data cloud.'); // Hindari spam toast
+  }, []); // Dependensi kosong karena setter state stabil
 
   const loadFromCloud = useCallback(async (): Promise<void> => {
     const { data: { session } = { session: null } } = await supabase.auth.getSession();
     if (!session) {
-      console.log("Tidak ada sesi, proses memuat data dari cloud dibatalkan.");
+      console.log('Tidak ada sesi, proses memuat data dari cloud dibatalkan.');
       return;
     }
     const loadedData = await externalLoadFromCloud();
     if (loadedData) {
       replaceAllData(loadedData);
+      toast.success('Data berhasil dimuat dari cloud!');
+    } else {
+      console.log('Tidak ada data baru yang dimuat dari cloud.');
     }
-  }, [externalLoadFromCloud]);
-
+  }, [externalLoadFromCloud, replaceAllData]); // Menambahkan replaceAllData ke dependensi
 
   // ===================================================================
   // --- LOGIKA UTAMA BARU UNTUK OTENTIKASI DAN MANAJEMEN DATA ---
   // ===================================================================
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`Auth event terdeteksi: ${event}`);
+      console.log(`Auth event: ${event}`);
 
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         if (session) {
           console.log('Pengguna terdeteksi login. Memuat data dari cloud...');
-          loadFromCloud();
+          loadFromCloud(); // Memanggil fungsi callback
         }
-      } else if (event === 'SIGNED_OUT') {
-        clearAllData();
+      } else if (event === 'SIGNED_OUT') { // Ini bagian yang penting untuk logout
+        clearAllData(); // Memanggil fungsi callback
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [clearAllData, loadFromCloud]);
-
+  }, [clearAllData, loadFromCloud]); // Dependensi effect adalah fungsi yang stabil
 
   // --- Real-time Subscriptions (dipindahkan ke bawah agar dapat diakses setelah auth listener) ---
   const processRealtimePayload = (payload: any, setState: React.Dispatch<React.SetStateAction<any[]>>, dateFields: string[], itemArrayKey?: string) => {
@@ -525,11 +526,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
               // Misal: memicu refresh status pembayaran user di komponen lain
               console.log('Perubahan user_payments terdeteksi. Silakan periksa status pembayaran user.');
               // Jika Anda memiliki state global untuk status pembayaran user, update di sini.
+              // Atau panggil loadFromCloud() untuk memuat ulang semua data jika status pembayaran user berubah
+              loadFromCloud(); // Memuat ulang data dari cloud, yang akan me-refresh status pembayaran user
             } else {
               table.setState(prev => { // Panggil setState hanya untuk tabel yang memiliki state langsung
                 const processed = parseRecordDates(payload.new || payload.old); // Parse dates for new/old record
                 const existingIndex = prev.findIndex(item => item.id === (payload.new?.id || payload.old?.id));
-    
+
                 if (payload.eventType === 'INSERT') {
                   if (existingIndex > -1) {
                     return prev.map(item => item.id === processed.id ? processed : item);
@@ -565,7 +568,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
       channels = [];
     };
-  }, []);
+  }, [loadFromCloud]); // Menambahkan loadFromCloud ke dependensi subscription
 
   // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
@@ -635,44 +638,49 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Fungsi loadFromCloud: Sekarang lebih untuk Force Download/Refresh
-  const loadFromCloud = async (): Promise<void> => {
+  const loadFromCloud = useCallback(async (): Promise<void> => {
     const { data: { session } = { session: null } } = await supabase.auth.getSession();
     if (!session) {
-      // toast.error('Anda harus login untuk memuat data dari cloud.'); // Jangan tampilkan error di sini
       console.log('Tidak ada sesi, proses memuat data dari cloud dibatalkan.');
       return;
     }
     const loadedData = await externalLoadFromCloud();
     if (loadedData) {
       replaceAllData(loadedData);
-      toast.success('Data berhasil dimuat dari cloud!'); // Tampilkan notifikasi sukses di sini
+      toast.success('Data berhasil dimuat dari cloud!');
     } else {
-      // toast.info('Tidak ada data baru yang dimuat dari cloud.'); // Ini bisa membuat spam toast
       console.log('Tidak ada data baru yang dimuat dari cloud.');
     }
-  };
+  }, [externalLoadFromCloud, replaceAllData]);
 
-  const replaceAllData = (data: any) => {
-    if (data.bahanBaku) setBahanBaku(data.bahanBaku);
-    if (data.suppliers) setSuppliers(data.suppliers);
-    if (data.purchases) setPurchases(data.purchases);
-    if (data.orders) setOrders(data.orders.map((order: any) => ({
-      ...order,
-      items: order.items ? order.items.map((orderItem: any) => ({
-        ...orderItem,
-        id: orderItem.id || generateUUID(),
-      })) : [],
-    })));
-    if (data.recipes) setRecipes(data.recipes);
-    if (data.hppResults) setHppResults(data.hppResults);
-    if (data.activities) setActivities(data.activities);
-    if (data.assets) setAssets(data.assets);
-    if (data.financialTransactions) setFinancialTransactions(data.financialTransactions);
-    if (data.userSettings) {
-      console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
-    }
-    // toast.info('Data lokal diperbarui dengan data cloud.'); // Hindari spam toast
-  };
+
+  // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
+  useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.RECIPES, recipes); }, [recipes]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.HPP_RESULTS, hppResults); }, [hppResults]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ACTIVITIES, activities); }, [activities]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ORDERS, orders); }, [orders]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.ASSETS, assets); }, [assets]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
+
+  // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const { data: { session } = { session: null } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud (visibilitychange)...');
+          await externalLoadFromCloud();
+        } else {
+          console.log('Tab aplikasi terlihat, tapi user tidak login. Tidak ada pembaruan dari cloud.');
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [externalLoadFromCloud]);
 
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     const session = (await supabase.auth.getSession()).data.session;
@@ -1395,7 +1403,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteAsset = async (id: string) => {
     const asset = assets.find(a => a.id === id);
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } = { session: null } } = await supabase.auth.getSession(); // Safely get session
 
     if (!session) {
         toast.error('Anda harus login untuk menghapus aset');

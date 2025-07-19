@@ -7,7 +7,6 @@ import { Save } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import RecipeForm from "./RecipeForm";
-import { useAppData } from "@/contexts/AppDataContext";
 import { Recipe } from "@/types/recipe";
 import { toast } from "sonner";
 

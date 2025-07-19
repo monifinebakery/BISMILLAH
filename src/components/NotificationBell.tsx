@@ -4,8 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client'; // Tetap import supabase jika digunakan di tempat lain
-import { safeParseDate } from '@/utils/dateUtils'; 
+import { safeParseDate } from '@/utils/dateUtils';
+// --- IMPOR BARU ---
+import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { useActivity } from '@/contexts/ActivityContext';
 
 interface Notification {
   id: string;
@@ -13,57 +15,52 @@ interface Notification {
   message: string;
   type: 'error' | 'warning' | 'info' | 'success';
   read: boolean;
-  timestamp: Date; // Pastikan ini Date karena diharapkan selalu valid
+  timestamp: Date;
 }
 
 const NotificationBell = () => {
-  const { bahanBaku, activities, loadFromCloud } = useAppData();
+  // --- PANGGIL HOOK BARU ---
+  const { bahanBaku } = useBahanBaku();
+  const { activities } = useActivity();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
     const currentTime = new Date();
     
-    // Generate low stock notifications
+    // Generate notifikasi stok menipis
     const lowStockNotifications: Notification[] = lowStockItems.map(item => ({
       id: `low-stock-${item.id}`,
       title: 'Stok Menipis',
       message: `${item.nama} tersisa ${item.stok} ${item.satuan}`,
       type: 'warning' as const,
       read: false,
-      timestamp: currentTime, // currentTime selalu Date valid
+      timestamp: currentTime,
     }));
 
-    // Generate activity notifications (latest 3)
+    // Generate notifikasi aktivitas (3 terbaru)
     const activityNotifications: Notification[] = activities.slice(0, 3).map(activity => ({
       id: `activity-${activity.id}`,
       title: activity.title,
-      message: activity.description,
+      message: activity.description, // Pastikan ini 'message', bukan 'description'
       type: activity.type === 'hpp' ? 'success' : 
-           activity.type === 'stok' ? 'info' : 
-           activity.type === 'resep' ? 'info' : 'info',
+            activity.type === 'stok' ? 'info' : 
+            activity.type === 'resep' ? 'info' : 'info',
       read: false,
-      // Pastikan activity.timestamp selalu Date yang valid dari AppDataContext.
-      // Jika masih ada kemungkinan null/undefined, perlu fallback di sini juga.
-      // (Berdasarkan AppDataContext, activity.timestamp sudah Date || new Date())
       timestamp: activity.timestamp, 
     }));
 
-    // Combine and sort by timestamp
+    // Gabungkan dan urutkan berdasarkan waktu
     const allNotifications = [...lowStockNotifications, ...activityNotifications]
       .sort((a, b) => {
-        // MODIFIKASI DISINI: Defensif check untuk memastikan timestamp adalah Date yang valid
-        const timeA = (a.timestamp instanceof Date && !isNaN(a.timestamp.getTime())) ? a.timestamp.getTime() : 0;
-        const timeB = (b.timestamp instanceof Date && !isNaN(b.timestamp.getTime())) ? b.timestamp.getTime() : 0;
-        return timeB - timeA; // Sort descending (terbaru di atas)
+        const timeA = a.timestamp?.getTime() || 0;
+        const timeB = b.timestamp?.getTime() || 0;
+        return timeB - timeA; // Terbaru di atas
       })
-      .slice(0, 10); // Keep only latest 10
+      .slice(0, 10); // Ambil 10 notifikasi teratas
 
     setNotifications(allNotifications);
   }, [bahanBaku, activities]);
-
-  // MODIFIED: Hapus seluruh blok useEffect yang berisi supabase.channel('notification-updates').on(...)
-  // Karena manajemen realtime sudah disentralisasi di useSupabaseSync.ts
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -82,22 +79,20 @@ const NotificationBell = () => {
       case 'error': return 'destructive';
       case 'warning': return 'secondary';
       case 'success': return 'default';
-      case 'info': return 'outline'; // Tambahkan case 'info' jika Anda ingin badge berbeda
       default: return 'outline';
     }
   };
 
   const formatTime = (date: Date) => {
-    // Pastikan date adalah objek Date yang valid
     if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return 'Tanggal tidak valid'; // Fallback jika tanggal tidak valid
+      return '';
     }
 
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
 
     if (diffMins < 1) return 'Baru saja';
     if (diffMins < 60) return `${diffMins} menit lalu`;
@@ -124,16 +119,16 @@ const NotificationBell = () => {
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold">Notifikasi</h3>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-              Tandai Semua
+            <Button variant="link" size="sm" onClick={markAllAsRead} className="h-auto p-0 text-xs">
+              Tandai semua dibaca
             </Button>
           )}
         </div>
         <ScrollArea className="h-64">
           <div className="p-2">
             {notifications.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">
-                Tidak ada notifikasi
+              <p className="text-center text-sm text-muted-foreground py-4">
+                Tidak ada notifikasi baru
               </p>
             ) : (
               notifications.map((notification) => (
@@ -154,11 +149,9 @@ const NotificationBell = () => {
                         {formatTime(notification.timestamp)}
                       </p>
                     </div>
-                    <Badge variant={getTypeColor(notification.type)} className="ml-2 text-xs">
-                      {notification.type === 'warning' ? 'Peringatan' :
-                        notification.type === 'error' ? 'Error' :
-                        notification.type === 'success' ? 'Berhasil' : 'Info'}
-                    </Badge>
+                    {!notification.read && (
+                        <div className="h-2 w-2 rounded-full bg-primary mt-1 ml-2 flex-shrink-0"></div>
+                    )}
                   </div>
                 </div>
               ))

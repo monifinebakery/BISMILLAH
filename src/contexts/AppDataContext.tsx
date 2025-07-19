@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'; // Menambahkan useCallback
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
-import { Order, NewOrder, OrderItem } from '@/types/order'; 
+import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
-import { AssetCategory, AssetCondition } from '@/types/asset'; 
-import { generateUUID } from '@/utils/uuid'; 
-import { RealtimeChannel } from '@supabase/supabase-js'; // PERBAIKAN: Import RealtimeChannel
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
+import { AssetCategory, AssetCondition } from '@/types/asset';
+import { generateUUID } from '@/utils/uuid';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -36,8 +36,8 @@ export interface Purchase {
   tanggal: Date; // Wajib
   supplier: string;
   items: {
-    id?: string | number; 
-    namaBarang: string; 
+    id?: string | number;
+    namaBarang: string;
     kategori?: string;
     jumlah: number;
     satuan?: string;
@@ -57,7 +57,7 @@ export interface Activity {
   title: string;
   description: string;
   timestamp: Date; // Wajib
-  type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier' | 'aset' | 'keuangan'; 
+  type: 'hpp' | 'stok' | 'resep' | 'purchase' | 'supplier' | 'aset' | 'keuangan';
   value: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -82,11 +82,11 @@ export interface HPPResult {
 export interface Asset {
   id: string;
   nama: string;
-  kategori: AssetCategory | null; 
-  nilaiAwal: number; 
+  kategori: AssetCategory | null;
+  nilaiAwal: number;
   nilaiSaatIni: number;
   tanggalPembelian: Date | null;
-  kondisi: AssetCondition | null; 
+  kondisi: AssetCondition | null;
   lokasi: string | null;
   deskripsi: string | null;
   depresiasi: number | null;
@@ -169,8 +169,8 @@ interface AppDataContextType {
     stokMenurut: number;
   };
 
-  syncToCloud: () => Promise<boolean>; 
-  loadFromCloud: () => Promise<void>; 
+  syncToCloud: () => Promise<boolean>;
+  loadFromCloud: () => Promise<void>;
   replaceAllData: (data: any) => void;
 }
 
@@ -185,7 +185,7 @@ const STORAGE_KEYS = {
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
-  CLOUD_SYNC: 'hpp_app_cloud_sync', 
+  CLOUD_SYNC: 'hpp_app_cloud_sync',
   ASSETS: 'hpp_app_assets',
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
@@ -226,12 +226,12 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
             createdAt: safeParseDate(item.createdAt),
             updatedAt: safeParseDate(item.updatedAt),
           }));
-        case STORAGE_KEYS.ORDERS: 
+        case STORAGE_KEYS.ORDERS:
           return parsed.map((item: any) => {
             const parsedTanggal = safeParseDate(item.tanggal);
             const parsedCreatedAt = safeParseDate(item.createdAt || item.created_at);
             const parsedUpdatedAt = safeParseDate(item.updatedAt || item.updated_at);
-            
+
             return {
               ...item,
               tanggal: (parsedTanggal instanceof Date && !isNaN(parsedTanggal.getTime())) ? parsedTanggal : new Date(),
@@ -239,37 +239,36 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime())) ? parsedUpdatedAt : null,
               items: item.items ? item.items.map((orderItem: any) => ({
                 ...orderItem,
-                id: orderItem.id || generateUUID(), 
+                id: orderItem.id || generateUUID(),
               })) : [],
             };
           });
-        case STORAGE_KEYS.ASSETS: 
+        case STORAGE_KEYS.ASSETS:
           return parsed.map((item: any) => {
             const parsedTanggalPembelian = safeParseDate(item.tanggalPembelian || item.tanggal_beli);
             const parsedCreatedAt = safeParseDate(item.createdAt || item.created_at);
             const parsedUpdatedAt = safeParseDate(item.updatedAt || item.updated_at);
-            
+
             return {
-              ...item, 
-              id: item.id, 
+              ...item,
+              id: item.id,
               nama: item.nama || '',
-              kategori: item.kategori || item.jenis || null, 
-              nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0, 
+              kategori: item.kategori || item.jenis || null,
+              nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0,
               nilaiSaatIni: parseFloat(item.nilaiSaatIni || item.nilai_sekarang) || 0,
               tanggalPembelian: (parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()))
-                                ? parsedTanggalPembelian
-                                : new Date('1970-01-01T00:00:00Z'), 
+                                 ? parsedTanggalPembelian
+                                 : new Date('1970-01-01T00:00:00Z'),
               kondisi: item.kondisi || null,
               lokasi: item.lokasi || '',
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
               userId: item.userId || item.user_id,
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
-                         ? parsedCreatedAt
-                         : new Date(),
+                               ? parsedCreatedAt
+                               : new Date(),
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
-                         ? parsedUpdatedAt
-                         : new Date(),
+                               : new Date(),
             };
           });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
@@ -307,9 +306,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [purchases, setPurchases] = useState<Purchase[]>(() =>
     loadFromStorage(STORAGE_KEYS.PURCHASES, [])
   );
-  const [recipes, setRecipes] = useState<Recipe[]>(() =>
+  const [recipes, setRecipes] = useState<Recipe[]>((() =>
     loadFromStorage(STORAGE_KEYS.RECIPES, [])
-  );
+  ));
   const [hppResults, setHppResults] = useState<HPPResult[]>(() =>
     loadFromStorage(STORAGE_KEYS.HPP_RESULTS, [])
   );
@@ -326,7 +325,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'john@example.com',
         teleponPelanggan: '081234567890',
         alamatPelanggan: 'Jl. Merdeka No. 123, Jakarta',
-        items: [{ id: generateUUID(), namaBarang: 'Kue Coklat', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 }], 
+        items: [{ id: generateUUID(), namaBarang: 'Kue Coklat', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 }],
         subtotal: 100000,
         pajak: 10000,
         totalPesanan: 110000,
@@ -343,7 +342,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         emailPelanggan: 'jane@example.com',
         teleponPelanggan: '081234567891',
         alamatPelanggan: 'Jl. Sudirman No. 456, Jakarta',
-        items: [{ id: generateUUID(), namaBarang: 'Roti Tawar', quantity: 5, hargaSatuan: 15000, totalHarga: 75000 }], 
+        items: [{ id: generateUUID(), namaBarang: 'Roti Tawar', quantity: 5, hargaSatuan: 15000, totalHarga: 75000 }],
         subtotal: 75000,
         pajak: 7500,
         totalPesanan: 82500,
@@ -364,7 +363,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Fungsi helper untuk memproses payload realtime dari Supabase
   const processRealtimePayload = (payload: any, setState: React.Dispatch<React.SetStateAction<any[]>>, dateFields: string[], itemArrayKey?: string) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
-  
+
     // Helper untuk mem-parse tanggal di record
     const parseRecordDates = (record: any) => {
       const parsed: any = { ...record };
@@ -391,7 +390,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       return parsed;
     };
-  
+
     setState(prev => {
       // Jika record yang sedang diproses sudah ada di state (misal dari local CRUD),
       // update saja, jangan tambahkan duplikat.
@@ -407,7 +406,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Tambah jika benar-benar baru
         const newState = [...prev, processedNewRecord];
         // Urutkan berdasarkan createdAt untuk konsistensi UI
-        return newState.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)); 
+        return newState.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
       } else if (eventType === 'UPDATE') {
         const processedNewRecord = parseRecordDates(newRecord);
         return prev.map(item => item.id === oldRecord.id ? processedNewRecord : item);
@@ -448,10 +447,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         const channel = supabase
           .channel(`public_${table.name}_changes_for_user_${userId}`) // Channel name harus unik per user
           .on('postgres_changes', {
-            event: '*', 
+            event: '*',
             schema: 'public',
             table: table.name,
-            filter: `user_id=eq.${userId}` 
+            filter: `user_id=eq.${userId}`
           }, (payload) => {
             console.log(`Realtime change in ${table.name}:`, payload);
             processRealtimePayload(payload, table.setState, table.dateFields, table.itemArrayKey);
@@ -477,7 +476,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         supabase.removeChannel(channel);
       });
       // Important: clear channels array to prevent stale closures or re-use of removed channels
-      channels = []; 
+      channels = [];
     };
   }, []); // Dependensi kosong, karena akan mendengarkan perubahan session (yang memicu re-render dan setup ulang)
 
@@ -487,14 +486,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('User logged in, attempting initial load from cloud...');
-        await externalLoadFromCloud(); 
+        await externalLoadFromCloud();
       } else {
         console.log('No user session, using local storage data for initial load.');
       }
     };
-    const timer = setTimeout(checkAndLoadFromCloud, 1000); 
+    const timer = setTimeout(checkAndLoadFromCloud, 1000);
     return () => clearTimeout(timer);
-  }, [externalLoadFromCloud]); 
+  }, [externalLoadFromCloud]);
 
   // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
@@ -513,7 +512,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) { 
+        if (session) {
           console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud (visibilitychange)...');
           await externalLoadFromCloud();
         } else {
@@ -558,7 +557,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         id: item.id, nama: item.nama, kategori: item.kategori ?? null, nilai_awal: item.nilaiAwal, tanggal_beli: toSafeISOString(item.tanggalPembelian), nilai_sekarang: item.nilaiSaatIni, kondisi: item.kondisi ?? null, lokasi: item.lokasi ?? null, deskripsi: item.deskripsi ?? null, depresiasi: item.depresiasi ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
       })),
       financialTransactions: financialTransactions.map(item => ({
-        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
+        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updated_at || new Date()),
       })),
     });
     return success;
@@ -566,14 +565,14 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Fungsi loadFromCloud: Sekarang lebih untuk Force Download/Refresh
   const loadFromCloud = async (): Promise<void> => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } = { session: null } } = await supabase.auth.getSession(); // Default session to null
     if (!session) {
       toast.error('Anda harus login untuk memuat data dari cloud.');
       return;
     }
-    const loadedData = await externalLoadFromCloud(); 
+    const loadedData = await externalLoadFromCloud();
     if (loadedData) {
-      replaceAllData(loadedData); 
+      replaceAllData(loadedData);
     } else {
       toast.info('Tidak ada data baru yang dimuat dari cloud.');
     }
@@ -587,7 +586,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...order,
       items: order.items ? order.items.map((orderItem: any) => ({
         ...orderItem,
-        id: orderItem.id || generateUUID(), 
+        id: orderItem.id || generateUUID(),
       })) : [],
     })));
     if (data.recipes) setRecipes(data.recipes);
@@ -648,7 +647,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>) => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui bahan baku'); return false; }
 
     const bahanToUpdate: Partial<any> = {
@@ -683,7 +682,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteBahanBaku = async (id: string) => {
     const bahan = bahanBaku.find(b => b.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus bahan baku'); return false; }
 
     const { error } = await supabase.from('bahan_baku').delete().eq('id', id).eq('user_id', session.user.id);
@@ -772,7 +771,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateSupplier = async (id: string, updatedSupplier: Partial<Supplier>) => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui supplier'); return false; }
 
     const supplierToUpdate: Partial<any> = {
@@ -799,7 +798,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteSupplier = async (id: string) => {
     const supplier = suppliers.find(s => s.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus supplier'); return false; }
 
     const { error } = await supabase.from('suppliers').delete().eq('id', id).eq('user_id', session.user.id);
@@ -834,7 +833,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: newPurchase.id,
       tanggal: toSafeISOString(newPurchase.tanggal || new Date()),
       supplier: newPurchase.supplier,
-      items: newPurchase.items, 
+      items: newPurchase.items,
       total_nilai: newPurchase.totalNilai,
       metode_perhitungan: newPurchase.metodePerhitungan,
       catatan: newPurchase.catatan ?? null,
@@ -886,7 +885,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>) => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui pembelian'); return false; }
 
     const purchaseToUpdate: Partial<any> = {
@@ -912,7 +911,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const deletePurchase = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus pembelian'); return false; }
 
     const { error } = await supabase.from('purchases').delete().eq('id', id).eq('user_id', session.user.id);
@@ -972,7 +971,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateRecipe = async (id: string, updatedRecipe: Partial<Recipe>) => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui resep'); return false; }
 
     const recipeToUpdate: Partial<any> = {
@@ -1004,7 +1003,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteRecipe = async (id: string) => {
     const recipe = recipes.find(r => r.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus resep'); return false; }
 
     const { error } = await supabase.from('hpp_recipes').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1093,7 +1092,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       email_pelanggan: newOrder.emailPelanggan,
       telepon_pelanggan: newOrder.teleponPelanggan,
       alamat_pengiriman: newOrder.alamatPelanggan,
-      items: newOrder.items, 
+      items: newOrder.items,
       subtotal: newOrder.subtotal,
       pajak: newOrder.pajak,
       total_pesanan: newOrder.totalPesanan,
@@ -1122,7 +1121,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui pesanan'); return false; }
 
     const orderToUpdate: Partial<any> = {
@@ -1155,7 +1154,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteOrder = async (id: string): Promise<boolean> => {
     const order = orders.find(o => o.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus pesanan'); return false; }
 
     const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1258,7 +1257,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       nama: newAsset.nama,
       kategori: newAsset.kategori,
       nilai_awal: newAsset.nilaiAwal,
-      tanggal_beli: toSafeISOString(newAsset.tanggalPembelian), 
+      tanggal_beli: toSafeISOString(newAsset.tanggalPembelian),
       nilai_sekarang: newAsset.nilaiSaatIni,
       kondisi: newAsset.kondisi,
       lokasi: newAsset.lokasi,
@@ -1287,7 +1286,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateAsset = async (id: string, updatedAsset: Partial<Asset>) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) {
         toast.error('Anda harus login untuk memperbarui aset');
         return false;
@@ -1389,7 +1388,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const updateFinancialTransaction = async (id: string, updatedTransaction: Partial<FinancialTransaction>) => {
-    const session = (await supabase.auth.getSession()).data.session; 
+    const session = (await supabase.auth.getSession()).data.session;
     if (!session) { toast.error('Anda harus login untuk memperbarui transaksi keuangan'); return false; }
 
     const transactionToUpdate: Partial<any> = {
@@ -1416,7 +1415,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const deleteFinancialTransaction = async (id: string) => {
     const transaction = financialTransactions.find(t => t.id === id);
-    const { data: { session } } = await supabase.auth.getSession(); 
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error('Anda harus login untuk menghapus transaksi keuangan'); return false; }
 
     const { error } = await supabase.from('financial_transactions').delete().eq('id', id).eq('user_id', session.user.id);
@@ -1475,8 +1474,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addFinancialTransaction,
     updateFinancialTransaction,
     deleteFinancialTransaction,
-    syncToCloud, 
-    loadFromCloud, 
+    syncToCloud,
+    loadFromCloud,
     replaceAllData,
     getStatistics,
     getDashboardStats,

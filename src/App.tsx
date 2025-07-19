@@ -94,7 +94,6 @@ const AppLayout = () => {
             </div>
             <div className="flex items-center space-x-2">
               {isPaid && <PaymentStatusIndicator />}
-              <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
               <NotificationBell />
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:bg-destructive/10 px-2 py-1">
                 <LogOut className="h-4 w-4" />
@@ -135,7 +134,6 @@ const AppLayout = () => {
                 <div className="flex-1" />
                 <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
                   <PaymentStatusIndicator />
-                  <CloudSyncButton variant="upload" />
                   <DateTimeDisplay />
                   <NotificationBell />
                   <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">

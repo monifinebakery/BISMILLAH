@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
-import { useAppData } from '@/contexts/AppDataContext';
 import { supabase } from '@/integrations/supabase/client'; // Tetap import supabase jika digunakan di tempat lain
 import { safeParseDate } from '@/utils/dateUtils'; 
 

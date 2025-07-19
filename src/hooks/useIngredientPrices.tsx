@@ -1,10 +1,12 @@
-
-import { useAppData } from '@/contexts/AppDataContext';
 import { RecipeIngredient } from '@/types/recipe';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast'; // Menggunakan useToast dari shadcn
+// --- PERUBAHAN ---
+import { useBahanBaku } from '@/contexts/BahanBakuContext';
 
 export const useIngredientPrices = () => {
-  const { getBahanBakuByName, reduceStok } = useAppData();
+  // --- MENGGUNAKAN HOOK BARU ---
+  const { getBahanBakuByName, reduceStok } = useBahanBaku();
+  const { toast } = useToast();
 
   const getIngredientPrice = (nama: string): number => {
     const bahanBaku = getBahanBakuByName(nama);
@@ -18,7 +20,7 @@ export const useIngredientPrices = () => {
       if (!bahanBaku) {
         toast({
           title: "Bahan Tidak Tersedia",
-          description: `${ingredient.nama} tidak ditemukan di gudang`,
+          description: `${ingredient.nama} tidak ditemukan di gudang.`,
           variant: "destructive",
         });
         return false;
@@ -27,7 +29,7 @@ export const useIngredientPrices = () => {
       if (bahanBaku.stok < ingredient.jumlah) {
         toast({
           title: "Stok Tidak Cukup",
-          description: `${ingredient.nama} tersisa ${bahanBaku.stok} ${bahanBaku.satuan}, dibutuhkan ${ingredient.jumlah} ${ingredient.satuan}`,
+          description: `Stok ${ingredient.nama} hanya ${bahanBaku.stok} ${bahanBaku.satuan}. Dibutuhkan ${ingredient.jumlah}.`,
           variant: "destructive",
         });
         return false;
@@ -37,15 +39,26 @@ export const useIngredientPrices = () => {
     return true;
   };
 
-  const consumeIngredients = (ingredients: RecipeIngredient[]): boolean => {
+  const consumeIngredients = async (ingredients: RecipeIngredient[]): Promise<boolean> => {
     if (!validateIngredientAvailability(ingredients)) {
       return false;
     }
 
-    for (const ingredient of ingredients) {
-      if (!reduceStok(ingredient.nama, ingredient.jumlah)) {
-        return false;
-      }
+    // Menggunakan Promise.all agar jika satu gagal, proses berhenti
+    try {
+      await Promise.all(
+        ingredients.map(ingredient => {
+          const success = reduceStok(ingredient.nama, ingredient.jumlah);
+          if (!success) {
+            throw new Error(`Gagal mengurangi stok untuk ${ingredient.nama}`);
+          }
+          return success;
+        })
+      );
+    } catch (error: any) {
+      console.error(error.message);
+      // Toast error sudah di-handle di dalam `reduceStok`
+      return false;
     }
 
     return true;

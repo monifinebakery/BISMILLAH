@@ -1,42 +1,51 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo } from "react"; // <-- DITAMBAHKAN untuk optimasi
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 import { formatDateForDisplay } from '@/utils/dateUtils';
+import { useMemo } from 'react'; // Disarankan menggunakan useMemo untuk efisiensi
 
-// --- Impor Hook Baru ---
+// --- IMPOR LENGKAP SEMUA HOOK KONTEKS ---
 import { useActivity } from "@/contexts/ActivityContext";
-import { useRecipe } from "@/contexts/RecipeContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useFinancial } from "@/contexts/FinancialContext";
+import { useAsset } from "@/contexts/AssetContext";
+import { usePurchase } from "@/contexts/PurchaseContext";
+import { useSupplier } from "@/contexts/SupplierContext";
 
 const Dashboard = () => {
-  // --- PANGGIL HOOK SPESIFIK ---
+  // --- PANGGIL SEMUA HOOK YANG DIBUTUHKAN ---
   const { activities } = useActivity();
   const { bahanBaku } = useBahanBaku();
-  const { recipes } = useRecipe();
-  const { orders } = useOrder();
-  const { financialTransactions } = useFinancial();
-  const { assets } = useAsset();
-  const { purchases } = usePurchase();
-  const { suppliers } = useSupplier();
+  const { recipes, hppResults } = useRecipe(); // hppResults juga dibutuhkan
   const { userName } = usePaymentStatus();
 
-  // --- Logika Statistik Diimplementasikan Ulang di Sini ---
+  // --- REKONSTRUKSI STATISTIK MENGGUNAKAN useMemo ---
   const stats = useMemo(() => {
-    const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
+    const totalProduk = recipes.length;
+    
+    // Menghitung total kuantitas stok, bukan hanya jumlah jenis bahan
+    const totalStokBahanBaku = bahanBaku.reduce((sum, item) => sum + item.stok, 0);
+    
+    const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
     
     const averageHPP = hppResults.length > 0
       ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
       : 0;
 
+    const hppRataRataFormatted = averageHPP > 0
+      ? averageHPP.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : "Rp 0";
+
     return {
-      totalProduk: recipes.length,
-      stokBahanBaku: bahanBaku.length,
-      hppRataRata: averageHPP > 0 ? `Rp ${averageHPP.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Rp 0',
+      totalProduk,
+      totalStokBahanBaku,
+      hppRataRata: hppRataRataFormatted,
       stokMenurut: stokMenipis,
     };
-  }, [recipes, hppResults, bahanBaku]);
+  }, [recipes, bahanBaku, hppResults]);
 
 
   const statsCards = [
@@ -47,8 +56,8 @@ const Dashboard = () => {
       color: "from-blue-600 to-blue-400",
     },
     {
-      title: "Jumlah Bahan Baku", // Judul disesuaikan agar lebih jelas
-      value: stats.stokBahanBaku.toString(),
+      title: "Total Stok Bahan",
+      value: stats.totalStokBahanBaku.toLocaleString('id-ID'),
       icon: Warehouse,
       color: "from-green-600 to-green-400",
     },
@@ -61,7 +70,7 @@ const Dashboard = () => {
     {
       title: "Stok Menipis",
       value: stats.stokMenurut.toString(),
-      icon: DollarSign, // Menggunakan ikon yang sama seperti sebelumnya
+      icon: TrendingUp, // Ikon diganti agar lebih sesuai
       color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400",
     },
   ];
@@ -105,12 +114,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-2">
-            Dashboard Sistem HPP
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+            Dashboard
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
             {getGreeting()}
@@ -120,7 +129,7 @@ const Dashboard = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {statsCards.map((stat, index) => (
-            <Card key={index} className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <Card key={index} className="shadow-md border-0 bg-white">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -136,22 +145,19 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Quick Actions & Recent Activity (Grid layout for larger screens) */}
+        {/* Quick Actions & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           <div className="lg:col-span-2">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Aksi Cepat</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {quickActions.map((action, index) => (
                 <Link key={index} to={action.link} className="block">
                   <Card className={`${action.color} transition-all duration-300 hover:shadow-lg border-0 cursor-pointer h-full`}>
-                    <CardContent className="p-4 sm:p-6 flex items-start space-x-3 sm:space-x-4">
-                      <div className="p-2 bg-white rounded-lg shadow-sm flex-shrink-0 mt-1">
-                        <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">{action.title}</h3>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{action.description}</p>
-                      </div>
+                    <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center">
+                        <div className="p-3 bg-white rounded-full shadow-sm mb-3">
+                          <action.icon className="h-6 w-6 text-gray-700" />
+                        </div>
+                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{action.title}</h3>
                     </CardContent>
                   </Card>
                 </Link>
@@ -161,24 +167,17 @@ const Dashboard = () => {
           
           <div className="lg:col-span-1">
              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Aktivitas Terbaru</h2>
-            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm h-full">
+            <Card className="shadow-md border-0 bg-white h-full">
               <CardContent className="p-4 sm:p-6">
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-3">
                   {activities.slice(0, 5).map((activity) => (
-                    <div key={activity.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm text-gray-800">{activity.title}</p>
-                        <p className="text-xs text-gray-500">{formatDateForDisplay(activity.timestamp)}</p>
-                      </div>
-                      {activity.value && (
-                        <span className="font-semibold text-sm text-gray-700 whitespace-nowrap pl-2">
-                          {activity.value}
-                        </span>
-                      )}
+                    <div key={activity.id} className="flex items-center justify-between text-sm">
+                      <p className="text-gray-700">{activity.title}</p>
+                      <p className="text-gray-500 text-xs">{formatDateForDisplay(activity.timestamp)}</p>
                     </div>
                   ))}
                   {activities.length === 0 && (
-                    <p className="text-center text-gray-500 py-4">Belum ada aktivitas</p>
+                    <p className="text-center text-gray-500 py-4 text-sm">Belum ada aktivitas</p>
                   )}
                 </div>
               </CardContent>

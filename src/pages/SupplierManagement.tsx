@@ -10,7 +10,6 @@ import { Users, Plus, Edit, Trash2, Phone, Mail, MapPin, Search } from 'lucide-r
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import CloudSyncButton from '@/components/CloudSyncButton';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { useIsMobile } from '@/hooks/use-mobile'; // PERBAIKAN: Import useIsMobile
 

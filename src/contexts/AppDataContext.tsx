@@ -262,19 +262,19 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               nilaiAwal: parseFloat(item.nilaiAwal || item.nilai) || 0,
               nilaiSaatIni: parseFloat(item.nilaiSaatIni || item.nilai_sekarang) || 0,
               tanggalPembelian: (parsedTanggalPembelian instanceof Date && !isNaN(parsedTanggalPembelian.getTime()))
-                                 ? parsedTanggalPembelian
-                                 : new Date('1970-01-01T00:00:00Z'),
+                                ? parsedTanggalPembelian
+                                : new Date('1970-01-01T00:00:00Z'),
               kondisi: item.kondisi || null,
               lokasi: item.lokasi || '',
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
               userId: item.userId || item.user_id,
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
-                               ? parsedCreatedAt
-                               : null,
+                                ? parsedCreatedAt
+                                : null,
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
-                               ? parsedUpdatedAt // Ini bagian yang penting!
-                               : null,
+                                ? parsedUpdatedAt // Ini bagian yang penting!
+                                : null,
             };
           });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
@@ -869,6 +869,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           minimum: 10,
           hargaSatuan: item.hargaSatuan,
           supplier: purchase.supplier,
+          tanggalKadaluwarsa: null,
         });
       }
     }));
@@ -1030,6 +1031,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: generateUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      timestamp: new Date(),
     };
 
     const resultToInsert = {
@@ -1202,12 +1204,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { error } = await supabase.from('activities').insert([activityToInsert]);
     if (error) {
       console.error('Error adding activity to DB:', error);
-      toast.error(`Gagal menambahkan aktivitas: ${error.message}`);
+      // Non-blocking, so don't show toast error to user for this
       return;
     }
 
     setActivities(prev => [newActivity, ...prev].slice(0, 50));
-    toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
   const getStatistics = useCallback(() => { // Wrap in useCallback
@@ -1294,7 +1295,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updated_at: toSafeISOString(new Date()),
     };
     if (updatedAsset.nama !== undefined) assetToUpdate.nama = updatedAsset.nama;
-    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori; // <--- DIUBAH: Typo here, should be updatedAsset.kategori
+    if (updatedAsset.kategori !== undefined) assetToUpdate.kategori = updatedAsset.kategori;
     if (updatedAsset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = updatedAsset.nilaiAwal;
     if (updatedAsset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = updatedAsset.nilaiSaatIni;
     if (updatedAsset.tanggalPembelian !== undefined) {
@@ -1434,6 +1435,47 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
     return true;
   };
+  
+  // *** FUNGSI BARU YANG DITAMBAHKAN ***
+  const syncToCloud = async (): Promise<boolean> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Anda harus login untuk menyinkronkan data');
+      return false;
+    }
+
+    const toastId = toast.loading("Menyinkronkan data ke cloud...");
+
+    try {
+      // 1. Kumpulkan semua data dari state lokal untuk dikirim
+      const dataToSync = {
+        bahanBaku,
+        suppliers,
+        purchases,
+        recipes,
+        hppResults,
+        activities,
+        orders,
+        assets,
+        financialTransactions,
+      };
+
+      // 2. Panggil fungsi sinkronisasi eksternal dari hook useSupabaseSync
+      const success = await externalSyncToCloud(dataToSync);
+
+      if (success) {
+        toast.success("Data berhasil disinkronkan ke cloud!", { id: toastId });
+        return true;
+      } else {
+        toast.error("Gagal menyinkronkan data. Silakan cek konsol untuk detail.", { id: toastId });
+        return false;
+      }
+    } catch (error) {
+      console.error("Error during syncToCloud:", error);
+      toast.error("Terjadi kesalahan teknis saat sinkronisasi.", { id: toastId });
+      return false;
+    }
+  };
 
   const value: AppDataContextType = {
     bahanBaku,
@@ -1472,7 +1514,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     addFinancialTransaction,
     updateFinancialTransaction,
     deleteFinancialTransaction,
-    syncToCloud,
+    syncToCloud, // <-- FUNGSI BARU DITAMBAHKAN KE VALUE
     loadFromCloud,
     replaceAllData,
     getStatistics,

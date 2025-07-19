@@ -4,20 +4,20 @@ import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, FileText } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import FinancialTransactionList from '@/components/FinancialTransactionList';
-import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
+import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 
 const FinancialReportPage = () => {
   const { 
@@ -31,49 +31,26 @@ const FinancialReportPage = () => {
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
+  // PERUBAHAN 1: Rentang tanggal default diubah menjadi 6 bulan terakhir
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
+    from: startOfMonth(subMonths(new Date(), 5)),
     to: new Date(),
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const openDialog = () => setIsDialogOpen(true);
-
-  // --- TAMBAHKAN KODE INI ---
-  const closeDialog = useCallback(() => {
-    setIsDialogOpen(false);
-  }, []);
-
-  const filteredTransactions = useMemo(() => {
-    if (!transactions) return [];
-    return transactions.filter(t => {
-      const transactionDate = t.date;
-      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) return false;
-      
-      const rangeFrom = dateRange?.from;
-      const rangeTo = dateRange?.to;
-
-      if (rangeFrom && transactionDate < rangeFrom) return false;
-      if (rangeTo) {
-          const adjustedRangeTo = new Date(rangeTo);
-          adjustedRangeTo.setHours(23, 59, 59, 999);
-          if (transactionDate > adjustedRangeTo) return false;
-      }
-      
-      return true;
-    });
-  }, [transactions, dateRange]);
-
+  const closeDialog = useCallback(() => setIsDialogOpen(false), []);
+  
+  // (Logika useMemo untuk kalkulasi data tidak berubah)
   const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
-    const income = filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
-    const expense = filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
+    // ...
+    const income = (filteredTransactions || []).filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
+    const expense = (filteredTransactions || []).filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
     
     const incomeByCategory: { [key: string]: number } = {};
     const expenseByCategory: { [key: string]: number } = {};
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
-    filteredTransactions.forEach(t => {
+    (filteredTransactions || []).forEach(t => {
       const categoryName = t.category || 'Lainnya';
       if (t.type === 'pemasukan') {
         incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
@@ -109,8 +86,13 @@ const FinancialReportPage = () => {
         .sort((a, b) => a.date.getTime() - b.date.getTime()),
     };
   }, [filteredTransactions]);
-  
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#9cafff'];
+
+  // PERUBAHAN 2: Fungsi baru untuk memformat sumbu Y dengan angka penuh
+  const formatYAxis = (tickItem: number) => {
+    return tickItem.toLocaleString('id-ID');
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -138,7 +120,7 @@ const FinancialReportPage = () => {
               <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
             </PopoverContent>
           </Popover>
-          <FinancialCategoryManager /> {/* <-- TAMBAHKAN BARIS INI */}
+          <FinancialCategoryManager />
           <Button onClick={() => setIsDialogOpen(true)}>Tambah Transaksi</Button>
         </div>
       </div>
@@ -155,17 +137,18 @@ const FinancialReportPage = () => {
       <div className={premiumContentClass}>
         {/* Grafik Garis (Full Width) */}
         <Card className="mb-6">
-            <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran Bulanan</CardTitle></CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={transactionData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
-                        <YAxis tickFormatter={formatLargeNumber} />
+                        {/* PERUBAHAN 3: Menggunakan formatter baru dan memperlebar area Y-Axis */}
+                        <YAxis tickFormatter={formatYAxis} width={90} />
                         <Tooltip formatter={(value: number) => formatCurrency(value)} />
                         <Legend />
-                        <Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} />
-                        <Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} />
+                        <Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} />
+                        <Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
                     </LineChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -173,13 +156,12 @@ const FinancialReportPage = () => {
 
         {/* Chart Pie (Side-by-side) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart Distribusi Pemasukan */}
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
-                            <Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                            <Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
                                 {categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                             </Pie>
                             <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -189,13 +171,12 @@ const FinancialReportPage = () => {
                 </CardContent>
             </Card>
 
-            {/* Chart Distribusi Pengeluaran */}
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
-                            <Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                            <Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
                                 {categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                             </Pie>
                             <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -215,18 +196,17 @@ const FinancialReportPage = () => {
           loading={false}
           onUpdateTransaction={updateFinancialTransaction}
           onDeleteTransaction={deleteFinancialTransaction}
-          categories={settings.financialCategories || []}
+          categories={settings.financialCategories}
         />
       </div>
 
-      {/* Dialog Tambah Transaksi */}
+      {/* Dialog Tambah/Edit Transaksi */}
       <FinancialTransactionDialog
-  isOpen={isDialogOpen}
-  onClose={closeDialog}
-  onAddTransaction={addFinancialTransaction}
-  // PASTIKAN SELALU MENGIRIM ARRAY, bahkan saat settings masih loading
-  categories={settings?.financialCategories || []}
-/>
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
+        onAddTransaction={addFinancialTransaction}
+        categories={settings.financialCategories.expense}
+      />
     </div>
   );
 };

@@ -1,11 +1,10 @@
 // src/contexts/AppDataContext.tsx
 // VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN SEMUA FUNGSI LENGKAP
-// PERBAIKAN VITE REACT SWC ERROR DAN SYNTAX ERROR DI loadFromStorage
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
 import { Supplier } from '@/types/supplier';
-import { Order, NewOrder, OrderItem } from '@/types/order'; // Memastikan OrderItem diimpor jika digunakan
+import { Order, NewOrder, OrderItem } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -269,14 +268,13 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
               userId: item.userId || item.user_id,
-              // <--- DIUBAH: Penambahan nilai jika parsedCreatedAt/updatedAt tidak valid
+              // PERBAIKAN: Penambahan nilai jika parsedCreatedAt/updatedAt tidak valid
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
                                ? parsedCreatedAt
-                               : null, // Ganti new Date() dengan null jika Date parsing tidak valid
+                               : null,
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
                                ? parsedUpdatedAt
-                               : null, // Ganti new Date() dengan null jika Date parsing tidak valid
-              // --- Akhir Perbaikan
+                               : null,
             };
           });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:
@@ -696,7 +694,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
-        description: `${bahan.nama} telah dihapus dari gudang`,
+        description: `${bahan.nama} telah dihapus`,
         type: 'stok',
       });
       toast.success(`${bahan.nama} berhasil dihapus!`);
@@ -766,7 +764,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       description: `${supplier.nama} telah ditambahkan`,
       type: 'supplier',
     });
-    toast.success(`${supplier.nama} berhasil ditambahkan!`);
+    toast.success(`Supplier berhasil ditambahkan!`);
     return true;
   };
 
@@ -1072,7 +1070,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await addHPPResult(result);
   };
 
-  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => { // Removed duplicate 'id' from Omit
+  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => {
     const session = (await supabase.auth.getSession()).data.session;
     const newOrder: Order = {
       ...order,

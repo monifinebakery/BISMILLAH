@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 import { generateUUID } from '@/utils/uuid'; // Tambahkan generateUUID
-import { addAsset } from '@/hooks/useAssets';
 
 // =============================================================
 // INTERFACES (Definisi tipe utama untuk aplikasi Anda)

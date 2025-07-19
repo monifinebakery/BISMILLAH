@@ -1,33 +1,32 @@
-// App.tsx - VERSI FINAL DENGAN SEMUA IMPORT LENGKAP
-
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-// Penyedia Konteks dan Konfigurasi
-import { AppProviders } from "@/contexts/AppProviders";
+// =============================================================
+// --- MENGIMPOR SEMUA PROVIDER KONTEKS ---
+// =============================================================
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ActivityProvider } from "@/contexts/ActivityContext";
+import { AssetProvider } from "@/contexts/AssetContext";
+import { BahanBakuProvider } from "@/contexts/BahanBakuContext";
+import { FinancialProvider } from "@/contexts/FinancialContext";
+import { OrderProvider } from "@/contexts/OrderContext";
+import { PaymentProvider } from "@/contexts/PaymentContext"; // Asumsi PaymentContext tetap ada untuk timer
+import { PurchaseProvider } from "@/contexts/PurchaseContext";
+import { RecipeProvider } from "@/contexts/RecipeContext";
+import { SupplierProvider } from "@/contexts/SupplierContext";
+// =============================================================
+
+// --- Konfigurasi dan Komponen UI ---
 import { supabase } from "@/integrations/supabase/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-// Komponen UI dari ShadCN
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-// Komponen Aplikasi
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AppSidebar } from "@/components/AppSidebar";
 import AuthGuard from "@/components/AuthGuard";
 import PaymentGuard from "@/components/PaymentGuard";
@@ -36,9 +35,9 @@ import CloudSyncButton from "@/components/CloudSyncButton";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/ThemeToggle"; // Asumsi ada komponen ini
 
-// Halaman (Pages)
+// --- Halaman (Pages) ---
 import EmailAuthPage from "@/components/EmailAuthPage";
 import Dashboard from "./pages/Dashboard";
 import HPPCalculatorPage from "./pages/HPPCalculator";
@@ -54,9 +53,8 @@ import PurchaseManagement from "./pages/PurchaseManagement";
 import MenuPage from "./pages/MenuPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 
-// Hooks dan Utilitas
+// --- Hooks dan Utilitas ---
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePaymentContext } from "./contexts/PaymentContext";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 import { performSignOut } from "@/lib/authUtils";
 

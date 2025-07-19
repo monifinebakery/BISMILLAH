@@ -1,5 +1,6 @@
 // src/contexts/AppDataContext.tsx
 // VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN SEMUA FUNGSI LENGKAP
+// PERBAIKAN VITE REACT SWC ERROR
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
@@ -322,7 +323,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         pajak: 10000,
         totalPesanan: 110000,
         status: 'pending',
-        catatan: 'Kirim sebelum jam 5 sore',
         createdAt: new Date('2024-12-28T10:00:00Z'),
         updatedAt: new Date('2024-12-28T10:00:00Z'),
       },
@@ -413,7 +413,8 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     } else {
       console.log('Tidak ada data baru yang dimuat dari cloud.');
     }
-  }, [externalLoadFromCloud, replaceAllData]); // Menambahkan replaceAllData ke dependensi
+  }, [externalLoadFromCloud, replaceAllData]);
+
 
   // ===================================================================
   // --- LOGIKA UTAMA BARU UNTUK OTENTIKASI DAN MANAJEMEN DATA ---
@@ -508,7 +509,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         { name: 'assets', setState: setAssets, dateFields: ['tanggal_beli', 'created_at', 'updated_at'] },
         { name: 'financial_transactions', setState: setFinancialTransactions, dateFields: ['date', 'created_at', 'updated_at'] },
         // PERBAIKAN: Tambahkan user_payments ke subscriptions real-time
-        { name: 'user_payments', setState: () => { /* no direct state for this in AppData */ }, dateFields: ['created_at', 'updated_at', 'payment_date'] },
+        { name: 'user_payments', setState: undefined, dateFields: ['created_at', 'updated_at', 'payment_date'] }, // setState now explicitly undefined
       ];
 
       tablesToSubscribe.forEach(table => {
@@ -526,7 +527,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
               // Misal: memicu refresh status pembayaran user di komponen lain
               console.log('Perubahan user_payments terdeteksi. Silakan periksa status pembayaran user.');
               loadFromCloud(); // Memuat ulang data dari cloud, yang akan me-refresh status pembayaran user
-            } else {
+            } else if (table.setState) { // Only call setState if it's defined
               table.setState(prev => { // Panggil setState hanya untuk tabel yang memiliki state langsung
                 const processed = parseRecordDates(payload.new || payload.old); // Parse dates for new/old record
                 const existingIndex = prev.findIndex(item => item.id === (payload.new?.id || payload.old?.id));
@@ -567,90 +568,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       channels = [];
     };
   }, [loadFromCloud]);
-
-  // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
-  useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.RECIPES, recipes); }, [recipes]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.HPP_RESULTS, hppResults); }, [hppResults]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.ACTIVITIES, activities); }, [activities]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.ORDERS, orders); }, [orders]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.ASSETS, assets); }, [assets]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
-
-  // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        const { data: { session } = { session: null } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud (visibilitychange)...');
-          await externalLoadFromCloud();
-        } else {
-          console.log('Tab aplikasi terlihat, tapi user tidak login. Tidak ada pembaruan dari cloud.');
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [externalLoadFromCloud]);
-
-  // Fungsi syncToCloud: Sekarang lebih untuk Force Upload/Backup
-  const syncToCloud = async (): Promise<boolean> => {
-    const { data: { session } = { session: null } } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error('Anda harus login untuk menyinkronkan data');
-      return false;
-    }
-    const success = await externalSyncToCloud({
-      bahanBaku: bahanBaku.map(item => ({
-        id: item.id, nama: item.nama, kategori: item.kategori, stok: item.stok, satuan: item.satuan, minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier, tanggal_kadaluwarsa: toSafeISOString(item.tanggalKadaluwarsa), user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()), jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null, satuan_kemasan: item.satuanKemasan ?? null, harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null,
-      })),
-      suppliers: suppliers.map(item => ({
-        id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon, alamat: item.alamat, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      purchases: purchases.map(item => ({
-        id: item.id, tanggal: toSafeISOString(item.tanggal || new Date()), supplier: item.supplier, items: item.items, total_nilai: item.totalNilai, metode_perhitungan: item.metodePerhitungan, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
-      })),
-      recipes: recipes.map(item => ({
-        id: item.id, nama_resep: item.namaResep, deskripsi: item.deskripsi ?? null, porsi: item.porsi, ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi, margin_keuntungan: item.marginKeuntungan, harga_jual_per_porsi: item.hargaJualPerPorsi, category: item.category, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      hppResults: hppResults.map(item => ({
-        id: item.id, nama: item.nama, ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead, margin_keuntungan: item.marginKeuntungan, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi, harga_jual_per_porsi: item.hargaJualPerPorsi, jumlah_porsi: item.jumlahPorsi, user_id: session.user.id, created_at: toSafeISOString(item.timestamp || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      activities: activities.map(item => ({
-        id: item.id, title: item.title, description: item.description, type: item.type, value: item.value ?? null, user_id: session.user.id, created_at: toSafeISOString(item.timestamp || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      orders: orders.map(item => ({
-        id: item.id, nomor_pesanan: item.nomorPesanan, tanggal: toSafeISOString(item.tanggal || new Date()), nama_pelanggan: item.namaPelanggan, email_pelanggan: item.emailPelanggan, telepon_pelanggan: item.teleponPelanggan, alamat_pengiriman: item.alamatPelanggan, items: item.items, subtotal: item.subtotal, pajak: item.pajak, total_pesanan: item.totalPesanan, status: item.status, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
-      })),
-      assets: assets.map(item => ({
-        id: item.id, nama: item.nama, kategori: item.kategori ?? null, nilai_awal: item.nilaiAwal, tanggal_beli: toSafeISOString(item.tanggalPembelian), nilai_sekarang: item.nilaiSaatIni, kondisi: item.kondisi ?? null, lokasi: item.lokasi ?? null, deskripsi: item.deskripsi ?? null, depresiasi: item.depresiasi ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      financialTransactions: financialTransactions.map(item => ({
-        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updated_at || new Date()),
-      })),
-    });
-    return success;
-  };
-
-  // Fungsi loadFromCloud: Sekarang lebih untuk Force Download/Refresh
-  const loadFromCloud = useCallback(async (): Promise<void> => {
-    const { data: { session } = { session: null } } = await supabase.auth.getSession();
-    if (!session) {
-      console.log('Tidak ada sesi, proses memuat data dari cloud dibatalkan.');
-      return;
-    }
-    const loadedData = await externalLoadFromCloud();
-    if (loadedData) {
-      replaceAllData(loadedData);
-      toast.success('Data berhasil dimuat dari cloud!');
-    } else {
-      console.log('Tidak ada data baru yang dimuat dari cloud.');
-    }
-  }, [externalLoadFromCloud, replaceAllData]);
-
 
   // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
@@ -1152,7 +1069,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await addHPPResult(result);
   };
 
-  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'id' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => { // Perbaiki Omit
+  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => { // Removed duplicate 'id' from Omit
     const session = (await supabase.auth.getSession()).data.session;
     const newOrder: Order = {
       ...order,

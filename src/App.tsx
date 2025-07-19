@@ -1,43 +1,21 @@
-// App.tsx - VERSI FINAL DENGAN KONTEKS BARU
+// App.tsx - VERSI FINAL DENGAN SEMUA IMPORT LENGKAP
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import EmailAuthPage from "@/components/EmailAuthPage";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { supabase } from "@/integrations/supabase/client";
-import AuthGuard from "@/components/AuthGuard";
-import PaymentGuard from "@/components/PaymentGuard";
-import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
-import CloudSyncButton from "@/components/CloudSyncButton";
-import Dashboard from "./pages/Dashboard";
-import HPPCalculatorPage from "./pages/HPPCalculator";
-import RecipesPage from "./pages/Recipes";
-import WarehousePage from "./pages/Warehouse";
-import OrdersPage from "./pages/Orders";
-import FinancialReportPage from "./pages/FinancialReport";
-import NotFound from "./pages/NotFound";
-import AssetManagement from "./pages/AssetManagement";
-import Settings from "./pages/Settings";
-import DateTimeDisplay from "./components/DateTimeDisplay";
-import NotificationBell from "./components/NotificationBell";
-import SupplierManagement from "./pages/SupplierManagement";
-import PurchaseManagement from "./pages/PurchaseManagement";
-import BottomTabBar from "./components/BottomTabBar";
-import MenuPage from "./pages/MenuPage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { performSignOut } from "@/lib/authUtils";
-import { usePaymentContext } from "./contexts/PaymentContext";
-import ThemeToggle from "@/components/ThemeToggle";
-import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+
+// Penyedia Konteks dan Konfigurasi
+import { AppProviders } from "@/contexts/AppProviders";
+import { supabase } from "@/integrations/supabase/client";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+// Komponen UI dari ShadCN
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +26,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AppProviders } from "@/contexts/AppProviders"; // <-- **PERUBAHAN 1: Import AppProviders**
+
+// Komponen Aplikasi
+import { AppSidebar } from "@/components/AppSidebar";
+import AuthGuard from "@/components/AuthGuard";
+import PaymentGuard from "@/components/PaymentGuard";
+import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
+import CloudSyncButton from "@/components/CloudSyncButton";
+import DateTimeDisplay from "@/components/DateTimeDisplay";
+import NotificationBell from "@/components/NotificationBell";
+import BottomTabBar from "@/components/BottomTabBar";
+import ThemeToggle from "@/components/ThemeToggle";
+
+// Halaman (Pages)
+import EmailAuthPage from "@/components/EmailAuthPage";
+import Dashboard from "./pages/Dashboard";
+import HPPCalculatorPage from "./pages/HPPCalculator";
+import RecipesPage from "./pages/Recipes";
+import WarehousePage from "./pages/Warehouse";
+import OrdersPage from "./pages/Orders";
+import FinancialReportPage from "./pages/FinancialReport";
+import NotFound from "./pages/NotFound";
+import AssetManagement from "./pages/AssetManagement";
+import Settings from "./pages/Settings";
+import SupplierManagement from "./pages/SupplierManagement";
+import PurchaseManagement from "./pages/PurchaseManagement";
+import MenuPage from "./pages/MenuPage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+
+// Hooks dan Utilitas
+import { useIsMobile } from "@/hooks/use-mobile";
+import { usePaymentContext } from "./contexts/PaymentContext";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+import { performSignOut } from "@/lib/authUtils";
+
 
 // Konfigurasi QueryClient
 const queryClient = new QueryClient({
@@ -72,26 +83,20 @@ const AppLayout = () => {
   };
 
   const confirmLogout = async () => {
-    try {
-      const success = await performSignOut();
-      if (success) {
-        toast.success("Berhasil keluar");
-        setTimeout(() => {
-          window.location.href = '/auth'; // Redirect ke halaman auth setelah logout
-        }, 500);
-      } else {
-        toast.error("Gagal keluar");
-      }
-    } catch (error) {
+    const success = await performSignOut();
+    if (success) {
+      toast.success("Berhasil keluar");
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 500);
+    } else {
       toast.error("Gagal keluar");
     }
   };
 
-  // ... (sisa kode AppLayout Anda tetap sama persis)
   return (
     <>
       {isMobile ? (
-        // Mobile layout
         <div className="min-h-screen flex flex-col bg-background">
           <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
             <div className="flex-1">
@@ -101,19 +106,13 @@ const AppLayout = () => {
               {isPaid && <PaymentStatusIndicator />}
               <CloudSyncButton variant="upload" className="text-xs px-2 py-1" />
               <NotificationBell />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-destructive hover:bg-destructive/10 px-2 py-1"
-              >
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:bg-destructive/10 px-2 py-1">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </header>
           <main className="flex-1 overflow-auto pb-16">
             <Routes>
-                {/* ... Routes Anda ... */}
                  <Route path="/" element={<Dashboard />} />
                  <Route path="/hpp" element={<HPPCalculatorPage />} />
                  <Route path="/resep" element={<RecipesPage />} />
@@ -140,7 +139,7 @@ const AppLayout = () => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+                  Apakah Anda yakin ingin keluar? Anda perlu login kembali untuk mengakses data.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -151,7 +150,6 @@ const AppLayout = () => {
           </AlertDialog>
         </div>
       ) : (
-        // Desktop layout
         <SidebarProvider>
           <div className="min-h-screen flex w-full bg-background">
             <AppSidebar />
@@ -164,12 +162,7 @@ const AppLayout = () => {
                   <CloudSyncButton variant="upload" />
                   <DateTimeDisplay />
                   <NotificationBell />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="text-destructive hover:bg-destructive/10"
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </div>
@@ -177,7 +170,6 @@ const AppLayout = () => {
               <main className="flex-1 w-full min-w-0 overflow-auto">
                 <div className="w-full max-w-none">
                   <Routes>
-                    {/* ... Routes Anda ... */}
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/hpp" element={<HPPCalculatorPage />} />
                     <Route path="/resep" element={<RecipesPage />} />
@@ -201,7 +193,7 @@ const AppLayout = () => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+                  Apakah Anda yakin ingin keluar? Anda perlu login kembali untuk mengakses data.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -218,33 +210,20 @@ const AppLayout = () => {
 
 // Komponen utama App
 const App = () => {
-  // ... (useEffect untuk handleAuthFromHash tetap sama)
   useEffect(() => {
     const handleAuthFromHash = async () => {
-      try {
-        if (window.location.hash && window.location.hash.length > 1) {
-          console.log("Auth hash detected, processing session...");
-          const { data, error } = await supabase.auth.getSessionFromUrl();
-          if (error) {
-            console.error("Error getting session from URL:", error);
-          } else if (data?.session) {
-            console.log("Session successfully retrieved from URL");
-            window.history.replaceState(null, '', window.location.pathname + window.location.search);
-          }
-        }
-      } catch (error) {
-        console.error("Error handling auth from hash:", error);
+      if (window.location.hash.includes("access_token")) {
+        await supabase.auth.getSessionFromUrl();
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     };
     handleAuthFromHash();
   }, []);
 
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          {/* **PERUBAHAN 2: Ganti AppDataProvider dengan AppProviders** */}
           <AppProviders>
             <Toaster />
             <Sonner />

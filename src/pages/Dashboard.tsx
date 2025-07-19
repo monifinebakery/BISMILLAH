@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
@@ -12,7 +11,7 @@ import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useOrder } from "@/contexts/OrderContext";
 
-// Fungsi baru untuk format tanggal dan waktu
+// Fungsi untuk format tanggal dan waktu
 const formatDateTime = (date: Date | null) => {
   if (!date || !(date instanceof Date)) return 'Waktu tidak valid';
   return new Intl.DateTimeFormat('id-ID', {
@@ -76,8 +75,17 @@ const Dashboard = () => {
   ];
   
   const getGreeting = () => {
-    // ... (fungsi sapaan tidak berubah)
-    return "Selamat malam! Kelola bisnis Anda dengan mudah";
+    const jam = new Date().getHours();
+    let sapaan = "datang";
+    if (jam >= 4 && jam < 11) sapaan = "pagi";
+    if (jam >= 11 && jam < 15) sapaan = "siang";
+    if (jam >= 15 && jam < 19) sapaan = "sore";
+    if (jam >= 19 || jam < 4) sapaan = "malam";
+    
+    if (userName) {
+      return `Selamat ${sapaan}, kak ${userName}!`;
+    }
+    return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
   };
 
   return (
@@ -123,7 +131,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
+      {/* Produk Terlaris & Aktivitas Terbaru */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Kolom Kiri: Produk Terlaris */}

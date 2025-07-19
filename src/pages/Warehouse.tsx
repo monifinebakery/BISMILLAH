@@ -8,6 +8,7 @@ import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react
 import { BahanBaku } from '@/types/recipe';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import MenuExportButton from '@/components/MenuExportButton';
+import { useBahanBaku } from '@/contexts/BahanBakuContext'; // Impor hook spesifik
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

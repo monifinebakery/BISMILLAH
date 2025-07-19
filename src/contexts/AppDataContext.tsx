@@ -4,11 +4,11 @@ import { Supplier } from '@/types/supplier';
 import { Order, NewOrder, OrderItem } from '@/types/order'; 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync'; // Untuk sync/load manual
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 import { AssetCategory, AssetCondition } from '@/types/asset'; 
 import { generateUUID } from '@/utils/uuid'; 
-import { RealtimeChannel } from '@supabase/supabase-js'; // Import RealtimeChannel
+import { RealtimeChannel } from '@supabase/supabase-js'; // Import RealtimeChannel untuk subscriptions
 
 // =============================================================
 // INTERFACES (Pastikan konsisten dengan tipe yang diproses di useSupabaseSync.ts)
@@ -36,7 +36,7 @@ export interface Purchase {
   tanggal: Date; // Wajib
   supplier: string;
   items: {
-    id?: string | number; 
+    id?: string | number; // ID ini penting untuk key di React, akan di-generate jika tidak ada
     namaBarang: string; 
     kategori?: string;
     jumlah: number;
@@ -171,11 +171,13 @@ interface AppDataContextType {
 
   syncToCloud: () => Promise<boolean>; 
   loadFromCloud: () => Promise<void>; 
-  replaceAllData: (data: any) => void;
+  replaceAllData: (data: any) => void; 
+  clearAllLocalData: () => void; // Membersihkan semua data lokal (misal saat logout)
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
+// Kunci-kunci localStorage yang digunakan oleh aplikasi
 const STORAGE_KEYS = {
   BAHAN_BAKU: 'hpp_app_bahan_baku',
   SUPPLIERS: 'hpp_app_suppliers',
@@ -185,24 +187,27 @@ const STORAGE_KEYS = {
   HPP_RESULTS: 'hpp_app_hpp_results',
   ACTIVITIES: 'hpp_app_activities',
   ORDERS: 'hpp_app_orders',
-  CLOUD_SYNC: 'hpp_app_cloud_sync', 
+  CLOUD_SYNC: 'hpp_app_cloud_sync', // Ini hanya sisa kunci lama, tidak lagi digunakan secara aktif untuk logic sync
   ASSETS: 'hpp_app_assets',
   FINANCIAL_TRANSACTIONS: 'hpp_app_financial_transactions',
 };
 
+// Helper untuk menyimpan data ke localStorage
 const saveToStorage = (key: string, data: any) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
+    console.error(`Error saving to localStorage for key ${key}:`, error);
   }
 };
 
+// Helper untuk memuat data dari localStorage, termasuk parsing tanggal dan jaminan ID unik
 const loadFromStorage = (key: string, defaultValue: any = []) => {
   try {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
+      // Logic khusus untuk parsing dan jaminan ID unik per jenis data
       switch (key) {
         case STORAGE_KEYS.ACTIVITIES:
         case STORAGE_KEYS.HPP_RESULTS:
@@ -239,7 +244,7 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime())) ? parsedUpdatedAt : null,
               items: item.items ? item.items.map((orderItem: any) => ({
                 ...orderItem,
-                id: orderItem.id || generateUUID(), 
+                id: orderItem.id || generateUUID(), // Jaminan ID unik untuk item array
               })) : [],
             };
           });
@@ -285,7 +290,7 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
     }
     return defaultValue;
   } catch (error) {
-    console.error('Error loading from localStorage:', error);
+    console.error(`Error loading from localStorage for key ${key}:`, error);
     return defaultValue;
   }
 };
@@ -295,9 +300,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const {
     syncToSupabase: externalSyncToCloud,
     loadFromSupabase: externalLoadFromCloud,
-    isLoading: isSyncingCloud,
+    isLoading: isSyncingCloud, // State loading dari useSupabaseSync
   } = useSupabaseSync();
 
+  // State untuk setiap jenis data aplikasi
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() =>
     loadFromStorage(STORAGE_KEYS.BAHAN_BAKU, [])
   );
@@ -361,77 +367,130 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   ));
 
   // --- Real-time Subscriptions ---
-  // Fungsi helper untuk memproses payload realtime dari Supabase
+  // Fungsi helper untuk memproses payload realtime dari Supabase:
+  // Mengupdate state berdasarkan event (INSERT, UPDATE, DELETE) dari Supabase Realtime
+  // Memastikan konsistensi ID unik untuk item array nested
+  // Mem-parse tanggal dengan safeParseDate
   const processRealtimePayload = (payload: any, setState: React.Dispatch<React.SetStateAction<any[]>>, dateFields: string[], itemArrayKey?: string) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
   
-    // Helper untuk mem-parse tanggal di record
-    const parseRecordDates = (record: any) => {
-      const parsed: any = { ...record };
+    // Helper untuk mem-parse tanggal dan mengonversi camelCase di record
+    const parseRecordDatesAndCamelCase = (record: any) => {
+      const processed: any = { ...record };
+      
+      // Parse tanggal untuk field spesifik
       dateFields.forEach(field => {
-        if (parsed[field]) {
-          // Hanya parse jika field adalah string, jika sudah Date biarkan
-          if (typeof parsed[field] === 'string') {
-            parsed[field] = safeParseDate(parsed[field]);
-          }
+        if (processed[field] && typeof processed[field] === 'string') {
+          processed[field] = safeParseDate(processed[field]);
         }
       });
-      // Handle camelCase conversion for specific fields if needed
-      if (parsed.user_id !== undefined) parsed.userId = parsed.user_id;
-      // Convert created_at and updated_at to Date objects if they are strings
-      if (typeof parsed.created_at === 'string') parsed.createdAt = safeParseDate(parsed.created_at);
-      if (typeof parsed.updated_at === 'string') parsed.updatedAt = safeParseDate(parsed.updated_at);
+      
+      // Konversi nama properti dari snake_case ke camelCase
+      if (processed.user_id !== undefined) processed.userId = processed.user_id;
+      if (processed.created_at !== undefined) processed.createdAt = safeParseDate(processed.created_at);
+      if (processed.updated_at !== undefined) processed.updatedAt = safeParseDate(processed.updated_at);
 
-      // Handle nested items array for unique IDs if needed
-      if (itemArrayKey && parsed[itemArrayKey] && Array.isArray(parsed[itemArrayKey])) {
-        parsed[itemArrayKey] = parsed[itemArrayKey].map((item: any) => ({
+      // Jaminan ID unik untuk item array nested (e.g., Order.items, Purchase.items)
+      if (itemArrayKey && processed[itemArrayKey] && Array.isArray(processed[itemArrayKey])) {
+        processed[itemArrayKey] = processed[itemArrayKey].map((item: any) => ({
           ...item,
-          id: item.id || generateUUID(), // Pastikan item memiliki ID unik
+          id: item.id || generateUUID(), 
         }));
       }
-      return parsed;
+      return processed;
     };
   
     setState(prev => {
-      // Jika record yang sedang diproses sudah ada di state (misal dari local CRUD),
-      // update saja, jangan tambahkan duplikat.
-      // Ini penting untuk mencegah duplikasi data jika realtime event datang setelah local update.
-      const existingIndex = prev.findIndex(item => item.id === (newRecord?.id || oldRecord?.id));
+      const idToMatch = newRecord?.id || oldRecord?.id;
+      const existingIndex = prev.findIndex(item => item.id === idToMatch);
 
       if (eventType === 'INSERT') {
-        const processedNewRecord = parseRecordDates(newRecord);
+        const processedNewRecord = parseRecordDatesAndCamelCase(newRecord);
         if (existingIndex > -1) {
-            // Update jika sudah ada (misal, dari add lokal yang sudah push ke DB dan Realtime firing)
-            return prev.map(item => item.id === processedNewRecord.id ? processedNewRecord : item);
+            // Jika record sudah ada di state (kemungkinan hasil dari operasi CRUD lokal yang baru saja terjadi),
+            // kita Update saja record yang sudah ada di state untuk memastikan konsistensi dan menghindari duplikasi.
+            return prev.map(item => item.id === idToMatch ? processedNewRecord : item);
         }
-        // Tambah jika benar-benar baru
+        // Jika record benar-benar baru, tambahkan ke state dan urutkan
         const newState = [...prev, processedNewRecord];
-        // Urutkan berdasarkan createdAt untuk konsistensi UI
+        // Urutkan berdasarkan createdAt (terbaru di atas) untuk konsistensi UI
         return newState.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)); 
       } else if (eventType === 'UPDATE') {
-        const processedNewRecord = parseRecordDates(newRecord);
-        return prev.map(item => item.id === oldRecord.id ? processedNewRecord : item);
+        const processedUpdatedRecord = parseRecordDatesAndCamelCase(newRecord);
+        // Langsung Update record yang ada di state
+        return prev.map(item => item.id === idToMatch ? processedUpdatedRecord : item);
       } else if (eventType === 'DELETE') {
-        return prev.filter(item => item.id !== oldRecord.id);
+        // Hapus record dari state
+        return prev.filter(item => item.id !== idToMatch);
       }
-      return prev; // Seharusnya tidak terjadi
+      return prev; // Dalam kasus tidak terduga, kembalikan state sebelumnya
     });
   };
 
-  // Efek untuk real-time subscriptions
-  useEffect(() => {
-    let channels: RealtimeChannel[] = [];
-
-    const setupSubscriptions = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session, skipping real-time subscriptions setup.');
-        return;
+  // Fungsi untuk membersihkan semua data lokal aplikasi dari localStorage
+  // Dipanggil saat pengguna logout
+  const clearAllLocalData = () => {
+    Object.values(STORAGE_KEYS).forEach(key => {
+      if (key.startsWith('hpp_app_')) { // Hanya hapus kunci yang terkait dengan aplikasi Anda
+        localStorage.removeItem(key);
       }
+    });
+    // Set semua state kembali ke nilai awal/kosong setelah data lokal dihapus
+    setBahanBaku([]);
+    setSuppliers([]);
+    setPurchases([]);
+    setRecipes([]);
+    setHppResults([]);
+    setActivities([]);
+    setOrders([]);
+    setAssets([]);
+    setFinancialTransactions([]);
+    toast.info('Data lokal berhasil dibersihkan.');
+  };
 
-      const userId = session.user.id;
+  // --- Efek utama untuk Autentikasi dan Real-time Subscriptions ---
+  // Hook ini akan menginisialisasi proses sinkronisasi data saat komponen di-mount
+  // dan akan terus memantau perubahan status autentikasi untuk mengatur subscriptions
+  useEffect(() => {
+    let channels: RealtimeChannel[] = []; // Array untuk menyimpan semua channel Realtime yang aktif
+    let authListener: { data: { subscription: any; }; } | null = null; // Listener untuk status autentikasi Supabase
+
+    const setupAuthAndRealtime = async () => {
+      // 1. Dapatkan sesi awal saat komponen pertama kali di-mount
+      const { data: { session } } = await supabase.auth.getSession();
+      await externalLoadFromCloud(); // Muat data awal dari cloud
+
+      // 2. Setup listener untuk perubahan status autentikasi Supabase
+      authListener = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        console.log('Auth state changed in AppDataContext:', event, currentSession);
+        
+        // Bersihkan channel Realtime yang ada sebelum setup ulang atau membersihkan data
+        channels.forEach(channel => supabase.removeChannel(channel));
+        channels = []; // Kosongkan array channel
+
+        if (event === 'SIGNED_OUT') {
+          // Jika pengguna logout, bersihkan semua data lokal
+          clearAllLocalData();
+        } else if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && currentSession)) {
+          // Jika pengguna login atau sesi awal ditemukan/dibuat, muat data dan setup subscriptions
+          console.log('User signed in or session active, initiating data load and subscriptions.');
+          await externalLoadFromCloud(); // Muat data dari cloud setelah perubahan sesi
+          // Setup subscriptions baru hanya jika ada user ID yang valid
+          if (currentSession?.user?.id) {
+            setupRealtimeChannels(currentSession.user.id);
+          }
+        }
+      });
+
+      // 3. Jika sudah ada sesi aktif saat komponen di-mount (misal, refresh halaman), langsung setup subscriptions
+      if (session?.user?.id) {
+        setupRealtimeChannels(session.user.id);
+      }
+    };
+
+    // Fungsi internal untuk membuat dan mengaktifkan channel Realtime untuk setiap tabel
+    const setupRealtimeChannels = (userId: string) => {
       console.log(`Setting up real-time subscriptions for user ${userId}...`);
-
       const tablesToSubscribe = [
         { name: 'bahan_baku', setState: setBahanBaku, dateFields: ['tanggal_kadaluwarsa', 'created_at', 'updated_at'] },
         { name: 'suppliers', setState: setSuppliers, dateFields: ['created_at', 'updated_at'] },
@@ -442,16 +501,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         { name: 'orders', setState: setOrders, dateFields: ['tanggal', 'created_at', 'updated_at'], itemArrayKey: 'items' },
         { name: 'assets', setState: setAssets, dateFields: ['tanggal_beli', 'created_at', 'updated_at'] },
         { name: 'financial_transactions', setState: setFinancialTransactions, dateFields: ['date', 'created_at', 'updated_at'] },
+        // Pastikan Anda hanya berlangganan tabel yang ada di skema DB Anda
       ];
 
       tablesToSubscribe.forEach(table => {
         const channel = supabase
-          .channel(`public_${table.name}_changes_for_user_${userId}`) // Channel name harus unik per user
+          .channel(`public_${table.name}_changes_for_user_${userId}`) // Nama channel harus unik per kombinasi tabel & user
           .on('postgres_changes', {
-            event: '*', 
-            schema: 'public',
-            table: table.name,
-            filter: `user_id=eq.${userId}` 
+            event: '*', // Dengarkan semua event (INSERT, UPDATE, DELETE)
+            schema: 'public', // Skema database Anda (biasanya 'public')
+            table: table.name, // Nama tabel yang akan dilanggan
+            filter: `user_id=eq.${userId}` // Filter perubahan hanya untuk user ID ini
           }, (payload) => {
             console.log(`Realtime change in ${table.name}:`, payload);
             processRealtimePayload(payload, table.setState, table.dateFields, table.itemArrayKey);
@@ -463,39 +523,31 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
               console.error(`Error subscribing to ${table.name} channel.`, status);
             }
           });
-        channels.push(channel);
+        channels.push(channel); // Tambahkan channel ke array untuk dibersihkan saat cleanup
       });
     };
 
-    // Panggil setup subscriptions
-    setupSubscriptions();
+    // Panggil fungsi setupAuthAndRealtime saat komponen di-mount
+    setupAuthAndRealtime();
 
-    // Cleanup function: Unsubscribe dari semua channel saat komponen unmount atau user logout
+    // --- Cleanup function untuk useEffect ini ---
+    // Dipanggil saat komponen unmount atau saat dependensi berubah (dalam kasus ini tidak ada dependensi, jadi hanya unmount)
     return () => {
-      console.log('Unsubscribing from real-time channels...');
+      console.log('Cleaning up AppDataContext subscriptions and auth listener...');
+      // Hapus semua channel Realtime yang aktif
       channels.forEach(channel => {
         supabase.removeChannel(channel);
       });
-      channels = []; 
-    };
-  }, []); 
-
-  // Efek untuk memuat data awal dari cloud (hanya sekali saat startup atau user login)
-  useEffect(() => {
-    const checkAndLoadFromCloud = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('User logged in, attempting initial load from cloud...');
-        await externalLoadFromCloud(); 
-      } else {
-        console.log('No user session, using local storage data for initial load.');
+      channels = []; // Kosongkan array channel
+      // Hapus listener autentikasi
+      if (authListener) {
+        authListener.data.subscription.unsubscribe();
       }
     };
-    const timer = setTimeout(checkAndLoadFromCloud, 1000); 
-    return () => clearTimeout(timer);
-  }, [externalLoadFromCloud]); 
+  }, []); // Dependensi kosong, karena semua pemicu (auth state, initial load) sudah ditangani di dalam efek ini
 
-  // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
+  // --- Efek samping untuk menyimpan state ke localStorage ---
+  // Ini berjalan setiap kali state terkait berubah, untuk persistensi offline/cache
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.SUPPLIERS, suppliers); }, [suppliers]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.PURCHASES, purchases); }, [purchases]);
@@ -506,14 +558,15 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { saveToStorage(STORAGE_KEYS.ASSETS, assets); }, [assets]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.FINANCIAL_TRANSACTIONS, financialTransactions); }, [financialTransactions]);
 
-  // Listener untuk sinkronisasi pasif (saat tab kembali aktif)
+  // --- Listener untuk sinkronisasi pasif (saat tab kembali aktif) ---
+  // Ini tetap dipertahankan sebagai fallback atau untuk memastikan konsistensi setelah lama tidak aktif
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) { 
           console.log('Tab aplikasi terlihat dan user login, memeriksa pembaruan dari cloud (visibilitychange)...');
-          await externalLoadFromCloud();
+          await externalLoadFromCloud(); // Memuat ulang data dari cloud
         } else {
           console.log('Tab aplikasi terlihat, tapi user tidak login. Tidak ada pembaruan dari cloud.');
         }
@@ -521,107 +574,40 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [externalLoadFromCloud]);
+  }, [externalLoadFromCloud]); // externalLoadFromCloud ada di dependensi
 
-  // Fungsi syncToCloud: Sekarang lebih untuk Force Upload/Backup
-  const syncToCloud = async (): Promise<boolean> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error('Anda harus login untuk menyinkronkan data');
-      return false;
-    }
-    const success = await externalSyncToCloud({
-      bahanBaku: bahanBaku.map(item => ({
-        id: item.id, nama: item.nama, kategori: item.kategori, stok: item.stok, satuan: item.satuan, minimum: item.minimum, harga_satuan: item.hargaSatuan, supplier: item.supplier, tanggal_kadaluwarsa: toSafeISOString(item.tanggalKadaluwarsa), user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()), jumlah_beli_kemasan: item.jumlahBeliKemasan ?? null, satuan_kemasan: item.satuanKemasan ?? null, harga_total_beli_kemasan: item.hargaTotalBeliKemasan ?? null,
-      })),
-      suppliers: suppliers.map(item => ({
-        id: item.id, nama: item.nama, kontak: item.kontak, email: item.email, telepon: item.telepon, alamat: item.alamat, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      purchases: purchases.map(item => ({
-        id: item.id, tanggal: toSafeISOString(item.tanggal || new Date()), supplier: item.supplier, items: item.items, total_nilai: item.totalNilai, metode_perhitungan: item.metodePerhitungan, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
-      })),
-      recipes: recipes.map(item => ({
-        id: item.id, nama_resep: item.namaResep, deskripsi: item.deskripsi ?? null, porsi: item.porsi, ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi, margin_keuntungan: item.marginKeuntungan, harga_jual_per_porsi: item.hargaJualPerPorsi, category: item.category, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      hppResults: hppResults.map(item => ({
-        id: item.id, nama: item.nama, ingredients: item.ingredients, biaya_tenaga_kerja: item.biayaTenagaKerja, biaya_overhead: item.biayaOverhead, margin_keuntungan: item.marginKeuntungan, total_hpp: item.totalHPP, hpp_per_porsi: item.hppPerPorsi, harga_jual_per_porsi: item.hargaJualPerPorsi, jumlah_porsi: item.jumlahPorsi, user_id: session.user.id, created_at: toSafeISOString(item.timestamp || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      activities: activities.map(item => ({
-        id: item.id, title: item.title, description: item.description, type: item.type, value: item.value ?? null, user_id: session.user.id, created_at: toSafeISOString(item.timestamp || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      orders: orders.map(item => ({
-        id: item.id, nomor_pesanan: item.nomorPesanan, tanggal: toSafeISOString(item.tanggal || new Date()), nama_pelanggan: item.namaPelanggan, email_pelanggan: item.emailPelanggan, telepon_pelanggan: item.teleponPelanggan, alamat_pengiriman: item.alamatPelanggan, items: item.items, subtotal: item.subtotal, pajak: item.pajak, total_pesanan: item.totalPesanan, status: item.status, catatan: item.catatan ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt), updated_at: toSafeISOString(item.updatedAt),
-      })),
-      assets: assets.map(item => ({
-        id: item.id, nama: item.nama, kategori: item.kategori ?? null, nilai_awal: item.nilaiAwal, tanggal_beli: toSafeISOString(item.tanggalPembelian), nilai_sekarang: item.nilaiSaatIni, kondisi: item.kondisi ?? null, lokasi: item.lokasi ?? null, deskripsi: item.deskripsi ?? null, depresiasi: item.depresiasi ?? null, user_id: session.user.id, created_at: toSafeISOString(item.createdAt || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-      financialTransactions: financialTransactions.map(item => ({
-        id: item.id, user_id: session.user.id, type: item.type, category: item.category ?? null, amount: item.amount, description: item.description ?? null, date: toSafeISOString(item.date || new Date()), created_at: toSafeISOString(item.created_at || new Date()), updated_at: toSafeISOString(item.updatedAt || new Date()),
-      })),
-    });
-    return success;
-  };
-
-  // Fungsi loadFromCloud: Sekarang lebih untuk Force Download/Refresh
-  const loadFromCloud = async (): Promise<void> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error('Anda harus login untuk memuat data dari cloud.');
-      return;
-    }
-    const loadedData = await externalLoadFromCloud(); 
-    if (loadedData) {
-      replaceAllData(loadedData); 
-    } else {
-      toast.info('Tidak ada data baru yang dimuat dari cloud.');
-    }
-  };
-
-  const replaceAllData = (data: any) => {
-    if (data.bahanBaku) setBahanBaku(data.bahanBaku);
-    if (data.suppliers) setSuppliers(data.suppliers);
-    if (data.purchases) setPurchases(data.purchases);
-    if (data.orders) setOrders(data.orders.map((order: any) => ({
-      ...order,
-      items: order.items ? order.items.map((orderItem: any) => ({
-        ...orderItem,
-        id: orderItem.id || generateUUID(), 
-      })) : [],
-    })));
-    if (data.recipes) setRecipes(data.recipes);
-    if (data.hppResults) setHppResults(data.hppResults);
-    if (data.activities) setActivities(data.activities);
-    if (data.assets) setAssets(data.assets);
-    if (data.financialTransactions) setFinancialTransactions(data.financialTransactions);
-    if (data.userSettings) {
-      console.log("User settings loaded, assuming handled by useUserSettings hook directly.");
-    }
-    toast.info('Data lokal diperbarui dengan data cloud.');
-  };
+  // --- Fungsi-fungsi CRUD Aplikasi (memanggil Supabase dan memperbarui state lokal oleh Realtime) ---
+  // Ini adalah fungsi-fungsi yang akan dipanggil oleh komponen UI.
 
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     const session = (await supabase.auth.getSession()).data.session;
-    const newBahan: BahanBaku = {
+    const newBahanTempId = generateUUID(); // Gunakan ID sementara untuk item yang ditambahkan lokal
+    const now = new Date();
+
+    const newBahanWithTempId: BahanBaku = {
       ...bahan,
-      id: generateUUID(),
+      id: newBahanTempId,
       userId: session?.user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera untuk feedback UI instan
+    setBahanBaku(prev => [...prev, newBahanWithTempId].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)));
+
     const bahanToInsert = {
-      id: newBahan.id,
+      id: newBahanTempId, // Gunakan ID sementara untuk Supabase
+      user_id: session?.user.id,
       nama: newBahan.nama,
       kategori: newBahan.kategori,
       stok: newBahan.stok,
       satuan: newBahan.satuan,
-      harga_satuan: newBahan.hargaSatuan,
       minimum: newBahan.minimum,
+      harga_satuan: newBahan.hargaSatuan,
       supplier: newBahan.supplier,
       tanggal_kadaluwarsa: toSafeISOString(newBahan.tanggalKadaluwarsa),
-      user_id: newBahan.userId,
-      created_at: toSafeISOString(newBahan.createdAt),
-      updated_at: toSafeISOString(newBahan.updatedAt),
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
       jumlah_beli_kemasan: newBahan.jumlahBeliKemasan ?? null,
       satuan_kemasan: newBahan.satuanKemasan ?? null,
       harga_total_beli_kemasan: newBahan.hargaTotalBeliKemasan ?? null,
@@ -632,10 +618,11 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding bahan baku to DB:', error);
       toast.error(`Gagal menambahkan bahan baku: ${error.message}`);
+      // Jika gagal, hapus kembali dari state lokal (opsional, tergantung UX yang diinginkan)
+      setBahanBaku(prev => prev.filter(b => b.id !== newBahanTempId));
       return false;
     }
 
-    setBahanBaku(prev => [...prev, newBahan]);
     addActivity({
       title: 'Bahan Baku Ditambahkan',
       description: `${bahan.nama} telah ditambahkan ke gudang`,
@@ -662,19 +649,31 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
     if (updatedBahan.tanggalKadaluwarsa !== undefined) {
       bahanToUpdate.tanggal_kadaluwarsa = toSafeISOString(updatedBahan.tanggalKadaluwarsa);
+    } else if (Object.prototype.hasOwnProperty.call(updatedBahan, 'tanggalKadaluwarsa') && updatedBahan.tanggalKadaluwarsa === null) {
+      bahanToUpdate.tanggal_kadaluwarsa = null;
     }
-    bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan ?? null;
-    bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan ?? null;
-    bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan ?? null;
+    if ('jumlahBeliKemasan' in updatedBahan) {
+      bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan; 
+    }
+    if ('satuanKemasan' in updatedBahan) {
+      bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;         
+    }
+    if ('hargaTotalBeliKemasan' in updatedBahan) {
+      bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan; 
+    }
+
+    // PERBAIKAN: Update state lokal sebelum memanggil DB untuk feedback instan
+    setBahanBaku(prev => prev.map(item => item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item));
 
     const { error } = await supabase.from('bahan_baku').update(bahanToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating bahan baku in DB:', error);
       toast.error(`Gagal memperbarui bahan baku: ${error.message}`);
+      // Jika gagal, revert state lokal (opsional)
+      // setBahanBaku(prev => prev.map(item => item.id === id ? { ...item, ...originalBahan, updatedAt: originalBahan.updatedAt } : item));
       return false;
     }
 
-    setBahanBaku(prev => prev.map(item => item.id === id ? { ...item, ...updatedBahan, updatedAt: new Date() } : item));
     toast.success(`Bahan baku berhasil diperbarui!`);
     return true;
   };
@@ -684,14 +683,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus bahan baku'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setBahanBaku(prev => prev.filter(b => b.id !== id));
+
     const { error } = await supabase.from('bahan_baku').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting bahan baku from DB:', error);
       toast.error(`Gagal menghapus bahan baku: ${error.message}`);
+      // Jika gagal, tambahkan kembali ke state lokal (opsional)
+      // if (bahan) setBahanBaku(prev => [...prev, bahan]);
       return false;
     }
 
-    setBahanBaku(prev => prev.filter(b => b.id !== id));
     if (bahan) {
       addActivity({
         title: 'Bahan Baku Dihapus',
@@ -717,7 +720,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       toast.error(`Stok ${nama} (${bahan.stok}) tidak cukup untuk mengurangi ${jumlah}.`);
       return false;
     }
-
+    // Pastikan updateBahanBaku memanggil operasi DB (dan trigger realtime)
     const success = await updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
     if (success) {
       addActivity({
@@ -739,6 +742,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updatedAt: new Date(),
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setSuppliers(prev => [...prev, newSupplier]);
+
     const supplierToInsert = {
       id: newSupplier.id,
       nama: newSupplier.nama,
@@ -756,10 +762,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding supplier to DB:', error);
       toast.error(`Gagal menambahkan supplier: ${error.message}`);
+      setSuppliers(prev => prev.filter(s => s.id !== newSupplier.id)); // Revert
       return false;
     }
 
-    setSuppliers(prev => [...prev, newSupplier]);
     addActivity({
       title: 'Supplier Ditambahkan',
       description: `${supplier.nama} telah ditambahkan`,
@@ -783,14 +789,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedSupplier.alamat !== undefined) supplierToUpdate.alamat = updatedSupplier.alamat;
     if (updatedSupplier.catatan !== undefined) supplierToUpdate.catatan = updatedSupplier.catatan ?? null;
 
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...updatedSupplier, updatedAt: new Date() } : s));
+
     const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating supplier in DB:', error);
       toast.error(`Gagal memperbarui supplier: ${error.message}`);
+      // Revert state lokal (opsional)
+      // setSuppliers(originalSuppliers); // Perlu simpan state asli sebelum update
       return false;
     }
 
-    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...updatedSupplier, updatedAt: new Date() } : s));
     toast.success(`Supplier berhasil diperbarui!`);
     return true;
   };
@@ -800,14 +810,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus supplier'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setSuppliers(prev => prev.filter(s => s.id !== id));
+
     const { error } = await supabase.from('suppliers').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting supplier from DB:', error);
       toast.error(`Gagal menghapus supplier: ${error.message}`);
+      // Revert state lokal (opsional)
+      // if (supplier) setSuppliers(prev => [...prev, supplier]);
       return false;
     }
 
-    setSuppliers(prev => prev.filter(s => s.id !== id));
     if (supplier) {
       addActivity({
         title: 'Supplier Dihapus',
@@ -828,6 +842,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updatedAt: new Date(),
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setPurchases(prev => [...prev, newPurchase]);
+
     const purchaseToInsert = {
       id: newPurchase.id,
       tanggal: toSafeISOString(newPurchase.tanggal || new Date()),
@@ -845,10 +862,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding purchase to DB:', error);
       toast.error(`Gagal menambahkan pembelian: ${error.message}`);
+      setPurchases(prev => prev.filter(p => p.id !== newPurchase.id)); // Revert
       return false;
     }
-
-    setPurchases(prev => [...prev, newPurchase]);
 
     await Promise.all(purchase.items.map(async item => {
       if (!item.namaBarang) {
@@ -857,11 +873,13 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       const existingBahan = getBahanBakuByName(item.namaBarang);
       if (existingBahan) {
+        // Panggil updateBahanBaku yang akan memperbarui DB dan memicu Realtime
         await updateBahanBaku(existingBahan.id, {
           stok: existingBahan.stok + item.jumlah,
           hargaSatuan: existingBahan.hargaSatuan,
         });
       } else {
+        // Panggil addBahanBaku yang akan memperbarui DB dan memicu Realtime
         await addBahanBaku({
           nama: item.namaBarang,
           kategori: item.kategori || '',
@@ -897,14 +915,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedPurchase.metodePerhitungan !== undefined) purchaseToUpdate.metode_perhitungan = updatedPurchase.metodePerhitungan;
     if (updatedPurchase.catatan !== undefined) purchaseToUpdate.catatan = updatedPurchase.catatan ?? null;
 
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setPurchases(prev => prev.map(p => p.id === id ? { ...p, ...updatedPurchase, updatedAt: new Date() } : p));
+
     const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating purchase in DB:', error);
       toast.error(`Gagal memperbarui pembelian: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setPurchases(prev => prev.map(p => p.id === id ? { ...p, ...updatedPurchase, updatedAt: new Date() } : p));
     toast.success(`Pembelian berhasil diperbarui!`);
     return true;
   };
@@ -913,14 +934,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus pembelian'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setPurchases(prev => prev.filter(p => p.id !== id));
+
     const { error } = await supabase.from('purchases').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting purchase from DB:', error);
       toast.error(`Gagal menghapus pembelian: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setPurchases(prev => prev.filter(p => p.id !== id));
     toast.success(`Pembelian berhasil dihapus!`);
     return true;
   };
@@ -933,6 +957,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setRecipes(prev => [...prev, newRecipe]);
 
     const recipeToInsert = {
       id: newRecipe.id,
@@ -956,10 +983,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding recipe to DB:', error);
       toast.error(`Gagal menambahkan resep: ${error.message}`);
+      setRecipes(prev => prev.filter(r => r.id !== newRecipe.id)); // Revert
       return false;
     }
 
-    setRecipes(prev => [...prev, newRecipe]);
     addActivity({
       title: 'Resep Ditambahkan',
       description: `Resep ${recipe.namaResep} telah disimpan`,
@@ -988,14 +1015,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedRecipe.hargaJualPerPorsi !== undefined) recipeToUpdate.harga_jual_per_porsi = updatedRecipe.hargaJualPerPorsi;
     if (updatedRecipe.category !== undefined) recipeToUpdate.category = updatedRecipe.category;
 
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setRecipes(prev => prev.map(r => r.id === id ? { ...r, ...updatedRecipe, updatedAt: new Date() } : r));
+
     const { error } = await supabase.from('hpp_recipes').update(recipeToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating recipe in DB:', error);
       toast.error(`Gagal memperbarui resep: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setRecipes(prev => prev.map(r => r.id === id ? { ...r, ...updatedRecipe, updatedAt: new Date() } : r));
     toast.success(`Resep berhasil diperbarui!`);
     return true;
   };
@@ -1005,14 +1035,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus resep'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setRecipes(prev => prev.filter(r => r.id !== id));
+
     const { error } = await supabase.from('hpp_recipes').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting recipe from DB:', error);
       toast.error(`Gagal menghapus resep: ${error.message}`);
+      // Revert state lokal (opsional)
+      if (recipe) setRecipes(prev => [...prev, recipe]);
       return false;
     }
 
-    setRecipes(prev => prev.filter(r => r.id !== id));
     if (recipe) {
       addActivity({
         title: 'Resep Dihapus',
@@ -1032,6 +1066,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setHppResults(prev => [...prev, newResult]);
 
     const resultToInsert = {
       id: newResult.id,
@@ -1053,10 +1090,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding HPP result to DB:', error);
       toast.error(`Gagal menambahkan hasil HPP: ${error.message}`);
+      setHppResults(prev => prev.filter(r => r.id !== newResult.id)); // Revert
       return false;
     }
 
-    setHppResults(prev => [...prev, newResult]);
     addActivity({
       title: 'HPP Dihitung',
       description: `HPP ${result.nama} = Rp ${result.hppPerPorsi.toLocaleString('id-ID')}/porsi`,
@@ -1083,6 +1120,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       status: 'pending',
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setOrders(prev => [...prev, newOrder].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)));
+
     const orderToInsert = {
       id: newOrder.id,
       nomor_pesanan: newOrder.nomorPesanan,
@@ -1106,10 +1146,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding order to DB:', error);
       toast.error(`Gagal menambahkan pesanan: ${error.message}`);
+      setOrders(prev => prev.filter(o => o.id !== newOrder.id)); // Revert
       return false;
     }
 
-    setOrders(prev => [...prev, newOrder]);
     addActivity({
       title: 'Pesanan Baru',
       description: `Pesanan ${newOrder.nomorPesanan} dari ${newOrder.namaPelanggan}`,
@@ -1139,14 +1179,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedOrder.status !== undefined) orderToUpdate.status = updatedOrder.status;
     if (updatedOrder.catatan !== undefined) orderToUpdate.catatan = updatedOrder.catatan ?? null;
 
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updatedOrder, updatedAt: new Date() } : o));
+
     const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating order in DB:', error);
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updatedOrder, updatedAt: new Date() } : o));
     toast.success(`Pesanan berhasil diperbarui!`);
     return true;
   };
@@ -1156,14 +1199,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus pesanan'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setOrders(prev => prev.filter(o => o.id !== id));
+
     const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting order from DB:', error);
       toast.error(`Gagal menghapus pesanan: ${error.message}`);
+      // Revert state lokal (opsional)
+      if (order) setOrders(prev => [...prev, order]);
       return false;
     }
 
-    setOrders(prev => prev.filter(o => o.id !== id));
     if (order) {
       addActivity({
         title: 'Pesanan Dihapus',
@@ -1189,6 +1236,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updatedAt: new Date(),
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setActivities(prev => [newActivity, ...prev].slice(0, 50)); // activity selalu terbaru di awal
+
     const activityToInsert = {
       id: newActivity.id,
       title: newActivity.title,
@@ -1204,10 +1254,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding activity to DB:', error);
       toast.error(`Gagal menambahkan aktivitas: ${error.message}`);
+      setActivities(prev => prev.filter(a => a.id !== newActivity.id)); // Revert
       return;
     }
 
-    setActivities(prev => [newActivity, ...prev].slice(0, 50));
     toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
@@ -1251,6 +1301,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       updatedAt: new Date(),
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setAssets(prev => [...prev, newAsset]);
+
     const assetToInsert = {
       id: newAsset.id,
       nama: newAsset.nama,
@@ -1271,10 +1324,10 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (error) {
       console.error('Error adding asset to DB:', error);
       toast.error(`Gagal menambahkan aset: ${error.message}`);
+      setAssets(prev => prev.filter(a => a.id !== newAsset.id)); // Revert
       return false;
     }
 
-    setAssets(prev => [...prev, newAsset]);
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan`,
@@ -1304,16 +1357,19 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedAsset.kondisi !== undefined) assetToUpdate.kondisi = updatedAsset.kondisi;
     if (updatedAsset.lokasi !== undefined) assetToUpdate.lokasi = updatedAsset.lokasi;
     if (updatedAsset.deskripsi !== undefined) assetToUpdate.deskripsi = updatedAsset.deskripsi ?? null;
-    if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi ?? null;
+    if (updatedAsset.depresiasi !== undefined) assetToUpdate.depresiasi = updatedAsset.depresiasi;
+
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setAssets(prev => prev.map(item => item.id === id ? { ...item, ...updatedAsset, updatedAt: new Date() } : item));
 
     const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating asset in DB:', error);
       toast.error(`Gagal memperbarui aset: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setAssets(prev => prev.map(item => item.id === id ? { ...item, ...updatedAsset, updatedAt: new Date() } : item));
     toast.success(`Aset berhasil diperbarui!`);
     return true;
   };
@@ -1327,14 +1383,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
         return false;
     }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setAssets(prev => prev.filter(a => a.id !== id));
+
     const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting asset from DB:', error);
       toast.error(`Gagal menghapus aset: ${error.message}`);
+      // Revert state lokal (opsional)
+      if (asset) setAssets(prev => [...prev, asset]);
       return false;
     }
 
-    setAssets(prev => prev.filter(a => a.id !== id));
     if (asset) {
       addActivity({
         title: 'Aset Dihapus',
@@ -1357,6 +1417,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       date: transaction.date || new Date(),
     };
 
+    // PERBAIKAN: Tambahkan ke state lokal segera
+    setFinancialTransactions(prev => [...prev, newTransaction].sort((a, b) => (b.created_at?.getTime() || 0) - (a.created_at?.getTime() || 0)));
+
     const transactionToInsert = {
       id: newTransaction.id,
       user_id: newTransaction.userId,
@@ -1366,17 +1429,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       description: newTransaction.description ?? null,
       date: toSafeISOString(newTransaction.date),
       created_at: toSafeISOString(newTransaction.created_at),
-      updated_at: toSafeISOString(newTransaction.updated_at),
+      updated_at: toSafeISOString(newTransaction.updatedAt),
     };
 
     const { error } = await supabase.from('financial_transactions').insert([transactionToInsert]);
     if (error) {
       console.error('Error adding financial transaction to DB:', error);
       toast.error(`Gagal menambahkan transaksi keuangan: ${error.message}`);
+      setFinancialTransactions(prev => prev.filter(t => t.id !== newTransaction.id)); // Revert
       return false;
     }
 
-    setFinancialTransactions(prev => [...prev, newTransaction]);
     addActivity({
       title: 'Transaksi Keuangan Ditambahkan',
       description: `${newTransaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} Rp ${newTransaction.amount.toLocaleString('id-ID')}`,
@@ -1400,14 +1463,17 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (updatedTransaction.description !== undefined) transactionToUpdate.description = updatedTransaction.description ?? null;
     if (updatedTransaction.date !== undefined) transactionToUpdate.date = toSafeISOString(updatedTransaction.date);
 
+    // PERBAIKAN: Update state lokal sebelum memanggil DB
+    setFinancialTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTransaction, updatedAt: new Date() } : t));
+
     const { error } = await supabase.from('financial_transactions').update(transactionToUpdate).eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error updating financial transaction in DB:', error);
       toast.error(`Gagal memperbarui transaksi keuangan: ${error.message}`);
+      // Revert state lokal (opsional)
       return false;
     }
 
-    setFinancialTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTransaction, updatedAt: new Date() } : t));
     toast.success(`Transaksi berhasil diperbarui!`);
     return true;
   };
@@ -1417,14 +1483,18 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { toast.error('Anda harus login untuk menghapus transaksi keuangan'); return false; }
 
+    // PERBAIKAN: Hapus dari state lokal sebelum memanggil DB
+    setFinancialTransactions(prev => prev.filter(t => t.id !== id));
+
     const { error } = await supabase.from('financial_transactions').delete().eq('id', id).eq('user_id', session.user.id);
     if (error) {
       console.error('Error deleting financial transaction from DB:', error);
       toast.error(`Gagal menghapus transaksi keuangan: ${error.message}`);
+      // Revert state lokal (opsional)
+      if (transaction) setFinancialTransactions(prev => [...prev, transaction]);
       return false;
     }
 
-    setFinancialTransactions(prev => prev.filter(t => t.id !== id));
     if (transaction) {
       addActivity({
         title: 'Transaksi Keuangan Dihapus',

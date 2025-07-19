@@ -1,13 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMemo } from "react"; // <-- DITAMBAHKAN untuk optimasi
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
-import { formatDateForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
+import { formatDateForDisplay } from '@/utils/dateUtils';
+
+// --- Impor Hook Baru ---
+import { useActivity } from "@/contexts/ActivityContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
 
 const Dashboard = () => {
-  const { getDashboardStats, activities } = useAppData();
+  // --- Panggil Hook Baru ---
+  const { activities } = useActivity();
+  const { recipes, hppResults } = useRecipe();
+  const { bahanBaku } = useBahanBaku();
   const { userName } = usePaymentStatus();
-  const stats = getDashboardStats();
+
+  // --- Logika Statistik Diimplementasikan Ulang di Sini ---
+  const stats = useMemo(() => {
+    const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
+    
+    const averageHPP = hppResults.length > 0
+      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
+      : 0;
+
+    return {
+      totalProduk: recipes.length,
+      stokBahanBaku: bahanBaku.length,
+      hppRataRata: averageHPP > 0 ? `Rp ${averageHPP.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Rp 0',
+      stokMenurut: stokMenipis,
+    };
+  }, [recipes, hppResults, bahanBaku]);
+
 
   const statsCards = [
     {
@@ -17,7 +42,7 @@ const Dashboard = () => {
       color: "from-blue-600 to-blue-400",
     },
     {
-      title: "Stok Bahan Baku",
+      title: "Jumlah Bahan Baku", // Judul disesuaikan agar lebih jelas
       value: stats.stokBahanBaku.toString(),
       icon: Warehouse,
       color: "from-green-600 to-green-400",
@@ -31,7 +56,7 @@ const Dashboard = () => {
     {
       title: "Stok Menipis",
       value: stats.stokMenurut.toString(),
-      icon: DollarSign, // Menggunakan DollarSign sesuai kode Anda
+      icon: DollarSign, // Menggunakan ikon yang sama seperti sebelumnya
       color: stats.stokMenurut > 0 ? "from-red-600 to-red-400" : "from-orange-600 to-orange-400",
     },
   ];
@@ -60,21 +85,18 @@ const Dashboard = () => {
     },
   ];
 
-  // FUNGSI formatDateTime LOKAL DIHAPUS DI SINI
-  // const formatDateTime = (date: Date) => {
-  //   return new Intl.DateTimeFormat('id-ID', {
-  //     day: 'numeric',
-  //     month: 'short',
-  //     hour: '2-digit',
-  //     minute: '2-digit',
-  //   }).format(date);
-  // };
-
   const getGreeting = () => {
+    const jam = new Date().getHours();
+    let sapaan = "datang";
+    if (jam >= 4 && jam < 11) sapaan = "pagi";
+    if (jam >= 11 && jam < 15) sapaan = "siang";
+    if (jam >= 15 && jam < 19) sapaan = "sore";
+    if (jam >= 19 || jam < 4) sapaan = "malam";
+    
     if (userName) {
-      return `Selamat datang kak ${userName}!`;
+      return `Selamat ${sapaan}, kak ${userName}!`;
     }
-    return "Selamat datang! Kelola bisnis Anda dengan mudah";
+    return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
   };
 
   return (
@@ -109,64 +131,55 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Aksi Cepat</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-            {quickActions.map((action, index) => (
-              <Link key={index} to={action.link}>
-                <Card className={`${action.color} transition-all duration-300 hover:shadow-lg border-0 cursor-pointer h-full`}>
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-start space-x-3 sm:space-x-4">
-                      <div className="p-2 bg-white rounded-lg shadow-sm flex-shrink-0">
+        {/* Quick Actions & Recent Activity (Grid layout for larger screens) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="lg:col-span-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Aksi Cepat</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {quickActions.map((action, index) => (
+                <Link key={index} to={action.link} className="block">
+                  <Card className={`${action.color} transition-all duration-300 hover:shadow-lg border-0 cursor-pointer h-full`}>
+                    <CardContent className="p-4 sm:p-6 flex items-start space-x-3 sm:space-x-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm flex-shrink-0 mt-1">
                         <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">{action.title}</h3>
                         <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{action.description}</p>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="flex items-center text-lg sm:text-xl">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Aktivitas Terbaru
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="space-y-3 sm:space-y-4">
-              {activities.slice(0, 5).map((activity) => (
-                <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm sm:text-base">{activity.title}</p>
-                    {/* BARIS INI DIUBAH */}
-                    <p className="text-xs sm:text-sm text-gray-600">{formatDateForDisplay(activity.timestamp)}</p>
-                  </div>
-                  {activity.value && (
-                    <span className={`font-semibold text-sm sm:text-base ${
-                      activity.type === 'hpp' ? 'text-green-600' :
-                      activity.type === 'stok' ? 'text-blue-600' :
-                      activity.type === 'resep' ? 'text-purple-600' : 'text-gray-600'
-                    }`}>
-                      {activity.value}
-                    </span>
+          
+          <div className="lg:col-span-1">
+             <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Aktivitas Terbaru</h2>
+            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm h-full">
+              <CardContent className="p-4 sm:p-6">
+                <div className="space-y-3 sm:space-y-4">
+                  {activities.slice(0, 5).map((activity) => (
+                    <div key={activity.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm text-gray-800">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{formatDateForDisplay(activity.timestamp)}</p>
+                      </div>
+                      {activity.value && (
+                        <span className="font-semibold text-sm text-gray-700 whitespace-nowrap pl-2">
+                          {activity.value}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {activities.length === 0 && (
+                    <p className="text-center text-gray-500 py-4">Belum ada aktivitas</p>
                   )}
                 </div>
-              ))}
-              {activities.length === 0 && (
-                <p className="text-center text-gray-500 py-4">Belum ada aktivitas</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

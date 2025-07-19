@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +8,8 @@ import { useState } from "react";
 import RecipeForm from "./RecipeForm";
 import { Recipe } from "@/types/recipe";
 import { toast } from "sonner";
+// --- IMPOR BARU ---
+import { useRecipe } from "@/contexts/RecipeContext";
 
 interface QuickHPPCalculatorProps {
   hppData: HPPData;
@@ -16,17 +17,18 @@ interface QuickHPPCalculatorProps {
 }
 
 const QuickHPPCalculator = ({ hppData, setHppData }: QuickHPPCalculatorProps) => {
-  const { addRecipe } = useAppData();
+  // --- MENGGUNAKAN HOOK BARU ---
+  const { addRecipe } = useRecipe();
   const [isRecipeDialogOpen, setIsRecipeDialogOpen] = useState(false);
 
   const handleInputChange = (field: keyof HPPData, value: string) => {
     const numValue = parseFloat(value) || 0;
     const updatedData = { ...hppData, [field]: numValue };
     
-    // Calculate HPP automatically
+    // Hitung HPP secara otomatis
     updatedData.totalHPP = updatedData.bahanBaku + updatedData.tenagaKerja + updatedData.overheadPabrik;
     
-    // Calculate selling price based on margin
+    // Hitung harga jual berdasarkan margin
     if (updatedData.marginKeuntungan > 0) {
       updatedData.hargaJual = updatedData.totalHPP * (1 + updatedData.marginKeuntungan / 100);
     } else {
@@ -47,7 +49,7 @@ const QuickHPPCalculator = ({ hppData, setHppData }: QuickHPPCalculatorProps) =>
     });
   };
 
-  const handleSaveRecipe = (recipeData: any) => {
+  const handleSaveRecipe = async (recipeData: any) => {
     try {
       const totalBahanBaku = hppData.bahanBaku;
       const totalHPP = totalBahanBaku + (recipeData.biayaTenagaKerja || 0) + (recipeData.biayaOverhead || 0);
@@ -56,20 +58,25 @@ const QuickHPPCalculator = ({ hppData, setHppData }: QuickHPPCalculatorProps) =>
       const marginKeuntungan = parseFloat(recipeData.marginKeuntungan) || 0;
       const hargaJualPerPorsi = hppPerPorsi * (1 + marginKeuntungan / 100);
 
-      const newRecipe: Recipe = {
-        id: Date.now().toString(),
+      // Siapkan data resep baru tanpa id, createdAt, updatedAt
+      // karena akan dibuat otomatis oleh fungsi addRecipe
+      const newRecipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> = {
         ...recipeData,
+        porsi,
+        marginKeuntungan,
         totalHPP,
         hppPerPorsi,
         hargaJualPerPorsi,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
       
-      addRecipe(newRecipe);
-      setIsRecipeDialogOpen(false);
-      
-      toast.success(`${recipeData.namaResep} berhasil disimpan sebagai resep`);
+      const success = await addRecipe(newRecipe);
+
+      if (success) {
+        setIsRecipeDialogOpen(false);
+        toast.success(`${recipeData.namaResep} berhasil disimpan sebagai resep`);
+      }
+      // Jika tidak sukses, toast error akan muncul dari dalam fungsi addRecipe
+
     } catch (error) {
       console.error('Error saving recipe:', error);
       toast.error('Gagal menyimpan resep');

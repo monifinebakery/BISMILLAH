@@ -272,7 +272,9 @@ export const useSupabaseSync = () => {
         upsertPromises.push(supabase.from('hpp_results').upsert(hppResults, { onConflict: 'id', ignoreDuplicates: false }));
       }
       if (activities && activities.length > 0) {
-        upsertPromises.push(supabase.from('activities').upsert(activities, { onConflict: 'id', ignoreDuplicates: false }));
+        // Activities might be append-only, consider insert or upsert based on your DB setup
+        // For simplicity, we'll upsert here. If you only insert, handle duplicates.
+        syncPromises.push(supabase.from('activities').upsert(activities, { onConflict: 'id', ignoreDuplicates: false }));
       }
       if (orders && orders.length > 0) {
         upsertPromises.push(supabase.from('orders').upsert(orders, { onConflict: 'id', ignoreDuplicates: false }));
@@ -289,7 +291,7 @@ export const useSupabaseSync = () => {
       }
 
       const upsertResults = await Promise.all(upsertPromises);
-      const hasError = upsertResults.some(res => res.error);
+      const hasError = results.some(res => res.error);
 
       if (hasError) {
         console.error('One or more sync operations failed:', upsertResults.filter(res => res.error));
@@ -321,7 +323,6 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
-      // Ambil data dari semua tabel user
       const [
         bahanBakuRes,
         suppliersRes,
@@ -349,7 +350,7 @@ export const useSupabaseSync = () => {
       // Tangani error dari setiap query secara individual
       if (bahanBakuRes.error) throw bahanBakuRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
-      if (purchasesRes.error) throw purchasesRes.error;
+      if (purchasesRes.error) throw purchasesRes.error; 
       if (recipesRes.error) throw recipesRes.error;
       if (hppResultsRes.error) throw hppResultsRes.error;
       if (activitiesRes.error) throw activitiesRes.error;
@@ -372,7 +373,7 @@ export const useSupabaseSync = () => {
           notifications: settingsRes.data.notifications || {},
           backup: settingsRes.data.backup_settings || {},
           security: settingsRes.data.security_settings || {},
-          recipeCategories: settingsRes.data.recipe_categories || [],
+          recipeCategories: settingsRes.data.recipe_categories || [], // MODIFIED: Muat recipe_categories
           financialCategories: settingsRes.data.financial_categories || defaultSettings.financialCategories,
         };
       } else if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
@@ -429,13 +430,13 @@ export const useSupabaseSync = () => {
           deskripsi: item.deskripsi || '',
           porsi: parseFloat(item.porsi) || 0,
           ingredients: item.ingredients || [],
-          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
+          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0, // KOREKSI: Pastikan nama kolom DB yang benar (biaya_tenaga_kerja)
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
           totalHPP: parseFloat(item.total_hpp) || 0,
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
           marginKeuntungan: parseFloat(item.margin_keuntungan) || 0,
           hargaJualPerPorsi: parseFloat(item.harga_jual_per_porsi) || 0,
-          category: item.category || '',
+          category: item.category || '', // MODIFIED: Muat category
           createdAt: safeParseDate(item.created_at),
           updatedAt: safeParseDate(item.updated_at),
         })) || [],
@@ -484,7 +485,7 @@ export const useSupabaseSync = () => {
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama || '',
-          kategori: item.kategori || 'Peralatan', // Fallback
+          kategori: item.kategori || 'Peralatan', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kategori`
           nilaiAwal: parseFloat(item.nilai_awal) || 0,
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
           tanggalPembelian: safeParseDate(item.tanggal_beli) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date

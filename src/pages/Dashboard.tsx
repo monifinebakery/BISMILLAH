@@ -59,7 +59,7 @@ const Dashboard = () => {
     return Object.entries(productSales)
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 3);
+      .slice(0, 5); // Ambil 5 produk teratas
   }, [orders]);
 
   const statsCards = [
@@ -79,7 +79,6 @@ const Dashboard = () => {
     // ... (fungsi sapaan tidak berubah)
     return "Selamat malam! Kelola bisnis Anda dengan mudah";
   };
-
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -105,30 +104,30 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Kolom Kiri: Aksi Cepat */}
-        <div className="lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {quickActions.map((action, index) => (
-                <Link key={index} to={action.link} className="block">
-                    <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
-                    <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-                        <div className="p-3 bg-white rounded-full shadow-md mb-4">
-                        <action.icon className="h-6 w-6" />
-                        </div>
-                        <h3 className="font-semibold">{action.title}</h3>
-                    </CardContent>
-                    </Card>
-                </Link>
-                ))}
-            </div>
+      {/* Aksi Cepat */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => (
+            <Link key={index} to={action.link} className="block">
+                <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
+                <CardContent className="p-6 flex flex-col items-center text-center justify-center">
+                    <div className="p-3 bg-white rounded-full shadow-md mb-4">
+                    <action.icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-semibold">{action.title}</h3>
+                </CardContent>
+                </Card>
+            </Link>
+            ))}
         </div>
+      </div>
+
+      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Kolom Kanan: Produk Terlaris */}
-        <div className="lg:col-span-1">
+        {/* Kolom Kiri: Produk Terlaris */}
+        <div>
             <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
             <Card className="h-full">
                 <CardContent className="p-6">
@@ -150,11 +149,11 @@ const Dashboard = () => {
                 </CardContent>
             </Card>
         </div>
-
-        {/* Baris Bawah: Aktivitas Terbaru (Full Width) */}
-        <div className="lg:col-span-3">
+        
+        {/* Kolom Kanan: Aktivitas Terbaru */}
+        <div>
           <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
-          <Card>
+          <Card className="h-full">
             <CardContent className="p-6">
               <div className="space-y-4">
                 {activities.length > 0 ? (

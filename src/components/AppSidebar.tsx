@@ -1,35 +1,12 @@
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Sidebar, 
-  SidebarClose, 
-  SidebarTrigger, 
-  useSidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-} from "@/components/ui/sidebar"; 
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
-import { usePaymentContext } from "@/contexts/PaymentContext";
-import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
-import CloudSyncButton from "@/components/CloudSyncButton";
-import DateTimeDisplay from "@/components/DateTimeDisplay";
-import NotificationBell from "@/components/NotificationBell";
-import React, { useState } from "react";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,118 +16,82 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+// --- PERBAIKAN: Impor semua hook konteks yang baru ---
+import { usePaymentContext } from "@/contexts/PaymentContext";
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useSupplier } from "@/contexts/SupplierContext";
+import { usePurchase } from "@/contexts/PurchaseContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useActivity } from "@/contexts/ActivityContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useAsset } from "@/contexts/AssetContext";
+import { useFinancial } from "@/contexts/FinancialContext";
 
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { state } = useSidebar(); 
-  const { isPaid } = usePaymentContext();
-  const { getStatistics, bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions } = useAppData();
-
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // --- PERBAIKAN: Panggil semua hook baru untuk mendapatkan data ---
+  const { isPaid } = usePaymentContext();
+  const { bahanBaku } = useBahanBaku();
+  const { suppliers } = useSupplier();
+  const { purchases } = usePurchase();
+  const { recipes, hppResults } = useRecipe();
+  const { activities } = useActivity();
+  const { orders } = useOrder();
+  const { assets } = useAsset();
+  const { financialTransactions } = useFinancial();
 
-  // MODIFIED: Pindahkan definisi menuGroups ke dalam komponen
   const menuGroups = [
     {
       label: "Dashboard",
       items: [
-        {
-          title: "Dashboard",
-          url: "/",
-          icon: DashboardIcon,
-        },
-        {
-          title: "Kalkulator HPP Cepat",
-          url: "/hpp",
-          icon: Calculator,
-        },
+        { title: "Dashboard", url: "/", icon: DashboardIcon },
+        { title: "Kalkulator HPP", url: "/hpp", icon: Calculator },
       ]
     },
     {
       label: "Produksi",
       items: [
-        {
-          title: "Manajemen Resep",
-          url: "/resep",
-          icon: ChefHat,
-        },
-        {
-          title: "Gudang Bahan Baku",
-          url: "/gudang",
-          icon: Package,
-        },
+        { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
+        { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
       ]
     },
     {
       label: "Bisnis",
       items: [
-        {
-          title: "Supplier",
-          url: "/supplier",
-          icon: Users,
-        },
-        {
-          title: "Pembelian Bahan Baku",
-          url: "/pembelian",
-          icon: ShoppingCart,
-        },
-        {
-          title: "Pesanan",
-          url: "/pesanan",
-          icon: ShoppingCart
-        },
+        { title: "Supplier", url: "/supplier", icon: Users },
+        { title: "Pembelian", url: "/pembelian", icon: ShoppingCart },
+        { title: "Pesanan", url: "/pesanan", icon: FileText },
       ]
     },
     {
-      label: "Laporan & Analisis",
+      label: "Laporan & Aset",
       items: [
-        {
-          title: "Laporan Keuangan",
-          url: "/laporan",
-          icon: FileText,
-        },
-        {
-          title: "Manajemen Aset",
-          url: "/aset",
-          icon: Building2,
-        },
+        { title: "Laporan Keuangan", url: "/laporan", icon: TrendingUp },
+        { title: "Manajemen Aset", url: "/aset", icon: Building2 },
       ]
     }
   ];
 
-  // MODIFIED: Pindahkan definisi settingsItems ke dalam komponen
   const settingsItems = [
-    {
-      title: "Pengaturan",
-      url: "/pengaturan",
-      icon: Settings,
-    },
+    { title: "Pengaturan", url: "/pengaturan", icon: Settings },
   ];
 
-  const handleLogout = async () => {
-    setShowLogoutConfirm(true);
-  };
-
   const confirmLogout = async () => {
-    try {
-      const success = await performSignOut();
-      
-      if (success) {
-        toast.success("Berhasil keluar");
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      } else {
-        toast.error("Gagal keluar");
-      }
-    } catch (error) {
+    const success = await performSignOut();
+    if (success) {
+      toast.success("Berhasil keluar");
+      setTimeout(() => window.location.reload(), 500);
+    } else {
       toast.error("Gagal keluar");
     }
   };
 
   const handleExportAllData = () => {
+    // Fungsi ini sekarang akan bekerja karena semua data sudah tersedia dari hook baru
     const allAppData = {
       bahanBaku,
       suppliers,
@@ -162,54 +103,48 @@ export function AppSidebar() {
       assets,
       financialTransactions,
     };
-    // exportAllDataToExcel(allAppData); // Commented out as global export is not part of this task
+    
+    // Logika untuk export (misalnya, konversi ke JSON dan download)
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+      JSON.stringify(allAppData, null, 2)
+    )}`;
+    const link = document.createElement("a");
+    link.href = jsonString;
+    link.download = `hpp_monifine_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    toast.success("Semua data berhasil diekspor!");
   };
 
-
   return (
-    <Sidebar className="border-r border-gray-200 bg-white">
-      <SidebarHeader className={`p-4 border-b border-gray-200 ${state === "collapsed" ? "flex justify-center items-center" : ""}`}>
-        <div className={`flex items-center ${state === "collapsed" ? "justify-center" : "space-x-3"}`}>
-          <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl flex items-center justify-center">
-            <TrendingUp className="h-6 w-6" />
-          </div>
-          {state === "expanded" && (
-            <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                HPP by Monifine
-              </h2>
-              <p className="text-sm text-gray-600">Sistem Manajemen Bisnis</p>
+    <Sidebar className="border-r">
+      <SidebarHeader className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white">
+              <TrendingUp className="h-6 w-6" />
             </div>
-          )}
-        </div>
+            <div>
+              <h2 className="text-lg font-bold">HPP by Monifine</h2>
+            </div>
+          </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-2 py-4 flex-grow">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="mb-4">
-            {state === "expanded" && (
-              <SidebarGroupLabel className="text-sm font-semibold text-gray-700 mb-1 px-3">
+              <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
                 {group.label}
               </SidebarGroupLabel>
-            )}
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
                       asChild
                       isActive={location.pathname === item.url}
-                      className={cn(
-                        "px-3 py-2 rounded-lg text-base font-medium transition-all duration-200",
-                        location.pathname === item.url 
-                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      )}
-                      tooltip={item.title}
                     >
                       <Link to={item.url} className="flex items-center space-x-3">
                         <item.icon className="h-5 w-5" />
-                        <span className="min-w-0 truncate">{item.title}</span>
+                        <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -220,54 +155,39 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-gray-200 mt-auto">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {settingsItems.map((item) => (
+      <SidebarFooter className="p-2 border-t mt-auto">
+        <Button onClick={handleExportAllData} variant="outline" className="w-full justify-start mb-1">
+            <Download className="h-5 w-5 mr-3" />
+            Export Semua Data
+        </Button>
+        <SidebarMenu>
+            {settingsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={location.pathname === item.url}
-                    className={cn(
-                      "px-3 py-2 rounded-lg text-base font-medium transition-all duration-200",
-                      location.pathname === item.url 
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    )}
-                    tooltip={item.title}
-                  >
-                    <Link to={item.url} className="flex items-center space-x-3">
-                      <item.icon className="h-5 w-5" />
-                      <span className="min-w-0 truncate">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                    <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                        <Link to={item.url} className="flex items-center space-x-3">
+                            <item.icon className="h-5 w-5" />
+                            <span>{item.title}</span>
+                        </Link>
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={handleLogout}
-                  className="px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full"
-                  tooltip="Keluar"
-                >
-                  <div className="flex items-center space-x-3">
-                    <LogOut className="h-5 w-5" />
-                    {state === "expanded" && <span>Keluar</span>}
-                  </div>
+            ))}
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setShowLogoutConfirm(true)} className="w-full text-red-500 hover:bg-red-50 hover:text-red-600">
+                    <div className="flex items-center space-x-3">
+                        <LogOut className="h-5 w-5" />
+                        <span>Keluar</span>
+                    </div>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
 
-      {/* AlertDialog untuk konfirmasi logout */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses aplikasi.
+              Apakah Anda yakin ingin keluar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

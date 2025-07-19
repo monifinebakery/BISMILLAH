@@ -1,8 +1,21 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Cloud, CloudUpload, Loader2, RefreshCw } from 'lucide-react';
+import { CloudUpload, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+
+// --- IMPOR HOOK UTAMA ---
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useUserSettings } from '@/contexts/UserSettingsContext'; // Asumsi Anda punya konteks ini
+
+// --- IMPOR SEMUA HOOK KONTEKS DATA ---
+import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { useSupplier } from '@/contexts/SupplierContext';
+import { usePurchase } from '@/contexts/PurchaseContext';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { useOrder } from '@/contexts/OrderContext';
+import { useAsset } from '@/contexts/AssetContext';
+import { useFinancial } from '@/contexts/FinancialContext';
+import { useActivity } from '@/contexts/ActivityContext';
 
 interface CloudSyncButtonProps {
   variant?: 'upload' | 'download';
@@ -13,32 +26,60 @@ const CloudSyncButton: React.FC<CloudSyncButtonProps> = ({
   variant = 'upload',
   className = ''
 }) => {
-  const { syncToCloud, loadFromCloud, cloudSyncEnabled } = useAppData();
-  const [isLoading, setIsLoading] = React.useState(false);
+  // --- PANGGIL HOOK UTAMA ---
+  const { syncToSupabase, loadFromSupabase, isLoading: isSyncing } = useSupabaseSync();
+  const { settings } = useUserSettings();
+
+  // --- KUMPULKAN DATA DARI SEMUA KONTEKS ---
+  const { bahanBaku } = useBahanBaku();
+  const { suppliers } = useSupplier();
+  const { purchases } = usePurchase();
+  const { recipes, hppResults } = useRecipe();
+  const { orders } = useOrder();
+  const { assets } = useAsset();
+  const { financialTransactions } = useFinancial();
+  const { activities } = useActivity();
+  
+  // State loading lokal khusus untuk interaksi tombol
+  const [isHandlingClick, setIsHandlingClick] = React.useState(false);
+
+  // Ambil status aktivasi cloud sync dari pengaturan
+  const cloudSyncEnabled = settings?.backup?.auto ?? false;
 
   const handleClick = async () => {
     if (!cloudSyncEnabled) {
-      toast.error('Cloud sync tidak diaktifkan');
+      toast.error('Cloud sync tidak diaktifkan. Aktifkan di Pengaturan > Backup Data.');
       return;
     }
 
-    setIsLoading(true);
+    setIsHandlingClick(true);
     try {
       if (variant === 'upload') {
-        const success = await syncToCloud();
-        if (success) {
-          toast.success('Data berhasil disimpan ke cloud');
-        } else {
-          toast.error('Gagal menyimpan data ke cloud');
-        }
+        // Gabungkan semua data menjadi satu objek untuk dikirim
+        const dataToSync = {
+          bahanBaku,
+          suppliers,
+          purchases,
+          recipes,
+          hppResults,
+          orders,
+          assets,
+          financialTransactions,
+          activities,
+        };
+
+        const success = await syncToSupabase(dataToSync);
+        // Toast notifikasi sudah di-handle di dalam hook useSupabaseSync
+        
       } else {
-        await loadFromCloud();
-        toast.success('Data berhasil dimuat dari cloud');
+        await loadFromSupabase();
+        // Toast notifikasi sudah di-handle di dalam hook useSupabaseSync
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat sync data');
+      console.error("Cloud Sync Error:", error)
+      toast.error('Terjadi kesalahan saat sinkronisasi data.');
     } finally {
-      setIsLoading(false);
+      setIsHandlingClick(false);
     }
   };
 
@@ -46,11 +87,14 @@ const CloudSyncButton: React.FC<CloudSyncButtonProps> = ({
     return null;
   }
 
+  const isLoading = isHandlingClick || isSyncing;
+
   return (
     <Button
       onClick={handleClick}
       disabled={isLoading}
       variant={variant === 'upload' ? 'default' : 'outline'}
+      size="sm" // Ukuran default agar konsisten
       className={className}
     >
       {isLoading ? (
@@ -60,7 +104,7 @@ const CloudSyncButton: React.FC<CloudSyncButtonProps> = ({
       ) : (
         <RefreshCw className="h-4 w-4 mr-2" />
       )}
-      {isLoading 
+      {isLoading
         ? 'Proses...' 
         : variant === 'upload' 
           ? 'Simpan ke Cloud' 

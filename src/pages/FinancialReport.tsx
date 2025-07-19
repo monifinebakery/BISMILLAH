@@ -15,7 +15,7 @@ import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 
@@ -31,26 +31,44 @@ const FinancialReportPage = () => {
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
-  // PERUBAHAN 1: Rentang tanggal default diubah menjadi 6 bulan terakhir
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(subMonths(new Date(), 1)),
+    from: startOfMonth(subMonths(new Date(), 5)),
     to: new Date(),
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const closeDialog = useCallback(() => setIsDialogOpen(false), []);
-  
-  // (Logika useMemo untuk kalkulasi data tidak berubah)
+
+  // ✅ PERBAIKAN 1: Pastikan `filteredTransactions` didefinisikan PERTAMA.
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    return transactions.filter(t => {
+      const transactionDate = t.date;
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) return false;
+      
+      const rangeFrom = dateRange?.from;
+      const rangeTo = dateRange?.to;
+
+      if (rangeFrom && transactionDate < rangeFrom) return false;
+      if (rangeTo) {
+          const adjustedRangeTo = new Date(rangeTo);
+          adjustedRangeTo.setHours(23, 59, 59, 999);
+          if (transactionDate > adjustedRangeTo) return false;
+      }
+      return true;
+    });
+  }, [transactions, dateRange]);
+
+  // Kalkulasi lain sekarang bisa menggunakan `filteredTransactions` yang sudah ada.
   const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
-    // ...
-    const income = (filteredTransactions || []).filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
-    const expense = (filteredTransactions || []).filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
+    const income = filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + (t.amount || 0), 0);
+    const expense = filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + (t.amount || 0), 0);
     
     const incomeByCategory: { [key: string]: number } = {};
     const expenseByCategory: { [key: string]: number } = {};
     const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
-    (filteredTransactions || []).forEach(t => {
+    filteredTransactions.forEach(t => {
       const categoryName = t.category || 'Lainnya';
       if (t.type === 'pemasukan') {
         incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
@@ -86,17 +104,13 @@ const FinancialReportPage = () => {
         .sort((a, b) => a.date.getTime() - b.date.getTime()),
     };
   }, [filteredTransactions]);
-
+  
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#9cafff'];
 
-  // PERUBAHAN 2: Fungsi baru untuk memformat sumbu Y dengan angka penuh
-  const formatYAxis = (tickItem: number) => {
-    return tickItem.toLocaleString('id-ID');
-  };
+  const formatYAxis = (tickItem: number) => tickItem.toLocaleString('id-ID');
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
@@ -125,70 +139,44 @@ const FinancialReportPage = () => {
         </div>
       </div>
 
-      {/* Kartu Statistik Utama */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card><CardHeader><CardTitle>Total Pemasukan</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Total Pengeluaran</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpense)}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Saldo Akhir</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatCurrency(balance)}</p></CardContent></Card>
       </div>
 
-      {/* Konten Premium */}
       {!isPaid && <div className="flex justify-center my-4"><PaymentStatusIndicator size="lg"/></div>}
       <div className={premiumContentClass}>
-        {/* Grafik Garis (Full Width) */}
         <Card className="mb-6">
             <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran Bulanan</CardTitle></CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={transactionData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        {/* PERUBAHAN 3: Menggunakan formatter baru dan memperlebar area Y-Axis */}
-                        <YAxis tickFormatter={formatYAxis} width={90} />
-                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                        <Legend />
-                        <Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} />
-                        <Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
+                        <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis tickFormatter={formatYAxis} width={90} /><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /><Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
                     </LineChart>
                 </ResponsiveContainer>
             </CardContent>
         </Card>
-
-        {/* Chart Pie (Side-by-side) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                                {categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                            <Legend />
-                        </PieChart>
+                        <PieChart><Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                                {categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                            <Legend />
-                        </PieChart>
+                        <PieChart><Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
         </div>
       </div>
 
-      {/* Daftar Transaksi */}
       <div className="mt-6">
         <h2 className="text-xl font-semibold mb-4">Daftar Transaksi</h2>
         <FinancialTransactionList
@@ -199,13 +187,13 @@ const FinancialReportPage = () => {
           categories={settings.financialCategories}
         />
       </div>
-
-      {/* Dialog Tambah/Edit Transaksi */}
+      
       <FinancialTransactionDialog
         isOpen={isDialogOpen}
         onClose={closeDialog}
         onAddTransaction={addFinancialTransaction}
-        categories={settings.financialCategories.expense}
+        // ✅ PERBAIKAN 2: Kirim seluruh objek kategori, bukan hanya 'expense'
+        categories={settings.financialCategories}
       />
     </div>
   );

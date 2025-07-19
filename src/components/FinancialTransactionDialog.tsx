@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FinancialTransaction } from '@/types';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-// Tentukan tipe data untuk form, hilangkan beberapa properti yang tidak diisi user
+// Tipe data untuk form
 type TransactionFormData = Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 
 interface FinancialTransactionDialogProps {
@@ -16,7 +17,11 @@ interface FinancialTransactionDialogProps {
   onAddTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'userId' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   onUpdateTransaction?: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
   transactionToEdit?: FinancialTransaction | null;
-  categories: string[];
+  // PERBAIKAN: Menerima objek kategori yang lebih terstruktur
+  categories: {
+    income: string[];
+    expense: string[];
+  };
 }
 
 const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
@@ -37,7 +42,6 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   const [formData, setFormData] = useState<TransactionFormData>(initialFormState);
 
-  // Efek untuk mengisi form saat mode edit
   useEffect(() => {
     if (transactionToEdit) {
       setFormData({
@@ -52,18 +56,15 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   }, [transactionToEdit, isOpen]);
 
-  // ✅ FUNGSI YANG HILANG: Dibuat untuk menangani perubahan input
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value,
-    }));
-  };
-  
-  // Fungsi terpisah untuk Select dan Date
-  const handleValueChange = (name: keyof TransactionFormData, value: string | Date) => {
-     setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (field: keyof TransactionFormData, value: string | number | Date) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Jika tipe diubah, reset kategori
+      if (field === 'type') {
+        newData.category = '';
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,9 +86,12 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
 
     if (success) {
-      onClose(); // Tutup dialog jika berhasil
+      onClose();
     }
   };
+
+  // ✅ PERBAIKAN: Tentukan daftar kategori yang akan ditampilkan berdasarkan tipe yang dipilih
+  const currentCategoryList = formData.type === 'pemasukan' ? categories.income : categories.expense;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -102,7 +106,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               <Select
                 name="type"
                 value={formData.type}
-                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleValueChange('type', value)}
+                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
               >
                 <SelectTrigger id="type"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -118,7 +122,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                 name="amount"
                 type="number"
                 value={formData.amount}
-                onChange={handleChange}
+                onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)}
                 placeholder="0"
                 required
               />
@@ -128,15 +132,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             <Label htmlFor="category">Kategori</Label>
             <Select
               name="category"
-              value={formData.category}
-              onValueChange={(value) => handleValueChange('category', value)}
+              value={formData.category || ''}
+              onValueChange={(value) => handleChange('category', value)}
             >
               <SelectTrigger id="category"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
               <SelectContent>
-  {Array.isArray(categories) && categories.map(cat => (
-    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-  ))}
-</SelectContent>
+                {/* ✅ PERBAIKAN: Gunakan `currentCategoryList` untuk me-render item */}
+                {currentCategoryList.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
           <div>
@@ -145,7 +148,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               id="description"
               name="description"
               value={formData.description || ''}
-              onChange={handleChange}
+              onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Contoh: Beli Tepung Terigu"
             />
           </div>
@@ -156,7 +159,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               name="date"
               type="date"
               value={formData.date ? format(formData.date, 'yyyy-MM-dd') : ''}
-              onChange={(e) => handleValueChange('date', new Date(e.target.value))}
+              onChange={(e) => handleChange('date', new Date(e.target.value))}
               required
             />
           </div>
@@ -170,6 +173,4 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   );
 };
 
-// Tambahkan import 'format' dari date-fns di bagian atas file
-import { format } from 'date-fns';
 export default FinancialTransactionDialog;

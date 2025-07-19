@@ -226,7 +226,6 @@ const OrdersPage = () => {
           <p className="text-muted-foreground">Kelola semua pesanan pelanggan</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <CloudSyncButton variant="download" />
           <Button className="flex items-center gap-2" onClick={handleNewOrder}>
             <Plus className="h-4 w-4" />
             Pesanan Baru

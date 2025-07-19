@@ -13,7 +13,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from '@/contexts/PurchaseContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useOrder } from '@/contexts/OrderContext';
-import { useAsset } from '@/contexts/AssetContext';
+import { useAssets } from '@/contexts/AssetContext';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { useActivity } from '@/contexts/ActivityContext';
 

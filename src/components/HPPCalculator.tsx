@@ -8,6 +8,8 @@ import { HPPData } from "@/types/hpp";
 import { Recipe } from "@/types/recipe";
 import { useState } from "react";
 import { ChefHat, Save, Calculator } from "lucide-react";
+import { useRecipe } from "@/contexts/RecipeContext"; // Impor hook spesifik
+import { useActivity } from "@/contexts/ActivityContext"; // Impor hook spesifik
 import RecipeForm from "./RecipeForm";
 import QuickHPPCalculator from "./QuickHPPCalculator";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";

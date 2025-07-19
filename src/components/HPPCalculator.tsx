@@ -22,7 +22,7 @@ interface HPPCalculatorProps {
 }
 
 const HPPCalculator = ({ hppData, setHppData, isQuickMode = false }: HPPCalculatorProps) => {
-  const { recipes, addRecipe, addHPPCalculation, addActivity } = useAppData();
+  const { recipes, addRecipe, addHPPCalculation, addActivity } = useRecipe();
   const { consumeIngredients } = useIngredientPrices();
   const [selectedRecipe, setSelectedRecipe] = useState<string>("");
   const [isRecipeDialogOpen, setIsRecipeDialogOpen] = useState(false);

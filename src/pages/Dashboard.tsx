@@ -1,3 +1,6 @@
+// src/pages/Dashboard.tsx
+// VERSI FINAL DENGAN PERBAIKAN LAYOUT GRID
+
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy } from "lucide-react";
@@ -24,10 +27,10 @@ const formatDateTime = (date: Date | null) => {
 };
 
 const Dashboard = () => {
-  const { activities } = useActivity();
-  const { bahanBaku } = useBahanBaku();
-  const { recipes, hppResults } = useRecipe();
-  const { orders } = useOrder();
+  const { activities, isLoading: isLoadingActivities } = useActivity();
+  const { bahanBaku, isLoading: isLoadingBahanBaku } = useBahanBaku();
+  const { recipes, hppResults, isLoading: isLoadingRecipes } = useRecipe();
+  const { orders, isLoading: isLoadingOrders } = useOrder();
   const { userName } = usePaymentStatus();
 
   // Kalkulasi statistik utama
@@ -60,19 +63,6 @@ const Dashboard = () => {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5);
   }, [orders]);
-
-  const statsCards = [
-    { title: "Total Produk", value: stats.totalProduk.toString(), icon: Package, color: "from-blue-500 to-blue-400" },
-    { title: "Total Stok Bahan", value: stats.totalStokBahanBaku.toLocaleString('id-ID'), icon: Warehouse, color: "from-green-500 to-green-400" },
-    { title: "HPP Rata-rata", value: stats.hppRataRata, icon: Calculator, color: "from-purple-500 to-purple-400" },
-    { title: "Stok Menipis", value: stats.stokMenipis.toString(), icon: TrendingUp, color: stats.stokMenipis > 0 ? "from-red-500 to-red-400" : "from-orange-500 to-orange-400" },
-  ];
-
-  const quickActions = [
-    { title: "Hitung HPP", link: "/hpp", icon: Calculator, color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
-    { title: "Kelola Gudang", link: "/gudang", icon: Warehouse, color: "bg-green-50 hover:bg-green-100 text-green-700" },
-    { title: "Laporan Keuangan", link: "/laporan", icon: BarChart3, color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
-  ];
   
   const getGreeting = () => {
     const jam = new Date().getHours();
@@ -87,6 +77,19 @@ const Dashboard = () => {
     }
     return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
   };
+
+  const statsCards = [
+    { title: "Total Produk", value: stats.totalProduk.toString(), icon: Package, color: "from-blue-500 to-blue-400" },
+    { title: "Total Stok Bahan", value: stats.totalStokBahanBaku.toLocaleString('id-ID'), icon: Warehouse, color: "from-green-500 to-green-400" },
+    { title: "HPP Rata-rata", value: stats.hppRataRata, icon: Calculator, color: "from-purple-500 to-purple-400" },
+    { title: "Stok Menipis", value: stats.stokMenipis.toString(), icon: TrendingUp, color: stats.stokMenipis > 0 ? "from-red-500 to-red-400" : "from-orange-500 to-orange-400" },
+  ];
+
+  const quickActions = [
+    { title: "Hitung HPP", link: "/hpp", icon: Calculator, color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
+    { title: "Kelola Gudang", link: "/gudang", icon: Warehouse, color: "bg-green-50 hover:bg-green-100 text-green-700" },
+    { title: "Laporan Keuangan", link: "/laporan", icon: BarChart3, color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
+  ];
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -131,12 +134,15 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* ============================================================= */}
       {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
+      {/* ============================================================= */}
+      {/* Kedua kartu dibungkus dalam SATU grid container */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Kolom Kiri: Produk Terlaris */}
-        <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Produk Terlaris</h2>
+        <div>
+            <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
             <Card className="h-full">
                 <CardContent className="p-6">
                     <div className="space-y-4">
@@ -159,32 +165,29 @@ const Dashboard = () => {
         </div>
         
         {/* Kolom Kanan: Aktivitas Terbaru */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Aktivitas Terbaru</h2>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="space-y-4">
                 {activities.length > 0 ? (
-                  activities.slice(0, 5).map((activity) => {
-                    const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
-                    const amount = isFinancial ? parseFloat(activity.value || '0') : 0;
-                    return (
+                  activities.slice(0, 5).map((activity) => (
                       <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-medium">{activity.title}</p>
                           <p className="text-sm text-muted-foreground">{activity.description}</p>
                         </div>
                         <div className="text-sm text-right mt-1 sm:mt-0">
-                          {isFinancial && amount > 0 && (
-                            <p className={`font-semibold ${activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
-                              {formatCurrency(amount)}
+                          {activity.value && (
+                            <p className={`font-semibold ${activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
+                              {activity.value}
                             </p>
                           )}
                           <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
                         </div>
                       </div>
-                    );
-                  })
+                    )
+                  )
                 ) : (
                   <p className="text-center text-muted-foreground py-4">Belum ada aktivitas</p>
                 )}

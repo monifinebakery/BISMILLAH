@@ -488,7 +488,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     let channels: RealtimeChannel[] = [];
 
     const setupSubscriptions = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } = { session: null } } = await supabase.auth.getSession();
       if (!session) {
         console.log('No session, skipping real-time subscriptions setup.');
         return;
@@ -525,8 +525,6 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
               // Mungkin perlu logika khusus jika status pembayaran berubah
               // Misal: memicu refresh status pembayaran user di komponen lain
               console.log('Perubahan user_payments terdeteksi. Silakan periksa status pembayaran user.');
-              // Jika Anda memiliki state global untuk status pembayaran user, update di sini.
-              // Atau panggil loadFromCloud() untuk memuat ulang semua data jika status pembayaran user berubah
               loadFromCloud(); // Memuat ulang data dari cloud, yang akan me-refresh status pembayaran user
             } else {
               table.setState(prev => { // Panggil setState hanya untuk tabel yang memiliki state langsung
@@ -568,7 +566,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
       channels = [];
     };
-  }, [loadFromCloud]); // Menambahkan loadFromCloud ke dependensi subscription
+  }, [loadFromCloud]);
 
   // Efek samping untuk menyimpan ke localStorage setiap kali state berubah
   useEffect(() => { saveToStorage(STORAGE_KEYS.BAHAN_BAKU, bahanBaku); }, [bahanBaku]);
@@ -1154,7 +1152,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     await addHPPResult(result);
   };
 
-  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => {
+  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'id' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => { // Perbaiki Omit
     const session = (await supabase.auth.getSession()).data.session;
     const newOrder: Order = {
       ...order,
@@ -1294,7 +1292,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     toast.success(`Aktivitas berhasil ditambahkan!`);
   };
 
-  const getStatistics = () => {
+  const getStatistics = useCallback(() => { // Wrap in useCallback
     const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
     const averageHPP = hppResults.length > 0
       ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
@@ -1308,9 +1306,9 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       totalRecipes: recipes.length,
       averageHPP,
     };
-  };
+  }, [bahanBaku, hppResults, suppliers, purchases, recipes]); // Add dependencies
 
-  const getDashboardStats = () => {
+  const getDashboardStats = useCallback(() => { // Wrap in useCallback
     const stokMenipis = bahanBaku.filter(bahan => bahan.stok <= bahan.minimum).length;
     const averageHPP = hppResults.length > 0
       ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
@@ -1322,7 +1320,7 @@ export const AppDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       hppRataRata: averageHPP > 0 ? `Rp ${averageHPP.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Rp 0',
       stokMenurut: stokMenipis,
     };
-  };
+  }, [bahanBaku, hppResults, recipes]); // Add dependencies
 
   const addAsset = async (asset: Omit<Asset, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
     const session = (await supabase.auth.getSession()).data.session;

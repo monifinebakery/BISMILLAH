@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-// VERSI FINAL DENGAN PERBAIKAN LAYOUT GRID
+// VERSI FINAL DENGAN PERBAIKAN LAYOUT GRID UNTUK MOBILE & DESKTOP
 
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,22 +18,19 @@ import { useOrder } from "@/contexts/OrderContext";
 const formatDateTime = (date: Date | null) => {
   if (!date || !(date instanceof Date)) return 'Waktu tidak valid';
   return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   }).format(date);
 };
 
 const Dashboard = () => {
-  const { activities, isLoading: isLoadingActivities } = useActivity();
-  const { bahanBaku, isLoading: isLoadingBahanBaku } = useBahanBaku();
-  const { recipes, hppResults, isLoading: isLoadingRecipes } = useRecipe();
-  const { orders, isLoading: isLoadingOrders } = useOrder();
+  const { activities } = useActivity();
+  const { bahanBaku } = useBahanBaku();
+  const { recipes, hppResults } = useRecipe();
+  const { orders } = useOrder();
   const { userName } = usePaymentStatus();
 
-  // Kalkulasi statistik utama
+  // Kalkulasi statistik (tidak berubah)
   const stats = useMemo(() => {
     const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
     const averageHPP = hppResults.length > 0
@@ -49,7 +46,7 @@ const Dashboard = () => {
     };
   }, [recipes, hppResults, bahanBaku]);
 
-  // Kalkulasi produk terlaris
+  // Kalkulasi produk terlaris (tidak berubah)
   const bestSellingProducts = useMemo(() => {
     const productSales: { [key: string]: number } = {};
     orders.forEach(order => {
@@ -57,7 +54,6 @@ const Dashboard = () => {
         productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + item.quantity;
       });
     });
-
     return Object.entries(productSales)
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
@@ -71,11 +67,7 @@ const Dashboard = () => {
     if (jam >= 11 && jam < 15) sapaan = "siang";
     if (jam >= 15 && jam < 19) sapaan = "sore";
     if (jam >= 19 || jam < 4) sapaan = "malam";
-    
-    if (userName) {
-      return `Selamat ${sapaan}, kak ${userName}!`;
-    }
-    return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
+    return userName ? `Selamat ${sapaan}, kak ${userName}!` : `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
   };
 
   const statsCards = [
@@ -98,24 +90,17 @@ const Dashboard = () => {
         <p className="text-muted-foreground">{getGreeting()}</p>
       </div>
 
-      {/* Kartu Statistik */}
+      {/* Kartu Statistik (tidak berubah) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
-              </div>
-              <div className={`p-3 rounded-full bg-gradient-to-tr ${stat.color}`}>
-                <stat.icon className="h-6 w-6 text-white" />
-              </div>
-            </CardContent>
-          </Card>
+          <Card key={index}><CardContent className="p-6 flex items-center justify-between">
+              <div><p className="text-sm text-muted-foreground mb-1">{stat.title}</p><p className="text-2xl font-bold">{stat.value}</p></div>
+              <div className={`p-3 rounded-full bg-gradient-to-tr ${stat.color}`}><stat.icon className="h-6 w-6 text-white" /></div>
+          </CardContent></Card>
         ))}
       </div>
 
-      {/* Aksi Cepat */}
+      {/* Aksi Cepat (tidak berubah) */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,12 +108,9 @@ const Dashboard = () => {
             <Link key={index} to={action.link} className="block">
                 <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
                 <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-                    <div className="p-3 bg-white rounded-full shadow-md mb-4">
-                    <action.icon className="h-6 w-6" />
-                    </div>
+                    <div className="p-3 bg-white rounded-full shadow-md mb-4"><action.icon className="h-6 w-6" /></div>
                     <h3 className="font-semibold">{action.title}</h3>
-                </CardContent>
-                </Card>
+                </CardContent></Card>
             </Link>
             ))}
         </div>
@@ -137,12 +119,11 @@ const Dashboard = () => {
       {/* ============================================================= */}
       {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
       {/* ============================================================= */}
-      {/* Kedua kartu dibungkus dalam SATU grid container */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Kolom Kiri: Produk Terlaris */}
-        <div>
-            <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Produk Terlaris</h2>
             <Card className="h-full">
                 <CardContent className="p-6">
                     <div className="space-y-4">
@@ -165,19 +146,19 @@ const Dashboard = () => {
         </div>
         
         {/* Kolom Kanan: Aktivitas Terbaru */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Aktivitas Terbaru</h2>
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="space-y-4">
                 {activities.length > 0 ? (
                   activities.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                        <div>
+                      <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex-1">
                           <p className="font-medium">{activity.title}</p>
                           <p className="text-sm text-muted-foreground">{activity.description}</p>
                         </div>
-                        <div className="text-sm text-right mt-1 sm:mt-0">
+                        <div className="text-sm sm:text-right flex-shrink-0">
                           {activity.value && (
                             <p className={`font-semibold ${activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
                               {activity.value}

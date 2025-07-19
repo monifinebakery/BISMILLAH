@@ -28,7 +28,6 @@ import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import CloudSyncButton from "@/components/CloudSyncButton";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
-import { useAppData } from "@/contexts/AppDataContext"; // MODIFIED: Ensure useAppData is imported
 import React, { useState } from "react";
 
 import {

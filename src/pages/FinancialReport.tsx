@@ -212,11 +212,12 @@ const FinancialReportPage = () => {
 
       {/* Dialog Tambah Transaksi */}
       <FinancialTransactionDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onAddTransaction={addFinancialTransaction}
-        categories={settings.financialCategories || []}
-      />
+  isOpen={isDialogOpen}
+  onClose={closeDialog}
+  onAddTransaction={addFinancialTransaction}
+  // PASTIKAN SELALU MENGIRIM ARRAY, bahkan saat settings masih loading
+  categories={settings?.financialCategories || []}
+/>
     </div>
   );
 };

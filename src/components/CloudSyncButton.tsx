@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Cloud, CloudUpload, Loader2, RefreshCw } from 'lucide-react';
-import { useAppData } from '@/contexts/AppDataContext';
 import { toast } from 'sonner';
 
 interface CloudSyncButtonProps {

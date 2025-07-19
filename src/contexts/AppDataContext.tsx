@@ -1,6 +1,6 @@
 // src/contexts/AppDataContext.tsx
 // VERSI FINAL YANG SUDAH DIPERBAIKI - DENGAN LOGIKA PEMBERSIHAN DATA SAAT LOGOUT DAN SEMUA FUNGSI LENGKAP
-// PERBAIKAN VITE REACT SWC ERROR
+// PERBAIKAN VITE REACT SWC ERROR DAN SYNTAX ERROR DI loadFromStorage
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { RecipeIngredient, Recipe } from '@/types/recipe';
@@ -269,11 +269,14 @@ const loadFromStorage = (key: string, defaultValue: any = []) => {
               deskripsi: item.deskripsi || null,
               depresiasi: parseFloat(item.depresiasi) ?? null,
               userId: item.userId || item.user_id,
+              // <--- DIUBAH: Penambahan nilai jika parsedCreatedAt/updatedAt tidak valid
               createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime()))
                                ? parsedCreatedAt
-                               : new Date(),
+                               : null, // Ganti new Date() dengan null jika Date parsing tidak valid
               updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime()))
-                               : new Date(),
+                               ? parsedUpdatedAt
+                               : null, // Ganti new Date() dengan null jika Date parsing tidak valid
+              // --- Akhir Perbaikan
             };
           });
         case STORAGE_KEYS.FINANCIAL_TRANSACTIONS:

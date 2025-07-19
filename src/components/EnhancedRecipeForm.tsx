@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Calculator, RefreshCw } from "lucide-react";
 import { Recipe, NewRecipe, RecipeIngredient } from "@/types/recipe";
-import { useAppData } from "@/contexts/AppDataContext";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

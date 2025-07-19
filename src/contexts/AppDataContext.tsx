@@ -1496,5 +1496,3 @@ export const useAppData = () => {
   }
   return context;
 };
-
-

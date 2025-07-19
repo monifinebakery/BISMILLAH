@@ -1,210 +1,173 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from "sonner";
-import { safeParseDate, formatDateToYYYYMMDD } from '@/utils/dateUtils';
-import { getInputValue } from '@/utils/inputUtils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { FinancialTransaction } from '@/types';
+import { toast } from 'sonner';
 
+// Tentukan tipe data untuk form, hilangkan beberapa properti yang tidak diisi user
+type TransactionFormData = Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 
 interface FinancialTransactionDialogProps {
   isOpen: boolean;
-  onClose: () => void; // <-- onClose didefinisikan sebagai prop di sini
-  onAddTransaction: (transaction: any) => Promise<boolean>;
-  categories: { income: string[]; expense: string[] };
+  onClose: () => void;
+  onAddTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'userId' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  onUpdateTransaction?: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
+  transactionToEdit?: FinancialTransaction | null;
+  categories: string[];
 }
 
-const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({ isOpen, onClose, onAddTransaction, categories }) => { // <-- onClose di-destrukturisasi di sini
-  const [formData, setFormData] = useState({
-    user_id: '',
-    type: 'pemasukan' as 'pemasukan' | 'pengeluaran',
-    category: '' as string | null,
-    amount: 0 as number,
-    description: '' as string | null,
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD string awal
-  });
-
-  const getInputValue = <T extends string | number | Date | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
-        return '';
-      }
-      const isoString = value.toISOString() || '';
-      return isoString.split('T')[0];
-    }
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      return '';
-    }
-    return value;
+const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
+  isOpen,
+  onClose,
+  onAddTransaction,
+  onUpdateTransaction,
+  transactionToEdit,
+  categories,
+}) => {
+  const initialFormState: TransactionFormData = {
+    type: 'pengeluaran',
+    amount: 0,
+    category: '',
+    description: '',
+    date: new Date(),
   };
 
+  const [formData, setFormData] = useState<TransactionFormData>(initialFormState);
+
+  // Efek untuk mengisi form saat mode edit
   useEffect(() => {
-    if (isOpen) {
+    if (transactionToEdit) {
       setFormData({
-        user_id: '',
-        type: 'pemasukan',
-        category: '',
-        amount: 0,
-        description: '',
-        date: formatDateToYYYYMMDD(new Date()),
+        type: transactionToEdit.type,
+        amount: transactionToEdit.amount,
+        category: transactionToEdit.category || '',
+        description: transactionToEdit.description || '',
+        date: transactionToEdit.date ? new Date(transactionToEdit.date) : new Date(),
       });
-    }
-  }, [isOpen]);
-
-  const handleChange = (name: string, value: string | number) => {
-    if (name === 'category') {
-      setFormData(prev => ({ ...prev, [name]: (value === "" || value === "-placeholder-category-") ? null : value }));
-    } else if (name === 'description') {
-      setFormData(prev => ({ ...prev, [name]: typeof value === 'string' && value.trim() === '' ? null : value }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(initialFormState);
     }
+  }, [transactionToEdit, isOpen]);
+
+  // ✅ FUNGSI YANG HILANG: Dibuat untuk menangani perubahan input
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'amount' ? parseFloat(value) || 0 : value,
+    }));
+  };
+  
+  // Fungsi terpisah untuk Select dan Date
+  const handleValueChange = (name: keyof TransactionFormData, value: string | Date) => {
+     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
-    const categoryToValidate = typeof formData.category === 'string' ? formData.category : '';
-    const descriptionToValidate = typeof formData.description === 'string' ? formData.description : '';
-
-    if (
-      !categoryToValidate.trim() ||
-      formData.amount <= 0 ||
-      !descriptionToValidate.trim() ||
-      !formData.date
-    ) {
-      toast.error('Kategori, jumlah, deskripsi, dan tanggal wajib diisi, jumlah harus lebih dari 0.');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.amount <= 0) {
+      toast.error("Jumlah transaksi harus lebih dari 0.");
+      return;
+    }
+    if (!formData.category) {
+      toast.error("Kategori wajib dipilih.");
       return;
     }
 
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user.id || '';
-
-    const dateToSave = formData.date ? safeParseDate(formData.date) : null;
-
-    if (dateToSave === null) {
-      toast.error('Tanggal yang dimasukkan tidak valid.');
-      return;
+    let success = false;
+    if (transactionToEdit && onUpdateTransaction) {
+      success = await onUpdateTransaction(transactionToEdit.id, formData);
+    } else {
+      success = await onAddTransaction(formData);
     }
 
-    const transactionData = {
-      user_id: userId,
-      type: formData.type,
-      category: formData.category,
-      amount: Number(formData.amount),
-      description: formData.description,
-      date: dateToSave,
-    };
-
-    const success = await onAddTransaction(transactionData);
     if (success) {
-      onClose(); // <-- onClose dipanggil di sini
-      toast.success('Transaksi berhasil ditambahkan!');
+      onClose(); // Tutup dialog jika berhasil
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tambah Transaksi Keuangan</DialogTitle>
+          <DialogTitle>{transactionToEdit ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}</DialogTitle>
         </DialogHeader>
-
-        <div className="flex-grow overflow-y-auto pr-4 -mr-4">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipe Transaksi</Label>
+              <Label htmlFor="type">Tipe</Label>
               <Select
                 name="type"
-                value={getInputValue(formData.type) as string}
-                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleChange('type', value)}
+                value={formData.type}
+                onValueChange={(value: 'pemasukan' | 'pengeluaran') => handleValueChange('type', value)}
               >
-                <SelectTrigger className="mt-1 w-full">
-                  <SelectValue placeholder="Pilih tipe transaksi" />
-                </SelectTrigger>
+                <SelectTrigger id="type"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pemasukan">Pemasukan</SelectItem>
                   <SelectItem value="pengeluaran">Pengeluaran</SelectItem>
+                  <SelectItem value="pemasukan">Pemasukan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="category" className="block text-sm font-medium text-gray-700">Kategori</Label>
-              <Select
-                name="category"
-                value={getInputValue(formData.category) as string}
-                onValueChange={(value) => handleChange('category', value)}
-              >
-                <SelectTrigger className="mt-1 w-full">
-                  <SelectValue placeholder="Pilih kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="-placeholder-category-" disabled>Pilih Kategori</SelectItem>
-                  {(formData.type === 'pemasukan' ? categories.income : categories.expense).map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="amount" className="block text-sm font-medium text-gray-700">Jumlah</Label>
+              <Label htmlFor="amount">Jumlah (Rp)</Label>
               <Input
-                type="number"
+                id="amount"
                 name="amount"
-                value={getInputValue(formData.amount)}
-                onChange={(e) => handleChange('amount', Number(e.target.value))}
-                className="mt-1 w-full"
-                placeholder="Masukkan jumlah"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description" className="block text-sm font-medium text-gray-700">Deskripsi</Label>
-              <Input
-                type="text"
-                name="description"
-                value={getInputValue(formData.description)}
-                onChange={(e) => handleChange('description', e.target.value)}
-                className="mt-1 w-full"
-                placeholder="Masukkan deskripsi"
-              />
-            </div>
-            <div>
-              <Label htmlFor="date" className="block text-sm font-medium text-gray-700">Tanggal</Label>
-              <Input
-                type="date"
-                name="date"
-                value={formatDateToYYYYMMDD(formData.date)}
-                onChange={(e) => handleChange('date', e.target.value)}
-                className="mt-1 w-full"
-                placeholder="Masukkan tanggal"
+                type="number"
+                value={formData.amount}
+                onChange={handleChange}
+                placeholder="0"
+                required
               />
             </div>
           </div>
-        </div>
-
-        <div className="mt-6 flex justify-end space-x-4">
-          <Button
-            onClick={onClose} // <-- onClose dipanggil di sini
-            variant="outline"
-            className="px-4 py-2"
-          >
-            Batal
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Simpan
-          </Button>
-        </div>
+          <div>
+            <Label htmlFor="category">Kategori</Label>
+            <Select
+              name="category"
+              value={formData.category}
+              onValueChange={(value) => handleValueChange('category', value)}
+            >
+              <SelectTrigger id="category"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="description">Deskripsi</Label>
+            <Input
+              id="description"
+              name="description"
+              value={formData.description || ''}
+              onChange={handleChange}
+              placeholder="Contoh: Beli Tepung Terigu"
+            />
+          </div>
+          <div>
+            <Label htmlFor="date">Tanggal</Label>
+            <Input
+              id="date"
+              name="date"
+              type="date"
+              value={formData.date ? format(formData.date, 'yyyy-MM-dd') : ''}
+              onChange={(e) => handleValueChange('date', new Date(e.target.value))}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
+            <Button type="submit">Simpan</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
 };
 
+// Tambahkan import 'format' dari date-fns di bagian atas file
+import { format } from 'date-fns';
 export default FinancialTransactionDialog;

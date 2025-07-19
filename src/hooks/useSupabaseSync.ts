@@ -3,11 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimeChannel, AuthChangeEvent, Session, UserResponse } from '@supabase/supabase-js';
 
-// MODIFIED: Import safeParseDate dan toSafeISOString dari utils/dateUtils.ts
+// Pastikan import ini BENAR dan fungsi-fungsi ini diekspor dari dateUtils.ts
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 
-// Import all necessary types from AppDataContext.tsx or your specific types files
-// Adjust these paths if your types are structured differently
+// Import semua tipe yang dibutuhkan dari AppDataContext.tsx
 import {
   BahanBaku,
   Supplier,
@@ -18,20 +17,13 @@ import {
   Order,
   Asset,
   FinancialTransaction,
-} from '@/contexts/AppDataContext'; // Assuming types are exported from AppDataContext
+} from '@/contexts/AppDataContext'; // Asumsikan tipe diekspor dari AppDataContext
 
 // ===============================================
-// HELPER FUNCTIONS (safeParseDate dan toSafeISOString sekarang diimpor)
-// ===============================================
-
-// DEFINISI safeParseDate LOKAL DIHAPUS DARI SINI
-// DEFINISI toSafeISOString LOKAL DIHAPUS DARI SINI
-
-// ===============================================
-// INTERFACES FOR SUPABASE DATA (snake_case)
+// INTERFACES UNTUK DATA SUPABASE (snake_case)
 // ===============================================
 // Ini adalah representasi data saat berinteraksi dengan Supabase (nama kolom snake_case).
-// Disesuaikan agar konsisten dengan skema DB Anda saat ini tanpa Invoice.
+// Disesuaikan agar konsisten dengan skema DB Anda.
 
 interface TransformedBahanBaku {
   id: string;
@@ -68,7 +60,7 @@ interface TransformedPurchase {
   id: string;
   tanggal: string;
   supplier: string;
-  items: any[]; // Items Purchase bisa jadi array of objects (JSONB)
+  items: any[]; // JSONB
   total_nilai: number;
   metode_perhitungan: string;
   catatan: string | null;
@@ -82,7 +74,7 @@ interface TransformedRecipe {
   nama_resep: string;
   deskripsi: string | null;
   porsi: number;
-  ingredients: any[]; // Ingredients Recipe bisa jadi array of objects (JSONB)
+  ingredients: any[]; // JSONB
   biaya_tenaga_kerja: number;
   biaya_overhead: number;
   total_hpp: number;
@@ -98,7 +90,7 @@ interface TransformedRecipe {
 interface TransformedHPPResult {
   id: string;
   nama: string;
-  ingredients: any[]; // Ingredients HPPResult bisa jadi array of objects (JSONB)
+  ingredients: any[]; // JSONB
   biaya_tenaga_kerja: number;
   biaya_overhead: number;
   margin_keuntungan: number;
@@ -130,7 +122,7 @@ interface TransformedOrder {
   email_pelanggan: string;
   telepon_pelanggan: string;
   alamat_pengiriman: string;
-  items: any[]; // Items Order bisa jadi array of objects (JSONB)
+  items: any[]; // JSONB
   subtotal: number;
   pajak: number;
   total_pesanan: number;
@@ -155,17 +147,17 @@ interface TransformedAsset {
   lokasi: string | null;
   deskripsi: string | null;
   depresiasi: number | null;
-  umur_manfaat: number; // Asumsi ini ada di DB
-  penyusutan_per_bulan: number; // Asumsi ini ada di DB
+  umur_manfaat: number; 
+  penyusutan_per_bulan: number;
 }
 
 interface TransformedFinancialTransaction {
   id: string;
   user_id: string;
   type: string;
-  category: string;
+  category: string | null; // Nullable
   amount: number;
-  description: string;
+  description: string | null; // Nullable
   date: string;
   created_at: string;
   updated_at: string;
@@ -190,6 +182,8 @@ interface TransformedUserSettings {
 // ===============================================
 // PAYLOADS & LOADED DATA INTERFACES
 // ===============================================
+// Ini adalah interface yang mendefinisikan struktur data saat disinkronkan ke Supabase (SyncPayload)
+// dan dimuat dari Supabase (LoadedData) dalam format frontend (camelCase).
 
 export interface SyncPayload {
   bahanBaku: TransformedBahanBaku[];
@@ -236,7 +230,8 @@ export const useSupabaseSync = () => {
 
       console.log('Starting sync to Supabase...');
 
-      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload;
+      // Destructuring payload
+      const { bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets, financialTransactions, userSettings } = transformedPayload; 
       const userId = session.user.id;
 
       // Hapus semua data lama user di Supabase sebelum upload yang baru (full replace strategy)
@@ -250,6 +245,7 @@ export const useSupabaseSync = () => {
         supabase.from('orders').delete().eq('user_id', userId),
         supabase.from('assets').delete().eq('user_id', userId),
         supabase.from('financial_transactions').delete().eq('user_id', userId),
+        // user_settings is typically not deleted, but upserted
       ];
 
       const deleteResults = await Promise.all(deletePromises);
@@ -297,7 +293,7 @@ export const useSupabaseSync = () => {
 
       if (hasError) {
         console.error('One or more sync operations failed:', upsertResults.filter(res => res.error));
-        toast.error('Gagal menyinkronkan data ke cloud (beberapa item mungkin gagal)');
+        toast.error(`Gagal menyinkronkan data ke cloud (beberapa item mungkin gagal)`); 
         return false;
       }
 
@@ -310,7 +306,7 @@ export const useSupabaseSync = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Dependensi kosong karena semua variabel dari scope terluar adalah konstanta atau fungsi Supabase yang stabil
 
   // Fungsi untuk memuat semua data user dari Supabase
   const loadFromSupabase = useCallback(async (): Promise<LoadedData | null> => {
@@ -325,6 +321,7 @@ export const useSupabaseSync = () => {
       console.log('Loading data from Supabase...');
       const userId = session.user.id;
 
+      // Ambil data dari semua tabel user
       const [
         bahanBakuRes,
         suppliersRes,
@@ -432,7 +429,7 @@ export const useSupabaseSync = () => {
           deskripsi: item.deskripsi || '',
           porsi: parseFloat(item.porsi) || 0,
           ingredients: item.ingredients || [],
-          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0, // KOREKSI: Pastikan nama kolom DB yang benar (biaya_tenaga_kerja)
+          biayaTenagaKerja: parseFloat(item.biaya_tenaga_kerja) || 0,
           biayaOverhead: parseFloat(item.biaya_overhead) || 0,
           totalHPP: parseFloat(item.total_hpp) || 0,
           hppPerPorsi: parseFloat(item.hpp_per_porsi) || 0,
@@ -474,7 +471,7 @@ export const useSupabaseSync = () => {
           namaPelanggan: item.nama_pelanggan || '',
           emailPelanggan: item.email_pelanggan || '',
           teleponPelanggan: item.telepon_pelanggan || '',
-          alamatPelangiran: item.alamat_pengiriman || '',
+          alamatPelanggan: item.alamat_pengiriman || '',
           items: item.items || [],
           subtotal: parseFloat(item.subtotal) || 0,
           pajak: parseFloat(item.pajak) || 0,
@@ -487,11 +484,11 @@ export const useSupabaseSync = () => {
         assets: assetsRes.data?.map((item: any) => ({
           id: item.id,
           nama: item.nama || '',
-          kategori: item.kategori || 'Peralatan', // MODIFIED: Fallback ke default, asumsikan ini dari DB `kategori`
+          kategori: item.kategori || 'Peralatan', // Fallback
           nilaiAwal: parseFloat(item.nilai_awal) || 0,
           nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
           tanggalPembelian: safeParseDate(item.tanggal_beli) || new Date('1970-01-01T00:00:00Z'), // Jaminan valid Date
-          kondisi: item.kondisi || 'Baik', // MODIFIED: Fallback ke default
+          kondisi: item.kondisi || 'Baik', // Fallback
           lokasi: item.lokasi || '',
           deskripsi: item.deskripsi || null,
           depresiasi: parseFloat(item.depresiasi) || null,

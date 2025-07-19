@@ -13,6 +13,7 @@ import { BahanBakuProvider } from './BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
+import { UserSettingsProvider } from './UserSettingsContext'; // <-- TAMBAHKAN IMPOR INI
 import { FinancialProvider } from './FinancialContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';

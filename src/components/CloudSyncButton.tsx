@@ -36,7 +36,7 @@ const CloudSyncButton: React.FC<CloudSyncButtonProps> = ({
   const { purchases } = usePurchase();
   const { recipes, hppResults } = useRecipe();
   const { orders } = useOrder();
-  const { assets } = useAsset();
+  const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
   const { activities } = useActivity();
   

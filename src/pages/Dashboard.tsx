@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAppData } from "@/contexts/AppDataContext";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 import { formatDateForDisplay } from '@/utils/dateUtils'; // <-- BARIS INI DITAMBAHKAN
 

@@ -19,7 +19,7 @@ interface RecipeFormProps {
 }
 
 const RecipeForm = ({ initialData, onSave, onCancel }: RecipeFormProps) => {
-  const { bahanBaku } = useAppData();
+  const { bahanBaku } = useBahanBaku();
   const { settings } = useUserSettings(); // MODIFIED: Ambil settings dari useUserSettings
   const { getIngredientPrice, updateIngredientPrices } = useIngredientPrices();
   

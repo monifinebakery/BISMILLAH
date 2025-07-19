@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePaymentStatus } from "@/hooks/usePaymentStatus";
-import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 // --- Impor Hook Konteks ---
 import { useActivity } from "@/contexts/ActivityContext";
@@ -51,7 +51,7 @@ const Dashboard = () => {
   const bestSellingProducts = useMemo(() => {
     const productSales: { [key: string]: number } = {};
     orders.forEach(order => {
-      order.items.forEach(item => {
+      (order.items || []).forEach(item => {
         productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + item.quantity;
       });
     });
@@ -59,7 +59,7 @@ const Dashboard = () => {
     return Object.entries(productSales)
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 3); // Ambil 3 produk teratas
+      .slice(0, 3);
   }, [orders]);
 
   const statsCards = [
@@ -74,21 +74,12 @@ const Dashboard = () => {
     { title: "Kelola Gudang", link: "/gudang", icon: Warehouse, color: "bg-green-50 hover:bg-green-100 text-green-700" },
     { title: "Laporan Keuangan", link: "/laporan", icon: BarChart3, color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
   ];
-
+  
   const getGreeting = () => {
     // ... (fungsi sapaan tidak berubah)
-    const jam = new Date().getHours();
-    let sapaan = "datang";
-    if (jam >= 4 && jam < 11) sapaan = "pagi";
-    if (jam >= 11 && jam < 15) sapaan = "siang";
-    if (jam >= 15 && jam < 19) sapaan = "sore";
-    if (jam >= 19 || jam < 4) sapaan = "malam";
-    
-    if (userName) {
-      return `Selamat ${sapaan}, kak ${userName}!`;
-    }
-    return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
+    return "Selamat malam! Kelola bisnis Anda dengan mudah";
   };
+
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -114,27 +105,29 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Aksi Cepat & Produk Terlaris */}
+      {/* --- PERBAIKAN LAYOUT DIMULAI DARI SINI --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Kolom Kiri: Aksi Cepat */}
         <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quickActions.map((action, index) => (
-              <Link key={index} to={action.link} className="block">
-                <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
-                  <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-                    <div className="p-3 bg-white rounded-full shadow-md mb-4">
-                      <action.icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="font-semibold">{action.title}</h3>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+            <h2 className="text-xl font-semibold mb-4">Aksi Cepat</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {quickActions.map((action, index) => (
+                <Link key={index} to={action.link} className="block">
+                    <Card className={`${action.color} transition-transform hover:scale-105 h-full`}>
+                    <CardContent className="p-6 flex flex-col items-center text-center justify-center">
+                        <div className="p-3 bg-white rounded-full shadow-md mb-4">
+                        <action.icon className="h-6 w-6" />
+                        </div>
+                        <h3 className="font-semibold">{action.title}</h3>
+                    </CardContent>
+                    </Card>
+                </Link>
+                ))}
+            </div>
         </div>
         
-        {/* --- KARTU PRODUK TERLARIS BARU --- */}
+        {/* Kolom Kanan: Produk Terlaris */}
         <div className="lg:col-span-1">
             <h2 className="text-xl font-semibold mb-4">Produk Terlaris</h2>
             <Card className="h-full">
@@ -157,41 +150,41 @@ const Dashboard = () => {
                 </CardContent>
             </Card>
         </div>
-      </div>
-      
-      {/* --- AKTIVITAS TERBARU DIPERBARUI --- */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {activities.length > 0 ? (
-                activities.slice(0, 5).map((activity) => {
-                  const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
-                  const amount = isFinancial ? parseFloat(activity.value || '0') : 0;
-                  return (
-                    <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-medium">{activity.title}</p>
-                        <p className="text-sm text-muted-foreground">{activity.description}</p>
+
+        {/* Baris Bawah: Aktivitas Terbaru (Full Width) */}
+        <div className="lg:col-span-3">
+          <h2 className="text-xl font-semibold mb-4">Aktivitas Terbaru</h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {activities.length > 0 ? (
+                  activities.slice(0, 5).map((activity) => {
+                    const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
+                    const amount = isFinancial ? parseFloat(activity.value || '0') : 0;
+                    return (
+                      <div key={activity.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="font-medium">{activity.title}</p>
+                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                        </div>
+                        <div className="text-sm text-right mt-1 sm:mt-0">
+                          {isFinancial && amount > 0 && (
+                            <p className={`font-semibold ${activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatCurrency(amount)}
+                            </p>
+                          )}
+                          <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
+                        </div>
                       </div>
-                      <div className="text-sm text-right mt-1 sm:mt-0">
-                        {isFinancial && amount > 0 && (
-                          <p className={`font-semibold ${activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(amount)}
-                          </p>
-                        )}
-                        <p className="text-muted-foreground text-xs">{formatDateTime(activity.timestamp)}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-center text-muted-foreground py-4">Belum ada aktivitas</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                    );
+                  })
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">Belum ada aktivitas</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

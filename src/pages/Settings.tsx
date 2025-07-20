@@ -78,7 +78,22 @@ const Settings = () => {
                   <Input id="ownerName" value={formState.ownerName} onChange={(e) => handleFormChange({ ownerName: e.target.value })} onBlur={() => handleBlurSave('ownerName')} />
                 </div>
               </div>
-              {/* Tambahkan field lain jika ada */}
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                        id="email"
+                        type="email"
+                        placeholder="kontak@bisnisanda.com"
+                        value={formState.email || ''} 
+                        onChange={(e) => handleFormChange({ email: e.target.value })} 
+                        onBlur={() => handleBlurSave('email')} 
+                    />
+                </div>
+                {/* Anda bisa menambahkan field Telepon di sini dengan pola yang sama */}
+              </div>
+            </CardContent>
+          </Card>
             </CardContent>
           </Card>
 

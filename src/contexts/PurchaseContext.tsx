@@ -193,7 +193,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         const successFinancial = await addFinancialTransaction({
             type: 'expense', // Tipe: pengeluaran
             category: 'Pembelian Bahan Baku', 
-            description: `Pembelian bahan baku dari ${actualSupplierName} (ID: ${oldPurchase.id})`,
+            description: `Pembelian bahan baku dari ${actualSupplierName}`,
             amount: oldPurchase.totalNilai,
             date: oldPurchase.tanggal, 
             relatedId: oldPurchase.id, 

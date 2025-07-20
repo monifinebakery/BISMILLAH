@@ -1,3 +1,5 @@
+// src/pages/InvoicePage.tsx atau path yang sesuai
+
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +12,10 @@ import { useUserSettings } from '@/contexts/UserSettingsContext'; // Pastikan pa
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
 
-// Deklarasikan html2pdf agar TypeScript tidak error
+// Deklarasikan html2pdf agar TypeScript tidak error jika Anda menggunakannya dari CDN
 declare const html2pdf: any;
 
+// Interface untuk setiap baris item di invoice
 interface InvoiceItem {
   id: number;
   description: string;
@@ -20,7 +23,9 @@ interface InvoiceItem {
   price: number;
 }
 
+// === KOMPONEN UTAMA DIMULAI DI SINI ===
 const InvoicePage = () => {
+  // --- HOOKS & STATE ---
   const { settings } = useUserSettings();
   
   const [invoiceNumber, setInvoiceNumber] = useState(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
@@ -35,6 +40,7 @@ const InvoicePage = () => {
   const [paymentInstructions, setPaymentInstructions] = useState(`Transfer ke:\n${settings.bankName || 'Bank Anda'}\n${settings.accountNumber || 'Nomor Rekening Anda'}\na/n ${settings.businessName || 'Nama Bisnis'}`);
   const [status, setStatus] = useState<'BELUM LUNAS' | 'LUNAS' | 'JATUH TEMPO'>('BELUM LUNAS');
 
+  // --- HANDLER FUNCTIONS ---
   const handleItemChange = (id: number, field: keyof Omit<InvoiceItem, 'id'>, value: string | number) => {
     setItems(items.map(item => (item.id === id ? { ...item, [field]: Number.isNaN(Number(value)) ? value : Number(value) } : item)));
   };
@@ -42,6 +48,7 @@ const InvoicePage = () => {
   const addItem = () => setItems([...items, { id: Date.now(), description: '', quantity: 1, price: 0 }]);
   const removeItem = (id: number) => setItems(items.filter(item => item.id !== id));
 
+  // --- MEMOIZED CALCULATIONS ---
   const { subtotal, discountAmount, taxAmount, total } = useMemo(() => {
     const sub = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     const disc = discount.type === 'percent' ? sub * (discount.value / 100) : discount.value;
@@ -65,6 +72,7 @@ const InvoicePage = () => {
     }
   };
 
+  // --- RENDER (JSX) ---
   return (
     <div className="bg-gray-100 min-h-screen p-4 sm:p-8">
       <Card className="max-w-4xl mx-auto mb-6 print:hidden">
@@ -80,7 +88,6 @@ const InvoicePage = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start pb-8 border-b gap-8">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800">{settings.businessName || 'Nama Bisnis Anda'}</h1>
-            {/* Menggunakan ownerName dari settings untuk alamat */}
             <p className="text-sm text-gray-500 mt-1">{settings.ownerName || 'Nama Anda'}</p>
           </div>
           <div className="w-full sm:w-auto sm:text-right flex-shrink-0">
@@ -104,10 +111,8 @@ const InvoicePage = () => {
           {items.map(item => (<div key={item.id} className="grid grid-cols-12 gap-2 p-2 rounded-lg hover:bg-gray-50 border sm:border-none"><div className="col-span-12 sm:col-span-5"><Label htmlFor={`desc-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Deskripsi</Label><Textarea id={`desc-${item.id}`} placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="print:border-none w-full mt-1" rows={1} /></div><div className="col-span-6 sm:col-span-2"><Label htmlFor={`qty-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Jumlah</Label><Input id={`qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="text-center print:border-none w-full mt-1" /></div><div className="col-span-6 sm:col-span-2"><Label htmlFor={`price-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Harga Satuan</Label><Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="text-right print:border-none w-full mt-1" /></div><div className="col-span-10 sm:col-span-2 flex items-center justify-end"><p className="font-medium h-10 flex items-center justify-end">{formatCurrency(item.quantity * item.price)}</p></div><div className="col-span-2 sm:col-span-1 flex items-center justify-end"><Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="print:hidden h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>))}
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
-
-        // GANTI SELURUH BAGIAN BAWAH INVOICE ANDA DENGAN INI:
-// Mulai dari setelah tombol "Tambah Baris"
-
+        
+        {/* Ini adalah blok JSX yang Anda kirimkan, sekarang di dalam komponen yang lengkap */}
         {/* --- LAYOUT HORIZONTAL YANG DIRAPIKAN --- */}
         <div className="mt-8 border-t pt-8">
           <div className="flex flex-col md:flex-row gap-12">
@@ -128,7 +133,6 @@ const InvoicePage = () => {
                               </SelectContent>
                           </Select>
                       </div>
-                      {/* Placeholder untuk Tanda Tangan atau Info Lain jika perlu */}
                   </div>
                   <div>
                       <Label className="font-semibold text-gray-700">Instruksi Pembayaran</Label>
@@ -136,71 +140,35 @@ const InvoicePage = () => {
                           value={paymentInstructions} 
                           onChange={e => setPaymentInstructions(e.target.value)} 
                           className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
-                          rows={3} // Dibuat lebih ringkas
+                          rows={3}
                       />
                   </div>
               </div>
 
               {/* === KOLOM KANAN: TOTAL FINANSIAL === */}
               <div className="w-full md:w-1/2 flex justify-end">
-                  <div className="w-full max-w-sm space-y-3">
-                      {/* Subtotal */}
-                      <div className="flex justify-between text-gray-600">
-                          <span>Subtotal</span>
-                          <span>{formatCurrency(subtotal)}</span>
-                      </div>
-                      
-                      {/* Diskon */}
-                      <div className="flex justify-between items-center text-gray-600">
-                          <div className="flex items-center gap-2">
-                              <Label>Diskon</Label>
-                              <Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" />
-                              <Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}>
-                                  <SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger>
-                                  <SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent>
-                              </Select>
-                          </div>
-                          <span>- {formatCurrency(discountAmount)}</span>
-                      </div>
-                      
-                      {/* Pajak */}
-                      <div className="flex justify-between items-center text-gray-600">
-                          <div className="flex items-center gap-2">
-                              <Label>Pajak</Label>
-                              <Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" />
-                              <span>%</span>
-                          </div>
-                          <span>+ {formatCurrency(taxAmount)}</span>
-                      </div>
-                      
-                      {/* Biaya Pengiriman */}
-                      <div className="flex justify-between items-center text-gray-600">
-                          <Label>Biaya Pengiriman</Label>
-                          <Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" />
-                      </div>
-                      
-                      {/* GRAND TOTAL */}
-                      <div className="border-t pt-3 mt-2">
-                          <div className="flex justify-between font-bold text-xl text-gray-800">
-                              <span>GRAND TOTAL</span>
-                              <span>{formatCurrency(total)}</span>
-                          </div>
-                      </div>
+                  <div className="w-full max-w-xs space-y-3">
+                      <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                      <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Diskon</Label><Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}><SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent></Select></div><span>- {formatCurrency(discountAmount)}</span></div>
+                      <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Pajak</Label><Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><span>%</span></div><span>+ {formatCurrency(taxAmount)}</span></div>
+                      <div className="flex justify-between items-center text-gray-600"><Label>Biaya Pengiriman</Label><Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" /></div>
+                      <div className="border-t pt-3 mt-2"><div className="flex justify-between font-bold text-xl text-gray-800"><span>GRAND TOTAL</span><span>{formatCurrency(total)}</span></div></div>
                   </div>
               </div>
           </div>
 
-          {/* Catatan Tambahan & Footer */}
           <div className="border-t mt-8 pt-6">
               <Label className="font-semibold text-gray-700">Catatan Tambahan</Label>
               <Textarea 
                   value={notes} 
                   onChange={e => setNotes(e.target.value)} 
                   className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
-                  rows={2} // Dibuat lebih ringkas
+                  rows={2}
               />
           </div>
         </div>
+      </div>
+    </div>
   );
 };
 

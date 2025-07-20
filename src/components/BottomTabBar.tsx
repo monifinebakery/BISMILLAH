@@ -15,7 +15,6 @@ const BottomTabBar = () => {
     { path: '/gudang', icon: Package, label: 'Gudang' },
     { path: '/pesanan', icon: ShoppingCart, label: 'Pesanan' },
     { path: '/menu', icon: Menu, label: 'Menu' },
-    { path: '/invoice', icon: Receipt, label: 'Invoice' },
   ];
 
   return (

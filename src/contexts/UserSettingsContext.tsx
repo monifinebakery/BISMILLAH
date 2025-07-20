@@ -17,7 +17,6 @@ export interface UserSettings {
   email?: string;
   phone?: string;
   address?: string;
-  bankName?: string; // Nomor rekening dihapus
   backup: { auto: boolean };
   notifications: { // Objek notifikasi ditambahkan
     lowStock: boolean;
@@ -41,7 +40,6 @@ const defaultSettings: UserSettings = {
   email: '',
   phone: '',
   address: '',
-  bankName: 'Contoh: Bank Central Asia (BCA)',
   backup: { auto: true },
   notifications: { // Nilai default untuk notifikasi
     lowStock: true,
@@ -71,7 +69,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       email: dbData.email ?? defaultSettings.email,
       phone: dbData.phone ?? defaultSettings.phone,
       address: dbData.address ?? defaultSettings.address,
-      bankName: dbData.bank_name ?? defaultSettings.bankName,
       backup: dbData.backup_settings ?? defaultSettings.backup,
       notifications: dbData.notifications ?? defaultSettings.notifications, // Memuat notifikasi
       financialCategories: dbData.financial_categories ?? defaultSettings.financialCategories,
@@ -138,7 +135,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       email: updatedSettings.email,
       phone: updatedSettings.phone,
       address: updatedSettings.address,
-      bank_name: updatedSettings.bankName,
       backup_settings: updatedSettings.backup,
       notifications: updatedSettings.notifications, // Menyimpan notifikasi
       financial_categories: updatedSettings.financialCategories,

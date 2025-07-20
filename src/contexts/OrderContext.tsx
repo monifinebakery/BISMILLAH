@@ -1,50 +1,57 @@
-// src/contexts/OrderContext.tsx
-// VERSI REALTIME - DENGAN PERBAIKAN TOTAL PADA FUNGSI UPDATE
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, NewOrder } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 
-// --- INTERFACE & CONTEXT ---
+// CATATAN: Pastikan tipe data Order Anda di `types/order.ts` juga sudah lengkap
+// export interface Order {
+//   // ...properti lain
+//   alamatPengiriman?: string | null;
+//   catatan?: string | null;
+//   subtotal: number;
+//   pajak: number;
+// }
+
 interface OrderContextType {
   orders: Order[];
   isLoading: boolean;
-  addOrder: (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status' | 'userId'>) => Promise<boolean>;
+  addOrder: (order: Partial<NewOrder>) => Promise<boolean>;
   updateOrder: (id: string, order: Partial<Order>) => Promise<boolean>;
   deleteOrder: (id: string) => Promise<boolean>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
-// --- PROVIDER COMPONENT ---
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { addActivity } = useActivity();
 
+  // Helper yang disesuaikan sepenuhnya dengan nama kolom Anda
   const transformOrderFromDB = (dbItem: any): Order => ({
     id: dbItem.id,
     nomorPesanan: dbItem.nomor_pesanan,
-    tanggal: safeParseDate(dbItem.tanggal),
     namaPelanggan: dbItem.nama_pelanggan,
     teleponPelanggan: dbItem.telepon_pelanggan,
     emailPelanggan: dbItem.email_pelanggan,
+    alamatPengiriman: dbItem.alamat_pengiriman,
+    tanggal: safeParseDate(dbItem.tanggal),
     items: dbItem.items || [],
     totalPesanan: Number(dbItem.total_pesanan) || 0,
     status: dbItem.status,
+    catatan: dbItem.catatan,
+    subtotal: Number(dbItem.subtotal) || 0,
+    pajak: Number(dbItem.pajak) || 0,
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
     updatedAt: safeParseDate(dbItem.updated_at),
   });
   
-  // EFEK UTAMA: FETCH DATA & REALTIME LISTENER
   useEffect(() => {
     if (!user) {
       setOrders([]);
@@ -84,19 +91,34 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // --- FUNGSI-FUNGSI ---
-  const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status' | 'userId'>): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk membuat pesanan'); return false; }
+  const addOrder = async (order: Partial<NewOrder>): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk membuat pesanan');
+      return false;
+    }
     
     const newOrderData = {
-        user_id: user.id, tanggal: new Date(), status: 'pending',
-        nama_pelanggan: order.namaPelanggan, telepon_pelanggan: order.teleponPelanggan,
-        email_pelanggan: order.emailPelanggan, items: order.items, total_pesanan: order.totalPesanan,
+        user_id: user.id,
+        tanggal: toSafeISOString(order.tanggal) || new Date().toISOString(),
+        status: order.status || 'pending',
+        nama_pelanggan: order.namaPelanggan,
+        telepon_pelanggan: order.teleponPelanggan,
+        email_pelanggan: order.emailPelanggan,
+        alamat_pengiriman: order.alamatPengiriman,
+        items: order.items,
+        subtotal: order.subtotal,
+        pajak: order.pajak,
+        total_pesanan: order.totalPesanan,
+        catatan: order.catatan,
     };
     
+    // PENTING: Pastikan fungsi RPC 'create_new_order' Anda sudah diperbarui untuk menerima semua field ini
     const { data, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
 
-    if (error) { toast.error(`Gagal menambahkan pesanan: ${error.message}`); return false; }
+    if (error) {
+      toast.error(`Gagal menambahkan pesanan: ${error.message}`);
+      return false;
+    }
     
     const createdOrder = Array.isArray(data) ? data[0] : data; 
     if (createdOrder) {
@@ -106,63 +128,68 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return true;
   };
 
-  // ===================================================================
-  // --- FUNGSI UPDATE YANG SUDAH DIPERBAIKI ---
-  // ===================================================================
   const updateOrder = async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk memperbarui pesanan'); return false; }
+    if (!user) {
+      toast.error('Anda harus login untuk memperbarui pesanan');
+      return false;
+    }
     
-    // Objek ini akan menampung data yang sudah diubah ke format snake_case
     const orderToUpdate: {[key: string]: any} = {
-      updated_at: new Date().toISOString(), // Selalu perbarui 'updated_at'
+      updated_at: new Date().toISOString(),
     };
 
-    // Secara dinamis mengubah semua field yang ada di `updatedData` ke snake_case
-    if (updatedData.nomorPesanan !== undefined) orderToUpdate.nomor_pesanan = updatedData.nomorPesanan;
-    if (updatedData.tanggal !== undefined) orderToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
     if (updatedData.namaPelanggan !== undefined) orderToUpdate.nama_pelanggan = updatedData.namaPelanggan;
     if (updatedData.teleponPelanggan !== undefined) orderToUpdate.telepon_pelanggan = updatedData.teleponPelanggan;
     if (updatedData.emailPelanggan !== undefined) orderToUpdate.email_pelanggan = updatedData.emailPelanggan;
+    if (updatedData.alamatPengiriman !== undefined) orderToUpdate.alamat_pengiriman = updatedData.alamatPengiriman;
+    if (updatedData.tanggal !== undefined) orderToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
     if (updatedData.items !== undefined) orderToUpdate.items = updatedData.items;
     if (updatedData.totalPesanan !== undefined) orderToUpdate.total_pesanan = updatedData.totalPesanan;
     if (updatedData.status !== undefined) orderToUpdate.status = updatedData.status;
+    if (updatedData.catatan !== undefined) orderToUpdate.catatan = updatedData.catatan;
+    if (updatedData.subtotal !== undefined) orderToUpdate.subtotal = updatedData.subtotal;
+    if (updatedData.pajak !== undefined) orderToUpdate.pajak = updatedData.pajak;
 
     const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id);
-    if(error) {
+    if (error) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
       return false;
     }
     
-    return true; // Berhasil, UI akan diupdate oleh listener
+    return true;
   };
   
   const deleteOrder = async (id: string): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk menghapus pesanan'); return false; }
+    if (!user) {
+      toast.error('Anda harus login untuk menghapus pesanan');
+      return false;
+    }
 
     const orderToDelete = orders.find(o => o.id === id);
 
     const { error } = await supabase.from('orders').delete().eq('id', id);
-    if(error) { toast.error(`Gagal menghapus pesanan: ${error.message}`); return false; }
+    if (error) {
+      toast.error(`Gagal menghapus pesanan: ${error.message}`);
+      return false;
+    }
 
     if (orderToDelete) {
         addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order', value: null });
     }
-    return true; // Berhasil, UI akan diupdate oleh listener
+    return true;
   };
   
-  const value: OrderContextType = {
+  const value = {
     orders,
     isLoading,
     addOrder,
     updateOrder,
     deleteOrder,
-    // Kita tidak lagi mengekspor `updateOrderStatus` karena `updateOrder` sudah bisa menanganinya
   };
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 };
 
-// --- CUSTOM HOOK ---
 export const useOrder = () => {
   const context = useContext(OrderContext);
   if (context === undefined) {

@@ -123,7 +123,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         addActivity({
             title: 'Pesanan Dihapus',
             description: `Pesanan ${order.nomorPesanan} telah dihapus`,
-            type: 'purchase',
+            type: 'order',
             value: null,
         });
         toast.success(`Pesanan ${order.nomorPesanan} berhasil dihapus!`);

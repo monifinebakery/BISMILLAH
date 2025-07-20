@@ -11,7 +11,7 @@ import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/contexts/FinancialContext";
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/context/UserSettingsContext';
 
 // --- Impor Fungsi Export ---
 import { exportAllDataToExcel } from "@/lib/exportUtils";

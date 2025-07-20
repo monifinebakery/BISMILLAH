@@ -37,7 +37,6 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     supplier: dbItem.supplier,
     totalNilai: Number(dbItem.total_nilai) || 0,
     tanggal: safeParseDate(dbItem.tanggal),
-    notes: dbItem.notes,
     items: dbItem.items || [], // Asumsi items adalah JSONB
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
@@ -98,7 +97,6 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       supplier: purchase.supplier,
       total_nilai: purchase.totalNilai,
       tanggal: purchase.tanggal,
-      notes: purchase.notes,
       items: purchase.items, // Pastikan items memiliki namaBarang, jumlah, hargaSatuan, dll.
     };
 

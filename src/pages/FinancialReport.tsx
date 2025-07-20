@@ -13,7 +13,7 @@ import FinancialTransactionDialog from '@/components/FinancialTransactionDialog'
 import FinancialTransactionList from '@/components/FinancialTransactionList';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/contexts/useUserSettings';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
 import { useFinancial } from '@/contexts/FinancialContext';

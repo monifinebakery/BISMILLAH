@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns'; // Sudah ada
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,15 +41,19 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
+    console.log('[FinancialReportPage] Raw Transactions:', transactions); // ✅ Log Raw Transactions
     return transactions.filter(t => {
       const transactionDate = t.date;
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
           console.warn('Invalid transaction date found:', t); 
           return false;
       }
-      
+      console.log('[FinancialReportPage] Checking transaction date:', transactionDate); // ✅ Log setiap tanggal transaksi
+
       const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; 
       const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     
+
+      console.log('[FinancialReportPage] Date Range From:', rangeFrom, 'To:', rangeTo); // ✅ Log rentang tanggal filter
 
       if (rangeFrom && transactionDate < rangeFrom) return false;
       if (rangeTo && transactionDate > rangeTo) return false; 
@@ -76,6 +80,7 @@ const FinancialReportPage = () => {
       
       if(t.date){
         const monthStart = startOfMonth(t.date); 
+        console.log('[FinancialReportPage] Monthly Data - Original Date:', t.date, 'Month Start:', monthStart); // ✅ Log tanggal asli dan awal bulan
         const monthYearKey = format(monthStart, 'yyyy-MM'); 
         if (!monthlyData[monthYearKey]) {
           monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; 
@@ -85,6 +90,17 @@ const FinancialReportPage = () => {
       }
     });
 
+    const finalTransactionData = Object.values(monthlyData)
+        .map(value => ({
+          month: format(value.date, 'MMM yy', { locale: id }), 
+          Pemasukan: value.income,
+          Pengeluaran: value.expense,
+          date: value.date,
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    console.log('[FinancialReportPage] Final Transaction Data for Chart:', finalTransactionData); // ✅ Log data akhir untuk chart
+
     return {
       totalIncome: income,
       totalExpense: expense,
@@ -93,14 +109,7 @@ const FinancialReportPage = () => {
         incomeData: Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })),
         expenseData: Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })),
       },
-      transactionData: Object.values(monthlyData)
-        .map(value => ({
-          month: format(value.date, 'MMM yy', { locale: id }), 
-          Pemasukan: value.income,
-          Pengeluaran: value.expense,
-          date: value.date,
-        }))
-        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      transactionData: finalTransactionData,
     };
   }, [filteredTransactions]);
   
@@ -149,7 +158,6 @@ const FinancialReportPage = () => {
         <Card className="mb-6">
             <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran Bulanan</CardTitle></CardHeader>
             <CardContent>
-                {/* Perbaikan struktur JSX */}
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={transactionData}>
                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis tickFormatter={formatYAxis} width={90} /><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /><Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
@@ -161,7 +169,6 @@ const FinancialReportPage = () => {
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
                 <CardContent>
-                    {/* Perbaikan struktur JSX */}
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart><Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>
@@ -170,7 +177,6 @@ const FinancialReportPage = () => {
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
                 <CardContent>
-                    {/* Perbaikan struktur JSX */}
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart><Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>

@@ -32,34 +32,29 @@ export default defineConfig(({ mode, command }) => {
       rollupOptions: {
         output: {
           manualChunks(id: string) {
-            // Logika untuk memecah vendor chunks
             if (id.includes('node_modules')) {
               
-              // =========================================================
-              // --- PEMECAHAN CHUNK BARU BERDASARKAN HASIL VISUALIZER ---
-              // =========================================================
-
-              // 1. Pisahkan library chart yang sangat besar
-              if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-')) {
+              // ✅ --- PERBAIKAN UTAMA DI SINI ---
+              // 1. Gabungkan react dan react-dom ke dalam satu chunk.
+              if (id.includes('react-dom') || id.includes('react')) {
+                return 'vendor_react';
+              }
+              
+              // 2. Pisahkan library chart yang sangat besar
+              if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor_charts';
               }
               
-              // 2. Pisahkan library untuk membuat PDF
-              if (id.includes('html2pdf.js')) {
-                return 'vendor_html2pdf';
-              }
-
               // 3. Pisahkan library kalender/tanggal
               if (id.includes('date-fns') || id.includes('react-day-picker')) {
                 return 'vendor_date';
               }
               
-              // 4. Aturan yang sudah ada sebelumnya
+              // 4. Aturan lain yang sudah ada
               if (id.includes('@supabase')) return 'vendor_supabase';
-              if (id.includes('react-dom')) return 'vendor_react-dom';
               if (id.includes('lucide-react')) return 'vendor_lucide';
               
-              // Keranjang sisa untuk library lain yang lebih kecil
+              // Keranjang sisa untuk library lain
               return 'vendor_others';
             }
           }

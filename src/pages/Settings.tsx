@@ -11,26 +11,20 @@ import RecipeCategoryManager from '@/components/RecipeCategoryManager';
 import { Label } from '@/components/ui/label';
 
 const Settings = () => {
-  // 1. Panggil hook yang benar dari context realtime kita
   const { settings, updateSettings, isLoading } = useUserSettings();
-  
-  // 2. Gunakan state lokal untuk form, diinisialisasi dengan data dari context
-  // Ini mencegah re-render yang tidak perlu dan memungkinkan penyimpanan saat onBlur
   const [formState, setFormState] = useState<UserSettings>(settings);
 
-  // 3. Sinkronkan state lokal jika data dari context (server) berubah
   useEffect(() => {
     setFormState(settings);
   }, [settings]);
 
-  // Handler untuk mengubah nilai di state form lokal saat pengguna mengetik
+  // Handler generik untuk mengubah state form lokal
   const handleFormChange = (updates: Partial<UserSettings>) => {
     setFormState(prev => ({ ...prev, ...updates }));
   };
-
-  // Handler untuk menyimpan perubahan input saat kehilangan fokus (onBlur)
+  
+  // Handler untuk menyimpan perubahan input saat onBlur
   const handleBlurSave = (field: keyof UserSettings) => {
-    // Hanya panggil update jika nilainya benar-benar berubah
     if (settings[field] !== formState[field]) {
       updateSettings({ [field]: formState[field] });
     }
@@ -84,10 +78,10 @@ const Settings = () => {
                   <Input id="ownerName" value={formState.ownerName} onChange={(e) => handleFormChange({ ownerName: e.target.value })} onBlur={() => handleBlurSave('ownerName')} />
                 </div>
               </div>
-              {/* Tambahkan field lain seperti email, phone, address jika ada di tipe UserSettings Anda */}
+              {/* Tambahkan field lain jika ada */}
             </CardContent>
           </Card>
-          
+
           {/* Notifications */}
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
@@ -100,11 +94,78 @@ const Settings = () => {
                   <p className="text-sm text-muted-foreground">Notifikasi ketika stok bahan baku rendah</p>
                 </div>
                 <Switch
-                  checked={formState.notifications?.lowStock ?? false} // <-- Aman dengan `?.` dan `??`
+                  checked={formState.notifications?.lowStock ?? false}
                   onCheckedChange={(checked) => handleImmediateSave({ notifications: { ...formState.notifications, lowStock: checked } })}
                 />
               </div>
-              {/* Tambahkan switch lain untuk newOrder, financial, dll. dengan pola yang sama */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Pesanan Baru</Label>
+                  <p className="text-sm text-muted-foreground">Notifikasi untuk pesanan baru</p>
+                </div>
+                <Switch
+                  checked={formState.notifications?.newOrder ?? false}
+                  onCheckedChange={(checked) => handleImmediateSave({ notifications: { ...formState.notifications, newOrder: checked } })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Laporan Keuangan</Label>
+                  <p className="text-sm text-muted-foreground">Notifikasi untuk laporan keuangan mingguan</p>
+                </div>
+                <Switch
+                  checked={formState.notifications?.financial ?? false}
+                  onCheckedChange={(checked) => handleImmediateSave({ notifications: { ...formState.notifications, financial: checked } })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Backup */}
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
+            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center text-lg"><Database className="h-5 w-5 mr-2" />Backup Data</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Backup Otomatis</Label>
+                  <p className="text-sm text-muted-foreground">Backup data secara otomatis</p>
+                </div>
+                <Switch
+                  checked={formState.backup?.auto ?? false}
+                  onCheckedChange={(checked) => handleImmediateSave({ backup: { ...formState.backup, auto: checked } })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Frekuensi Backup</Label>
+                  <Select
+                    value={formState.backup?.frequency ?? 'weekly'}
+                    onValueChange={(value) => handleImmediateSave({ backup: { ...formState.backup, frequency: value } })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Harian</SelectItem>
+                      <SelectItem value="weekly">Mingguan</SelectItem>
+                      <SelectItem value="monthly">Bulanan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Lokasi Backup</Label>
+                  <Select
+                    value={formState.backup?.location ?? 'cloud'}
+                    onValueChange={(value) => handleImmediateSave({ backup: { ...formState.backup, location: value } })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cloud">Cloud Storage</SelectItem>
+                      <SelectItem value="local">Local Storage</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
           

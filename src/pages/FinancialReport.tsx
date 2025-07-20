@@ -43,7 +43,10 @@ const FinancialReportPage = () => {
     if (!transactions) return [];
     return transactions.filter(t => {
       const transactionDate = t.date;
-      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) return false;
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+          console.warn('Invalid transaction date found:', t); 
+          return false;
+      }
       
       const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; 
       const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     
@@ -56,7 +59,6 @@ const FinancialReportPage = () => {
   }, [transactions, dateRange]);
 
   const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
-    // ✅ PERBAIKAN 1: Gunakan 'income' dan 'expense'
     const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0); 
     const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0); 
     
@@ -66,9 +68,9 @@ const FinancialReportPage = () => {
 
     filteredTransactions.forEach(t => {
       const categoryName = t.category || 'Lainnya';
-      if (t.type === 'income') { // ✅ PERBAIKAN 1
+      if (t.type === 'income') { 
         incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
-      } else if (t.type === 'expense') { // ✅ PERBAIKAN 1: Pastikan ini juga dicek
+      } else if (t.type === 'expense') { 
         expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
       }
       
@@ -78,8 +80,8 @@ const FinancialReportPage = () => {
         if (!monthlyData[monthYearKey]) {
           monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; 
         }
-        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; // ✅ PERBAIKAN 1
-        else if (t.type === 'expense') monthlyData[monthYearKey].expense += t.amount || 0; // ✅ PERBAIKAN 1
+        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; 
+        else if (t.type === 'expense') monthlyData[monthYearKey].expense += t.amount || 0; 
       }
     });
 
@@ -147,16 +149,19 @@ const FinancialReportPage = () => {
         <Card className="mb-6">
             <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran Bulanan</CardTitle></CardHeader>
             <CardContent>
+                {/* Perbaikan struktur JSX */}
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={transactionData}>
                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis tickFormatter={formatYAxis} width={90} /><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /><Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
                     </LineChart>
+                </ResponsiveContainer>
             </CardContent>
         </Card>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
                 <CardContent>
+                    {/* Perbaikan struktur JSX */}
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart><Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>
@@ -165,6 +170,7 @@ const FinancialReportPage = () => {
             <Card>
                 <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
                 <CardContent>
+                    {/* Perbaikan struktur JSX */}
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart><Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /></PieChart>
                     </ResponsiveContainer>

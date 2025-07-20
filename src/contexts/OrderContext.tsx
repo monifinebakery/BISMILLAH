@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
-import { useFinancialTransaction } from './FinancialTransactionContext'; // ✅ IMPOR INI
-import { useUserSettings } from './UserSettingsContext'; // ✅ IMPOR INI UNTUK KATEGORI KEUANGAN
+import { useFinancial } from './FinancialContext'; // ✅ PERBAIKAN: IMPOR useFinancial
+import { useUserSettings } from './UserSettingsContext'; 
 
 interface OrderContextType {
   orders: Order[];
@@ -27,8 +27,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addFinancialTransaction } = useFinancialTransaction(); // ✅ PANGGIL HOOK INI
-  const { settings } = useUserSettings(); // ✅ PANGGIL HOOK INI
+  const { addFinancialTransaction } = useFinancial(); // ✅ PERBAIKAN: PANGGIL HOOK useFinancial
+  const { settings } = useUserSettings(); 
 
   const transformOrderFromDB = (dbItem: any): Order => ({
     id: dbItem.id,
@@ -131,8 +131,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return false;
     }
 
-    // Ambil data order lama untuk membandingkan status
-    const oldOrder = orders.find(o => o.id === id);
+    const oldOrder = orders.find(o => o.id === id); // Ambil data order lama untuk membandingkan status
 
     const orderToUpdate: {[key: string]: any} = {
       updated_at: new Date().toISOString(),
@@ -157,10 +156,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     // ✅ LOGIKA BARU: Masuk ke laporan keuangan jika status order menjadi 'delivered' (atau 'completed')
-    // Pastikan oldOrder ada dan statusnya berbeda sebelum update
     if (oldOrder && oldOrder.status !== 'delivered' && updatedData.status === 'delivered') { // Sesuaikan 'delivered' jika status selesai Anda adalah 'completed'
         // Gunakan kategori pemasukan dari settings, default 'Penjualan Produk'
-        // settings.financialCategories?.income?.[0] akan mengambil kategori pertama dari array income
         const incomeCategory = settings.financialCategories?.income?.[0] || 'Penjualan Produk';
 
         const successFinancial = await addFinancialTransaction({
@@ -168,8 +165,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             category: incomeCategory,
             description: `Penjualan produk kepada ${oldOrder.namaPelanggan} (Order #${oldOrder.nomorPesanan})`,
             amount: oldOrder.totalPesanan,
-            date: oldOrder.tanggal, // Tanggal order
-            relatedId: oldOrder.id, // ID order terkait
+            date: oldOrder.tanggal, 
+            relatedId: oldOrder.id, 
         });
 
         if (successFinancial) {

@@ -4,15 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Added table components
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'; // Added dialog components
 import { BahanBaku } from '@/types/recipe';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
-import MenuExportButton from '@/components/MenuExportButton';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/utils/currencyUtils'; 
-import { formatDateForDisplay } from '@/utils/dateUtils'; 
+import { formatCurrency } from '@/utils/currencyUtils';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 
 const WarehousePage = () => {
@@ -21,7 +22,6 @@ const WarehousePage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // State Paginasi
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -65,10 +65,10 @@ const WarehousePage = () => {
           const factor = conversionRates[purchaseUnit.toLowerCase()];
           if (factor !== undefined && factor > 0) {
             calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
-          } else if (purchaseUnit.toLowerCase() === baseUnit) { 
+          } else if (purchaseUnit.toLowerCase() === baseUnit) {
             calculatedHarga = purchaseTotalPrice / purchaseQuantity;
           }
-        } else if (purchaseUnit.toLowerCase() === baseUnit) { 
+        } else if (purchaseUnit.toLowerCase() === baseUnit) {
           calculatedHarga = purchaseTotalPrice / purchaseQuantity;
         }
       }
@@ -102,17 +102,16 @@ const WarehousePage = () => {
         satuanKemasan: '',
         hargaTotalBeliKemasan: 0,
       });
+      toast.success('Bahan baku berhasil ditambahkan!');
     }
   };
 
   const handleEdit = (itemToEdit: BahanBaku) => {
     const fullItem = bahanBaku.find(b => b.id === itemToEdit.id);
-
     if (fullItem) {
       setEditingItem(fullItem);
     } else {
-      console.error("Error: Item tidak ditemukan di daftar bahanBaku untuk diedit.", itemToEdit);
-      toast.error("Gagal mengedit: Item tidak ditemukan.");
+      toast.error('Gagal mengedit: Item tidak ditemukan.');
     }
   };
 
@@ -121,9 +120,9 @@ const WarehousePage = () => {
       const updatedItemData = { ...updates };
       await updateBahanBaku(editingItem.id, updatedItemData);
       setEditingItem(null);
-      toast.success("Bahan baku berhasil diperbarui!");
+      toast.success('Bahan baku berhasil diperbarui!');
     } else {
-      toast.error("Gagal memperbarui bahan baku.");
+      toast.error('Gagal memperbarui bahan baku.');
     }
   };
 
@@ -156,7 +155,6 @@ const WarehousePage = () => {
     return '';
   };
 
-  // Logika Paginasi (untuk display)
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
@@ -164,18 +162,9 @@ const WarehousePage = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Helper components for table rows and cells
-  const TableRow = ({ children, className = '', ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) => (
-    <tr className={className} {...props}>{children}</tr>
-  );
-
-  const TableCell = ({ children, colSpan, className = '' }: { children: React.ReactNode, colSpan?: number, className?: string }) => (
-    <td colSpan={colSpan} className={`px-6 py-4 ${className}`}>{children}</td>
-  );
-
   return (
     <div className="container mx-auto p-4 sm:p-8">
-      {/* Header Utama Halaman (Mengikuti Desain Daftar Aset) */}
+      {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-6 mb-8 shadow-lg">
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-full">
@@ -195,7 +184,7 @@ const WarehousePage = () => {
         </Button>
       </header>
 
-      {/* Peringatan Stok Rendah (Tetap dalam Card terpisah) */}
+      {/* Low Stock Warning */}
       {lowStockItems.length > 0 && (
         <div className="mb-6">
           <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-lg rounded-lg">
@@ -206,7 +195,7 @@ const WarehousePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg: grid-cols-3 gap-2">
                 {lowStockItems.map(item => (
                   <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
                     <span className="font-medium text-gray-800">{item.nama}</span>
@@ -221,9 +210,9 @@ const WarehousePage = () => {
         </div>
       )}
 
-      {/* Tabel Utama dalam Card Utama (Mengikuti Desain Daftar Aset) */}
+      {/* Main Table */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden">
-        {/* Kontrol Tabel (Search, Entries) */}
+        {/* Table Controls */}
         <div className="p-4 sm:p-6 border-b border-gray-200/80">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -243,37 +232,45 @@ const WarehousePage = () => {
               <Input
                 placeholder="Cari bahan baku, kategori, atau supplier..."
                 value={searchTerm}
-                onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-10 border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full"
               />
             </div>
           </div>
         </div>
 
-        {/* Konten Tabel */}
+        {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left text-gray-700">
-            <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
-              <tr>
-                <th scope="col" className="p-4 w-12">
-                  <input type="checkbox" className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500" />
-                </th>
-                <th scope="col" className="px-6 py-3">Nama Bahan</th>
-                <th scope="col" className="px-6 py-3">Kategori</th>
-                <th scope="col" className="px-6 py-3">Stok</th>
-                <th scope="col" className="px-6 py-3 text-right">Harga Satuan</th>
-                <th scope="col" className="px-6 py-3">Minimum</th>
-                <th scope="col" className="px-6 py-3">Supplier</th>
-                <th scope="col" className="px-6 py-3">Kadaluwarsa</th>
-                <th scope="col" className="px-6 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200/80">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500"
+                    aria-label="Select all items"
+                  />
+                </TableHead>
+                <TableHead>Nama Bahan</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead>Stok</TableHead>
+                <TableHead className="text-right">Harga Satuan</TableHead>
+                <TableHead>Minimum</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Kadaluwarsa</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {appDataLoading ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-gray-500">Memuat bahan baku...</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    Memuat bahan baku...
+                  </TableCell>
+                </TableRow>
               ) : filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                     <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="mb-4">
                       {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
@@ -291,17 +288,24 @@ const WarehousePage = () => {
               ) : (
                 currentItems.map((item) => (
                   <TableRow key={item.id} className="hover:bg-orange-50/50">
-                    <td className="p-4">
-                      <input type="checkbox" className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500" />
-                    </td>
-                    <td className="px-6 py-4 font-medium">{item.nama}</td>
-                    <td className="px-6 py-4 text-gray-500">{item.kategori}</td>
-                    <td className="px-6 py-4">{item.stok} {item.satuan} {item.stok <= item.minimum && <Badge className="ml-2 bg-red-100 text-red-700">Rendah</Badge>}</td>
-                    <td className="px-6 py-4 text-right font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</td>
-                    <td className="px-6 py-4 text-gray-500">{item.minimum} {item.satuan}</td>
-                    <td className="px-6 py-4 text-gray-500">{item.supplier || '-'}</td>
-                    <td className="px-6 py-4 text-gray-500">{item.tanggalKadaluwarsa ? formatDateForDisplay(item.tanggalKadaluwarsa) : '-'}</td>
-                    <td className="px-6 py-4 text-right">
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500"
+                        aria-label={`Select ${item.nama}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{item.nama}</TableCell>
+                    <TableCell className="text-gray-500">{item.kategori}</TableCell>
+                    <TableCell>
+                      {item.stok} {item.satuan}
+                      {item.stok <= item.minimum && <Badge className="ml-2 bg-red-100 text-red-700">Rendah</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</TableCell>
+                    <TableCell className="text-gray-500">{item.minimum} {item.satuan}</TableCell>
+                    <TableCell className="text-gray-500">{item.supplier || '-'}</TableCell>
+                    <TableCell className="text-gray-500">{item.tanggalKadaluwarsa ? formatDateForDisplay(item.tanggalKadaluwarsa) : '-'}</TableCell>
+                    <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button variant="ghost" size="icon" className="p-2 hover:bg-gray-200 rounded-full" onClick={() => handleEdit(item)}>
                           <Edit className="h-4 w-4" />
@@ -310,23 +314,23 @@ const WarehousePage = () => {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                    </td>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
-        {/* Footer Paginasi */}
+        {/* Pagination Footer */}
         <div className="flex items-center justify-between p-4 sm:px-6 border-t border-gray-200/80">
           <div className="text-sm text-gray-600">
             Showing <span className="font-semibold">{indexOfFirstItem + 1}</span> to <span className="font-semibold">{Math.min(indexOfLastItem, filteredItems.length)}</span> of <span className="font-semibold">{filteredItems.length}</span> entries
           </div>
           <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-9 w-9 hover:bg-gray-100"
               onClick={() => paginate(currentPage - 1)}
               disabled={currentPage === 1}
@@ -334,18 +338,18 @@ const WarehousePage = () => {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Button 
-                key={page} 
-                onClick={() => paginate(page)} 
-                className={cn("h-9 w-9", {"bg-orange-500 text-white shadow-sm hover:bg-orange-600": currentPage === page, "hover:bg-gray-100": currentPage !== page})}
+              <Button
+                key={page}
+                onClick={() => paginate(page)}
+                className={cn("h-9 w-9", { "bg-orange-500 text-white shadow-sm hover:bg-orange-600": currentPage === page, "hover:bg-gray-100": currentPage !== page })}
                 variant={currentPage === page ? "default" : "ghost"}
               >
                 {page}
               </Button>
             ))}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-9 w-9 hover:bg-gray-100"
               onClick={() => paginate(currentPage + 1)}
               disabled={currentPage === totalPages}
@@ -355,6 +359,140 @@ const WarehousePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Item Dialog */}
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Bahan Baku</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddItem} className="space-y-4">
+            <div>
+              <Label htmlFor="nama">Nama Bahan *</Label>
+              <Input
+                id="nama"
+                value={newItem.nama}
+                onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
+                placeholder="Masukkan nama bahan"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="kategori">Kategori *</Label>
+              <Input
+                id="kategori"
+                value={newItem.kategori}
+                onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
+                placeholder="Masukkan kategori"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="stok">Stok *</Label>
+              <Input
+                id="stok"
+                type="number"
+                value={getInputValue(newItem.stok)}
+                onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
+                placeholder="Masukkan stok"
+                min="0"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="satuan">Satuan *</Label>
+              <Input
+                id="satuan"
+                value={newItem.satuan}
+                onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
+                placeholder="Masukkan satuan (e.g., kg, gram)"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="hargaSatuan">Harga Satuan *</Label>
+              <Input
+                id="hargaSatuan"
+                type="number"
+                value={getInputValue(newItem.hargaSatuan)}
+                onChange={(e) => setNewItem({ ...newItem, hargaSatuan: parseFloat(e.target.value) || 0 })}
+                placeholder="Masukkan harga satuan"
+                min="0"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="minimum">Minimum Stok</Label>
+              <Input
+                id="minimum"
+                type="number"
+                value={getInputValue(newItem.minimum)}
+                onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
+                placeholder="Masukkan minimum stok"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="supplier">Supplier</Label>
+              <Input
+                id="supplier"
+                value={newItem.supplier}
+                onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
+                placeholder="Masukkan nama supplier"
+              />
+            </div>
+            <div>
+              <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
+              <Input
+                id="tanggalKadaluwarsa"
+                type="date"
+                value={getDateInputValue(newItem.tanggalKadaluwarsa)}
+                onChange={(e) => setNewItem({ ...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
+                placeholder="Pilih tanggal kadaluwarsa"
+              />
+            </div>
+            <div>
+              <Label htmlFor="jumlahBeliKemasan">Jumlah Beli Kemasan</Label>
+              <Input
+                id="jumlahBeliKemasan"
+                type="number"
+                value={getInputValue(newItem.jumlahBeliKemasan)}
+                onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
+                placeholder="Masukkan jumlah beli kemasan"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="satuanKemasan">Satuan Kemasan</Label>
+              <Input
+                id="satuanKemasan"
+                value={newItem.satuanKemasan}
+                onChange={(e) => setNewItem({ ...newItem, satuanKemasan: e.target.value })}
+                placeholder="Masukkan satuan kemasan (e.g., kg, liter)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="hargaTotalBeliKemasan">Harga Total Beli Kemasan</Label>
+              <Input
+                id="hargaTotalBeliKemasan"
+                type="number"
+                value={getInputValue(newItem.hargaTotalBeliKemasan)}
+                onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
+                placeholder="Masukkan harga total beli kemasan"
+                min="0"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                Batal
+              </Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                Simpan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {editingItem && (
         <BahanBakuEditDialog

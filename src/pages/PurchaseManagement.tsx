@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Plus, Edit, Trash2, Package, Search } from 'lucide-react';
-import { usePurchase } from '@/contexts/PurchaseContext';
+import { usePurchase } from '@/contexts/PurchaseContext'; // Pastikan diimpor dari sini
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
@@ -20,7 +20,8 @@ import { Purchase, PurchaseItem } from '@/types/supplier';
 
 const PurchaseManagement = () => {
   const isMobile = useIsMobile();
-  const { purchases, addPurchase, updatePurchase, deletePurchase } = usePurchase();
+  // Pastikan ini mengambil fungsi dari context dengan benar
+  const { purchases, addPurchase, updatePurchase, deletePurchase } = usePurchase(); 
   const { suppliers } = useSupplier();
   const { bahanBaku } = useBahanBaku();
   
@@ -45,30 +46,6 @@ const PurchaseManagement = () => {
     totalNilai: 0,
   });
 
-  const updatePurchase = async (id: string, updatedData: Partial<Purchase>): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk memperbarui pembelian.');
-      return false;
-    }
-
-    const purchaseToUpdate: { [key: string]: any } = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (updatedData.supplier !== undefined) purchaseToUpdate.supplier = updatedData.supplier;
-    if (updatedData.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedData.totalNilai;
-    if (updatedData.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
-    if (updatedData.items !== undefined) purchaseToUpdate.items = updatedData.items;
-    
-    // *** PENTING: TAMBAHKAN BARIS INI UNTUK STATUS ***
-    if (updatedData.status !== undefined) purchaseToUpdate.status = updatedData.status;
-    // *** PASTIKAN JUGA METODE PERHITUNGAN JIKA ADA DI DB ***
-    if (updatedData.metodePerhitungan !== undefined) purchaseToUpdate.metode_perhitungan = updatedData.metodePerhitungan;
-
-
-    console.log('[PurchaseContext] Mengirim update pembelian:', id, purchaseToUpdate);
-    const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id);
-    
   const [newItem, setNewItem] = useState({
     namaBarang: '',
     jumlah: 0,
@@ -121,15 +98,17 @@ const PurchaseManagement = () => {
       totalNilai: totalNilai,
     };
 
-    // *** LOG DEBUGGING: PERIKSA NILAI STATUS SEBELUM DIKIRIM ***
-    console.log('[PurchaseManagement] purchaseDataToSend sebelum dikirim:', purchaseDataToSend);
-    console.log('[PurchaseManagement] Status yang akan dikirim:', purchaseDataToSend.status);
-    // *** AKHIR LOG DEBUGGING ***
+    // *** LOG DEBUGGING: PERIKSA NILAI STATUS SEBELUM DIKIRIM (Sudah ada di sini) ***
+    console.log('[PurchaseManagement] purchaseDataToSend sebelum dikirim:', purchaseDataToSend);
+    console.log('[PurchaseManagement] Status yang akan dikirim:', purchaseDataToSend.status);
+    // *** AKHIR LOG DEBUGGING ***
 
     let success = false;
     if (editingPurchase) {
-      success = await updatePurchase(editingPurchase.id, purchaseDataToSend);
+      // PENTING: Hanya panggil fungsi dari context
+      success = await updatePurchase(editingPurchase.id, purchaseDataToSend); 
     } else {
+      // PENTING: Hanya panggil fungsi dari context
       success = await addPurchase(purchaseDataToSend);
     }
 
@@ -334,7 +313,6 @@ const PurchaseManagement = () => {
                                         ...newItem,
                                         namaBarang: val,
                                         satuan: selectedBahan?.satuan || '',
-                                        hargaSatuan: selectedBahan?.hargaSatuan || 0,
                                     });
                                 }}
                             >

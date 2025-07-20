@@ -98,14 +98,15 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
           // --- PERBAIKAN UTAMA ADA DI SINI ---
           // Menambahkan penanganan untuk event DELETE
           // =========================================================
-          if (payload.eventType === 'DELETE') {
-            // `payload.old` berisi data dari baris yang dihapus
-            const deletedItemId = payload.old.id;
-            setBahanBaku(currentItems => currentItems.filter(item => item.id !== deletedItemId));
-          }
-        }
-      )
-      .subscribe();
+          // --- TAMBAHKAN BLOK INI ---
+      if (payload.eventType === 'DELETE') {
+        const deletedItemId = payload.old.id;
+        // Filter state, hapus item yang ID-nya cocok
+        setBahanBaku(currentItems => currentItems.filter(item => item.id !== deletedItemId));
+      }
+    }
+  )
+  .subscribe();
 
     return () => {
       supabase.removeChannel(channel);

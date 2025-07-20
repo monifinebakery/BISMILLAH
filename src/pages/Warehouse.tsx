@@ -1,519 +1,186 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Package, Edit, Trash2, AlertTriangle, Search } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Package, Plus, MoreHorizontal, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import { BahanBaku } from '@/types/recipe';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
-import MenuExportButton from '@/components/MenuExportButton';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useBahanBaku();
+  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading } = useBahanBaku();
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof BahanBaku; direction: 'asc' | 'desc' } | null>({ key: 'nama', direction: 'asc' });
 
+  // Memoized logic for filtering, sorting, and pagination
+  const sortedItems = useMemo(() => {
+    let filtered = bahanBaku.filter(item =>
+      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
-  const [newItem, setNewItem] = useState<Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>({
-    nama: '',
-    kategori: '',
-    stok: 0,
-    satuan: '',
-    hargaSatuan: 0,
-    minimum: 0,
-    supplier: '',
-    tanggalKadaluwarsa: undefined,
-    jumlahBeliKemasan: 0,
-    satuanKemasan: '',
-    hargaTotalBeliKemasan: 0,
-  });
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        const valA = a[sortConfig.key] || '';
+        const valB = b[sortConfig.key] || '';
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [bahanBaku, searchTerm, sortConfig]);
 
-  const unitConversionMap: { [baseUnit: string]: { [purchaseUnit: string]: number } } = {
-    'gram': { 'kg': 1000, 'gram': 1, 'pon': 453.592, 'ons': 28.3495 },
-    'ml': { 'liter': 1000, 'ml': 1, 'galon': 3785.41 },
-    'pcs': { 'pcs': 1, 'lusin': 12, 'gross': 144, 'box': 1, 'bungkus': 1 },
-    'butir': { 'butir': 1, 'tray': 30, 'lusin': 12 },
-    'kg': { 'gram': 0.001, 'kg': 1, 'pon': 0.453592 },
-    'liter': { 'ml': 0.001, 'liter': 1 },
-  };
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * entriesPerPage;
+    return sortedItems.slice(startIndex, startIndex + entriesPerPage);
+  }, [sortedItems, currentPage, entriesPerPage]);
 
-  useEffect(() => {
-    const purchaseQuantity = newItem.jumlahBeliKemasan;
-    const purchaseUnit = newItem.satuanKemasan;
-    const purchaseTotalPrice = newItem.hargaTotalBeliKemasan;
-    const baseUnit = newItem.satuan.toLowerCase();
+  const totalPages = Math.ceil(sortedItems.length / entriesPerPage);
+  
+  const handleSort = (key: keyof BahanBaku) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setCurrentPage(1); // Reset to first page on sort
+    setSortConfig({ key, direction });
+  };
+  
+  const handleEdit = (item: BahanBaku) => setEditingItem(item);
+  const handleDelete = async (id: string) => { if (window.confirm('Yakin ingin menghapus item ini?')) await deleteBahanBaku(id); };
 
-    let calculatedHarga = 0;
+  const handleSave = async (data: Partial<BahanBaku>) => {
+    let success = false;
+    if (editingItem && editingItem.id) { // Editing existing item
+      success = await updateBahanBaku(editingItem.id, data);
+    } else { // Adding new item
+      success = await addBahanBaku(data as Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>);
+    }
+    if (success) setEditingItem(null);
+  };
+  
+  const lowStockItems = useMemo(() => bahanBaku.filter(item => item.stok <= item.minimum), [bahanBaku]);
 
-    const isPurchaseDetailsActive = purchaseQuantity > 0 || purchaseTotalPrice > 0 || purchaseUnit !== '';
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 p-4 sm:p-8">
+      <header className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-orange-100 p-3 rounded-full"><Package className="h-8 w-8 text-orange-600" /></div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Gudang Bahan Baku</h1>
+            <p className="text-muted-foreground">Kelola inventori bahan baku Anda.</p>
+          </div>
+        </div>
+        <Button onClick={() => setEditingItem({} as BahanBaku)} className="bg-orange-500 hover:bg-orange-600 text-white shadow-sm">
+          <Plus className="h-4 w-4 mr-2" /> Tambah Bahan
+        </Button>
+      </header>
 
-    if (isPurchaseDetailsActive) {
-      if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
-        const conversionRates = unitConversionMap[baseUnit];
-        if (conversionRates) {
-          const factor = conversionRates[purchaseUnit.toLowerCase()];
-          if (factor !== undefined && factor > 0) {
-            calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
-          } else if (purchaseUnit.toLowerCase() === baseUnit) { 
-            calculatedHarga = purchaseTotalPrice / purchaseQuantity;
-          }
-        } else if (purchaseUnit.toLowerCase() === baseUnit) { 
-          calculatedHarga = purchaseTotalPrice / purchaseQuantity;
-        }
-      }
-      setNewItem(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
-    } else {
-      setNewItem(prev => ({ ...prev, hargaSatuan: 0 }));
-    }
-  }, [newItem.jumlahBeliKemasan, newItem.satuanKemasan, newItem.hargaTotalBeliKemasan, newItem.satuan]);
+      {lowStockItems.length > 0 && (
+        <Card className="mb-6 bg-red-50 border-red-200">
+          <CardHeader><CardTitle className="flex items-center text-red-700"><AlertTriangle className="h-5 w-5 mr-2" />Peringatan Stok Rendah ({lowStockItems.length})</CardTitle></CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pt-4">
+            {lowStockItems.map(item => (<Badge key={item.id} variant="destructive">{item.nama}</Badge>))}
+          </CardContent>
+        </Card>
+      )}
 
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newItem.nama || !newItem.kategori || newItem.stok <= 0 || !newItem.satuan || newItem.hargaSatuan <= 0 || newItem.minimum < 0) {
-      toast.error('Harap lengkapi semua field yang wajib diisi dan pastikan Stok serta Harga Satuan lebih dari 0.');
-      return;
-    }
-
-    const success = await addBahanBaku(newItem);
-    if (success) {
-      setShowAddForm(false);
-      setNewItem({
-        nama: '',
-        kategori: '',
-        stok: 0,
-        satuan: '',
-        hargaSatuan: 0,
-        minimum: 0,
-        supplier: '',
-        tanggalKadaluwarsa: undefined,
-        jumlahBeliKemasan: 0,
-        satuanKemasan: '',
-        hargaTotalBeliKemasan: 0,
-      });
-    }
-  };
-
-  const handleEdit = (itemToEdit: BahanBaku) => {
-    const fullItem = bahanBaku.find(b => b.id === itemToEdit.id);
-
-    if (fullItem) {
-      setEditingItem(fullItem);
-    } else {
-      console.error("Error: Item tidak ditemukan di daftar bahanBaku untuk diedit.", itemToEdit);
-      toast.error("Gagal mengedit: Item tidak ditemukan.");
-    }
-  };
-
-  const handleEditSave = async (updates: Partial<BahanBaku>) => {
-    if (editingItem && editingItem.id) {
-      const updatedItemData = { ...updates };
-      await updateBahanBaku(editingItem.id, updatedItemData);
-      setEditingItem(null);
-      toast.success("Bahan baku berhasil diperbarui!");
-    } else {
-      toast.error("Gagal memperbarui bahan baku.");
-    }
-  };
-
-  const handleDelete = async (id: string, nama: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
-      await deleteBahanBaku(id);
-      toast.success(`"${nama}" berhasil dihapus.`);
-    }
-  };
-
-  const filteredItems = bahanBaku.filter(item =>
-    item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
-
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    return value;
-  };
-
-  const getDateInputValue = (date: Date | undefined): string => {
-    if (date instanceof Date && !isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-    return '';
-  };
-
-  // Logika Paginasi
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  return (
-    <div className="container mx-auto p-4 sm:p-8">
-
-        {/* Header Utama Halaman */}
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <div className="flex items-center gap-4">
-                <div className="flex-shrink-0 bg-orange-100 p-3 rounded-full">
-                    <Package className="text-orange-600 h-8 w-8" /> 
-                </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Manajemen Gudang Bahan Baku</h1>
-                    <p className="text-gray-500">Kelola inventori bahan baku Anda.</p>
-                </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-              <MenuExportButton
-                data={bahanBaku}
-                filename="gudang"
-                menuType="Gudang"
-              />
-              <Button
-                onClick={() => setShowAddForm(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Bahan
-              </Button>
-            </div>
-        </header>
-
-        {/* Peringatan Stok Rendah */}
-        {lowStockItems.length > 0 && (
-          <div className="mb-6">
-            <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-lg rounded-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center text-red-700">
-                  <AlertTriangle className="h-5 w-5 mr-2" />
-                  Peringatan Stok Rendah ({lowStockItems.length} item)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {lowStockItems.map(item => (
-                    <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
-                      <span className="font-medium text-gray-800">{item.nama}</span>
-                      <Badge className="bg-red-100 text-red-700 border-red-200">
-                        {item.stok} {item.satuan}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Cari bahan baku..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-            />
-          </div>
-        </div>
-
-        {/* Form Tambah Bahan Baku (sekarang dalam Card terpisah) */}
-        {showAddForm && (
-          <div className="mb-6">
-            <Card className="bg-white shadow-lg border-orange-200 rounded-lg">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-800">Tambah Bahan Baku</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddItem} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="nama">Nama Bahan *</Label>
-                      <Input
-                        id="nama"
-                        value={getInputValue(newItem.nama)}
-                        onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="kategori">Kategori *</Label>
-                      <Input
-                        id="kategori"
-                        value={getInputValue(newItem.kategori)}
-                        onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="stok">Stok *</Label>
-                      <Input
-                        id="stok"
-                        type="number"
-                        value={getInputValue(newItem.stok)}
-                        onChange={(e) => setNewItem({ ...newItem, stok: parseFloat(e.target.value) || 0 })}
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="satuan">Satuan *</Label>
-                      <Input
-                        id="satuan"
-                        value={getInputValue(newItem.satuan)}
-                        onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="hargaSatuan">Harga Satuan *</Label>
-                      <Input
-                        id="hargaSatuan"
-                        type="number"
-                        value={getInputValue(newItem.hargaSatuan)}
-                        readOnly
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md bg-gray-100 cursor-not-allowed"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="minimum">Stok Minimum *</Label>
-                      <Input
-                        id="minimum"
-                        type="number"
-                        value={getInputValue(newItem.minimum)}
-                        onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
-                        required
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="supplier">Supplier</Label>
-                      <Input
-                        id="supplier"
-                        value={getInputValue(newItem.supplier)}
-                        onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
-                      <Input
-                        id="tanggalKadaluwarsa"
-                        type="date"
-                        value={getDateInputValue(newItem.tanggalKadaluwarsa)}
-                        onChange={(e) => setNewItem({ ...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
-                        className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-md"
-                      />
-                    </div>
-                  </div>
-                  <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
-                    <CardHeader>
-                      <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="purchaseQuantity">Jumlah Beli Kemasan *</Label>
-                          <Input
-                            id="purchaseQuantity"
-                            type="number"
-                            value={getInputValue(newItem.jumlahBeliKemasan)}
-                            onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
-                            placeholder="0"
-                            className="rounded-md"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="purchaseUnit">Satuan Kemasan *</Label>
-                          <Select
-                            value={getInputValue(newItem.satuanKemasan) as string}
-                            onValueChange={(value) => setNewItem({ ...newItem, satuanKemasan: value })}
-                            required
-                          >
-                            <SelectTrigger className="rounded-md">
-                              <SelectValue placeholder="Pilih satuan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {['kg', 'liter', 'pcs', 'bungkus', 'karung', 'box', 'tray', 'lusin', 'butir', 'gram', 'ml', 'pon', 'ons', 'galon'].map(unit => (
-                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="purchaseTotalPrice">Harga Total Beli Kemasan *</Label>
-                          <Input
-                            id="purchaseTotalPrice"
-                            type="number"
-                            value={getInputValue(newItem.hargaTotalBeliKemasan)}
-                            onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
-                            placeholder="0"
-                            className="rounded-md"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-600 mt-2">
-                        Harga Satuan akan dihitung otomatis jika detail pembelian diisi.
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-md shadow-md transition-colors duration-200">
-                      Simpan
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200">
-                      Batal
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Daftar Bahan Baku */}
-        <div className="space-y-4">
-          {appDataLoading ? (
-            <Card className="text-center p-8 bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg">
-              <p className="text-gray-500">Memuat bahan baku...</p>
-            </Card>
-          ) : filteredItems.length === 0 ? (
-            <Card className="text-center p-8 bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">
-                {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
-              </p>
-              {!searchTerm && (
-                <Button
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-md shadow-md transition-colors duration-200"
-                >
-                  Tambah Bahan Pertama
-                </Button>
-              )}
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {currentItems.map((item) => { 
-                return ( 
-                  <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-gray-800">{item.nama}</h3>
-                            <Badge className="bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border-purple-200">
-                              {item.kategori}
-                            </Badge>
-                            {item.stok <= item.minimum && (
-                              <Badge className="bg-red-100 text-red-700 border-red-200">
-                                Stok Rendah
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
-                            <div>
-                              <p className="text-sm text-gray-500">Stok</p>
-                              <p className="font-semibold text-gray-800">{item.stok} {item.satuan}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Harga Satuan</p>
-                              <p className="font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Minimum</p>
-                              <p className="font-semibold text-gray-800">{item.minimum} {item.satuan}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Supplier</p>
-                              <p className="font-semibold text-gray-800">{item.supplier || '-'}</p>
-                            </div>
-                            {item.tanggalKadaluwarsa && (
-                              (item.tanggalKadaluwarsa instanceof Date && !isNaN(item.tanggalKadaluwarsa.getTime()) && typeof item.tanggalKadaluwarsa.toLocaleDateString === 'function') &&
-                              <div>
-                                <p className="text-sm text-gray-500">Kadaluwarsa</p>
-                                <p className="font-semibold text-gray-800">
-                                  {item.tanggalKadaluwarsa.toLocaleDateString('id-ID', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                              </p>
-                          </div>
-                        )}
-                        {Boolean(item.jumlahBeliKemasan || item.satuanKemasan || item.hargaTotalBeliKemasan) && (
-                          <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3">
-                            <p className="text-sm text-gray-500 font-semibold">Detail Pembelian</p>
-                            <p className="text-xs text-gray-700">
-                              {item.jumlahBeliKemasan || '0'} {item.satuanKemasan || ''} @ {formatCurrency(item.hargaTotalBeliKemasan || 0)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(item)}
-                        className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 rounded-md transition-colors duration-200"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(item.id, item.nama)}
-                        className="flex items-center gap-2 border-red-200 text-red-700 hover:bg-red-50 rounded-md transition-colors duration-200"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Hapus
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              ); /* ✅ PERBAIKAN: Penutup `return (` */
-              })} {/* ✅ PERBAIKAN: Penutup `map` yang benar */}
-            </div>
-          )}
-        </div>
-
-        {editingItem && (
-          <BahanBakuEditDialog
-            item={editingItem}
-            onSave={handleEditSave}
-            onClose={() => setEditingItem(null)}
-            isOpen={!!editingItem}
-          />
-        )}
-      </div>
-    </div>
-  );
+      <Card className="shadow-lg border-0">
+        <CardHeader className="border-b px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Label htmlFor="show-entries">Show</Label>
+              <Select value={String(entriesPerPage)} onValueChange={(v) => { setEntriesPerPage(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger id="show-entries" className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem></SelectContent>
+              </Select>
+              <span className="text-muted-foreground">entries</span>
+            </div>
+            <Input placeholder="Cari bahan baku..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full sm:w-64" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12"><Checkbox /></TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('nama')}>Nama Bahan <ArrowUpDown className="h-4 w-4 inline-block ml-2" /></TableHead>
+                  <TableHead>Kategori</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => handleSort('stok')}>Stok <ArrowUpDown className="h-4 w-4 inline-block ml-2" /></TableHead>
+                  <TableHead className="text-right">Harga Satuan</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Memuat data...</TableCell></TableRow>
+                ) : paginatedItems.length > 0 ? (
+                  paginatedItems.map((item) => (
+                    <TableRow key={item.id} className={item.stok <= item.minimum ? 'bg-red-50/50 hover:bg-red-100/50' : ''}>
+                      <TableCell><Checkbox /></TableCell>
+                      <TableCell className="font-medium">{item.nama}</TableCell>
+                      <TableCell><Badge variant="secondary">{item.kategori}</Badge></TableCell>
+                      <TableCell className="text-right font-mono">{item.stok} {item.satuan}</TableCell>
+                      <TableCell className="text-right font-mono text-green-600">{formatCurrency(item.hargaSatuan)}</TableCell>
+                      <TableCell className="text-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(item.id)} className="text-destructive">Hapus</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada bahan baku ditemukan.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+        <CardFooter className="flex items-center justify-between px-6 py-4 border-t">
+          <div className="text-sm text-muted-foreground">
+            Showing {Math.min((currentPage - 1) * entriesPerPage + 1, sortedItems.length)} to {Math.min(currentPage * entriesPerPage, sortedItems.length)} of {sortedItems.length} entries.
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem><PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(c => c - 1); }} /></PaginationItem>
+              {[...Array(totalPages).keys()].slice(0, 5).map(page => ( // Limit to 5 page numbers for simplicity
+                <PaginationItem key={page}><PaginationLink href="#" isActive={currentPage === page + 1} onClick={(e) => { e.preventDefault(); setCurrentPage(page + 1); }}>{page + 1}</PaginationLink></PaginationItem>
+              ))}
+              <PaginationItem><PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(c => c + 1); }} /></PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </CardFooter>
+      </Card>
+      
+      {editingItem && (
+        <BahanBakuEditDialog
+          item={editingItem}
+          onSave={handleSave}
+          onClose={() => setEditingItem(null)}
+          isOpen={!!editingItem}
+        />
+      )}
+    </div>
+  );
 };
 
 export default WarehousePage;

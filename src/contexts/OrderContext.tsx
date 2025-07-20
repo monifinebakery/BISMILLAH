@@ -1,3 +1,6 @@
+// src/contexts/OrderContext.tsx
+// Implementasi Logika Otomatisasi Laporan Keuangan (Pemasukan Order)
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, NewOrder } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +9,8 @@ import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
+import { useFinancialTransaction } from './FinancialTransactionContext'; // ✅ IMPOR INI
+import { useUserSettings } from './UserSettingsContext'; // ✅ IMPOR INI UNTUK KATEGORI KEUANGAN
 
 interface OrderContextType {
   orders: Order[];
@@ -22,8 +27,9 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { addActivity } = useActivity();
+  const { addFinancialTransaction } = useFinancialTransaction(); // ✅ PANGGIL HOOK INI
+  const { settings } = useUserSettings(); // ✅ PANGGIL HOOK INI
 
-  // Helper yang disesuaikan sepenuhnya dengan nama kolom Anda
   const transformOrderFromDB = (dbItem: any): Order => ({
     id: dbItem.id,
     nomorPesanan: dbItem.nomor_pesanan,
@@ -43,75 +49,44 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     updatedAt: safeParseDate(dbItem.updated_at),
   });
   
-    // --- FUNGSI UNTUK MENGAMBIL ULANG DATA (REFETCH) ---
-    // Dipanggil saat mount dan setelah operasi CUD
-    const fetchOrders = async () => {
-        // Jika tidak ada user (misal, belum login atau logout), kosongkan orders
-        if (!user) {
-            console.log('[OrderContext] User tidak ditemukan, mengosongkan pesanan.');
-            setOrders([]);
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        console.log('[OrderContext] Memulai fetchOrders untuk user:', user.id);
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('tanggal', { ascending: false }); // Urutkan berdasarkan tanggal terbaru
-
-        if (error) {
-            console.error('[OrderContext] Error memuat pesanan:', error.message);
-            toast.error(`Gagal memuat pesanan: ${error.message}`);
-        } else if (data) {
-            const transformedData = data.map(transformOrderFromDB);
-            console.log('[OrderContext] Data pesanan berhasil dimuat (raw):', data);
-            console.log('[OrderContext] Data pesanan berhasil dimuat (transformed):', transformedData);
-            setOrders(transformedData);
-            // Log state setelah set (akan muncul di re-render berikutnya)
-            // console.log('[OrderContext] State orders setelah set (akan diperbarui di render berikutnya).');
-        }
-        setIsLoading(false);
-        console.log('[OrderContext] fetchOrders selesai.');
-    };
-
-    // --- EFFECT UNTUK INISIALISASI & REFETCH SAAT USER BERUBAH ---
   useEffect(() => {
-    console.log('[OrderContext] useEffect dipicu, user:', user?.id);
-    fetchOrders(); // Panggil saat mount atau user berubah
+    if (!user) {
+      setOrders([]);
+      setIsLoading(false);
+      return;
+    }
 
-    // Karena Realtime masih 'Coming Soon', bagian listener ini TIDAK AKTIF
-    // dan dihapus dari kode untuk menghindari kebingungan/overhead yang tidak perlu.
+    const fetchInitialOrders = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('tanggal', { ascending: false });
 
-    // Contoh jika Realtime diaktifkan di masa depan, Anda bisa mengaktifkan kembali ini:
-    // const channel = supabase
-    //   .channel(`realtime-orders-${user.id}`)
-    //   .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
-    //     (payload) => {
-    //       console.log('[OrderContext] Perubahan realtime diterima via listener:', payload);
-    //       const transform = transformOrderFromDB;
-    //       if (payload.eventType === 'INSERT') {
-    //           setOrders(current => [transform(payload.new), ...current].sort((a, b) => new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()));
-    //       }
-    //       if (payload.eventType === 'UPDATE') {
-    //           setOrders(current => current.map(o => o.id === payload.new.id ? transform(payload.new) : o));
-    //       }
-    //       if (payload.eventType === 'DELETE') {
-    //           setOrders(current => current.filter(o => o.id !== payload.old.id));
-    //       }
-    //     }
-    //   ).subscribe();
+      if (error) {
+        toast.error(`Gagal memuat pesanan: ${error.message}`);
+      } else if (data) {
+        setOrders(data.map(transformOrderFromDB));
+      }
+      setIsLoading(false);
+    };
 
-    // return () => {
-    //     // Jika channel aktif, hapus saat unmount
-    //     if (channel) {
-    //         console.log('[OrderContext] Menghapus channel realtime.');
-    //         supabase.removeChannel(channel);
-    //     }
-    // };
-  }, [user]); // Dependensi user memastikan data di-fetch ulang jika user login/logout
+    fetchInitialOrders();
+
+    const channel = supabase
+      .channel(`realtime-orders-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const transform = transformOrderFromDB;
+          if (payload.eventType === 'INSERT') setOrders(current => [transform(payload.new), ...current]);
+          if (payload.eventType === 'UPDATE') setOrders(current => current.map(o => o.id === payload.new.id ? transform(payload.new) : o));
+          if (payload.eventType === 'DELETE') setOrders(current => current.filter(o => o.id !== payload.old.id));
+        }
+      ).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const addOrder = async (order: Partial<NewOrder>): Promise<boolean> => {
     if (!user) {
@@ -134,12 +109,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         catatan: order.catatan,
     };
     
-    console.log('[OrderContext] Mengirim data pesanan baru:', newOrderData);
     const { data, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
 
     if (error) {
       toast.error(`Gagal menambahkan pesanan: ${error.message}`);
-      console.error('[OrderContext] Error menambah pesanan:', error);
       return false;
     }
     
@@ -147,28 +120,24 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (createdOrder) {
         addActivity({ title: 'Pesanan Baru', description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan}`, type: 'order', value: null });
         toast.success(`Pesanan #${createdOrder.nomor_pesanan} berhasil ditambahkan!`);
-        console.log('[OrderContext] Pesanan berhasil ditambahkan di DB, memicu fetchOrders.');
-    } else {
-        toast.success("Pesanan berhasil ditambahkan (detail nomor pesanan tidak tersedia).");
-        console.log('[OrderContext] Pesanan berhasil ditambahkan di DB, tetapi data kembali kosong/tidak lengkap, memicu fetchOrders.');
-    }
-
-    // *** PENTING: PANGGIL fetchOrders UNTUK MEMPERBARUI UI SECARA MANUAL ***
-    await fetchOrders(); // Tunggu hingga data terbaru diambil
+    }
     return true;
   };
 
+  // --- UPDATE FUNGSI: LOGIKA BARU UNTUK TRANSAKSI KEUANGAN (PEMASUKAN) ---
   const updateOrder = async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk memperbarui pesanan');
       return false;
     }
-    
+
+    // Ambil data order lama untuk membandingkan status
+    const oldOrder = orders.find(o => o.id === id);
+
     const orderToUpdate: {[key: string]: any} = {
-      updated_at: new Date().toISOString(), // Pastikan kolom ini di DB Anda
+      updated_at: new Date().toISOString(),
     };
 
-    // Pastikan semua properti yang akan diupdate dipetakan ke snake_case
     if (updatedData.namaPelanggan !== undefined) orderToUpdate.nama_pelanggan = updatedData.namaPelanggan;
     if (updatedData.teleponPelanggan !== undefined) orderToUpdate.telepon_pelanggan = updatedData.teleponPelanggan;
     if (updatedData.emailPelanggan !== undefined) orderToUpdate.email_pelanggan = updatedData.emailPelanggan;
@@ -181,17 +150,42 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (updatedData.subtotal !== undefined) orderToUpdate.subtotal = updatedData.subtotal;
     if (updatedData.pajak !== undefined) orderToUpdate.pajak = updatedData.pajak;
 
-    console.log('[OrderContext] Mengirim update pesanan:', id, orderToUpdate);
     const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id);
     if (error) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
-      console.error('[OrderContext] Error memperbarui pesanan:', error);
       return false;
     }
-    
-    console.log('[OrderContext] Pesanan berhasil diperbarui di DB, memicu fetchOrders.');
-    await fetchOrders(); // Tunggu hingga data terbaru diambil
-    toast.success("Pesanan berhasil diperbarui!"); 
+
+    // ✅ LOGIKA BARU: Masuk ke laporan keuangan jika status order menjadi 'delivered' (atau 'completed')
+    // Pastikan oldOrder ada dan statusnya berbeda sebelum update
+    if (oldOrder && oldOrder.status !== 'delivered' && updatedData.status === 'delivered') { // Sesuaikan 'delivered' jika status selesai Anda adalah 'completed'
+        // Gunakan kategori pemasukan dari settings, default 'Penjualan Produk'
+        // settings.financialCategories?.income?.[0] akan mengambil kategori pertama dari array income
+        const incomeCategory = settings.financialCategories?.income?.[0] || 'Penjualan Produk';
+
+        const successFinancial = await addFinancialTransaction({
+            type: 'income',
+            category: incomeCategory,
+            description: `Penjualan produk kepada ${oldOrder.namaPelanggan} (Order #${oldOrder.nomorPesanan})`,
+            amount: oldOrder.totalPesanan,
+            date: oldOrder.tanggal, // Tanggal order
+            relatedId: oldOrder.id, // ID order terkait
+        });
+
+        if (successFinancial) {
+            toast.success('Pemasukan penjualan berhasil dicatat!');
+            addActivity({ 
+                title: 'Pemasukan Dicatat (Penjualan)', 
+                description: `Pemasukan Rp ${oldOrder.totalPesanan.toLocaleString('id-ID')} dicatat dari penjualan kepada ${oldOrder.namaPelanggan}.`, 
+                type: 'keuangan', 
+                value: oldOrder.totalPesanan.toString() 
+            });
+        } else {
+            console.error('Gagal mencatat pemasukan untuk penjualan.');
+            toast.error('Gagal mencatat pemasukan untuk penjualan.');
+        }
+    }
+    toast.success("Pesanan berhasil diperbarui.");
     return true;
   };
   
@@ -203,21 +197,15 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const orderToDelete = orders.find(o => o.id === id);
 
-    console.log('[OrderContext] Mengirim perintah hapus pesanan:', id);
     const { error } = await supabase.from('orders').delete().eq('id', id);
     if (error) {
       toast.error(`Gagal menghapus pesanan: ${error.message}`);
-      console.error('[OrderContext] Error menghapus pesanan:', error);
       return false;
     }
 
     if (orderToDelete) {
         addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order', value: null });
     }
-    
-    console.log('[OrderContext] Pesanan berhasil dihapus dari DB, memicu fetchOrders.');
-    await fetchOrders(); // Tunggu hingga data terbaru diambil
-    toast.success("Pesanan berhasil dihapus!");
     return true;
   };
   

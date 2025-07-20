@@ -1,4 +1,4 @@
-import { React, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,7 +55,7 @@ const InvoicePage = () => {
     const element = document.getElementById('invoice-content');
     const opt = {
       margin: 0.5,
-      filename: `invoice_${invoiceNumber.replace('/', '-')}.pdf`,
+      filename: `invoice_${invoiceNumber.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -104,17 +104,40 @@ const InvoicePage = () => {
           <Textarea placeholder="Alamat & Kontak Pelanggan" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} className="text-sm text-gray-500 print:border-none print:p-0" />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left table-fixed">
-            <thead><tr className="bg-gray-100"><th className="p-3 text-sm font-semibold text-gray-600 w-[45%]">Deskripsi</th><th className="p-3 text-sm font-semibold text-gray-600 text-center w-[15%]">Jumlah</th><th className="p-3 text-sm font-semibold text-gray-600 text-right w-[20%]">Harga Satuan</th><th className="p-3 text-sm font-semibold text-gray-600 text-right w-[20%]">Total</th><th className="print:hidden w-[50px]"></th></tr></thead>
-            <tbody>
-              {items.map(item => (
-                <tr key={item.id} className="border-b"><td className="p-1"><Textarea placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="print:border-none w-full" rows={1} /></td><td className="p-1"><Input type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="text-center print:border-none w-full" /></td><td className="p-1"><Input type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="text-right print:border-none w-full" /></td><td className="p-1 text-right font-medium">{formatCurrency(item.quantity * item.price)}</td><td className="p-1 print:hidden"><Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></td></tr>
-              ))}
-            </tbody>
-          </table>
+        {/* --- PERBAIKAN LAYOUT TABEL ITEM --- */}
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <Card key={item.id} className="p-4 border bg-gray-50/50 print:border-none print:shadow-none print:bg-white">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                {/* Deskripsi */}
+                <div className="sm:col-span-6">
+                  <Label htmlFor={`desc-${item.id}`}>Deskripsi</Label>
+                  <Textarea id={`desc-${item.id}`} placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="mt-1" rows={1} />
+                </div>
+                {/* Jumlah */}
+                <div className="sm:col-span-2">
+                  <Label htmlFor={`qty-${item.id}`}>Jumlah</Label>
+                  <Input id={`qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="mt-1 text-center" />
+                </div>
+                {/* Harga Satuan */}
+                <div className="sm:col-span-2">
+                  <Label htmlFor={`price-${item.id}`}>Harga Satuan</Label>
+                  <Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="mt-1 text-right" />
+                </div>
+                {/* Total */}
+                <div className="sm:col-span-2 text-right">
+                    <Label className="text-xs text-muted-foreground">Total</Label>
+                    <p className="font-medium h-10 flex items-center justify-end">{formatCurrency(item.quantity * item.price)}</p>
+                </div>
+              </div>
+              <div className="flex justify-end mt-2 print:hidden">
+                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            </Card>
+          ))}
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
+        {/* --- AKHIR PERBAIKAN --- */}
 
         <div className="flex flex-col sm:flex-row justify-between items-start mt-8">
             <div className="w-full sm:w-1/2 mb-6 sm:mb-0">

@@ -12,7 +12,7 @@ import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useOrders } from '@/contexts/OrderContext';
+import { useOrder } from '@/contexts/OrderContext';
 import OrderForm from '@/components/OrderForm'; 
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';

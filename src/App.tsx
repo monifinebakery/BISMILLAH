@@ -30,6 +30,7 @@ import SupplierManagement from "./pages/SupplierManagement";
 import PurchaseManagement from "./pages/PurchaseManagement";
 import MenuPage from "./pages/MenuPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import InvoicePage from "./pages/InvoicePage"; // ✅ --- TAMBAHKAN IMPOR INI ---
 
 // Komponen UI dari ShadCN
 import { Button } from "@/components/ui/button";

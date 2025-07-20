@@ -102,6 +102,7 @@ const AppLayout = () => {
                 <Route path="/pengaturan" element={<Settings />} />
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/payment-success" element={<PaymentSuccessPage />} />
+                <Route path="/invoice" element={<InvoicePage />} /> {/* <-- DAN TAMBAHKAN INI JUGA */}
                 <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

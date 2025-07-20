@@ -50,8 +50,7 @@ const MobileExportButton = () => {
       variant="ghost"
       size="sm"
       onClick={handleExport}
-      className="px-2 py-1"
-    >
+      className="px-2 py-1">
       <Download className="h-4 w-4" />
     </Button>
   );

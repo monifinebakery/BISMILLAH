@@ -141,7 +141,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       recipe_categories: updatedSettings.recipeCategories,
     };
 
-    const { error } = await supabase.from('user_settings').upsert(settingsToSave);
+    const { error } = await supabase.from('user_settings').upsert(settingsToSave, { onConflict: 'user_id' });
 
     if (error) {
       toast.error("Gagal menyimpan pengaturan: " + error.message);

@@ -511,6 +511,7 @@ const WarehousePage = () => {
             isOpen={!!editingItem}
           />
         )}
+          
         </div> {/* Penutup untuk div.max-w-7xl.mx-auto */}
     </div> // Penutup untuk div.min-h-screen.bg-white...
   );

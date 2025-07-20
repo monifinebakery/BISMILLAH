@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    visualizer({ open: true }) // <-- 2. Tambahkan plugin di sini
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),

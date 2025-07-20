@@ -1,6 +1,6 @@
 import React from 'react';
 import { Order } from '@/types';
-import { useUserSettings } from '@/Contexts/UserSettingsContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 

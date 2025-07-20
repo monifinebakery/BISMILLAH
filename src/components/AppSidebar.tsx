@@ -30,7 +30,7 @@ import { useAsset } from "@/contexts/AssetContext"; // ✅ PERBAIKAN: Menggunaka
 import { useFinancial } from "@/contexts/FinancialContext";
 
 // --- Impor Fungsi Export Baru ---
-import { exportAllDataToExcel } from "@/utils/exportUtils";
+import { exportAllDataToExcel } from "@/lib/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();

@@ -34,14 +34,14 @@ const PurchaseManagement = () => {
     tanggal: Date;
     items: PurchaseItem[];
     status: 'pending' | 'completed' | 'cancelled';
-    metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // Termasuk ini di state
+    metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
     totalNilai: number;
   }>({
     supplier: '',
     tanggal: new Date(),
     items: [],
-    status: 'pending',
-    metodePerhitungan: 'FIFO', // Default value
+    status: 'pending', // Default untuk form baru
+    metodePerhitungan: 'FIFO',
     totalNilai: 0,
   });
 
@@ -88,20 +88,23 @@ const PurchaseManagement = () => {
     }
 
     const totalNilai = newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0);
-    // Pastikan objek ini sesuai dengan apa yang diharapkan oleh addPurchase/updatePurchase di PurchaseContext
     const purchaseDataToSend: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
       supplier: newPurchase.supplier,
       tanggal: newPurchase.tanggal,
       items: newPurchase.items,
       status: newPurchase.status,
-      metodePerhitungan: newPurchase.metodePerhitungan, // Pastikan ini disertakan
+      metodePerhitungan: newPurchase.metodePerhitungan,
       totalNilai: totalNilai,
     };
 
+    // *** LOG DEBUGGING: PERIKSA NILAI STATUS SEBELUM DIKIRIM ***
+    console.log('[PurchaseManagement] purchaseDataToSend sebelum dikirim:', purchaseDataToSend);
+    console.log('[PurchaseManagement] Status yang akan dikirim:', purchaseDataToSend.status);
+    // *** AKHIR LOG DEBUGGING ***
+
     let success = false;
     if (editingPurchase) {
-      // Untuk update, kirim ID dan data partial
-      success = await updatePurchase(editingPurchase.id, purchaseDataToSend); // Langsung kirim purchaseDataToSend
+      success = await updatePurchase(editingPurchase.id, purchaseDataToSend);
     } else {
       success = await addPurchase(purchaseDataToSend);
     }
@@ -118,7 +121,7 @@ const PurchaseManagement = () => {
       supplier: '',
       tanggal: new Date(),
       items: [],
-      status: 'pending',
+      status: 'pending', // Default untuk form baru
       metodePerhitungan: 'FIFO',
       totalNilai: 0,
     });
@@ -132,7 +135,6 @@ const PurchaseManagement = () => {
       ...purchase,
       tanggal: purchase.tanggal instanceof Date ? purchase.tanggal : new Date(purchase.tanggal),
       status: purchase.status as 'pending' | 'completed' | 'cancelled',
-      // Pastikan metodePerhitungan juga dimuat dari data pembelian yang ada
       metodePerhitungan: purchase.metodePerhitungan || 'FIFO', // Default jika tidak ada
     });
     setNewItem({ namaBarang: '', jumlah: 0, satuan: '', hargaSatuan: 0 }); // Reset newItem saat edit

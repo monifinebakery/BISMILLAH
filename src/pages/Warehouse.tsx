@@ -11,8 +11,8 @@ import MenuExportButton from '@/components/MenuExportButton';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/utils/currencyUtils'; // Pastikan formatCurrency diimpor
-import { formatDateForDisplay } from '@/utils/dateUtils'; // Pastikan formatDateForDisplay diimpor
+import { formatCurrency } from '@/utils/currencyUtils'; 
+import { formatDateForDisplay } from '@/utils/dateUtils'; 
 
 const WarehousePage = () => {
   const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useBahanBaku();
@@ -417,7 +417,8 @@ const WarehousePage = () => {
             </Card>
           ) : (
             <div className="space-y-4">
-              {currentItems.map((item) => ( /* ✅ PERBAIKAN: Ini adalah awal dari map yang benar */
+              {currentItems.map((item) => { /* ✅ PERBAIKAN: Gunakan return eksplisit di sini */
+                return ( /* ✅ PERBAIKAN: Menambahkan `return (` */
                   <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
                     <CardContent className="p-4">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -496,7 +497,8 @@ const WarehousePage = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))} {/* ✅ PERBAIKAN: Penutup map yang benar */}
+              ); /* ✅ PERBAIKAN: Penutup `return (` */
+              })} {/* ✅ PERBAIKAN: Penutup `map` yang benar */}
             </div>
           )}
         </div>

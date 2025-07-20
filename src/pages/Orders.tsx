@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile'; 
-// PERBAIKAN: Mengganti 'date-ns' menjadi 'date-fns'
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText } from 'lucide-react'; 
+import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -25,27 +24,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge'; 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { safeParseDate } from '@/utils/dateUtils'; 
-
 
 const OrdersPage = () => {
   const isMobile = useIsMobile(); 
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false); 
-
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
-
   const [editingOrder, setEditingOrder] = useState<Order | null>(null); 
-
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
+
+  // Pagination state
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrder();
 
@@ -173,11 +173,19 @@ const OrdersPage = () => {
     });
   }, [orders, searchTerm, statusFilter, dateRange]);
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Memuat data pesanan...</p>
         </div>
       </div>
@@ -185,21 +193,28 @@ const OrdersPage = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+            Manajemen Pesanan
+          </h1>
           <p className="text-muted-foreground">Kelola semua pesanan pelanggan</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button className="flex items-center gap-2" onClick={handleNewOrder}>
+          <Button 
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white" 
+            onClick={handleNewOrder}
+          >
             <Plus className="h-4 w-4" />
             Pesanan Baru
           </Button>
         </div>
       </div>
 
-      <Card>
+      {/* Filter Card */}
+      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Filter Pesanan</CardTitle>
         </CardHeader>
@@ -271,150 +286,232 @@ const OrdersPage = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4">
-        {filteredOrders.map((order) => (
-          <Card key={order.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-lg">{order.nomorPesanan}</CardTitle>
-                  <CardDescription>
-                    {order.namaPelanggan} • {formatDateForDisplay(order.tanggal)}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Select
-                    onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
-                    value={order.status}
-                  >
-                    <SelectTrigger className={`w-[140px] h-9 ${getStatusColor(order.status)}`}>
-                      <SelectValue placeholder="Pilih Status">
-                        {getStatusText(order.status)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orderStatuses.map((statusOption) => (
-                        <SelectItem key={statusOption.key} value={statusOption.key}>
-                          {statusOption.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isMobile ? (
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Pelanggan:</span>
-                    <span className="font-semibold">{order.namaPelanggan}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">No Whatsapp:</span>
-                    <span className="font-semibold">{order.teleponPelanggan || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge className={getStatusColor(order.status)}>{getStatusText(order.status)}</Badge>
-                  </div>
-                  <div className="flex justify-end mt-4 gap-2"> 
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-                      onClick={() => handleOpenEditOrderForm(order)}
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFollowUpClick(order)} 
-                      className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Follow-up
-                    </Button>
-                    <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
-                      <Link to={`/pesanan/invoice/${order.id}`}>
-                        <FileText className="h-4 w-4" />
-                        Invoice
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div><p className="text-sm text-muted-foreground">Total Pesanan</p><p className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</p></div>
-                    <div><p className="text-sm text-muted-foreground">Jumlah Item</p><p className="font-semibold">{order.items?.length || 0} item</p></div>
-                    <div><p className="text-sm text-muted-foreground">No Whatsapp</p><p className="font-semibold">{order.teleponPelanggan || 'Tidak tersedia'}</p></div>
-                    <div><p className="text-sm text-muted-foreground">Email</p><p className="font-semibold text-sm">{order.emailPelanggan || 'Tidak tersedia'}</p></div>
-                  </div>
+      {/* Table Controls */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-gray-200/80">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Label htmlFor="show-entries" className="whitespace-nowrap">Show</Label>
+              <Select value={String(itemsPerPage)} onValueChange={(value) => { 
+                setItemsPerPage(Number(value)); 
+                setCurrentPage(1); 
+              }}>
+                <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>entries</span>
+            </div>
+          </div>
+        </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2 flex items-center gap-2"><Package className="h-4 w-4" />Detail Pesanan</h4>
-                    <div className="space-y-2">
-                      {order.items?.map((item, index) => (
-                        <div key={item.id || index} className="flex justify-between items-center text-sm">
-                          <span>{item.nama} x {item.quantity}</span>
-                          <span className="font-medium">Rp {item.totalHarga?.toLocaleString('id-ID') || '0'}</span>
-                        </div>
-                      )) || <p className="text-sm text-muted-foreground">Tidak ada item</p>}
-                    </div>
-                    <div className="border-t mt-2 pt-2 flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-2 mt-4">
-                    <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => handleOpenEditOrderForm(order)}>
-                      <Edit className="h-4 w-4" />
-                      Edit Detail
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFollowUpClick(order)}
-                      className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Follow-up
-                    </Button>
-                    {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)} className="flex items-center gap-2">
-                        <X className="h-4 w-4" />
-                        Hapus
+        {/* Main Table */}
+        <div className="overflow-x-auto">
+          <Table className="min-w-full text-sm text-left text-gray-700">
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Nomor Pesanan
+                </TableHead>
+                <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Tanggal
+                </TableHead>
+                <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Pelanggan
+                </TableHead>
+                <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Status
+                </TableHead>
+                <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Total
+                </TableHead>
+                <TableHead className="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                  Aksi
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-200">
+              {currentItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="mb-4">
+                      {searchTerm ? 'Tidak ada pesanan yang sesuai dengan pencarian' : 'Belum ada pesanan'}
+                    </p>
+                    {!searchTerm && (
+                      <Button
+                        onClick={handleNewOrder}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Pesanan Pertama
                       </Button>
                     )}
-                    <div className="sm:ml-auto flex gap-2">
-                      <Button asChild variant="ghost" size="icon">
-                        <Link to={`/pesanan/invoice/${order.id}`} title="Lihat Invoice">
-                          <FileText className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </>
+                  </TableCell>
+                </TableRow>
+              ) : isMobile ? (
+                // Mobile View (Cards)
+                currentItems.map((order) => (
+                  <Card key={order.id} className="mb-4 border border-orange-200 shadow-sm">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg">{order.nomorPesanan}</CardTitle>
+                          <CardDescription>
+                            {order.namaPelanggan} • {formatDateForDisplay(order.tanggal)}
+                          </CardDescription>
+                        </div>
+                        <Badge className={cn(getStatusColor(order.status), "text-xs")}>
+                          {getStatusText(order.status)}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">No Whatsapp:</span>
+                          <span className="font-semibold">{order.teleponPelanggan || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+                            onClick={() => handleOpenEditOrderForm(order)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleFollowUpClick(order)} 
+                            className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Follow-up
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                // Desktop View (Table)
+                currentItems.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-orange-50/50">
+                    <TableCell className="py-4 px-4 border-b border-gray-200">
+                      <div className="font-medium text-gray-900">{order.nomorPesanan}</div>
+                    </TableCell>
+                    <TableCell className="py-4 px-4 border-b border-gray-200">
+                      <div className="text-gray-700">{formatDateForDisplay(order.tanggal)}</div>
+                    </TableCell>
+                    <TableCell className="py-4 px-4 border-b border-gray-200">
+                      <div className="font-medium">{order.namaPelanggan}</div>
+                      <div className="text-sm text-gray-500">{order.teleponPelanggan || 'No telepon tidak tersedia'}</div>
+                    </TableCell>
+                    <TableCell className="py-4 px-4 border-b border-gray-200">
+                      <Badge className={cn(getStatusColor(order.status), "text-xs")}>
+                        {getStatusText(order.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 px-4 border-b border-gray-200">
+                      <div className="font-semibold text-orange-600">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</div>
+                    </TableCell>
+                    <TableCell className="py-4 px-4 border-b border-gray-200 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenEditOrderForm(order)}
+                          className="h-8 w-8 p-0 hover:bg-orange-100 hover:text-orange-600"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleFollowUpClick(order)}
+                          className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600"
+                        >
+                          <Link to={`/pesanan/invoice/${order.id}`} title="Lihat Invoice">
+                            <FileText className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteOrder(order.id)}
+                            className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </TableBody>
+          </Table>
+        </div>
 
-      {filteredOrders.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              {searchTerm ? 'Tidak ada pesanan yang sesuai dengan pencarian' : 'Belum ada pesanan'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between p-4 sm:px-6 border-t border-gray-200/80">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{indexOfFirstItem + 1}</span> to <span className="font-semibold">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of <span className="font-semibold">{filteredOrders.length}</span> entries
+          </div>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 hover:bg-gray-100"
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <Button 
+                key={page} 
+                onClick={() => paginate(page)} 
+                className={cn("h-9 w-9", {
+                  "bg-orange-500 text-white shadow-sm hover:bg-orange-600": currentPage === page, 
+                  "hover:bg-gray-100": currentPage !== page
+                })}
+                variant={currentPage === page ? "default" : "ghost"}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 hover:bg-gray-100"
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <OrderForm
         open={showOrderForm}

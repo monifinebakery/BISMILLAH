@@ -77,6 +77,7 @@ export function AppSidebar() {
       items: [
         { title: "Laporan Keuangan", url: "/laporan", icon: TrendingUp },
         { title: "Manajemen Aset", url: "/aset", icon: Building2 },
+        { title: "Invoice", url: "/pesanan/invoice/preview", icon: Receipt }, 
       ]
     }
   ];

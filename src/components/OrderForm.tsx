@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+// src/components/OrderForm.tsx
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,113 +12,72 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, X } from 'lucide-react'; 
 import type { Order, NewOrder, OrderItem } from '@/types/order';
 import { toast } from 'sonner';
-import { safeParseDate } from '@/utils/dateUtils'; 
 import { formatCurrency } from '@/utils/currencyUtils';
 import { generateUUID } from '@/utils/uuid'; 
 
 interface OrderFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (order: NewOrder | Order) => void;
+  onSubmit: (order: Partial<NewOrder> | Partial<Order>) => void;
   initialData?: Order | null;
-  // MODIFIED: Hapus isViewMode prop
-  // isViewMode?: boolean; 
 }
 
-// MODIFIED: Hapus isViewMode dari destructuring props
 const OrderForm = ({ open, onOpenChange, onSubmit, initialData }: OrderFormProps) => {
   const [formData, setFormData] = useState({
     namaPelanggan: '',
-    emailPelanggan: '',
     teleponPelanggan: '',
-    alamatPelanggan: '',
+    emailPelanggan: '',
+    alamatPengiriman: '', // Disesuaikan
     status: 'pending',
-    catatan: '',
+    catatan: '',        // Disesuaikan
   });
   const [items, setItems] = useState<Partial<OrderItem>[]>([]);
-  const [pajakInput, setPajakInput] = useState<number | string>('');
+  const [pajakInput, setPajakInput] = useState<number | string>(10); // Default 10%
   const [isSubmitting, setIsSubmitting] = useState(false); 
 
   useEffect(() => {
     if (open) {
       setFormData({
         namaPelanggan: initialData?.namaPelanggan || '',
-        emailPelanggan: initialData?.emailPelanggan || '',
         teleponPelanggan: initialData?.teleponPelanggan || '',
-        alamatPelanggan: initialData?.alamatPelanggan || '',
+        emailPelanggan: initialData?.emailPelanggan || '',
+        alamatPengiriman: initialData?.alamatPengiriman || '', // Disesuaikan
         status: initialData?.status || 'pending',
-        catatan: initialData?.catatan || '',
+        catatan: initialData?.catatan || '', // Disesuaikan
       });
       setItems(initialData?.items && initialData.items.length > 0
-        ? initialData.items.map(item => ({
-            ...item,
-            id: item.id || generateUUID(), 
-            quantity: Number(item.quantity) || 0,
-            hargaSatuan: Number(item.hargaSatuan) || 0,
-            totalHarga: Number(item.totalHarga) || 0,
-          }))
-        : [{ id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
-      setPajakInput(initialData?.pajak || '');
+        ? initialData.items.map(item => ({ ...item, id: item.id || generateUUID() }))
+        : [{ id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0 }]
+      );
+      setPajakInput(initialData?.pajak || 10);
       setIsSubmitting(false); 
-      // MODIFIED: Hapus pengaturan state mode lihat lokal
-      // setCurrentIsViewMode(initialIsViewMode); 
     }
   }, [open, initialData]);
 
-  const handleInputChange = (field: string, value: string) => {
-    // MODIFIED: Hapus pengecekan isViewMode
-    // if (currentIsViewMode) return;
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const addItem = () => {
-    // MODIFIED: Hapus pengecekan isViewMode
-    // if (currentIsViewMode) return;
-    setItems([...items, { id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0, totalHarga: 0 }]);
-  };
-
-  const removeItem = (id: string | number) => { 
-    // MODIFIED: Hapus pengecekan isViewMode
-    // if (currentIsViewMode) return;
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-    } else {
-      toast.error('Pesanan harus memiliki setidaknya satu item.');
-    }
+  const addItem = () => setItems([...items, { id: generateUUID(), nama: '', quantity: 1, hargaSatuan: 0 }]);
+  const removeItem = (id: string | number) => {
+    if (items.length > 1) setItems(items.filter(item => item.id !== id));
+    else toast.error('Pesanan harus memiliki setidaknya satu item.');
   };
 
   const updateItem = (id: string | number, field: keyof OrderItem, value: string | number) => { 
-    // MODIFIED: Hapus pengecekan isViewMode
-    // if (currentIsViewMode) return;
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        const quantity = parseFloat(String(updatedItem.quantity)) || 0;
-        const hargaSatuan = parseFloat(String(updatedItem.hargaSatuan)) || 0;
-        
-        updatedItem.totalHarga = quantity * hargaSatuan;
-        
-        return updatedItem;
-      }
-      return item;
-    }));
+    setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
+  
+  const { subtotal, pajak, total } = useMemo(() => {
+    const calculatedSubtotal = items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.hargaSatuan) || 0)), 0);
+    const pajakPercentage = Number(pajakInput) || 0;
+    const calculatedPajak = calculatedSubtotal * (pajakPercentage / 100);
+    const calculatedTotal = calculatedSubtotal + calculatedPajak;
+    return { subtotal: calculatedSubtotal, pajak: calculatedPajak, total: calculatedTotal };
+  }, [items, pajakInput]);
 
-  const calculateTotals = () => {
-    const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
-    const pajakValue = typeof pajakInput === 'number' ? pajakInput : parseFloat(String(pajakInput));
-    const pajak = !isNaN(pajakValue) && pajakValue >= 0 ? pajakValue : subtotal * 0.1; 
-    const total = subtotal + pajak;
-    return { subtotal, pajak, total };
-  };
-
-  const { subtotal, pajak, total } = calculateTotals();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // MODIFIED: Hapus pengecekan isViewMode di awal handleSubmit
-    // if (currentIsViewMode) { ... }
-
     setIsSubmitting(true); 
 
     if (!formData.namaPelanggan.trim() || !formData.teleponPelanggan.trim()) {
@@ -124,118 +85,52 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData }: OrderFormProps
       setIsSubmitting(false);
       return;
     }
-    const validItems = items.filter(item =>
-      item.nama?.trim() && parseFloat(String(item.quantity)) > 0 && parseFloat(String(item.hargaSatuan)) >= 0
-    );
+    const validItems = items.filter(item => item.nama?.trim()).map(item => ({
+      ...item,
+      quantity: Number(item.quantity) || 0,
+      hargaSatuan: Number(item.hargaSatuan) || 0,
+    })) as OrderItem[];
 
     if (validItems.length === 0) {
-        toast.error('Pesanan harus memiliki setidaknya satu item yang valid (nama, jumlah > 0, harga >= 0).');
+        toast.error('Pesanan harus memiliki setidaknya satu item dengan nama yang valid.');
         setIsSubmitting(false);
         return;
     }
 
-    const { subtotal: finalSubtotal, pajak: finalPajak, total: finalTotal } = calculateTotals();
-    const commonData = {
+    const finalOrderData: Partial<Order> = {
         ...formData,
-        items: validItems as OrderItem[],
-        subtotal: finalSubtotal,
-        pajak: finalPajak,
-        totalPesanan: finalTotal
+        items: validItems,
+        subtotal: subtotal,
+        pajak: pajak,
+        totalPesanan: total,
     };
-
-    try {
-        if (initialData) {
-            const parsedInitialDate = safeParseDate(initialData.tanggal);
-            const finalDate = parsedInitialDate || new Date(); 
-            onSubmit({ ...initialData, tanggal: finalDate, ...commonData });
-        } else {
-            onSubmit({ ...commonData, tanggal: new Date() });
-        }
-    } catch (error) {
-        console.error("Error submitting OrderForm:", error);
-        toast.error("Terjadi kesalahan saat menyimpan pesanan.");
-    } finally {
-        setIsSubmitting(false); 
-    }
+    
+    onSubmit(finalOrderData);
+    // onOpenChange(false); // Biarkan parent component yang menutup dialog
+    setIsSubmitting(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md font-inter flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>
-            {/* MODIFIED: Judul dialog selalu Edit/Tambah */}
-            {initialData ? 'Edit Pesanan' : 'Tambah Pesanan Baru'}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>{initialData ? 'Edit Pesanan' : 'Tambah Pesanan Baru'}</DialogTitle></DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
-              <Input 
-                id="namaPelanggan" 
-                value={formData.namaPelanggan} 
-                onChange={(e) => handleInputChange('namaPelanggan', e.target.value)} 
-                required 
-                readOnly={false} // MODIFIED: Selalu false (tidak ada readOnly mode)
-                disabled={isSubmitting} 
-              />
-            </div>
-            <div>
-              <Label htmlFor="teleponPelanggan">Nomor Whatsapp *</Label>
-              <Input 
-                id="teleponPelanggan" 
-                value={formData.teleponPelanggan} 
-                onChange={(e) => handleInputChange('teleponPelanggan', e.target.value)} 
-                required 
-                readOnly={false} // MODIFIED: Selalu false
-                disabled={isSubmitting} 
-              />
-            </div>
+            <div><Label htmlFor="namaPelanggan">Nama Pelanggan *</Label><Input id="namaPelanggan" name="namaPelanggan" value={formData.namaPelanggan} onChange={handleInputChange} required disabled={isSubmitting} /></div>
+            <div><Label htmlFor="teleponPelanggan">Nomor Whatsapp *</Label><Input id="teleponPelanggan" name="teleponPelanggan" value={formData.teleponPelanggan} onChange={handleInputChange} required disabled={isSubmitting} /></div>
           </div>
-          <div>
-            <Label htmlFor="alamatPelanggan">Alamat Pengiriman</Label>
-            <Textarea 
-              id="alamatPelanggan" 
-              value={formData.alamatPelanggan} 
-              onChange={(e) => handleInputChange('alamatPelanggan', e.target.value)} 
-              readOnly={false} // MODIFIED: Selalu false
-              disabled={isSubmitting} 
-              rows={2} 
-            />
-          </div>
-          {/* Email Pelanggan (opsional) */}
-          <div>
-            <Label htmlFor="emailPelanggan">Email Pelanggan</Label>
-            <Input 
-              id="emailPelanggan" 
-              type="email" 
-              value={formData.emailPelanggan} 
-              onChange={(e) => handleInputChange('emailPelanggan', e.target.value)} 
-              readOnly={false} // MODIFIED: Selalu false
-              disabled={isSubmitting} 
-            />
-          </div>
-          {/* Status Pesanan (hanya untuk view/edit, bukan new order) */}
+          <div><Label htmlFor="alamatPengiriman">Alamat Pengiriman</Label><Textarea id="alamatPengiriman" name="alamatPengiriman" value={formData.alamatPengiriman} onChange={handleInputChange} disabled={isSubmitting} rows={2} /></div>
+          <div><Label htmlFor="emailPelanggan">Email Pelanggan</Label><Input id="emailPelanggan" name="emailPelanggan" type="email" value={formData.emailPelanggan} onChange={handleInputChange} disabled={isSubmitting} /></div>
+          
           {initialData && (
             <div>
               <Label htmlFor="status">Status Pesanan</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: any) => handleInputChange('status', value)} 
-                disabled={isSubmitting} // MODIFIED: Hanya disabled saat submitting
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Status" />
-                </SelectTrigger>
+              <Select value={formData.status} onValueChange={(value: any) => setFormData(prev => ({...prev, status: value}))} disabled={isSubmitting}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem><SelectItem value="confirmed">Confirmed</SelectItem><SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="shipping">Shipped</SelectItem><SelectItem value="delivered">Delivered</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,133 +139,32 @@ const OrderForm = ({ open, onOpenChange, onSubmit, initialData }: OrderFormProps
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="font-semibold">Item Pesanan</Label>
-              {/* MODIFIED: Tombol Tambah Item selalu terlihat kecuali saat submit */}
-              <Button type="button" onClick={addItem} size="sm" className="h-8" disabled={isSubmitting}>
-                <Plus className="h-4 w-4 mr-1" /> Tambah
-              </Button>
+              <Button type="button" onClick={addItem} size="sm" className="h-8" disabled={isSubmitting}><Plus className="h-4 w-4 mr-1" /> Tambah</Button>
             </div>
             <ScrollArea className="max-h-[300px] rounded-md border">
-              <div className="w-full">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px] px-2">Nama</TableHead> {/* MODIFIED: Lebar kolom */}
-                      <TableHead className="px-1 text-center w-[70px]">Jml</TableHead> {/* MODIFIED: Lebar kolom */}
-                      <TableHead className="px-2 w-[100px]">Harga Satuan</TableHead> {/* MODIFIED: Tambah teks "Satuan", lebar kolom */}
-                      <TableHead className="text-right px-2">Total</TableHead>
-                      <TableHead className="w-10 p-0"></TableHead> {/* MODIFIED: Kolom aksi selalu terlihat */}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.id}> 
-                        <TableCell className="font-medium p-1">
-                          <Input 
-                            value={item.nama || ''} 
-                            onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} 
-                            className="h-8 px-2" 
-                            readOnly={false} // MODIFIED: Selalu false
-                            disabled={isSubmitting} 
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input 
-                            type="number" 
-                            value={item.quantity || ''} 
-                            onChange={(e) => updateItem(item.id!, 'quantity', parseInt(e.target.value) || 0)} 
-                            className="h-8 w-14 text-center px-1" 
-                            readOnly={false} // MODIFIED: Selalu false
-                            disabled={isSubmitting} 
-                            min="0" 
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input 
-                            type="number" 
-                            value={item.hargaSatuan || ''} 
-                            onChange={(e) => updateItem(item.id!, 'hargaSatuan', parseFloat(e.target.value) || 0)} 
-                            className="h-8 px-2" 
-                            readOnly={false} // MODIFIED: Selalu false
-                            disabled={isSubmitting} 
-                            min="0" 
-                          />
-                        </TableCell>
-                        <TableCell className="text-right p-2 text-xs">
-                          {formatCurrency(item.totalHarga || 0)}
-                        </TableCell>
-                        {/* MODIFIED: Tombol hapus item selalu terlihat kecuali saat submit */}
-                        <TableCell className="p-0 text-center">
-                          {items.length > 1 && (
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id!)} disabled={isSubmitting}>
-                              <X className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <Table>
+                <TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Jml</TableHead><TableHead>Harga Satuan</TableHead><TableHead className="text-right">Total</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                      const itemTotal = (Number(item.quantity) || 0) * (Number(item.hargaSatuan) || 0);
+                      return (
+                        <TableRow key={item.id}><TableCell><Input value={item.nama || ''} onChange={(e) => updateItem(item.id!, 'nama', e.target.value)} disabled={isSubmitting} /></TableCell><TableCell><Input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id!, 'quantity', e.target.value)} className="w-16 text-center" disabled={isSubmitting} /></TableCell><TableCell><Input type="number" value={item.hargaSatuan || ''} onChange={(e) => updateItem(item.id!, 'hargaSatuan', e.target.value)} disabled={isSubmitting} /></TableCell><TableCell className="text-right text-sm">{formatCurrency(itemTotal)}</TableCell><TableCell>{items.length > 1 && (<Button type="button" variant="ghost" size="icon" onClick={() => removeItem(item.id!)} disabled={isSubmitting}><X className="h-4 w-4 text-red-500" /></Button>)}</TableCell></TableRow>
+                      );
+                  })}
+                </TableBody>
+              </Table>
             </ScrollArea>
           </div>
-          {/* Catatan Pesanan */}
-          <div>
-            <Label htmlFor="catatan">Catatan Pesanan</Label>
-            <Textarea 
-              id="catatan" 
-              value={formData.catatan} 
-              onChange={(e) => handleInputChange('catatan', e.target.value)} 
-              readOnly={false} // MODIFIED: Selalu false
-              disabled={isSubmitting} 
-              rows={2} 
-            />
-          </div>
-
+          <div><Label htmlFor="catatan">Catatan Pesanan</Label><Textarea id="catatan" name="catatan" value={formData.catatan} onChange={handleInputChange} disabled={isSubmitting} rows={2} /></div>
           <div className="space-y-2 rounded-lg border p-4">
-            <div className="flex justify-between text-sm">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span>Pajak</span>
-              <Input
-                type="number"
-                value={pajakInput}
-                onChange={(e) => setPajakInput(e.target.value ? parseFloat(e.target.value) : '')}
-                placeholder="10%"
-                className="h-8 w-24 text-right"
-                readOnly={false} // MODIFIED: Selalu false
-                disabled={isSubmitting} 
-                min="0"
-              />
-            </div>
-            <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
-              <span>Total</span>
-              <span>{formatCurrency(total)}</span>
-            </div>
+            <div className="flex justify-between text-sm"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+            <div className="flex justify-between items-center text-sm"><span>Pajak (%)</span><Input type="number" value={pajakInput} onChange={(e) => setPajakInput(Number(e.target.value))} className="h-8 w-24 text-right" disabled={isSubmitting} /></div>
+            <div className="flex justify-between font-bold text-base border-t pt-2 mt-2"><span>Total</span><span>{formatCurrency(total)}</span></div>
           </div>
         </form>
-
-        {/* Tombol Footer - di luar form, jadi tetap di bawah */}
         <div className="flex justify-end space-x-2 pt-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
-            disabled={isSubmitting} 
-          >
-            Batal {/* MODIFIED: Selalu Batal */}
-          </Button>
-          {/* MODIFIED: Tombol submit selalu terlihat kecuali saat submitting */}
-          <Button 
-            type="submit" 
-            onClick={handleSubmit} 
-            disabled={isSubmitting} 
-          >
-            {isSubmitting ? 
-              (initialData ? 'Memperbarui...' : 'Membuat...') 
-              : (initialData ? 'Update Pesanan' : 'Buat Pesanan')} 
-          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Batal</Button>
+          <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Menyimpan...' : (initialData ? 'Update Pesanan' : 'Buat Pesanan')}</Button>
         </div>
       </DialogContent>
     </Dialog>

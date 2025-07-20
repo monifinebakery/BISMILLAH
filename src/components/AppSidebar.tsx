@@ -26,17 +26,19 @@ import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useAssets } from "@/contexts/AssetContext"; // ✅ PERBAIKAN: Menggunakan nama hook yang benar (useAsset)
+import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/contexts/FinancialContext";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 // --- Impor Fungsi Export Baru ---
-import { exportAllDataToExcel } from "@/lib/exportUtils";
+import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
   // --- Panggil semua hook untuk mendapatkan data ---
+  const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const { bahanBaku } = useBahanBaku();
   const { suppliers } = useSupplier();
@@ -44,7 +46,7 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAssets(); // ✅ PERBAIKAN: Memanggil hook dengan nama yang benar
+  const { assetss } = useAsset();
   const { financialTransactions } = useFinancial();
 
   const menuGroups = [
@@ -106,8 +108,8 @@ export function AppSidebar() {
       financialTransactions,
     };
     
-    // Panggil fungsi export yang baru
-    exportAllDataToExcel(allAppData);
+    // Kirim nama bisnis dari settings ke fungsi ekspor
+    exportAllDataToExcel(allAppData, settings.businessName);
   };
 
   return (

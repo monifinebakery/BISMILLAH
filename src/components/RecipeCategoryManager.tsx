@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Settings as SettingsIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 
 const RecipeCategoryManager = () => {
   const { settings, saveSettings } = useUserSettings();

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Download } from 'lucide-react';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
 

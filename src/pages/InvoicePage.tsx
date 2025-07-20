@@ -83,20 +83,22 @@ const InvoicePage = () => {
       </Card>
       
       <div className="bg-white p-6 sm:p-12 rounded-lg shadow-lg max-w-4xl mx-auto border" id="invoice-content">
-        <div className="flex flex-col sm:flex-row justify-between items-start pb-8 border-b gap-4">
-          <div>
+        {/* --- PERBAIKAN LAYOUT HEADER --- */}
+        <div className="flex flex-col sm:flex-row justify-between items-start pb-8 border-b gap-8">
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800">{settings.businessName || 'Nama Bisnis Anda'}</h1>
             <p className="text-sm text-gray-500 mt-1">{settings.address || 'Alamat Bisnis'}</p>
           </div>
-          <div className="w-full sm:w-auto sm:text-right">
-            <h2 className="text-4xl font-bold text-gray-400 uppercase tracking-widest">INVOICE</h2>
-            <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between sm:justify-end gap-2"><Label className="text-sm text-gray-500">No. Invoice:</Label><Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
-                <div className="flex items-center justify-between sm:justify-end gap-2"><Label className="text-sm text-gray-500">Tanggal:</Label><Input type="date" value={format(issueDate, 'yyyy-MM-dd')} onChange={e => setIssueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
-                <div className="flex items-center justify-between sm:justify-end gap-2"><Label className="text-sm text-gray-500">Jatuh Tempo:</Label><Input type="date" value={format(dueDate, 'yyyy-MM-dd')} onChange={e => setDueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
+          <div className="w-full sm:w-auto sm:text-right flex-shrink-0">
+            <h2 className="text-4xl font-bold text-gray-400 uppercase tracking-widest mb-4">INVOICE</h2>
+            <div className="space-y-2">
+                <div className="grid grid-cols-2 items-center gap-2"><Label className="text-sm text-gray-500 text-left">No. Invoice:</Label><Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="text-right print:border-none print:p-0 print:h-auto" /></div>
+                <div className="grid grid-cols-2 items-center gap-2"><Label className="text-sm text-gray-500 text-left">Tanggal:</Label><Input type="date" value={format(issueDate, 'yyyy-MM-dd')} onChange={e => setIssueDate(new Date(e.target.value))} className="text-right print:border-none print:p-0 print:h-auto" /></div>
+                <div className="grid grid-cols-2 items-center gap-2"><Label className="text-sm text-gray-500 text-left">Jatuh Tempo:</Label><Input type="date" value={format(dueDate, 'yyyy-MM-dd')} onChange={e => setDueDate(new Date(e.target.value))} className="text-right print:border-none print:p-0 print:h-auto" /></div>
             </div>
           </div>
         </div>
+        {/* --- AKHIR PERBAIKAN --- */}
 
         <div className="mt-8 mb-8">
           <h3 className="font-semibold text-gray-600 mb-2">Ditagihkan Kepada:</h3>
@@ -104,40 +106,39 @@ const InvoicePage = () => {
           <Textarea placeholder="Alamat & Kontak Pelanggan" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} className="text-sm text-gray-500 print:border-none print:p-0" />
         </div>
 
-        {/* --- PERBAIKAN LAYOUT TABEL ITEM --- */}
-        <div className="space-y-4">
-          {items.map((item, index) => (
-            <Card key={item.id} className="p-4 border bg-gray-50/50 print:border-none print:shadow-none print:bg-white">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                {/* Deskripsi */}
-                <div className="sm:col-span-6">
-                  <Label htmlFor={`desc-${item.id}`}>Deskripsi</Label>
-                  <Textarea id={`desc-${item.id}`} placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="mt-1" rows={1} />
-                </div>
-                {/* Jumlah */}
-                <div className="sm:col-span-2">
-                  <Label htmlFor={`qty-${item.id}`}>Jumlah</Label>
-                  <Input id={`qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="mt-1 text-center" />
-                </div>
-                {/* Harga Satuan */}
-                <div className="sm:col-span-2">
-                  <Label htmlFor={`price-${item.id}`}>Harga Satuan</Label>
-                  <Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="mt-1 text-right" />
-                </div>
-                {/* Total */}
-                <div className="sm:col-span-2 text-right">
-                    <Label className="text-xs text-muted-foreground">Total</Label>
-                    <p className="font-medium h-10 flex items-center justify-end">{formatCurrency(item.quantity * item.price)}</p>
-                </div>
+        <div className="space-y-2">
+          <div className="hidden sm:grid grid-cols-12 gap-4 px-2 pb-2 border-b">
+            <div className="col-span-5"><Label className="text-xs text-muted-foreground">Deskripsi</Label></div>
+            <div className="col-span-2 text-center"><Label className="text-xs text-muted-foreground">Jumlah</Label></div>
+            <div className="col-span-2 text-right"><Label className="text-xs text-muted-foreground">Harga Satuan</Label></div>
+            <div className="col-span-2 text-right"><Label className="text-xs text-muted-foreground">Total</Label></div>
+            <div className="col-span-1"></div>
+          </div>
+
+          {items.map(item => (
+            <div key={item.id} className="grid grid-cols-12 gap-2 p-2 rounded-lg hover:bg-gray-50 border sm:border-none">
+              <div className="col-span-12 sm:col-span-5">
+                <Label htmlFor={`desc-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Deskripsi</Label>
+                <Textarea id={`desc-${item.id}`} placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="print:border-none w-full mt-1" rows={1} />
               </div>
-              <div className="flex justify-end mt-2 print:hidden">
-                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <div className="col-span-6 sm:col-span-2">
+                <Label htmlFor={`qty-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Jumlah</Label>
+                <Input id={`qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="text-center print:border-none w-full mt-1" />
               </div>
-            </Card>
+              <div className="col-span-6 sm:col-span-2">
+                <Label htmlFor={`price-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Harga Satuan</Label>
+                <Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="text-right print:border-none w-full mt-1" />
+              </div>
+              <div className="col-span-10 sm:col-span-2 flex items-center justify-end">
+                <p className="font-medium h-10 flex items-center justify-end">{formatCurrency(item.quantity * item.price)}</p>
+              </div>
+              <div className="col-span-2 sm:col-span-1 flex items-center justify-end">
+                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="print:hidden h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            </div>
           ))}
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
-        {/* --- AKHIR PERBAIKAN --- */}
 
         <div className="flex flex-col sm:flex-row justify-between items-start mt-8">
             <div className="w-full sm:w-1/2 mb-6 sm:mb-0">

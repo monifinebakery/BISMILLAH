@@ -4,9 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
-import { safeParseDate } from '@/utils/dateUtils';
-import { supabase } from '@/integrations/supabase/client';
-// --- IMPOR BARU ---
+
+// --- Impor Hook Baru ---
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { useActivity } from '@/contexts/ActivityContext';
 
@@ -20,16 +19,16 @@ interface Notification {
 }
 
 const NotificationBell = () => {
-  // --- PANGGIL HOOK BARU ---
+  // --- Panggil Hook Baru ---
   const { bahanBaku } = useBahanBaku();
   const { activities } = useActivity();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
+    // ✅ PERBAIKAN: Logika disesuaikan dengan data dari hook baru
     const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
     const currentTime = new Date();
     
-    // Generate notifikasi stok menipis
     const lowStockNotifications: Notification[] = lowStockItems.map(item => ({
       id: `low-stock-${item.id}`,
       title: 'Stok Menipis',
@@ -39,26 +38,18 @@ const NotificationBell = () => {
       timestamp: currentTime,
     }));
 
-    // Generate notifikasi aktivitas (3 terbaru)
-    const activityNotifications: Notification[] = activities.slice(0, 3).map(activity => ({
+    const activityNotifications: Notification[] = activities.slice(0, 5).map(activity => ({
       id: `activity-${activity.id}`,
       title: activity.title,
-      message: activity.description, // Pastikan ini 'message', bukan 'description'
-      type: activity.type === 'hpp' ? 'success' : 
-            activity.type === 'stok' ? 'info' : 
-            activity.type === 'resep' ? 'info' : 'info',
+      message: activity.description,
+      type: 'info' as const,
       read: false,
       timestamp: activity.timestamp, 
     }));
 
-    // Gabungkan dan urutkan berdasarkan waktu
     const allNotifications = [...lowStockNotifications, ...activityNotifications]
-      .sort((a, b) => {
-        const timeA = a.timestamp?.getTime() || 0;
-        const timeB = b.timestamp?.getTime() || 0;
-        return timeB - timeA; // Terbaru di atas
-      })
-      .slice(0, 10); // Ambil 10 notifikasi teratas
+      .sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0))
+      .slice(0, 10);
 
     setNotifications(allNotifications);
   }, [bahanBaku, activities]);
@@ -75,30 +66,14 @@ const NotificationBell = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const getTypeColor = (type: Notification['type']) => {
-    switch (type) {
-      case 'error': return 'destructive';
-      case 'warning': return 'secondary';
-      case 'success': return 'default';
-      default: return 'outline';
-    }
-  };
-
   const formatTime = (date: Date) => {
-    if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return '';
-    }
-
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
     if (diffMins < 1) return 'Baru saja';
     if (diffMins < 60) return `${diffMins} menit lalu`;
-    if (diffHours < 24) return `${diffHours} jam lalu`;
-    return `${diffDays} hari lalu`;
+    return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
   };
 
   return (
@@ -142,7 +117,7 @@ const NotificationBell = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{notification.title}</p>
+                      <p className={`font-medium text-sm ${notification.type === 'warning' ? 'text-orange-600' : ''}`}>{notification.title}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {notification.message}
                       </p>

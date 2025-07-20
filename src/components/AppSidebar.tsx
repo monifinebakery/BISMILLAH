@@ -29,6 +29,9 @@ import { useOrder } from "@/contexts/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/contexts/FinancialContext";
 
+// --- Impor Fungsi Export Baru ---
+import { exportAllDataToExcel } from "@/utils/exportUtils";
+
 export function AppSidebar() {
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);

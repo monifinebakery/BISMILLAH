@@ -13,11 +13,9 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// PERUBAHAN: Skema warna diubah dari ungu/biru menjadi oranye/merah.
-
 const SupplierManagement = () => {
   const isMobile = useIsMobile();
-  const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
+  const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -239,8 +237,8 @@ const SupplierManagement = () => {
         </Card>
 
         {/* Supplier List */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
             <CardTitle className="text-lg sm:text-xl">Daftar Supplier</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -326,65 +324,89 @@ const SupplierManagement = () => {
                 ))}
               </div>
             ) : (
-              // Desktop View (Table)
+              // Desktop View (Table) - Updated Design
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[150px]">Nama Supplier</TableHead>
-                      <TableHead className="min-w-[120px]">Kontak</TableHead>
-                      <TableHead className="min-w-[150px]">Email</TableHead>
-                      <TableHead className="min-w-[120px]">Telepon</TableHead>
-                      <TableHead className="min-w-[200px]">Alamat</TableHead>
-                      <TableHead className="min-w-[100px]">Tanggal</TableHead>
-                      <TableHead className="min-w-[120px]">Aksi</TableHead>
+                <Table className="min-w-full">
+                  <TableHeader className="bg-gray-50">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="min-w-[180px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Nama Supplier
+                      </TableHead>
+                      <TableHead className="min-w-[120px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Kontak
+                      </TableHead>
+                      <TableHead className="min-w-[160px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Email
+                      </TableHead>
+                      <TableHead className="min-w-[120px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Telepon
+                      </TableHead>
+                      <TableHead className="min-w-[220px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Alamat
+                      </TableHead>
+                      <TableHead className="min-w-[100px] py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Tanggal
+                      </TableHead>
+                      <TableHead className="min-w-[120px] py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                        Aksi
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="divide-y divide-gray-200">
                     {filteredSuppliers.map((supplier) => (
-                      <TableRow key={supplier.id}>
-                        <TableCell className="font-medium">{supplier.nama}</TableCell>
-                        <TableCell>{supplier.kontak}</TableCell>
-                        <TableCell>
+                      <TableRow key={supplier.id} className="hover:bg-orange-50/50 transition-colors">
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
+                          <div className="font-medium text-gray-900">{supplier.nama}</div>
+                        </TableCell>
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
+                          <div className="text-gray-700">{supplier.kontak}</div>
+                        </TableCell>
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
                           {supplier.email ? (
                             <div className="flex items-center">
-                              <Mail className="h-4 w-4 mr-1 text-gray-400" />
-                              {supplier.email}
+                              <Mail className="h-4 w-4 mr-2 text-orange-500" />
+                              <a href={`mailto:${supplier.email}`} className="text-orange-600 hover:underline">
+                                {supplier.email}
+                              </a>
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
                           {supplier.telepon ? (
                             <div className="flex items-center">
-                              <Phone className="h-4 w-4 mr-1 text-gray-400" />
-                              {supplier.telepon}
+                              <Phone className="h-4 w-4 mr-2 text-orange-500" />
+                              <a href={`tel:${supplier.telepon}`} className="text-orange-600 hover:underline">
+                                {supplier.telepon}
+                              </a>
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
                           {supplier.alamat ? (
                             <div className="flex items-start">
-                              <MapPin className="h-4 w-4 mr-1 text-gray-400 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm">{supplier.alamat}</span>
+                              <MapPin className="h-4 w-4 mr-2 text-orange-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">{supplier.alamat}</span>
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {supplier.createdAt ? formatDateForDisplay(supplier.createdAt) : '-'}
+                        <TableCell className="py-4 px-4 border-b border-gray-200">
+                          <div className="text-sm text-gray-500">
+                            {supplier.createdAt ? formatDateForDisplay(supplier.createdAt) : '-'}
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
+                        <TableCell className="py-4 px-4 border-b border-gray-200 text-right">
+                          <div className="flex justify-end space-x-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditSupplier(supplier)}
-                              className="hover:bg-orange-50 hover:text-orange-600"
+                              className="h-8 w-8 p-0 hover:bg-orange-100 hover:text-orange-600"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -392,7 +414,7 @@ const SupplierManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteSupplier(supplier.id)}
-                              className="hover:bg-red-50 hover:text-red-600"
+                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

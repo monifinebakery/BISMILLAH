@@ -92,7 +92,6 @@ const FinancialReportPage = () => {
 
     const finalTransactionData = Object.values(monthlyData)
         .map(value => ({
-          // ✅ PERBAIKAN: Ubah format bulan menjadi 'MMM yyyy' agar lebih jelas (Contoh: "Jul 2025")
           month: format(value.date, 'MMM yyyy', { locale: id }), 
           Pemasukan: value.income,
           Pengeluaran: value.expense,
@@ -114,12 +113,11 @@ const FinancialReportPage = () => {
     };
   }, [filteredTransactions]);
   
-  // ✅ PERBAIKAN DESAIN: Palet warna yang lebih modern dan berbeda
   const COLORS = ['#28a745', '#dc3545', '#007bff', '#ffc107', '#6f42c1', '#17a2b8']; // Green, Red, Blue, Yellow, Purple, Teal
 
-  const formatYAxis = (tickItem: number) => formatLargeNumber(tickItem); // Menggunakan formatLargeNumber untuk y-axis
+  const formatYAxis = (tickItem: number) => formatLargeNumber(tickItem);
 
-  // ✅ PERBAIKAN DESAIN: Custom Tooltip untuk Line Chart
+  // Custom Tooltip untuk Line Chart
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const pemasukan = payload.find((p: any) => p.dataKey === 'Pemasukan');
@@ -165,7 +163,7 @@ const FinancialReportPage = () => {
           <FinancialCategoryManager />
           <Button onClick={() => setIsDialogOpen(true)}>Tambah Transaksi</Button>
         </div>
-        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card><CardHeader><CardTitle>Total Pemasukan</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p></CardContent></Card>
@@ -180,28 +178,30 @@ const FinancialReportPage = () => {
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={transactionData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" /> {/* Garis grid lebih halus */}
-                        <XAxis dataKey="month" tickLine={false} axisLine={false} /> {/* Hilangkan garis di sumbu X */}
-                        <YAxis tickFormatter={formatYAxis} width={90} axisLine={false} tickLine={false} /> {/* Hilangkan garis di sumbu Y */}
-                        <Tooltip content={<CustomTooltip />} /> {/* Gunakan Custom Tooltip */}
-                        <Legend verticalAlign="top" height={36} /> {/* Posisikan Legend di atas */}
-                        {/* Warna LineChart dari palet baru, strokeWidth lebih tebal, dot yang lebih menarik */}
-                        <Line 
-                            type="monotone" 
-                            dataKey="Pemasukan" 
-                            stroke={COLORS[0]} 
-                            strokeWidth={3} 
-                            dot={{ r: 4, fill: COLORS[0], stroke: 'white', strokeWidth: 2 }} 
-                            activeDot={{ r: 8, fill: COLORS[0], stroke: COLORS[0], strokeWidth: 2 }} 
-                        />
-                        <Line 
-                            type="monotone" 
-                            dataKey="Pengeluaran" 
-                            stroke={COLORS[1]} 
-                            strokeWidth={3} 
-                            dot={{ r: 4, fill: COLORS[1], stroke: 'white', strokeWidth: 2 }} 
-                            activeDot={{ r: 8, fill: COLORS[1], stroke: COLORS[1], strokeWidth: 2 }} 
-                        />
+                        {/* Bungkus children LineChart dengan Fragment */}
+                        <> 
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" /> 
+                            <XAxis dataKey="month" tickLine={false} axisLine={false} /> 
+                            <YAxis tickFormatter={formatYAxis} width={90} axisLine={false} tickLine={false} /> 
+                            <Tooltip content={<CustomTooltip />} /> 
+                            <Legend verticalAlign="top" height={36} /> 
+                            <Line 
+                                type="monotone" 
+                                dataKey="Pemasukan" 
+                                stroke={COLORS[0]} 
+                                strokeWidth={3} 
+                                dot={{ r: 4, fill: COLORS[0], stroke: 'white', strokeWidth: 2 }} 
+                                activeDot={{ r: 8, fill: COLORS[0], stroke: COLORS[0], strokeWidth: 2 }} 
+                            />
+                            <Line 
+                                type="monotone" 
+                                dataKey="Pengeluaran" 
+                                stroke={COLORS[1]} 
+                                strokeWidth={3} 
+                                dot={{ r: 4, fill: COLORS[1], stroke: 'white', strokeWidth: 2 }} 
+                                activeDot={{ r: 8, fill: COLORS[1], stroke: COLORS[1], strokeWidth: 2 }} 
+                            />
+                        </> {/* Akhir Fragment */}
                     </LineChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -211,23 +211,26 @@ const FinancialReportPage = () => {
                 <CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
+                        {/* Memperbaiki struktur JSX di sini */}
                         <PieChart>
-                            <Pie 
-                                dataKey="value" 
-                                data={categoryData.incomeData} 
-                                nameKey="name" 
-                                cx="50%" 
-                                cy="50%" 
-                                outerRadius={100} 
-                                innerRadius={60} // Efek Donut
-                                paddingAngle={5} // Spasi antar slice
-                                labelLine={false} 
-                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            >
-                                {categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                            <Legend layout="vertical" align="right" verticalAlign="middle" /> {/* Posisikan legend */}
+                            <> {/* Bungkus children PieChart dengan Fragment */}
+                                <Pie 
+                                    dataKey="value" 
+                                    data={categoryData.incomeData} 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    outerRadius={100} 
+                                    innerRadius={60} 
+                                    paddingAngle={5} 
+                                    labelLine={false} 
+                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                >
+                                    {categoryData.incomeData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                <Legend layout="vertical" align="right" verticalAlign="middle" /> 
+                            </> {/* Akhir Fragment */}
                         </PieChart>
                     </ResponsiveContainer>
                 </CardContent>
@@ -236,23 +239,26 @@ const FinancialReportPage = () => {
                 <CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
+                        {/* Memperbaiki struktur JSX di sini */}
                         <PieChart>
-                            <Pie 
-                                dataKey="value" 
-                                data={categoryData.expenseData} 
-                                nameKey="name" 
-                                cx="50%" 
-                                cy="50%" 
-                                outerRadius={100} 
-                                innerRadius={60} // Efek Donut
-                                paddingAngle={5} // Spasi antar slice
-                                labelLine={false} 
-                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            >
-                                {categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                            <Legend layout="vertical" align="right" verticalAlign="middle" /> {/* Posisikan legend */}
+                            <> {/* Bungkus children PieChart dengan Fragment */}
+                                <Pie 
+                                    dataKey="value" 
+                                    data={categoryData.expenseData} 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    outerRadius={100} 
+                                    innerRadius={60} 
+                                    paddingAngle={5} 
+                                    labelLine={false} 
+                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                >
+                                    {categoryData.expenseData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                <Legend layout="vertical" align="right" verticalAlign="middle" /> 
+                            </> {/* Akhir Fragment */}
                     </ResponsiveContainer>
                 </CardContent>
             </Card>

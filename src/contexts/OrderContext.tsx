@@ -173,6 +173,25 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return false;
     }
 
+    const channel = supabase
+      .channel(`realtime-orders-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          // *** PENTING: PASTIKAN LOG INI ADA DAN MUNCUL ***
+          console.log('[OrderContext] Perubahan realtime diterima:', payload);
+          const transform = transformOrderFromDB;
+          if (payload.eventType === 'INSERT') {
+                setOrders(current => [transform(payload.new), ...current].sort((a, b) => new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()));
+            }
+          if (payload.eventType === 'UPDATE') {
+                setOrders(current => current.map(o => o.id === payload.new.id ? transform(payload.new) : o));
+            }
+          if (payload.eventType === 'DELETE') {
+                setOrders(current => current.filter(o => o.id !== payload.old.id));
+            }
+        }
+      ).subscribe();
+    
     if (orderToDelete) {
         addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order', value: null });
     }

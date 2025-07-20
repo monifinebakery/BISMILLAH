@@ -361,8 +361,7 @@ const WarehousePage = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
+            ))}
         </div>
 
         {editingItem && (

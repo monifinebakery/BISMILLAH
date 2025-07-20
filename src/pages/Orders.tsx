@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile'; 
-import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-ns';
-// TAMBAHAN: Import Link dari react-router-dom
+// PERBAIKAN: Mengganti 'date-ns' menjadi 'date-fns'
+import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-// TAMBAHAN: Import FileText icon
 import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText } from 'lucide-react'; 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -81,7 +80,6 @@ const OrdersPage = () => {
     const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || '';
     const total = orderData.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0';
 
-    // ... (kode template whatsapp tetap sama)
     switch (status) {
         case 'pending': return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan} pada tanggal ${formattedDate}.\n\nPesanan Anda sedang kami proses. Berikut detail pesanan Anda:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi jika informasi ini sudah benar. Terima kasih!`;
         case 'confirmed': return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah kami konfirmasi dan sedang diproses.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan segera memproses pesanan Anda. Terima kasih atas kesabaran Anda!`;
@@ -307,9 +305,7 @@ const OrdersPage = () => {
             </CardHeader>
             <CardContent>
               {isMobile ? (
-                // Konten untuk Mobile
                 <div className="space-y-2 text-sm">
-                  {/* ... detail mobile ... */}
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Pelanggan:</span>
                     <span className="font-semibold">{order.namaPelanggan}</span>
@@ -341,7 +337,6 @@ const OrdersPage = () => {
                       <MessageSquare className="h-4 w-4" />
                       Follow-up
                     </Button>
-                     {/* TAMBAHAN: Tombol Invoice untuk Mobile */}
                     <Button asChild variant="outline" size="sm" className="flex items-center gap-2">
                       <Link to={`/pesanan/invoice/${order.id}`}>
                         <FileText className="h-4 w-4" />
@@ -351,10 +346,8 @@ const OrdersPage = () => {
                   </div>
                 </div>
               ) : (
-                // Konten untuk Desktop
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    {/* ... detail desktop ... */}
                     <div><p className="text-sm text-muted-foreground">Total Pesanan</p><p className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</p></div>
                     <div><p className="text-sm text-muted-foreground">Jumlah Item</p><p className="font-semibold">{order.items?.length || 0} item</p></div>
                     <div><p className="text-sm text-muted-foreground">No Whatsapp</p><p className="font-semibold">{order.teleponPelanggan || 'Tidak tersedia'}</p></div>
@@ -397,7 +390,6 @@ const OrdersPage = () => {
                         Hapus
                       </Button>
                     )}
-                     {/* TAMBAHAN: Tombol Invoice untuk Desktop */}
                     <div className="sm:ml-auto flex gap-2">
                       <Button asChild variant="ghost" size="icon">
                         <Link to={`/pesanan/invoice/${order.id}`} title="Lihat Invoice">

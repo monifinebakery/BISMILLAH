@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search, Plus } from 'lucide-react';
-import { useRecipes } from '@/contexts/RecipeContext';
+import { useRecipe } from '@/contexts/RecipeContext';
 import RecipeForm from '@/components/RecipeForm';
 import { Recipe } from '@/types/recipe';
 import MenuExportButton from '@/components/MenuExportButton';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { formatDateForDisplay } from '@/utils/dateUtils'; // Import fungsi formatDateForDisplay (meskipun tidak langsung digunakan di sini)
 
 const RecipesPage = () => {
-  const { recipes, loading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
+  const { recipes, loading, addRecipe, updateRecipe, deleteRecipe } = useRecipe();
   const { settings } = useUserSettings();
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [showForm, setShowForm] = useState(false);

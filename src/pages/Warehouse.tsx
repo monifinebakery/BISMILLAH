@@ -116,7 +116,7 @@ const WarehousePage = () => {
   };
 
   const handleEditSave = async (updates: Partial<BahanBaku>) => {
-    if (editing Item && editingItem.id) {
+    if (editingItem && editingItem.id) {
       const updatedItemData = { ...updates };
       await updateBahanBaku(editingItem.id, updatedItemData);
       setEditingItem(null);

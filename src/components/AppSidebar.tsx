@@ -31,7 +31,7 @@ import { useFinancial } from "@/contexts/FinancialContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
 
 // --- Impor Fungsi Export Baru ---
-import { exportAllDataToExcel } from "@/utils/exportUtils";
+import { exportAllDataToExcel } from "@/lib/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();

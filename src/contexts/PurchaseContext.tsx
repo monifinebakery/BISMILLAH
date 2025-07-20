@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
-import { useFinancialTransaction } from './FinancialTransactionContext'; // ✅ IMPOR INI
+import { useFinancial } from './FinancialContext'; // ✅ PERBAIKAN: IMPOR useFinancial
 
 // --- INTERFACE & CONTEXT ---
 interface PurchaseContextType {
@@ -30,7 +30,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addFinancialTransaction } = useFinancialTransaction(); // ✅ PANGGIL HOOK INI
+  const { addFinancialTransaction } = useFinancial(); // ✅ PERBAIKAN: PANGGIL HOOK useFinancial
 
   const transformPurchaseFromDB = (dbItem: any): Purchase => ({
     id: dbItem.id,
@@ -63,7 +63,6 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         .order('tanggal', { ascending: false });
 
       if (error) {
-        console.error('[PurchaseContext] Gagal memuat pembelian:', error.message);
         toast.error(`Gagal memuat pembelian: ${error.message}`);
       } else if (data) {
         const transformedData = data.map(transformPurchaseFromDB);
@@ -137,14 +136,12 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
 
-    // Ambil data pembelian LAMA dari state lokal untuk membandingkan status
-    const oldPurchase = purchases.find(p => p.id === id);
+    const oldPurchase = purchases.find(p => p.id === id); // Ambil data pembelian LAMA dari state lokal
 
     const purchaseToUpdate: { [key: string]: any } = {
       updated_at: new Date().toISOString(), 
     };
 
-    // Map properti yang diupdate ke snake_case untuk database
     if (updatedData.supplier !== undefined) purchaseToUpdate.supplier = updatedData.supplier;
     if (updatedData.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedData.totalNilai;
     if (updatedData.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
@@ -163,20 +160,19 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     // ✅ LOGIKA BARU: Masuk ke laporan pengeluaran jika status berubah menjadi 'completed'
-    // Pastikan oldPurchase ada dan statusnya berbeda sebelum update
     if (oldPurchase && oldPurchase.status !== 'completed' && updatedData.status === 'completed') {
         let actualSupplierName = 'Supplier Tidak Dikenal';
-        // Ambil nama supplier secara langsung dari DB jika purchase.supplier adalah ID
+        // Ambil nama supplier secara langsung dari DB jika purchase.supplier adalah ID (UUID)
         if (oldPurchase.supplier) {
             const { data: supplierDb, error: supplierError } = await supabase
-                .from('suppliers')
+                .from('suppliers') // Query tabel 'suppliers' langsung di sini
                 .select('nama')
-                .eq('id', oldPurchase.supplier)
+                .eq('id', oldPurchase.supplier) // oldPurchase.supplier adalah ID supplier
                 .single();
             if (supplierDb) {
                 actualSupplierName = supplierDb.nama;
             } else if (supplierError) {
-                console.error('Gagal mengambil nama supplier:', supplierError.message);
+                console.error('Gagal mengambil nama supplier untuk catatan transaksi:', supplierError.message);
             }
         }
 

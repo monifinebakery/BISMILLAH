@@ -1,38 +1,43 @@
 // src/pages/Settings.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, 'useState', 'useEffect' from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useUserSettings, UserSettings } from '@/contexts/UserSettingsContext'; // Impor hook DAN tipe UserSettings
 import RecipeCategoryManager from '@/components/RecipeCategoryManager';
 import { Label } from '@/components/ui/label';
 
 const Settings = () => {
-  // Panggil hook yang benar dari context realtime kita
+  // 1. Panggil hook yang benar dari context realtime kita
   const { settings, updateSettings, isLoading } = useUserSettings();
   
-  // Gunakan state lokal untuk form, agar tidak memicu save di setiap ketikan
-  const [formState, setFormState] = useState(settings);
+  // 2. Gunakan state lokal untuk form, diinisialisasi dengan data dari context
+  // Ini mencegah re-render yang tidak perlu dan memungkinkan penyimpanan saat onBlur
+  const [formState, setFormState] = useState<UserSettings>(settings);
 
-  // Sinkronkan state lokal jika data dari context (server) berubah
+  // 3. Sinkronkan state lokal jika data dari context (server) berubah
   useEffect(() => {
     setFormState(settings);
   }, [settings]);
 
-  // Handler untuk menyimpan perubahan saat input kehilangan fokus (onBlur)
-  const handleBlurSave = (field: keyof typeof formState, value: any) => {
+  // Handler untuk mengubah nilai di state form lokal saat pengguna mengetik
+  const handleFormChange = (updates: Partial<UserSettings>) => {
+    setFormState(prev => ({ ...prev, ...updates }));
+  };
+
+  // Handler untuk menyimpan perubahan input saat kehilangan fokus (onBlur)
+  const handleBlurSave = (field: keyof UserSettings) => {
     // Hanya panggil update jika nilainya benar-benar berubah
-    if (settings[field] !== value) {
-      updateSettings({ [field]: value });
+    if (settings[field] !== formState[field]) {
+      updateSettings({ [field]: formState[field] });
     }
   };
   
   // Handler untuk menyimpan perubahan Switch & Select secara langsung
-  const handleImmediateSave = (update: Partial<typeof settings>) => {
+  const handleImmediateSave = (update: Partial<UserSettings>) => {
     updateSettings(update);
   };
 
@@ -72,13 +77,14 @@ const Settings = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="businessName">Nama Bisnis</Label>
-                  <Input id="businessName" value={formState.businessName} onChange={(e) => setFormState({ ...formState, businessName: e.target.value })} onBlur={(e) => handleBlurSave('businessName', e.target.value)} />
+                  <Input id="businessName" value={formState.businessName} onChange={(e) => handleFormChange({ businessName: e.target.value })} onBlur={() => handleBlurSave('businessName')} />
                 </div>
                 <div>
                   <Label htmlFor="ownerName">Nama Pemilik</Label>
-                  <Input id="ownerName" value={formState.ownerName} onChange={(e) => setFormState({ ...formState, ownerName: e.target.value })} onBlur={(e) => handleBlurSave('ownerName', e.target.value)} />
+                  <Input id="ownerName" value={formState.ownerName} onChange={(e) => handleFormChange({ ownerName: e.target.value })} onBlur={() => handleBlurSave('ownerName')} />
                 </div>
               </div>
+              {/* Tambahkan field lain seperti email, phone, address jika ada di tipe UserSettings Anda */}
             </CardContent>
           </Card>
           
@@ -94,11 +100,11 @@ const Settings = () => {
                   <p className="text-sm text-muted-foreground">Notifikasi ketika stok bahan baku rendah</p>
                 </div>
                 <Switch
-                  checked={formState.notifications?.lowStock ?? false} // <-- Gunakan `?.` dan `??`
+                  checked={formState.notifications?.lowStock ?? false} // <-- Aman dengan `?.` dan `??`
                   onCheckedChange={(checked) => handleImmediateSave({ notifications: { ...formState.notifications, lowStock: checked } })}
                 />
               </div>
-              {/* Tambahkan switch lain jika ada (newOrder, financial) dengan pola yang sama */}
+              {/* Tambahkan switch lain untuk newOrder, financial, dll. dengan pola yang sama */}
             </CardContent>
           </Card>
           
@@ -112,8 +118,6 @@ const Settings = () => {
               <RecipeCategoryManager />
             </CardContent>
           </Card>
-          
-          {/* Kartu lain (Backup, Security, dll) bisa ditambahkan di sini dengan pola yang sama */}
         </div>
       </div>
     </div>

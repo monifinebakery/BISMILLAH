@@ -9,7 +9,7 @@ import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useUserSettings } from '@/contexts/useUserSettings'; // ✅ 1. Impor useUserSettings
+import { useUserSettings } from '@/contexts/UserSettingsContext'; // ✅ 1. Impor useUserSettings
 
 // Fungsi untuk format tanggal dan waktu
 const formatDateTime = (date: Date | null) => {

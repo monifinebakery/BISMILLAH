@@ -49,6 +49,12 @@ const FinancialReportPage = () => {
     to: endOfDay(new Date()),
   });
 
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+
+  const handleEditClick = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setIsDialogOpen(true);
+  };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const closeDialog = useCallback(() => setIsDialogOpen(false), []);
   const [isMobile, setIsMobile] = useState(false);

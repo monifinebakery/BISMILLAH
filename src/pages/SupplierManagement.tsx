@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Users, Plus, Edit, Trash2, Phone, Mail, MapPin, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
-import { useSuppliers } from '@/hooks/useSuppliers';
+import { useSuppliers } from '@/contexts/SupplierContext';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns'; // Sudah ada
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns'; 
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,19 +41,19 @@ const FinancialReportPage = () => {
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
-    console.log('[FinancialReportPage] Raw Transactions:', transactions); // ✅ Log Raw Transactions
+    console.log('[FinancialReportPage] Raw Transactions:', transactions); 
     return transactions.filter(t => {
       const transactionDate = t.date;
       if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
-          console.warn('Invalid transaction date found:', t); 
-          return false;
-      }
-      console.log('[FinancialReportPage] Checking transaction date:', transactionDate); // ✅ Log setiap tanggal transaksi
+          console.warn('Invalid transaction date found:', t); 
+          return false;
+      }
+      console.log('[FinancialReportPage] Checking transaction date:', transactionDate); 
 
       const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; 
       const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     
 
-      console.log('[FinancialReportPage] Date Range From:', rangeFrom, 'To:', rangeTo); // ✅ Log rentang tanggal filter
+      console.log('[FinancialReportPage] Date Range From:', rangeFrom, 'To:', rangeTo); 
 
       if (rangeFrom && transactionDate < rangeFrom) return false;
       if (rangeTo && transactionDate > rangeTo) return false; 
@@ -80,7 +80,7 @@ const FinancialReportPage = () => {
       
       if(t.date){
         const monthStart = startOfMonth(t.date); 
-        console.log('[FinancialReportPage] Monthly Data - Original Date:', t.date, 'Month Start:', monthStart); // ✅ Log tanggal asli dan awal bulan
+        console.log('[FinancialReportPage] Monthly Data - Original Date:', t.date, 'Month Start:', monthStart); 
         const monthYearKey = format(monthStart, 'yyyy-MM'); 
         if (!monthlyData[monthYearKey]) {
           monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; 
@@ -90,16 +90,17 @@ const FinancialReportPage = () => {
       }
     });
 
-    const finalTransactionData = Object.values(monthlyData)
+    const finalTransactionData = Object.values(monthlyData)
         .map(value => ({
-          month: format(value.date, 'MMM yy', { locale: id }), 
+          // ✅ PERBAIKAN: Ubah format bulan menjadi 'MMM yyyy' agar lebih jelas
+          month: format(value.date, 'MMM yyyy', { locale: id }), // Contoh: "Jul 2025"
           Pemasukan: value.income,
           Pengeluaran: value.expense,
-          date: value.date,
+          date: value.date, 
         }))
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    console.log('[FinancialReportPage] Final Transaction Data for Chart:', finalTransactionData); // ✅ Log data akhir untuk chart
+    console.log('[FinancialReportPage] Final Transaction Data for Chart:', finalTransactionData); 
 
     return {
       totalIncome: income,
@@ -162,7 +163,6 @@ const FinancialReportPage = () => {
                     <LineChart data={transactionData}>
                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis tickFormatter={formatYAxis} width={90} /><Tooltip formatter={(value: number) => formatCurrency(value)} /><Legend /><Line type="monotone" dataKey="Pemasukan" stroke="#16a34a" strokeWidth={2} activeDot={{ r: 8 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#dc2626" strokeWidth={2} activeDot={{ r: 8 }}/>
                     </LineChart>
-                </ResponsiveContainer>
             </CardContent>
         </Card>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

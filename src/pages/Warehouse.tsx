@@ -514,6 +514,5 @@ const WarehousePage = () => {
       </div>
     </div>
   );
-};
 
 export default WarehousePage;

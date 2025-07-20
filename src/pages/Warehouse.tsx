@@ -164,7 +164,7 @@ const WarehousePage = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
-    <div className="container mx-auto p-4 sm:p-8">
+    <div className="container mx-auto p-4 sm:p-8"> {/* Main container */}
 
         {/* Header Utama Halaman */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
@@ -417,7 +417,7 @@ const WarehousePage = () => {
             </Card>
           ) : (
             <div className="space-y-4">
-              {currentItems.map((item) => { /* ✅ PERBAIKAN: Gunakan return eksplisit di sini */
+              {currentItems.map((item) => { /* ✅ PERBAIKAN: Gunakan return eksplisit */
                 return ( /* ✅ PERBAIKAN: Menambahkan `return (` */
                   <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
                     <CardContent className="p-4">
@@ -497,8 +497,8 @@ const WarehousePage = () => {
                   </div>
                 </CardContent>
               </Card>
-              );
-              })} {
+              ); /* ✅ PERBAIKAN: Penutup `return (` */
+              })} {/* ✅ PERBAIKAN: Penutup `map` yang benar */}
             </div>
           )}
         </div>
@@ -511,10 +511,9 @@ const WarehousePage = () => {
             isOpen={!!editingItem}
           />
         )}
-          
-        </div> { /* Penutup untuk div.max-w-7xl.mx-auto */
-    </div> // Penutup untuk div.min-h-screen.bg-white...
-  );
+      </div>
+    </div>
+  );
 };
 
 export default WarehousePage;

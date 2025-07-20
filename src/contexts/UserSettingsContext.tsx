@@ -11,6 +11,8 @@ interface FinancialCategories {
 }
 
 interface UserSettings {
+  businessName: string;
+  ownerName: string; // ✅ Pastikan properti ini ada
   backup: { auto: boolean; };
   financialCategories: FinancialCategories;
   recipeCategories: string[];
@@ -23,6 +25,8 @@ interface UserSettingsContextType {
 }
 
 const defaultSettings: UserSettings = {
+  businessName: 'Bisnis Anda',
+  ownerName: '', // ✅ Nilai default untuk ownerName
   backup: { auto: true },
   financialCategories: {
     income: ['Penjualan Produk', 'Pendapatan Jasa'],
@@ -47,10 +51,9 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      // PERUBAHAN: Membaca dari satu kolom 'financial_categories'
       const { data, error } = await supabase
         .from('user_settings')
-        .select('backup_settings, financial_categories, recipe_categories')
+        .select('*') // Ambil semua kolom
         .eq('user_id', session.user.id)
         .single();
 
@@ -59,8 +62,9 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (data) {
         setSettings({
           ...defaultSettings,
+          businessName: data.business_name ?? defaultSettings.businessName,
+          ownerName: data.owner_name ?? defaultSettings.ownerName, // ✅ Ambil owner_name dari data
           backup: data.backup_settings ?? defaultSettings.backup,
-          // PERUBAHAN: Mengambil objek kategori langsung dari kolom 'financial_categories'
           financialCategories: data.financial_categories ?? defaultSettings.financialCategories,
           recipeCategories: data.recipe_categories ?? defaultSettings.recipeCategories,
         });
@@ -86,11 +90,12 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     const currentSettings = { ...settings, ...newSettings };
-    setSettings(currentSettings); // Update optimis
+    setSettings(currentSettings);
 
-    // PERUBAHAN: Menyimpan objek kategori ke dalam satu kolom 'financial_categories'
     const settingsToSave = {
       user_id: session.user.id,
+      business_name: currentSettings.businessName,
+      owner_name: currentSettings.ownerName, // ✅ Simpan owner_name ke database
       backup_settings: currentSettings.backup,
       financial_categories: currentSettings.financialCategories,
       recipe_categories: currentSettings.recipeCategories,

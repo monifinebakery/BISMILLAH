@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, isSameMonth } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +65,8 @@ const FinancialReportPage = () => {
     if (!transactions) return [];
     return transactions.filter(t => {
       const transactionDate = t.date;
-      if (!transactionDate || !(transactionDate instanceof Date) return false;
+      // Perbaikan: tambahkan tanda kurung penutup untuk kondisi if
+      if (!transactionDate || !(transactionDate instanceof Date)) return false;
 
       const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null;
       const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;
@@ -203,15 +204,10 @@ const FinancialReportPage = () => {
     return null;
   };
 
-  // Render legend untuk pie chart
-  const renderColorfulLegendText = (value: string, entry: any) => {
-    return <span className="text-sm">{value}</span>;
-  };
-
   // Render label untuk pie chart
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({
-    cx, cy, midAngle, innerRadius, outerRadius, percent, index, name
+    cx, cy, midAngle, innerRadius, outerRadius, percent
   }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -222,7 +218,7 @@ const FinancialReportPage = () => {
         x={x}
         y={y}
         fill="white"
-        textAnchor={x > cx ? 'start' : 'end'}
+        textAnchor="middle"
         dominantBaseline="central"
         fontSize={12}
         fontWeight="bold"
@@ -289,17 +285,17 @@ const FinancialReportPage = () => {
 
   // Render chart utama (berubah berdasarkan rentang tanggal)
   const renderMainChart = () => {
-    const data = dateRange?.from && 
-                 dateRange?.to && 
-                 (dateRange.to.getTime() - dateRange.from.getTime()) < 31 * 24 * 60 * 60 * 1000
-                 ? dailyData 
-                 : transactionData;
+    const useDailyData = dateRange?.from && 
+                         dateRange?.to && 
+                         (dateRange.to.getTime() - dateRange.from.getTime()) < 31 * 24 * 60 * 60 * 1000;
+    
+    const data = useDailyData ? dailyData : transactionData;
 
     return (
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>
-            {data === dailyData ? 'Grafik Harian (30 Hari Terakhir)' : 'Grafik Pemasukan & Pengeluaran'}
+            {useDailyData ? 'Grafik Harian (30 Hari Terakhir)' : 'Grafik Pemasukan & Pengeluaran'}
           </CardTitle>
         </CardHeader>
         <CardContent className={premiumContentClass}>
@@ -308,7 +304,7 @@ const FinancialReportPage = () => {
               <ComposedChart data={data} margin={{ top: 20, right: 20, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
                 <XAxis 
-                  dataKey="date" 
+                  dataKey={useDailyData ? "date" : "month"} 
                   tickLine={false} 
                   axisLine={false}
                   tick={{ fontSize: isMobile ? 10 : 12 }}
@@ -329,7 +325,7 @@ const FinancialReportPage = () => {
                 <Area
                   type="monotone"
                   dataKey="Saldo"
-                  fill={BALANCE_COLOR + '20'}
+                  fill={`${BALANCE_COLOR}20`}
                   stroke={BALANCE_COLOR}
                   strokeWidth={2}
                   fillOpacity={0.4}
@@ -490,7 +486,7 @@ const FinancialReportPage = () => {
             ))}
           </div>
         ) : filteredTransactions.length > 0 ? (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader className="bg-gray-50">
                 <TableRow>

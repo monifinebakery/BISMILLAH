@@ -78,6 +78,7 @@ const Settings = () => {
                   <Input id="ownerName" value={formState.ownerName} onChange={(e) => handleFormChange({ ownerName: e.target.value })} onBlur={() => handleBlurSave('ownerName')} />
                 </div>
               </div>
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="email">Email</Label>
@@ -88,6 +89,8 @@ const Settings = () => {
                     <Input id="phone" type="tel" placeholder="08123456789" value={formState.phone || ''} onChange={(e) => handleFormChange({ phone: e.target.value })} onBlur={() => handleBlurSave('phone')} />
                 </div>
               </div>
+
+              <div>
                 <Label htmlFor="address">Alamat</Label>
                 <Input id="address" placeholder="Jl. Bisnis No. 123, Kota Usaha" value={formState.address || ''} onChange={(e) => handleFormChange({ address: e.target.value })} onBlur={() => handleBlurSave('address')} />
               </div>

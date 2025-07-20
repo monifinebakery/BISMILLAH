@@ -165,27 +165,24 @@ const WarehousePage = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
-
-        {/* Header Utama Halaman */}
-        <header className="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-6 mb-8 shadow-lg">
-            <div className="flex items-center gap-4">
-                <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-full">
-                    <Package className="h-8 w-8 text-white" /> 
-                </div>
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-6 mb-8 shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-full">
+            <Package className="h-8 w-8 text-white" />
+          </div>
                 <div>
                     <h1 className="text-3xl font-bold">Manajemen Gudang Bahan Baku</h1>
                     <p className="text-sm opacity-80">Kelola semua inventori bahan baku Anda.</p>
                 </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-              <Button
-                onClick={() => setShowAddForm(true)}
-                className="flex items-center justify-center gap-2 px-6 py-2 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-              >
+            <Button
+              onClick={() => setShowAddForm(true)}
+              className="mt-4 sm:mt-0 flex items-center justify-center gap-2 px-6 py-2 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            >
                 <Plus className="h-4 w-4" />
                 Tambah Bahan Baku
-              </Button>
-            </div>
+            </Button>
         </header>
 
         {/* Peringatan Stok Rendah (Tetap dalam Card terpisah) */}
@@ -240,7 +237,7 @@ const WarehousePage = () => {
                 className="pl-10 border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full"
               />
             </div>
-          </div>
+            </div>
         </div>
 
         {/* Table Content */}
@@ -362,12 +359,12 @@ const WarehousePage = () => {
 
       {/* Dialog Tambah Bahan Baku */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto"> {/* ✅ Perbaikan: Tinggi maks & scroll */}
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto"> 
           <DialogHeader>
             <DialogTitle>Tambah Bahan Baku</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddItem} className="space-y-3"> {/* ✅ Perbaikan: Mengurangi space-y */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3"> {/* ✅ Perbaikan: Mengurangi gap-y */}
+          <form onSubmit={handleAddItem} className="space-y-3"> 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3"> 
                 {/* Nama Bahan */}
                 <div>
                   <Label htmlFor="nama">Nama Bahan *</Label>
@@ -426,7 +423,7 @@ const WarehousePage = () => {
                     min="0"
                     required
                     readOnly
-                    className="bg-gray-100 cursor-not-allowed" // Warna read-only
+                    className="bg-gray-100 cursor-not-allowed" 
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
@@ -466,12 +463,12 @@ const WarehousePage = () => {
                   />
                 </div>
                 {/* Detail Pembelian Card */}
-                <div className="md:col-span-2"> {/* Span 2 kolom untuk card ini */}
+                <div className="md:col-span-2"> 
                   <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
-                    <CardHeader className="py-3"> {/* Padding vertikal lebih kecil */}
+                    <CardHeader className="py-3"> 
                       <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3 pt-2"> {/* Padding vertikal lebih kecil */}
+                    <CardContent className="space-y-3 pt-2"> 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor="jumlahBeliKemasan">Jumlah Beli Kemasan</Label>
@@ -518,11 +515,11 @@ const WarehousePage = () => {
                     </CardContent>
                   </Card>
                 </div>
-                <DialogFooter className="mt-4"> {/* ✅ Memastikan footer tetap di bawah */}
+                <DialogFooter className="mt-4"> 
                   <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
                     Batal
                   </Button>
-                  <Button type="submit" onClick={handleAddItem} className="bg-orange-500 hover:bg-orange-600">
+                  <Button type="submit" onClick={handleAddItem} className="bg-orange-500 hover:bg-orange-600"> 
                     Simpan
                   </Button>
                 </DialogFooter>
@@ -538,6 +535,7 @@ const WarehousePage = () => {
             isOpen={!!editingItem}
           />
         )}
+      </div>
     </div>
   );
 };

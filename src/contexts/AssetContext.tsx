@@ -1,124 +1,161 @@
 // src/contexts/AssetContext.tsx
-// VERSI FINAL - MENGGUNAKAN SATU useEffect UTAMA UNTUK MENGHINDARI RACE CONDITION
+// VERSI REALTIME - DATABASE SEBAGAI SATU-SATUNYA SUMBER KEBENARAN
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAssets, AssetCategory, AssetCondition } from '@/types/asset'; // Pastikan path ke tipe data Anda benar
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Asset } from '@/types/asset'; // Pastikan path tipe data Anda benar
 import { toast } from 'sonner';
 
 // --- Dependensi ---
 import { useAuth } from './AuthContext';
-import { useActivity } from './ActivityContext'; // Asumsi ActivityContext sudah ada dan berfungsi
+import { useActivity } from './ActivityContext';
 import { supabase } from '@/integrations/supabase/client';
-import { generateUUID } from '@/utils/uuid';
-import { toSafeISOString, safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/dateUtils';
 
+// --- INTERFACE & CONTEXT ---
 interface AssetContextType {
   assets: Asset[];
   addAsset: (asset: Omit<Asset, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updateAsset: (id: string, asset: Partial<Asset>) => Promise<boolean>;
+  updateAsset: (id: string, asset: Partial<Omit<Asset, 'id' | 'userId'>>) => Promise<boolean>;
   deleteAsset: (id: string) => Promise<boolean>;
   isLoading: boolean;
 }
 
 const AssetContext = createContext<AssetContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'hpp_app_assets';
-
+// --- PROVIDER COMPONENT ---
 export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // --- STATE ---
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth(); // Mengambil informasi pengguna dari AuthContext
+  
+  // --- DEPENDENSI ---
+  const { user } = useAuth();
   const { addActivity } = useActivity();
 
+  // --- HELPER FUNCTION ---
+  // Helper untuk mengubah data dari format DB (snake_case) ke format aplikasi (camelCase)
+  // Ini mencegah duplikasi kode antara fetch awal dan listener realtime.
+  const transformAssetFromDB = (dbAsset: any): Asset => ({
+    id: dbAsset.id,
+    nama: dbAsset.nama || '',
+    kategori: dbAsset.kategori || null,
+    nilaiAwal: parseFloat(dbAsset.nilai_awal) || 0,
+    nilaiSaatIni: parseFloat(dbAsset.nilai_sekarang) || 0,
+    tanggalPembelian: safeParseDate(dbAsset.tanggal_beli),
+    kondisi: dbAsset.kondisi || null,
+    lokasi: dbAsset.lokasi || null,
+    deskripsi: dbAsset.deskripsi || null,
+    depresiasi: dbAsset.depresiasi,
+    userId: dbAsset.user_id,
+    createdAt: safeParseDate(dbAsset.created_at),
+    updatedAt: safeParseDate(dbAsset.updated_at),
+  });
+
+
   // ===================================================================
-  // --- EFEK UTAMA: SATU-SATUNYA SUMBER KEBENARAN UNTUK MEMUAT DATA ---
+  // --- EFEK UTAMA: FETCH DATA AWAL & SET UP REALTIME LISTENER ---
   // ===================================================================
   useEffect(() => {
-    // Jika status user belum jelas (masih loading dari AuthContext), jangan lakukan apa-apa.
+    // Jika status user belum jelas, jangan lakukan apa-apa.
     if (user === undefined) {
-      return; 
+      return;
     }
 
-    if (user) {
-      // Jika pengguna login, ambil datanya dari Supabase.
-      console.log(`[AssetContext] User terdeteksi (${user.id}), memuat data aset dari cloud...`);
+    // Jika pengguna logout, bersihkan state.
+    if (!user) {
+      console.log("[AssetContext] User logout, membersihkan data aset.");
+      setAssets([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // --- PENGGUNA LOGIN ---
+    
+    // 1. Ambil data awal dari Supabase
+    const fetchInitialAssets = async () => {
+      console.log(`[AssetContext] User terdeteksi (${user.id}), memuat data aset...`);
       setIsLoading(true);
-      supabase
+      const { data, error } = await supabase
         .from('assets')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .then(({ data, error }) => {
-          if (error) {
-            toast.error(`Gagal memuat aset: ${error.message}`);
-          } else if (data) {
-            // Transformasi data dari snake_case (database) ke camelCase (aplikasi)
-            const formattedData = data.map((item: any) => ({
-              id: item.id,
-              nama: item.nama || '',
-              kategori: item.kategori || null,
-              nilaiAwal: parseFloat(item.nilai_awal) || 0,
-              nilaiSaatIni: parseFloat(item.nilai_sekarang) || 0,
-              tanggalPembelian: safeParseDate(item.tanggal_beli),
-              kondisi: item.kondisi || null,
-              lokasi: item.lokasi || null,
-              deskripsi: item.deskripsi || null,
-              depresiasi: item.depresiasi,
-              userId: item.user_id,
-              createdAt: safeParseDate(item.created_at),
-              updatedAt: safeParseDate(item.updated_at),
-            }));
-            setAssets(formattedData);
-          }
-          setIsLoading(false);
-        });
-    } else {
-      // Jika pengguna logout, bersihkan state aset dan localStorage.
-      console.log("[AssetContext] User logout, membersihkan data aset.");
-      setAssets([]);
-      localStorage.removeItem(STORAGE_KEY);
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        toast.error(`Gagal memuat aset: ${error.message}`);
+      } else if (data) {
+        setAssets(data.map(transformAssetFromDB));
+      }
       setIsLoading(false);
-    }
+    };
+    
+    fetchInitialAssets();
+
+    // 2. Setup Realtime Subscription
+    const channel = supabase
+      .channel(`realtime-assets-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Dengarkan semua event (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'assets',
+          filter: `user_id=eq.${user.id}`, // Filter hanya untuk user yang sedang login
+        },
+        (payload) => {
+          console.log('[AssetContext] Perubahan realtime diterima:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newAsset = transformAssetFromDB(payload.new);
+            setAssets(currentAssets => [newAsset, ...currentAssets]);
+          }
+          if (payload.eventType === 'UPDATE') {
+            const updatedAsset = transformAssetFromDB(payload.new);
+            setAssets(currentAssets => 
+              currentAssets.map(a => (a.id === updatedAsset.id ? updatedAsset : a))
+            );
+          }
+          if (payload.eventType === 'DELETE') {
+            const deletedAssetId = payload.old.id;
+            setAssets(currentAssets => currentAssets.filter(a => a.id !== deletedAssetId));
+          }
+        }
+      )
+      .subscribe();
+
+    // 3. Cleanup: Wajib untuk unsubscribe channel saat komponen unmount atau user berubah
+    return () => {
+      console.log("[AssetContext] Membersihkan channel realtime aset.");
+      supabase.removeChannel(channel);
+    };
   }, [user]); // KUNCI UTAMA: Bereaksi hanya terhadap perubahan `user`.
 
-  // Efek untuk menyimpan ke Local Storage setiap kali state 'assets' berubah
-  useEffect(() => {
-    // Hanya simpan jika ada data dan pengguna sedang login
-    if (user && assets.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
-    }
-  }, [assets, user]);
 
-
-  // --- FUNGSI-FUNGSI CRUD ---
+  // ===================================================================
+  // --- FUNGSI-FUNGSI CRUD (Disederhanakan) ---
+  // Tugasnya hanya mengirim data ke DB. Pembaruan UI ditangani oleh listener.
+  // ===================================================================
   const addAsset = async (asset: Omit<Asset, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
     if (!user) {
       toast.error("Anda harus login untuk menambah aset.");
       return false;
     }
-    const newAsset: Asset = {
-      ...asset,
-      id: generateUUID(),
-      userId: user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
     
+    // Transformasi ke snake_case untuk DB
     const assetToInsert = {
-        id: newAsset.id, user_id: newAsset.userId, nama: newAsset.nama,
-        kategori: newAsset.kategori, nilai_awal: newAsset.nilaiAwal, nilai_sekarang: newAsset.nilaiSaatIni,
-        tanggal_beli: toSafeISOString(newAsset.tanggalPembelian), kondisi: newAsset.kondisi,
-        lokasi: newAsset.lokasi, deskripsi: newAsset.deskripsi, depresiasi: newAsset.depresiasi,
-        created_at: toSafeISOString(newAsset.createdAt), updated_at: toSafeISOString(newAsset.updatedAt),
+        user_id: user.id, nama: asset.nama, kategori: asset.kategori,
+        nilai_awal: asset.nilaiAwal, nilai_sekarang: asset.nilaiSaatIni,
+        tanggal_beli: asset.tanggalPembelian, kondisi: asset.kondisi,
+        lokasi: asset.lokasi, deskripsi: asset.deskripsi, depresiasi: asset.depresiasi,
     };
 
-    const { error } = await supabase.from('assets').insert([assetToInsert]);
+    const { data, error } = await supabase.from('assets').insert(assetToInsert).select().single();
     if (error) {
       toast.error("Gagal menyimpan aset: " + error.message);
       return false;
     }
 
-    setAssets(prev => [newAsset, ...prev]);
+    // UI akan diupdate oleh listener, tapi kita tetap bisa melakukan aksi lain di sini
     addActivity({
       title: 'Aset Ditambahkan',
       description: `${asset.nama} telah ditambahkan ke daftar aset.`,
@@ -128,18 +165,19 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return true;
   };
 
-  const updateAsset = async (id: string, asset: Partial<Asset>): Promise<boolean> => {
+  const updateAsset = async (id: string, asset: Partial<Omit<Asset, 'id' | 'userId'>>): Promise<boolean> => {
     if (!user) {
       toast.error("Anda harus login untuk memperbarui aset.");
       return false;
     }
-    // Buat objek snake_case untuk dikirim ke Supabase
-    const assetToUpdate: { [key: string]: any } = { updated_at: new Date().toISOString() };
+    
+    // Transformasi ke snake_case
+    const assetToUpdate: { [key: string]: any } = {};
     if (asset.nama !== undefined) assetToUpdate.nama = asset.nama;
     if (asset.kategori !== undefined) assetToUpdate.kategori = asset.kategori;
     if (asset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = asset.nilaiAwal;
     if (asset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = asset.nilaiSaatIni;
-    if (asset.tanggalPembelian !== undefined) assetToUpdate.tanggal_beli = toSafeISOString(asset.tanggalPembelian);
+    if (asset.tanggalPembelian !== undefined) assetToUpdate.tanggal_beli = asset.tanggalPembelian;
     // ...tambahkan field lain jika perlu...
 
     const { error } = await supabase.from('assets').update(assetToUpdate).eq('id', id);
@@ -147,7 +185,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
        toast.error("Gagal memperbarui aset: " + error.message);
        return false;
     }
-    setAssets(prev => prev.map(a => a.id === id ? { ...a, ...asset, updatedAt: new Date() } : a));
+
     toast.success("Aset berhasil diperbarui.");
     return true;
   };
@@ -157,7 +195,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       toast.error("Anda harus login untuk menghapus aset.");
       return false;
     }
-    const assetToDelete = assets.find(a => a.id === id);
+    const assetToDelete = assets.find(a => a.id === id); // Cari nama sebelum dihapus untuk log
     if (!assetToDelete) return false;
 
     const { error } = await supabase.from('assets').delete().eq('id', id);
@@ -165,7 +203,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
        toast.error("Gagal menghapus aset: " + error.message);
        return false;
     }
-    setAssets(prev => prev.filter(a => a.id !== id));
+
     addActivity({
       title: 'Aset Dihapus', description: `${assetToDelete.nama} telah dihapus.`, type: 'aset', value: null,
     });

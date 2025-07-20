@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/utils/currencyUtils'; 
 import { formatDateForDisplay } from '@/utils/dateUtils'; 
 import { cn } from '@/lib/utils'; // Pastikan cn diimpor jika digunakan di Button
+import { TableRow, TableCell } from '@/components/ui/table'; // Add this line
 
 const WarehousePage = () => {
   const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useBahanBaku();

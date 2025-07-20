@@ -34,28 +34,26 @@ export default defineConfig(({ mode, command }) => {
           manualChunks(id: string) {
             if (id.includes('node_modules')) {
               
-              // ✅ --- PERBAIKAN UTAMA DI SINI ---
-              // 1. Gabungkan react dan react-dom ke dalam satu chunk.
-              if (id.includes('react-dom') || id.includes('react')) {
-                return 'vendor_react';
-              }
-              
-              // 2. Pisahkan library chart yang sangat besar
+              // --- PERBAIKAN ---
+              // Kita akan membiarkan Vite menangani React & React-DOM secara otomatis.
+              // Kita hanya akan memisahkan library besar lainnya.
+
+              // 1. Pisahkan library chart yang sangat besar
               if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor_charts';
               }
               
-              // 3. Pisahkan library kalender/tanggal
+              // 2. Pisahkan library kalender/tanggal
               if (id.includes('date-fns') || id.includes('react-day-picker')) {
                 return 'vendor_date';
               }
               
-              // 4. Aturan lain yang sudah ada
+              // 3. Aturan lain yang sudah ada
               if (id.includes('@supabase')) return 'vendor_supabase';
               if (id.includes('lucide-react')) return 'vendor_lucide';
               
-              // Keranjang sisa untuk library lain
-              return 'vendor_others';
+              // Biarkan sisa node_modules (termasuk React) di-handle oleh Vite
+              // atau masuk ke dalam chunk vendor umum.
             }
           }
         }

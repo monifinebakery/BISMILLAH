@@ -615,11 +615,13 @@ const FinancialReportPage = () => {
       {renderTransactionTable()}
 
       <FinancialTransactionDialog
-        isOpen={isDialogOpen}
-        onClose={closeDialog}
-        onAddTransaction={addFinancialTransaction}
-        categories={settings.financialCategories}
-      />
+  isOpen={isDialogOpen}
+  onClose={closeDialog}
+  onAddTransaction={addFinancialTransaction}
+  onUpdateTransaction={updateFinancialTransaction} // Tambahkan prop untuk update
+  categories={settings.financialCategories}
+  transaction={editingTransaction} // Kirim transaksi yang sedang diedit
+/>
     </div>
   );
 };

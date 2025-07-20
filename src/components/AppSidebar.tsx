@@ -93,8 +93,8 @@ export function AppSidebar() {
     }
   };
 
+  // --- PERBARUI FUNGSI INI ---
   const handleExportAllData = () => {
-    // Fungsi ini sekarang akan bekerja karena semua data sudah tersedia dari hook baru
     const allAppData = {
       bahanBaku,
       suppliers,
@@ -106,6 +106,10 @@ export function AppSidebar() {
       assets,
       financialTransactions,
     };
+    
+    // Panggil fungsi export yang baru
+    exportAllDataToExcel(allAppData);
+  };
     
     // Logika untuk export (misalnya, konversi ke JSON dan download)
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(

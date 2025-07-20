@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // ✅ Pastikan toSafeISOString diimpor
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
 
 // --- INTERFACE & CONTEXT ---
 interface FinancialContextType {
@@ -40,7 +40,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     type: dbItem.type,
     category: dbItem.category,
     amount: Number(dbItem.amount) || 0,
-    notes: dbItem.notes, // Asumsi ada kolom notes di DB
+    notes: dbItem.notes, 
     relatedId: dbItem.related_id,
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
@@ -57,6 +57,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const fetchInitialTransactions = async () => {
       setIsLoading(true);
+      console.log('[FinancialContext] Memulai fetchInitialTransactions untuk user:', user.id);
       const { data, error } = await supabase
         .from('financial_transactions')
         .select('*')
@@ -65,10 +66,14 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       if (error) {
         toast.error(`Gagal memuat transaksi keuangan: ${error.message}`);
+        console.error('[FinancialContext] Error memuat transaksi awal:', error);
       } else if (data) {
-        setFinancialTransactions(data.map(transformTransactionFromDB));
+        const transformedData = data.map(transformTransactionFromDB);
+        console.log('[FinancialContext] Data transaksi awal berhasil dimuat (transformed):', transformedData);
+        setFinancialTransactions(transformedData);
       }
       setIsLoading(false);
+      console.log('[FinancialContext] fetchInitialTransactions selesai.');
     };
 
     fetchInitialTransactions();
@@ -79,6 +84,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         'postgres_changes',
         { event: '*', schema: 'public', table: 'financial_transactions', filter: `user_id=eq.${user.id}` },
         (payload) => {
+          console.log('[FinancialContext] Perubahan realtime diterima:', payload);
           const transform = transformTransactionFromDB;
           if (payload.eventType === 'INSERT') {
             setFinancialTransactions(current => [transform(payload.new), ...current].sort((a,b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)));
@@ -107,22 +113,23 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     const transactionToInsert = {
         user_id: user.id,
-        date: toSafeISOString(transaction.date), // Menggunakan toSafeISOString
+        date: toSafeISOString(transaction.date), 
         description: transaction.description,
         type: transaction.type,
         category: transaction.category,
         amount: transaction.amount,
-        notes: transaction.notes ?? null, // Default notes ke null
-        related_id: transaction.relatedId ?? null, // Default relatedId ke null
+        notes: transaction.notes ?? null, 
+        related_id: transaction.relatedId ?? null, 
     };
 
+    console.log('[FinancialContext] Mengirim transaksi keuangan:', transactionToInsert); // ✅ Log debugging
     const { error } = await supabase.from('financial_transactions').insert(transactionToInsert);
     if (error) {
       toast.error(`Gagal menambah transaksi: ${error.message}`);
+      console.error('[FinancialContext] Error saat menambah transaksi keuangan:', error); // ✅ Log debugging error
       return false;
     }
     
-    // Perhatikan: 'pemasukan' atau 'pengeluaran' harus sesuai dengan tipe di DB/UI
     addActivity({ title: 'Transaksi Keuangan Ditambahkan', description: `${transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} Rp ${transaction.amount.toLocaleString('id-ID')}`, type: 'keuangan', value: null });
     toast.success('Transaksi keuangan berhasil ditambahkan!');
     return true;
@@ -133,7 +140,6 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         toast.error("Anda harus login untuk memperbarui transaksi");
         return false;
     }
-    // Transformasi ke snake_case untuk update
     const dataToUpdate: {[key: string]: any} = {
         updated_at: new Date().toISOString(),
     };
@@ -145,9 +151,11 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     if (updatedTransaction.notes !== undefined) dataToUpdate.notes = updatedTransaction.notes;
     if (updatedTransaction.relatedId !== undefined) dataToUpdate.related_id = updatedTransaction.relatedId;
     
+    console.log('[FinancialContext] Mengirim update transaksi keuangan:', id, dataToUpdate); // ✅ Log debugging
     const { error } = await supabase.from('financial_transactions').update(dataToUpdate).eq('id', id);
     if (error) {
       toast.error(`Gagal memperbarui transaksi: ${error.message}`);
+      console.error('[FinancialContext] Error saat memperbarui transaksi keuangan:', error); // ✅ Log debugging error
       return false;
     }
     toast.success('Transaksi keuangan berhasil diperbarui!');
@@ -162,9 +170,11 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     const transaction = financialTransactions.find(t => t.id === id); 
     if (!transaction) return false;
 
+    console.log('[FinancialContext] Mengirim perintah hapus transaksi keuangan:', id); // ✅ Log debugging
     const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
     if (error) {
       toast.error(`Gagal menghapus transaksi: ${error.message}`);
+      console.error('[FinancialContext] Error saat menghapus transaksi keuangan:', error); // ✅ Log debugging error
       return false;
     }
     

@@ -145,6 +145,7 @@ const AppLayout = () => {
                     <Route path="/menu" element={<MenuPage />} />
                     <Route path="/payment-success" element={<PaymentSuccessPage />} />
                     <Route path="*" element={<NotFound />} />
+                    <Route path="/pesanan/invoice/:orderId" element={<InvoicePage />} />
                   </Routes>
                 </div>
               </main>

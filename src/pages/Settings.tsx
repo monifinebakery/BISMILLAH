@@ -78,25 +78,22 @@ const Settings = () => {
                   <Input id="ownerName" value={formState.ownerName} onChange={(e) => handleFormChange({ ownerName: e.target.value })} onBlur={() => handleBlurSave('ownerName')} />
                 </div>
               </div>
-              {/* Tambahkan field lain jika ada */}
-            </CardContent>
-          </Card>
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input 
-                        id="email"
-                        type="email"
-                        placeholder="kontak@bisnisanda.com"
-                        value={formState.email || ''} 
-                        onChange={(e) => handleFormChange({ email: e.target.value })} 
-                        onBlur={() => handleBlurSave('email')} 
-                    />
+                    <Input id="email" type="email" placeholder="kontak@bisnisanda.com" value={formState.email || ''} onChange={(e) => handleFormChange({ email: e.target.value })} onBlur={() => handleBlurSave('email')} />
                 </div>
-                {/* Anda bisa menambahkan field Telepon di sini dengan pola yang sama */}
+                <div>
+                    <Label htmlFor="phone">Telepon</Label>
+                    <Input id="phone" type="tel" placeholder="08123456789" value={formState.phone || ''} onChange={(e) => handleFormChange({ phone: e.target.value })} onBlur={() => handleBlurSave('phone')} />
+                </div>
+              </div>
+                <Label htmlFor="address">Alamat</Label>
+                <Input id="address" placeholder="Jl. Bisnis No. 123, Kota Usaha" value={formState.address || ''} onChange={(e) => handleFormChange({ address: e.target.value })} onBlur={() => handleBlurSave('address')} />
               </div>
             </CardContent>
           </Card>
+
           {/* Notifications */}
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
             <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">

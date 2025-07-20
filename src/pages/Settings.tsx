@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react'; // MODIFIED: Tambahkan ChefHat
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import RecipeCategoryManager from '@/components/RecipeCategoryManager'; // MODIFIED: Tambahkan import RecipeCategoryManager
 import { Label } from '@/components/ui/label'; // MODIFIED: Tambahkan import Label
 

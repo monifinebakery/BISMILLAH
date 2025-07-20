@@ -45,6 +45,30 @@ const PurchaseManagement = () => {
     totalNilai: 0,
   });
 
+  const updatePurchase = async (id: string, updatedData: Partial<Purchase>): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk memperbarui pembelian.');
+      return false;
+    }
+
+    const purchaseToUpdate: { [key: string]: any } = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (updatedData.supplier !== undefined) purchaseToUpdate.supplier = updatedData.supplier;
+    if (updatedData.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedData.totalNilai;
+    if (updatedData.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
+    if (updatedData.items !== undefined) purchaseToUpdate.items = updatedData.items;
+    
+    // *** PENTING: TAMBAHKAN BARIS INI UNTUK STATUS ***
+    if (updatedData.status !== undefined) purchaseToUpdate.status = updatedData.status;
+    // *** PASTIKAN JUGA METODE PERHITUNGAN JIKA ADA DI DB ***
+    if (updatedData.metodePerhitungan !== undefined) purchaseToUpdate.metode_perhitungan = updatedData.metodePerhitungan;
+
+
+    console.log('[PurchaseContext] Mengirim update pembelian:', id, purchaseToUpdate);
+    const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id);
+    
   const [newItem, setNewItem] = useState({
     namaBarang: '',
     jumlah: 0,

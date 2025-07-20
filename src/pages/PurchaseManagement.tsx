@@ -16,7 +16,7 @@ import { formatDateForDisplay } from '@/utils/dateUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateUUID } from '@/utils/uuid';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { Purchase, PurchaseItem } from '@/types/supplier'; // Sesuaikan path jika perlu
+import { Purchase, PurchaseItem } from '@/types/supplier'; 
 
 const PurchaseManagement = () => {
   const isMobile = useIsMobile();
@@ -29,20 +29,19 @@ const PurchaseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Menambahkan 'status' ke newPurchase dengan tipe yang lebih spesifik
   const [newPurchase, setNewPurchase] = useState<{
     supplier: string;
     tanggal: Date;
-    items: PurchaseItem[]; // Lebih spesifik dari any[]
-    status: 'pending' | 'completed' | 'cancelled'; // Tipe untuk status
-    metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
+    items: PurchaseItem[];
+    status: 'pending' | 'completed' | 'cancelled';
+    metodePerhitungan: 'FIFO' | 'LIFO' | 'Average'; // Termasuk ini di state
     totalNilai: number;
   }>({
     supplier: '',
     tanggal: new Date(),
     items: [],
-    status: 'pending', // Nilai default status
-    metodePerhitungan: 'FIFO',
+    status: 'pending',
+    metodePerhitungan: 'FIFO', // Default value
     totalNilai: 0,
   });
 
@@ -54,11 +53,11 @@ const PurchaseManagement = () => {
   });
 
   const handleAddItem = () => {
-    if (!newItem.namaBarang || newItem.jumlah <= 0 || newItem.hargaSatuan <= 0) { // Harga satuan harus > 0 juga
+    if (!newItem.namaBarang || newItem.jumlah <= 0 || newItem.hargaSatuan <= 0) {
       toast.error('Nama, kuantitas (>0), dan harga satuan (>0) wajib diisi.');
       return;
     }
-    const item: PurchaseItem = { // Pastikan tipe data item
+    const item: PurchaseItem = {
       id: generateUUID(),
       namaBarang: newItem.namaBarang,
       jumlah: newItem.jumlah,
@@ -89,25 +88,22 @@ const PurchaseManagement = () => {
     }
 
     const totalNilai = newPurchase.items.reduce((sum, item) => sum + item.totalHarga, 0);
-    // Pastikan objek ini sesuai dengan Omit<Purchase, ...> atau Partial<Purchase> di PurchaseContext
-    const purchaseData: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+    // Pastikan objek ini sesuai dengan apa yang diharapkan oleh addPurchase/updatePurchase di PurchaseContext
+    const purchaseDataToSend: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
       supplier: newPurchase.supplier,
       tanggal: newPurchase.tanggal,
       items: newPurchase.items,
-      status: newPurchase.status, // Menambahkan status
-      metodePerhitungan: newPurchase.metodePerhitungan,
+      status: newPurchase.status,
+      metodePerhitungan: newPurchase.metodePerhitungan, // Pastikan ini disertakan
       totalNilai: totalNilai,
     };
 
     let success = false;
     if (editingPurchase) {
       // Untuk update, kirim ID dan data partial
-      success = await updatePurchase(editingPurchase.id, {
-        ...purchaseData, // Menggunakan purchaseData yang sudah disiapkan
-        // Jika ada properti khusus untuk update yang tidak ada di Omit, tambahkan di sini
-      });
+      success = await updatePurchase(editingPurchase.id, purchaseDataToSend); // Langsung kirim purchaseDataToSend
     } else {
-      success = await addPurchase(purchaseData);
+      success = await addPurchase(purchaseDataToSend);
     }
 
     if (success) {
@@ -122,7 +118,7 @@ const PurchaseManagement = () => {
       supplier: '',
       tanggal: new Date(),
       items: [],
-      status: 'pending', // Default untuk form baru
+      status: 'pending',
       metodePerhitungan: 'FIFO',
       totalNilai: 0,
     });
@@ -135,8 +131,9 @@ const PurchaseManagement = () => {
     setNewPurchase({
       ...purchase,
       tanggal: purchase.tanggal instanceof Date ? purchase.tanggal : new Date(purchase.tanggal),
-      // Pastikan status dimuat dengan benar dari data pembelian yang ada
       status: purchase.status as 'pending' | 'completed' | 'cancelled',
+      // Pastikan metodePerhitungan juga dimuat dari data pembelian yang ada
+      metodePerhitungan: purchase.metodePerhitungan || 'FIFO', // Default jika tidak ada
     });
     setNewItem({ namaBarang: '', jumlah: 0, satuan: '', hargaSatuan: 0 }); // Reset newItem saat edit
     setIsDialogOpen(true);
@@ -278,23 +275,23 @@ const PurchaseManagement = () => {
                             onChange={(e) => setNewPurchase(prev => ({...prev, tanggal: new Date(e.target.value)}))}
                         />
                     </div>
-                        {/* --- TAMBAHAN UNTUK STATUS PEMBELIAN --- */}
-                        <div>
-                            <Label>Status</Label>
-                            <Select
-                                value={newPurchase.status}
-                                onValueChange={(val: 'pending' | 'completed' | 'cancelled') =>
-                                    setNewPurchase(prev => ({ ...prev, status: val }))
-                                }
-                            >
-                                <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="completed">Selesai</SelectItem>
-                                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* --- TAMBAHAN UNTUK STATUS PEMBELIAN --- */}
+                        <div>
+                            <Label>Status</Label>
+                            <Select
+                                value={newPurchase.status}
+                                onValueChange={(val: 'pending' | 'completed' | 'cancelled') =>
+                                    setNewPurchase(prev => ({ ...prev, status: val }))
+                                }
+                            >
+                                <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="completed">Selesai</SelectItem>
+                                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                 </div>
 
                 {/* Add Item Form */}

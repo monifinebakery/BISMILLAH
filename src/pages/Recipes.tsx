@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, ChefHat, Clock, Users, DollarSign, Search, Plus } from 'lucide-react';
-import { useRecipes } from '@/hooks/useRecipes';
+import { useRecipes } from '@/contexts/RecipeContext';
 import RecipeForm from '@/components/RecipeForm';
 import { Recipe } from '@/types/recipe';
 import MenuExportButton from '@/components/MenuExportButton';
-import { useUserSettings } from '@/hooks/UserSettingsContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 

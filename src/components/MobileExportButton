@@ -9,7 +9,7 @@ import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useAsset } from "@/contexts/AssetContext";
+import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/contexts/FinancialContext";
 // ✅ PERBAIKAN: Path impor diubah dari @/hooks ke @/contexts
 import { useUserSettings } from '@/contexts/UserSettingsContext';

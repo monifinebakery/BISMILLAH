@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'; 
+import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 import { Label } from "@/components/ui/label";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'; // Import CardFooter
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useOrder } from '@/contexts/OrderContext';
@@ -21,10 +21,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import MenuExportButton from '@/components/MenuExportButton'; // <-- Import MenuExportButton
+import MenuExportButton from '@/components/MenuExportButton'; 
 
 const OrdersPage = () => {
-  // `useIsMobile` tidak lagi dibutuhkan secara eksplisit untuk tampilan tabel
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false); 
 
@@ -68,7 +67,7 @@ const OrdersPage = () => {
     const formattedDate = formatDateForDisplay(orderData.tanggal);
     const items = orderData.items?.map((item: any) => `${item.nama} (${item.quantity}x)`).join(', ') || '';
     const total = orderData.totalPesanan?.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0';
-    switch (status) { /* ... return template ... */
+    switch (status) { 
       case 'pending': return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah melakukan pemesanan di toko kami dengan nomor pesanan ${orderData.nomorPesanan} pada tanggal ${formattedDate}.\n\nPesanan Anda sedang kami proses. Berikut detail pesanan Anda:\n- Item: ${items}\n- Total: Rp ${total}\n\nSilakan konfirmasi jika informasi ini sudah benar. Terima kasih!`;
       case 'confirmed': return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} telah kami konfirmasi dan sedang diproses.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan segera memproses pesanan Anda. Terima kasih atas kesabaran Anda!`;
       case 'processing': return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda dengan nomor ${orderData.nomorPesanan} sedang dalam proses pengerjaan.\n\nDetail pesanan:\n- Item: ${items}\n- Total: Rp ${total}\n\nKami akan memberi tahu Anda ketika pesanan sudah selesai dibuat. Terima kasih atas kesabaran Anda!`;
@@ -121,13 +120,11 @@ const OrdersPage = () => {
     if (isEditingMode && editingOrder) { // Ensure editingOrder is not null
       success = await updateOrder(editingOrder.id, data); 
     } else {
-      // Jika order baru, set some default values if needed before calling addOrder
       const newOrderData = {
           ...data,
           tanggal: data.tanggal instanceof Date ? data.tanggal : new Date(), // Ensure Date object
-          status: data.status || 'pending', // Default status
-          // nomorPesanan will be handled by RPC, so no need to calculate here
-      } as NewOrder; // Cast to NewOrder because `addOrder` expects NewOrder type
+          status: data.status || 'pending', 
+      } as NewOrder;
       success = await addOrder(newOrderData);
     }
 
@@ -186,8 +183,8 @@ const OrdersPage = () => {
           <p className="text-muted-foreground">Kelola semua pesanan pelanggan</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* Tambah tombol Export di sini */}
-          <MenuExportButton data={orders} filename="pesanan" menuType="Pesanan" /> {/* ✅ Tambah tombol export */}
+          {/* Tombol Export */}
+          <MenuExportButton data={orders} filename="pesanan" menuType="Pesanan" />
           <Button 
             className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white" 
             onClick={handleNewOrder}

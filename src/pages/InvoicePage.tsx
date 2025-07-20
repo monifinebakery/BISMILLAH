@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Printer, FileText } from 'lucide-react';
+import { Trash2, Plus, Printer } from 'lucide-react';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
@@ -82,20 +82,19 @@ const InvoicePage = () => {
       </Card>
       
       {/* Konten Invoice yang akan dicetak */}
-      <div className="bg-white p-8 sm:p-12 rounded-lg shadow-lg max-w-4xl mx-auto border" id="invoice-content">
-        {/* 1. Header (Kop Surat) & 2. Informasi Referensi */}
-        <div className="flex justify-between items-start pb-8 border-b">
+      <div className="bg-white p-6 sm:p-12 rounded-lg shadow-lg max-w-4xl mx-auto border" id="invoice-content">
+        {/* 1. Header & 2. Informasi Referensi (Responsif) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start pb-8 border-b gap-4">
           <div>
-            {/* Logo bisa ditambahkan di sini */}
-            <h1 className="text-2xl font-bold text-gray-800">{settings.businessName || 'Nama Bisnis Anda'}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{settings.businessName || 'Nama Bisnis Anda'}</h1>
             <Textarea value={settings.address || 'Alamat Bisnis\nTelepon\nEmail'} className="text-sm text-gray-500 mt-2 p-0 border-none h-auto resize-none" readOnly/>
           </div>
-          <div className="text-right">
-            <h2 className="text-4xl font-bold text-gray-400 uppercase tracking-widest">INVOICE</h2>
+          <div className="w-full sm:w-auto sm:text-right">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-400 uppercase tracking-widest">INVOICE</h2>
             <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-end gap-2"><Label htmlFor="invoiceNumber" className="text-sm text-gray-500 whitespace-nowrap">No. Invoice:</Label><Input id="invoiceNumber" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
-                <div className="flex items-center justify-end gap-2"><Label htmlFor="issueDate" className="text-sm text-gray-500 whitespace-nowrap">Tanggal:</Label><Input id="issueDate" type="date" value={format(issueDate, 'yyyy-MM-dd')} onChange={e => setIssueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
-                <div className="flex items-center justify-end gap-2"><Label htmlFor="dueDate" className="text-sm text-gray-500 whitespace-nowrap">Jatuh Tempo:</Label><Input id="dueDate" type="date" value={format(dueDate, 'yyyy-MM-dd')} onChange={e => setDueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
+                <div className="flex items-center justify-between sm:justify-end gap-2"><Label htmlFor="invoiceNumber" className="text-sm text-gray-500 whitespace-nowrap">No. Invoice:</Label><Input id="invoiceNumber" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
+                <div className="flex items-center justify-between sm:justify-end gap-2"><Label htmlFor="issueDate" className="text-sm text-gray-500 whitespace-nowrap">Tanggal:</Label><Input id="issueDate" type="date" value={format(issueDate, 'yyyy-MM-dd')} onChange={e => setIssueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
+                <div className="flex items-center justify-between sm:justify-end gap-2"><Label htmlFor="dueDate" className="text-sm text-gray-500 whitespace-nowrap">Jatuh Tempo:</Label><Input id="dueDate" type="date" value={format(dueDate, 'yyyy-MM-dd')} onChange={e => setDueDate(new Date(e.target.value))} className="w-40 text-right print:border-none print:p-0 print:h-auto" /></div>
             </div>
           </div>
         </div>
@@ -120,15 +119,15 @@ const InvoicePage = () => {
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
 
-        {/* 5. Kalkulasi Total & 6. Status Invoice */}
+        {/* 5. Kalkulasi Total & 6. Status Invoice (Responsif) */}
         <div className="flex flex-col sm:flex-row justify-between items-start mt-8">
-            <div className="w-full sm:w-1/2">
+            <div className="w-full sm:w-1/2 mb-6 sm:mb-0">
                 <Select value={status} onValueChange={(value: any) => setStatus(value)}>
                     <SelectTrigger className={`w-40 font-bold border-2 ${getStatusBadge()}`}><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem><SelectItem value="LUNAS">LUNAS</SelectItem><SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem></SelectContent>
                 </Select>
             </div>
-            <div className="w-full sm:w-1/2 flex justify-end mt-4 sm:mt-0">
+            <div className="w-full sm:w-1/2 flex justify-end">
                 <div className="w-full max-w-xs space-y-3">
                     <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
                     <div className="flex justify-between items-center text-sm text-gray-600">
@@ -144,12 +143,12 @@ const InvoicePage = () => {
                         <Input id="shipping" type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" />
                     </div>
                     <div className="border-t my-2"></div>
-                    <div className="flex justify-between font-bold text-xl text-gray-800 bg-gray-100 p-3 rounded-lg"><span>GRAND TOTAL</span><span>{formatCurrency(total)}</span></div>
+                    <div className="flex justify-between font-bold text-lg sm:text-xl text-gray-800 bg-gray-100 p-3 rounded-lg"><span>GRAND TOTAL</span><span>{formatCurrency(total)}</span></div>
                 </div>
             </div>
         </div>
         
-        {/* 7. Informasi Pembayaran & Footer */}
+        {/* 7. Informasi Pembayaran & Footer (Responsif) */}
         <div className="border-t mt-10 pt-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div>

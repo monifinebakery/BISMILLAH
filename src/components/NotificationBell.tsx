@@ -1,3 +1,5 @@
+// src/components/NotificationBell.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -5,9 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell } from 'lucide-react';
 
-// --- Impor Hook Baru ---
+// --- Impor Hooks ---
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { useActivity } from '@/contexts/ActivityContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext'; // <-- Tambahkan import ini
 
 interface Notification {
   id: string;
@@ -19,32 +22,42 @@ interface Notification {
 }
 
 const NotificationBell = () => {
-  // --- Panggil Hook Baru ---
+  // --- Panggil Hooks ---
   const { bahanBaku } = useBahanBaku();
   const { activities } = useActivity();
+  const { settings } = useUserSettings(); // <-- Panggil hook UserSettings
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    // ✅ PERBAIKAN: Logika disesuaikan dengan data dari hook baru
-    const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
-    const currentTime = new Date();
+    let lowStockNotifications: Notification[] = [];
     
-    const lowStockNotifications: Notification[] = lowStockItems.map(item => ({
-      id: `low-stock-${item.id}`,
-      title: 'Stok Menipis',
-      message: `${item.nama} tersisa ${item.stok} ${item.satuan}`,
-      type: 'warning' as const,
-      read: false,
-      timestamp: currentTime,
-    }));
+    // =========================================================
+    // --- PERBAIKAN UTAMA DI SINI ---
+    // Hanya proses notifikasi stok rendah jika pengaturannya aktif.
+    // Gunakan optional chaining (`?.`) untuk keamanan.
+    // =========================================================
+    if (settings.notifications?.lowStock) {
+      const lowStockItems = bahanBaku.filter(item => item.stok <= item.minimum);
+      const currentTime = new Date();
+      
+      lowStockNotifications = lowStockItems.map(item => ({
+        id: `low-stock-${item.id}`,
+        title: 'Stok Menipis',
+        message: `${item.nama} tersisa ${item.stok} ${item.satuan}`,
+        type: 'warning' as const,
+        read: false,
+        timestamp: currentTime,
+      }));
+    }
 
+    // Ambil 5 aktivitas terakhir sebagai notifikasi
     const activityNotifications: Notification[] = activities.slice(0, 5).map(activity => ({
       id: `activity-${activity.id}`,
       title: activity.title,
       message: activity.description,
       type: 'info' as const,
       read: false,
-      timestamp: activity.timestamp, 
+      timestamp: activity.createdAt, // Gunakan createdAt untuk konsistensi
     }));
 
     const allNotifications = [...lowStockNotifications, ...activityNotifications]
@@ -52,7 +65,7 @@ const NotificationBell = () => {
       .slice(0, 10);
 
     setNotifications(allNotifications);
-  }, [bahanBaku, activities]);
+  }, [bahanBaku, activities, settings]); // <-- Tambahkan 'settings' sebagai dependensi
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

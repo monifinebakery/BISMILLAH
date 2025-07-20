@@ -17,7 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const SupplierManagement = () => {
   const isMobile = useIsMobile();
-  const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
+  const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState('');

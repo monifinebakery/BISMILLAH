@@ -497,8 +497,8 @@ const WarehousePage = () => {
                   </div>
                 </CardContent>
               </Card>
-              ); /* ✅ PERBAIKAN: Penutup `return (` */
-              })} {/* ✅ PERBAIKAN: Penutup `map` yang benar */}
+              );
+              })} {
             </div>
           )}
         </div>
@@ -511,8 +511,9 @@ const WarehousePage = () => {
             isOpen={!!editingItem}
           />
         )}
-      </div>
-    </div>
-  );
+        </div> {/* Penutup untuk div.max-w-7xl.mx-auto */}
+    </div> // Penutup untuk div.min-h-screen.bg-white...
+  );
+};
 
 export default WarehousePage;

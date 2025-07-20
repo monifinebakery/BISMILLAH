@@ -36,7 +36,6 @@ const PurchaseManagement = () => {
     items: [] as any[], // Disesuaikan dengan tipe data baru jika perlu
     status: 'pending' as 'pending' | 'completed' | 'cancelled',
     metodePerhitungan: 'FIFO' as 'FIFO' | 'LIFO' | 'Average',
-    catatan: '',
     totalNilai: 0,
   });
 
@@ -103,7 +102,6 @@ const PurchaseManagement = () => {
       items: [],
       status: 'pending',
       metodePerhitungan: 'FIFO',
-      catatan: '',
       totalNilai: 0,
     });
     setNewItem({ namaBarang: '', jumlah: 0, satuan: '', hargaSatuan: 0 });

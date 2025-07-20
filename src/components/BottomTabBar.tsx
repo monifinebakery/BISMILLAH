@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Package, ShoppingCart, Menu } from 'lucide-react';
+import { Home, BookOpen, Package, ShoppingCart, Menu, Receipt } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const BottomTabBar = () => {
@@ -15,6 +15,7 @@ const BottomTabBar = () => {
     { path: '/gudang', icon: Package, label: 'Gudang' },
     { path: '/pesanan', icon: ShoppingCart, label: 'Pesanan' },
     { path: '/menu', icon: Menu, label: 'Menu' },
+    { path: '/invoice', icon: Receipt, label: 'Invoice' },
   ];
 
   return (

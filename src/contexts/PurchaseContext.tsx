@@ -1,22 +1,21 @@
 // src/contexts/PurchaseContext.tsx
-// VERSI REALTIME DENGAN RPC (Setelah Konfigurasi Supabase Publications)
+// VERSI REALTIME DENGAN RPC (Setelah Konfigurasi Supabase Publications & Perbaikan Update)
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Purchase } from '@/types/supplier'; // Pastikan path ke tipe data Anda benar
+import { Purchase } from '@/types/supplier'; 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // *** TAMBAHKAN toSafeISOString DI SINI ***
+import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; // Pastikan toSafeISOString diimpor
 
 // --- INTERFACE & CONTEXT ---
 interface PurchaseContextType {
   purchases: Purchase[];
   isLoading: boolean;
   addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  // Untuk update dan delete, kita perlu implementasi lengkapnya jika ingin realtime update dari situ
   updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<boolean>;
   deletePurchase: (id: string) => Promise<boolean>;
 }
@@ -39,11 +38,12 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     supplier: dbItem.supplier,
     totalNilai: Number(dbItem.total_nilai) || 0,
     tanggal: safeParseDate(dbItem.tanggal),
-    items: dbItem.items || [], // Asumsi items adalah JSONB
+    items: dbItem.items || [],
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
     updatedAt: safeParseDate(dbItem.updated_at),
-    // Pastikan tidak ada properti 'notes' di sini jika memang tidak ada di DB
+    status: dbItem.status, // Pastikan status dimuat dari DB
+    metodePerhitungan: dbItem.metode_perhitungan || 'FIFO', // Pastikan metode_perhitungan dimuat dari DB
   });
 
   // --- FUNGSI UTAMA: FETCH DATA & REALTIME LISTENER ---
@@ -81,16 +81,16 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Realtime listener - ini akan berfungsi JIKA tabel 'purchases' diaktifkan di Supabase Publications
     const channel = supabase
       .channel(`realtime-purchases-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases', filter: `user_id=eq.${user.id}` }, // Mengubah event menjadi '*' untuk menerima INSERT, UPDATE, DELETE
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases', filter: `user_id=eq.${user.id}` }, 
         (payload) => {
           console.log('[PurchaseContext] Perubahan realtime diterima:', payload);
           const transform = transformPurchaseFromDB;
 
           if (payload.eventType === 'INSERT') {
-            setPurchases(current => [transform(payload.new), ...current].sort((a, b) => new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime())); // Urutkan untuk menjaga urutan tanggal descending
-          } else if (payload.eventType === 'UPDATE') { // Tambahkan penanganan UPDATE
+            setPurchases(current => [transform(payload.new), ...current].sort((a, b) => new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime())); 
+          } else if (payload.eventType === 'UPDATE') {
             setPurchases(current => current.map(item => item.id === payload.new.id ? transform(payload.new) : item));
-          } else if (payload.eventType === 'DELETE') { // Tambahkan penanganan DELETE
+          } else if (payload.eventType === 'DELETE') {
             setPurchases(current => current.filter(item => item.id !== payload.old.id));
           }
         }
@@ -110,18 +110,17 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
 
-    // PENTING: Pastikan objek ini TIDAK PERNAH berisi properti 'notes'
     const purchaseDataForRPC = {
       user_id: user.id,
       supplier: purchase.supplier,
       total_nilai: purchase.totalNilai,
-      tanggal: purchase.tanggal, // Tanggal harus dalam format yang diterima RPC (misal, ISO string)
+      tanggal: toSafeISOString(purchase.tanggal), // Menggunakan toSafeISOString
       items: purchase.items,
-      // JANGAN sertakan "notes" di sini.
+      status: purchase.status, // Menyertakan status untuk INSERT
+      metode_perhitungan: purchase.metodePerhitungan, // Menyertakan metode_perhitungan untuk INSERT
     };
 
     console.log('[PurchaseContext] Mengirim data pembelian baru ke RPC:', purchaseDataForRPC);
-    // Panggil fungsi RPC yang telah kita buat. Pastikan namanya sama persis di DB.
     const { error } = await supabase.rpc('add_purchase_and_update_stock', { purchase_data: purchaseDataForRPC });
 
     if (error) {
@@ -130,30 +129,33 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
     
-    // Tidak perlu `setPurchases` di sini. Listener realtime akan menanganinya
-    // JIKA diaktifkan di Supabase Publications.
-    
     addActivity({ title: 'Pembelian Ditambahkan', description: `Pembelian dari ${purchase.supplier} senilai Rp ${purchase.totalNilai.toLocaleString('id-ID')}`, type: 'purchase', value: null });
     toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
     return true;
   };
 
-  // --- UPDATE FUNGSI (Jika Anda ingin kemampuan edit realtime) ---
-  const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>): Promise<boolean> => {
+  // --- UPDATE FUNGSI: PERBAIKAN UTAMA ADA DI SINI ---
+  const updatePurchase = async (id: string, updatedData: Partial<Purchase>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk memperbarui pembelian.');
       return false;
     }
 
     const purchaseToUpdate: { [key: string]: any } = {
-      updated_at: new Date().toISOString(), // Pastikan kolom ini ada di DB
+      updated_at: new Date().toISOString(), 
     };
 
-    if (updatedPurchase.supplier !== undefined) purchaseToUpdate.supplier = updatedPurchase.supplier;
-    if (updatedPurchase.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedPurchase.totalNilai;
-    if (updatedPurchase.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedPurchase.tanggal);
-    if (updatedPurchase.items !== undefined) purchaseToUpdate.items = updatedPurchase.items;
-    // JANGAN sertakan "notes" di sini.
+    // Pastikan semua properti yang akan diupdate dipetakan ke snake_case
+    if (updatedData.supplier !== undefined) purchaseToUpdate.supplier = updatedData.supplier;
+    if (updatedData.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedData.totalNilai;
+    if (updatedData.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
+    if (updatedData.items !== undefined) purchaseToUpdate.items = updatedData.items;
+    
+    // *** PENTING: BARIS INI AKAN MEMPERBAIKI MASALAH STATUS ***
+    if (updatedData.status !== undefined) purchaseToUpdate.status = updatedData.status;
+    // *** PENTING: SERTAKAN JUGA METODE PERHITUNGAN JIKA ADA DI DB ***
+    if (updatedData.metodePerhitungan !== undefined) purchaseToUpdate.metode_perhitungan = updatedData.metodePerhitungan;
+
 
     console.log('[PurchaseContext] Mengirim update pembelian:', id, purchaseToUpdate);
     const { error } = await supabase.from('purchases').update(purchaseToUpdate).eq('id', id);
@@ -167,7 +169,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     return true;
   };
 
-  // --- DELETE FUNGSI (Jika Anda ingin kemampuan hapus realtime) ---
+  // --- DELETE FUNGSI ---
   const deletePurchase = async (id: string): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menghapus pembelian.');

@@ -10,7 +10,7 @@ import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useIngredientPrices } from "@/hooks/useIngredientPrices";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUserSettings } from "@/Contexts/UserSettingsContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 interface RecipeFormProps {
   initialData?: Recipe | null;

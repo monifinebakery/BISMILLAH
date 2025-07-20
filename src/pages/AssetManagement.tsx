@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAssets } from '@/hooks/useAssets';
+import { useAssets } from '@/context/useAssets';
 import { Asset, AssetCategory, AssetCondition } from '@/types/asset';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';

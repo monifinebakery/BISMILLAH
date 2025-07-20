@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/Contexts/UserSettingsContext';
 import { toast } from 'sonner'; // ✅ PERBAIKAN: Menambahkan import toast
 import { Settings, Trash2, Edit } from 'lucide-react';
 

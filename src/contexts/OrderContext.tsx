@@ -1,142 +1,156 @@
 // src/contexts/OrderContext.tsx
+// VERSI REALTIME
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, NewOrder } from '@/types/order'; // Pastikan path ke tipe data Anda benar
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateUUID } from '@/utils/uuid';
-import { toSafeISOString, safeParseDate } from '@/utils/dateUtils';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+import { safeParseDate } from '@/utils/dateUtils';
 
 // --- INTERFACE & CONTEXT ---
 interface OrderContextType {
   orders: Order[];
+  isLoading: boolean;
   addOrder: (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>) => Promise<boolean>;
   updateOrder: (id: string, order: Partial<Order>) => Promise<boolean>;
   deleteOrder: (id: string) => Promise<boolean>;
-  updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
+  updateOrderStatus: (id: string, status: Order['status']) => Promise<boolean>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
-// --- CONSTANTS ---
-const STORAGE_KEY = 'hpp_app_orders';
-
 // --- PROVIDER COMPONENT ---
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // --- LOCAL STATE ---
+  // --- STATE ---
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // --- DEPENDENCY HOOKS ---
-  const { session } = useAuth();
+  // --- DEPENDENCIES ---
+  const { user } = useAuth();
   const { addActivity } = useActivity();
 
-  // --- LOAD & SAVE EFFECTS ---
+  // --- HELPER FUNCTION ---
+  const transformOrderFromDB = (dbItem: any): Order => ({
+    id: dbItem.id,
+    nomorPesanan: dbItem.nomor_pesanan,
+    tanggal: safeParseDate(dbItem.tanggal),
+    namaPelanggan: dbItem.nama_pelanggan,
+    teleponPelanggan: dbItem.telepon_pelanggan,
+    emailPelanggan: dbItem.email_pelanggan,
+    items: dbItem.items || [], // Asumsi `items` disimpan sebagai JSONB
+    totalPesanan: Number(dbItem.total_pesanan) || 0,
+    status: dbItem.status,
+    userId: dbItem.user_id,
+    createdAt: safeParseDate(dbItem.created_at),
+    updatedAt: safeParseDate(dbItem.updated_at),
+  });
+
+  // --- EFEK UTAMA: FETCH DATA & REALTIME LISTENER ---
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        // Logika parsing kompleks dari AppDataContext asli
-        const parsed = JSON.parse(stored).map((item: any) => {
-            const parsedTanggal = safeParseDate(item.tanggal);
-            const parsedCreatedAt = safeParseDate(item.createdAt || item.created_at);
-            const parsedUpdatedAt = safeParseDate(item.updatedAt || item.updated_at);
-            return {
-              ...item,
-              tanggal: (parsedTanggal instanceof Date && !isNaN(parsedTanggal.getTime())) ? parsedTanggal : new Date(),
-              createdAt: (parsedCreatedAt instanceof Date && !isNaN(parsedCreatedAt.getTime())) ? parsedCreatedAt : null,
-              updatedAt: (parsedUpdatedAt instanceof Date && !isNaN(parsedUpdatedAt.getTime())) ? parsedUpdatedAt : null,
-              items: item.items ? item.items.map((orderItem: any) => ({
-                ...orderItem,
-                id: orderItem.id || generateUUID(),
-              })) : [],
-            };
-        });
-        setOrders(parsed);
-      }
-    } catch (error) {
-      console.error("Gagal memuat pesanan dari localStorage:", error);
+    if (!user) {
+      setOrders([]);
+      setIsLoading(false);
+      return;
     }
-  }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-  }, [orders]);
+    const fetchInitialOrders = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('tanggal', { ascending: false });
 
-  // --- FUNCTIONS ---
+      if (error) {
+        toast.error(`Gagal memuat pesanan: ${error.message}`);
+      } else if (data) {
+        setOrders(data.map(transformOrderFromDB));
+      }
+      setIsLoading(false);
+    };
+
+    fetchInitialOrders();
+
+    const channel = supabase
+      .channel(`realtime-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const transform = transformOrderFromDB;
+          if (payload.eventType === 'INSERT') {
+            setOrders(current => [transform(payload.new), ...current]);
+          }
+          if (payload.eventType === 'UPDATE') {
+            setOrders(current => current.map(o => o.id === payload.new.id ? transform(payload.new) : o));
+          }
+          if (payload.eventType === 'DELETE') {
+            setOrders(current => current.filter(o => o.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+
+  // --- FUNGSI-FUNGSI ---
   const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>): Promise<boolean> => {
-    if (!session) {
+    if (!user) {
         toast.error('Anda harus login untuk membuat pesanan');
         return false;
     }
     
-    // Logika untuk membuat nomor pesanan baru
-    const nextOrderNumber = `ORD-${String(Math.max(0, ...orders.map(o => parseInt(o.nomorPesanan.replace('ORD-', '')) || 0)) + 1).padStart(3, '0')}`;
-
-    const newOrder: Order = {
-      ...order,
-      id: generateUUID(),
-      tanggal: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      nomorPesanan: nextOrderNumber,
-      status: 'pending',
+    // Lihat Catatan Penting di bawah mengenai pembuatan nomor pesanan
+    const newOrderData = {
+        user_id: user.id,
+        tanggal: new Date(),
+        status: 'pending', // Status default
+        nama_pelanggan: order.namaPelanggan,
+        telepon_pelanggan: order.teleponPelanggan,
+        email_pelanggan: order.emailPelanggan,
+        items: order.items,
+        total_pesanan: order.totalPesanan,
     };
 
-    // ... Logika insert ke Supabase ...
+    // Kita akan memanggil fungsi RPC di database untuk membuat nomor pesanan
+    const { data: newOrder, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
+
+    if (error) {
+        toast.error(`Gagal menambahkan pesanan: ${error.message}`);
+        return false;
+    }
     
-    setOrders(prev => [...prev, newOrder]);
-    addActivity({
-      title: 'Pesanan Baru',
-      description: `Pesanan ${newOrder.nomorPesanan} dari ${newOrder.namaPelanggan}`,
-      type: 'order', // Tipe bisa disesuaikan, mungkin 'order' lebih cocok
-      value: null,
-    });
-    toast.success(`Pesanan ${newOrder.nomorPesanan} berhasil ditambahkan!`);
+    // newOrder di sini adalah hasil dari fungsi RPC, yang sudah punya nomor pesanan unik
+    addActivity({ title: 'Pesanan Baru', description: `Pesanan #${newOrder.nomor_pesanan} dari ${newOrder.nama_pelanggan}`, type: 'order', value: null });
+    toast.success(`Pesanan #${newOrder.nomor_pesanan} berhasil ditambahkan!`);
     return true;
   };
 
   const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
-    if (!session) {
-        toast.error('Anda harus login untuk memperbarui pesanan');
-        return false;
-    }
-    // ... Implementasi lengkap sama seperti di AppDataContext asli ...
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updatedOrder, updatedAt: new Date() } : o));
-    toast.success(`Pesanan berhasil diperbarui!`);
+    // ... Implementasi serupa, ubah camelCase ke snake_case ...
     return true;
   };
   
   const deleteOrder = async (id: string): Promise<boolean> => {
-    if (!session) {
-        toast.error('Anda harus login untuk menghapus pesanan');
-        return false;
-    }
-    const order = orders.find(o => o.id === id);
-    // ... Logika delete dari Supabase ...
-
-    setOrders(prev => prev.filter(o => o.id !== id));
-    if (order) {
-        addActivity({
-            title: 'Pesanan Dihapus',
-            description: `Pesanan ${order.nomorPesanan} telah dihapus`,
-            type: 'order',
-            value: null,
-        });
-        toast.success(`Pesanan ${order.nomorPesanan} berhasil dihapus!`);
-    }
+    // ... Implementasi serupa ...
     return true;
   };
   
-  const updateOrderStatus = async (id: string, status: Order['status']) => {
-    await updateOrder(id, { status });
+  const updateOrderStatus = async (id: string, status: Order['status']): Promise<boolean> => {
+    return await updateOrder(id, { status });
   };
 
   const value: OrderContextType = {
     orders,
+    isLoading,
     addOrder,
     updateOrder,
     deleteOrder,

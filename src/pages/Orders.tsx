@@ -47,7 +47,7 @@ const OrdersPage = () => {
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
 
-  const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrders();
+  const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrder();
 
   const handleFollowUpClick = (order: Order) => {
     setSelectedOrderForWhatsapp(order);

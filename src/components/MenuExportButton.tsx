@@ -1,161 +1,60 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { Download } from 'lucide-react';
 
-interface MenuExportButtonProps {
-  data: any[];
-  filename: string;
-  menuType: string;
-}
+// --- Impor Hook Konteks ---
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useSupplier } from "@/contexts/SupplierContext";
+import { usePurchase } from "@/contexts/PurchaseContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useActivity } from "@/contexts/ActivityContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useAsset } from "@/contexts/AssetContext";
+import { useFinancial } from "@/contexts/FinancialContext";
+import { useUserSettings } from '@/hooks/useUserSettings';
 
-const MenuExportButton: React.FC<MenuExportButtonProps> = ({ data, filename, menuType }) => {
-  const exportToPDF = () => {
-    try {
-      if (!data || data.length === 0) {
-        toast.error('Tidak ada data untuk diekspor');
-        return;
-      }
+// --- Impor Fungsi Export ---
+import { exportAllDataToExcel } from "@/utils/exportUtils";
 
-      let content = `LAPORAN ${menuType.toUpperCase()}\n`;
-      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n`;
-      content += `Total Records: ${data.length}\n\n`;
+const MobileExportButton = () => {
+  // Panggil semua hook untuk mendapatkan data yang akan diekspor
+  const { settings } = useUserSettings();
+  const { bahanBaku } = useBahanBaku();
+  const { suppliers } = useSupplier();
+  const { purchases } = usePurchase();
+  const { recipes, hppResults } = useRecipe();
+  const { activities } = useActivity();
+  const { orders } = useOrder();
+  const { assets } = useAsset();
+  const { financialTransactions } = useFinancial();
 
-      data.forEach((item, index) => {
-        content += `${index + 1}. `;
-        Object.entries(item).forEach(([key, value]) => {
-          if (!['id', 'user_id'].includes(key)) {
-            let displayValue = value;
-            if (value instanceof Date) {
-              // MODIFIKASI DISINI: Jika tidak valid, kembalikan string kosong
-              displayValue = !isNaN(value.getTime()) ? value.toISOString() : '';
-            } else if (typeof value === 'object' && value !== null) {
-              displayValue = JSON.stringify(value);
-            }
-            content += `${key}: ${displayValue} | `;
-          }
-        });
-        content += '\n';
-      });
-
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}-${new Date().toISOString().split('T')[0]}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success('Data berhasil diekspor sebagai PDF/Text');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Gagal mengekspor data');
-    }
-  };
-
-  const exportToExcel = () => {
-    try {
-      if (!data || data.length === 0) {
-        toast.error('Tidak ada data untuk diekspor');
-        return;
-      }
-
-      const CSV_DELIMITER = ';';
-
-      const allKeys = new Set<string>();
-      data.forEach(item => {
-        Object.keys(item).forEach(key => {
-          if (!['id', 'user_id'].includes(key)) {
-            allKeys.add(key);
-          }
-        });
-      });
-
-      const headers = Array.from(allKeys);
-
-      const csvContent = [
-        headers.map(header => {
-          let headerValue = header;
-          if (headerValue.includes(CSV_DELIMITER) || headerValue.includes('"') || headerValue.includes('\n') || headerValue.includes('\r')) {
-            headerValue = `"${headerValue.replace(/"/g, '""')}"`;
-          }
-          return headerValue;
-        }).join(CSV_DELIMITER),
-        ...data.map(item =>
-          headers.map(header => {
-            let value = item[header];
-
-            // Handle null or undefined values
-            if (value === null || value === undefined) {
-              value = '';
-            }
-            // Handle Date objects specifically: convert to ISO string with validation
-            else if (value instanceof Date) {
-              // INI SUDAH BENAR SESUAI TUJUAN
-              value = !isNaN(value.getTime()) ? value.toISOString() : ''; // Pastikan hanya Date yang valid
-            }
-            // Handle other complex objects (like arrays, nested objects) by stringifying
-            else if (typeof value === 'object') {
-              value = JSON.stringify(value);
-            }
-
-            // Apply CSV escaping: enclose in double quotes if it contains delimiter, double quotes, or newlines
-            // And double internal double quotes
-            if (typeof value === 'string' && (value.includes(CSV_DELIMITER) || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
-              value = `"${value.replace(/"/g, '""')}"`;
-            }
-
-            return value;
-          }).join(CSV_DELIMITER)
-        )
-      ].join('\n');
-
-      // Add BOM for proper UTF-8 encoding in Excel
-      const BOM = '\uFEFF';
-      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success(`Data ${menuType} berhasil diekspor sebagai Excel/CSV`);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Gagal mengekspor data');
-    }
+  const handleExport = () => {
+    const allAppData = {
+      bahanBaku,
+      suppliers,
+      purchases,
+      recipes,
+      hppResults,
+      activities,
+      orders,
+      assets,
+      financialTransactions,
+    };
+    
+    // Panggil fungsi ekspor dengan nama bisnis dari pengaturan
+    exportAllDataToExcel(allAppData, settings.businessName);
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700 rounded-md shadow-sm transition-colors duration-200"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Export Data
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg rounded-md">
-        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md">
-          <FileText className="h-4 w-4 mr-2 text-blue-600" />
-          Export sebagai PDF/Text
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50 rounded-md">
-          <FileText className="h-4 w-4 mr-2 text-green-600" />
-          Export sebagai Excel/CSV
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleExport}
+      className="px-2 py-1"
+    >
+      <Download className="h-4 w-4" />
+    </Button>
   );
 };
 
-export default MenuExportButton;
+export default MobileExportButton;

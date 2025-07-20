@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// --- PERBAIKAN: Impor semua hook konteks yang baru ---
+// --- Impor Hook Konteks ---
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useSupplier } from "@/contexts/SupplierContext";
@@ -26,7 +26,7 @@ import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useAssets } from "@/contexts/AssetContext";
+import { useAsset } from "@/contexts/AssetContext"; // ✅ PERBAIKAN: Menggunakan nama hook yang benar (useAsset)
 import { useFinancial } from "@/contexts/FinancialContext";
 
 // --- Impor Fungsi Export Baru ---
@@ -36,7 +36,7 @@ export function AppSidebar() {
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
-  // --- PERBAIKAN: Panggil semua hook baru untuk mendapatkan data ---
+  // --- Panggil semua hook untuk mendapatkan data ---
   const { isPaid } = usePaymentContext();
   const { bahanBaku } = useBahanBaku();
   const { suppliers } = useSupplier();
@@ -44,7 +44,7 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAssets();
+  const { assets } = useAsset(); // ✅ PERBAIKAN: Memanggil hook dengan nama yang benar
   const { financialTransactions } = useFinancial();
 
   const menuGroups = [
@@ -93,7 +93,6 @@ export function AppSidebar() {
     }
   };
 
-  // --- PERBARUI FUNGSI INI ---
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -109,17 +108,6 @@ export function AppSidebar() {
     
     // Panggil fungsi export yang baru
     exportAllDataToExcel(allAppData);
-  };
-    
-    // Logika untuk export (misalnya, konversi ke JSON dan download)
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-      JSON.stringify(allAppData, null, 2)
-    )}`;
-    const link = document.createElement("a");
-    link.href = jsonString;
-    link.download = `hpp_monifine_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    toast.success("Semua data berhasil diekspor!");
   };
 
   return (

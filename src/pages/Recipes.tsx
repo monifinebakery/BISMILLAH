@@ -7,7 +7,7 @@ import { useRecipes } from '@/hooks/useRecipes';
 import RecipeForm from '@/components/RecipeForm';
 import { Recipe } from '@/types/recipe';
 import MenuExportButton from '@/components/MenuExportButton';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/hooks/UserSettingsContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 

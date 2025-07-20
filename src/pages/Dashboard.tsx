@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardContent } => "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';

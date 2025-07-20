@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { BarChart3, Calculator, Warehouse, TrendingUp, Package, Trophy, Activity, ShoppingCart } from "lucide-react";
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calculator, Warehouse, Package, Trophy, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
@@ -8,6 +8,7 @@ import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext'; 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const formatDateTime = (date: Date | null) => {
   if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
@@ -28,6 +29,11 @@ const Dashboard = () => {
   const { recipes, hppResults } = useRecipe();
   const { orders } = useOrder();
   const { settings } = useUserSettings(); 
+
+  // Pagination states
+  const [productsPage, setProductsPage] = useState(1);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const itemsPerPage = 5;
 
   const stats = useMemo(() => {
     const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
@@ -55,7 +61,7 @@ const Dashboard = () => {
     return Object.entries(productSales)
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5);
+      .slice(0, 20); // Get top 20 for pagination
   }, [orders]);
 
   const getGreeting = () => {
@@ -67,65 +73,85 @@ const Dashboard = () => {
     if (jam >= 19 || jam < 4) sapaan = "malam";
     
     if (settings.ownerName) {
-      return `Selamat ${sapaan}, Kak ${settings.ownerName}!`;
+      return `Selamat ${sapaan}, Kak ${settings.ownerName}`;
     }
-    return `Selamat ${sapaan}! Kelola bisnis Anda dengan mudah`;
+    return `Selamat ${sapaan}`;
   };
 
+  // Pagination logic for products
+  const productsStartIndex = (productsPage - 1) * itemsPerPage;
+  const currentProducts = bestSellingProducts.slice(productsStartIndex, productsStartIndex + itemsPerPage);
+  const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPage);
+
+  // Pagination logic for activities
+  const activitiesStartIndex = (activitiesPage - 1) * itemsPerPage;
+  const currentActivities = activities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
+  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPage);
+
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-gradient-to-b from-orange-50 to-white min-h-screen">
+    <div className="p-4 sm:p-6 space-y-6 bg-white min-h-screen">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 shadow-lg">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-orange-100">{getGreeting()}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <p className="text-gray-500">{getGreeting()}</p>
+        </div>
+        <div className="text-xs text-gray-400">
+          {new Date().toLocaleDateString('id-ID', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-blue-500 shadow-sm">
-          <CardContent className="p-5 flex items-center">
-            <div className="bg-blue-100 p-3 rounded-lg mr-4">
-              <Package className="h-6 w-6 text-blue-600" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-blue-50 p-2 rounded-lg mr-3">
+              <Package className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1">Total Produk</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalProduk}</p>
+              <p className="text-xs text-gray-500">Total Produk</p>
+              <p className="font-semibold text-gray-800">{stats.totalProduk}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-green-500 shadow-sm">
-          <CardContent className="p-5 flex items-center">
-            <div className="bg-green-100 p-3 rounded-lg mr-4">
-              <Warehouse className="h-6 w-6 text-green-600" />
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-green-50 p-2 rounded-lg mr-3">
+              <Warehouse className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1">Total Stok Bahan</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalStokBahanBaku.toLocaleString('id-ID')}</p>
+              <p className="text-xs text-gray-500">Total Stok</p>
+              <p className="font-semibold text-gray-800">{stats.totalStokBahanBaku.toLocaleString('id-ID')}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-purple-500 shadow-sm">
-          <CardContent className="p-5 flex items-center">
-            <div className="bg-purple-100 p-3 rounded-lg mr-4">
-              <Calculator className="h-6 w-6 text-purple-600" />
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-purple-50 p-2 rounded-lg mr-3">
+              <Calculator className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1">HPP Rata-rata</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.hppRataRata}</p>
+              <p className="text-xs text-gray-500">HPP Rata-rata</p>
+              <p className="font-semibold text-gray-800">{stats.hppRataRata}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`border-l-4 ${stats.stokMenipis > 0 ? 'border-red-500' : 'border-orange-500'} shadow-sm`}>
-          <CardContent className="p-5 flex items-center">
-            <div className={`p-3 rounded-lg mr-4 ${stats.stokMenipis > 0 ? 'bg-red-100' : 'bg-orange-100'}`}>
-              <TrendingUp className={`h-6 w-6 ${stats.stokMenipis > 0 ? 'text-red-600' : 'text-orange-600'}`} />
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className={`p-2 rounded-lg mr-3 ${stats.stokMenipis > 0 ? 'bg-red-50' : 'bg-orange-50'}`}>
+              <div className={`h-5 w-5 ${stats.stokMenipis > 0 ? 'text-red-600' : 'text-orange-600'}`} />
             </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1">Stok Menipis</p>
-              <p className={`text-2xl font-bold ${stats.stokMenipis > 0 ? 'text-red-600' : 'text-orange-600'}`}>
+              <p className="text-xs text-gray-500">Stok Menipis</p>
+              <p className={`font-semibold ${stats.stokMenipis > 0 ? 'text-red-600' : 'text-orange-600'}`}>
                 {stats.stokMenipis}
               </p>
             </div>
@@ -134,44 +160,41 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="border border-blue-200 hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
           <Link to="/hpp">
-            <CardContent className="p-5 flex items-center">
-              <div className="bg-blue-100 p-3 rounded-lg mr-4">
-                <Calculator className="h-6 w-6 text-blue-600" />
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-blue-50 p-2 rounded-lg mr-3">
+                <Calculator className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-semibold text-gray-800">Hitung HPP</p>
-                <p className="text-sm text-gray-500 mt-1">Kalkulasi harga pokok produksi</p>
+                <p className="font-medium text-gray-800">Hitung HPP</p>
               </div>
             </CardContent>
           </Link>
         </Card>
 
-        <Card className="border border-green-200 hover:shadow-lg transition-shadow">
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
           <Link to="/gudang">
-            <CardContent className="p-5 flex items-center">
-              <div className="bg-green-100 p-3 rounded-lg mr-4">
-                <Warehouse className="h-6 w-6 text-green-600" />
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-green-50 p-2 rounded-lg mr-3">
+                <Warehouse className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="font-semibold text-gray-800">Kelola Gudang</p>
-                <p className="text-sm text-gray-500 mt-1">Manajemen bahan baku dan stok</p>
+                <p className="font-medium text-gray-800">Kelola Gudang</p>
               </div>
             </CardContent>
           </Link>
         </Card>
 
-        <Card className="border border-purple-200 hover:shadow-lg transition-shadow">
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
           <Link to="/laporan">
-            <CardContent className="p-5 flex items-center">
-              <div className="bg-purple-100 p-3 rounded-lg mr-4">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-purple-50 p-2 rounded-lg mr-3">
+                <div className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="font-semibold text-gray-800">Laporan Keuangan</p>
-                <p className="text-sm text-gray-500 mt-1">Analisis kinerja bisnis</p>
+                <p className="font-medium text-gray-800">Laporan Keuangan</p>
               </div>
             </CardContent>
           </Link>
@@ -181,90 +204,107 @@ const Dashboard = () => {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Best Selling Products */}
-        <Card className="border border-yellow-100 shadow-sm">
-          <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-yellow-200">
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-600" />
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-800">
+              <Trophy className="h-5 w-5 text-gray-600" />
               <span>Produk Terlaris</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-gray-100">
-              {bestSellingProducts.length > 0 ? (
-                bestSellingProducts.map((product, index) => (
-                  <div key={product.name} className="p-4 flex items-center hover:bg-yellow-50/50">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      index === 0 ? 'bg-yellow-100' : 
-                      index === 1 ? 'bg-gray-100' : 
-                      'bg-orange-100'
-                    }`}>
-                      <span className={`font-semibold ${
-                        index === 0 ? 'text-yellow-800' : 
-                        index === 1 ? 'text-gray-800' : 
-                        'text-orange-800'
-                      }`}>
-                        #{index + 1}
+              {currentProducts.length > 0 ? (
+                currentProducts.map((product, index) => (
+                  <div 
+                    key={product.name} 
+                    className="p-4 flex items-center hover:bg-gray-50"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <span className="text-sm font-medium text-gray-700">
+                        {productsStartIndex + index + 1}
                       </span>
                     </div>
                     <div className="ml-4 flex-1 min-w-0">
-                      <p className="font-semibold truncate">{product.name}</p>
+                      <p className="font-medium text-gray-800 truncate">{product.name}</p>
                       <p className="text-sm text-gray-500 mt-1">
                         {product.quantity} terjual
                       </p>
-                    </div>
-                    <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {Math.round((product.quantity / bestSellingProducts[0].quantity) * 100)}%
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="p-6 text-center">
-                  <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Belum ada data penjualan</p>
                 </div>
               )}
             </div>
           </CardContent>
+          
+          {/* Pagination */}
+          {bestSellingProducts.length > itemsPerPage && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <button 
+                className={`p-1 rounded ${productsPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                disabled={productsPage === 1}
+                onClick={() => setProductsPage(productsPage - 1)}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <span className="text-sm text-gray-500">
+                Halaman {productsPage} dari {totalProductsPages}
+              </span>
+              <button 
+                className={`p-1 rounded ${productsPage >= totalProductsPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                disabled={productsPage >= totalProductsPages}
+                onClick={() => setProductsPage(productsPage + 1)}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          )}
         </Card>
 
         {/* Recent Activity */}
-        <Card className="border border-blue-100 shadow-sm">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200">
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-800">
+              <Activity className="h-5 w-5 text-gray-600" />
               <span>Aktivitas Terbaru</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 max-h-[400px] overflow-y-auto">
+          <CardContent className="p-0">
             <div className="divide-y divide-gray-100">
               {activitiesLoading ? (
                 <div className="p-6 text-center">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
-                  <p className="mt-4 text-gray-500">Memuat aktivitas...</p>
+                  <p className="text-gray-500">Memuat aktivitas...</p>
                 </div>
-              ) : activities.length > 0 ? (
-                activities.slice(0, 5).map((activity) => {
+              ) : currentActivities.length > 0 ? (
+                currentActivities.map((activity) => {
                   const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
                   const amount = isFinancial ? parseFloat(activity.value || '0') : 0;
                   
                   return (
-                    <div key={activity.id} className="p-4 hover:bg-blue-50/50">
+                    <div 
+                      key={activity.id} 
+                      className="p-4 hover:bg-gray-50"
+                    >
                       <div className="flex justify-between">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{activity.title}</p>
+                          <p className="font-medium text-gray-800 truncate">{activity.title}</p>
                           <p className="text-sm text-gray-500 mt-1 truncate">{activity.description}</p>
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
                           {isFinancial && amount > 0 && (
-                            <p className={`font-semibold ${
-                              activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan') 
+                            <p className={`text-sm font-medium ${
+                              activity.type === 'keuangan' && 
+                              activity.title.toLowerCase().includes('pemasukan') 
                                 ? 'text-green-600' 
                                 : 'text-red-600'
                             }`}>
                               {formatCurrency(amount)}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-400 mt-1">
                             {formatDateTime(activity.timestamp)}
                           </p>
                         </div>
@@ -274,17 +314,34 @@ const Dashboard = () => {
                 })
               ) : (
                 <div className="p-6 text-center">
-                  <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Belum ada aktivitas</p>
                 </div>
               )}
             </div>
           </CardContent>
-          <CardFooter className="bg-blue-50 border-t border-blue-100">
-            <Link to="/aktivitas" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Lihat semua aktivitas →
-            </Link>
-          </CardFooter>
+          
+          {/* Pagination */}
+          {activities.length > itemsPerPage && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <button 
+                className={`p-1 rounded ${activitiesPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                disabled={activitiesPage === 1}
+                onClick={() => setActivitiesPage(activitiesPage - 1)}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <span className="text-sm text-gray-500">
+                Halaman {activitiesPage} dari {totalActivitiesPages}
+              </span>
+              <button 
+                className={`p-1 rounded ${activitiesPage >= totalActivitiesPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                disabled={activitiesPage >= totalActivitiesPages}
+                onClick={() => setActivitiesPage(activitiesPage + 1)}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          )}
         </Card>
       </div>
     </div>

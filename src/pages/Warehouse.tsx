@@ -11,8 +11,8 @@ import MenuExportButton from '@/components/MenuExportButton';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/utils/currencyUtils'; 
-import { formatDateForDisplay } from '@/utils/dateUtils'; 
+import { formatCurrency } from '@/utils/currencyUtils';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const WarehousePage = () => {
   const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useBahanBaku();
@@ -164,7 +164,7 @@ const WarehousePage = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
-    <div className="container mx-auto p-4 sm:p-8"> {/* Main container */}
+    <div className="container mx-auto p-4 sm:p-8">
 
         {/* Header Utama Halaman */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
@@ -417,8 +417,8 @@ const WarehousePage = () => {
             </Card>
           ) : (
             <div className="space-y-4">
-              {currentItems.map((item) => { /* ✅ PERBAIKAN: Gunakan return eksplisit */
-                return ( /* ✅ PERBAIKAN: Menambahkan `return (` */
+              {currentItems.map((item) => { 
+                return ( 
                   <Card key={item.id} className="bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-lg hover:shadow-xl transition-all duration-300">
                     <CardContent className="p-4">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

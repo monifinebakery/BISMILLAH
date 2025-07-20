@@ -1,5 +1,5 @@
 // src/contexts/PurchaseContext.tsx
-// Implementasi Logika Otomatisasi Laporan Keuangan (Pengeluaran Pembelian)
+// VERSI REALTIME DENGAN RPC (Setelah Konfigurasi Supabase Publications & Perbaikan Update)
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Purchase } from '@/types/supplier'; 
@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils'; 
-import { useFinancial } from './FinancialContext'; // ✅ PERBAIKAN: IMPOR useFinancial
+import { useFinancial } from './FinancialContext'; 
 
 // --- INTERFACE & CONTEXT ---
 interface PurchaseContextType {
@@ -25,13 +25,16 @@ const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined
 
 // --- PROVIDER COMPONENT ---
 export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // --- STATE ---
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // --- DEPENDENCIES ---
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addFinancialTransaction } = useFinancial(); // ✅ PERBAIKAN: PANGGIL HOOK useFinancial
+  const { addFinancialTransaction } = useFinancial(); 
 
+  // --- HELPER FUNCTION ---
   const transformPurchaseFromDB = (dbItem: any): Purchase => ({
     id: dbItem.id,
     supplier: dbItem.supplier,
@@ -45,6 +48,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     metodePerhitungan: dbItem.metode_perhitungan || 'FIFO',
   });
 
+  // --- FUNGSI UTAMA: FETCH DATA & REALTIME LISTENER ---
   useEffect(() => {
     if (!user) {
       console.log('[PurchaseContext] User tidak ditemukan, mengosongkan pembelian.');
@@ -64,6 +68,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       if (error) {
         toast.error(`Gagal memuat pembelian: ${error.message}`);
+        console.error('[PurchaseContext] Error memuat pembelian:', error);
       } else if (data) {
         const transformedData = data.map(transformPurchaseFromDB);
         console.log('[PurchaseContext] Data pembelian berhasil dimuat (transformed):', transformedData);
@@ -136,7 +141,13 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
 
-    const oldPurchase = purchases.find(p => p.id === id); // Ambil data pembelian LAMA dari state lokal
+    // Ambil data pembelian LAMA dari state lokal untuk membandingkan status
+    const oldPurchase = purchases.find(p => p.id === id);
+
+    // ✅ DEBUG LOG 1: Tampilkan status lama dan baru
+    console.log('[PurchaseContext] Update Purchase - ID:', id);
+    console.log('[PurchaseContext] Update Purchase - Old Status:', oldPurchase?.status);
+    console.log('[PurchaseContext] Update Purchase - New Status (updatedData):', updatedData.status);
 
     const purchaseToUpdate: { [key: string]: any } = {
       updated_at: new Date().toISOString(), 
@@ -159,15 +170,18 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
 
+    // ✅ DEBUG LOG 2: Periksa apakah kondisi terpenuhi
+    const conditionMet = oldPurchase && oldPurchase.status !== 'completed' && updatedData.status === 'completed';
+    console.log('[PurchaseContext] Update Purchase - Kondisi Pencatatan Pengeluaran Terpenuhi:', conditionMet);
+
     // ✅ LOGIKA BARU: Masuk ke laporan pengeluaran jika status berubah menjadi 'completed'
-    if (oldPurchase && oldPurchase.status !== 'completed' && updatedData.status === 'completed') {
+    if (conditionMet) {
         let actualSupplierName = 'Supplier Tidak Dikenal';
-        // Ambil nama supplier secara langsung dari DB jika purchase.supplier adalah ID (UUID)
         if (oldPurchase.supplier) {
             const { data: supplierDb, error: supplierError } = await supabase
-                .from('suppliers') // Query tabel 'suppliers' langsung di sini
+                .from('suppliers') 
                 .select('nama')
-                .eq('id', oldPurchase.supplier) // oldPurchase.supplier adalah ID supplier
+                .eq('id', oldPurchase.supplier) 
                 .single();
             if (supplierDb) {
                 actualSupplierName = supplierDb.nama;
@@ -177,13 +191,16 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
 
         const successFinancial = await addFinancialTransaction({
-            type: 'expense',
-            category: 'Pembelian Bahan Baku', // Kategori pengeluaran default
+            type: 'expense', // Tipe: pengeluaran
+            category: 'Pembelian Bahan Baku', 
             description: `Pembelian bahan baku dari ${actualSupplierName} (ID: ${oldPurchase.id})`,
             amount: oldPurchase.totalNilai,
             date: oldPurchase.tanggal, 
             relatedId: oldPurchase.id, 
         });
+
+        // ✅ DEBUG LOG 3: Status penambahan transaksi keuangan
+        console.log('[PurchaseContext] Update Purchase - Status penambahan transaksi keuangan:', successFinancial);
 
         if (successFinancial) {
             toast.success('Pengeluaran pembelian bahan baku berhasil dicatat!');

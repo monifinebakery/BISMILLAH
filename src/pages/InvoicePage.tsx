@@ -105,55 +105,102 @@ const InvoicePage = () => {
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
 
-        {/* --- PERBAIKAN LAYOUT HORIZONTAL DIMULAI DI SINI --- */}
-        <div className="mt-10 border-t pt-8 flex flex-col sm:flex-row gap-12">
-            
-            {/* Kolom Kiri: Status & Catatan */}
-            <div className="w-full sm:w-1/2 space-y-6">
-                <div>
-                    <Label className="font-semibold text-gray-700">Status Pembayaran</Label>
-                    <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                        <SelectTrigger className={`w-40 mt-2 font-bold border-2 ${getStatusBadge()}`}><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem><SelectItem value="LUNAS">LUNAS</SelectItem><SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem></SelectContent>
-                    </Select>
-                </div>
-                <div>
-                    <Label className="font-semibold text-gray-700">Instruksi Pembayaran</Label>
-                    <Textarea value={paymentInstructions} onChange={e => setPaymentInstructions(e.target.value)} className="text-sm text-gray-600 print:border-none print:p-0 mt-2" rows={4} />
-                </div>
-                 <div>
-                    <Label className="font-semibold text-gray-700">Catatan Tambahan</Label>
-                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} className="text-sm text-gray-600 print:border-none print:p-0 mt-2" rows={2}/>
-                </div>
-            </div>
+        // GANTI SELURUH BAGIAN BAWAH INVOICE ANDA DENGAN INI:
+// Mulai dari setelah tombol "Tambah Baris"
 
-            {/* Kolom Kanan: Rincian Total */}
-            <div className="w-full sm:w-1/2 flex justify-end">
-                <div className="w-full max-w-xs space-y-4">
-                    <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                    <div className="flex justify-between items-center text-gray-600">
-                        <div className="flex items-center gap-2"><Label>Diskon</Label><Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}><SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent></Select></div>
-                        <span>- {formatCurrency(discountAmount)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-600">
-                        <div className="flex items-center gap-2"><Label>Pajak</Label><Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><span>%</span></div>
-                        <span>+ {formatCurrency(taxAmount)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-600">
-                        <Label>Biaya Pengiriman</Label><Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" />
-                    </div>
-                    <div className="border-t my-2"></div>
-                    <div className="flex justify-between font-bold text-xl bg-slate-100 p-4 rounded-lg">
-                        <span>GRAND TOTAL</span>
-                        <span>{formatCurrency(total)}</span>
-                    </div>
-                </div>
-            </div>
+        {/* --- LAYOUT HORIZONTAL YANG DIRAPIKAN --- */}
+        <div className="mt-8 border-t pt-8">
+          <div className="flex flex-col md:flex-row gap-12">
+              
+              {/* === KOLOM KIRI: INFO & STATUS === */}
+              <div className="w-full md:w-1/2 space-y-5">
+                  <div className="flex items-start justify-between">
+                      <div>
+                          <Label className="font-semibold text-gray-700">Status Pembayaran</Label>
+                          <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                              <SelectTrigger className={`w-40 mt-2 font-bold border-2 ${getStatusBadge()}`}>
+                                  <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem>
+                                  <SelectItem value="LUNAS">LUNAS</SelectItem>
+                                  <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
+                              </SelectContent>
+                          </Select>
+                      </div>
+                      {/* Placeholder untuk Tanda Tangan atau Info Lain jika perlu */}
+                  </div>
+                  <div>
+                      <Label className="font-semibold text-gray-700">Instruksi Pembayaran</Label>
+                      <Textarea 
+                          value={paymentInstructions} 
+                          onChange={e => setPaymentInstructions(e.target.value)} 
+                          className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
+                          rows={3} // Dibuat lebih ringkas
+                      />
+                  </div>
+              </div>
+
+              {/* === KOLOM KANAN: TOTAL FINANSIAL === */}
+              <div className="w-full md:w-1/2 flex justify-end">
+                  <div className="w-full max-w-sm space-y-3">
+                      {/* Subtotal */}
+                      <div className="flex justify-between text-gray-600">
+                          <span>Subtotal</span>
+                          <span>{formatCurrency(subtotal)}</span>
+                      </div>
+                      
+                      {/* Diskon */}
+                      <div className="flex justify-between items-center text-gray-600">
+                          <div className="flex items-center gap-2">
+                              <Label>Diskon</Label>
+                              <Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" />
+                              <Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}>
+                                  <SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger>
+                                  <SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent>
+                              </Select>
+                          </div>
+                          <span>- {formatCurrency(discountAmount)}</span>
+                      </div>
+                      
+                      {/* Pajak */}
+                      <div className="flex justify-between items-center text-gray-600">
+                          <div className="flex items-center gap-2">
+                              <Label>Pajak</Label>
+                              <Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" />
+                              <span>%</span>
+                          </div>
+                          <span>+ {formatCurrency(taxAmount)}</span>
+                      </div>
+                      
+                      {/* Biaya Pengiriman */}
+                      <div className="flex justify-between items-center text-gray-600">
+                          <Label>Biaya Pengiriman</Label>
+                          <Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" />
+                      </div>
+                      
+                      {/* GRAND TOTAL */}
+                      <div className="border-t pt-3 mt-2">
+                          <div className="flex justify-between font-bold text-xl text-gray-800">
+                              <span>GRAND TOTAL</span>
+                              <span>{formatCurrency(total)}</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          {/* Catatan Tambahan & Footer */}
+          <div className="border-t mt-8 pt-6">
+              <Label className="font-semibold text-gray-700">Catatan Tambahan</Label>
+              <Textarea 
+                  value={notes} 
+                  onChange={e => setNotes(e.target.value)} 
+                  className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
+                  rows={2} // Dibuat lebih ringkas
+              />
+          </div>
         </div>
-        {/* --- AKHIR PERBAIKAN LAYOUT HORIZONTAL --- */}
-
-      </div>
-    </div>
   );
 };
 

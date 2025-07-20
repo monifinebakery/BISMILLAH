@@ -1,14 +1,11 @@
-import React, { useState } from 'react'; // MODIFIED: Import useState
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package } from 'lucide-react'; // MODIFIED: Tambahkan icon
+import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { performSignOut } from '@/lib/authUtils';
 
-// MODIFIED: Import AlertDialog components
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,21 +15,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 const MenuPage = () => {
   const navigate = useNavigate();
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // MODIFIED: Tambahkan state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = async () => {
-    setShowLogoutConfirm(true); // MODIFIED: Hanya buka dialog
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
-  const confirmLogout = async () => { // MODIFIED: Fungsi konfirmasi logout
+  const confirmLogout = async () => {
     try {
       const success = await performSignOut();
-      
       if (success) {
         toast.success("Berhasil keluar");
         setTimeout(() => {
@@ -85,7 +80,7 @@ const MenuPage = () => {
     {
       title: 'Pesanan',
       description: 'Kelola semua pesanan pelanggan',
-      icon: ShoppingCartIcon, // MODIFIED: Gunakan ShoppingCartIcon
+      icon: ShoppingCartIcon,
       path: '/pesanan',
       color: 'from-red-500 to-pink-600'
     },
@@ -103,6 +98,14 @@ const MenuPage = () => {
       path: '/aset',
       color: 'from-indigo-500 to-indigo-600'
     },
+    // Menambahkan kembali item Invoice
+    {
+      title: 'Buat Invoice',
+      description: 'Buat faktur manual untuk pelanggan',
+      icon: Receipt,
+      path: '/invoice',
+      color: 'from-cyan-500 to-blue-500'
+    },
     {
       title: 'Pengaturan',
       description: 'Atur preferensi aplikasi',
@@ -113,7 +116,7 @@ const MenuPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4 pb-20 font-inter">
+    <div className="min-h-screen bg-gray-50 p-4 pb-20">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Menu Utama</h1>
@@ -140,11 +143,11 @@ const MenuPage = () => {
           ))}
         </div>
 
-        {/* Logout Button */}
+        {/* Tombol Keluar */}
         <Card className="bg-red-50 border-red-200 rounded-lg">
           <CardContent className="p-4">
             <Button
-              onClick={handleLogout} // MODIFIED: Panggil handleLogout
+              onClick={handleLogout}
               variant="destructive"
               className="w-full flex items-center justify-center gap-2 rounded-md"
             >
@@ -155,7 +158,7 @@ const MenuPage = () => {
         </Card>
       </div>
 
-      {/* MODIFIED: AlertDialog untuk konfirmasi logout */}
+      {/* Dialog Konfirmasi Keluar */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

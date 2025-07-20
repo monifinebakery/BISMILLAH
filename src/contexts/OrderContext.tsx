@@ -1,8 +1,8 @@
 // src/contexts/OrderContext.tsx
-// VERSI REALTIME
+// VERSI REALTIME - DENGAN PERBAIKAN PADA LISTENER
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Order, NewOrder } from '@/types/order'; // Pastikan path ke tipe data Anda benar
+import { Order, NewOrder } from '@/types/order';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -41,7 +41,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     namaPelanggan: dbItem.nama_pelanggan,
     teleponPelanggan: dbItem.telepon_pelanggan,
     emailPelanggan: dbItem.email_pelanggan,
-    items: dbItem.items || [], // Asumsi `items` disimpan sebagai JSONB
+    items: dbItem.items || [],
     totalPesanan: Number(dbItem.total_pesanan) || 0,
     status: dbItem.status,
     userId: dbItem.user_id,
@@ -81,16 +81,33 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
         (payload) => {
+          console.log('[OrderContext] Perubahan realtime diterima:', payload);
           const transform = transformOrderFromDB;
+
           if (payload.eventType === 'INSERT') {
             setOrders(current => [transform(payload.new), ...current]);
           }
+
+          // =========================================================
+          // --- PERBAIKAN #1: LOGIKA UPDATE ---
+          // =========================================================
           if (payload.eventType === 'UPDATE') {
-            setOrders(currentOrders => currentOrders.map(order => (order.id === updatedOrder.id ? updatedOrder : order))        
-          );
-      }
+            const updatedOrder = transform(payload.new);
+            setOrders(currentOrders => 
+              currentOrders.map(order => 
+                (order.id === updatedOrder.id ? updatedOrder : order)
+              )
+            );
+          }
+
+          // =========================================================
+          // --- PERBAIKAN #2: LOGIKA DELETE ---
+          // =========================================================
           if (payload.eventType === 'DELETE') {
-            setOrders(currentOrders => currentOrders.filter(order => order.id !== deletedOrderId));
+            const deletedOrderId = payload.old.id; // Gunakan payload.old.id
+            setOrders(currentOrders => 
+              currentOrders.filter(order => order.id !== deletedOrderId)
+            );
           }
         }
       )
@@ -101,47 +118,55 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
   }, [user]);
 
-
   // --- FUNGSI-FUNGSI ---
   const addOrder = async (order: Omit<NewOrder, 'id' | 'tanggal' | 'createdAt' | 'updatedAt' | 'nomorPesanan' | 'status'>): Promise<boolean> => {
-    if (!user) {
-        toast.error('Anda harus login untuk membuat pesanan');
-        return false;
-    }
+    if (!user) { toast.error('Anda harus login untuk membuat pesanan'); return false; }
     
-    // Lihat Catatan Penting di bawah mengenai pembuatan nomor pesanan
     const newOrderData = {
-        user_id: user.id,
-        tanggal: new Date(),
-        status: 'pending', // Status default
-        nama_pelanggan: order.namaPelanggan,
-        telepon_pelanggan: order.teleponPelanggan,
-        email_pelanggan: order.emailPelanggan,
-        items: order.items,
-        total_pesanan: order.totalPesanan,
+        user_id: user.id, tanggal: new Date(), status: 'pending',
+        nama_pelanggan: order.namaPelanggan, telepon_pelanggan: order.teleponPelanggan,
+        email_pelanggan: order.emailPelanggan, items: order.items, total_pesanan: order.totalPesanan,
     };
-
-    // Kita akan memanggil fungsi RPC di database untuk membuat nomor pesanan
-    const { data: newOrder, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
-
-    if (error) {
-        toast.error(`Gagal menambahkan pesanan: ${error.message}`);
-        return false;
-    }
     
-    // newOrder di sini adalah hasil dari fungsi RPC, yang sudah punya nomor pesanan unik
-    addActivity({ title: 'Pesanan Baru', description: `Pesanan #${newOrder.nomor_pesanan} dari ${newOrder.nama_pelanggan}`, type: 'order', value: null });
-    toast.success(`Pesanan #${newOrder.nomor_pesanan} berhasil ditambahkan!`);
+    const { data, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
+
+    if (error) { toast.error(`Gagal menambahkan pesanan: ${error.message}`); return false; }
+    
+    // Asumsi fungsi RPC mengembalikan minimal data ini
+    const createdOrder = data[0]; 
+    if (createdOrder) {
+        addActivity({ title: 'Pesanan Baru', description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan}`, type: 'order', value: null });
+        toast.success(`Pesanan #${createdOrder.nomor_pesanan} berhasil ditambahkan!`);
+    }
     return true;
   };
 
   const updateOrder = async (id: string, updatedOrder: Partial<Order>): Promise<boolean> => {
-    // ... Implementasi serupa, ubah camelCase ke snake_case ...
+    if (!user) { toast.error('Anda harus login untuk memperbarui pesanan'); return false; }
+    
+    const orderToUpdate: {[key: string]: any} = {};
+    if (updatedOrder.status !== undefined) orderToUpdate.status = updatedOrder.status;
+    // ...tambahkan field lain jika perlu diupdate
+    
+    const { error } = await supabase.from('orders').update(orderToUpdate).eq('id', id);
+    if(error) { toast.error(`Gagal memperbarui pesanan: ${error.message}`); return false; }
+    
+    toast.success('Pesanan berhasil diperbarui!');
     return true;
   };
   
   const deleteOrder = async (id: string): Promise<boolean> => {
-    // ... Implementasi serupa ...
+    if (!user) { toast.error('Anda harus login untuk menghapus pesanan'); return false; }
+
+    const orderToDelete = orders.find(o => o.id === id);
+
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if(error) { toast.error(`Gagal menghapus pesanan: ${error.message}`); return false; }
+
+    if (orderToDelete) {
+        addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order', value: null });
+    }
+    toast.success(`Pesanan berhasil dihapus!`);
     return true;
   };
   

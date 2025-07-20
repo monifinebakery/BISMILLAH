@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Download } from 'lucide-react';
-import { useUserSettings } from '@/contexts/UserSettingsContext'; // Ganti path jika perlu
+import { useUserSettings } from '@/contexts/UserSettingsContext'; // Pastikan path ini benar
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
 
@@ -80,6 +80,7 @@ const InvoicePage = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start pb-8 border-b gap-8">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800">{settings.businessName || 'Nama Bisnis Anda'}</h1>
+            {/* Menggunakan ownerName dari settings untuk alamat */}
             <p className="text-sm text-gray-500 mt-1">{settings.ownerName || 'Nama Anda'}</p>
           </div>
           <div className="w-full sm:w-auto sm:text-right flex-shrink-0">
@@ -99,14 +100,14 @@ const InvoicePage = () => {
         </div>
 
         <div className="space-y-2">
-          {/* ... (Tabel Item tidak berubah, sudah bagus) ... */}
           <div className="hidden sm:grid grid-cols-12 gap-4 px-2 pb-2 border-b"><div className="col-span-5"><Label className="text-xs text-muted-foreground">Deskripsi</Label></div><div className="col-span-2 text-center"><Label className="text-xs text-muted-foreground">Jumlah</Label></div><div className="col-span-2 text-right"><Label className="text-xs text-muted-foreground">Harga Satuan</Label></div><div className="col-span-2 text-right"><Label className="text-xs text-muted-foreground">Total</Label></div><div className="col-span-1"></div></div>
           {items.map(item => (<div key={item.id} className="grid grid-cols-12 gap-2 p-2 rounded-lg hover:bg-gray-50 border sm:border-none"><div className="col-span-12 sm:col-span-5"><Label htmlFor={`desc-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Deskripsi</Label><Textarea id={`desc-${item.id}`} placeholder="Item/Jasa" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} className="print:border-none w-full mt-1" rows={1} /></div><div className="col-span-6 sm:col-span-2"><Label htmlFor={`qty-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Jumlah</Label><Input id={`qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="text-center print:border-none w-full mt-1" /></div><div className="col-span-6 sm:col-span-2"><Label htmlFor={`price-${item.id}`} className="sm:hidden text-xs text-muted-foreground">Harga Satuan</Label><Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="text-right print:border-none w-full mt-1" /></div><div className="col-span-10 sm:col-span-2 flex items-center justify-end"><p className="font-medium h-10 flex items-center justify-end">{formatCurrency(item.quantity * item.price)}</p></div><div className="col-span-2 sm:col-span-1 flex items-center justify-end"><Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="print:hidden h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>))}
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
 
-        {/* --- PEROMBAKAN UTAMA DIMULAI DI SINI --- */}
+        {/* --- PERBAIKAN LAYOUT HORIZONTAL DIMULAI DI SINI --- */}
         <div className="mt-10 border-t pt-8 flex flex-col sm:flex-row gap-12">
+            
             {/* Kolom Kiri: Status & Catatan */}
             <div className="w-full sm:w-1/2 space-y-6">
                 <div>
@@ -149,7 +150,8 @@ const InvoicePage = () => {
                 </div>
             </div>
         </div>
-        {/* --- AKHIR PEROMBAKAN --- */}
+        {/* --- AKHIR PERBAIKAN LAYOUT HORIZONTAL --- */}
+
       </div>
     </div>
   );

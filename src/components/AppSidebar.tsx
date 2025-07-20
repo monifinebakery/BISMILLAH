@@ -26,7 +26,7 @@ import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";
-import { useAsset } from "@/contexts/AssetContext"; // ✅ PERBAIKAN: Menggunakan nama hook yang benar (useAsset)
+import { useAssets } from "@/contexts/AssetContext"; // ✅ PERBAIKAN: Menggunakan nama hook yang benar (useAsset)
 import { useFinancial } from "@/contexts/FinancialContext";
 
 // --- Impor Fungsi Export Baru ---
@@ -44,7 +44,7 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAsset(); // ✅ PERBAIKAN: Memanggil hook dengan nama yang benar
+  const { assets } = useAssets(); // ✅ PERBAIKAN: Memanggil hook dengan nama yang benar
   const { financialTransactions } = useFinancial();
 
   const menuGroups = [

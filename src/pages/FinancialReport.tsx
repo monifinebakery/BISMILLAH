@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns'; // ✅ Import startOfDay, endOfDay
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import FinancialTransactionList from '@/components/FinancialTransactionList';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatDateForDisplay } from '@/utils/dateUtils'; // Asumsi formatDateForDisplay Anda sudah benar
+import { formatDateForDisplay } from '@/utils/dateUtils'; 
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
@@ -32,9 +32,8 @@ const FinancialReportPage = () => {
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    // ✅ PERBAIKAN 1: Gunakan startOfMonth/endOfMonth untuk inisialisasi agar konsisten
     from: startOfMonth(subMonths(new Date(), 5)),
-    to: endOfDay(new Date()), // ✅ Pastikan 'to' adalah akhir hari ini
+    to: endOfDay(new Date()), 
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,25 +43,22 @@ const FinancialReportPage = () => {
     if (!transactions) return [];
     return transactions.filter(t => {
       const transactionDate = t.date;
-      // Pastikan transactionDate adalah objek Date yang valid
-      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
-          console.warn('Invalid transaction date found:', t); // Log jika ada tanggal tidak valid
-          return false;
-      }
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) return false;
       
-      const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; // ✅ Pastikan awal hari
-      const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     // ✅ Pastikan akhir hari
+      const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; 
+      const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     
 
       if (rangeFrom && transactionDate < rangeFrom) return false;
-      if (rangeTo && transactionDate > rangeTo) return false; // Perbandingan langsung dengan akhir hari
+      if (rangeTo && transactionDate > rangeTo) return false; 
       
       return true;
     });
   }, [transactions, dateRange]);
 
   const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
-    const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0); // ✅ Gunakan 'income'
-    const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0); // ✅ Gunakan 'expense'
+    // ✅ PERBAIKAN 1: Gunakan 'income' dan 'expense'
+    const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0); 
+    const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0); 
     
     const incomeByCategory: { [key: string]: number } = {};
     const expenseByCategory: { [key: string]: number } = {};
@@ -70,21 +66,20 @@ const FinancialReportPage = () => {
 
     filteredTransactions.forEach(t => {
       const categoryName = t.category || 'Lainnya';
-      if (t.type === 'income') { // ✅ Gunakan 'income'
+      if (t.type === 'income') { // ✅ PERBAIKAN 1
         incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
-      } else { // Default ke expense jika bukan income
+      } else if (t.type === 'expense') { // ✅ PERBAIKAN 1: Pastikan ini juga dicek
         expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
       }
       
       if(t.date){
-        // ✅ PERBAIKAN 2: Pastikan tanggal untuk grouping adalah awal bulan (untuk konsistensi chart)
         const monthStart = startOfMonth(t.date); 
-        const monthYearKey = format(monthStart, 'yyyy-MM'); // Gunakan key dari awal bulan
+        const monthYearKey = format(monthStart, 'yyyy-MM'); 
         if (!monthlyData[monthYearKey]) {
-          monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; // Simpan tanggal awal bulan
+          monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; 
         }
-        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0;
-        else monthlyData[monthYearKey].expense += t.amount || 0;
+        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; // ✅ PERBAIKAN 1
+        else if (t.type === 'expense') monthlyData[monthYearKey].expense += t.amount || 0; // ✅ PERBAIKAN 1
       }
     });
 
@@ -98,12 +93,12 @@ const FinancialReportPage = () => {
       },
       transactionData: Object.values(monthlyData)
         .map(value => ({
-          month: format(value.date, 'MMM yy', { locale: id }), // Format dari tanggal awal bulan
+          month: format(value.date, 'MMM yy', { locale: id }), 
           Pemasukan: value.income,
           Pengeluaran: value.expense,
           date: value.date,
         }))
-        .sort((a, b) => a.date.getTime() - b.date.getTime()), // Urutkan berdasarkan tanggal awal bulan
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
     };
   }, [filteredTransactions]);
   
@@ -128,7 +123,6 @@ const FinancialReportPage = () => {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
               <div className="flex flex-col p-2 space-y-1 border-b">
-                {/* ✅ PERBAIKAN 3: Gunakan startOfDay/endOfDay untuk tombol preset */}
                 <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Hari ini</Button>
                 <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfDay(subDays(new Date(), 29)), to: endOfDay(new Date()) })}>30 Hari Terakhir</Button>
                 <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>

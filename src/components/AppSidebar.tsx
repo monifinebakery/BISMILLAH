@@ -46,7 +46,7 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAsset();
+  const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
 
   const menuGroups = [

@@ -1,132 +1,130 @@
 // src/contexts/PurchaseContext.tsx
+// VERSI REALTIME DENGAN RPC
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Purchase } from '@/types/supplier'; // Pastikan path ke tipe data Anda benar
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateUUID } from '@/utils/uuid';
-import { toSafeISOString, safeParseDate } from '@/utils/dateUtils';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { useBahanBaku } from './BahanBakuContext'; // <-- Dependensi krusial
+import { safeParseDate } from '@/utils/dateUtils';
 
 // --- INTERFACE & CONTEXT ---
 interface PurchaseContextType {
   purchases: Purchase[];
-  addPurchase: (purchase: Omit<Purchase, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<boolean>;
-  deletePurchase: (id: string) => Promise<boolean>;
+  isLoading: boolean;
+  addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
+  // update dan delete untuk saat ini kita sederhanakan, bisa dikembangkan nanti
 }
 
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
-// --- CONSTANTS ---
-const STORAGE_KEY = 'hpp_app_purchases';
-
 // --- PROVIDER COMPONENT ---
 export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // --- LOCAL STATE ---
+  // --- STATE ---
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- DEPENDENCY HOOKS ---
-  const { session } = useAuth();
+  // --- DEPENDENCIES ---
+  const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addBahanBaku, updateBahanBaku, getBahanBakuByName } = useBahanBaku();
+  
+  // --- HELPER FUNCTION ---
+  const transformPurchaseFromDB = (dbItem: any): Purchase => ({
+    id: dbItem.id,
+    supplier: dbItem.supplier,
+    totalNilai: Number(dbItem.total_nilai) || 0,
+    tanggal: safeParseDate(dbItem.tanggal),
+    notes: dbItem.notes,
+    items: dbItem.items || [], // Asumsi items adalah JSONB
+    userId: dbItem.user_id,
+    createdAt: safeParseDate(dbItem.created_at),
+    updatedAt: safeParseDate(dbItem.updated_at),
+  });
 
-  // --- LOAD & SAVE EFFECTS ---
+  // --- EFEK UTAMA: FETCH DATA & REALTIME LISTENER ---
   useEffect(() => {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            const dataWithDates = parsed.map((item: any) => ({
-                ...item,
-                tanggal: safeParseDate(item.tanggal),
-                createdAt: safeParseDate(item.createdAt),
-                updatedAt: safeParseDate(item.updatedAt),
-            }));
-            setPurchases(dataWithDates);
-        }
-    } catch (error) {
-        console.error("Gagal memuat pembelian dari localStorage:", error);
+    if (!user) {
+      setPurchases([]);
+      setIsLoading(false);
+      return;
     }
-  }, []);
-  
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
-  }, [purchases]);
-  
-  // --- FUNCTIONS ---
-  const addPurchase = async (purchase: Omit<Purchase, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
-    if (!session) {
+
+    const fetchInitialPurchases = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('tanggal', { ascending: false });
+
+      if (error) {
+        toast.error(`Gagal memuat pembelian: ${error.message}`);
+      } else if (data) {
+        setPurchases(data.map(transformPurchaseFromDB));
+      }
+      setIsLoading(false);
+    };
+
+    fetchInitialPurchases();
+
+    const channel = supabase
+      .channel(`realtime-purchases-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'purchases', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          // Kita hanya perlu listen INSERT karena update stok sudah terjadi di DB.
+          // BahanBakuContext juga akan menerima update stoknya sendiri secara realtime.
+          setPurchases(current => [transformPurchaseFromDB(payload.new), ...current]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // --- FUNGSI-FUNGSI ---
+  const addPurchase = async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
+    if (!user) {
       toast.error('Anda harus login untuk menambahkan pembelian');
       return false;
     }
-    
-    const newPurchase: Purchase = {
-      ...purchase,
-      id: generateUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    // ... (logika insert 'purchase' ke Supabase sama seperti di kode asli)
-    // ...
-    
-    // Ini adalah bagian penting: interaksi antar konteks
-    // Menggunakan fungsi dari useBahanBaku untuk memperbarui stok
-    await Promise.all(purchase.items.map(async (item) => {
-      const existingBahan = getBahanBakuByName(item.namaBarang);
-      if (existingBahan) {
-        await updateBahanBaku(existingBahan.id, {
-          stok: existingBahan.stok + item.jumlah,
-          hargaSatuan: item.hargaSatuan, // Mungkin Anda ingin update harga juga
-        });
-      } else {
-        await addBahanBaku({
-          nama: item.namaBarang,
-          kategori: item.kategori || 'Lainnya',
-          stok: item.jumlah,
-          satuan: item.satuan || 'unit',
-          minimum: 10,
-          hargaSatuan: item.hargaSatuan,
-          supplier: purchase.supplier,
-          tanggalKadaluwarsa: null, // Default
-        });
-      }
-    }));
-    
-    setPurchases(prev => [...prev, newPurchase]);
 
-    addActivity({
-      title: 'Pembelian Ditambahkan',
-      description: `Pembelian dari ${purchase.supplier} senilai Rp ${purchase.totalNilai.toLocaleString('id-ID')}`,
-      type: 'purchase',
-      value: null
-    });
+    const purchaseDataForRPC = {
+      user_id: user.id,
+      supplier: purchase.supplier,
+      total_nilai: purchase.totalNilai,
+      tanggal: purchase.tanggal,
+      notes: purchase.notes,
+      items: purchase.items, // Pastikan items memiliki namaBarang, jumlah, hargaSatuan, dll.
+    };
+
+    // Panggil fungsi RPC yang telah kita buat
+    const { error } = await supabase.rpc('add_purchase_and_update_stock', { purchase_data: purchaseDataForRPC });
+
+    if (error) {
+      toast.error(`Gagal memproses pembelian: ${error.message}`);
+      return false;
+    }
     
-    toast.success('Pembelian berhasil ditambahkan dan stok diperbarui!');
+    // TIDAK PERLU `setPurchases` DI SINI. Listener realtime akan menanganinya.
+    // Listener di BahanBakuContext juga akan menangani update stoknya. Ajaib!
+    
+    addActivity({ title: 'Pembelian Ditambahkan', description: `Pembelian dari ${purchase.supplier} senilai Rp ${purchase.totalNilai.toLocaleString('id-ID')}`, type: 'purchase', value: null });
+    toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
     return true;
   };
-  
-  const updatePurchase = async (id: string, updatedPurchase: Partial<Purchase>): Promise<boolean> => {
-    // ... Implementasi sama seperti kode asli, tidak ada dependensi kompleks di sini
-    return true;
-  }
-  
-  const deletePurchase = async (id: string): Promise<boolean> => {
-    // ... Implementasi sama seperti kode asli. 
-    // PERHATIAN: Versi ini tidak mengembalikan stok. Jika diperlukan, logika pengurangan stok harus ditambahkan.
-    return true;
-  }
 
   const value: PurchaseContextType = {
     purchases,
+    isLoading,
     addPurchase,
-    updatePurchase,
-    deletePurchase,
+    // update dan delete perlu implementasi lebih lanjut jika diperlukan
+    updatePurchase: async () => { console.warn("Update purchase not implemented"); return false; },
+    deletePurchase: async () => { console.warn("Delete purchase not implemented"); return false; },
   };
 
   return (

@@ -1,5 +1,3 @@
-// src/pages/InvoicePage.tsx atau path yang sesuai
-
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Download } from 'lucide-react';
-import { useUserSettings } from '@/contexts/UserSettingsContext'; // Pastikan path ini benar
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
 
-// Deklarasikan html2pdf agar TypeScript tidak error jika Anda menggunakannya dari CDN
+// Deklarasikan html2pdf agar TypeScript tidak error
 declare const html2pdf: any;
 
-// Interface untuk setiap baris item di invoice
 interface InvoiceItem {
   id: number;
   description: string;
@@ -23,9 +20,7 @@ interface InvoiceItem {
   price: number;
 }
 
-// === KOMPONEN UTAMA DIMULAI DI SINI ===
 const InvoicePage = () => {
-  // --- HOOKS & STATE ---
   const { settings } = useUserSettings();
   
   const [invoiceNumber, setInvoiceNumber] = useState(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
@@ -37,10 +32,9 @@ const InvoicePage = () => {
   const [tax, setTax] = useState({ type: 'percent', value: 11 });
   const [shipping, setShipping] = useState(0);
   const [notes, setNotes] = useState('Terima kasih atas kepercayaan Anda.');
-  const [paymentInstructions, setPaymentInstructions] = useState(`Transfer ke:\n${settings.bankName || 'Bank Anda'}\n${settings.accountNumber || 'Nomor Rekening Anda'}\na/n ${settings.businessName || 'Nama Bisnis'}`);
+  const [paymentInstructions, setPaymentInstructions] = useState(`Transfer ke:\nBank BCA\n1234567890\na/n ${settings.businessName || 'Nama Bisnis'}`);
   const [status, setStatus] = useState<'BELUM LUNAS' | 'LUNAS' | 'JATUH TEMPO'>('BELUM LUNAS');
 
-  // --- HANDLER FUNCTIONS ---
   const handleItemChange = (id: number, field: keyof Omit<InvoiceItem, 'id'>, value: string | number) => {
     setItems(items.map(item => (item.id === id ? { ...item, [field]: Number.isNaN(Number(value)) ? value : Number(value) } : item)));
   };
@@ -48,7 +42,6 @@ const InvoicePage = () => {
   const addItem = () => setItems([...items, { id: Date.now(), description: '', quantity: 1, price: 0 }]);
   const removeItem = (id: number) => setItems(items.filter(item => item.id !== id));
 
-  // --- MEMOIZED CALCULATIONS ---
   const { subtotal, discountAmount, taxAmount, total } = useMemo(() => {
     const sub = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     const disc = discount.type === 'percent' ? sub * (discount.value / 100) : discount.value;
@@ -60,7 +53,13 @@ const InvoicePage = () => {
 
   const handleExportPDF = () => {
     const element = document.getElementById('invoice-content');
-    const opt = { margin: 0.5, filename: `invoice_${invoiceNumber.replace(/\//g, '-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+    const opt = {
+      margin: 0.5,
+      filename: `invoice_${invoiceNumber.replace(/\//g, '-')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
     html2pdf().from(element).set(opt).save();
   };
 
@@ -72,7 +71,6 @@ const InvoicePage = () => {
     }
   };
 
-  // --- RENDER (JSX) ---
   return (
     <div className="bg-gray-100 min-h-screen p-4 sm:p-8">
       <Card className="max-w-4xl mx-auto mb-6 print:hidden">
@@ -112,60 +110,56 @@ const InvoicePage = () => {
           <Button onClick={addItem} variant="outline" className="mt-4 print:hidden"><Plus className="mr-2 h-4 w-4" />Tambah Baris</Button>
         </div>
         
-        {/* Ini adalah blok JSX yang Anda kirimkan, sekarang di dalam komponen yang lengkap */}
-        {/* --- LAYOUT HORIZONTAL YANG DIRAPIKAN --- */}
+        {/* --- PERBAIKAN LAYOUT HORIZONTAL --- */}
         <div className="mt-8 border-t pt-8">
-          <div className="flex flex-col md:flex-row gap-12">
-              
-              {/* === KOLOM KIRI: INFO & STATUS === */}
-              <div className="w-full md:w-1/2 space-y-5">
-                  <div className="flex items-start justify-between">
-                      <div>
-                          <Label className="font-semibold text-gray-700">Status Pembayaran</Label>
-                          <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                              <SelectTrigger className={`w-40 mt-2 font-bold border-2 ${getStatusBadge()}`}>
-                                  <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem>
-                                  <SelectItem value="LUNAS">LUNAS</SelectItem>
-                                  <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
-                              </SelectContent>
-                          </Select>
-                      </div>
-                  </div>
-                  <div>
-                      <Label className="font-semibold text-gray-700">Instruksi Pembayaran</Label>
-                      <Textarea 
-                          value={paymentInstructions} 
-                          onChange={e => setPaymentInstructions(e.target.value)} 
-                          className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
-                          rows={3}
-                      />
-                  </div>
-              </div>
+            <div className="flex flex-col md:flex-row gap-12">
+                
+                {/* === KOLOM KIRI: INFO & STATUS === */}
+                <div className="w-full md:w-1/2 space-y-5">
+                    <div>
+                        <Label className="font-semibold text-gray-700">Status Pembayaran</Label>
+                        <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                            <SelectTrigger className={`w-40 mt-2 font-bold border-2 ${getStatusBadge()}`}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem>
+                                <SelectItem value="LUNAS">LUNAS</SelectItem>
+                                <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label className="font-semibold text-gray-700">Instruksi Pembayaran</Label>
+                        <Textarea 
+                            value={paymentInstructions} 
+                            onChange={e => setPaymentInstructions(e.target.value)} 
+                            className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
+                            rows={3}
+                        />
+                    </div>
+                    <div>
+                        <Label className="font-semibold text-gray-700">Catatan Tambahan</Label>
+                        <Textarea 
+                            value={notes} 
+                            onChange={e => setNotes(e.target.value)} 
+                            className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
+                            rows={2}
+                        />
+                    </div>
+                </div>
 
-              {/* === KOLOM KANAN: TOTAL FINANSIAL === */}
-              <div className="w-full md:w-1/2 flex justify-end">
-                  <div className="w-full max-w-xs space-y-3">
-                      <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                      <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Diskon</Label><Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}><SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent></Select></div><span>- {formatCurrency(discountAmount)}</span></div>
-                      <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Pajak</Label><Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><span>%</span></div><span>+ {formatCurrency(taxAmount)}</span></div>
-                      <div className="flex justify-between items-center text-gray-600"><Label>Biaya Pengiriman</Label><Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" /></div>
-                      <div className="border-t pt-3 mt-2"><div className="flex justify-between font-bold text-xl text-gray-800"><span>GRAND TOTAL</span><span>{formatCurrency(total)}</span></div></div>
-                  </div>
-              </div>
-          </div>
-
-          <div className="border-t mt-8 pt-6">
-              <Label className="font-semibold text-gray-700">Catatan Tambahan</Label>
-              <Textarea 
-                  value={notes} 
-                  onChange={e => setNotes(e.target.value)} 
-                  className="text-sm text-gray-600 print:border-none print:p-0 mt-2" 
-                  rows={2}
-              />
-          </div>
+                {/* === KOLOM KANAN: TOTAL FINANSIAL === */}
+                <div className="w-full md:w-1/2 flex justify-end">
+                    <div className="w-full max-w-xs space-y-3">
+                        <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Diskon</Label><Input type="number" value={discount.value} onChange={e => setDiscount({...discount, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><Select value={discount.type} onValueChange={(v: any) => setDiscount({...discount, type: v})}><SelectTrigger className="w-20 h-8 print:border-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">Rp</SelectItem></SelectContent></Select></div><span>- {formatCurrency(discountAmount)}</span></div>
+                        <div className="flex justify-between items-center text-gray-600"><div className="flex items-center gap-2"><Label>Pajak</Label><Input type="number" value={tax.value} onChange={e => setTax({...tax, value: Number(e.target.value)})} className="w-16 h-8 text-right print:border-none" /><span>%</span></div><span>+ {formatCurrency(taxAmount)}</span></div>
+                        <div className="flex justify-between items-center text-gray-600"><Label>Biaya Pengiriman</Label><Input type="number" value={shipping} onChange={e => setShipping(Number(e.target.value))} className="w-32 h-8 text-right print:border-none" /></div>
+                        <div className="border-t pt-3 mt-2"><div className="flex justify-between font-bold text-xl text-gray-800"><span>GRAND TOTAL</span><span>{formatCurrency(total)}</span></div></div>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
     </div>

@@ -87,7 +87,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           }
           if (payload.eventType === 'UPDATE') {
             setOrders(currentOrders => currentOrders.map(order => (order.id === updatedOrder.id ? updatedOrder : order))        
-          );
+          )
       }
           if (payload.eventType === 'DELETE') {
             setOrders(currentOrders => currentOrders.filter(order => order.id !== deletedOrderId));

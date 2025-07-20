@@ -527,7 +527,6 @@ const FinancialReportPage = () => {
                         className="mr-2 z-10 relative"
                         onClick={() => handleEditClick(transaction)}
                       >
-                      >
                         Edit
                       </Button>
                       <Button 

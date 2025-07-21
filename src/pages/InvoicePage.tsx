@@ -170,40 +170,52 @@ const InvoicePage = () => {
           </div>
           
           {items.map(item => (
-            <div key={item.id} className="grid grid-cols-12 gap-2 p-2 border-b">
-              <div className="col-span-12 sm:col-span-6">
-                <Textarea 
-                  placeholder="Item/Jasa" 
-                  value={item.description} 
-                  onChange={e => handleItemChange(item.id, 'description', e.target.value)} 
-                  className="print:border-none w-full" 
-                  rows={1} 
-                />
-              </div>
-              
-              <div className="col-span-4 sm:col-span-2">
-                <Input 
-                  type="number" 
-                  value={item.quantity} 
-                  onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} 
-                  className="text-center print:border-none w-full" 
-                />
-              </div>
-              
-              <div className="col-span-4 sm:col-span-2">
-                <Input 
-                  type="number" 
-                  value={item.price} 
-                  onChange={e => handleItemChange(item.id, 'price', e.target.value)} 
-                  className="text-right print:border-none w-full" 
-                />
-              </div>
-              
-              <div className="col-span-4 sm:col-span-2 flex items-center justify-end">
-                <p className="font-medium">{formatCurrency(item.quantity * item.price)}</p>
-              </div>
-            </div>
-          ))}
+  <div key={item.id} className="grid grid-cols-12 gap-2 p-2 border-b">
+    <div className="col-span-10 sm:col-span-5">
+      <Textarea 
+        placeholder="Item/Jasa" 
+        value={item.description} 
+        onChange={e => handleItemChange(item.id, 'description', e.target.value)} 
+        className="print:border-none w-full" 
+        rows={1} 
+      />
+    </div>
+    
+    <div className="col-span-4 sm:col-span-2">
+      <Input 
+        type="number" 
+        value={item.quantity} 
+        onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} 
+        className="text-center print:border-none w-full" 
+      />
+    </div>
+    
+    <div className="col-span-4 sm:col-span-2">
+      <Input 
+        type="number" 
+        value={item.price} 
+        onChange={e => handleItemChange(item.id, 'price', e.target.value)} 
+        className="text-right print:border-none w-full" 
+      />
+    </div>
+    
+    <div className="col-span-4 sm:col-span-2 flex items-center justify-end">
+      <p className="font-medium">{formatCurrency(item.quantity * item.price)}</p>
+    </div>
+    
+    {/* Delete button column */}
+    <div className="col-span-2 sm:col-span-1 flex items-center justify-center">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => removeItem(item.id)}
+        className="text-red-500 hover:text-red-700 print:hidden"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+))}
           
           <Button onClick={addItem} variant="outline" className="mt-2 print:hidden w-full">
             <Plus className="mr-2 h-4 w-4" />Tambah Baris

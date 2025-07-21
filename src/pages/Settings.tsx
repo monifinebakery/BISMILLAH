@@ -91,7 +91,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100">
       <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
         {/* Header Section */}
         <div className="mb-8">

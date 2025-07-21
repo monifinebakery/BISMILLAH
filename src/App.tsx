@@ -1,6 +1,5 @@
 // Impor yang dibutuhkan
-import React, { Suspense, useEffect, useState } from 'react'; 
-// PERBAIKAN: Impor Outlet dari react-router-dom
+import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -34,6 +33,7 @@ const PurchaseManagement = React.lazy(() => import("./pages/PurchaseManagement")
 const MenuPage = React.lazy(() => import("./pages/MenuPage"));
 const PaymentSuccessPage = React.lazy(() => import("./pages/PaymentSuccessPage"));
 const InvoicePage = React.lazy(() => import("./pages/InvoicePage"));
+const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage")); // ✨ HALAMAN BARU DITAMBAHKAN
 
 // Komponen UI dari ShadCN
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,6 @@ const PageLoader = () => (
     </div>
 );
 
-// --- PERBAIKAN: AppLayout sekarang menjadi "cangkang" murni dengan <Outlet /> ---
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { isPaid } = usePaymentContext();
@@ -69,7 +68,6 @@ const AppLayout = () => {
     const success = await performSignOut();
     if (success) {
       toast.success("Berhasil keluar");
-      // Tidak perlu reload, AuthGuard akan menangani redirect
     } else {
       toast.error("Gagal keluar");
     }
@@ -84,7 +82,6 @@ const AppLayout = () => {
             <div className="flex items-center space-x-2">{isPaid && <PaymentStatusIndicator />}<NotificationBell /><MobileExportButton /></div>
           </header>
           <main className="flex-1 overflow-auto pb-16">
-            {/* <Routes> dihapus. Outlet akan merender halaman yang cocok. */}
             <Outlet />
           </main>
           <BottomTabBar />
@@ -104,7 +101,6 @@ const AppLayout = () => {
                 </div>
               </header>
               <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
-                {/* <Routes> dihapus. Outlet akan merender halaman yang cocok. */}
                 <Outlet />
               </main>
             </SidebarInset>
@@ -121,14 +117,11 @@ const AppLayout = () => {
   );
 };
 
-// --- PERBAIKAN: Komponen App utama sekarang mendefinisikan SEMUA rute dengan benar ---
 const App = () => {
   useEffect(() => {
     const handleAuthFromUrl = async () => {
-      // Logika ini memastikan sesi diperbarui jika ada token di URL setelah login/magic link
       const { data: { session } } = await supabase.auth.getSession();
       if (!session && window.location.hash.includes("access_token")) {
-        // Jika tidak ada sesi tapi ada token, mungkin perlu reload untuk sinkronisasi
         window.location.reload();
       }
     };
@@ -139,26 +132,23 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <AppProviders> {/* <-- Provider di level terluar */}
+          <AppProviders>
             <Toaster />
             <Sonner />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* Rute Publik */}
                 <Route path="/auth" element={<EmailAuthPage />} />
                 
-                {/* Grup Rute yang Dilindungi */}
                 <Route
                   element={
                     <AuthGuard>
                       <PaymentGuard>
-                        <AppLayout /> {/* <-- Layout ini sekarang membungkus semua rute anak */}
+                        <AppLayout />
                       </PaymentGuard>
                     </AuthGuard>
                   }
                 >
-                  {/* Semua rute di bawah ini akan di-render di dalam <Outlet /> milik AppLayout */}
-                  <Route index element={<Dashboard />} /> {/* `index` untuk path '/' */}
+                  <Route index element={<Dashboard />} />
                   <Route path="resep" element={<RecipesPage />} />
                   <Route path="gudang" element={<WarehousePage />} />
                   <Route path="supplier" element={<SupplierManagement />} />
@@ -169,8 +159,8 @@ const App = () => {
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  <Route path="invoice" element={<InvoicePage />} />
-                  {/* Rute "Not Found" harus berada di dalam grup yang dilindungi juga */}
+                  <Route path="invoice/:orderId" element={<InvoicePage />} /> {/* Pastikan path invoice dinamis */}
+                  <Route path="promo" element={<PromoCalculatorPage />} /> {/* ✨ RUTE BARU DITAMBAHKAN */}
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

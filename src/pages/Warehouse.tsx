@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; 
 import { Plus, Package, Edit, Trash2, AlertTriangle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'; 
-import { BahanBaku } from '@/types/recipe';
+import { BahanBaku } from '@/types/bahanBaku';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';

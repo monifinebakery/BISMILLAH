@@ -159,7 +159,6 @@ const App = () => {
                 >
                   {/* Semua rute di bawah ini akan di-render di dalam <Outlet /> milik AppLayout */}
                   <Route index element={<Dashboard />} /> {/* `index` untuk path '/' */}
-                  <Route path="hpp" element={<HPPCalculatorPage />} />
                   <Route path="resep" element={<RecipesPage />} />
                   <Route path="gudang" element={<WarehousePage />} />
                   <Route path="supplier" element={<SupplierManagement />} />

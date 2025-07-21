@@ -163,13 +163,32 @@ const Dashboard = () => {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Stok Bahan Habis/Menipis</CardTitle><Bell className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{lowStockCount}</div><p className="text-xs text-muted-foreground">Lihat daftar di gudang</p></CardContent></Card>
       </div>
 
-      {/* Aksi Cepat */}
-      <h2 className="text-xl font-bold mb-4 mt-6">Aksi Cepat</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Link to="/hpp"><Button className="w-full h-auto py-4 bg-blue-100 hover:bg-blue-200 text-blue-800"><Receipt className="mr-2" /> Hitung HPP</Button></Link>
-        <Link to="/gudang"><Button className="w-full h-auto py-4 bg-green-100 hover:bg-green-200 text-green-800"><Package className="mr-2" /> Kelola Gudang</Button></Link>
-        <Link to="/laporan"><Button className="w-full h-auto py-4 bg-purple-100 hover:bg-purple-200 text-purple-800"><DollarSign className="mr-2" /> Laporan Keuangan</Button></Link>
-      </div>
+       <h2 className="text-xl font-bold mb-4 mt-6">Tren Keuangan Terbaru (30 Hari)</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle>
+          <CardDescription>Performa keuangan Anda dalam 30 hari terakhir.</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[250px]">
+          {/* Anda perlu menyiapkan chartDataDaily atau chartDataMonthly dari FinancialTransactions */}
+          {/* Untuk contoh, mari kita buat data dummy */}
+          {/* Nanti di implementasi riil, ini akan diisi dengan data dari useFinancial() dan diproses */}
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={/* chartData yang sudah diproses dari financialTransactions untuk 30 hari */}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
+              <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value/1000000} Jt`} style={{ fontSize: '10px' }}/>
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Line type="monotone" dataKey="Pemasukan" stroke="#22c55e" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />
+              <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ paddingBottom: 10 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2 mt-6">
         {/* Produk Terlaris */}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { BahanBaku } from '@/types/recipe';
+import { BahanBaku } from '@/types/bahanBaku';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 

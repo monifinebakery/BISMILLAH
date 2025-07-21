@@ -1,31 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Search, Settings, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { Recipe } from '@/types/recipe';
+import { Recipe, NewRecipe } from '@/types/recipe';
 import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import RecipeForm from '@/components/RecipeForm'; // Anda akan memerlukan ini saat form dibuat
+import RecipeForm from '@/components/RecipeForm';
 
 const RecipesPage = () => {
   // --- State Utama Halaman ---
-  const { recipes, isLoading, deleteRecipe } = useRecipe();
+  const { recipes, isLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipe();
   const { settings, saveSettings } = useUserSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // --- State untuk Dialog Kategori ---
+  
+  // --- State untuk Dialog ---
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  
+  // --- State untuk Form Kategori ---
   const [newCategory, setNewCategory] = useState('');
 
   // --- Logika Filtering & Pagination ---
@@ -44,17 +48,28 @@ const RecipesPage = () => {
 
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage);
 
-  // --- Handler untuk Kategori ---
+  // --- Handlers ---
+  const handleSaveRecipe = async (recipeData: NewRecipe) => {
+    const success = editingRecipe 
+      ? await updateRecipe(editingRecipe.id, recipeData)
+      : await addRecipe(recipeData);
+      
+    if (success) {
+      setIsFormOpen(false);
+      setEditingRecipe(null);
+    }
+  };
+
+  const openRecipeForm = (recipe: Recipe | null) => {
+    setEditingRecipe(recipe);
+    setIsFormOpen(true);
+  };
+
   const handleAddCategory = () => {
     const categories = settings?.recipeCategories || [];
-    if (!newCategory.trim()) {
-      toast.error('Nama kategori tidak boleh kosong');
-      return;
-    }
-    if (categories.map(c => c.toLowerCase()).includes(newCategory.trim().toLowerCase())) {
-      toast.error('Kategori ini sudah ada');
-      return;
-    }
+    if (!newCategory.trim()) { toast.error('Nama kategori tidak boleh kosong'); return; }
+    if (categories.map(c => c.toLowerCase()).includes(newCategory.trim().toLowerCase())) { toast.error('Kategori ini sudah ada'); return; }
+    
     const updatedCategories = [...categories, newCategory.trim()];
     saveSettings({ ...settings, recipeCategories: updatedCategories });
     setNewCategory('');
@@ -88,7 +103,7 @@ const RecipesPage = () => {
           <Button variant="outline" onClick={() => setIsCategoryDialogOpen(true)}>
             <Settings className="h-4 w-4 mr-2" /> Kelola Kategori
           </Button>
-          <Button>
+          <Button onClick={() => openRecipeForm(null)}>
             <Plus className="h-4 w-4 mr-2" /> Tambah Resep
           </Button>
         </div>
@@ -102,19 +117,14 @@ const RecipesPage = () => {
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Cari nama resep..."
-                  value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  className="pl-10"
-                />
+                <Input placeholder="Cari nama resep..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="pl-10" />
               </div>
               <Select value={categoryFilter} onValueChange={(value) => {setCategoryFilter(value); setCurrentPage(1);}}>
-                  <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua Kategori" /></SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">Semua Kategori</SelectItem>
-                      {(settings?.recipeCategories || []).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                  </SelectContent>
+                <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua Kategori" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kategori</SelectItem>
+                  {(settings?.recipeCategories || []).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -124,12 +134,9 @@ const RecipesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nama Resep</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>HPP per Porsi</TableHead>
-                  <TableHead>Harga Jual</TableHead>
-                  <TableHead>Margin</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead>Nama Resep</TableHead><TableHead>Kategori</TableHead>
+                  <TableHead>HPP/Porsi</TableHead><TableHead>Harga Jual</TableHead>
+                  <TableHead>Margin</TableHead><TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -139,9 +146,9 @@ const RecipesPage = () => {
                     <TableCell>{recipe.kategoriResep || '-'}</TableCell>
                     <TableCell>{formatCurrency(recipe.hppPerPorsi)}</TableCell>
                     <TableCell className="font-semibold text-green-600">{formatCurrency(recipe.hargaJualPorsi)}</TableCell>
-                    <TableCell className="font-semibold">{formatPercentage((recipe.hargaJualPorsi - recipe.hppPerPorsi) / recipe.hargaJualPorsi)}</TableCell>
+                    <TableCell className="font-semibold">{formatPercentage((recipe.hargaJualPorsi - recipe.hppPerPorsi) / (recipe.hargaJualPorsi || 1))}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openRecipeForm(recipe)}><Edit className="h-4 w-4" /></Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
@@ -155,7 +162,7 @@ const RecipesPage = () => {
                     </TableCell>
                   </TableRow>
                 )) : (
-                  <TableRow><TableCell colSpan={6} className="text-center h-48 text-muted-foreground">Belum ada resep yang dibuat.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Belum ada resep yang dibuat.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -189,7 +196,7 @@ const RecipesPage = () => {
             <Card>
               <CardHeader><CardTitle className="text-base">Daftar Kategori</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(settings?.recipeCategories || []).length > 0 ? (
                     (settings?.recipeCategories || []).map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 border rounded-md">
@@ -210,6 +217,23 @@ const RecipesPage = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog untuk Form Tambah/Edit Resep */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{editingRecipe ? 'Edit Resep' : 'Tambah Resep Baru'}</DialogTitle>
+            <DialogDescription>Isi detail resep dan kalkulasi HPP akan otomatis diperbarui.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto pr-6 -mr-6">
+            <RecipeForm 
+              initialData={editingRecipe}
+              onSave={handleSaveRecipe}
+              onCancel={() => { setIsFormOpen(false); setEditingRecipe(null); }}
+            />
           </div>
         </DialogContent>
       </Dialog>

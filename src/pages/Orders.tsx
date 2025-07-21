@@ -216,7 +216,6 @@ const OrdersPage = () => {
  <div className="flex gap-1 justify-end">
  <Button variant="ghost" size="icon" onClick={() => handleOpenEditOrderForm(order)}><Edit className="h-4 w-4" /></Button>
  <Button variant="ghost" size="icon" onClick={() => handleFollowUpClick(order)}><MessageSquare className="h-4 w-4" /></Button>
- <Button asChild variant="ghost" size="icon"><Link to={`/pesanan/invoice/${order.id}`}><FileText className="h-4 w-4" /></Link></Button>
  <AlertDialog>
  <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
  <AlertDialogContent>

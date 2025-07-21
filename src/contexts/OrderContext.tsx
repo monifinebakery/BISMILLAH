@@ -96,7 +96,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const newOrderData = {
         user_id: user.id,
         tanggal: toSafeISOString(order.tanggal) || new Date().toISOString(),
-        status: order.status || orderStatus.PENDING,
+        status: order.status || orderStatusList.PENDING,
         nama_pelanggan: order.namaPelanggan,
         telepon_pelanggan: order.teleponPelanggan,
         email_pelanggan: order.emailPelanggan,
@@ -159,7 +159,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     let wasIncomeRecorded = false;
 
-    if (oldOrder.status !== orderStatus.DELIVERED && updatedData.status === orderStatus.DELIVERED) {
+    if (oldOrder.status !== orderStatusList.DELIVERED && updatedData.status === orderStatusList.DELIVERED) {
       const incomeCategory = settings.financialCategories?.income?.[0] || 'Penjualan Produk';
 
       const financialRecordSuccess = await addFinancialTransaction({

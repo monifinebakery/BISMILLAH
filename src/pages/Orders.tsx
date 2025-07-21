@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { Link } from 'react-router-dom';
-// MENGURANGI IMPOR ICON LUCIDE-REACT UNTUK DIAGNOSTIK
-// Menghapus AlertTriangle dan Package untuk sementara
-import { Calendar as CalendarIcon, Plus, Search, Edit, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, CheckSquare, X, ArrowUpDown } from 'lucide-react';
+// MENGUBAH IMPOR ICON LUCIDE-REACT DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK
+import * as Lucide from 'lucide-react'; // <-- PERUBAHAN PENTING DI SINI
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -200,7 +199,7 @@ const OrdersPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-100 p-4 rounded-lg shadow-md">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-r from-gray-600 to-orange-500 p-3 rounded-full">
-            <FileText className="h-8 w-8 text-white" />
+            <Lucide.FileText className="h-8 w-8 text-white" /> {/* <-- PENGGUNAAN Lucide.FileText */}
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-orange-500 bg-clip-text text-transparent">
@@ -210,7 +209,7 @@ const OrdersPage = () => {
           </div>
         </div>
         <Button className="flex items-center gap-2 bg-gradient-to-r from-gray-700 to-orange-500 hover:from-gray-600 hover:to-orange-400 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg" onClick={handleNewOrder}>
-          <Plus className="h-5 w-5 stroke-[3]" /> Tambah Pesanan
+          <Lucide.Plus className="h-5 w-5 stroke-[3]" /> Tambah Pesanan {/* <-- PENGGUNAAN Lucide.Plus */}
         </Button>
       </div>
 
@@ -219,13 +218,13 @@ const OrdersPage = () => {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="relative sm:col-span-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+              <Lucide.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" /> {/* <-- PENGGUNAAN Lucide.Search */}
               <Input placeholder="Cari No. Pesanan / Nama..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-white border-gray-300" />
             </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button id="date" variant="outline" className={cn("w-full justify-start text-left font-normal bg-white border-gray-300", !dateRange && "text-gray-500")}>
-                  <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                  <Lucide.Calendar className="mr-2 h-4 w-4 text-gray-500" /> {/* <-- PENGGUNAAN Lucide.Calendar */}
                   {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "d LLL y")} - ${format(dateRange.to, "d LLL y")}` : format(dateRange.from, "d LLL y")) : (<span>Pilih Tanggal</span>)}
                 </Button>
               </PopoverTrigger>
@@ -289,15 +288,15 @@ const OrdersPage = () => {
                     )}
                   </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('nomorPesanan')}>
-                    Nomor Pesanan <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                    Nomor Pesanan <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
                   </TableHead>
                   <TableHead>Pelanggan</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('tanggal')}>
-                    Tanggal <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                    Tanggal <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
                   </TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('totalPesanan')}>
-                    Total <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                    Total <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
                   </TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -330,21 +329,21 @@ const OrdersPage = () => {
                     <TableCell>
                       <div className={cn("flex items-center gap-2 p-1 rounded", getStatusColor(order.status))}>
                         {/* MENGGANTI ICON UNTUK DIAGNOSTIK */}
-                        {order.status === 'pending' && <FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
-                        {order.status === 'confirmed' && <CheckSquare className="h-4 w-4 text-green-600" />}
-                        {order.status === 'shipping' && <FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
-                        {order.status === 'delivered' && <FileText className="h-4 w-4 text-gray-600" />}
+                        {order.status === 'pending' && <Lucide.FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
+                        {order.status === 'confirmed' && <Lucide.CheckSquare className="h-4 w-4 text-green-600" />}
+                        {order.status === 'shipping' && <Lucide.FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
+                        {order.status === 'delivered' && <Lucide.FileText className="h-4 w-4 text-gray-600" />}
                         <span className="text-xs font-medium">{getStatusText(order.status)}</span>
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditOrderForm(order)}><Edit className="h-4 w-4 text-gray-600" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleFollowUpClick(order)}><MessageSquare className="h-4 w-4 text-gray-600" /></Button>
-                        <Button asChild variant="ghost" size="icon"><Link to={`/pesanan/invoice/${order.id}`}><FileText className="h-4 w-4 text-gray-600" /></Link></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditOrderForm(order)}><Lucide.Edit className="h-4 w-4 text-gray-600" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleFollowUpClick(order)}><Lucide.MessageSquare className="h-4 w-4 text-gray-600" /></Button>
+                        <Button asChild variant="ghost" size="icon"><Link to={`/pesanan/invoice/${order.id}`}><Lucide.FileText className="h-4 w-4 text-gray-600" /></Link></Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700"><Lucide.Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Anda Yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan. Pesanan akan dihapus secara permanen.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter>
@@ -374,12 +373,12 @@ const OrdersPage = () => {
               >
                 {isSelectionMode ? (
                   <>
-                    <X className="h-4 w-4 mr-2" />
+                    <Lucide.X className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.X */}
                     Keluar Mode Pilih
                   </>
                 ) : (
                   <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
+                    <Lucide.CheckSquare className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.CheckSquare */}
                     Mode Pilih
                   </>
                 )}
@@ -391,7 +390,7 @@ const OrdersPage = () => {
                   onClick={() => setShowBulkDeleteDialog(true)}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Lucide.Trash2 className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.Trash2 */}
                   Hapus {selectedOrderIds.length} Item
                 </Button>
               )}
@@ -405,9 +404,9 @@ const OrdersPage = () => {
               )}
             </div>
             <div className="flex items-center gap-1 mt-4 sm:mt-0">
-              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><Lucide.ChevronLeft className="h-4 w-4" /></Button> {/* <-- PENGGUNAAN Lucide.ChevronLeft */}
               <span className="px-4 text-sm text-gray-600">Hal {currentPage} / {totalPages || 1}</span>
-              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><Lucide.ChevronRight className="h-4 w-4" /></Button> {/* <-- PENGGUNAAN Lucide.ChevronRight */}
             </div>
           </div>
         </CardFooter>

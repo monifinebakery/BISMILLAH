@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, eachDayOfInterval, eachMonthOfInterval, isSameMonth, isSameDay } from 'date-fns';
+// PERBAIKAN: Tambahkan differenceInDays
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, eachDayOfInterval, eachMonthOfInterval, isSameMonth, isSameDay, differenceInDays } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateRange } from 'react-day-picker';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon } from 'lucide-react'; // Plus, Download, ChevronLeft, ChevronRight sudah tidak perlu dari sini
-import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // PieChart, Pie, Cell sudah diganti BarChart
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar as CalendarIcon, Settings, TrendingUp, TrendingDown } from 'lucide-react'; // Settings, TrendingUp, TrendingDown diimpor untuk icon, jika tidak ada masalah.
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-// import { useIsMobile } from '@/hooks/use-mobile'; // Asumsi useIsMobile hanya digunakan untuk paginasi kalender. Jika tidak, hapus
+// import { useIsMobile } from '@/hooks/use-mobile'; // Dikomentari sesuai analisis sebelumnya
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
@@ -20,10 +20,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import FinancialTransactionList from '@/components/FinancialTransactionList'; // Impor jika masih terpisah
 
+// Impor komponen Chart dari shadcn
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line } from 'recharts'; // Tambahkan ComposedChart, Line
+// Perlu tambahkan ResponsiveContainer dan Tooltip diimpor jika mereka diperlukan di JSX langsung
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions, addFinancialTransaction, updateFinancialTransaction, deleteFinancialTransaction, isLoading } = useFinancial();
-  const { settings } = useUserSettings(); // Diperlukan untuk kategori dan lain-lain
+  const { settings } = useUserSettings();
 
   const [transactionsPerPage, setTransactionsPerPage] = useState(10);
   const [transactionsCurrentPage, setTransactionsCurrentPage] = useState(1);
@@ -31,11 +35,6 @@ const FinancialReportPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Mengatur status mobile untuk kalender popover
-
-  // =========================================================================================
-  // Untuk masalah "bulan Januari" atau tanggal acak. Recharts hanya memproses Date() secara
-  // internal jika disisipkan dalam object, bukan string. Pastikan data dikirim Date Object.
-  // =========================================================================================
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -75,7 +74,7 @@ const FinancialReportPage = () => {
   const balance = useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
 
   // ===================================================================
-  // --- PERBAIKAN UTAMA #1: PEMBENTUKAN DATA GRAFIK KOMPREHENSIF ---
+  // --- PERBAIKAN UTAMA: PEMBENTUKAN DATA GRAFIK KOMPREHENSIF ---
   // ===================================================================
   const { chartData, chartMode, categoryData } = useMemo(() => {
     const from = dateRange?.from;
@@ -181,21 +180,22 @@ const FinancialReportPage = () => {
   const renderMainChart = () => {
     return (
       <Card><CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran {chartMode === 'daily' ? 'Harian' : 'Bulanan'}</CardTitle><CardDescription>Tren keuangan dalam rentang tanggal yang dipilih.</CardDescription></CardHeader><CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        {/* Konten ResponsiveContainer perlu impor sendiri dari Recharts */}
+        <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}> {/* Adjust left margin if YAxis labels cut off */}
             <CartesianGrid vertical={false} />
             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value} /> {/* No slice */}
             {/* ✅ Perbaiki YAxis: Menggunakan formatLargeNumber */}
             <YAxis tickFormatter={formatLargeNumber} tickLine={false} axisLine={false} tickMargin={8} /> 
             {/* Menggunakan ChartTooltip dan ChartTooltipContent dari ShadCN */}
-            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" formatter={(value) => formatCurrency(Number(value))} />} />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
             {/* Menggunakan ChartLegend dan ChartLegendContent dari ShadCN */}
             <ChartLegend content={<ChartLegendContent />} />
             <Area type="monotone" dataKey="Pemasukan" fill="hsl(var(--chart-1))" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Pemasukan" activeDot={{ r: 6 }} />
             <Area type="monotone" dataKey="Pengeluaran" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Pengeluaran" activeDot={{ r: 6 }} />
             <Line type="monotone" dataKey="Saldo" stroke="hsl(var(--chart-3))" strokeWidth={2} name="Saldo" dot={false} activeDot={{ r: 6 }} />
           </ComposedChart>
-        </ChartContainer>
+        </ResponsiveContainer>
       </CardContent></Card>
     );
   };
@@ -205,34 +205,32 @@ const FinancialReportPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card><CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader><CardContent>
           {categoryData.incomeData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-[250px] w-full"> {/* Pastikan ChartContainer untuk BarChart juga */}
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData.incomeData} layout="vertical" margin={{ left: 10 }}>
-                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
-                  <XAxis type="number" hide />
-                  <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}> {/* Adjust radius */}
-                    {categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            // ResponsiveContainer perlu diimpor
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={categoryData.incomeData} layout="vertical" margin={{ left: 10 }}>
+                <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
+                <XAxis type="number" hide />
+                <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           ) : (<p className="text-muted-foreground text-center py-10">Tidak ada data pemasukan.</p>)}
         </CardContent></Card>
         <Card><CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader><CardContent>
           {categoryData.expenseData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-[250px] w-full"> {/* Pastikan ChartContainer untuk BarChart juga */}
-              <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={categoryData.expenseData} layout="vertical" margin={{ left: 10 }}>
-                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
-                  <XAxis type="number" hide />
-                  <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}> {/* Adjust radius */}
-                    {categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            // ResponsiveContainer perlu diimpor
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={categoryData.expenseData} layout="vertical" margin={{ left: 10 }}>
+                <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
+                <XAxis type="number" hide />
+                <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           ) : (<p className="text-muted-foreground text-center py-10">Tidak ada data pengeluaran.</p>)}
         </CardContent></Card>
       </div>

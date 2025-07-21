@@ -1,128 +1,141 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Warehouse, Package, Trophy, Activity, DollarSign, BarChart3, Clock } from "lucide-react"; // Menambahkan ikon baru
-import { Link } from "react-router-dom";
-import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils'; // Asumsi formatLargeNumber ada di sini
-import { useActivity } from "@/contexts/ActivityContext";
-import { useBahanBaku } from "@/contexts/BahanBakuContext";
-import { useRecipe } from "@/contexts/RecipeContext";
-import { useOrder } from "@/contexts/OrderContext";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
+import FinancialTransactionList from '@/components/FinancialTransactionList';
+import { usePaymentContext } from '@/contexts/PaymentContext';
+import PaymentStatusIndicator from '@/components/PaymentStatusIndicator';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { useFinancial } from '@/contexts/FinancialContext'; // ✅ Impor useFinancial
-import { startOfDay, endOfDay } from 'date-fns'; // ✅ Impor helper tanggal
-
-const formatDateTime = (date: Date | null) => {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return 'Waktu tidak valid';
-  }
-  return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-};
+import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
+import { useFinancial } from '@/contexts/FinancialContext';
+import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 
 const Dashboard = () => {
-  const { activities, loading: activitiesLoading } = useActivity(); 
-  const { bahanBaku } = useBahanBaku();
-  const { recipes, hppResults } = useRecipe();
-  const { orders } = useOrder();
-  const { settings } = useUserSettings(); 
-  const { financialTransactions } = useFinancial(); // ✅ Panggil useFinancial untuk data transaksi
+  const {
+    financialTransactions: transactions,
+    addFinancialTransaction,
+    updateFinancialTransaction,
+    deleteFinancialTransaction
+  } = useFinancial();
 
-  // Pagination states (untuk produk terlaris & aktivitas)
-  const [productsPage, setProductsPage] = useState(1);
-  const [activitiesPage, setActivitiesPage] = useState(1);
-  const itemsPerPage = 5; // Jumlah item per halaman untuk daftar
+  const { settings } = useUserSettings();
+  const { isPaid } = usePaymentContext();
+  const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';
 
-  // ✅ Ringkasan Finansial Harian
-  const todayFinancials = useMemo(() => {
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(subMonths(new Date(), 5)),
+    to: endOfDay(new Date()),
+  });
 
-    const todayTransactions = financialTransactions.filter(t => 
-      t.date && t.date >= todayStart && t.date <= todayEnd
-    );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const closeDialog = useCallback(() => setIsDialogOpen(false), []);
 
-    const todayIncome = todayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0);
-    const todayExpense = todayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0);
-    const todayNetProfit = todayIncome - todayExpense;
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    console.log('[FinancialReportPage] Raw Transactions:', transactions); 
+    return transactions.filter(t => {
+      const transactionDate = t.date;
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+          console.warn('Invalid transaction date found:', t); 
+          return false;
+      }
+      console.log('[FinancialReportPage] Checking transaction date:', transactionDate); 
 
-    const totalPiutang = orders.filter(order => order.status !== 'delivered' && order.status !== 'cancelled')
-                              .reduce((sum, order) => sum + (order.totalPesanan || 0), 0);
+      const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null; 
+      const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;     
 
-    const piutangJatuhTempo = orders.filter(order => 
-        order.status === 'pending' && order.tanggal && order.tanggal < todayStart // Asumsi 'jatuh tempo' jika status pending & tanggal order sudah lewat hari ini
-    )
-    .reduce((sum, order) => sum + (order.totalPesanan || 0), 0);
+      console.log('[FinancialReportPage] Date Range From:', rangeFrom, 'To:', rangeTo); 
 
-    return {
-      omzetHarian: todayIncome,
-      labaBersihHarian: todayNetProfit,
-      arusKasHarian: todayNetProfit, // Menggunakan laba bersih sebagai proxy untuk arus kas harian
-      totalPiutang,
-      piutangJatuhTempo,
-    };
-  }, [financialTransactions, orders]);
+      if (rangeFrom && transactionDate < rangeFrom) return false;
+      if (rangeTo && transactionDate > rangeTo) return false; 
+      
+      return true;
+    });
+  }, [transactions, dateRange]);
 
+  const { totalIncome, totalExpense, balance, categoryData, transactionData } = useMemo(() => {
+    const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0); 
+    const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0); 
+    
+    const incomeByCategory: { [key: string]: number } = {};
+    const expenseByCategory: { [key: string]: number } = {};
+    const monthlyData: { [key: string]: { income: number; expense: number; date: Date } } = {};
 
-  const stats = useMemo(() => { // Ini adalah stats umum/global, bukan harian
-    const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
-    const averageHPP = hppResults.length > 0
-      ? hppResults.reduce((sum, result) => sum + result.hppPerPorsi, 0) / hppResults.length
-      : 0;
-    const totalStokBahanBaku = bahanBaku.reduce((sum, item) => sum + item.stok, 0);
-
-    return {
-      totalProduk: recipes.length,
-      totalStokBahanBaku,
-      hppRataRata: formatCurrency(averageHPP),
-      stokMenipis,
-    };
-  }, [recipes, hppResults, bahanBaku]);
-
-  const bestSellingProducts = useMemo(() => {
-    const productSales: { [key: string]: number } = {};
-    orders.forEach(order => {
-      (order.items || []).forEach(item => {
-        productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + item.quantity;
-      });
+    filteredTransactions.forEach(t => {
+      const categoryName = t.category || 'Lainnya';
+      if (t.type === 'income') { 
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
+      } else if (t.type === 'expense') { 
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
+      }
+      
+      if(t.date){
+        const monthStart = startOfMonth(t.date); 
+        console.log('[FinancialReportPage] Monthly Data - Original Date:', t.date, 'Month Start:', monthStart); 
+        const monthYearKey = format(monthStart, 'yyyy-MM'); 
+        if (!monthlyData[monthYearKey]) {
+          monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart }; 
+        }
+        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; 
+        else if (t.type === 'expense') monthlyData[monthYearKey].expense += t.amount || 0; 
+      }
     });
 
-    return Object.entries(productSales)
-      .map(([name, quantity]) => ({ name, quantity }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 20); 
-  }, [orders]);
+    const finalTransactionData = Object.values(monthlyData)
+        .map(value => ({
+          month: format(value.date, 'MMM yyyy', { locale: id }), 
+          Pemasukan: value.income,
+          Pengeluaran: value.expense,
+          date: value.date, 
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const getGreeting = () => {
-    const jam = new Date().getHours();
-    let sapaan = "datang";
-    if (jam >= 4 && jam < 11) sapaan = "pagi";
-    if (jam >= 11 && jam < 15) sapaan = "siang";
-    if (jam >= 15 && jam < 19) sapaan = "sore";
-    if (jam >= 19 || jam < 4) sapaan = "malam";
-    
-    if (settings.ownerName) {
-      return `Selamat ${sapaan}, Kak ${settings.ownerName}`;
+    console.log('[FinancialReportPage] Final Transaction Data for Chart:', finalTransactionData); 
+
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      balance: income - expense,
+      categoryData: {
+        incomeData: Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })),
+        expenseData: Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })),
+      },
+      transactionData: finalTransactionData,
+    };
+  }, [filteredTransactions]);
+  
+  const COLORS = ['#28a745', '#dc3545', '#007bff', '#ffc107', '#6f42c1', '#17a2b8']; 
+
+  const formatYAxis = (tickItem: number) => formatLargeNumber(tickItem);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const pemasukan = payload.find((p: any) => p.dataKey === 'Pemasukan');
+      const pengeluaran = payload.find((p: any) => p.dataKey === 'Pengeluaran');
+      return (
+        <div className="p-3 bg-white border border-gray-300 rounded shadow-lg text-sm">
+          <p className="font-semibold mb-1">{label}</p>
+          {pemasukan && <p style={{ color: pemasukan.color }}>{`Pemasukan : ${formatCurrency(pemasukan.value)}`}</p>}
+          {pengeluaran && <p style={{ color: pengeluaran.color }}>{`Pengeluaran : ${formatCurrency(pengeluaran.value)}`}</p>}
+          <p className="mt-1 text-gray-600">{`Saldo : ${formatCurrency((pemasukan?.value || 0) - (pengeluaran?.value || 0))}`}</p>
+        </div>
+      );
     }
-    return `Selamat ${sapaan}`;
+    return null;
   };
 
-  // Pagination logic for products
-  const productsStartIndex = (productsPage - 1) * itemsPerPage;
-  const currentProducts = bestSellingProducts.slice(productsStartIndex, productsStartIndex + itemsPerPage);
-  const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPage);
-
-  // Pagination logic for activities
-  const activitiesStartIndex = (activitiesPage - 1) * itemsPerPage;
-  const currentActivities = activities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
-  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPage);
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen"> {/* Mengubah bg-white menjadi bg-gray-50 untuk kesan modern */}
+    <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen"> 
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -333,3 +346,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+tambahin MenuExportButton di dashboardnya

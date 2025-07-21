@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile'; 
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText, ChevronLeft, ChevronRight, NotepadText } from 'lucide-react'; 
+import { Calendar as CalendarIcon, Plus, Search, Edit, Package, Check, X, Truck, Cog, MessageSquare, FileText, ChevronLeft, ChevronRight, FileText } from 'lucide-react'; 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';

@@ -1,7 +1,5 @@
-// src/components/RecipeForm.tsx
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,18 +29,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     totalHpp: 0, hppPerPorsi: 0, hargaJualPorsi: 0,
   });
 
-  const [newIngredient, setNewIngredient] = useState<{
-    id: string; namaBahan: string; jumlah: number;
-  }>({ id: '', namaBahan: '', jumlah: 0 });
+  const [newIngredient, setNewIngredient] = useState<{ id: string; jumlah: number; }>({ id: '', jumlah: 0 });
 
-  // Load initial data for editing
   useEffect(() => {
-    if (initialData) {
-      setRecipeData(initialData);
-    }
+    if (initialData) setRecipeData(initialData);
   }, [initialData]);
 
-  // Automatic HPP and Price Calculation
+  // Kalkulasi HPP & Harga Jual Otomatis
   useEffect(() => {
     const totalBahanBaku = recipeData.bahanResep?.reduce((sum, item) => sum + item.totalHarga, 0) || 0;
     const totalHpp = totalBahanBaku + (recipeData.biayaTenagaKerja || 0) + (recipeData.biayaOverhead || 0);
@@ -50,9 +43,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     
     let hargaJualPorsi = 0;
     const margin = recipeData.marginKeuntunganPersen || 0;
-    if (margin < 100) {
-      hargaJualPorsi = hppPerPorsi / (1 - (margin / 100));
-    }
+    if (margin < 100) hargaJualPorsi = hppPerPorsi / (1 - (margin / 100));
 
     setRecipeData(prev => ({ ...prev, totalHpp, hppPerPorsi, hargaJualPorsi }));
   }, [recipeData.bahanResep, recipeData.biayaTenagaKerja, recipeData.biayaOverhead, recipeData.jumlahPorsi, recipeData.marginKeuntunganPersen]);
@@ -79,7 +70,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     };
 
     handleInputChange('bahanResep', [...(recipeData.bahanResep || []), ingredientToAdd]);
-    setNewIngredient({ id: '', namaBahan: '', jumlah: 0 }); // Reset form
+    setNewIngredient({ id: '', jumlah: 0 });
   };
 
   const handleRemoveIngredient = (id: string) => {
@@ -143,24 +134,24 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       <Card>
         <CardHeader><CardTitle>Biaya & Margin</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div><Label>Biaya Tenaga Kerja (Rp)</Label><Input type="number" value={recipeData.biayaTenagaKerja} onChange={e => handleInputChange('biayaTenagaKerja', Number(e.target.value))} /></div>
-          <div><Label>Biaya Overhead (Rp)</Label><Input type="number" value={recipeData.biayaOverhead} onChange={e => handleInputChange('biayaOverhead', Number(e.target.value))} /></div>
-          <div><Label>Margin Keuntungan (%)</Label><Input type="number" value={recipeData.marginKeuntunganPersen} onChange={e => handleInputChange('marginKeuntunganPersen', Number(e.target.value))} /></div>
+          <div><Label>Biaya Tenaga Kerja (Rp)</Label><Input type="number" value={recipeData.biayaTenagaKerja || ''} onChange={e => handleInputChange('biayaTenagaKerja', Number(e.target.value))} /></div>
+          <div><Label>Biaya Overhead (Rp)</Label><Input type="number" value={recipeData.biayaOverhead || ''} onChange={e => handleInputChange('biayaOverhead', Number(e.target.value))} /></div>
+          <div><Label>Margin Keuntungan (%)</Label><Input type="number" value={recipeData.marginKeuntunganPersen || ''} onChange={e => handleInputChange('marginKeuntunganPersen', Number(e.target.value))} /></div>
         </CardContent>
       </Card>
       
       <Card className="bg-gray-50">
         <CardHeader><CardTitle>Preview Kalkulasi HPP</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            <div>Total Bahan Baku:</div><div className="font-semibold text-right">{formatCurrency(recipeData.totalHpp - recipeData.biayaOverhead - recipeData.biayaTenagaKerja)}</div>
-            <div>Total Biaya Lain:</div><div className="font-semibold text-right">{formatCurrency(recipeData.biayaOverhead + recipeData.biayaTenagaKerja)}</div>
+            <div>Total Bahan Baku:</div><div className="font-semibold text-right">{formatCurrency(recipeData.totalHpp - (recipeData.biayaOverhead || 0) - (recipeData.biayaTenagaKerja || 0))}</div>
+            <div>Total Biaya Lain:</div><div className="font-semibold text-right">{formatCurrency((recipeData.biayaOverhead || 0) + (recipeData.biayaTenagaKerja || 0))}</div>
             <div className="font-bold border-t pt-2">Total HPP:</div><div className="font-bold border-t pt-2 text-right">{formatCurrency(recipeData.totalHpp)}</div>
             <div>HPP per Porsi:</div><div className="font-semibold text-right">{formatCurrency(recipeData.hppPerPorsi)}</div>
             <div className="font-bold text-lg text-green-600">Harga Jual per Porsi:</div><div className="font-bold text-lg text-green-600 text-right">{formatCurrency(recipeData.hargaJualPorsi)}</div>
         </CardContent>
       </Card>
       
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={onCancel}>Batal</Button>
           <Button onClick={handleSave}>{initialData ? 'Perbarui Resep' : 'Simpan Resep'}</Button>
       </div>

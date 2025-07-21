@@ -153,22 +153,23 @@ const App = () => {
                   <Route path="gudang" element={<WarehousePage />} />
                   <Route path="supplier" element={<SupplierManagement />} />
                   <Route path="pembelian" element={<PurchaseManagement />} />
-                  <Route path="pesanan" element={<OrdersPage />} />
+                  {/* HAPUS BARIS INI KARENA SUDAH ADA VERSI NESTEDNYA DI BAWAH */}
+                  {/* <Route path="pesanan" element={<OrdersPage />} /> */} 
                   <Route path="laporan" element={<FinancialReportPage />} />
                   <Route path="aset" element={<AssetManagement />} />
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  <Route path="invoice" element={<InvoicePage />} />
+                  {/* InvoicePage sudah ada di dalam rute pesanan nested, jadi ini mungkin juga duplikat */}
+                  {/* <Route path="invoice" element={<InvoicePage />} /> */} 
                   
-                  {/* ✨ PERBAIKAN UTAMA DI SINI ✨ */}
-                  {/* Rute /pesanan dan /pesanan/invoice/:orderId sekarang disatukan */}
+                  {/* ✨ INI ADALAH DEFINISI RUTE PESANAN YANG BENAR ✨ */}
                   <Route path="pesanan">
-                    <Route index element={<OrdersPage />} />
-                    <Route path="invoice/:orderId" element={<InvoicePage />} />
-                    
+                    <Route index element={<OrdersPage />} /> {/* Menangani /pesanan */}
+                    <Route path="invoice/:orderId" element={<InvoicePage />} /> {/* Menangani /pesanan/invoice/:orderId */}
                   </Route>
-                  <Route path="promo" element={<PromoCalculatorPage />} /> {/* ✨ RUTE BARU DITAMBAHKAN */}
+
+                  <Route path="promo" element={<PromoCalculatorPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

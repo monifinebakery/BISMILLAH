@@ -17,7 +17,7 @@ import RecipeForm from '@/components/RecipeForm';
 
 const RecipesPage = () => {
   // --- State Utama Halaman ---
-  const { recipes, isLoading, deleteRecipe, addRecipe, updateRecipe } = useRecipe();
+  const { recipes, isLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipe();
   const { settings, saveSettings } = useUserSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -47,7 +47,6 @@ const RecipesPage = () => {
   }, [filteredRecipes, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage);
-
   const recipeCategories = useMemo(() => settings?.recipeCategories || [], [settings]);
 
   // --- Handlers ---
@@ -97,7 +96,7 @@ const RecipesPage = () => {
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Manajemen Resep</h1>
-            <p className="text-muted-foreground">Buat, kelola, dan analisis semua resep produk Anda.</p>
+            <p className="text-muted-foreground">Buat, kelola, dan analisis resep produk Anda.</p>
           </div>
         </div>
         <div className="flex gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
@@ -180,7 +179,6 @@ const RecipesPage = () => {
         )}
       </Card>
 
-      {/* Dialog untuk Kelola Kategori Resep */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Kelola Kategori Resep</DialogTitle></DialogHeader>
@@ -222,11 +220,10 @@ const RecipesPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Dialog untuk Form Tambah/Edit Resep */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingRecipe ? 'Edit Resep' : 'Tambah Resep Baru'}</DialogTitle>
+            <DialogTitle>{editingRecipe ? `Edit Resep: ${editingRecipe.namaResep}` : 'Tambah Resep Baru'}</DialogTitle>
             <DialogDescription>Isi detail resep dan kalkulasi HPP akan otomatis diperbarui.</DialogDescription>
           </DialogHeader>
           <div className="flex-grow overflow-y-auto pr-6 -mr-6">

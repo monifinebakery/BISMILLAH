@@ -159,8 +159,14 @@ const App = () => {
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  <Route path="invoice" element={<InvoicePage />} />
-                  <Route path="invoice/:orderId" element={<InvoicePage />} />
+                  
+                  {/* ✨ PERBAIKAN UTAMA DI SINI ✨ */}
+                  {/* Rute /pesanan dan /pesanan/invoice/:orderId sekarang disatukan */}
+                  <Route path="pesanan">
+                    <Route index element={<OrdersPage />} />
+                    <Route path="invoice/:orderId" element={<InvoicePage />} />
+                    
+                  </Route>
                   <Route path="promo" element={<PromoCalculatorPage />} /> {/* ✨ RUTE BARU DITAMBAHKAN */}
                   <Route path="*" element={<NotFound />} />
                 </Route>

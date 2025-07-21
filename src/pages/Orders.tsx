@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import * as dateFns from 'date-fns';
+// MENGUBAH IMPOR DATE-FNS DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK
+import * as dateFns from 'date-fns'; // <-- PERUBAHAN PENTING DI SINI
 import { Link } from 'react-router-dom';
-// MENGUBAH IMPOR ICON LUCIDE-REACT DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK
-import * as Lucide from 'lucide-react'; // <-- PERUBAHAN PENTING DI SINI
+// MENGUBAH IMPOR ICON LUCIDE-REACT DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK (Sudah dilakukan sebelumnya)
+import * as Lucide from 'lucide-react'; 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,8 @@ const OrdersPage = () => {
   // --- State Hooks ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 30), to: new Date() });
+  // dateFns.subDays digunakan di sini
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: dateFns.subDays(new Date(), 30), to: new Date() });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [minTotal, setMinTotal] = useState<number | undefined>(undefined);
   const [maxTotal, setMaxTotal] = useState<number | undefined>(undefined);
@@ -166,8 +168,9 @@ const OrdersPage = () => {
 
   // --- Memoized Filtering and Pagination ---
   const filteredOrders = useMemo(() => {
-    const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null;
-    const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;
+    // dateFns.startOfDay dan dateFns.endOfDay digunakan di sini
+    const rangeFrom = dateRange?.from ? dateFns.startOfDay(dateRange.from) : null;
+    const rangeTo = dateRange?.to ? dateFns.endOfDay(dateRange.to) : null;
 
     return orders.filter(order => {
       const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) || order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -199,7 +202,7 @@ const OrdersPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-100 p-4 rounded-lg shadow-md">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-r from-gray-600 to-orange-500 p-3 rounded-full">
-            <Lucide.FileText className="h-8 w-8 text-white" /> {/* <-- PENGGUNAAN Lucide.FileText */}
+            <Lucide.FileText className="h-8 w-8 text-white" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-orange-500 bg-clip-text text-transparent">
@@ -209,7 +212,7 @@ const OrdersPage = () => {
           </div>
         </div>
         <Button className="flex items-center gap-2 bg-gradient-to-r from-gray-700 to-orange-500 hover:from-gray-600 hover:to-orange-400 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg" onClick={handleNewOrder}>
-          <Lucide.Plus className="h-5 w-5 stroke-[3]" /> Tambah Pesanan {/* <-- PENGGUNAAN Lucide.Plus */}
+          <Lucide.Plus className="h-5 w-5 stroke-[3]" /> Tambah Pesanan
         </Button>
       </div>
 
@@ -218,14 +221,15 @@ const OrdersPage = () => {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="relative sm:col-span-1">
-              <Lucide.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" /> {/* <-- PENGGUNAAN Lucide.Search */}
+              <Lucide.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
               <Input placeholder="Cari No. Pesanan / Nama..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-white border-gray-300" />
             </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button id="date" variant="outline" className={cn("w-full justify-start text-left font-normal bg-white border-gray-300", !dateRange && "text-gray-500")}>
-                  <Lucide.Calendar className="mr-2 h-4 w-4 text-gray-500" /> {/* <-- PENGGUNAAN Lucide.Calendar */}
-                  {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "d LLL y")} - ${format(dateRange.to, "d LLL y")}` : format(dateRange.from, "d LLL y")) : (<span>Pilih Tanggal</span>)}
+                  <Lucide.Calendar className="mr-2 h-4 w-4 text-gray-500" />
+                  {/* dateFns.format digunakan di sini */}
+                  {dateRange?.from ? (dateRange.to ? `${dateFns.format(dateRange.from, "d LLL y")} - ${dateFns.format(dateRange.to, "d LLL y")}` : dateFns.format(dateRange.from, "d LLL y")) : (<span>Pilih Tanggal</span>)}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-white" align="end">
@@ -288,15 +292,15 @@ const OrdersPage = () => {
                     )}
                   </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('nomorPesanan')}>
-                    Nomor Pesanan <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
+                    Nomor Pesanan <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" />
                   </TableHead>
                   <TableHead>Pelanggan</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('tanggal')}>
-                    Tanggal <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
+                    Tanggal <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" />
                   </TableHead>
                   <TableHead className="w-[180px]">Status</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => sortOrders('totalPesanan')}>
-                    Total <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" /> {/* <-- PENGGUNAAN Lucide.ArrowUpDown */}
+                    Total <Lucide.ArrowUpDown className="ml-2 h-4 w-4 inline" />
                   </TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -373,12 +377,12 @@ const OrdersPage = () => {
               >
                 {isSelectionMode ? (
                   <>
-                    <Lucide.X className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.X */}
+                    <Lucide.X className="h-4 w-4 mr-2" />
                     Keluar Mode Pilih
                   </>
                 ) : (
                   <>
-                    <Lucide.CheckSquare className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.CheckSquare */}
+                    <Lucide.CheckSquare className="h-4 w-4 mr-2" />
                     Mode Pilih
                   </>
                 )}
@@ -390,7 +394,7 @@ const OrdersPage = () => {
                   onClick={() => setShowBulkDeleteDialog(true)}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
-                  <Lucide.Trash2 className="h-4 w-4 mr-2" /> {/* <-- PENGGUNAAN Lucide.Trash2 */}
+                  <Lucide.Trash2 className="h-4 w-4 mr-2" />
                   Hapus {selectedOrderIds.length} Item
                 </Button>
               )}
@@ -404,9 +408,9 @@ const OrdersPage = () => {
               )}
             </div>
             <div className="flex items-center gap-1 mt-4 sm:mt-0">
-              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><Lucide.ChevronLeft className="h-4 w-4" /></Button> {/* <-- PENGGUNAAN Lucide.ChevronLeft */}
+              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><Lucide.ChevronLeft className="h-4 w-4" /></Button>
               <span className="px-4 text-sm text-gray-600">Hal {currentPage} / {totalPages || 1}</span>
-              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><Lucide.ChevronRight className="h-4 w-4" /></Button> {/* <-- PENGGUNAAN Lucide.ChevronRight */}
+              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-100" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><Lucide.ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
         </CardFooter>

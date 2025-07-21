@@ -1,357 +1,524 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, ShoppingCart, Package, DollarSign, TrendingUp, Receipt, Bell, Activity as ActivityIcon, Users, Scale } from 'lucide-react';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useActivity } from '@/contexts/ActivityContext';
-import { useBahanBaku } from '@/contexts/BahanBakuContext';
-import { useOrder } from '@/contexts/OrderContext';
-import { useFinancial } from '@/contexts/FinancialContext';
-import { useRecipe } from '@/contexts/RecipeContext';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calculator, Warehouse, Package, Trophy, Activity, TrendingUp, TrendingDown, CircleDollarSign, ListChecks } from "lucide-react";
+import { Link } from "react-router-dom";
+import { formatCurrency } from '@/utils/currencyUtils';
+import { useActivity } from "@/contexts/ActivityContext";
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useUserSettings } from '@/contexts/UserSettingsContext'; 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils'; // Import formatLargeNumber
-import { format, subDays, startOfDay, endOfDay, differenceInDays } from 'date-fns'; // Impor date-fns
-import { id as localeID } from 'date-fns/locale'; // Impor locale ID
-
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-
-// Untuk Recharts
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
+const formatDateTime = (date: Date | string | null | undefined) => {
+  if (!date) return 'Waktu tidak valid';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+    return 'Waktu tidak valid';
+  }
+  
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(dateObj);
+};
 
 const Dashboard = () => {
-  const { settings, isLoading: settingsLoading } = useUserSettings();
-  const { user } = useAuth();
-  const { activities, isLoading: activityLoading } = useActivity();
-  const { bahanBaku, isLoading: bahanBakuLoading } = useBahanBaku();
-  const { orders, isLoading: ordersLoading } = useOrder();
-  const { financialTransactions, isLoading: financialLoading } = useFinancial();
-  const { hppResults, isLoading: recipesLoading } = useRecipe();
+  const { activities, loading: activitiesLoading } = useActivity(); 
+  const { bahanBaku } = useBahanBaku();
+  const { recipes, hppResults } = useRecipe();
+  const { orders } = useOrder();
+  const { settings } = useUserSettings(); 
 
-  const isLoading = settingsLoading || activityLoading || bahanBakuLoading || ordersLoading || financialLoading || recipesLoading;
-
+  // Pagination states
   const [productsPage, setProductsPage] = useState(1);
   const [activitiesPage, setActivitiesPage] = useState(1);
-  const itemsPerPageProduct = 5; // Untuk produk terlaris
-  const itemsPerPageActivity = 5; // Untuk aktivitas terbaru
+  const itemsPerPage = 5;
 
-  const getGreeting = useMemo(() => {
-    const hour = new Date().getHours();
-    let greeting = 'Selamat ';
-    if (hour < 11) greeting += 'pagi';
-    else if (hour < 15) greeting += 'siang';
-    else if (hour < 18) greeting += 'sore';
-    else greeting += 'malam';
-    
-    const ownerName = settings.ownerName || user?.email?.split('@')[0] || 'Teman';
-    return `${greeting}, Kak ${ownerName}!`;
-  }, [settings.ownerName, user]);
+  // Get date strings safely
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayFormatted = yesterday.toISOString().split('T')[0];
+  
+  // Calculate today's revenue (with null checks)
+  const todaysRevenue = useMemo(() => {
+    return orders
+      .filter(order => order.tanggal && order.tanggal.includes(today))
+      .reduce((sum, order) => sum + (order.total || 0), 0);
+  }, [orders, today]);
 
-  const today = useMemo(() => new Date(), []);
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  // Calculate yesterday's revenue (with null checks)
+  const yesterdaysRevenue = useMemo(() => {
+    return orders
+      .filter(order => order.tanggal && order.tanggal.includes(yesterdayFormatted))
+      .reduce((sum, order) => sum + (order.total || 0), 0);
+  }, [orders]);
 
+  // Calculate revenue trend safely
+  const revenueTrend = useMemo(() => {
+    if (!yesterdaysRevenue) return todaysRevenue ? 100 : 0;
+    return ((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100;
+  }, [todaysRevenue, yesterdaysRevenue]);
 
-  // ===================================================================
-  // --- Data untuk Dashboard Chart (Tren 30 Hari Terakhir) ---
-  // ===================================================================
-  const dashboardChartData = useMemo(() => {
-    const thirtyDaysAgo = subDays(today, 29); // Dari 29 hari yang lalu sampai hari ini = 30 hari
-    const startDate = startOfToday; // Memastikan dimulai dari awal hari ini
+  // Calculate today's profit
+  const todaysProfit = useMemo(() => {
+    return todaysRevenue * 0.3; // 30% profit margin
+  }, [todaysRevenue]);
 
-    const dailyData: { [key: string]: { name: string; Pemasukan: number; Pengeluaran: number } } = {};
+  // Calculate today's orders
+  const todaysOrders = useMemo(() => {
+    return orders.filter(order => order.tanggal && order.tanggal.includes(today)).length;
+  }, [orders, today]);
 
-    for (let i = 0; i < 30; i++) { // Looping untuk 30 hari
-      const date = new Date(thirtyDaysAgo);
-      date.setDate(date.getDate() + i);
-      const dayKey = format(date, 'yyyy-MM-dd');
-      const dayName = format(date, 'd MMM', { locale: localeID });
-      dailyData[dayKey] = { name: dayName, Pemasukan: 0, Pengeluaran: 0 };
-    }
+  // Calculate outstanding invoices
+  const outstandingInvoices = useMemo(() => {
+    return orders.filter(order => order.status === 'BELUM LUNAS').length;
+  }, [orders]);
 
-    financialTransactions.forEach(t => {
-      const transDate = t.date instanceof Date ? t.date : new Date(t.date);
-      // Hanya sertakan transaksi dalam 30 hari terakhir
-      if (transDate >= thirtyDaysAgo && transDate <= today) {
-        const dayKey = format(transDate, 'yyyy-MM-dd');
-        if (dailyData[dayKey]) {
-          if (t.type === 'pemasukan') dailyData[dayKey].Pemasukan += t.amount;
-          else if (t.type === 'pengeluaran') dailyData[dayKey].Pengeluaran += t.amount;
-        }
-      }
-    });
-    return Object.values(dailyData);
-  }, [financialTransactions, today]);
+  const stats = useMemo(() => {
+    const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
+    const averageHPP = hppResults.length > 0
+      ? hppResults.reduce((sum, result) => sum + (result.hppPerPorsi || 0), 0) / hppResults.length
+      : 0;
+    const totalStokBahanBaku = bahanBaku.reduce((sum, item) => sum + (item.stok || 0), 0);
 
-
-  // ===================================================================
-  // --- Metrik KPI gabungan ---
-  // ===================================================================
-  const { 
-    totalProducts, totalBahanBakuUnit, averageHPP, lowStockCount, 
-    totalRevenueToday, totalExpenseToday, netProfitToday, ordersToProcess 
-  } = useMemo(() => {
-    const uniqueProductIds = new Set<string>();
-    orders.forEach(order => {
-      order.items.forEach(item => { if (item.nama) uniqueProductIds.add(item.nama); });
-    });
-    const totalProducts = uniqueProductIds.size;
-
-    const totalUnitsInStock = bahanBaku.reduce((sum, item) => sum + item.stok, 0);
-
-    const validHpps = hppResults.map(r => r.hppPerPorsi);
-    const avgHPP = validHpps.length > 0 ? validHpps.reduce((sum, hpp) => sum + hpp, 0) / validHpps.length : 0;
-    
-    const lowStock = bahanBaku.filter(item => item.stok <= item.minimum).length;
-
-    const filteredFinancialsToday = financialTransactions.filter(t => {
-      const transDate = t.date instanceof Date ? t.date : new Date(t.date);
-      return transDate >= startOfToday && transDate <= endOfToday;
-    });
-    const totalRevenue = filteredFinancialsToday.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = filteredFinancialsToday.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + t.amount, 0);
-    const netProfit = totalRevenue - totalExpense;
-
-    const ordersPendingProcess = orders.filter(order =>
-      order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing'
-    ).length;
-
-    return { 
-      totalProducts, totalBahanBakuUnit, averageHPP, lowStockCount,
-      totalRevenueToday: totalRevenue, totalExpenseToday: totalExpense, netProfitToday: netProfit, ordersToProcess 
+    return {
+      totalProduk: recipes.length,
+      totalStokBahanBaku,
+      hppRataRata: formatCurrency(averageHPP),
+      stokMenipis,
+      todaysRevenue,
+      todaysProfit,
+      todaysOrders,
+      outstandingInvoices,
+      revenueTrend
     };
-  }, [orders, bahanBaku, financialTransactions, hppResults, startOfToday, endOfToday]);
+  }, [recipes, hppResults, bahanBaku, todaysRevenue, todaysProfit, todaysOrders, outstandingInvoices, revenueTrend]);
 
-  // ===================================================================
-  // --- Produk Terlaris ---
-  // ===================================================================
   const bestSellingProducts = useMemo(() => {
-    const productSales: { [productName: string]: { quantity: number; revenue: number } } = {};
+    const productSales: Record<string, number> = {};
+    const productRevenue: Record<string, number> = {};
+    
     orders.forEach(order => {
-      order.items.forEach(item => {
-        const name = item.nama || 'Produk Tidak Dikenal'; 
-        if (!productSales[name]) {
-          productSales[name] = { quantity: 0, revenue: 0 };
-        }
-        productSales[name].quantity += item.quantity || 0;
-        productSales[name].revenue += (item.totalHarga || 0);
+      (order.items || []).forEach(item => {
+        if (!item.namaBarang) return;
+        productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
+        productRevenue[item.namaBarang] = (productRevenue[item.namaBarang] || 0) + 
+          ((item.quantity || 0) * (item.hargaSatuan || 0));
       });
     });
 
     return Object.entries(productSales)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.revenue - a.revenue);
+      .map(([name, quantity]) => ({ 
+        name, 
+        quantity,
+        revenue: productRevenue[name] || 0 
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 20);
   }, [orders]);
 
-  const paginatedBestSellingProducts = useMemo(() => {
-    const startIndex = (productsPage - 1) * itemsPerPageProduct;
-    return bestSellingProducts.slice(startIndex, startIndex + itemsPerPageProduct);
-  }, [bestSellingProducts, productsPage]);
+  const worstSellingProducts = useMemo(() => {
+    const productSales: Record<string, number> = {};
+    
+    orders.forEach(order => {
+      (order.items || []).forEach(item => {
+        if (!item.namaBarang) return;
+        productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
+      });
+    });
 
-  const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPageProduct);
+    return Object.entries(productSales)
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => a.quantity - b.quantity)
+      .slice(0, 5);
+  }, [orders]);
 
-  // ===================================================================
-  // --- Aktivitas Terbaru ---
-  // ===================================================================
-  const paginatedActivities = useMemo(() => {
-    const startIndex = (activitiesPage - 1) * itemsPerPageActivity;
-    return activities.slice(startIndex, startIndex + itemsPerPageActivity);
-  }, [activities, activitiesPage]);
+  const getGreeting = () => {
+    const jam = new Date().getHours();
+    let sapaan = "datang";
+    if (jam >= 4 && jam < 11) sapaan = "pagi";
+    if (jam >= 11 && jam < 15) sapaan = "siang";
+    if (jam >= 15 && jam < 19) sapaan = "sore";
+    if (jam >= 19 || jam < 4) sapaan = "malam";
+    
+    if (settings.ownerName) {
+      return `Selamat ${sapaan}, Kak ${settings.ownerName}`;
+    }
+    return `Selamat ${sapaan}`;
+  };
 
-  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPageActivity);
+  // Pagination logic for products
+  const productsStartIndex = (productsPage - 1) * itemsPerPage;
+  const currentProducts = bestSellingProducts.slice(productsStartIndex, productsStartIndex + itemsPerPage);
+  const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPage);
 
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="mt-4 text-muted-foreground">Memuat data dashboard...</p>
-      </div>
-    );
-  }
+  // Pagination logic for activities
+  const activitiesStartIndex = (activitiesPage - 1) * itemsPerPage;
+  const currentActivities = activities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
+  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPage);
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">{getGreeting}</h1>
-
-      {/* Widget KPI Utama (Baris Pertama Dashboard) */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Produk</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalProducts}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Stok Bahan</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalBahanBakuUnit}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">HPP Rata-rata</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{formatCurrency(averageHPP)}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Stok Menipis</CardTitle><Bell className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{lowStockCount}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Omzet Hari Ini</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenueToday)}</div><p className="text-xs text-muted-foreground">+5% dari kemarin</p></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Laba Kotor</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(netProfitToday)}</div><p className="text-xs text-muted-foreground">Termasuk semua HPP & pengeluaran</p></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pesanan Diproses</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{ordersToProcess}</div><p className="text-xs text-muted-foreground">Menunggu dikirim atau selesai</p></CardContent></Card>
+    <div className="p-4 sm:p-6 space-y-6 bg-white min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <p className="text-gray-500">{getGreeting()}</p>
+        </div>
+        <div className="text-xs text-gray-400">
+          {new Date().toLocaleDateString('id-ID', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}
+        </div>
       </div>
 
-      {/* --- TREND KEUANGAN TERBARU (MENGGANTIKAN AKSI CEPAT) --- */}
-      <h2 className="text-xl font-bold mb-4 mt-6">Tren Keuangan Terbaru (30 Hari)</h2>
-      <Card>
-        <CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran</CardTitle><CardDescription>Performa keuangan Anda dalam 30 hari terakhir.</CardDescription></CardHeader>
-        <CardContent className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={dashboardChartData}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              {/* tickFormatter untuk sumbu X: hanya menampilkan tanggal dan bulan */}
-              <XAxis 
-                dataKey="name" 
-                tickLine={false} 
-                axisLine={false} 
-                tickMargin={8} 
-                tickFormatter={(value) => value.slice(0, 6)} // Contoh: "15 Jul"
-              />
-              <YAxis 
-                tickLine={false} 
-                axisLine={false} 
-                tickMargin={8} 
-                // Gunakan formatLargeNumber yang diimpor dari currencyUtils
-                tickFormatter={formatLargeNumber} 
-              />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-              <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ paddingBottom: 10 }} />
-              <Line type="monotone" dataKey="Pemasukan" stroke="#22c55e" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      {/* --- AKHIR TREND KEUANGAN --- */}
-
-      <div className="grid gap-6 lg:grid-cols-2 mt-6">
-        {/* Produk Terlaris */}
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Trophy />Produk Terlaris</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
-              {paginatedBestSellingProducts.length > 0 ? (
-                paginatedBestSellingProducts.map((product, index) => (
-                  <div key={product.name} className="p-4 flex items-center hover:bg-gray-50">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-700">{index + 1 + (productsPage - 1) * itemsPerPageProduct}</span>
-                    </div>
-                    <div className="ml-4 flex-1 min-w-0">
-                      <p className="font-medium text-gray-800 truncate">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">{product.quantity} terjual • {formatCurrency(product.revenue)}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-6 text-center">
-                  <p className="text-gray-500">Belum ada data penjualan</p>
-                </div>
-              )}
+      {/* Stats Grid - Financial Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-blue-50 p-2 rounded-lg mr-3">
+              <CircleDollarSign className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Omzet Hari Ini</p>
+              <p className="font-semibold text-gray-800">{formatCurrency(stats.todaysRevenue)}</p>
+              <div className="flex items-center mt-1">
+                {stats.revenueTrend > 0 ? (
+                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                )}
+                <span className={`text-xs ${stats.revenueTrend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {Math.abs(stats.revenueTrend).toFixed(1)}%
+                </span>
+              </div>
             </div>
           </CardContent>
-          
-          {/* Pagination Produk Terlaris */}
-          {bestSellingProducts.length > itemsPerPageProduct && (
-            <CardFooter className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <Button
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 p-0 hover:bg-gray-100" 
-                onClick={() => setProductsPage(productsPage - 1)}
-                disabled={productsPage === 1}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <span className="text-sm text-gray-500">
-                Halaman {productsPage} dari {totalProductsPages}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 p-0 hover:bg-gray-100" 
-                onClick={() => setProductsPage(productsPage + 1)}
-                disabled={productsPage >= totalProductsPages}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </CardFooter>
-          )}
         </Card>
 
-        {/* Aktivitas Terbaru */}
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><ActivityIcon />Aktivitas Terbaru</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
-              {activities.length > 0 ? (
-                paginatedActivities.map((activity) => {
-                  const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
-                  const amount = isFinancial && typeof activity.value === 'string' ? parseFloat(activity.value || '0') : 0; 
-                  
-                  return (
-                    <div key={activity.id} className="p-4 flex items-center hover:bg-gray-50">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-800 truncate">{activity.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-green-50 p-2 rounded-lg mr-3">
+              <Package className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Pesanan Hari Ini</p>
+              <p className="font-semibold text-gray-800">{stats.todaysOrders}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-purple-50 p-2 rounded-lg mr-3">
+              <Calculator className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Laba Bersih</p>
+              <p className="font-semibold text-gray-800">{formatCurrency(stats.todaysProfit)}</p>
+              <p className="text-xs text-gray-500 mt-1">(Estimasi)</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4 flex items-center">
+            <div className="bg-orange-50 p-2 rounded-lg mr-3">
+              <ListChecks className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Piutang Belum Lunas</p>
+              <p className="font-semibold text-orange-600">{stats.outstandingInvoices}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
+          <Link to="/hpp">
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-blue-50 p-2 rounded-lg mr-3">
+                <Calculator className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Hitung HPP</p>
+              </div>
+            </CardContent>
+          </Link>
+        </Card>
+
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
+          <Link to="/gudang">
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-green-50 p-2 rounded-lg mr-3">
+                <Warehouse className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Kelola Gudang</p>
+              </div>
+            </CardContent>
+          </Link>
+        </Card>
+
+        <Card className="bg-white border border-gray-100 hover:shadow transition-shadow">
+          <Link to="/laporan">
+            <CardContent className="p-4 flex items-center">
+              <div className="bg-purple-50 p-2 rounded-lg mr-3">
+                <div className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Laporan Keuangan</p>
+              </div>
+            </CardContent>
+          </Link>
+        </Card>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Best Selling Products */}
+          <Card className="bg-white border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <Trophy className="h-5 w-5 text-gray-600" />
+                <span>Produk Terlaris</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-100">
+                {currentProducts.length > 0 ? (
+                  currentProducts.map((product, index) => (
+                    <div 
+                      key={`${product.name}-${index}`} 
+                      className="p-4 flex items-center hover:bg-gray-50"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-700">
+                          {productsStartIndex + index + 1}
+                        </span>
                       </div>
-                      <div className="text-right ml-4 flex-shrink-0">
-                        {isFinancial && amount > 0 && (
-                          <p className={`text-sm font-medium ${
-                              activity.type === 'keuangan' && activity.title.toLowerCase().includes('pemasukan')
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                            }`}>
-                            {formatCurrency(amount)}
+                      <div className="ml-4 flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 truncate">{product.name}</p>
+                        <div className="flex justify-between mt-1">
+                          <p className="text-sm text-gray-500">
+                            {product.quantity} terjual
                           </p>
-                        )}
-                        <p className="text-xs text-gray-400 mt-1">
-                          {format(activity.createdAt, 'd LLL y, HH.mm', { locale: localeID })}
+                          <p className="text-sm font-medium text-gray-800">
+                            {formatCurrency(product.revenue)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Belum ada data penjualan</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            
+            {/* Pagination */}
+            {bestSellingProducts.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <button 
+                  className={`p-1 rounded ${productsPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={productsPage === 1}
+                  onClick={() => setProductsPage(productsPage - 1)}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-sm text-gray-500">
+                  Halaman {productsPage} dari {totalProductsPages}
+                </span>
+                <button 
+                  className={`p-1 rounded ${productsPage >= totalProductsPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={productsPage >= totalProductsPages}
+                  onClick={() => setProductsPage(productsPage + 1)}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </Card>
+
+          {/* Critical Stock Alert */}
+          <Card className="bg-white border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <div className="h-5 w-5 text-red-600" />
+                <span>Stok Kritis</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-100">
+                {bahanBaku.filter(item => item.stok <= item.minimum).length > 0 ? (
+                  bahanBaku
+                    .filter(item => item.stok <= item.minimum)
+                    .slice(0, 5)
+                    .map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="p-4 flex items-center hover:bg-gray-50"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 truncate">{item.nama}</p>
+                          <div className="flex justify-between mt-1">
+                            <p className="text-sm text-gray-500">
+                              Stok: {item.stok} {item.satuan}
+                            </p>
+                            <p className="text-sm text-red-600 font-medium">
+                              Minimum: {item.minimum} {item.satuan}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Tidak ada stok kritis</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Worst Selling Products */}
+          <Card className="bg-white border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <TrendingDown className="h-5 w-5 text-gray-600" />
+                <span>Produk Kurang Laris</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-100">
+                {worstSellingProducts.length > 0 ? (
+                  worstSellingProducts.map((product, index) => (
+                    <div 
+                      key={`${product.name}-${index}`} 
+                      className="p-4 flex items-center hover:bg-gray-50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 truncate">{product.name}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Hanya {product.quantity} terjual
                         </p>
                       </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center">
-                  <p className="text-gray-500">Belum ada aktivitas</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-          
-          {/* Pagination Aktivitas Terbaru */}
-          {activities.length > itemsPerPageActivity && (
-            <CardFooter className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 p-0 hover:bg-gray-100" 
-                onClick={() => setActivitiesPage(activitiesPage - 1)}
-                disabled={activitiesPage === 1}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <span className="text-sm text-gray-500">
-                Halaman {activitiesPage} dari {totalActivitiesPages}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 p-0 hover:bg-gray-100" 
-                onClick={() => setActivitiesPage(activitiesPage + 1)}
-                disabled={activitiesPage >= totalActivitiesPages}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </CardFooter>
-          )}
-        </Card>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Semua produk terjual dengan baik</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="bg-white border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <Activity className="h-5 w-5 text-gray-600" />
+                <span>Aktivitas Terbaru</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                {activitiesLoading ? (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Memuat aktivitas...</p>
+                  </div>
+                ) : currentActivities.length > 0 ? (
+                  currentActivities.map((activity) => {
+                    const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
+                    
+                    // Safely parse amount value
+                    let amount = 0;
+                    if (isFinancial && activity.value) {
+                      const parsed = parseFloat(activity.value);
+                      amount = isNaN(parsed) ? 0 : parsed;
+                    }
+                    
+                    return (
+                      <div 
+                        key={activity.id} 
+                        className="p-4 hover:bg-gray-50"
+                      >
+                        <div className="flex justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 truncate">{activity.title}</p>
+                            <p className="text-sm text-gray-500 mt-1 truncate">{activity.description}</p>
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            {isFinancial && amount > 0 && (
+                              <p className={`text-sm font-medium ${
+                                activity.type === 'keuangan' && 
+                                activity.title.toLowerCase().includes('pemasukan') 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {formatCurrency(amount)}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
+                              {formatDateTime(activity.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Belum ada aktivitas</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            
+            {/* Pagination */}
+            {activities.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <button 
+                  className={`p-1 rounded ${activitiesPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={activitiesPage === 1}
+                  onClick={() => setActivitiesPage(activitiesPage - 1)}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-sm text-gray-500">
+                  Halaman {activitiesPage} dari {totalActivitiesPages}
+                </span>
+                <button 
+                  className={`p-1 rounded ${activitiesPage >= totalActivitiesPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={activitiesPage >= totalActivitiesPages}
+                  onClick={() => setActivitiesPage(activitiesPage + 1)}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );

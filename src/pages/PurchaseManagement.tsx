@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ShoppingCart, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2 } from 'lucide-react';
+import { ShoppingCart, AlertTriangle, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2 } from 'lucide-react';
 import { usePurchase } from '@/contexts/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';

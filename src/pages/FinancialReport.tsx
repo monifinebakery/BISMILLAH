@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatDateForDisplay } from '@/utils/dateUtils';

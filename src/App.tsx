@@ -159,7 +159,8 @@ const App = () => {
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  <Route path="invoice/:orderId" element={<InvoicePage />} /> {/* Pastikan path invoice dinamis */}
+                  <Route path="invoice" element={<InvoicePage />} />
+                  <Route path="invoice/:orderId" element={<InvoicePage />} />
                   <Route path="promo" element={<PromoCalculatorPage />} /> {/* ✨ RUTE BARU DITAMBAHKAN */}
                   <Route path="*" element={<NotFound />} />
                 </Route>

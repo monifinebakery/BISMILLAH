@@ -10,6 +10,7 @@ import React, { useState, useMemo } from 'react';
  import { usePurchase } from '@/contexts/PurchaseContext';
  import { useSupplier } from '@/contexts/SupplierContext';
  import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { BahanBaku } from '@/types/bahanBaku';
  import { toast } from 'sonner';
  import { formatDateForDisplay } from '@/utils/dateUtils';
  import { generateUUID } from '@/utils/uuid';

@@ -1,9 +1,7 @@
 import React, { useState, useMemo } from 'react';
-// MENGUBAH IMPOR DATE-FNS DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK
-import * as dateFns from 'date-fns'; // <-- PERUBAHAN PENTING DI SINI
+import * as dateFns from 'date-fns'; // Namespace import for date-fns
 import { Link } from 'react-router-dom';
-// MENGUBAH IMPOR ICON LUCIDE-REACT DARI NAMED MENJADI NAMESPACE UNTUK DIAGNOSTIK (Sudah dilakukan sebelumnya)
-import * as Lucide from 'lucide-react'; 
+import * as Lucide from 'lucide-react'; // Namespace import for lucide-react
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -31,8 +29,10 @@ const OrdersPage = () => {
   // --- State Hooks ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
-  // dateFns.subDays digunakan di sini
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: dateFns.subDays(new Date(), 30), to: new Date() });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: dateFns.subDays(new Date(), 30), // Updated to use dateFns.subDays
+    to: new Date(),
+  });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [minTotal, setMinTotal] = useState<number | undefined>(undefined);
   const [maxTotal, setMaxTotal] = useState<number | undefined>(undefined);
@@ -168,9 +168,8 @@ const OrdersPage = () => {
 
   // --- Memoized Filtering and Pagination ---
   const filteredOrders = useMemo(() => {
-    // dateFns.startOfDay dan dateFns.endOfDay digunakan di sini
-    const rangeFrom = dateRange?.from ? dateFns.startOfDay(dateRange.from) : null;
-    const rangeTo = dateRange?.to ? dateFns.endOfDay(dateRange.to) : null;
+    const rangeFrom = dateRange?.from ? dateFns.startOfDay(dateRange.from) : null; // Updated to use dateFns.startOfDay
+    const rangeTo = dateRange?.to ? dateFns.endOfDay(dateRange.to) : null;        // Updated to use dateFns.endOfDay
 
     return orders.filter(order => {
       const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) || order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -228,19 +227,33 @@ const OrdersPage = () => {
               <PopoverTrigger asChild>
                 <Button id="date" variant="outline" className={cn("w-full justify-start text-left font-normal bg-white border-gray-300", !dateRange && "text-gray-500")}>
                   <Lucide.Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                  {/* dateFns.format digunakan di sini */}
-                  {dateRange?.from ? (dateRange.to ? `${dateFns.format(dateRange.from, "d LLL y")} - ${dateFns.format(dateRange.to, "d LLL y")}` : dateFns.format(dateRange.from, "d LLL y")) : (<span>Pilih Tanggal</span>)}
+                  {dateRange?.from ? (
+                    dateRange.to
+                      ? `${dateFns.format(dateRange.from, "d LLL y")} - ${dateFns.format(dateRange.to, "d LLL y")}` // Updated to use dateFns.format
+                      : dateFns.format(dateRange.from, "d LLL y")                                           // Updated to use dateFns.format
+                  ) : (
+                    <span>Pilih Tanggal</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-white" align="end">
-                <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={isMobile ? 1 : 2} />
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={isMobile ? 1 : 2}
+                />
               </PopoverContent>
             </Popover>
             <Select value={statusFilter} onValueChange={setStatusFilter} className="bg-white border-gray-300">
               <SelectTrigger><SelectValue placeholder="Filter Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                {orderStatusList.map((statusOption) => (<SelectItem key={statusOption.key} value={statusOption.key}>{statusOption.label}</SelectItem>))}
+                {orderStatusList.map((statusOption) => (
+                  <SelectItem key={statusOption.key} value={statusOption.key}>{statusOption.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <div className="flex gap-2">
@@ -271,7 +284,11 @@ const OrdersPage = () => {
               <Label htmlFor="itemsPerPage">Baris per halaman:</Label>
               <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }} className="bg-white border-gray-300">
                 <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem></SelectContent>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -332,10 +349,9 @@ const OrdersPage = () => {
                     <TableCell>{formatDateForDisplay(order.tanggal)}</TableCell>
                     <TableCell>
                       <div className={cn("flex items-center gap-2 p-1 rounded", getStatusColor(order.status))}>
-                        {/* MENGGANTI ICON UNTUK DIAGNOSTIK */}
-                        {order.status === 'pending' && <Lucide.FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
+                        {order.status === 'pending' && <Lucide.FileText className="h-4 w-4 text-gray-600" />}
                         {order.status === 'confirmed' && <Lucide.CheckSquare className="h-4 w-4 text-green-600" />}
-                        {order.status === 'shipping' && <Lucide.FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
+                        {order.status === 'shipping' && <Lucide.FileText className="h-4 w-4 text-gray-600" />}
                         {order.status === 'delivered' && <Lucide.FileText className="h-4 w-4 text-gray-600" />}
                         <span className="text-xs font-medium">{getStatusText(order.status)}</span>
                       </div>

@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import FinancialTransactionList from '@/components/FinancialTransactionList'; 
 
 import { Area, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 
 const FinancialReportPage = () => {
   const { financialTransactions: transactions, addFinancialTransaction, updateFinancialTransaction, deleteFinancialTransaction, isLoading } = useFinancial();

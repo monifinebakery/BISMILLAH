@@ -5,39 +5,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Users, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Users, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2 } from 'lucide-react';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const SupplierManagement = () => {
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
   const [newSupplier, setNewSupplier] = useState({
     nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '',
   });
-  const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
-  const [isMultipleSelectMode, setIsMultipleSelectMode] = useState(false);
-
-  const filteredSuppliers = useMemo(() => 
-    suppliers.filter(supplier =>
-      supplier.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.kontak.toLowerCase().includes(searchTerm.toLowerCase())
-  ), [suppliers, searchTerm]);
-
-  const currentSuppliers = useMemo(() => {
-    const firstItemIndex = (currentPage - 1) * itemsPerPage;
-    return filteredSuppliers.slice(firstItemIndex, firstItemIndex + itemsPerPage);
-  }, [filteredSuppliers, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
 
   const handleSaveSupplier = async () => {
     if (!newSupplier.nama || !newSupplier.kontak) {
@@ -65,210 +56,474 @@ const SupplierManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteSupplier = async (id: string) => deleteSupplier(id);
+  const handleDeleteSupplier = async (id: string) => {
+    await deleteSupplier(id);
+  };
 
   const handleBulkDelete = async () => {
     if (selectedSupplierIds.length === 0) {
-      toast.error('Pilih setidaknya satu supplier untuk dihapus');
+      toast.warning('Pilih item yang ingin dihapus terlebih dahulu');
       return;
     }
-    for (const id of selectedSupplierIds) {
-      await deleteSupplier(id);
-    }
-    setSelectedSupplierIds([]);
-    setIsMultipleSelectMode(false);
-    toast.success('Supplier berhasil dihapus!');
-  };
-
-  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedSupplierIds(currentSuppliers.map(s => s.id));
-    } else {
+    const success = await Promise.all(selectedSupplierIds.map(id => deleteSupplier(id)));
+    if (success.every(s => s)) {
+      setShowBulkDeleteDialog(false);
       setSelectedSupplierIds([]);
+      setIsSelectionMode(false);
+      toast.success('Supplier berhasil dihapus!');
     }
   };
 
-  if (isLoading) {
-    return <div className="p-2 sm:p-6 text-center text-muted-foreground text-xs sm:text-sm">Memuat data supplier...</div>;
-  }
+  const toggleSelectAllCurrent = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      currentSuppliers.forEach(s => !selectedSupplierIds.includes(s.id) && setSelectedSupplierIds(prev => [...prev, s.id]));
+    } else {
+      currentSuppliers.forEach(s => selectedSupplierIds.includes(s.id) && setSelectedSupplierIds(prev => prev.filter(id => id !== s.id)));
+    }
+  };
+
+  const filteredSuppliers = useMemo(() => 
+    suppliers.filter(supplier =>
+      supplier.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.kontak.toLowerCase().includes(searchTerm.toLowerCase())
+  ), [suppliers, searchTerm]);
+
+  const currentSuppliers = useMemo(() => {
+    const firstItemIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSuppliers.slice(firstItemIndex, firstItemIndex + itemsPerPage);
+  }, [filteredSuppliers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
+  const allCurrentSelected = currentSuppliers.length > 0 && currentSuppliers.every(s => selectedSupplierIds.includes(s.id));
+  const someCurrentSelected = currentSuppliers.some(s => selectedSupplierIds.includes(s.id)) && !allCurrentSelected;
 
   return (
-    <div className="container mx-auto p-2 sm:p-6 space-y-4">
-      {/* ✨ Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-2 sm:p-3 rounded-full">
-            <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+    <div className="container mx-auto p-4 sm:p-8">
+      {/* Header */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
+        <div className="flex items-center gap-4 mb-4 lg:mb-0">
+          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+            <Users className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              Manajemen Supplier
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Kelola semua informasi partner dan pemasok Anda.</p>
+            <h1 className="text-3xl font-bold">Manajemen Supplier</h1>
+            <p className="text-sm opacity-90 mt-1">Kelola semua informasi partner dan pemasok Anda dengan mudah.</p>
           </div>
         </div>
-        <Button onClick={() => openDialog(null)} className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-2 sm:py-3 px-3 sm:px-5 rounded-md text-xs sm:text-base">
-          <Plus className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3]" /> Tambah Supplier
-        </Button>
-      </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <Button
+            onClick={() => openDialog(null)}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
+          >
+            <Plus className="h-5 w-5" />
+            Tambah Supplier
+          </Button>
+        </div>
+      </header>
 
-      {/* ✨ Filter Card */}
-      <Card className="overflow-hidden">
-        <CardHeader><CardTitle className="text-base sm:text-lg">Filter Supplier</CardTitle></CardHeader>
-        <CardContent className="p-2 sm:p-6">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
-            <Input
-              placeholder="Cari Nama Supplier / Kontak..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="pl-8 pr-2 py-1 sm:py-2 w-full text-xs sm:text-sm"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bulk Actions Toolbar */}
+      {(isSelectionMode || selectedSupplierIds.length > 0) && (
+        <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-700">Mode Pilih Multiple</span>
+                </div>
+                {selectedSupplierIds.length > 0 && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1 font-semibold">
+                    {selectedSupplierIds.length} item dipilih
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setSelectedSupplierIds([]); setIsSelectionMode(false); }}
+                  className="border-gray-300 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Batalkan
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const allIds = filteredSuppliers.map(s => s.id);
+                    setSelectedSupplierIds(prev => prev.length === allIds.length ? [] : allIds);
+                  }}
+                  className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                >
+                  Pilih Semua ({filteredSuppliers.length})
+                </Button>
+                {selectedSupplierIds.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Hapus {selectedSupplierIds.length} Item
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* ✨ Main Content Card */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-            <CardTitle className="text-base sm:text-lg">Daftar Supplier ({filteredSuppliers.length})</CardTitle>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <Label htmlFor="itemsPerPage" className="whitespace-nowrap">Baris per halaman:</Label>
-                <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }} className="w-20">
-                  <SelectTrigger className="text-xs sm:text-sm py-1 sm:py-2"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem></SelectContent>
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        {/* Table Controls */}
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Label htmlFor="show-entries" className="whitespace-nowrap font-medium">Show</Label>
+                <Select value={String(itemsPerPage)} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-20 border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
                 </Select>
+                <span className="font-medium">entries</span>
               </div>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setIsMultipleSelectMode(!isMultipleSelectMode);
-                  setSelectedSupplierIds([]);
-                }}
-                className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2"
+                variant={isSelectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsSelectionMode(!isSelectionMode)}
+                className={isSelectionMode ? "bg-blue-600 hover:bg-blue-700" : "border-blue-300 text-blue-600 hover:bg-blue-50"}
               >
-                {isMultipleSelectMode ? 'Keluar Mode Pilih' : 'Mode Pilih Multiple'}
+                {isSelectionMode ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Keluar Mode Pilih
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Mode Pilih
+                  </>
+                )}
               </Button>
-              {isMultipleSelectMode && (
-                <Button
-                  variant="destructive"
-                  onClick={handleBulkDelete}
-                  disabled={selectedSupplierIds.length === 0}
-                  className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2"
-                >
-                  Hapus Terpilih
-                </Button>
+            </div>
+            <div className="w-full lg:w-auto relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Cari Nama Supplier / Kontak..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="pl-10 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Table Content */}
+        <div className="overflow-x-auto">
+          <Table className="min-w-full text-sm text-left text-gray-700">
+            <TableHeader>
+              <TableRow className="bg-gray-50 border-b border-gray-200">
+                <TableHead className="w-12 p-4">
+                  {isSelectionMode && (
+                    <Checkbox
+                      checked={allCurrentSelected}
+                      ref={(el) => { if (el) el.indeterminate = someCurrentSelected; }}
+                      onCheckedChange={toggleSelectAllCurrent}
+                      className="border-gray-400"
+                    />
+                  )}
+                </TableHead>
+                <TableHead className="font-semibold text-gray-700">Nama Supplier</TableHead>
+                <TableHead className="font-semibold text-gray-700">Kontak</TableHead>
+                <TableHead className="font-semibold text-gray-700">Email</TableHead>
+                <TableHead className="font-semibold text-gray-700">Telepon</TableHead>
+                <TableHead className="text-center font-semibold text-gray-700 w-20">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                      <span className="text-gray-500 font-medium">Memuat data supplier...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredSuppliers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <Users className="h-16 w-16 text-gray-300" />
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-gray-600 mb-2">
+                          {searchTerm ? 'Tidak ada supplier yang cocok dengan pencarian' : 'Belum ada data supplier'}
+                        </p>
+                        <p className="text-gray-500 text-sm mb-4">
+                          {searchTerm ? 'Coba ubah kata kunci pencarian Anda' : 'Mulai dengan menambahkan supplier pertama'}
+                        </p>
+                      </div>
+                      {!searchTerm && (
+                        <Button
+                          onClick={() => openDialog(null)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md transition-all duration-200"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Supplier Pertama
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                currentSuppliers.map((supplier, index) => (
+                  <TableRow
+                    key={supplier.id}
+                    className={cn(
+                      "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
+                      isSelected(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    )}
+                  >
+                    <TableCell className="p-4">
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={selectedSupplierIds.includes(supplier.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedSupplierIds(prev => 
+                              checked ? [...prev, supplier.id] : prev.filter(id => id !== supplier.id)
+                            );
+                          }}
+                          className="border-gray-400"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium text-gray-900 p-4">{supplier.nama}</TableCell>
+                    <TableCell className="p-4">{supplier.kontak}</TableCell>
+                    <TableCell className="p-4">{supplier.email || '-'}</TableCell>
+                    <TableCell className="p-4">{supplier.telepon || '-'}</TableCell>
+                    <TableCell className="text-center p-4">
+                      {!isSelectionMode && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => openDialog(supplier)} className="cursor-pointer">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Lihat Detail
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteSupplier(supplier.id)}
+                              className="cursor-pointer text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination Footer */}
+        {filteredSuppliers.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
+            <div className="text-sm text-gray-600 mb-4 sm:mb-0">
+              Showing <span className="font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+              <span className="font-semibold">{Math.min(currentPage * itemsPerPage, filteredSuppliers.length)}</span> of{' '}
+              <span className="font-semibold">{filteredSuppliers.length}</span> entries
+              {selectedSupplierIds.length > 0 && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  ({selectedSupplierIds.length} selected)
+                </span>
               )}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  {isMultipleSelectMode && (
-                    <TableHead className="w-10 p-1 sm:p-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedSupplierIds.length === currentSuppliers.length && currentSuppliers.length > 0}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 sm:h-5 sm:w-5"
-                      />
-                    </TableHead>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 hover:bg-gray-100"
+                onClick={() => setCurrentPage(p => p - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={cn(
+                    "h-9 w-9",
+                    currentPage === page
+                      ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
+                      : "hover:bg-gray-100"
                   )}
-                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Nama Supplier</TableHead>
-                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Kontak</TableHead>
-                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Email</TableHead>
-                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Telepon</TableHead>
-                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentSuppliers.length > 0 ? currentSuppliers.map(supplier => (
-                  <TableRow key={supplier.id} className="hover:bg-gray-50">
-                    {isMultipleSelectMode && (
-                      <TableCell className="w-10 p-1 sm:p-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedSupplierIds.includes(supplier.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedSupplierIds([...selectedSupplierIds, supplier.id]);
-                            } else {
-                              setSelectedSupplierIds(selectedSupplierIds.filter(id => id !== supplier.id));
-                            }
-                          }}
-                          className="h-4 w-4 sm:h-5 sm:w-5"
-                        />
-                      </TableCell>
-                    )}
-                    <TableCell className="p-1 sm:p-2 text-xs sm:text-sm font-medium">{supplier.nama}</TableCell>
-                    <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{supplier.kontak}</TableCell>
-                    <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{supplier.email || '-'}</TableCell>
-                    <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{supplier.telepon || '-'}</TableCell>
-                    <TableCell className="p-1 sm:p-2 text-xs sm:text-sm text-right">
-                      <div className="flex gap-1 sm:gap-2 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => openDialog(supplier)} className="h-7 w-7 sm:h-8 sm:w-8"><Edit className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-red-500 hover:text-red-700"><Trash2 className="h-3 w-3 sm:h-4 sm:w-4" /></Button></AlertDialogTrigger>
-                          <AlertDialogContent className="max-w-[90%] sm:max-w-md">
-                            <AlertDialogHeader><AlertDialogTitle className="text-sm sm:text-base">Anda Yakin?</AlertDialogTitle><AlertDialogDescription className="text-xs sm:text-sm">Tindakan ini akan menghapus supplier secara permanen.</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="text-xs sm:text-sm">Batal</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteSupplier(supplier.id)} className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm">Ya, Hapus</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-16 sm:h-24 p-2 text-xs sm:text-sm">
-                      {searchTerm ? 'Supplier tidak ditemukan.' : 'Belum ada data supplier.'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-        {/* ✨ Pagination Footer */}
-        {totalPages > 1 && (
-          <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-2 sm:p-4 gap-2 sm:gap-0">
-            <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">Menampilkan {Math.min(filteredSuppliers.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredSuppliers.length, currentPage * itemsPerPage)} dari {filteredSuppliers.length} supplier</div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className="h-7 w-7 sm:h-8 sm:w-8"><ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
-              <span className="px-2 text-xs sm:text-sm font-medium">Hal {currentPage} / {totalPages}</span>
-              <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} className="h-7 w-7 sm:h-8 sm:w-8"><ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
+                  variant={currentPage === page ? "default" : "ghost"}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 hover:bg-gray-100"
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          </CardFooter>
+          </div>
         )}
-      </Card>
+      </div>
 
-      {/* Dialog Form */}
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Konfirmasi Hapus Multiple Item
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus <strong>{selectedSupplierIds.length} item</strong> supplier:
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-32 overflow-y-auto">
+                <ul className="space-y-1">
+                  {currentSuppliers.filter(s => selectedSupplierIds.includes(s.id)).slice(0, 5).map(s => (
+                    <li key={s.id} className="flex items-center gap-2 text-sm">
+                      <Trash2 className="h-3 w-3 text-red-500 flex-shrink-0" />
+                      <span className="font-medium">{s.nama}</span>
+                    </li>
+                  ))}
+                  {selectedSupplierIds.length > 5 && (
+                    <li className="text-sm text-gray-500 italic">
+                      ... dan {selectedSupplierIds.length - 5} item lainnya
+                    </li>
+                  )}
+                </ul>
+              </div>
+              <p className="mt-3 text-red-600 font-medium text-sm">
+                ⚠️ Tindakan ini tidak dapat dibatalkan!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Hapus {selectedSupplierIds.length} Item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-[95%] sm:max-w-lg max-h-[90vh] flex flex-col p-2 sm:p-4">
-          <DialogHeader><DialogTitle className="text-base sm:text-lg">{editingSupplier ? 'Edit Supplier' : 'Tambah Supplier Baru'}</DialogTitle></DialogHeader>
-          <div className="flex-grow overflow-y-auto p-1 sm:p-2 space-y-2 sm:space-y-4">
-            <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2">
-              <div><Label className="text-xs sm:text-sm">Nama Supplier *</Label><Input id="nama" value={newSupplier.nama} onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
-              <div><Label className="text-xs sm:text-sm">Nama Kontak *</Label><Input id="kontak" value={newSupplier.kontak} onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-800">{editingSupplier ? 'Edit Supplier' : 'Tambah Supplier'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveSupplier(); }} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="md:col-span-2">
+                <Label htmlFor="nama" className="font-medium">Nama Supplier *</Label>
+                <Input
+                  id="nama"
+                  value={newSupplier.nama}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })}
+                  placeholder="Masukkan nama supplier"
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="kontak" className="font-medium">Nama Kontak *</Label>
+                <Input
+                  id="kontak"
+                  value={newSupplier.kontak}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })}
+                  placeholder="Masukkan nama kontak"
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="font-medium">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newSupplier.email}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+                  placeholder="Masukkan email"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="telepon" className="font-medium">Telepon</Label>
+                <Input
+                  id="telepon"
+                  type="tel"
+                  value={newSupplier.telepon}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })}
+                  placeholder="Masukkan nomor telepon"
+                  className="mt-1"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="alamat" className="font-medium">Alamat</Label>
+                <Input
+                  id="alamat"
+                  value={newSupplier.alamat}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, alamat: e.target.value })}
+                  placeholder="Masukkan alamat"
+                  className="mt-1"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="catatan" className="font-medium">Catatan</Label>
+                <Input
+                  id="catatan"
+                  value={newSupplier.catatan}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, catatan: e.target.value })}
+                  placeholder="Masukkan catatan"
+                  className="mt-1"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2">
-              <div><Label className="text-xs sm:text-sm">Email</Label><Input id="email" type="email" value={newSupplier.email} onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
-              <div><Label className="text-xs sm:text-sm">Telepon</Label><Input id="telepon" type="tel" value={newSupplier.telepon} onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
-            </div>
-            <div><Label className="text-xs sm:text-sm">Alamat</Label><Input id="alamat" value={newSupplier.alamat} onChange={(e) => setNewSupplier({ ...newSupplier, alamat: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
-            <div><Label className="text-xs sm:text-sm">Catatan</Label><Input id="catatan" value={newSupplier.catatan} onChange={(e) => setNewSupplier({ ...newSupplier, catatan: e.target.value })} className="text-xs sm:text-sm py-1 sm:py-2" /></div>
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 sm:pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2">Batal</Button>
-              <Button onClick={handleSaveSupplier} className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm py-1 sm:py-2">{editingSupplier ? 'Perbarui' : 'Simpan'}</Button>
-            </div>
-          </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                {editingSupplier ? 'Perbarui' : 'Simpan'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -246,9 +246,15 @@ const OrdersPage = () => {
  </Card>
 
  <OrderForm open={showOrderForm} onOpenChange={setShowOrderForm} onSubmit={handleSubmit} initialData={editingOrder} />
- <WhatsappFollowUpModal isOpen={isWhatsappModalOpen} onClose={() => setIsWhatsappModalOpen(false)} order={selectedOrderForWhatsapp} />
- </div>
- );
+ {/* ✨ PERBAIKAN UTAMA: Kirim prop getWhatsappTemplateByStatus */}
+      <WhatsappFollowUpModal
+        isOpen={isWhatsappModalOpen}
+        onClose={() => setIsWhatsappModalOpen(false)}
+        order={selectedOrderForWhatsapp}
+        getWhatsappTemplateByStatus={getWhatsappTemplateByStatus}
+      />
+    </div>
+  );
 };
 
 export default OrdersPage;

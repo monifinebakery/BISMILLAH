@@ -23,7 +23,7 @@ import FinancialTransactionList from '@/components/FinancialTransactionList'; //
 
 // Impor komponen Chart dari shadcn
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line } from 'recharts'; // Tambahkan ComposedChart, Line
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, ResponsiveContainer } from 'recharts'; // Tambahkan ComposedChart, Line
 // Perlu tambahkan ResponsiveContainer dan Tooltip diimpor jika mereka diperlukan di JSX langsung
 
 const FinancialReportPage = () => {

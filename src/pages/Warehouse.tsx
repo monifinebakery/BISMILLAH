@@ -4,9 +4,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; 
-import { Plus, Package, Edit, Trash2, AlertTriangle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'; 
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Plus, Package, Edit, Trash2, AlertTriangle, Search, ChevronLeft, ChevronRight,
+  CheckSquare, X, Loader2, Eye, MoreHorizontal
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { BahanBaku } from '@/types/bahanBaku';
 import BahanBakuEditDialog from '@/components/BahanBakuEditDialog';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
@@ -17,13 +38,31 @@ import { formatDateForDisplay } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 
 const WarehousePage = () => {
-  const { bahanBaku, addBahanBaku, updateBahanBaku, deleteBahanBaku, isLoading: appDataLoading } = useBahanBaku();
+  const {
+    bahanBaku,
+    addBahanBaku,
+    updateBahanBaku,
+    deleteBahanBaku,
+    isLoading: appDataLoading,
+    // Bulk operations
+    selectedItems,
+    isSelectionMode,
+    isBulkDeleting,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    toggleSelectionMode,
+    isSelected,
+    getSelectedItems,
+    bulkDeleteBahanBaku
+  } = useBahanBaku();
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   const [newItem, setNewItem] = useState<Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>({
     nama: '',
@@ -133,6 +172,18 @@ const WarehousePage = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang ingin dihapus terlebih dahulu');
+      return;
+    }
+
+    const success = await bulkDeleteBahanBaku(selectedItems);
+    if (success) {
+      setShowBulkDeleteDialog(false);
+    }
+  };
+
   const filteredItems = bahanBaku.filter(item =>
     item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -162,44 +213,70 @@ const WarehousePage = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  const allCurrentSelected = currentItems.length > 0 && currentItems.every(item => isSelected(item.id));
+  const someCurrentSelected = currentItems.some(item => isSelected(item.id)) && !allCurrentSelected;
+
+  const handleSelectAllCurrent = () => {
+    if (allCurrentSelected) {
+      // Deselect all current items
+      currentItems.forEach(item => {
+        if (isSelected(item.id)) {
+          toggleSelection(item.id);
+        }
+      });
+    } else {
+      // Select all current items
+      currentItems.forEach(item => {
+        if (!isSelected(item.id)) {
+          toggleSelection(item.id);
+        }
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 sm:p-8">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-6 mb-8 shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-full">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
+        <div className="flex items-center gap-4 mb-4 lg:mb-0">
+          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
             <Package className="h-8 w-8 text-white" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">Manajemen Gudang Bahan Baku</h1>
-            <p className="text-sm opacity-80">Kelola semua inventori bahan baku Anda.</p>
+            <p className="text-sm opacity-90 mt-1">Kelola semua inventori bahan baku Anda dengan mudah.</p>
           </div>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="mt-4 sm:mt-0 flex items-center justify-center gap-2 px-6 py-2 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Bahan Baku
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
+          >
+            <Plus className="h-5 w-5" />
+            Tambah Bahan Baku
+          </Button>
+        </div>
       </header>
 
       {/* Low Stock Warning */}
       {lowStockItems.length > 0 && (
         <div className="mb-6">
-          <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-lg rounded-lg">
-            <CardHeader>
+          <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-lg rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-red-200 bg-white/50">
               <CardTitle className="flex items-center text-red-700">
                 <AlertTriangle className="h-5 w-5 mr-2" />
                 Peringatan Stok Rendah ({lowStockItems.length} item)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {lowStockItems.map(item => (
-                  <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
-                    <span className="font-medium text-gray-800">{item.nama}</span>
-                    <Badge className="bg-red-100 text-red-700 border-red-200">
+                  <div key={item.id} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-red-100">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-800">{item.nama}</span>
+                      <span className="text-xs text-gray-500">{item.kategori}</span>
+                    </div>
+                    <Badge className="bg-red-100 text-red-700 border-red-200 font-semibold">
                       {item.stok} {item.satuan}
                     </Badge>
                   </div>
@@ -210,30 +287,114 @@ const WarehousePage = () => {
         </div>
       )}
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden">
-        {/* Table Controls */}
-        <div className="p-4 sm:p-6 border-b border-gray-200/80">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Label htmlFor="show-entries" className="whitespace-nowrap">Show</Label>
-              <Select value={String(itemsPerPage)} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
-                <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                </SelectContent>
-              </Select>
-              <span>entries</span>
+      {/* Bulk Actions Toolbar */}
+      {(isSelectionMode || selectedItems.length > 0) && (
+        <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-700">Mode Pilih Multiple</span>
+                </div>
+                {selectedItems.length > 0 && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1 font-semibold">
+                    {selectedItems.length} item dipilih
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearSelection}
+                  className="border-gray-300 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Batalkan
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAll}
+                  className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                >
+                  Pilih Semua ({bahanBaku.length})
+                </Button>
+
+                {selectedItems.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                    disabled={isBulkDeleting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isBulkDeleting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Hapus {selectedItems.length} Item
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="w-full sm:w-auto relative">
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        {/* Table Controls */}
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Label htmlFor="show-entries" className="whitespace-nowrap font-medium">Show</Label>
+                <Select value={String(itemsPerPage)} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-20 border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="font-medium">entries</span>
+              </div>
+
+              <Button
+                variant={isSelectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleSelectionMode}
+                className={isSelectionMode ? "bg-blue-600 hover:bg-blue-700" : "border-blue-300 text-blue-600 hover:bg-blue-50"}
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Keluar Mode Pilih
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Mode Pilih
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="w-full lg:w-auto relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Cari bahan baku, kategori, atau supplier..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="pl-10 border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full"
+                className="pl-10 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
               />
             </div>
           </div>
@@ -241,75 +402,160 @@ const WarehousePage = () => {
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <Table className="min-w-full text-sm text-left text-gray-700"> 
+          <Table className="min-w-full text-sm text-left text-gray-700">
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500"
-                    aria-label="Select all items"
-                  />
+              <TableRow className="bg-gray-50 border-b border-gray-200">
+                <TableHead className="w-12 p-4">
+                  {isSelectionMode && (
+                    <Checkbox
+                      checked={allCurrentSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someCurrentSelected;
+                      }}
+                      onCheckedChange={handleSelectAllCurrent}
+                      className="border-gray-400"
+                    />
+                  )}
                 </TableHead>
-                <TableHead>Nama Bahan</TableHead>
-                <TableHead>Kategori</TableHead>
-                <TableHead>Stok</TableHead>
-                <TableHead className="text-right">Harga Satuan</TableHead>
-                <TableHead>Minimum</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Kadaluwarsa</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="font-semibold text-gray-700">Nama Bahan</TableHead>
+                <TableHead className="font-semibold text-gray-700">Kategori</TableHead>
+                <TableHead className="font-semibold text-gray-700">Stok</TableHead>
+                <TableHead className="text-right font-semibold text-gray-700">Harga Satuan</TableHead>
+                <TableHead className="font-semibold text-gray-700">Minimum</TableHead>
+                <TableHead className="font-semibold text-gray-700">Supplier</TableHead>
+                <TableHead className="font-semibold text-gray-700">Kadaluwarsa</TableHead>
+                <TableHead className="text-center font-semibold text-gray-700 w-20">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {appDataLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-gray-500">Memuat bahan baku...</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                      <span className="text-gray-500 font-medium">Memuat bahan baku...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="mb-4">
-                      {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
-                    </p>
-                    {!searchTerm && (
-                      <Button
-                        onClick={() => setShowAddForm(true)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white rounded-md shadow-md transition-colors duration-200"
-                      >
-                        Tambah Bahan Pertama
-                      </Button>
-                    )}
+                  <TableCell colSpan={9} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <Package className="h-16 w-16 text-gray-300" />
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-gray-600 mb-2">
+                          {searchTerm ? 'Tidak ada bahan baku yang cocok dengan pencarian' : 'Belum ada bahan baku di gudang'}
+                        </p>
+                        <p className="text-gray-500 text-sm mb-4">
+                          {searchTerm ? 'Coba ubah kata kunci pencarian Anda' : 'Mulai dengan menambahkan bahan baku pertama'}
+                        </p>
+                      </div>
+                      {!searchTerm && (
+                        <Button
+                          onClick={() => setShowAddForm(true)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md transition-all duration-200"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Bahan Pertama
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                currentItems.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-orange-50/50">
+                currentItems.map((item, index) => (
+                  <TableRow 
+                    key={item.id} 
+                    className={cn(
+                      "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
+                      isSelected(item.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    )}
+                  >
                     <TableCell className="p-4">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500"
-                        aria-label={`Select ${item.nama}`}
-                      />
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={isSelected(item.id)}
+                          onCheckedChange={() => toggleSelection(item.id)}
+                          className="border-gray-400"
+                        />
+                      )}
                     </TableCell>
-                    <TableCell className="font-medium">{item.nama}</TableCell>
-                    <TableCell className="text-gray-500">{item.kategori}</TableCell>
-                    <TableCell>
-                      {item.stok} {item.satuan}
-                      {item.stok <= item.minimum && <Badge className="ml-2 bg-red-100 text-red-700">Rendah</Badge>}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">{formatCurrency(item.hargaSatuan)}</TableCell>
-                    <TableCell className="text-gray-500">{item.minimum} {item.satuan}</TableCell>
-                    <TableCell className="text-gray-500">{item.supplier || '-'}</TableCell>
-                    <TableCell className="text-gray-500">{item.tanggalKadaluwarsa ? formatDateForDisplay(item.tanggalKadaluwarsa) : '-'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" size="icon" className="p-2 hover:bg-gray-200 rounded-full" onClick={() => handleEdit(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="p-2 hover:bg-gray-200 rounded-full" onClick={() => handleDelete(item.id, item.nama)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                    <TableCell className="font-medium text-gray-900 p-4">
+                      <div className="flex flex-col">
+                        <span>{item.nama}</span>
+                        <span className="text-xs text-gray-500">{item.satuan}</span>
                       </div>
+                    </TableCell>
+                    <TableCell className="p-4">
+                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-medium">
+                        {item.kategori}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="p-4">
+                      <div className="flex flex-col">
+                        <span className={cn(
+                          "font-bold text-lg",
+                          item.stok <= item.minimum 
+                            ? 'text-red-600' 
+                            : item.stok <= item.minimum * 1.5 
+                              ? 'text-yellow-600' 
+                              : 'text-green-600'
+                        )}>
+                          {item.stok}
+                        </span>
+                        {item.stok <= item.minimum && (
+                          <div className="flex items-center text-xs text-red-500 mt-1">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Stok Rendah
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right p-4">
+                      <div className="flex flex-col items-end">
+                        <span className="font-semibold text-green-600 text-base">
+                          {formatCurrency(item.hargaSatuan)}
+                        </span>
+                        <span className="text-xs text-gray-500">per {item.satuan}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600 p-4">
+                      <span className="font-medium">{item.minimum}</span>
+                      <span className="text-xs text-gray-500 ml-1">{item.satuan}</span>
+                    </TableCell>
+                    <TableCell className="text-gray-600 p-4">{item.supplier || '-'}</TableCell>
+                    <TableCell className="text-gray-600 p-4">
+                      {item.tanggalKadaluwarsa ? formatDateForDisplay(item.tanggalKadaluwarsa) : '-'}
+                    </TableCell>
+                    <TableCell className="text-center p-4">
+                      {!isSelectionMode && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleEdit(item)} className="cursor-pointer">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Lihat Detail
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(item.id, item.nama)} 
+                              className="cursor-pointer text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -319,76 +565,150 @@ const WarehousePage = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="flex items-center justify-between p-4 sm:px-6 border-t border-gray-200/80">
-          <div className="text-sm text-gray-600">
-            Showing <span className="font-semibold">{indexOfFirstItem + 1}</span> to <span className="font-semibold">{Math.min(indexOfLastItem, filteredItems.length)}</span> of <span className="font-semibold">{filteredItems.length}</span> entries
-          </div>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-9 w-9 hover:bg-gray-100"
-              onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Button 
-                key={page} 
-                onClick={() => paginate(page)} 
-                className={cn("h-9 w-9", {"bg-orange-500 text-white shadow-sm hover:bg-orange-600": currentPage === page, "hover:bg-gray-100": currentPage !== page})}
-                variant={currentPage === page ? "default" : "ghost"}
+        {filteredItems.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
+            <div className="text-sm text-gray-600 mb-4 sm:mb-0">
+              Showing <span className="font-semibold">{indexOfFirstItem + 1}</span> to{' '}
+              <span className="font-semibold">{Math.min(indexOfLastItem, filteredItems.length)}</span> of{' '}
+              <span className="font-semibold">{filteredItems.length}</span> entries
+              {selectedItems.length > 0 && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  ({selectedItems.length} selected)
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 hover:bg-gray-100"
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
               >
-                {page}
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-            ))}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-9 w-9 hover:bg-gray-100"
-              onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  onClick={() => paginate(page)}
+                  className={cn(
+                    "h-9 w-9",
+                    currentPage === page
+                      ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
+                      : "hover:bg-gray-100"
+                  )}
+                  variant={currentPage === page ? "default" : "ghost"}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 hover:bg-gray-100"
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Add Item Dialog */}
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Konfirmasi Hapus Multiple Item
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus <strong>{selectedItems.length} item</strong> bahan baku:
+              
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-32 overflow-y-auto">
+                <ul className="space-y-1">
+                  {getSelectedItems().slice(0, 5).map((item) => (
+                    <li key={item.id} className="flex items-center gap-2 text-sm">
+                      <Trash2 className="h-3 w-3 text-red-500 flex-shrink-0" />
+                      <span className="font-medium">{item.nama}</span>
+                      <span className="text-gray-500">({item.kategori})</span>
+                    </li>
+                  ))}
+                  {selectedItems.length > 5 && (
+                    <li className="text-sm text-gray-500 italic">
+                      ... dan {selectedItems.length - 5} item lainnya
+                    </li>
+                  )}
+                </ul>
+              </div>
+              
+              <p className="mt-3 text-red-600 font-medium text-sm">
+                ⚠️ Tindakan ini tidak dapat dibatalkan!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isBulkDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Hapus {selectedItems.length} Item
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Item Dialog - keeping original form */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto"> 
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Tambah Bahan Baku</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">Tambah Bahan Baku</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddItem} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
               {/* Nama Bahan */}
               <div className="md:col-span-2">
-                <Label htmlFor="nama">Nama Bahan *</Label>
+                <Label htmlFor="nama" className="font-medium">Nama Bahan *</Label>
                 <Input
                   id="nama"
                   value={newItem.nama}
                   onChange={(e) => setNewItem({ ...newItem, nama: e.target.value })}
                   placeholder="Masukkan nama bahan"
                   required
+                  className="mt-1"
                 />
               </div>
               {/* Kategori */}
               <div className="md:col-span-2">
-                <Label htmlFor="kategori">Kategori *</Label>
+                <Label htmlFor="kategori" className="font-medium">Kategori *</Label>
                 <Input
                   id="kategori"
                   value={newItem.kategori}
                   onChange={(e) => setNewItem({ ...newItem, kategori: e.target.value })}
                   placeholder="Masukkan kategori"
                   required
+                  className="mt-1"
                 />
               </div>
               {/* Stok */}
               <div>
-                <Label htmlFor="stok">Stok *</Label>
+                <Label htmlFor="stok" className="font-medium">Stok *</Label>
                 <Input
                   id="stok"
                   type="number"
@@ -397,22 +717,24 @@ const WarehousePage = () => {
                   placeholder="Masukkan stok"
                   min="0"
                   required
+                  className="mt-1"
                 />
               </div>
               {/* Satuan */}
               <div>
-                <Label htmlFor="satuan">Satuan *</Label>
+                <Label htmlFor="satuan" className="font-medium">Satuan *</Label>
                 <Input
                   id="satuan"
                   value={getInputValue(newItem.satuan)}
                   onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
                   placeholder="Masukkan satuan (e.g., kg, gram)"
                   required
+                  className="mt-1"
                 />
               </div>
               {/* Harga Satuan */}
               <div>
-                <Label htmlFor="hargaSatuan">Harga Satuan *</Label>
+                <Label htmlFor="hargaSatuan" className="font-medium">Harga Satuan *</Label>
                 <Input
                   id="hargaSatuan"
                   type="number"
@@ -422,7 +744,7 @@ const WarehousePage = () => {
                   min="0"
                   required
                   readOnly
-                  className="bg-gray-100 cursor-not-allowed" 
+                  className="bg-gray-100 cursor-not-allowed mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Harga per {getInputValue(newItem.satuan) || 'unit'} akan dihitung otomatis jika 'Detail Pembelian' diisi.
@@ -430,7 +752,7 @@ const WarehousePage = () => {
               </div>
               {/* Minimum Stok */}
               <div>
-                <Label htmlFor="minimum">Stok Minimum</Label>
+                <Label htmlFor="minimum" className="font-medium">Stok Minimum</Label>
                 <Input
                   id="minimum"
                   type="number"
@@ -438,41 +760,44 @@ const WarehousePage = () => {
                   onChange={(e) => setNewItem({ ...newItem, minimum: parseFloat(e.target.value) || 0 })}
                   placeholder="Masukkan minimum stok"
                   min="0"
+                  className="mt-1"
                 />
               </div>
               {/* Supplier */}
               <div>
-                <Label htmlFor="supplier">Supplier</Label>
+                <Label htmlFor="supplier" className="font-medium">Supplier</Label>
                 <Input
                   id="supplier"
                   value={getInputValue(newItem.supplier)}
                   onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
                   placeholder="Masukkan nama supplier"
+                  className="mt-1"
                 />
               </div>
               {/* Tanggal Kadaluwarsa */}
               <div>
-                <Label htmlFor="tanggalKadaluwarsa">Tanggal Kadaluwarsa</Label>
+                <Label htmlFor="tanggalKadaluwarsa" className="font-medium">Tanggal Kadaluwarsa</Label>
                 <Input
                   id="tanggalKadaluwarsa"
                   type="date"
                   value={getDateInputValue(newItem.tanggalKadaluwarsa)}
                   onChange={(e) => setNewItem({ ...newItem, tanggalKadaluwarsa: e.target.value ? new Date(e.target.value) : undefined })}
                   placeholder="Pilih tanggal kadaluwarsa"
+                  className="mt-1"
                 />
               </div>
             </div>
 
             {/* Detail Pembelian Card */}
-            <div className="mt-4">
-              <Card className="border-orange-200 bg-orange-50 shadow-sm rounded-lg">
-                <CardHeader className="py-3"> 
+            <div className="mt-6">
+              <Card className="border-orange-200 bg-orange-50/50 shadow-sm rounded-lg">
+                <CardHeader className="py-3">
                   <CardTitle className="text-base text-gray-800">Detail Pembelian</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-2">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="jumlahBeliKemasan">Jumlah Beli Kemasan</Label>
+                      <Label htmlFor="jumlahBeliKemasan" className="text-sm font-medium">Jumlah Beli Kemasan</Label>
                       <Input
                         id="jumlahBeliKemasan"
                         type="number"
@@ -480,15 +805,16 @@ const WarehousePage = () => {
                         onChange={(e) => setNewItem({ ...newItem, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
                         placeholder="0"
                         min="0"
+                        className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="satuanKemasan">Satuan Kemasan</Label>
+                      <Label htmlFor="satuanKemasan" className="text-sm font-medium">Satuan Kemasan</Label>
                       <Select
                         value={getInputValue(newItem.satuanKemasan) as string}
                         onValueChange={(value) => setNewItem({ ...newItem, satuanKemasan: value })}
                       >
-                        <SelectTrigger className="rounded-md">
+                        <SelectTrigger className="rounded-md mt-1">
                           <SelectValue placeholder="Pilih satuan" />
                         </SelectTrigger>
                         <SelectContent>
@@ -499,7 +825,7 @@ const WarehousePage = () => {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="hargaTotalBeliKemasan">Harga Total Beli Kemasan</Label>
+                      <Label htmlFor="hargaTotalBeliKemasan" className="text-sm font-medium">Harga Total Beli Kemasan</Label>
                       <Input
                         id="hargaTotalBeliKemasan"
                         type="number"
@@ -507,6 +833,7 @@ const WarehousePage = () => {
                         onChange={(e) => setNewItem({ ...newItem, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
                         placeholder="Masukkan harga total beli kemasan"
                         min="0"
+                        className="mt-1"
                       />
                     </div>
                   </div>
@@ -517,7 +844,7 @@ const WarehousePage = () => {
               </Card>
             </div>
 
-            <DialogFooter className="mt-4">
+            <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
                 Batal
               </Button>

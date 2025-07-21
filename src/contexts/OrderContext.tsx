@@ -8,13 +8,13 @@ import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
-import { orderStatusList } from '@/constants/orderConstants'; // Diasumsikan Anda sudah membuat file ini
+import { orderStatusList, getStatusText } from '@/constants/orderConstants';
 import { formatCurrency } from '@/utils/currencyUtils';
 
 interface OrderContextType {
   orders: Order[];
   isLoading: boolean;
-  addOrder: (order: Partial<NewOrder>) => Promise<boolean>;
+  addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, order: Partial<Order>) => Promise<boolean>;
   deleteOrder: (id: string) => Promise<boolean>;
 }
@@ -57,24 +57,15 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const fetchInitialOrders = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('tanggal', { ascending: false });
-
-      if (error) {
-        toast.error(`Gagal memuat pesanan: ${error.message}`);
-      } else if (data) {
-        setOrders(data.map(transformOrderFromDB));
-      }
+      const { data, error } = await supabase.from('orders').select('*').eq('user_id', user.id).order('tanggal', { ascending: false });
+      if (error) { toast.error(`Gagal memuat pesanan: ${error.message}`); } 
+      else if (data) { setOrders(data.map(transformOrderFromDB)); }
       setIsLoading(false);
     };
 
     fetchInitialOrders();
 
-    const channel = supabase
-      .channel(`realtime-orders-${user.id}`)
+    const channel = supabase.channel(`realtime-orders-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
         (payload) => {
           const transform = transformOrderFromDB;
@@ -87,38 +78,39 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const addOrder = async (order: Partial<NewOrder>): Promise<boolean> => {
+  const addOrder = async (order: NewOrder): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk membuat pesanan');
       return false;
     }
     
-    const newOrderData = {
+    // Siapkan data untuk dikirim ke fungsi RPC
+    const orderDataForRPC = {
         user_id: user.id,
         tanggal: toSafeISOString(order.tanggal) || new Date().toISOString(),
-        status: order.status || orderStatusList.PENDING,
+        status: order.status || 'pending',
         nama_pelanggan: order.namaPelanggan,
-        telepon_pelanggan: order.teleponPelanggan,
-        email_pelanggan: order.emailPelanggan,
-        alamat_pengiriman: order.alamatPengiriman,
         items: order.items,
-        subtotal: order.subtotal,
-        pajak: order.pajak,
         total_pesanan: order.totalPesanan,
-        catatan: order.catatan,
     };
     
-    const { data, error } = await supabase.rpc('create_new_order', { order_data: newOrderData });
+    // ✨ PERUBAHAN UTAMA: Panggil RPC baru untuk potong stok otomatis
+    const { data, error } = await supabase.rpc('create_order_and_deduct_stock', { 
+      order_data: orderDataForRPC 
+    });
 
     if (error) {
-      toast.error(`Gagal menambahkan pesanan: ${error.message}`);
+      toast.error(`Gagal memproses pesanan: ${error.message}`);
       return false;
     }
     
-    const createdOrder = Array.isArray(data) ? data[0] : data;
-    if (createdOrder) {
-        addActivity({ title: 'Pesanan Baru', description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan}`, type: 'order', value: null });
-        toast.success(`Pesanan #${createdOrder.nomor_pesanan} berhasil ditambahkan!`);
+    if (data) {
+        addActivity({ 
+            title: 'Pesanan Baru & Stok Terpotong', 
+            description: `Pesanan dari ${order.namaPelanggan} sukses & stok bahan baku telah dikurangi.`, 
+            type: 'order'
+        });
+        toast.success(`Pesanan berhasil diproses dan stok telah diperbarui!`);
     }
     return true;
   };
@@ -131,8 +123,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const oldOrder = orders.find(o => o.id === id);
     if (!oldOrder) {
-        toast.error('Pesanan tidak ditemukan untuk diperbarui.');
-        return false;
+      toast.error('Pesanan tidak ditemukan untuk diperbarui.');
+      return false;
     }
     
     const orderToUpdate: { [key: string]: any } = { updated_at: new Date().toISOString() };
@@ -158,9 +150,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     let wasIncomeRecorded = false;
+    const deliveredStatus = orderStatusList.find(s => s.label === 'Selesai')?.key || 'delivered';
 
-    if (oldOrder.status !== orderStatusList.DELIVERED && updatedData.status === orderStatusList.DELIVERED) {
-      const incomeCategory = settings.financialCategories?.income?.[0] || 'Penjualan Produk';
+    if (oldOrder.status !== deliveredStatus && updatedData.status === deliveredStatus) {
+      const incomeCategory = settings?.financialCategories?.income?.[0] || 'Penjualan Produk';
 
       const financialRecordSuccess = await addFinancialTransaction({
         type: 'income',
@@ -209,7 +202,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     if (orderToDelete) {
-        addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order', value: null });
+        addActivity({ title: 'Pesanan Dihapus', description: `Pesanan ${orderToDelete.nomorPesanan} telah dihapus`, type: 'order' });
         toast.success("Pesanan berhasil dihapus.");
     }
     return true;

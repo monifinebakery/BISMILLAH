@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { Link } from 'react-router-dom';
+// MENGURANGI IMPOR ICON LUCIDE-REACT UNTUK DIAGNOSTIK
+// Menghapus AlertTriangle dan Package untuk sementara
 import { Calendar as CalendarIcon, Plus, Search, Edit, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, CheckSquare, X, ArrowUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -327,9 +329,10 @@ const OrdersPage = () => {
                     <TableCell>{formatDateForDisplay(order.tanggal)}</TableCell>
                     <TableCell>
                       <div className={cn("flex items-center gap-2 p-1 rounded", getStatusColor(order.status))}>
-                        {order.status === 'pending' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                        {/* MENGGANTI ICON UNTUK DIAGNOSTIK */}
+                        {order.status === 'pending' && <FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
                         {order.status === 'confirmed' && <CheckSquare className="h-4 w-4 text-green-600" />}
-                        {order.status === 'shipping' && <Package className="h-4 w-4 text-blue-600" />}
+                        {order.status === 'shipping' && <FileText className="h-4 w-4 text-gray-600" />} {/* Menggunakan FileText */}
                         {order.status === 'delivered' && <FileText className="h-4 w-4 text-gray-600" />}
                         <span className="text-xs font-medium">{getStatusText(order.status)}</span>
                       </div>

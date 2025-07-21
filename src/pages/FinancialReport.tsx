@@ -40,6 +40,10 @@ const FinancialReportPage = () => {
     loading
   } = useFinancial();
 
+  // State untuk pagination tabel transaksi
+  const [transactionsPerPage, setTransactionsPerPage] = useState(10);
+  const [transactionsCurrentPage, setTransactionsCurrentPage] = useState(1);
+
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const premiumContentClass = !isPaid ? 'opacity-50 pointer-events-none' : '';

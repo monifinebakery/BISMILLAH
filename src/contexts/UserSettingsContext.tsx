@@ -70,6 +70,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       .from('user_settings')
       .select('settings_data')
       .eq('user_id', user.id)
+      .limit(1) // ✨ Ambil hanya 1 baris
       .single();
 
     if (error && error.code !== 'PGRST116') {

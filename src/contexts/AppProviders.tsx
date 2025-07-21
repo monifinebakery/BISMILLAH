@@ -1,55 +1,44 @@
-// src/providers/AppProviders.tsx (Nama file ini bisa saja di sesuaikan)
+// src/providers/AppProviders.tsx
 
 import React, { ReactNode } from 'react';
 
-// Import semua provider dari setiap file konteks Anda
 import { AuthProvider } from './AuthContext';
 import { UserSettingsProvider } from './UserSettingsContext';
-import { ActivityProvider } from './ActivityContext'; // Harus di atas Financial & Order
-import { FinancialProvider } from './FinancialContext'; // Harus di atas Order
-import { PaymentProvider } from './PaymentContext'; // Mungkin ada dependensi ke Financial/Auth? Sesuaikan jika ada.
+import { ActivityProvider } from './ActivityContext'; // Perlu di atas Financial & Order
+import { FinancialProvider } from './FinancialContext'; // Perlu di atas Order
+import { PaymentProvider } from './PaymentContext'; // Perlu di atas Promo (jika promo ada fitur berbayar) atau di posisi awal jika independen
+import { PromoProvider } from './PromoContext'; // Relatif independen dari banyak hal kecuali Auth
 import { BahanBakuProvider } from './BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';
-import { PromoProvider } from './PromoContext';
+
 
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
-    <AuthProvider> {/* 1. AuthProvider: Hampir semua bergantung padanya */}
-      {/* 2. UserSettingsProvider: OrderContext menggunakan settings */}
-      <UserSettingsProvider>
-        {/* 3. ActivityProvider: FinancialContext & OrderContext menggunakan addActivity */}
-        <ActivityProvider>
-          {/* 4. FinancialProvider: OrderContext menggunakan addFinancialTransaction */}
-          <FinancialProvider>
-            {/* PaymentProvider: Periksa apakah PaymentContext bergantung pada FinancialContext atau sebaliknya. 
-                Jika PaymentContext juga mencatat transaksi finansial, PaymentProvider harus di dalam FinancialProvider.
-                Jika tidak ada ketergantungan langsung, posisinya lebih fleksibel setelah Activity. */}
-            <PaymentProvider> 
-              {/* Contexts di bawah ini urutannya bisa lebih fleksibel, 
-                  kecuali ada dependensi silang yang jelas antar mereka.
-                  Pastikan jika ada 'useX' di 'YProvider', maka 'XProvider' membungkus 'YProvider'. */}
-              <BahanBakuProvider>
-                <SupplierProvider>
-                  <RecipeProvider>
-                    <AssetProvider>
-                      <PromoProvider>
-                        {/* PurchaseProvider & OrderProvider: Jika ada ketergantungan antara keduanya 
-                            (misal, order mempengaruhi purchase, atau purchase mempengaruhi order), 
-                            atur urutannya dengan hati-hati. Saat ini, OrderContext perlu FinancialContext. */}
-                        <PurchaseProvider> 
+    <AuthProvider> {/* 1. Paling luar, karena hampir semua bergantung padanya */}
+      <UserSettingsProvider> {/* 2. OrderContext menggunakan settings */}
+        <ActivityProvider> {/* 3. Financial & Order Contexts menggunakan addActivity */}
+          <FinancialProvider> {/* 4. OrderContext menggunakan addFinancialTransaction */}
+            <PaymentProvider> {/* 5. Jika fitur promo bisa berbayar, PaymentProvider harus di atas PromoProvider */}
+              <PromoProvider> {/* 6. PromoProvider memerlukan AuthProvider */}
+                {/* Provider-provider lain yang mungkin kurang memiliki dependensi silang yang kompleks */}
+                <BahanBakuProvider>
+                  <SupplierProvider>
+                    <RecipeProvider>
+                      <AssetProvider>
+                        <PurchaseProvider>
                           <OrderProvider>
                             {children}
                           </OrderProvider>
                         </PurchaseProvider>
-                      </PromoProvider>
-                    </AssetProvider>
-                  </RecipeProvider>
-                </SupplierProvider>
-              </BahanBakuProvider>
+                      </AssetProvider>
+                    </RecipeProvider>
+                  </SupplierProvider>
+                </BahanBakuProvider>
+              </PromoProvider>
             </PaymentProvider>
           </FinancialProvider>
         </ActivityProvider>

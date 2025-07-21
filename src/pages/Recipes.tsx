@@ -95,7 +95,7 @@ const RecipesPage = () => {
             <BookOpen className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Manajemen Resep</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Manajemen Resep</h1>
             <p className="text-muted-foreground">Buat, kelola, dan analisis resep produk Anda.</p>
           </div>
         </div>

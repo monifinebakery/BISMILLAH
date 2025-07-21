@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, ShoppingCart } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -116,7 +116,7 @@ const OrdersPage = () => {
  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
  <div className="flex items-center gap-4">
  <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
- <ShoppingCart className="h-8 w-8 text-white" />
+ <FileText className="h-8 w-8 text-white" />
  </div>
  <div>
  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">

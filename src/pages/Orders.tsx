@@ -199,7 +199,7 @@ const OrdersPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* Ikon dengan latar belakang lingkaran seperti di gambar */}
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-2.5 rounded-full">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
             <FileText className="h-8 w-8 text-white" /> {/* Ikon putih */}
           </div>
           <div>

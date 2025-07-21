@@ -172,58 +172,59 @@ const PurchaseManagement = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
-            <ShoppingCart className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              Manajemen Pembelian Bahan Baku
-            </h1>
-            <p className="text-muted-foreground">Kelola semua transaksi pembelian bahan baku Anda</p>
-          </div>
+  <div className="container mx-auto p-4 sm:p-6 space-y-6">
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      <div className="flex items-center gap-4">
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
+          <ShoppingCart className="h-8 w-8 text-white" />
         </div>
-        <Button 
-  className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg"
-  onClick={handleNewOrder}
-/>
-  <Plus className="h-5 w-5 stroke-[3]" />
-  <span className="font-medium text-base">Tambah Pembelian</span>
-</Button>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+            Manajemen Pembelian Bahan Baku
+          </h1>
+          <p className="text-muted-foreground">Kelola semua transaksi pembelian bahan baku Anda</p>
+        </div>
+      </div>
+      <Button 
+        className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg"
+        onClick={handleOpenNewDialog}
+      >
+        <Plus className="h-5 w-5 stroke-[3]" />
+        <span className="font-medium text-base">Tambah Pembelian</span>
+      </Button>
+    </div>
 
-        {/* Filter Card */}
-      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>Filter Pembelian</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Cari berdasarkan nama supplier..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Selesai</SelectItem>
-                <SelectItem value="cancelled">Dibatalkan</SelectItem>
-              </SelectContent>
-            </Select>
+    {/* Filter Card */}
+    <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+      <CardHeader>
+        <CardTitle>Filter Pembelian</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Cari berdasarkan nama supplier..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="completed">Selesai</SelectItem>
+              <SelectItem value="cancelled">Dibatalkan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
 
       {/* Main Table */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden">

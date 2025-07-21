@@ -187,12 +187,13 @@ const PurchaseManagement = () => {
           </div>
         </div>
         <Button 
-          onClick={handleOpenNewDialog} 
-          className="mt-4 sm:mt-0 flex items-center gap-2 bg-white text-orange-600 font-semibold hover:bg-gray-100"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Pembelian
-        </Button>
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white" 
+            onClick={handleNewOrder}
+          >
+            <Plus className="h-5 w-5" />
+            Tambah Pembelian
+          </Button>
+        </div>
       </div>
 
       {/* Filter Card */}

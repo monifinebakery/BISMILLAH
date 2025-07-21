@@ -187,14 +187,12 @@ const PurchaseManagement = () => {
           </div>
         </div>
         <Button 
-            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white" 
-            onClick={handleNewOrder}
-          >
-            <Plus className="h-5 w-5" />
-            Tambah Pembelian
-          </Button>
-        </div>
-      </div>
+  className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md transition-all duration-300 py-3 px-5 rounded-lg"
+  onClick={handleNewOrder}
+>
+  <Plus className="h-5 w-5 stroke-[3]" />
+  <span className="font-medium text-base">Tambah Pembelian</span>
+</Button>
 
       /* Filter Card */
       <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">

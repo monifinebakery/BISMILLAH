@@ -1,39 +1,41 @@
-// src/pages/FinancialReportPage.tsx
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, eachDayOfInterval, eachMonthOfInterval, isSameMonth, isSameDay } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ComposedChart, Area, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Calendar as CalendarIcon } from 'lucide-react'; // Plus, Download, ChevronLeft, ChevronRight sudah tidak perlu dari sini
+import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // PieChart, Pie, Cell sudah diganti BarChart
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+// import { useIsMobile } from '@/hooks/use-mobile'; // Asumsi useIsMobile hanya digunakan untuk paginasi kalender. Jika tidak, hapus
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatDateForDisplay } from '@/utils/dateUtils';
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import FinancialCategoryManager from '@/components/FinancialCategoryManager';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from '@/utils/financialUtils';
+import FinancialTransactionList from '@/components/FinancialTransactionList'; // Impor jika masih terpisah
+
 
 const FinancialReportPage = () => {
-  const { financialTransactions: transactions, addFinancialTransaction, updateFinancialTransaction, deleteFinancialTransaction, loading } = useFinancial();
-  const { settings } = useUserSettings();
+  const { financialTransactions: transactions, addFinancialTransaction, updateFinancialTransaction, deleteFinancialTransaction, isLoading } = useFinancial();
+  const { settings } = useUserSettings(); // Diperlukan untuk kategori dan lain-lain
 
-  // State
   const [transactionsPerPage, setTransactionsPerPage] = useState(10);
   const [transactionsCurrentPage, setTransactionsCurrentPage] = useState(1);
-  const [dateRange, setDateRange] = useState({ from: startOfMonth(new Date()), to: endOfDay(new Date()) });
+  const [dateRange, setDateRange] = useState({ from: startOfMonth(subMonths(new Date(), 5)), to: endOfDay(new Date()) }); // Default: 6 bulan terakhir
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Mengatur status mobile untuk kalender popover
+
+  // =========================================================================================
+  // Untuk masalah "bulan Januari" atau tanggal acak. Recharts hanya memproses Date() secara
+  // internal jika disisipkan dalam object, bukan string. Pastikan data dikirim Date Object.
+  // =========================================================================================
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -46,70 +48,127 @@ const FinancialReportPage = () => {
     setEditingTransaction(null);
   }, []);
   
-  const handleEditClick = (transaction) => {
+  const handleEditClick = (transaction: any) => { // Type 'any' perlu disesuaikan dengan FinancialTransaction
     setEditingTransaction(transaction);
     setIsDialogOpen(true);
   };
 
-  // --- Logika dan Kalkulasi Menggunakan Fungsi Terpusat ---
-  const filteredTransactions = useMemo(() => filterByDateRange(transactions, dateRange, 'date').sort((a, b) => new Date(b.date) - new Date(a.date)), [transactions, dateRange]);
-  
-  const totalIncome = useMemo(() => calculateTotalIncome(filteredTransactions), [filteredTransactions]);
-  const totalExpense = useMemo(() => calculateTotalExpense(filteredTransactions), [filteredTransactions]);
+  const filteredTransactions = useMemo(() => {
+    // Memastikan `date` dalam objek transaksi adalah `Date` yang valid
+    const cleanTransactions = transactions.map(t => ({
+      ...t,
+      date: t.date instanceof Date && !isNaN(t.date.getTime()) ? t.date : new Date(t.date),
+    })).filter(t => t.date && !isNaN(t.date.getTime()));
+
+    const from = dateRange?.from ? startOfDay(dateRange.from) : null;
+    const to = dateRange?.to ? endOfDay(dateRange.to) : null;     
+
+    if (!from || !to) return cleanTransactions; // Jika tidak ada rentang, kembalikan semua transaksi bersih
+
+    return cleanTransactions.filter(t => {
+      return t.date >= from && t.date <= to;
+    }).sort((a, b) => b.date.getTime() - a.date.getTime()); // Sortir data transaksi utama berdasarkan tanggal
+  }, [transactions, dateRange]);
+
+  const totalIncome = useMemo(() => filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + t.amount, 0), [filteredTransactions]);
+  const totalExpense = useMemo(() => filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + t.amount, 0), [filteredTransactions]);
   const balance = useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
 
-  const { categoryData, transactionData, dailyData } = useMemo(() => {
-    const incomeByCategory = {};
-    const expenseByCategory = {};
-    const monthlyData = {};
-    const dailyDataMap = {};
+  // ===================================================================
+  // --- PERBAIKAN UTAMA #1: PEMBENTUKAN DATA GRAFIK KOMPREHENSIF ---
+  // ===================================================================
+  const { chartData, chartMode, categoryData } = useMemo(() => {
+    const from = dateRange?.from;
+    const to = dateRange?.to;
 
-    filteredTransactions.forEach(t => {
-      const categoryName = t.category || 'Lainnya';
-      if (t.type === 'income') {
-        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
-      } else {
-        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
-      }
-      
-      const transactionDate = new Date(t.date);
-      if (transactionDate) {
-        const monthStart = startOfMonth(transactionDate);
-        const monthYearKey = format(monthStart, 'yyyy-MM');
-        if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart };
-        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; else monthlyData[monthYearKey].expense += t.amount || 0;
-        
-        const dayKey = format(transactionDate, 'yyyy-MM-dd');
-        if (!dailyDataMap[dayKey]) dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
-        if (t.type === 'income') dailyDataMap[dayKey].income += t.amount || 0; else dailyDataMap[dayKey].expense += t.amount || 0;
-      }
-    });
-
-    const finalMonthlyData = Object.values(monthlyData).map(value => ({
-      month: format(value.date, 'MMM yyyy', { locale: id }),
-      Pemasukan: value.income, Pengeluaran: value.expense, Saldo: value.income - value.expense, date: value.date
-    })).sort((a, b) => a.date - b.date);
-
-    const completeDailyData = [];
-    const today = endOfDay(new Date());
-    for (let i = 0; i < 30; i++) {
-        const currentDate = startOfDay(subDays(today, 29 - i));
-        const dayKey = format(currentDate, 'yyyy-MM-dd');
-        const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
-        completeDailyData.push({ date: format(currentDate, 'd MMM', { locale: id }), Pemasukan: existingData.income, Pengeluaran: existingData.expense, Saldo: existingData.income - existingData.expense });
+    if (!from || !to) { // Jika tidak ada tanggal yang dipilih, kembali dengan data kosong
+        return { chartData: [], chartMode: 'monthly', categoryData: { incomeData: [], expenseData: [] } };
     }
 
-    return {
-      categoryData: {
-        incomeData: Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })),
-        expenseData: Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })),
-      },
-      transactionData: finalMonthlyData,
-      dailyData: completeDailyData,
-    };
-  }, [filteredTransactions]);
+    const diffInDays = differenceInDays(to, from);
+    const useDailyMode = diffInDays <= 30; // Jika 30 hari atau kurang, gunakan mode harian
 
-  // --- Fungsi untuk Merender Bagian UI ---
+    // === Agregasi Data Transaksi Berdasarkan Mode ===
+    let aggregatedDataMap: { [key: string]: { name: string; pemasukan: number; pengeluaran: number; date: Date } } = {};
+
+    if (useDailyMode) { // Mode Harian: Isi semua hari di rentang
+        const days = eachDayOfInterval({ start: from, end: to });
+        days.forEach(date => {
+            const dayKey = format(date, 'yyyy-MM-dd');
+            aggregatedDataMap[dayKey] = {
+                name: format(date, 'd MMM', { locale: localeID }), // e.g., 20 Jul
+                pemasukan: 0,
+                pengeluaran: 0,
+                date: startOfDay(date), // Pastikan ini objek Date yang valid
+            };
+        });
+    } else { // Mode Bulanan: Isi semua bulan di rentang
+        const months = eachMonthOfInterval({ start: from, end: to });
+        months.forEach(date => {
+            const monthKey = format(date, 'yyyy-MM');
+            aggregatedDataMap[monthKey] = {
+                name: format(date, 'MMM yy', { locale: localeID }), // e.g., Jul 23
+                pemasukan: 0,
+                pengeluaran: 0,
+                date: startOfMonth(date), // Pastikan ini objek Date yang valid
+            };
+        });
+    }
+
+    // Alokasikan transaksi ke data agregat
+    filteredTransactions.forEach(t => {
+        let key;
+        if (useDailyMode) {
+            key = format(t.date, 'yyyy-MM-dd');
+        } else {
+            key = format(t.date, 'yyyy-MM');
+        }
+
+        if (aggregatedDataMap[key]) {
+            if (t.type === 'pemasukan') aggregatedDataMap[key].pemasukan += t.amount;
+            else if (t.type === 'pengeluaran') aggregatedDataMap[key].pengeluaran += t.amount;
+        }
+    });
+
+    // === Persiapan Data Final untuk Chart ===
+    const finalChartData = Object.values(aggregatedDataMap)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .map(item => ({
+            ...item,
+            Saldo: item.pemasukan - item.pengeluaran // Tambahkan Saldo untuk Line chart jika diinginkan
+        }));
+
+    // === Agregasi Data Kategori (tetap sama) ===
+    const incomeByCategory: { [key: string]: number } = {};
+    const expenseByCategory: { [key: string]: number } = {};
+    filteredTransactions.forEach(t => {
+      const category = t.category || 'Lain-lain';
+      if (t.type === 'pemasukan') incomeByCategory[category] = (incomeByCategory[category] || 0) + t.amount;
+      else if (t.type === 'pengeluaran') expenseByCategory[category] = (expenseByCategory[category] || 0) + t.amount;
+    });
+    const incomeData = Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
+    const expenseData = Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
+
+    return {
+      chartData: finalChartData,
+      chartMode: useDailyMode ? 'daily' : 'monthly',
+      categoryData: { incomeData, expenseData },
+    };
+  }, [filteredTransactions, dateRange]);
+
+
+  const chartConfig = {
+    pemasukan: { label: "Pemasukan", color: "hsl(var(--chart-1))" }, // shadcn/ui chart color
+    pengeluaran: { label: "Pengeluaran", color: "hsl(var(--chart-2))" }, // shadcn/ui chart color
+    Saldo: { label: "Saldo", color: "hsl(var(--chart-3))" } // Saldo tambahan
+  } satisfies ChartConfig;
+
+  // Warna kustom untuk kategori Pie Chart / Bar Chart (shadcn belum punya array warna otomatis)
+  const categoryColors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-6))"]; // Sesuaikan sesuai ketersediaan chart color di globals.css
+
+  // ===================================================================
+  // --- Fungsi Render Chart & Tabel Transaksi (sudah diperbarui sebelumnya) ---
+  // ===================================================================
 
   const renderSummaryCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -119,54 +178,62 @@ const FinancialReportPage = () => {
     </div>
   );
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="p-3 bg-white border border-gray-300 rounded shadow-lg text-sm">
-          <p className="font-semibold mb-1">{label}</p>
-          {payload.map((entry, index) => (<p key={index} style={{ color: entry.color }}>{`${entry.name} : ${formatCurrency(entry.value)}`}</p>))}
-        </div>
-      );
-    }
-    return null;
-  };
-
   const renderMainChart = () => {
-    const useDailyData = dateRange?.from && dateRange?.to && (dateRange.to.getTime() - dateRange.from.getTime()) < 31 * 24 * 60 * 60 * 1000;
-    const data = useDailyData ? dailyData : transactionData;
     return (
-      <Card><CardHeader><CardTitle>{useDailyData ? 'Grafik Harian (30 Hari Terakhir)' : 'Grafik Pemasukan & Pengeluaran'}</CardTitle></CardHeader><CardContent><div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey={useDailyData ? "date" : "month"} tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={(tick) => formatLargeNumber(tick)} tick={{ fontSize: 12 }} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend formatter={(value) => <span className="text-sm">{value}</span>}/>
-            <Area type="monotone" dataKey="Saldo" fill="#2563eb40" stroke="#2563eb" strokeWidth={2} name="Saldo" />
-            <Bar dataKey="Pemasukan" fill="#16a34a" name="Pemasukan" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Pengeluaran" fill="#dc2626" name="Pengeluaran" radius={[4, 4, 0, 0]} />
+      <Card><CardHeader><CardTitle>Grafik Pemasukan & Pengeluaran {chartMode === 'daily' ? 'Harian' : 'Bulanan'}</CardTitle><CardDescription>Tren keuangan dalam rentang tanggal yang dipilih.</CardDescription></CardHeader><CardContent>
+        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}> {/* Adjust left margin if YAxis labels cut off */}
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value} /> {/* No slice */}
+            {/* ✅ Perbaiki YAxis: Menggunakan formatLargeNumber */}
+            <YAxis tickFormatter={formatLargeNumber} tickLine={false} axisLine={false} tickMargin={8} /> 
+            {/* Menggunakan ChartTooltip dan ChartTooltipContent dari ShadCN */}
+            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" formatter={(value) => formatCurrency(Number(value))} />} />
+            {/* Menggunakan ChartLegend dan ChartLegendContent dari ShadCN */}
+            <ChartLegend content={<ChartLegendContent />} />
+            <Area type="monotone" dataKey="Pemasukan" fill="hsl(var(--chart-1))" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Pemasukan" activeDot={{ r: 6 }} />
+            <Area type="monotone" dataKey="Pengeluaran" fill="hsl(var(--chart-2))" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Pengeluaran" activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="Saldo" stroke="hsl(var(--chart-3))" strokeWidth={2} name="Saldo" dot={false} activeDot={{ r: 6 }} />
           </ComposedChart>
-        </ResponsiveContainer>
-      </div></CardContent></Card>
+        </ChartContainer>
+      </CardContent></Card>
     );
   };
 
   const renderCategoryCharts = () => {
-    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-      const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-      const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-      return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
-    };
-    const COLORS = ['#16a34a', '#dc2626', '#2563eb', '#f59e0b', '#8b5cf6', '#06b6d4'];
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card><CardHeader><CardTitle>Distribusi Kategori Pemasukan</CardTitle></CardHeader><CardContent>
-          {categoryData.incomeData.length > 0 ? <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie dataKey="value" data={categoryData.incomeData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={renderCustomizedLabel}>{categoryData.incomeData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={(value) => formatCurrency(value)} /></PieChart></ResponsiveContainer></div> : <div className="h-64 flex items-center justify-center text-gray-500">Tidak ada data</div>}
+          {categoryData.incomeData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="h-[250px] w-full"> {/* Pastikan ChartContainer untuk BarChart juga */}
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData.incomeData} layout="vertical" margin={{ left: 10 }}>
+                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
+                  <XAxis type="number" hide />
+                  <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}> {/* Adjust radius */}
+                    {categoryData.incomeData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          ) : (<p className="text-muted-foreground text-center py-10">Tidak ada data pemasukan.</p>)}
         </CardContent></Card>
         <Card><CardHeader><CardTitle>Distribusi Kategori Pengeluaran</CardTitle></CardHeader><CardContent>
-          {categoryData.expenseData.length > 0 ? <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie dataKey="value" data={categoryData.expenseData} nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={renderCustomizedLabel}>{categoryData.expenseData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={(value) => formatCurrency(value)} /></PieChart></ResponsiveContainer></div> : <div className="h-64 flex items-center justify-center text-gray-500">Tidak ada data</div>}
+          {categoryData.expenseData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="h-[250px] w-full"> {/* Pastikan ChartContainer untuk BarChart juga */}
+              <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={categoryData.expenseData} layout="vertical" margin={{ left: 10 }}>
+                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={100} />
+                  <XAxis type="number" hide />
+                  <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} hideIndicator />} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}> {/* Adjust radius */}
+                    {categoryData.expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          ) : (<p className="text-muted-foreground text-center py-10">Tidak ada data pengeluaran.</p>)}
         </CardContent></Card>
       </div>
     );
@@ -177,21 +244,22 @@ const FinancialReportPage = () => {
     const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
     const currentTransactions = filteredTransactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
     const totalTransactionPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
+
     return (
       <Card><CardHeader><div className="flex justify-between items-center"><CardTitle>Daftar Transaksi</CardTitle><Button size="sm" onClick={() => setIsDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Transaksi</Button></div></CardHeader><CardContent>
-        {loading ? <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        {isLoading ? <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         : currentTransactions.length > 0 ? (
           <>
             <div className="rounded-md border overflow-x-auto mb-4">
               <Table><TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Deskripsi</TableHead><TableHead>Kategori</TableHead><TableHead>Tipe</TableHead><TableHead className="text-right">Jumlah</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {currentTransactions.map((t) => (
+                  {currentTransactions.map((t: any) => ( // Use 'any' for now if type is not strictly defined
                     <TableRow key={t.id}>
                       <TableCell>{format(new Date(t.date), 'dd MMM yyyy', { locale: id })}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{t.description || '-'}</TableCell>
                       <TableCell><Badge variant="outline">{t.category || 'Lainnya'}</Badge></TableCell>
-                      <TableCell><Badge variant={t.type === 'income' ? 'success' : 'destructive'}>{t.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}</Badge></TableCell>
-                      <TableCell className={`text-right font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</TableCell>
+                      <TableCell><Badge variant={t.type === 'pemasukan' ? 'success' : 'destructive'}>{t.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}</Badge></TableCell>
+                      <TableCell className={`text-right font-medium ${t.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</TableCell>
                       <TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => handleEditClick(t)}>Edit</Button></TableCell>
                     </TableRow>
                   ))}

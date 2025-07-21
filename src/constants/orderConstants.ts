@@ -1,7 +1,7 @@
 // src/constants/orderConstants.ts
 
-// Daftar status untuk digunakan di dropdown dan iterasi
-export const ORDER_STATUS_LIST = [
+// ✨ UBAH NAMA DI SINI
+export const orderStatusList = [
   { key: 'pending', label: 'Menunggu' },
   { key: 'confirmed', label: 'Dikonfirmasi' },
   { key: 'processing', label: 'Diproses' },
@@ -10,13 +10,9 @@ export const ORDER_STATUS_LIST = [
   { key: 'cancelled', label: 'Dibatalkan' },
 ];
 
-/**
- * Mengembalikan teks label yang mudah dibaca dari sebuah key status.
- * @param status - Key status (misalnya, 'pending').
- * @returns Teks label (misalnya, 'Menunggu').
- */
+// Fungsi getStatusText tidak perlu diubah
 export const getStatusText = (status: string): string => {
-  const foundStatus = ORDER_STATUS_LIST.find(s => s.key === status);
+  const foundStatus = orderStatusList.find(s => s.key === status); // ✨ Sesuaikan di sini
   return foundStatus ? foundStatus.label : status;
 };
 

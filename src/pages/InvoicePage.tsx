@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, Download, FileText, Settings } from 'lucide-react';
+import { Trash2, Plus, Download, FileText, Settings, ArrowLeft, Copy } from 'lucide-react';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 // Deklarasikan html2pdf agar TypeScript tidak error
 declare const html2pdf: any;
@@ -20,13 +22,37 @@ interface InvoiceItem {
   price: number;
 }
 
+// Mock function untuk load order - ganti dengan implementasi sesungguhnya
+const loadOrderById = async (orderId: string) => {
+  // Simulasi loading data dari API/database
+  // Ganti dengan implementasi yang sesungguhnya
+  return {
+    id: orderId,
+    nomorPesanan: `ORD-${orderId}`,
+    namaPelanggan: 'Customer Name',
+    alamatPelanggan: 'Customer Address',
+    telefonPelanggan: '+62 123 456 789',
+    emailPelanggan: 'customer@email.com',
+    items: [
+      { id: 1, namaBarang: 'Product 1', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 },
+      { id: 2, namaBarang: 'Product 2', quantity: 1, hargaSatuan: 75000, totalHarga: 75000 }
+    ],
+    subtotal: 175000,
+    pajak: 19250,
+    totalPesanan: 194250
+  };
+};
+
 const InvoicePage: React.FC = () => {
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const { settings } = useUserSettings();
   
+  const [loading, setLoading] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
   const [issueDate, setIssueDate] = useState(new Date());
   const [dueDate, setDueDate] = useState(new Date(new Date().setDate(new Date().getDate() + 14)));
-  const [customer, setCustomer] = useState({ name: '', address: '' });
+  const [customer, setCustomer] = useState({ name: '', address: '', phone: '', email: '' });
   const [items, setItems] = useState<InvoiceItem[]>([
     { id: Date.now(), description: '', quantity: 1, price: 0 }
   ]);
@@ -38,6 +64,45 @@ const InvoicePage: React.FC = () => {
     `Transfer ke:\nBank BCA\n1234567890\na/n ${settings.businessName || 'Nama Bisnis'}`
   );
   const [status, setStatus] = useState<'BELUM LUNAS' | 'LUNAS' | 'JATUH TEMPO'>('BELUM LUNAS');
+
+  // Load order data jika ada orderId
+  useEffect(() => {
+    const loadOrderData = async () => {
+      if (!orderId) return;
+      
+      setLoading(true);
+      try {
+        const orderData = await loadOrderById(orderId);
+        
+        // Update form dengan data order
+        setInvoiceNumber(`INV-${orderData.nomorPesanan}`);
+        setCustomer({
+          name: orderData.namaPelanggan,
+          address: orderData.alamatPelanggan,
+          phone: orderData.telefonPelanggan || '',
+          email: orderData.emailPelanggan || ''
+        });
+        
+        // Convert order items ke invoice items
+        const invoiceItems = orderData.items.map((item: any, index: number) => ({
+          id: Date.now() + index,
+          description: item.namaBarang,
+          quantity: item.quantity,
+          price: item.hargaSatuan
+        }));
+        
+        setItems(invoiceItems);
+        toast.success('Data pesanan berhasil dimuat');
+      } catch (error) {
+        console.error('Error loading order:', error);
+        toast.error('Gagal memuat data pesanan');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrderData();
+  }, [orderId]);
 
   const handleItemChange = (id: number, field: keyof Omit<InvoiceItem, 'id'>, value: string | number) => {
     setItems(items.map(item => 
@@ -74,6 +139,7 @@ const InvoicePage: React.FC = () => {
       const element = document.getElementById('invoice-content');
       if (!element) {
         console.error('Invoice content element not found!');
+        toast.error('Elemen invoice tidak ditemukan');
         return;
       }
       
@@ -87,9 +153,10 @@ const InvoicePage: React.FC = () => {
       };
       
       await html2pdf().from(element).set(opt).save();
+      toast.success('Invoice berhasil diexport sebagai PDF');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Gagal mengexport PDF. Pastikan library html2pdf sudah terinstall.');
+      toast.error('Gagal mengexport PDF. Pastikan library html2pdf sudah terinstall.');
     }
   };
 
@@ -108,13 +175,34 @@ const InvoicePage: React.FC = () => {
     setInvoiceNumber(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
     setIssueDate(new Date());
     setDueDate(new Date(new Date().setDate(new Date().getDate() + 14)));
-    setCustomer({ name: '', address: '' });
+    setCustomer({ name: '', address: '', phone: '', email: '' });
     setItems([{ id: Date.now(), description: '', quantity: 1, price: 0 }]);
     setDiscount({ type: 'percent', value: 0 });
     setTax({ type: 'percent', value: 11 });
     setShipping(0);
     setStatus('BELUM LUNAS');
+    toast.success('Form berhasil direset');
   };
+
+  const duplicateInvoice = () => {
+    const newInvoiceNumber = `INV/${format(new Date(), 'yyyyMMdd')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+    setInvoiceNumber(newInvoiceNumber);
+    setIssueDate(new Date());
+    setDueDate(new Date(new Date().setDate(new Date().getDate() + 14)));
+    setStatus('BELUM LUNAS');
+    toast.success('Invoice berhasil diduplikasi');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data pesanan...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -124,10 +212,33 @@ const InvoicePage: React.FC = () => {
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => navigate(-1)}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <FileText className="h-8 w-8" />
-                <CardTitle className="text-2xl font-bold">Invoice Generator</CardTitle>
+                <div>
+                  <CardTitle className="text-2xl font-bold">
+                    {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
+                  </CardTitle>
+                  {orderId && (
+                    <p className="text-blue-100 text-sm">Order ID: {orderId}</p>
+                  )}
+                </div>
               </div>
               <div className="flex space-x-2">
+                <Button 
+                  variant="secondary" 
+                  onClick={duplicateInvoice}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Duplikasi
+                </Button>
                 <Button 
                   variant="secondary" 
                   onClick={resetForm}
@@ -210,12 +321,27 @@ const InvoicePage: React.FC = () => {
                     className="font-bold text-lg border-gray-300 focus:border-blue-500"
                   />
                   <Textarea 
-                    placeholder="Alamat & Informasi Kontak Pelanggan" 
+                    placeholder="Alamat Pelanggan" 
                     value={customer.address} 
                     onChange={e => setCustomer({...customer, address: e.target.value})} 
                     className="text-gray-600 border-gray-300 focus:border-blue-500"
-                    rows={4}
+                    rows={3}
                   />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input 
+                      placeholder="Telepon" 
+                      value={customer.phone} 
+                      onChange={e => setCustomer({...customer, phone: e.target.value})} 
+                      className="text-gray-600 border-gray-300 focus:border-blue-500"
+                    />
+                    <Input 
+                      placeholder="Email" 
+                      type="email"
+                      value={customer.email} 
+                      onChange={e => setCustomer({...customer, email: e.target.value})} 
+                      className="text-gray-600 border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
               

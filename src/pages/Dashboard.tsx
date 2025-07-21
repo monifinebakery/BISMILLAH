@@ -10,7 +10,7 @@ import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext'; 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const formatDateTime = (date) => {
+const formatDateTime = (date: Date | string | null | undefined) => {
   if (!date) return 'Waktu tidak valid';
   
   try {
@@ -32,7 +32,8 @@ const formatDateTime = (date) => {
   }
 };
 
-const getDateString = (date) => {
+// Fungsi untuk mendapatkan tanggal dalam format YYYY-MM-DD
+const getDateString = (date: Date | string | null | undefined): string | null => {
   if (!date) return null;
   
   try {
@@ -49,45 +50,16 @@ const getDateString = (date) => {
 };
 
 const Dashboard = () => {
-  const { activities, loading: activitiesLoading } = useActivity();
+  const { activities, loading: activitiesLoading } = useActivity(); 
   const { bahanBaku } = useBahanBaku();
   const { recipes, hppResults } = useRecipe();
   const { orders } = useOrder();
-  const { settings } = useUserSettings();
+  const { settings } = useUserSettings(); 
 
-  // Pagination and filter states
+  // Pagination states
   const [productsPage, setProductsPage] = useState(1);
   const [activitiesPage, setActivitiesPage] = useState(1);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const itemsPerPage = 5;
-
-  // Filter data based on date range
-  const filteredOrders = useMemo(() => {
-    if (!startDate || !endDate) return orders;
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include whole end date
-
-    return orders.filter(order => {
-      const orderDate = new Date(order.tanggal);
-      return orderDate >= start && orderDate <= end;
-    });
-  }, [orders, startDate, endDate]);
-
-  const filteredActivities = useMemo(() => {
-    if (!startDate || !endDate) return activities;
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 999); // Include whole end date
-
-    return activities.filter(activity => {
-      const activityDate = new Date(activity.timestamp);
-      return activityDate >= start && activityDate <= end;
-    });
-  }, [activities, startDate, endDate]);
 
   // Get date strings safely
   const today = new Date().toISOString().split('T')[0];
@@ -95,27 +67,27 @@ const Dashboard = () => {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayFormatted = yesterday.toISOString().split('T')[0];
   
-  // Calculate today's revenue
+  // Calculate today's revenue (with null checks)
   const todaysRevenue = useMemo(() => {
-    return filteredOrders
+    return orders
       .filter(order => {
         const orderDate = getDateString(order.tanggal);
         return orderDate === today;
       })
       .reduce((sum, order) => sum + (order.total || 0), 0);
-  }, [filteredOrders, today]);
+  }, [orders, today]);
 
-  // Calculate yesterday's revenue
+  // Calculate yesterday's revenue (with null checks)
   const yesterdaysRevenue = useMemo(() => {
-    return filteredOrders
+    return orders
       .filter(order => {
         const orderDate = getDateString(order.tanggal);
         return orderDate === yesterdayFormatted;
       })
       .reduce((sum, order) => sum + (order.total || 0), 0);
-  }, [filteredOrders, yesterdayFormatted]);
+  }, [orders, yesterdayFormatted]);
 
-  // Calculate revenue trend
+  // Calculate revenue trend safely
   const revenueTrend = useMemo(() => {
     if (!yesterdaysRevenue) return todaysRevenue ? 100 : 0;
     return ((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100;
@@ -123,21 +95,21 @@ const Dashboard = () => {
 
   // Calculate today's profit
   const todaysProfit = useMemo(() => {
-    return todaysRevenue * 0.3;
+    return todaysRevenue * 0.3; // 30% profit margin
   }, [todaysRevenue]);
 
   // Calculate today's orders
   const todaysOrders = useMemo(() => {
-    return filteredOrders.filter(order => {
+    return orders.filter(order => {
       const orderDate = getDateString(order.tanggal);
       return orderDate === today;
     }).length;
-  }, [filteredOrders, today]);
+  }, [orders, today]);
 
   // Calculate outstanding invoices
   const outstandingInvoices = useMemo(() => {
-    return filteredOrders.filter(order => order.status === 'BELUM LUNAS').length;
-  }, [filteredOrders]);
+    return orders.filter(order => order.status === 'BELUM LUNAS').length;
+  }, [orders]);
 
   const stats = useMemo(() => {
     const stokMenipis = bahanBaku.filter(item => item.stok <= item.minimum).length;
@@ -160,10 +132,10 @@ const Dashboard = () => {
   }, [recipes, hppResults, bahanBaku, todaysRevenue, todaysProfit, todaysOrders, outstandingInvoices, revenueTrend]);
 
   const bestSellingProducts = useMemo(() => {
-    const productSales = {};
-    const productRevenue = {};
+    const productSales: Record<string, number> = {};
+    const productRevenue: Record<string, number> = {};
     
-    filteredOrders.forEach(order => {
+    orders.forEach(order => {
       (order.items || []).forEach(item => {
         if (!item.namaBarang) return;
         productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
@@ -180,12 +152,12 @@ const Dashboard = () => {
       }))
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 20);
-  }, [filteredOrders]);
+  }, [orders]);
 
   const worstSellingProducts = useMemo(() => {
-    const productSales = {};
+    const productSales: Record<string, number> = {};
     
-    filteredOrders.forEach(order => {
+    orders.forEach(order => {
       (order.items || []).forEach(item => {
         if (!item.namaBarang) return;
         productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
@@ -196,7 +168,7 @@ const Dashboard = () => {
       .map(([name, quantity]) => ({ name, quantity }))
       .sort((a, b) => a.quantity - b.quantity)
       .slice(0, 5);
-  }, [filteredOrders]);
+  }, [orders]);
 
   const getGreeting = () => {
     const jam = new Date().getHours();
@@ -212,47 +184,31 @@ const Dashboard = () => {
     return `Selamat ${sapaan}`;
   };
 
-  // Pagination logic
+  // Pagination logic for products
   const productsStartIndex = (productsPage - 1) * itemsPerPage;
   const currentProducts = bestSellingProducts.slice(productsStartIndex, productsStartIndex + itemsPerPage);
   const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPage);
 
+  // Pagination logic for activities
   const activitiesStartIndex = (activitiesPage - 1) * itemsPerPage;
-  const currentActivities = filteredActivities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
-  const totalActivitiesPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const currentActivities = activities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
+  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPage);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 bg-white min-h-screen">
-      {/* Header and Date Filter */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-gray-500">{getGreeting()}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 rounded-md p-2 text-sm"
-            />
-            <span className="text-gray-500">s/d</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-300 rounded-md p-2 text-sm"
-            />
-          </div>
-          <div className="text-xs text-gray-400">
-            {new Date().toLocaleDateString('id-ID', { 
-              weekday: 'long', 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
-            })}
-          </div>
+        <div className="text-xs text-gray-400">
+          {new Date().toLocaleDateString('id-ID', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}
         </div>
       </div>
 
@@ -507,7 +463,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Activity Table */}
+          {/* Recent Activity */}
           <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-800">
@@ -516,88 +472,81 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600 text-sm">
-                      <th className="p-4"..4 text-left">Judul</th>
-                      <th className="p-4 text-left">Deskripsi</th>
-                      <th className="p-4 text-right">Jumlah</th>
-                      <th className="p-4 text-right">Waktu</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {activitiesLoading ? (
-                      <tr>
-                        <td colSpan={4} className="p-6 text-center text-gray-500">
-                          Memuat aktivitas...
-                        </td>
-                      </tr>
-                    ) : currentActivities.length > 0 ? (
-                      currentActivities.map((activity) => {
-                        const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
-                        let amount = 0;
-                        if (isFinancial && activity.value) {
-                          const parsed = parseFloat(activity.value);
-                          amount = isNaN(parsed) ? 0 : parsed;
-                        }
-                        
-                        return (
-                          <tr 
-                            key={activity.id} 
-                            className="hover:bg-gray-50"
-                          >
-                            <td className="p-4 font-medium text-gray-800">{activity.title}</td>
-                            <td className="p-4 text-gray-500">{activity.description}</td>
-                            <td className={`p-4 text-right font-medium ${
-                              isFinancial && activity.title.toLowerCase().includes('pemasukan') 
-                                ? 'text-green-600' 
-                                : isFinancial 
-                                  ? 'text-red-600' 
-                                  : 'text-gray-600'
-                            }`}>
-                              {isFinancial && amount > 0 ? formatCurrency(amount) : '-'}
-                            </td>
-                            <td className="p-4 text-right text-gray-400 text-sm">
+              <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                {activitiesLoading ? (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Memuat aktivitas...</p>
+                  </div>
+                ) : currentActivities.length > 0 ? (
+                  currentActivities.map((activity) => {
+                    const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
+                    
+                    // Safely parse amount value
+                    let amount = 0;
+                    if (isFinancial && activity.value) {
+                      const parsed = parseFloat(activity.value);
+                      amount = isNaN(parsed) ? 0 : parsed;
+                    }
+                    
+                    return (
+                      <div 
+                        key={activity.id} 
+                        className="p-4 hover:bg-gray-50"
+                      >
+                        <div className="flex justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 truncate">{activity.title}</p>
+                            <p className="text-sm text-gray-500 mt-1 truncate">{activity.description}</p>
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            {isFinancial && amount > 0 && (
+                              <p className={`text-sm font-medium ${
+                                activity.type === 'keuangan' && 
+                                activity.title.toLowerCase().includes('pemasukan') 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {formatCurrency(amount)}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
                               {formatDateTime(activity.timestamp)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="p-6 text-center text-gray-500">
-                          Belum ada aktivitas
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Belum ada aktivitas</p>
+                  </div>
+                )}
               </div>
-              
-              {/* Pagination */}
-              {filteredActivities.length > itemsPerPage && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                  <button 
-                    className={`p-1 rounded ${activitiesPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
-                    disabled={activitiesPage === 1}
-                    onClick={() => setActivitiesPage(activitiesPage - 1)}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <span className="text-sm text-gray-500">
-                    Halaman {activitiesPage} dari {totalActivitiesPages}
-                  </span>
-                  <button 
-                    className={`p-1 rounded ${activitiesPage >= totalActivitiesPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
-                    disabled={activitiesPage >= totalActivitiesPages}
-                    onClick={() => setActivitiesPage(activitiesPage + 1)}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
             </CardContent>
+            
+            {/* Pagination */}
+            {activities.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <button 
+                  className={`p-1 rounded ${activitiesPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={activitiesPage === 1}
+                  onClick={() => setActivitiesPage(activitiesPage - 1)}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-sm text-gray-500">
+                  Halaman {activitiesPage} dari {totalActivitiesPages}
+                </span>
+                <button 
+                  className={`p-1 rounded ${activitiesPage >= totalActivitiesPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                  disabled={activitiesPage >= totalActivitiesPages}
+                  onClick={() => setActivitiesPage(activitiesPage + 1)}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
           </Card>
         </div>
       </div>

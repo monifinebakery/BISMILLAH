@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ShoppingCart, AlertTriangle, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2 } from 'lucide-react';
+import { ShoppingCart, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2, MoreHorizontal } from 'lucide-react';
 import { usePurchase } from '@/contexts/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
@@ -17,9 +17,11 @@ import { generateUUID } from '@/utils/uuid';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { Purchase, PurchaseItem } from '@/types/supplier';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Eye } from 'lucide-react';
 
 const PurchaseManagement = () => {
   const { purchases, addPurchase, updatePurchase, deletePurchase, isLoading } = usePurchase();
@@ -96,13 +98,14 @@ const PurchaseManagement = () => {
     if (success) {
       setIsDialogOpen(false);
       setEditingPurchase(null);
+      setSelectedPurchaseIds(prev => prev.filter(id => id !== (editingPurchase?.id || '')));
     }
   };
 
   const handleStatusChange = async (purchaseId: string, newStatus: string) => {
     const success = await updatePurchase(purchaseId, { status: newStatus as Purchase['status'] });
     if (success) {
-      toast.success(`Status pembelian berhasil diubah.`);
+      toast.success('Status pembelian berhasil diubah.');
     }
   };
 
@@ -130,7 +133,9 @@ const PurchaseManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
+    setSelectedPurchaseIds(prev => prev.filter(sId => sId !== id)); // Update state sebelum penghapusan
     await deletePurchase(id);
+    toast.success('Pembelian berhasil dihapus.');
   };
 
   const handleBulkDelete = async () => {
@@ -138,10 +143,10 @@ const PurchaseManagement = () => {
       toast.warning('Pilih item yang ingin dihapus terlebih dahulu');
       return;
     }
+    setSelectedPurchaseIds([]); // Bersihkan state seleksi sebelum penghapusan
     const success = await Promise.all(selectedPurchaseIds.map(id => deletePurchase(id)));
     if (success.every(s => s)) {
       setShowBulkDeleteDialog(false);
-      setSelectedPurchaseIds([]);
       setIsSelectionMode(false);
       toast.success('Pembelian berhasil dihapus!');
     }
@@ -149,17 +154,16 @@ const PurchaseManagement = () => {
 
   const toggleSelectAllCurrent = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      currentItems.forEach(p => !selectedPurchaseIds.includes(p.id) && setSelectedPurchaseIds(prev => [...prev, p.id]));
+      setSelectedPurchaseIds(prev => [...new Set([...prev, ...currentItems.map(p => p.id)])]);
     } else {
-      currentItems.forEach(p => selectedPurchaseIds.includes(p.id) && setSelectedPurchaseIds(prev => prev.filter(id => id !== p.id)));
+      setSelectedPurchaseIds(prev => prev.filter(id => !currentItems.some(p => p.id === id)));
     }
   };
 
   const filteredPurchases = useMemo(() => {
     return purchases.filter(p => {
       const supplierData = suppliers.find(s => s.id === p.supplier);
-      const matchesSearch = supplierData?.nama.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
-      return matchesSearch;
+      return supplierData?.nama.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
     });
   }, [purchases, suppliers, searchTerm]);
 
@@ -367,7 +371,7 @@ const PurchaseManagement = () => {
                       key={purchase.id}
                       className={cn(
                         "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
-                        isSelected(purchase.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                        selectedPurchaseIds.includes(purchase.id) && "bg-blue-50 border-l-4 border-l-blue-500",
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                       )}
                     >

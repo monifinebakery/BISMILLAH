@@ -9,15 +9,15 @@ import {
   Calculator, Warehouse, Package, Trophy, Activity, TrendingUp, TrendingDown, 
   CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
   FileText, BarChart3, Users, ShoppingCart, AlertTriangle, Sparkles
-} from "lucide-react"; // Import ikon tambahan jika digunakan
+} from "lucide-react"; 
 import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
-import { useRecipe } from "@/contexts/RecipeContext"; // Mengimpor useRecipe untuk hppResults
+import { useRecipe } from "@/contexts/RecipeContext"; 
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext'; 
-import { format, subDays, startOfMonth, endOfMonth, subMonths, eachDayOfInterval } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, startOfYear } from "date-fns";
 import { id as localeID } from 'date-fns/locale';
 
 const formatDateTime = (date: Date | string | null | undefined) => {
@@ -26,7 +26,8 @@ const formatDateTime = (date: Date | string | null | undefined) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return 'Waktu tidak valid';
     return new Intl.DateTimeFormat('id-ID', {
-      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     }).format(dateObj);
   } catch { return 'Waktu tidak valid'; }
 };
@@ -36,29 +37,31 @@ const getDateString = (date: Date | string | null | undefined): string | null =>
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) { return null; }
-    return format(dateObj, 'yyyy-MM-dd'); // Gunakan format dari date-fns
+    return format(dateObj, 'yyyy-MM-dd'); 
   } catch { return null; }
 };
-
 
 const Dashboard = () => {
   // --- Hooks & State ---
   const { activities, loading: activitiesLoading } = useActivity(); 
-  const { bahanBaku } = useBahanBaku(); // Tidak perlu loading state terpisah, gunakan dari context
-  const { recipes, hppResults } = useRecipe(); // Perlu hppResults untuk rata-rata HPP
-  const { orders } = useOrder();
-  const { settings } = useUserSettings(); 
+  // Pastikan `useBahanBaku`, `useRecipe`, `useOrder` memiliki properti `isLoading` atau kita asumsikan default false
+  const { bahanBaku, isLoading: bahanBakuLoading } = useBahanBaku(); 
+  const { recipes, hppResults, isLoading: recipesLoading } = useRecipe(); 
+  const { orders, isLoading: ordersLoading } = useOrder();
+  const { settings, isLoading: settingsLoading } = useUserSettings(); 
 
-  const isLoading = useMemo(() => activitiesLoading || bahanBaku.isLoading || recipes.isLoading || orders.isLoading || settings.isLoading, 
-    [activitiesLoading, bahanBaku.isLoading, recipes.isLoading, orders.isLoading, settings.isLoading]); // Ambil isLoading dari hooks
+  const isLoading = useMemo(() => {
+      // Pastikan semua isLoading dari context ada dan digabungkan dengan benar
+      return activitiesLoading || bahanBakuLoading || recipesLoading || ordersLoading || settingsLoading;
+  }, [activitiesLoading, bahanBakuLoading, recipesLoading, ordersLoading, settingsLoading]);
+
 
   const [date, setDate] = useState({ from: new Date(), to: new Date() });
   const [productsPage, setProductsPage] = useState(1);
   const [activitiesPage, setActivitiesPage] = useState(1);
-  const [chartType, setChartType] = useState('revenue'); // 'revenue' | 'orders'
+  const [chartType, setChartType] = useState('revenue'); 
 
-  const itemsPerPage = 5; // Jumlah item per halaman untuk paginasi
-
+  const itemsPerPage = 5; 
 
   const getGreeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -68,89 +71,82 @@ const Dashboard = () => {
     else if (hour >= 15 && hour < 19) sapaan = 'sore';
     else sapaan = 'malam';
     
-    // Perbaikan: Pastikan settings.ownerName aman diakses
     return settings.ownerName ? `Selamat ${sapaan}, ${settings.ownerName}` : `Selamat ${sapaan}`;
   }, [settings.ownerName]);
 
   const stats = useMemo(() => {
-    const todayStr = getDateString(new Date()); // Ambil tanggal hari ini
-    const yesterdayDate = subDays(new Date(), 1); // Tanggal kemarin
+    const todayStr = getDateString(new Date());
+    const yesterdayDate = subDays(new Date(), 1);
     const yesterdayStr = getDateString(yesterdayDate);
 
-    // Filter order berdasarkan tanggal
-    const todaysOrdersList = orders.filter(order => getDateString(order.tanggal) === todayStr);
-    const yesterdaysOrdersList = orders.filter(order => getDateString(order.tanggal) === yesterdayStr);
+    const todaysOrdersList = (orders || []).filter(order => getDateString(order.tanggal) === todayStr); // Guard orders
+    const yesterdaysOrdersList = (orders || []).filter(order => getDateString(order.tanggal) === yesterdayStr); 
     
-    // Perhitungan total omzet hari ini dan kemarin
     const totalRevenueToday = todaysOrdersList.reduce((sum, order) => sum + (order.totalPesanan || 0), 0);
     const totalRevenueYesterday = yesterdaysOrdersList.reduce((sum, order) => sum + (order.totalPesanan || 0), 0);
 
-    // Hitung profit (jika diperlukan kalkulasi lebih detail, bisa dipisah)
-    // Asumsi HPP per produk bisa didapat dari recipe atau dari rata-rata order
-    // Sederhana: 30% profit margin
-    const netProfitToday = totalRevenueToday * 0.3; // Contoh sederhana, bisa disesuaikan
+    const netProfitToday = totalRevenueToday * 0.3; // Estimasi
 
-    // Jumlah pesanan yang belum selesai
-    const ordersToProcess = orders.filter(order => 
+    const ordersToProcess = (orders || []).filter(order => 
         order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing'
     ).length;
 
-    // Jumlah bahan baku stok menipis
-    const lowStockCount = bahanBaku.filter(item => item.stok <= item.minimum).length;
+    const lowStockCount = (bahanBaku || []).filter(item => item.stok <= item.minimum).length; // Guard bahanBaku
 
-    // Rata-rata HPP dari hppResults
-    const averageHPP = hppResults.length > 0 ? 
-        hppResults.reduce((sum, result) => sum + (result.hppPerPorsi || 0), 0) / hppResults.length : 0;
-
-
+    const averageHPP = (hppResults || []).length > 0 ? 
+      (hppResults || []).reduce((sum, result) => sum + (result.hppPerPorsi || 0), 0) / (hppResults || []).length : 0; 
+    
     return {
       totalRevenueToday,
       totalRevenueYesterday,
       netProfitToday,
       ordersToProcess,
       lowStockCount,
-      averageHPP, // HPP rata-rata di widget KPI
-      totalProducts: recipes.length, // Total Produk dari resep
-      totalBahanBakuCount: bahanBaku.reduce((sum, item) => sum + (item.stok || 0), 0), // Total stok unit bahan
+      averageHPP,
+      totalProducts: (recipes || []).length, // Guard recipes
+      totalBahanBakuCount: (bahanBaku || []).reduce((sum, item) => sum + (item.stok || 0), 0),
     };
   }, [orders, bahanBaku, hppResults, recipes]); // Sertakan semua dependensi yang digunakan
 
   const productAnalysis = useMemo(() => {
-    const productSales: Record<string, { quantity: number; revenue: number; orders: number }> = {}; // Tambah field orders
-    orders.forEach(order => {
-      (order.items || []).forEach(item => {
+    const productSales: Record<string, { quantity: number; revenue: number; orders: number }> = {};
+    
+    (orders || []).forEach(order => { // Guard orders
+      (order.items || []).forEach(item => { // Guard order.items
         const name = item.nama || 'Produk Tidak Diketahui';
         if (!productSales[name]) {
           productSales[name] = { quantity: 0, revenue: 0, orders: 0 };
         }
         productSales[name].quantity += item.quantity || 0;
         productSales[name].revenue += (item.totalHarga || 0); 
-        productSales[name].orders += 1; // Menghitung berapa kali produk muncul di pesanan
+        productSales[name].orders += 1;
       });
     });
 
     const products = Object.values(productSales);
     
     return {
-      bestSelling: products.sort((a, b) => b.revenue - a.revenue).slice(0, 20), // Sortir berdasarkan omzet
+      bestSelling: products.sort((a, b) => b.revenue - a.revenue).slice(0, 20),
       worstSelling: products.sort((a, b) => a.quantity - b.quantity).slice(0, 5),
     };
   }, [orders]);
 
 
   const stockAnalysis = useMemo(() => {
-    const lowStock = bahanBaku.filter(item => item.stok <= item.minimum);
+    const lowStock = (bahanBaku || []).filter(item => item.stok <= item.minimum); // Guard bahanBaku
     return { lowStock };
   }, [bahanBaku]);
 
-  // Pagination logic
+  // Pagination logic for products
+  // Gunakan optional chaining pada bestSellingProducts sebelum mengakses .length
   const productsStartIndex = (productsPage - 1) * itemsPerPage;
-  const currentProducts = productAnalysis.bestSelling.slice(productsStartIndex, productsStartIndex + itemsPerPage);
-  const totalProductsPages = Math.ceil(productAnalysis.bestSelling.length / itemsPerPage);
+  const currentProducts = (productAnalysis.bestSelling || []).slice(productsStartIndex, productsStartIndex + itemsPerPage);
+  const totalProductsPages = Math.ceil((productAnalysis.bestSelling || []).length / itemsPerPage);
 
+  // Pagination logic for activities
   const activitiesStartIndex = (activitiesPage - 1) * itemsPerPage;
-  const currentActivities = activities.slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage);
-  const totalActivitiesPages = Math.ceil(activities.length / itemsPerPage);
+  const currentActivities = (activities || []).slice(activitiesStartIndex, activitiesStartIndex + itemsPerPage); // Guard activities
+  const totalActivitiesPages = Math.ceil((activities || []).length / itemsPerPage);
 
 
   // Render Loading State Global
@@ -164,7 +160,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen"> {/* Latar belakang abu-abu yang lebih lembut */}
+    <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen"> 
       {/* Enhanced Header (dengan tanggal) */}
       <div className="bg-white rounded-2xl shadow-xl border overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4 sm:px-8 sm:py-6 text-white">
@@ -215,16 +211,16 @@ const Dashboard = () => {
 
       {/* Enhanced Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Omzet Hari Ini */}
+        {/* Omzet Periode Ini */}
         <Card className="bg-white border-b-4 border-blue-500 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col space-y-1">
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Omzet Periode Ini</p>
               <p className="text-xl sm:text-2xl font-bold text-blue-700">{formatCurrency(stats.totalRevenueToday)}</p>
               <div className="flex items-center text-xs sm:text-sm mt-1">
-                {stats.totalRevenueToday > stats.totalRevenueYesterday ? (<TrendingUp className="h-4 w-4 text-green-500 mr-1" />) : (<TrendingDown className="h-4 w-4 text-red-500 mr-1" />)}
-                <span className={stats.totalRevenueToday > stats.totalRevenueYesterday ? 'text-green-500' : 'text-red-500'}>
-                  {Math.abs(stats.totalRevenueToday - stats.totalRevenueYesterday) > 0 ? (Math.abs((stats.totalRevenueToday - stats.totalRevenueYesterday) / stats.totalRevenueYesterday) * 100).toFixed(1) + '%' : '0.0%'}
+                {stats.totalRevenueToday >= stats.totalRevenueYesterday ? (<TrendingUp className="h-4 w-4 text-green-500 mr-1" />) : (<TrendingDown className="h-4 w-4 text-red-500 mr-1" />)}
+                <span className={stats.totalRevenueToday >= stats.totalRevenueYesterday ? 'text-green-500' : 'text-red-500'}>
+                  {stats.totalRevenueYesterday > 0 ? (Math.abs((stats.totalRevenueToday - stats.totalRevenueYesterday) / stats.totalRevenueYesterday) * 100).toFixed(1) + '%' : '0.0%'}
                 </span>
                 <span className="ml-1 text-gray-400">vs kemarin</span>
               </div>
@@ -232,7 +228,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Laba Bersih */}
+        {/* Laba Bersih Periode Ini */}
         <Card className="bg-white border-b-4 border-green-500 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col space-y-1">
@@ -258,7 +254,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Stok Menipis */}
+        {/* Item Stok Menipis */}
         <Card className="bg-white border-b-4 border-orange-500 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col space-y-1">
@@ -270,23 +266,23 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Quick Actions (Baris yang dipertahankan dan diintegrasikan) */}
+      {/* Quick Actions */}
       <h2 className="text-lg sm:text-xl font-bold mb-4 mt-6">Aksi Cepat</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"> {/* Menyesuaikan untuk mobile (2 kolom) dan desktop (4 kolom) */}
-        <Link to="/hpp" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex items-center justify-center text-center py-4 bg-white"><Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-2" /><h3 className="font-semibold text-sm sm:text-base">Kalkulator HPP</h3></Card></Link>
-        <Link to="/gudang" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex items-center justify-center text-center py-4 bg-white"><Warehouse className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 mr-2" /><h3 className="font-semibold text-sm sm:text-base">Kelola Gudang</h3></Card></Link>
-        <Link to="/pesanan" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex items-center justify-center text-center py-4 bg-white"><Package className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 mr-2" /><h3 className="font-semibold text-sm sm:text-base">Manajemen Pesanan</h3></Card></Link>
-        <Link to="/laporan" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex items-center justify-center text-center py-4 bg-white"><FileText className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 mr-2" /><h3 className="font-semibold text-sm sm:text-base">Laporan Keuangan</h3></Card></Link>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+        <Link to="/hpp" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-white"><div className="bg-blue-500 p-2 sm:p-3 rounded-xl mx-auto mb-2 w-fit"><Calculator className="h-6 w-6 text-white" /></div><h3 className="font-semibold text-sm sm:text-base text-gray-800">Kalkulator HPP</h3></Card></Link>
+        <Link to="/gudang" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-white"><div className="bg-green-500 p-2 sm:p-3 rounded-xl mx-auto mb-2 w-fit"><Warehouse className="h-6 w-6 text-white" /></div><h3 className="font-semibold text-sm sm:text-base">Kelola Gudang</h3></Card></Link>
+        <Link to="/pesanan" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-white"><div className="bg-purple-500 p-2 sm:p-3 rounded-xl mx-auto mb-2 w-fit"><ShoppingCart className="h-6 w-6 text-white" /></div><h3 className="font-semibold text-sm sm:text-base">Manajemen Pesanan</h3></Card></Link>
+        <Link to="/laporan" className="block"><Card className="shadow-lg border hover:shadow-xl transition-shadow flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-white"><div className="bg-orange-500 p-2 sm:p-3 rounded-xl mx-auto mb-2 w-fit"><FileText className="h-6 w-6 text-white" /></div><h3 className="font-semibold text-sm sm:text-base">Laporan Keuangan</h3></Card></Link>
       </div>
 
-      {/* Bottom Section (Two Columns) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-6"> {/* Responsive 1 atau 2 kolom */}
-        {/* Produk Terlaris & Stok Kritis */}
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-6">
+        {/* Produk Terlaris & Stok Kritis (Left Column) */}
         <div className="space-y-4 sm:space-y-6">
           <Card className="shadow-lg border">
-            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
+            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4 bg-gray-50">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
                 Produk Terlaris
               </CardTitle>
             </CardHeader>
@@ -316,14 +312,14 @@ const Dashboard = () => {
             {productAnalysis.bestSelling.length > itemsPerPage && (
               <CardFooter className="flex items-center justify-between py-2 sm:py-4 px-4 sm:px-6 border-t border-gray-100 bg-gray-50">
                 <Button variant="ghost" size="sm" onClick={() => setProductsPage(p => p - 1)} disabled={productsPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-xs sm:text-sm text-gray-600">Hal {productsPage} dari {totalProductsPages}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Halaman {productsPage} dari {totalProductsPages}</span>
                 <Button variant="ghost" size="sm" onClick={() => setProductsPage(p => p + 1)} disabled={productsPage >= totalProductsPages}><ChevronRight className="h-4 w-4" /></Button>
               </CardFooter>
             )}
           </Card>
 
           <Card className="shadow-lg border">
-            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
+            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4 bg-gray-50">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium text-red-700">
                 <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
                 Item Stok Kritis
@@ -360,7 +356,7 @@ const Dashboard = () => {
         {/* Right Column */}
         <div className="space-y-4 sm:space-y-6">
           <Card className="shadow-lg border">
-            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
+            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4 bg-gray-50">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
                 <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                 Aktivitas Terbaru
@@ -373,15 +369,18 @@ const Dashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {activitiesLoading ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-gray-500 py-8"><Skeleton className="h-10 w-full" /></TableCell></TableRow>
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-gray-500 py-8">
+                        <Skeleton className="h-10 w-full mx-auto mb-2" />
+                        <p>Memuat aktivitas...</p>
+                      </TableCell>
+                    </TableRow>
                   ) : currentActivities.length > 0 ? (
                     currentActivities.map((activity) => {
                       const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
                       let amount = 0;
-                      // Hapus `formatCurrency` dari activity.value sebelum parse float
                       if (isFinancial && activity.value && typeof activity.value === 'string') {
-                          // Pastikan parsing string seperti "Rp 1.000.000"
-                          const cleanValue = activity.value.replace(/Rp|\./g, '').replace(',', '.').trim(); // Hapus 'Rp', '.' (ribuan), dan ',' (desimal jika ada)
+                          const cleanValue = activity.value.replace(/[^0-9.,-]/g, '').replace(',', '.'); 
                           amount = parseFloat(cleanValue) || 0;
                       }
 
@@ -396,7 +395,11 @@ const Dashboard = () => {
                           <TableCell className="text-xs text-gray-500 text-right p-4 sm:p-6 w-[80px] sm:w-[100px] align-top">
                             {formatDateTime(activity.createdAt)}
                             {isFinancial && amount !== 0 && (
-                              <p className={`font-semibold mt-1 ${amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <p className={`font-semibold mt-1 ${
+                                activity.title.toLowerCase().includes('pemasukan') 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
                                 {formatCurrency(amount)}
                               </p>
                             )}
@@ -413,18 +416,18 @@ const Dashboard = () => {
                 </TableBody>
               </Table>
             </CardContent>
-            {filteredActivities.length > itemsPerPage && (
+            {activities.length > itemsPerPage && (
               <CardFooter className="flex items-center justify-between py-2 sm:py-4 px-4 sm:px-6 border-t border-gray-100 bg-gray-50">
                 <Button variant="ghost" size="sm" onClick={() => setActivitiesPage(p => p - 1)} disabled={activitiesPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-xs sm:text-sm text-gray-600">Halaman {activitiesPage} dari {totalActivitiesPages}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Hal {activitiesPage} dari {totalActivitiesPages}</span>
                 <Button variant="ghost" size="sm" onClick={() => setActivitiesPage(p => p + 1)} disabled={activitiesPage >= totalActivitiesPages}><ChevronRight className="h-4 w-4" /></Button>
               </CardFooter>
             )}
           </Card>
 
-          {/* Produk Kurang Laris */}
+          {/* Worst Selling Products */}
           <Card className="shadow-xl border">
-            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-slate-50">
+            <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4 bg-gray-50">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-medium">
                 <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                 Produk Kurang Laris

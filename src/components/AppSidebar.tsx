@@ -58,7 +58,7 @@ export function AppSidebar() {
       ]
     },
     {
-      label: "Produksi",
+      label: "Hitung HPP",
       items: [
         { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
         { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },

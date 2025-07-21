@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react'; // Menambahkan useCallback
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, ShoppingCart, Package, DollarSign, TrendingUp, Handshake, Users, Trophy, Bell, Activity as ActivityIcon, Receipt } from 'lucide-react';

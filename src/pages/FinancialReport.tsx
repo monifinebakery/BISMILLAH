@@ -4,7 +4,7 @@ import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Plus, Download } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart, Pie, Cell, BarChart, Bar, ComposedChart, Area

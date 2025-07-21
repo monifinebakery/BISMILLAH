@@ -96,7 +96,7 @@ const SettingsPage = () => {
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+            <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl">
                   <SettingsIcon className="h-8 w-8" />

@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
-import { useRecipe } = "@/contexts/RecipeContext";
+import { useRecipe } from "@/contexts/RecipeContext";
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useFinancial } from '@/contexts/FinancialContext';

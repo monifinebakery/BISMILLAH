@@ -1,9 +1,30 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
+import { 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarGroupLabel, 
+  SidebarGroupContent, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton, 
+  SidebarFooter,
+  useSidebar
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download, Receipt } from "lucide-react";
+import { 
+  Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt 
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
@@ -36,6 +57,10 @@ import { exportAllDataToExcel } from "@/lib/exportUtils";
 export function AppSidebar() {
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { state } = useSidebar();
+  
+  // Check if sidebar is collapsed
+  const isCollapsed = state === "collapsed";
   
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
@@ -109,91 +134,181 @@ export function AppSidebar() {
       financialTransactions,
     };
     
-    // Kirim nama bisnis dari settings ke fungsi ekspor
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
+  // Render menu item with conditional tooltip
+  const renderMenuItem = (item: any, isActive: boolean) => {
+    const menuButton = (
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className={cn(
+          "flex items-center",
+          isCollapsed ? "justify-center px-2" : "justify-start space-x-3"
+        )}
+      >
+        <Link 
+          to={item.url} 
+          className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "space-x-3"
+          )}
+        >
+          <item.icon className="h-5 w-5 flex-shrink-0" />
+          {!isCollapsed && <span>{item.title}</span>}
+        </Link>
+      </SidebarMenuButton>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {menuButton}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {item.title}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuButton;
+  };
+
+  // Render action button with conditional tooltip
+  const renderActionButton = (
+    button: React.ReactNode, 
+    tooltipText: string
+  ) => {
+    if (isCollapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {tooltipText}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return button;
+  };
+
   return (
-    <Sidebar className="border-r">
-      <SidebarHeader className="p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white">
+    <TooltipProvider>
+      <Sidebar className="border-r">
+        <SidebarHeader className={cn("p-4", isCollapsed && "px-2")}>
+          <div className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "space-x-3"
+          )}>
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
               <TrendingUp className="h-6 w-6" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold">HPP by Monifine</h2>
-            </div>
+            {!isCollapsed && (
+              <div>
+                <h2 className="text-lg font-bold">HPP by Monifine</h2>
+              </div>
+            )}
           </div>
-      </SidebarHeader>
+        </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4 flex-grow">
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label} className="mb-4">
-              <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
-                {group.label}
-              </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.url}
-                    >
-                      <Link to={item.url} className="flex items-center space-x-3">
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
+        <SidebarContent className={cn("px-2 py-4 flex-grow", isCollapsed && "px-1")}>
+          {menuGroups.map((group) => (
+            <SidebarGroup key={group.label} className="mb-4">
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      {renderMenuItem(item, location.pathname === item.url)}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t mt-auto">
-        <Button onClick={handleExportAllData} variant="outline" className="w-full justify-start mb-1">
-            <Download className="h-5 w-5 mr-3" />
-            Export Semua Data
-        </Button>
-        <SidebarMenu>
-            {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                        <Link to={item.url} className="flex items-center space-x-3">
-                            <item.icon className="h-5 w-5" />
-                            <span>{item.title}</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            ))}
+        <SidebarFooter className={cn("p-2 border-t mt-auto", isCollapsed && "px-1")}>
+          <SidebarMenu className="space-y-1">
+            {/* ======================= PERUBAHAN DI SINI ======================= */}
+            {/* Export Button dibuat konsisten dengan item menu lainnya */}
             <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setShowLogoutConfirm(true)} className="w-full text-red-500 hover:bg-red-50 hover:text-red-600">
-                    <div className="flex items-center space-x-3">
-                        <LogOut className="h-5 w-5" />
-                        <span>Keluar</span>
-                    </div>
-                </SidebarMenuButton>
+              {renderActionButton(
+                <SidebarMenuButton
+                  onClick={handleExportAllData}
+                  variant="outline"
+                  className={cn(
+                    isCollapsed ? "justify-center px-2" : "w-full"
+                  )}
+                >
+                  <div className={cn(
+                    "flex items-center",
+                    isCollapsed ? "justify-center" : "space-x-3"
+                  )}>
+                    <Download className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>Export Semua Data</span>}
+                  </div>
+                </SidebarMenuButton>,
+                "Export Semua Data"
+              )}
             </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+            {/* ===================== AKHIR DARI PERUBAHAN ===================== */}
+            
+            {/* Settings */}
+            {settingsItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                {renderMenuItem(item, location.pathname === item.url)}
+              </SidebarMenuItem>
+            ))}
 
-      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin keluar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Sidebar>
+            {/* Logout */}
+            <SidebarMenuItem>
+              {renderActionButton(
+                <SidebarMenuButton 
+                  onClick={() => setShowLogoutConfirm(true)} 
+                  className={cn(
+                    "text-red-500 hover:bg-red-50 hover:text-red-600",
+                    isCollapsed ? "justify-center px-2" : "w-full"
+                  )}
+                >
+                  <div className={cn(
+                    "flex items-center",
+                    isCollapsed ? "justify-center" : "space-x-3"
+                  )}>
+                    <LogOut className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>Keluar</span>}
+                  </div>
+                </SidebarMenuButton>,
+                "Keluar"
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+
+        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin keluar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Sidebar>
+    </TooltipProvider>
   );
 }

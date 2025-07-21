@@ -468,101 +468,163 @@ const FinancialReportPage = () => {
     </div>
   );
 
-  // Render tabel transaksi
-  const renderTransactionTable = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <CardTitle>Daftar Transaksi</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" /> Export
-            </Button>
-            <Button size="sm" onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Transaksi
-            </Button>
+   // Render tabel transaksi dengan pagination
+  const renderTransactionTable = () => {
+    // Hitung indeks untuk pagination
+    const indexOfLastTransaction = transactionsCurrentPage * transactionsPerPage;
+    const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
+    const currentTransactions = filteredTransactions.slice(
+      indexOfFirstTransaction, 
+      indexOfLastTransaction
+    );
+    const totalTransactionPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
+
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <CardTitle>Daftar Transaksi</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" /> Export
+              </Button>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Transaksi
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : filteredTransactions.length > 0 ? (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50">
-                <TableRow>
-                  <TableHead className="w-[120px]">Tanggal</TableHead>
-                  <TableHead>Deskripsi</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Tipe</TableHead>
-                  <TableHead className="text-right">Jumlah</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">
-                      {transaction.date ? format(transaction.date, 'dd MMM yyyy', { locale: id }) : '-'}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {transaction.description || 'Tanpa deskripsi'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {transaction.category || 'Lainnya'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={transaction.type === 'income' ? 'success' : 'destructive'}>
-                        {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(transaction.amount || 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mr-2 z-10 relative"
-                        onClick={() => handleEditClick(transaction)}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => deleteFinancialTransaction(transaction.id)}
-                      >
-                        Hapus
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">Tidak ada transaksi</h3>
-            <p className="text-gray-500 mb-4">Tambahkan transaksi baru untuk mulai melacak keuangan Anda</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              Tambah Transaksi Pertama
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : filteredTransactions.length > 0 ? (
+            <>
+              <div className="rounded-md border overflow-x-auto mb-4">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="w-[120px]">Tanggal</TableHead>
+                      <TableHead>Deskripsi</TableHead>
+                      <TableHead>Kategori</TableHead>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead className="text-right">Jumlah</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {currentTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium">
+                          {transaction.date ? format(transaction.date, 'dd MMM yyyy', { locale: id }) : '-'}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {transaction.description || 'Tanpa deskripsi'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {transaction.category || 'Lainnya'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={transaction.type === 'income' ? 'success' : 'destructive'}>
+                            {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(transaction.amount || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mr-2 z-10 relative"
+                            onClick={() => handleEditClick(transaction)}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => deleteFinancialTransaction(transaction.id)}
+                          >
+                            Hapus
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <span>Menampilkan</span>
+                  <Select
+                    value={transactionsPerPage.toString()}
+                    onValueChange={(value) => {
+                      setTransactionsPerPage(Number(value));
+                      setTransactionsCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-20 mx-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span>entri per halaman</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Halaman {transactionsCurrentPage} dari {totalTransactionPages}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setTransactionsCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={transactionsCurrentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setTransactionsCurrentPage(prev => Math.min(prev + 1, totalTransactionPages))}
+                      disabled={transactionsCurrentPage === totalTransactionPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Tidak ada transaksi</h3>
+              <p className="text-gray-500 mb-4">Tambahkan transaksi baru untuk mulai melacak keuangan Anda</p>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                Tambah Transaksi Pertama
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-6">

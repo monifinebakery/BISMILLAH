@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, AlertTriangle, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';

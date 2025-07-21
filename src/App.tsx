@@ -165,7 +165,6 @@ const App = () => {
                   <Route path="pesanan">
                     <Route index element={<OrdersPage />} />
                     <Route path="invoice/:orderId" element={<InvoicePage />} />
-                    <Route path="invoice" element={<InvoicePage />} />
                     
                   </Route>
                   <Route path="promo" element={<PromoCalculatorPage />} /> {/* ✨ RUTE BARU DITAMBAHKAN */}

@@ -33,27 +33,23 @@ export default defineConfig(({ mode, command }) => {
         output: {
           manualChunks(id: string) {
             if (id.includes('node_modules')) {
+              // HAPUS ATURAN UNTUK RECHARTS DAN D3-
+              // if (id.includes('recharts') || id.includes('d3-')) {
+              //   return 'vendor_charts';
+              // }
               
-              // --- PERBAIKAN ---
-              // Kita akan membiarkan Vite menangani React & React-DOM secara otomatis.
-              // Kita hanya akan memisahkan library besar lainnya.
+              // Biarkan Vite menangani Recharts secara default.
+              // Ini akan mencegah pemisahan yang mungkin mengganggu inisialisasi internalnya.
 
-              // 1. Pisahkan library chart yang sangat besar
-              if (id.includes('recharts') || id.includes('d3-')) {
-                return 'vendor_charts';
-              }
-              
-              // 2. Pisahkan library kalender/tanggal
+              // Aturan lain yang sudah ada (biarkan ini jika masih diperlukan)
               if (id.includes('date-fns') || id.includes('react-day-picker')) {
                 return 'vendor_date';
               }
-              
-              // 3. Aturan lain yang sudah ada
               if (id.includes('@supabase')) return 'vendor_supabase';
               if (id.includes('lucide-react')) return 'vendor_lucide';
               
-              // Biarkan sisa node_modules (termasuk React) di-handle oleh Vite
-              // atau masuk ke dalam chunk vendor umum.
+              // Biarkan sisa node_modules masuk ke chunk vendor umum (default Vite)
+              return 'vendor'; // Atau biarkan Vite yang memutuskan jika tidak ada return di sini
             }
           }
         }

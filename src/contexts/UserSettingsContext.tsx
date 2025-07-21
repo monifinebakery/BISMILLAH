@@ -10,15 +10,14 @@ interface FinancialCategories {
   expense: string[];
 }
 
-// Interface ini mendefinisikan bentuk data pengaturan di dalam aplikasi (camelCase)
+// ✨ MENGGUNAKAN INTERFACE ANDA YANG LEBIH LENGKAP
 export interface UserSettings {
   businessName: string;
   ownerName: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  backup: { auto: boolean };
-  notifications: { // Objek notifikasi ditambahkan
+  email: string;
+  phone: string;
+  address: string;
+  notifications: {
     lowStock: boolean;
     newOrder: boolean;
   };
@@ -26,30 +25,28 @@ export interface UserSettings {
   recipeCategories: string[];
 }
 
-// Interface untuk tipe context yang akan di-provide
 interface UserSettingsContextType {
   settings: UserSettings;
-  updateSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>;
+  saveSettings: (newSettings: Partial<UserSettings>) => Promise<boolean>;
   isLoading: boolean;
 }
 
-// Pengaturan default yang digunakan saat pengguna baru atau saat logout
+// ✨ PENGATURAN DEFAULT DISESUAIKAN DENGAN INTERFACE LENGKAP
 const defaultSettings: UserSettings = {
   businessName: 'Bisnis Anda',
   ownerName: 'Nama Anda',
   email: '',
   phone: '',
   address: '',
-  backup: { auto: true },
-  notifications: { // Nilai default untuk notifikasi
+  notifications: {
     lowStock: true,
     newOrder: true,
   },
   financialCategories: {
     income: ['Penjualan Produk', 'Pendapatan Jasa'],
-    expense: ['Gaji', 'Bahan Baku', 'Sewa', 'Marketing', 'Lainnya'],
+    expense: ['Gaji', 'Pembelian Bahan Baku', 'Sewa', 'Marketing', 'Lainnya'],
   },
-  recipeCategories: ['Makanan Utama', 'Minuman', 'Dessert', 'Snack'],
+  recipeCategories: ['Makanan Utama', 'Minuman', 'Dessert'],
 };
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
@@ -57,105 +54,68 @@ const UserSettingsContext = createContext<UserSettingsContextType | undefined>(u
 // --- PROVIDER COMPONENT ---
 
 export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  const transformSettingsFromDB = (dbData: any): UserSettings => {
-    return {
-      ...defaultSettings,
-      businessName: dbData.business_name ?? defaultSettings.businessName,
-      ownerName: dbData.owner_name ?? defaultSettings.ownerName,
-      email: dbData.email ?? defaultSettings.email,
-      phone: dbData.phone ?? defaultSettings.phone,
-      address: dbData.address ?? defaultSettings.address,
-      backup: dbData.backup_settings ?? defaultSettings.backup,
-      notifications: dbData.notifications ?? defaultSettings.notifications, // Memuat notifikasi
-      financialCategories: dbData.financial_categories ?? defaultSettings.financialCategories,
-      recipeCategories: dbData.recipe_categories ?? defaultSettings.recipeCategories,
-    };
-  };
+  const fetchSettings = useCallback(async () => {
+    if (!user) {
+      setSettings(defaultSettings);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('settings_data')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      toast.error("Gagal memuat pengaturan.");
+    }
+
+    if (data?.settings_data) {
+      // Gabungkan data dari DB dengan default untuk memastikan semua properti ada
+      setSettings({ ...defaultSettings, ...data.settings_data });
+    } else {
+      setSettings(defaultSettings);
+    }
+    setIsLoading(false);
+  }, [user]);
 
   useEffect(() => {
-    const fetchAndListen = async () => {
-      if (!session) {
-        setSettings(defaultSettings);
-        setIsLoading(false);
-        return;
-      }
+    fetchSettings();
+  }, [fetchSettings]);
 
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        toast.error("Gagal memuat pengaturan: " + error.message);
-      } else {
-        setSettings(transformSettingsFromDB(data));
-      }
-      setIsLoading(false);
-
-      const channel = supabase
-        .channel(`settings-${session.user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings', filter: `user_id=eq.${session.user.id}` },
-          (payload) => {
-            setSettings(transformSettingsFromDB(payload.new));
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
-    const subscription = fetchAndListen();
-
-    return () => {
-        // Membersihkan subscription saat komponen unmount
-        Promise.resolve(subscription).then(sub => sub && sub());
-    };
-  }, [session]);
-
-  const updateSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
-    if (!session) {
-      toast.error("Anda harus login untuk mengubah pengaturan.");
+  const saveSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
+    if (!user) {
+      toast.error("Anda harus login untuk menyimpan pengaturan.");
       return false;
     }
 
     const updatedSettings = { ...settings, ...newSettings };
 
-    const settingsToSave = {
-      user_id: session.user.id,
-      business_name: updatedSettings.businessName,
-      owner_name: updatedSettings.ownerName,
-      email: updatedSettings.email,
-      phone: updatedSettings.phone,
-      address: updatedSettings.address,
-      backup_settings: updatedSettings.backup,
-      notifications: updatedSettings.notifications, // Menyimpan notifikasi
-      financial_categories: updatedSettings.financialCategories,
-      recipe_categories: updatedSettings.recipeCategories,
-    };
-
-    const { error } = await supabase.from('user_settings').upsert(settingsToSave, { onConflict: 'user_id' });
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ 
+        user_id: user.id, 
+        settings_data: updatedSettings 
+      }, { onConflict: 'user_id' });
 
     if (error) {
       toast.error("Gagal menyimpan pengaturan: " + error.message);
       return false;
     }
-    
-    toast.success("Pengaturan berhasil disimpan.");
+
+    setSettings(updatedSettings);
+    // Tidak perlu toast sukses di sini agar tidak mengganggu saat auto-save
     return true;
   };
-  
-  const value = { settings, updateSettings, isLoading };
 
   return (
-    <UserSettingsContext.Provider value={value}>
+    <UserSettingsContext.Provider value={{ settings, saveSettings, isLoading }}>
       {children}
     </UserSettingsContext.Provider>
   );

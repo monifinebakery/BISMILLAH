@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2, MoreHorizontal } from 'lucide-react';
+import { Users, Plus, AlertTriangle, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2, MoreHorizontal } from 'lucide-react';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';

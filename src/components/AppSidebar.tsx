@@ -54,7 +54,7 @@ export function AppSidebar() {
       label: "Dashboard",
       items: [
         { title: "Dashboard", url: "/", icon: DashboardIcon },
-        { title: "Kalkulator Promo", url: "/hpp", icon: Calculator },
+        { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
       ]
     },
     {

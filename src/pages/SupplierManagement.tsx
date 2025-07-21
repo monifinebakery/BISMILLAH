@@ -6,14 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Plus, AlertTriangle, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2 } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, CheckSquare, X, Loader2, MoreHorizontal } from 'lucide-react';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { toast } from 'sonner';
 import { Supplier } from '@/types/supplier';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Eye } from 'lucide-react';
 
 const SupplierManagement = () => {
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
@@ -40,7 +42,11 @@ const SupplierManagement = () => {
       ? await updateSupplier(editingSupplier.id, dataToSave)
       : await addSupplier(dataToSave);
 
-    if (success) setIsDialogOpen(false);
+    if (success) {
+      setIsDialogOpen(false);
+      setEditingSupplier(null);
+      setSelectedSupplierIds(prev => prev.filter(id => id !== (editingSupplier?.id || '')));
+    }
   };
 
   const openDialog = (supplier: Supplier | null = null) => {
@@ -57,7 +63,9 @@ const SupplierManagement = () => {
   };
 
   const handleDeleteSupplier = async (id: string) => {
+    setSelectedSupplierIds(prev => prev.filter(sId => sId !== id)); // Update state sebelum penghapusan
     await deleteSupplier(id);
+    toast.success('Supplier berhasil dihapus.');
   };
 
   const handleBulkDelete = async () => {
@@ -65,10 +73,10 @@ const SupplierManagement = () => {
       toast.warning('Pilih item yang ingin dihapus terlebih dahulu');
       return;
     }
+    setSelectedSupplierIds([]); // Bersihkan state seleksi sebelum penghapusan
     const success = await Promise.all(selectedSupplierIds.map(id => deleteSupplier(id)));
     if (success.every(s => s)) {
       setShowBulkDeleteDialog(false);
-      setSelectedSupplierIds([]);
       setIsSelectionMode(false);
       toast.success('Supplier berhasil dihapus!');
     }
@@ -76,9 +84,9 @@ const SupplierManagement = () => {
 
   const toggleSelectAllCurrent = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      currentSuppliers.forEach(s => !selectedSupplierIds.includes(s.id) && setSelectedSupplierIds(prev => [...prev, s.id]));
+      setSelectedSupplierIds(prev => [...new Set([...prev, ...currentSuppliers.map(s => s.id)])]);
     } else {
-      currentSuppliers.forEach(s => selectedSupplierIds.includes(s.id) && setSelectedSupplierIds(prev => prev.filter(id => id !== s.id)));
+      setSelectedSupplierIds(prev => prev.filter(id => !currentSuppliers.some(s => s.id === id)));
     }
   };
 
@@ -290,7 +298,7 @@ const SupplierManagement = () => {
                     key={supplier.id}
                     className={cn(
                       "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
-                      isSelected(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                      selectedSupplierIds.includes(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     )}
                   >

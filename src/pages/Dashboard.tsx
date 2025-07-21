@@ -20,7 +20,7 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths, eachDayOfInterval
 import { id } from 'date-fns/locale';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  XAxis, YAxis, Pie, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
 // Helper function untuk format waktu

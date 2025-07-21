@@ -187,7 +187,7 @@ const PurchaseManagement = () => {
           </div>
         </div>
         <Button 
-  className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md transition-all duration-300 py-3 px-5 rounded-lg"
+  className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg"
   onClick={handleNewOrder}
 >
   <Plus className="h-5 w-5 stroke-[3]" />

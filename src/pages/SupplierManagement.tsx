@@ -37,25 +37,47 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { cn } from '@/lib/utils';
 
 const SupplierManagement = () => {
-  const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
+  // =====================================================================
+  // PERUBAHAN: Gunakan semua state dan fungsi dari Context
+  // =====================================================================
+  const { 
+    suppliers, 
+    isLoading, 
+    addSupplier, 
+    updateSupplier, 
+    deleteSupplier,
+    selectedItems,
+    isSelectionMode,
+    toggleSelectionMode,
+    isSelected,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    bulkDeleteSupplier,
+    isBulkDeleting,
+    getSelectedItems, // Mengambil fungsi ini untuk menampilkan nama di dialog
+  } = useSupplier();
   
-  // Form and dialog state
+  // Form and dialog state (ini tetap lokal karena hanya untuk UI)
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [newSupplier, setNewSupplier] = useState({
     nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '',
   });
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   // Table and pagination state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Bulk selection state
-  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  // =====================================================================
+  // DIHAPUS: Semua state & fungsi selection lokal dihapus
+  // const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  // const [isSelectionMode, setIsSelectionMode] = useState(false);
+  // const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  // toggleSupplierSelection, selectAllSuppliers, dll.
+  // =====================================================================
 
   // Filtered and paginated data
   const filteredSuppliers = useMemo(() => 
@@ -73,95 +95,37 @@ const SupplierManagement = () => {
 
   const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
 
-  // Bulk selection functions
-  const toggleSupplierSelection = (id: string) => {
-    setSelectedSuppliers(prev => 
-      prev.includes(id) 
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
-  };
+  // Logic untuk checkbox "select all" di header tabel
+  const allCurrentPageSelected = currentSuppliers.length > 0 && currentSuppliers.every(supplier => isSelected(supplier.id));
+  const someCurrentPageSelected = currentSuppliers.some(supplier => isSelected(supplier.id)) && !allCurrentPageSelected;
 
-  const selectAllSuppliers = () => {
-    setSelectedSuppliers(filteredSuppliers.map(supplier => supplier.id));
-  };
-
-  const clearSupplierSelection = () => {
-    setSelectedSuppliers([]);
-    setIsSelectionMode(false);
-  };
-
-  const toggleSelectionMode = () => {
-    setIsSelectionMode(prev => !prev);
-    if (isSelectionMode) {
-      setSelectedSuppliers([]);
-    }
-  };
-
-  const isSupplierSelected = (id: string) => selectedSuppliers.includes(id);
-
-  const getSelectedSuppliers = () => {
-    return filteredSuppliers.filter(supplier => selectedSuppliers.includes(supplier.id));
-  };
-
-  const allCurrentSelected = currentSuppliers.length > 0 && currentSuppliers.every(supplier => isSupplierSelected(supplier.id));
-  const someCurrentSelected = currentSuppliers.some(supplier => isSupplierSelected(supplier.id)) && !allCurrentSelected;
-
-  const handleSelectAllCurrent = () => {
-    if (allCurrentSelected) {
+  const handleSelectAllCurrentPage = () => {
+    if (allCurrentPageSelected) {
+      // Deselect all on the current page
       currentSuppliers.forEach(supplier => {
-        if (isSupplierSelected(supplier.id)) {
-          toggleSupplierSelection(supplier.id);
+        if (isSelected(supplier.id)) {
+          toggleSelection(supplier.id);
         }
       });
     } else {
+      // Select all on the current page
       currentSuppliers.forEach(supplier => {
-        if (!isSupplierSelected(supplier.id)) {
-          toggleSupplierSelection(supplier.id);
+        if (!isSelected(supplier.id)) {
+          toggleSelection(supplier.id);
         }
       });
     }
   };
 
   // Bulk delete function
-  const handleBulkDeleteSuppliers = async () => {
-    if (selectedSuppliers.length === 0) {
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) {
       toast.warning('Pilih supplier yang ingin dihapus terlebih dahulu');
       return;
     }
-
-    setIsBulkDeleting(true);
-    try {
-      let successCount = 0;
-      const suppliersToDelete = getSelectedSuppliers();
-      
-      // Optimistic update - remove from UI first
-      const previousSuppliers = [...suppliers];
-      
-      for (const supplierId of selectedSuppliers) {
-        const success = await deleteSupplier(supplierId);
-        if (success) successCount++;
-      }
-
-      if (successCount === selectedSuppliers.length) {
-        toast.success(`${successCount} supplier berhasil dihapus!`);
-        setSelectedSuppliers([]);
-        setIsSelectionMode(false);
-        setShowBulkDeleteDialog(false);
-      } else if (successCount > 0) {
-        toast.warning(`${successCount} dari ${selectedSuppliers.length} supplier berhasil dihapus`);
-        // Refresh selection to remove successfully deleted items
-        setSelectedSuppliers(prev => prev.filter(id => 
-          !suppliersToDelete.slice(0, successCount).map(s => s.id).includes(id)
-        ));
-      } else {
-        toast.error('Gagal menghapus supplier');
-      }
-    } catch (error) {
-      console.error('Error bulk deleting suppliers:', error);
-      toast.error('Terjadi kesalahan saat menghapus supplier');
-    } finally {
-      setIsBulkDeleting(false);
+    const success = await bulkDeleteSupplier(selectedItems);
+    if (success) {
+      setShowBulkDeleteDialog(false);
     }
   };
 
@@ -207,12 +171,17 @@ const SupplierManagement = () => {
     setEditingSupplier(null);
   };
 
-  const handleDeleteSupplier = async (id: string, name: string) => {
+  const handleDeleteSingleSupplier = async (id: string, name: string) => {
+    // Fungsi ini tetap menggunakan deleteSupplier dari context, sudah benar.
     const success = await deleteSupplier(id);
     if (success) {
       toast.success(`Supplier "${name}" berhasil dihapus`);
     }
   };
+  
+  // Ambil list nama supplier yang dipilih untuk ditampilkan di dialog konfirmasi
+  const selectedSupplierDetails = useMemo(() => getSelectedItems(), [selectedItems, suppliers]);
+
 
   if (isLoading) {
     return (
@@ -228,40 +197,40 @@ const SupplierManagement = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto p-4 sm:p-8 space-y-8">
-        {/* Enhanced Header */}
+        {/* ... (Bagian Header tidak berubah) ... */}
         <div className="bg-white rounded-2xl shadow-xl border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Manajemen Supplier</h1>
-                  <p className="text-blue-100 text-lg mt-1">
-                    Kelola semua partner dan pemasok bisnis Anda
-                  </p>
-                  <p className="text-blue-200 text-sm mt-1">
-                    Total {filteredSuppliers.length} supplier terdaftar
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <Button
-                  onClick={() => openDialog(null)}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200"
-                >
-                  <Plus className="h-5 w-5" />
-                  Tambah Supplier
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+             <div className="flex items-center gap-4">
+               <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                 <Users className="h-8 w-8 text-white" />
+               </div>
+               <div>
+                 <h1 className="text-3xl font-bold">Manajemen Supplier</h1>
+                 <p className="text-blue-100 text-lg mt-1">
+                   Kelola semua partner dan pemasok bisnis Anda
+                 </p>
+                 <p className="text-blue-200 text-sm mt-1">
+                   Total {filteredSuppliers.length} supplier terdaftar
+                 </p>
+               </div>
+             </div>
+             
+             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+               <Button
+                 onClick={() => openDialog(null)}
+                 className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200"
+               >
+                 <Plus className="h-5 w-5" />
+                 Tambah Supplier
+               </Button>
+             </div>
+           </div>
+         </div>
+       </div>
 
-        {/* Bulk Actions Toolbar */}
-        {(isSelectionMode || selectedSuppliers.length > 0) && (
+        {/* Bulk Actions Toolbar - Gunakan state dari Context */}
+        {(isSelectionMode || selectedItems.length > 0) && (
           <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -270,9 +239,9 @@ const SupplierManagement = () => {
                     <CheckSquare className="h-5 w-5 text-blue-600" />
                     <span className="font-medium text-blue-700">Mode Pilih Multiple</span>
                   </div>
-                  {selectedSuppliers.length > 0 && (
+                  {selectedItems.length > 0 && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1 font-semibold">
-                      {selectedSuppliers.length} supplier dipilih
+                      {selectedItems.length} supplier dipilih
                     </Badge>
                   )}
                 </div>
@@ -281,7 +250,7 @@ const SupplierManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={clearSupplierSelection}
+                    onClick={clearSelection} // <--- Ganti ke fungsi Context
                     className="border-gray-300 hover:bg-gray-50"
                   >
                     <X className="h-4 w-4 mr-2" />
@@ -291,13 +260,13 @@ const SupplierManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={selectAllSuppliers}
+                    onClick={selectAll} // <--- Ganti ke fungsi Context
                     className="border-blue-300 text-blue-600 hover:bg-blue-50"
                   >
                     Pilih Semua ({filteredSuppliers.length})
                   </Button>
 
-                  {selectedSuppliers.length > 0 && (
+                  {selectedItems.length > 0 && (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -310,7 +279,7 @@ const SupplierManagement = () => {
                       ) : (
                         <Trash2 className="h-4 w-4 mr-2" />
                       )}
-                      Hapus {selectedSuppliers.length} Supplier
+                      Hapus {selectedItems.length} Supplier
                     </Button>
                   )}
                 </div>
@@ -325,6 +294,7 @@ const SupplierManagement = () => {
           <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
+                 {/* ... (Bagian 'Show entries' tidak berubah) ... */}
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Label htmlFor="show-entries" className="whitespace-nowrap font-medium">Show</Label>
                   <Select value={String(itemsPerPage)} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
@@ -340,11 +310,10 @@ const SupplierManagement = () => {
                   </Select>
                   <span className="font-medium">entries</span>
                 </div>
-
                 <Button
                   variant={isSelectionMode ? "default" : "outline"}
                   size="sm"
-                  onClick={toggleSelectionMode}
+                  onClick={toggleSelectionMode} // <--- Ganti ke fungsi Context
                   className={isSelectionMode ? "bg-blue-600 hover:bg-blue-700" : "border-blue-300 text-blue-600 hover:bg-blue-50"}
                 >
                   {isSelectionMode ? (
@@ -362,6 +331,7 @@ const SupplierManagement = () => {
               </div>
 
               <div className="w-full lg:w-auto relative">
+                 {/* ... (Bagian search tidak berubah) ... */}
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Cari supplier, kontak, email, atau telepon..."
@@ -381,15 +351,16 @@ const SupplierManagement = () => {
                   <TableHead className="w-12 p-4">
                     {isSelectionMode && (
                       <Checkbox
-                        checked={allCurrentSelected}
+                        checked={allCurrentPageSelected}
                         ref={(el) => {
-                          if (el) el.indeterminate = someCurrentSelected;
+                          if (el) el.indeterminate = someCurrentPageSelected;
                         }}
-                        onCheckedChange={handleSelectAllCurrent}
+                        onCheckedChange={handleSelectAllCurrentPage} // <--- Gunakan fungsi baru
                         className="border-gray-400"
                       />
                     )}
                   </TableHead>
+                  {/* ... (Header lainnya tidak berubah) ... */}
                   <TableHead className="font-semibold text-gray-700">Supplier</TableHead>
                   <TableHead className="font-semibold text-gray-700">Kontak Person</TableHead>
                   <TableHead className="font-semibold text-gray-700">Email</TableHead>
@@ -405,88 +376,85 @@ const SupplierManagement = () => {
                       key={supplier.id} 
                       className={cn(
                         "hover:bg-blue-50/50 transition-colors border-b border-gray-100",
-                        isSupplierSelected(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                        isSelected(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500", // <--- Ganti ke fungsi Context
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                       )}
                     >
                       <TableCell className="p-4">
                         {isSelectionMode && (
                           <Checkbox
-                            checked={isSupplierSelected(supplier.id)}
-                            onCheckedChange={() => toggleSupplierSelection(supplier.id)}
+                            checked={isSelected(supplier.id)} // <--- Ganti ke fungsi Context
+                            onCheckedChange={() => toggleSelection(supplier.id)} // <--- Ganti ke fungsi Context
                             className="border-gray-400"
                           />
                         )}
                       </TableCell>
                       
-                      <TableCell className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <Building2 className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{supplier.nama}</p>
-                            {supplier.catatan && (
-                              <p className="text-xs text-gray-500 mt-1 truncate max-w-[200px]" title={supplier.catatan}>
-                                {supplier.catatan}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium text-gray-800">{supplier.kontak}</span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="p-4">
-                        {supplier.email ? (
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-gray-400" />
-                            <a 
-                              href={`mailto:${supplier.email}`} 
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              {supplier.email}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="p-4">
-                        {supplier.telepon ? (
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-gray-400" />
-                            <a 
-                              href={`tel:${supplier.telepon}`} 
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              {supplier.telepon}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="p-4">
-                        {supplier.alamat ? (
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700 truncate max-w-[150px]" title={supplier.alamat}>
-                              {supplier.alamat}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-
+                      {/* ... (Tampilan data di Cell lainnya tidak berubah) ... */}
+                       <TableCell className="p-4">
+                         <div className="flex items-center gap-3">
+                           <div className="bg-blue-100 p-2 rounded-lg">
+                             <Building2 className="h-4 w-4 text-blue-600" />
+                           </div>
+                           <div>
+                             <p className="font-semibold text-gray-900">{supplier.nama}</p>
+                             {supplier.catatan && (
+                               <p className="text-xs text-gray-500 mt-1 truncate max-w-[200px]" title={supplier.catatan}>
+                                 {supplier.catatan}
+                               </p>
+                             )}
+                           </div>
+                         </div>
+                       </TableCell>
+                       <TableCell className="p-4">
+                         <div className="flex items-center gap-2">
+                           <Users className="h-4 w-4 text-gray-400" />
+                           <span className="font-medium text-gray-800">{supplier.kontak}</span>
+                         </div>
+                       </TableCell>
+                       <TableCell className="p-4">
+                         {supplier.email ? (
+                           <div className="flex items-center gap-2">
+                             <Mail className="h-4 w-4 text-gray-400" />
+                             <a 
+                               href={`mailto:${supplier.email}`} 
+                               className="text-blue-600 hover:text-blue-800 hover:underline"
+                             >
+                               {supplier.email}
+                             </a>
+                           </div>
+                         ) : (
+                           <span className="text-gray-400">-</span>
+                         )}
+                       </TableCell>
+                       <TableCell className="p-4">
+                         {supplier.telepon ? (
+                           <div className="flex items-center gap-2">
+                             <Phone className="h-4 w-4 text-gray-400" />
+                             <a 
+                               href={`tel:${supplier.telepon}`} 
+                               className="text-blue-600 hover:text-blue-800 hover:underline"
+                             >
+                               {supplier.telepon}
+                             </a>
+                           </div>
+                         ) : (
+                           <span className="text-gray-400">-</span>
+                         )}
+                       </TableCell>
+                       <TableCell className="p-4">
+                         {supplier.alamat ? (
+                           <div className="flex items-center gap-2">
+                             <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                             <span className="text-gray-700 truncate max-w-[150px]" title={supplier.alamat}>
+                               {supplier.alamat}
+                             </span>
+                           </div>
+                         ) : (
+                           <span className="text-gray-400">-</span>
+                         )}
+                       </TableCell>
+                      
                       <TableCell className="text-center p-4">
                         {!isSelectionMode && (
                           <DropdownMenu>
@@ -506,7 +474,7 @@ const SupplierManagement = () => {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleDeleteSupplier(supplier.id, supplier.nama)} 
+                                onClick={() => handleDeleteSingleSupplier(supplier.id, supplier.nama)} 
                                 className="cursor-pointer text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -519,87 +487,88 @@ const SupplierManagement = () => {
                     </TableRow>
                   ))
                 ) : (
+                  // ... (Tampilan 'No Data' tidak berubah) ...
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
-                      <div className="flex flex-col items-center gap-4">
-                        <Users className="h-16 w-16 text-gray-300" />
-                        <div className="text-center">
-                          <p className="text-lg font-medium text-gray-600 mb-2">
-                            {searchTerm ? 'Supplier tidak ditemukan' : 'Belum ada data supplier'}
-                          </p>
-                          <p className="text-gray-500 text-sm mb-4">
-                            {searchTerm ? 'Coba ubah kata kunci pencarian Anda' : 'Mulai dengan menambahkan supplier pertama'}
-                          </p>
-                        </div>
-                        {!searchTerm && (
-                          <Button
-                            onClick={() => openDialog(null)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md transition-all duration-200"
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Supplier Pertama
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                   <TableCell colSpan={7} className="text-center py-12">
+                     <div className="flex flex-col items-center gap-4">
+                       <Users className="h-16 w-16 text-gray-300" />
+                       <div className="text-center">
+                         <p className="text-lg font-medium text-gray-600 mb-2">
+                           {searchTerm ? 'Supplier tidak ditemukan' : 'Belum ada data supplier'}
+                         </p>
+                         <p className="text-gray-500 text-sm mb-4">
+                           {searchTerm ? 'Coba ubah kata kunci pencarian Anda' : 'Mulai dengan menambahkan supplier pertama'}
+                         </p>
+                       </div>
+                       {!searchTerm && (
+                         <Button
+                           onClick={() => openDialog(null)}
+                           className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md transition-all duration-200"
+                         >
+                           <Plus className="h-4 w-4 mr-2" />
+                           Tambah Supplier Pertama
+                         </Button>
+                       )}
+                     </div>
+                   </TableCell>
+                 </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
 
-          {/* Pagination Footer */}
+          {/* ... (Pagination tidak berubah, tapi info jumlah selected item diupdate) ... */}
           {filteredSuppliers.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
-              <div className="text-sm text-gray-600 mb-4 sm:mb-0">
-                Showing <span className="font-semibold">{Math.min(filteredSuppliers.length, (currentPage - 1) * itemsPerPage + 1)}</span> to{' '}
-                <span className="font-semibold">{Math.min(filteredSuppliers.length, currentPage * itemsPerPage)}</span> of{' '}
-                <span className="font-semibold">{filteredSuppliers.length}</span> suppliers
-                {selectedSuppliers.length > 0 && (
-                  <span className="ml-2 text-blue-600 font-medium">
-                    ({selectedSuppliers.length} selected)
-                  </span>
-                )}
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 hover:bg-gray-100"
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={cn(
-                        "h-9 w-9",
-                        currentPage === page
-                          ? "bg-blue-500 text-white shadow-md hover:bg-blue-600"
-                          : "hover:bg-gray-100"
-                      )}
-                      variant={currentPage === page ? "default" : "ghost"}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 hover:bg-gray-100"
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+           <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
+             <div className="text-sm text-gray-600 mb-4 sm:mb-0">
+               Showing <span className="font-semibold">{Math.min(filteredSuppliers.length, (currentPage - 1) * itemsPerPage + 1)}</span> to{' '}
+               <span className="font-semibold">{Math.min(filteredSuppliers.length, currentPage * itemsPerPage)}</span> of{' '}
+               <span className="font-semibold">{filteredSuppliers.length}</span> suppliers
+               {selectedItems.length > 0 && ( // <--- Ganti ke selectedItems
+                 <span className="ml-2 text-blue-600 font-medium">
+                   ({selectedItems.length} selected)
+                 </span>
+               )}
+             </div>
+             {totalPages > 1 && (
+               <div className="flex items-center gap-1">
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   className="h-9 w-9 hover:bg-gray-100"
+                   onClick={() => setCurrentPage(p => p - 1)}
+                   disabled={currentPage === 1}
+                 >
+                   <ChevronLeft className="h-4 w-4" />
+                 </Button>
+                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                   <Button
+                     key={page}
+                     onClick={() => setCurrentPage(page)}
+                     className={cn(
+                       "h-9 w-9",
+                       currentPage === page
+                         ? "bg-blue-500 text-white shadow-md hover:bg-blue-600"
+                         : "hover:bg-gray-100"
+                     )}
+                     variant={currentPage === page ? "default" : "ghost"}
+                   >
+                     {page}
+                   </Button>
+                 ))}
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   className="h-9 w-9 hover:bg-gray-100"
+                   onClick={() => setCurrentPage(p => p + 1)}
+                   disabled={currentPage === totalPages}
+                 >
+                   <ChevronRight className="h-4 w-4" />
+                 </Button>
+               </div>
+             )}
+           </div>
+         )}
         </div>
 
         {/* Bulk Delete Confirmation Dialog */}
@@ -611,20 +580,20 @@ const SupplierManagement = () => {
                 Konfirmasi Hapus Multiple Supplier
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Anda akan menghapus <strong>{selectedSuppliers.length} supplier</strong>:
+                Anda akan menghapus <strong>{selectedItems.length} supplier</strong>:
                 
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-32 overflow-y-auto">
                   <ul className="space-y-1">
-                    {getSelectedSuppliers().slice(0, 5).map((supplier) => (
+                    {selectedSupplierDetails.slice(0, 5).map((supplier) => ( // <--- Gunakan derived state
                       <li key={supplier.id} className="flex items-center gap-2 text-sm">
                         <Trash2 className="h-3 w-3 text-red-500 flex-shrink-0" />
                         <span className="font-medium">{supplier.nama}</span>
                         <span className="text-gray-500">({supplier.kontak})</span>
                       </li>
                     ))}
-                    {selectedSuppliers.length > 5 && (
+                    {selectedItems.length > 5 && (
                       <li className="text-sm text-gray-500 italic">
-                        ... dan {selectedSuppliers.length - 5} supplier lainnya
+                        ... dan {selectedItems.length - 5} supplier lainnya
                       </li>
                     )}
                   </ul>
@@ -640,7 +609,7 @@ const SupplierManagement = () => {
                 Batal
               </AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleBulkDeleteSuppliers}
+                onClick={handleBulkDelete} // <--- Ganti ke fungsi baru
                 disabled={isBulkDeleting}
                 className="bg-red-600 hover:bg-red-700"
               >
@@ -652,7 +621,7 @@ const SupplierManagement = () => {
                 ) : (
                   <>
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Hapus {selectedSuppliers.length} Supplier
+                    Hapus {selectedItems.length} Supplier
                   </>
                 )}
               </AlertDialogAction>
@@ -660,124 +629,124 @@ const SupplierManagement = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Add/Edit Supplier Dialog */}
+        {/* ... (Add/Edit Supplier Dialog tidak berubah) ... */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                {editingSupplier ? (
-                  <>
-                    <Edit className="h-5 w-5" />
-                    Edit Supplier
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-5 w-5" />
-                    Tambah Supplier Baru
-                  </>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nama" className="font-medium text-gray-700">Nama Supplier *</Label>
-                  <Input 
-                    id="nama" 
-                    value={newSupplier.nama} 
-                    onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })} 
-                    placeholder="PT. Supplier Utama"
-                    className="mt-1"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="kontak" className="font-medium text-gray-700">Nama Kontak *</Label>
-                  <Input 
-                    id="kontak" 
-                    value={newSupplier.kontak} 
-                    onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })} 
-                    placeholder="Budi Santoso"
-                    className="mt-1"
-                    required
-                  />
-                </div>
-              </div>
+         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+             <DialogTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+               {editingSupplier ? (
+                 <>
+                   <Edit className="h-5 w-5" />
+                   Edit Supplier
+                 </>
+               ) : (
+                 <>
+                   <Plus className="h-5 w-5" />
+                   Tambah Supplier Baru
+                 </>
+               )}
+             </DialogTitle>
+           </DialogHeader>
+           
+           <div className="space-y-6 py-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <Label htmlFor="nama" className="font-medium text-gray-700">Nama Supplier *</Label>
+                 <Input 
+                   id="nama" 
+                   value={newSupplier.nama} 
+                   onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })} 
+                   placeholder="PT. Supplier Utama"
+                   className="mt-1"
+                   required
+                 />
+               </div>
+               <div>
+                 <Label htmlFor="kontak" className="font-medium text-gray-700">Nama Kontak *</Label>
+                 <Input 
+                   id="kontak" 
+                   value={newSupplier.kontak} 
+                   onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })} 
+                   placeholder="Budi Santoso"
+                   className="mt-1"
+                   required
+                 />
+               </div>
+             </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email" className="font-medium text-gray-700">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={newSupplier.email} 
-                    onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })} 
-                    placeholder="kontak@supplier.com"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="telepon" className="font-medium text-gray-700">Telepon</Label>
-                  <Input 
-                    id="telepon" 
-                    type="tel" 
-                    value={newSupplier.telepon} 
-                    onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })} 
-                    placeholder="+62 812 3456 7890"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <Label htmlFor="email" className="font-medium text-gray-700">Email</Label>
+                 <Input 
+                   id="email" 
+                   type="email" 
+                   value={newSupplier.email} 
+                   onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })} 
+                   placeholder="kontak@supplier.com"
+                   className="mt-1"
+                 />
+               </div>
+               <div>
+                 <Label htmlFor="telepon" className="font-medium text-gray-700">Telepon</Label>
+                 <Input 
+                   id="telepon" 
+                   type="tel" 
+                   value={newSupplier.telepon} 
+                   onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })} 
+                   placeholder="+62 812 3456 7890"
+                   className="mt-1"
+                 />
+               </div>
+             </div>
 
-              <div>
-                <Label htmlFor="alamat" className="font-medium text-gray-700">Alamat</Label>
-                <Textarea 
-                  id="alamat" 
-                  value={newSupplier.alamat} 
-                  onChange={(e) => setNewSupplier({ ...newSupplier, alamat: e.target.value })} 
-                  rows={3}
-                  placeholder="Jl. Supplier No. 123, Jakarta"
-                  className="mt-1"
-                />
-              </div>
+             <div>
+               <Label htmlFor="alamat" className="font-medium text-gray-700">Alamat</Label>
+               <Textarea 
+                 id="alamat" 
+                 value={newSupplier.alamat} 
+                 onChange={(e) => setNewSupplier({ ...newSupplier, alamat: e.target.value })} 
+                 rows={3}
+                 placeholder="Jl. Supplier No. 123, Jakarta"
+                 className="mt-1"
+               />
+             </div>
 
-              <div>
-                <Label htmlFor="catatan" className="font-medium text-gray-700">Catatan</Label>
-                <Textarea 
-                  id="catatan" 
-                  value={newSupplier.catatan} 
-                  onChange={(e) => setNewSupplier({ ...newSupplier, catatan: e.target.value })} 
-                  rows={3}
-                  placeholder="Catatan tambahan tentang supplier..."
-                  className="mt-1"
-                />
-              </div>
+             <div>
+               <Label htmlFor="catatan" className="font-medium text-gray-700">Catatan</Label>
+               <Textarea 
+                 id="catatan" 
+                 value={newSupplier.catatan} 
+                 onChange={(e) => setNewSupplier({ ...newSupplier, catatan: e.target.value })} 
+                 rows={3}
+                 placeholder="Catatan tambahan tentang supplier..."
+                 className="mt-1"
+               />
+             </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Batal
-                </Button>
-                <Button 
-                  onClick={handleSaveSupplier} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {editingSupplier ? (
-                    <>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Perbarui Supplier
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Supplier
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+             <div className="flex justify-end gap-3 pt-4 border-t">
+               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                 Batal
+               </Button>
+               <Button 
+                 onClick={handleSaveSupplier} 
+                 className="bg-blue-600 hover:bg-blue-700 text-white"
+               >
+                 {editingSupplier ? (
+                   <>
+                     <Edit className="h-4 w-4 mr-2" />
+                     Perbarui Supplier
+                   </>
+                 ) : (
+                   <>
+                     <Plus className="h-4 w-4 mr-2" />
+                     Tambah Supplier
+                   </>
+                 )}
+               </Button>
+             </div>
+           </div>
+         </DialogContent>
+       </Dialog>
       </div>
     </div>
   );

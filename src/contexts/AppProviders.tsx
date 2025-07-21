@@ -1,5 +1,3 @@
-// src/contexts/AppProviders.tsx
-
 import React, { ReactNode } from 'react';
 
 // Import semua provider dari setiap file konteks Anda
@@ -14,29 +12,31 @@ import { AssetProvider } from './AssetContext';
 import { FinancialProvider } from './FinancialContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';
+import { PromoProvider } from './PromoContext'; // ✨ DITAMBAHKAN
 
-// ✅ Pastikan ada "export" di sini
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <AuthProvider>
       <UserSettingsProvider>
         <PaymentProvider>
           <ActivityProvider>
-            <BahanBakuProvider>
-              <SupplierProvider>
-                <RecipeProvider>
-                  <AssetProvider>
-                    <FinancialProvider>
-                      <PurchaseProvider>
-                        <OrderProvider>
-                          {children}
-                        </OrderProvider>
-                      </PurchaseProvider>
-                    </FinancialProvider>
-                  </AssetProvider>
-                </RecipeProvider>
-              </SupplierProvider>
-            </BahanBakuProvider>
+            <FinancialProvider>
+              <BahanBakuProvider>
+                <SupplierProvider>
+                  <PurchaseProvider>
+                    <OrderProvider>
+                      <RecipeProvider>
+                        <AssetProvider>
+                          <PromoProvider> {/* ✨ DITAMBAHKAN */}
+                            {children}
+                          </PromoProvider>
+                        </AssetProvider>
+                      </RecipeProvider>
+                    </OrderProvider>
+                  </PurchaseProvider>
+                </SupplierProvider>
+              </BahanBakuProvider>
+            </FinancialProvider>
           </ActivityProvider>
         </PaymentProvider>
       </UserSettingsProvider>

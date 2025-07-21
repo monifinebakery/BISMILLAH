@@ -1,3 +1,18 @@
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Users, Plus, Edit, Trash2, Phone, Mail, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import { Supplier } from '@/types/supplier';
+import { useSupplier } from '@/contexts/SupplierContext';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 const SupplierManagement = () => {
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

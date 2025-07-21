@@ -569,8 +569,11 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(
           sidebarMenuButtonVariants({ variant, size }), 
           className,
-          // Hide text when sidebar is collapsed
-          state === "collapsed" && "justify-center [&>span]:hidden"
+          // =========================================================================================
+          // PERBAIKAN: Menggunakan descendant selector '[&_span]' agar lebih fleksibel daripada '[&>span]'
+          // Ini memastikan teks akan tersembunyi meskipun dibungkus dalam div lain.
+          // =========================================================================================
+          state === "collapsed" && "justify-center [&_span]:hidden"
         )}
         {...props}
       />

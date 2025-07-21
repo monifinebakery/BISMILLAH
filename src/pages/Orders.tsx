@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'; // ✨ PERBAIKAN: Import Trash2 & hapus duplikat
+import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,21 +16,19 @@ import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';
 import WhatsappFollowUpModal from '@/components/WhatsappFollowUpModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from "@/components/ui/label";
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { orderStatusList, getStatusText, getStatusColor, ORDER_STATUS } from '@/constants/orderConstants'; // ✨ SARAN: Gunakan konstanta terpusat
+import { orderStatusList, getStatusText, getStatusColor } from '@/constants/orderConstants';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const OrdersPage = () => {
+  const isMobile = useIsMobile(); // ✅ PERBAIKAN 1: Hook dipanggil di sini
+
   // --- State Hooks ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 30), to: new Date() });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
@@ -77,8 +74,7 @@ const OrdersPage = () => {
     if (isEditingMode) {
       success = await updateOrder(editingOrder!.id, data);
     } else {
-      // ✨ PERBAIKAN: Hapus logika pembuatan nomor pesanan dari sini.
-      // Biarkan backend (OrderContext -> Supabase RPC) yang menanganinya.
+      // ✅ PERBAIKAN 2: Logika pembuatan nomor pesanan dihapus
       success = await addOrder(data as NewOrder);
     }
 
@@ -95,13 +91,10 @@ const OrdersPage = () => {
     const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;
 
     return orders.filter(order => {
-      const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) || order.namaPelanggan?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      
       const orderDate = order.tanggal ? new Date(order.tanggal) : null;
       const matchesDate = !rangeFrom || !rangeTo || !orderDate ? true : (orderDate >= rangeFrom && orderDate <= rangeTo);
-
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [orders, searchTerm, statusFilter, dateRange]);
@@ -120,18 +113,14 @@ const OrdersPage = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Manajemen Pesanan</h1>
           <p className="text-muted-foreground">Kelola semua pesanan dari pelanggan Anda.</p>
         </div>
-        <Button className="flex items-center gap-2" onClick={handleNewOrder}>
-          <Plus className="h-5 w-5" /> Pesanan Baru
-        </Button>
+        <Button className="flex items-center gap-2" onClick={handleNewOrder}><Plus className="h-5 w-5" /> Pesanan Baru</Button>
       </div>
 
-      {/* Filter Card */}
       <Card>
         <CardHeader><CardTitle>Filter Pesanan</CardTitle></CardHeader>
         <CardContent>
@@ -155,16 +144,13 @@ const OrdersPage = () => {
               <SelectTrigger><SelectValue placeholder="Filter Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                {orderStatusList.map((statusOption) => (
-                  <SelectItem key={statusOption.key} value={statusOption.key}>{statusOption.label}</SelectItem>
-                ))}
+                {orderStatusList.map((statusOption) => (<SelectItem key={statusOption.key} value={statusOption.key}>{statusOption.label}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Orders Table Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -183,34 +169,20 @@ const OrdersPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nomor Pesanan</TableHead>
-                  <TableHead>Pelanggan</TableHead>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead className="w-[180px]">Status</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead>Nomor Pesanan</TableHead><TableHead>Pelanggan</TableHead><TableHead>Tanggal</TableHead>
+                  <TableHead className="w-[180px]">Status</TableHead><TableHead>Total</TableHead><TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentItems.length > 0 ? currentItems.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.nomorPesanan}</TableCell>
-                    <TableCell>
-                      <div>{order.namaPelanggan}</div>
-                      <div className="text-xs text-muted-foreground">{order.teleponPelanggan}</div>
-                    </TableCell>
+                    <TableCell><div>{order.namaPelanggan}</div><div className="text-xs text-muted-foreground">{order.teleponPelanggan}</div></TableCell>
                     <TableCell>{formatDateForDisplay(order.tanggal)}</TableCell>
                     <TableCell>
-                      {/* ✨ FITUR BARU: Select untuk ubah status */}
                       <Select value={order.status} onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}>
-                        <SelectTrigger className={cn(getStatusColor(order.status), "h-8 border-none text-xs")}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {orderStatusList.map(s => (
-                            <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-                          ))}
-                        </SelectContent>
+                        <SelectTrigger className={cn(getStatusColor(order.status), "h-8 border-none text-xs")}><SelectValue /></SelectTrigger>
+                        <SelectContent>{orderStatusList.map(s => (<SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>))}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="font-semibold">Rp {order.totalPesanan?.toLocaleString('id-ID') || '0'}</TableCell>
@@ -232,17 +204,13 @@ const OrdersPage = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                )) : (
-                  <TableRow><TableCell colSpan={6} className="text-center h-24">Tidak ada pesanan ditemukan.</TableCell></TableRow>
-                )}
+                )) : (<TableRow><TableCell colSpan={6} className="text-center h-24">Tidak ada pesanan ditemukan.</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4">
-          <div className="text-sm text-muted-foreground">
-            Menampilkan {Math.min(filteredOrders.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredOrders.length, currentPage * itemsPerPage)} dari {filteredOrders.length} pesanan
-          </div>
+          <div className="text-sm text-muted-foreground">Menampilkan {Math.min(filteredOrders.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredOrders.length, currentPage * itemsPerPage)} dari {filteredOrders.length} pesanan</div>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
             <span className="px-4 text-sm">Hal {currentPage} / {totalPages || 1}</span>
@@ -251,7 +219,6 @@ const OrdersPage = () => {
         </CardFooter>
       </Card>
       
-      {/* Modals */}
       <OrderForm open={showOrderForm} onOpenChange={setShowOrderForm} onSubmit={handleSubmit} initialData={editingOrder} />
       <WhatsappFollowUpModal isOpen={isWhatsappModalOpen} onClose={() => setIsWhatsappModalOpen(false)} order={selectedOrderForWhatsapp} />
     </div>

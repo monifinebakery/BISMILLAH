@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,13 +51,13 @@ const FinancialReportPage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // --- Handlers ---
+  // Handlers
   const handleEditClick = (transaction) => {
     setEditingTransaction(transaction);
     setIsTransactionDialogOpen(true);
   };
-
-  const handleAddCategory = (type: 'income' | 'expense') => {
+  
+  const handleAddCategory = (type) => {
     const categories = settings?.financialCategories || { income: [], expense: [] };
     const newCategory = type === 'income' ? newIncomeCategory : newExpenseCategory;
     const currentList = categories[type] || [];
@@ -69,10 +69,9 @@ const FinancialReportPage = () => {
     saveSettings({ financialCategories: { ...categories, [type]: updatedList } });
     
     if (type === 'income') setNewIncomeCategory(''); else setNewExpenseCategory('');
-    toast.success('Kategori berhasil ditambahkan!');
   };
 
-  const handleDeleteCategory = (type: 'income' | 'expense', categoryToDelete: string) => {
+  const handleDeleteCategory = (type, categoryToDelete) => {
     const categories = settings?.financialCategories || { income: [], expense: [] };
     const updatedList = (categories[type] || []).filter(cat => cat !== categoryToDelete);
     saveSettings({ financialCategories: { ...categories, [type]: updatedList } });
@@ -84,7 +83,71 @@ const FinancialReportPage = () => {
   const totalIncome = useMemo(() => calculateTotalIncome(filteredTransactions), [filteredTransactions]);
   const totalExpense = useMemo(() => calculateTotalExpense(filteredTransactions), [filteredTransactions]);
   const balance = useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
-  const { categoryData, transactionData, dailyData } = useMemo(() => { /* ... (logika ini tidak berubah) ... */ }, [filteredTransactions]);
+  
+  // ✨ PERBAIKAN UTAMA DI BLOK INI
+  const { categoryData, transactionData, dailyData } = useMemo(() => {
+    // Selalu mulai dengan struktur data default yang kosong
+    const result = {
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        categoryData: { incomeData: [], expenseData: [] },
+        transactionData: [],
+        dailyData: []
+    };
+
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+        return result; // Langsung kembalikan struktur kosong jika tidak ada transaksi
+    }
+
+    const incomeByCategory = {};
+    const expenseByCategory = {};
+    const monthlyData = {};
+    const dailyDataMap = {};
+    
+    filteredTransactions.forEach(t => {
+      const categoryName = t.category || 'Lainnya';
+      if (t.type === 'income') {
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0);
+      } else {
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + (t.amount || 0);
+      }
+      
+      const transactionDate = new Date(t.date);
+      if (transactionDate) {
+        const monthStart = startOfMonth(transactionDate);
+        const monthYearKey = format(monthStart, 'yyyy-MM');
+        if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart };
+        if (t.type === 'income') monthlyData[monthYearKey].income += t.amount || 0; else monthlyData[monthYearKey].expense += t.amount || 0;
+        
+        const dayKey = format(transactionDate, 'yyyy-MM-dd');
+        if (!dailyDataMap[dayKey]) dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
+        if (t.type === 'income') dailyDataMap[dayKey].income += t.amount || 0; else dailyDataMap[dayKey].expense += t.amount || 0;
+      }
+    });
+    
+    result.transactionData = Object.values(monthlyData).map(value => ({
+      month: format(value.date, 'MMM yyyy', { locale: id }),
+      Pemasukan: value.income, Pengeluaran: value.expense, Saldo: value.income - value.expense, date: value.date
+    })).sort((a, b) => a.date - b.date);
+
+    const today = endOfDay(new Date());
+    for (let i = 0; i < 30; i++) {
+        const currentDate = startOfDay(subDays(today, 29 - i));
+        const dayKey = format(currentDate, 'yyyy-MM-dd');
+        const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
+        result.dailyData.push({ date: format(currentDate, 'd MMM', { locale: id }), Pemasukan: existingData.income, Pengeluaran: existingData.expense, Saldo: existingData.income - existingData.expense });
+    }
+
+    result.categoryData = {
+        incomeData: Object.entries(incomeByCategory).map(([name, value]) => ({ name, value })),
+        expenseData: Object.entries(expenseByCategory).map(([name, value]) => ({ name, value })),
+    };
+    
+    return result;
+
+  }, [filteredTransactions]);
+
   const currentTransactions = useMemo(() => {
     const firstItem = (currentPage - 1) * itemsPerPage;
     return filteredTransactions.slice(firstItem, firstItem + itemsPerPage);
@@ -119,7 +182,6 @@ const FinancialReportPage = () => {
       </div>
       
       {/* Kartu Ringkasan, Grafik, dll. */}
-      {/* ... (renderSummaryCards, renderMainChart, renderCategoryCharts) ... */}
 
       <Card>
         <CardHeader>

@@ -5,7 +5,7 @@ import { id as localeID } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Settings, TrendingUp, TrendingDown } from 'lucide-react'; // Settings, TrendingUp, TrendingDown diimpor untuk icon, jika tidak ada masalah.
+import { Calendar as CalendarIcon, Settings, TrendingUp, TrendingDown, Plus } from 'lucide-react'; // Settings, TrendingUp, TrendingDown diimpor untuk icon, jika tidak ada masalah.
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
 import { Calendar } from '@/components/ui/calendar';

@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from "@/components/ui/label";
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { ORDER_STATUS_LIST, getStatusText, getStatusColor, ORDER_STATUS } from '@/constants/orderConstants'; // ✨ SARAN: Gunakan konstanta terpusat
+import { orderStatusList, getStatusText, getStatusColor, ORDER_STATUS } from '@/constants/orderConstants'; // ✨ SARAN: Gunakan konstanta terpusat
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const OrdersPage = () => {
@@ -154,7 +154,7 @@ const OrdersPage = () => {
               <SelectTrigger><SelectValue placeholder="Filter Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                {ORDER_STATUS_LIST.map((statusOption) => (
+                {orderStatusList.map((statusOption) => (
                   <SelectItem key={statusOption.key} value={statusOption.key}>{statusOption.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -206,7 +206,7 @@ const OrdersPage = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {ORDER_STATUS_LIST.map(s => (
+                          {orderStatusList.map(s => (
                             <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
                           ))}
                         </SelectContent>

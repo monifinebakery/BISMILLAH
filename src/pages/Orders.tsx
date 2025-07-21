@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, Plus, AlertTriangle, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, CheckSquare, X, ArrowUpDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Search, Edit, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, CheckSquare, X, ArrowUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -190,7 +190,7 @@ const OrdersPage = () => {
 
   // --- Render Functions ---
   if (loading) {
-    return <div className="p-6 text-center text-muted-foreground">Memuat data pesanan...</div>;
+    return <div className="p-6 text-center text-gray-600">Memuat data pesanan...</div>;
   }
 
   return (

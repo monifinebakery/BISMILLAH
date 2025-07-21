@@ -1,4 +1,4 @@
-// src/pages/FinancialReportPage.jsx
+// src/pages/FinancialReportPage.tsx
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';

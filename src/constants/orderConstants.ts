@@ -1,4 +1,4 @@
-export const ORDER_STATUS = {
+export const orderStatus = {
   PENDING: 'pending',
   PROCESSING: 'processing',
   SHIPPED: 'shipped',

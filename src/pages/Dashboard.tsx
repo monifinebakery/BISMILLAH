@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react'; // Menambahkan us
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, ShoppingCart, Package, DollarSign, TrendingUp, Handshake, Users, Trophy, Bell, Activity as ActivityIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart, Package, DollarSign, TrendingUp, Handshake, Users, Trophy, Bell, Activity as ActivityIcon, Receipt } from 'lucide-react';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';

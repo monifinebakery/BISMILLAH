@@ -17,7 +17,7 @@ import RecipeForm from '@/components/RecipeForm';
 
 const RecipesPage = () => {
   // --- State Utama Halaman ---
-  const { recipes, isLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipe();
+  const { recipes, isLoading, deleteRecipe, addRecipe, updateRecipe } = useRecipe();
   const { settings, saveSettings } = useUserSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -48,6 +48,8 @@ const RecipesPage = () => {
 
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage);
 
+  const recipeCategories = useMemo(() => settings?.recipeCategories || [], [settings]);
+
   // --- Handlers ---
   const handleSaveRecipe = async (recipeData: NewRecipe) => {
     const success = editingRecipe 
@@ -66,24 +68,23 @@ const RecipesPage = () => {
   };
 
   const handleAddCategory = () => {
-    const categories = settings?.recipeCategories || [];
     if (!newCategory.trim()) { toast.error('Nama kategori tidak boleh kosong'); return; }
-    if (categories.map(c => c.toLowerCase()).includes(newCategory.trim().toLowerCase())) { toast.error('Kategori ini sudah ada'); return; }
+    if (recipeCategories.map(c => c.toLowerCase()).includes(newCategory.trim().toLowerCase())) { toast.error('Kategori ini sudah ada'); return; }
     
-    const updatedCategories = [...categories, newCategory.trim()];
-    saveSettings({ ...settings, recipeCategories: updatedCategories });
+    const updatedCategories = [...recipeCategories, newCategory.trim()];
+    saveSettings({ recipeCategories: updatedCategories });
     setNewCategory('');
     toast.success(`Kategori "${newCategory.trim()}" berhasil ditambahkan!`);
   };
 
   const handleDeleteCategory = (categoryToDelete: string) => {
-    const updatedCategories = (settings?.recipeCategories || []).filter(cat => cat !== categoryToDelete);
-    saveSettings({ ...settings, recipeCategories: updatedCategories });
+    const updatedCategories = recipeCategories.filter(cat => cat !== categoryToDelete);
+    saveSettings({ recipeCategories: updatedCategories });
     toast.success(`Kategori "${categoryToDelete}" berhasil dihapus!`);
   };
   
-  if (isLoading) {
-    return <div className="p-6 text-center text-muted-foreground">Memuat data resep...</div>;
+  if (isLoading || !settings) {
+    return <div className="p-6 text-center text-muted-foreground">Memuat data...</div>;
   }
 
   return (
@@ -120,11 +121,11 @@ const RecipesPage = () => {
                 <Input placeholder="Cari nama resep..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="pl-10" />
               </div>
               <Select value={categoryFilter} onValueChange={(value) => {setCategoryFilter(value); setCurrentPage(1);}}>
-                <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua Kategori" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  {(settings?.recipeCategories || []).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                </SelectContent>
+                  <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua Kategori" /></SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">Semua Kategori</SelectItem>
+                      {recipeCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                  </SelectContent>
               </Select>
             </div>
           </div>
@@ -197,8 +198,8 @@ const RecipesPage = () => {
               <CardHeader><CardTitle className="text-base">Daftar Kategori</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {(settings?.recipeCategories || []).length > 0 ? (
-                    (settings?.recipeCategories || []).map(cat => (
+                  {recipeCategories.length > 0 ? (
+                    recipeCategories.map(cat => (
                       <div key={cat} className="flex items-center justify-between p-2 border rounded-md">
                         <span className="font-medium">{cat}</span>
                         <AlertDialog>

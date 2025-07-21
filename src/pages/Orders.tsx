@@ -44,6 +44,23 @@ const OrdersPage = () => {
  setIsWhatsappModalOpen(true);
  };
 
+  // ✨ FUNGSI INI PERLU ADA DI SINI UNTUK DIKIRIM SEBAGAI PROP
+  const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => {
+    const itemsText = (orderData.items || []).map(item => `- ${item.namaBarang} (${item.quantity}x)`).join('\n');
+    const totalText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(orderData.totalPesanan);
+
+    switch (status) {
+      case 'confirmed':
+        return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda #${orderData.nomorPesanan} telah kami KONFIRMASI dan sedang kami siapkan.\n\nTerima kasih!`;
+      case 'shipping':
+        return `Halo kak ${orderData.namaPelanggan},\n\nKabar baik! Pesanan Anda #${orderData.nomorPesanan} sudah dalam proses PENGIRIMAN.\n\nMohon ditunggu kedatangannya ya. Terima kasih!`;
+      case 'delivered':
+        return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda #${orderData.nomorPesanan} telah TIBA.\n\nTerima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`;
+      default: // pending & status lain
+        return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah memesan. Ini detail pesanan Anda:\nNomor Pesanan: ${orderData.nomorPesanan}\n\nItem:\n${itemsText}\n\nTotal: ${totalText}\n\nMohon konfirmasinya. Terima kasih.`;
+    }
+  };
+  
  const handleStatusChange = async (orderId: string, newStatus: string) => {
  const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
  if (success) {

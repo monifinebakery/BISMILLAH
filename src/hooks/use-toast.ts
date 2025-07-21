@@ -1,18 +1,25 @@
 import * as React from "react"
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+// Hapus import dari "@/components/ui/toast" yang menyebabkan circular dependency
+// import type {
+//   ToastActionElement,
+//   ToastProps,
+// } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
-type ToasterToast = ToastProps & {
+// Definisikan ulang tipe ToasterToast secara mandiri
+// Menambahkan 'open' dan 'onOpenChange' yang biasanya datang dari ToastProps
+// Menggunakan React.ReactElement untuk 'action' karena ini adalah tipe yang paling umum
+// untuk elemen React yang bisa di-render sebagai action.
+type ToasterToast = {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
-  action?: ToastActionElement
+  action?: React.ReactElement; // Menggantikan ToastActionElement
+  open?: boolean; // Menambahkan prop 'open' yang penting untuk kontrol state toast
+  onOpenChange?: (open: boolean) => void; // Menambahkan prop 'onOpenChange'
 }
 
 const actionTypes = {
@@ -179,7 +186,9 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [state]) // Dependensi [state] di sini bisa menyebabkan re-render tidak perlu.
+             // Lebih umum adalah [] karena listeners.push hanya perlu sekali.
+             // Namun, untuk sementara biarkan sesuai kode asal kecuali ada error lain.
 
   return {
     ...state,

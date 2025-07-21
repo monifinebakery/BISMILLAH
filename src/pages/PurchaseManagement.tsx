@@ -167,39 +167,39 @@ const PurchaseManagement = () => {
   const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
+    <div className="container mx-auto p-2 sm:p-4 space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
-            <ShoppingCart className="h-8 w-8 text-white" />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-2 sm:p-3 rounded-full">
+            <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+            <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
               Manajemen Pembelian Bahan Baku
             </h1>
-            <p className="text-muted-foreground">Kelola semua transaksi pembelian bahan baku Anda</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Kelola semua transaksi pembelian bahan baku Anda</p>
           </div>
         </div>
         <Button
-          className="flex items-center gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-3 px-5 rounded-lg"
+          className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-[#FF9500] to-[#FF2E2E] hover:from-[#FF8A00] hover:to-[#E82A2A] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 py-2 sm:py-3 px-3 sm:px-5 rounded-md text-xs sm:text-base"
           onClick={handleOpenNewDialog}
         >
-          <Plus className="h-5 w-5 stroke-[3]" />
-          <span className="font-medium text-base">Tambah Pembelian</span>
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3]" />
+          <span>Tambah Pembelian</span>
         </Button>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Filter Pembelian</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input placeholder="Cari nama supplier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+      <Card className="overflow-hidden">
+        <CardHeader><CardTitle className="text-base sm:text-lg">Filter Pembelian</CardTitle></CardHeader>
+        <CardContent className="p-2 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="relative w-full sm:flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
+              <Input placeholder="Cari nama supplier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-8 pr-2 py-1 sm:py-2 w-full text-xs sm:text-sm" />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Filter status" /></SelectTrigger>
+            <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full text-xs sm:text-sm py-1 sm:py-2"><SelectValue placeholder="Filter status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
@@ -211,22 +211,25 @@ const PurchaseManagement = () => {
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Daftar Pembelian</CardTitle>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Label htmlFor="itemsPerPage">Baris per halaman:</Label>
-              <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
-                <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem></SelectContent>
-              </Select>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+            <CardTitle className="text-base sm:text-lg">Daftar Pembelian</CardTitle>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Label htmlFor="itemsPerPage" className="whitespace-nowrap">Baris per halaman:</Label>
+                <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }} className="w-20">
+                  <SelectTrigger className="text-xs sm:text-sm py-1 sm:py-2"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem></SelectContent>
+                </Select>
+              </div>
               <Button
                 variant="outline"
                 onClick={() => {
                   setIsMultipleSelectMode(!isMultipleSelectMode);
                   setSelectedPurchaseIds([]);
                 }}
+                className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2"
               >
                 {isMultipleSelectMode ? 'Keluar Mode Pilih' : 'Mode Pilih Multiple'}
               </Button>
@@ -235,6 +238,7 @@ const PurchaseManagement = () => {
                   variant="destructive"
                   onClick={handleBulkDelete}
                   disabled={selectedPurchaseIds.length === 0}
+                  className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2"
                 >
                   Hapus Terpilih
                 </Button>
@@ -244,37 +248,38 @@ const PurchaseManagement = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
                   {isMultipleSelectMode && (
-                    <TableHead>
+                    <TableHead className="w-10 p-1 sm:p-2">
                       <input
                         type="checkbox"
                         checked={selectedPurchaseIds.length === currentItems.length && currentItems.length > 0}
                         onChange={toggleSelectAll}
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                       />
                     </TableHead>
                   )}
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Total Nilai</TableHead>
-                  <TableHead className="w-[180px]">Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Tanggal</TableHead>
+                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Supplier</TableHead>
+                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Total Nilai</TableHead>
+                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm w-[120px] sm:w-[180px]">Status</TableHead>
+                  <TableHead className="p-1 sm:p-2 text-xs sm:text-sm text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-24">Memuat data...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-16 sm:h-24 p-2 text-xs sm:text-sm">Memuat data...</TableCell></TableRow>
                 ) : currentItems.length === 0 ? (
-                  <TableRow><TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-24">Tidak ada data pembelian.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-16 sm:h-24 p-2 text-xs sm:text-sm">Tidak ada data pembelian.</TableCell></TableRow>
                 ) : (
                   currentItems.map((purchase) => {
                     const supplierData = suppliers.find(s => s.id === purchase.supplier);
                     return (
-                      <TableRow key={purchase.id}>
+                      <TableRow key={purchase.id} className="hover:bg-gray-50">
                         {isMultipleSelectMode && (
-                          <TableCell>
+                          <TableCell className="w-10 p-1 sm:p-2">
                             <input
                               type="checkbox"
                               checked={selectedPurchaseIds.includes(purchase.id)}
@@ -285,15 +290,16 @@ const PurchaseManagement = () => {
                                   setSelectedPurchaseIds(selectedPurchaseIds.filter(id => id !== purchase.id));
                                 }
                               }}
+                              className="h-4 w-4 sm:h-5 sm:w-5"
                             />
                           </TableCell>
                         )}
-                        <TableCell>{formatDateForDisplay(purchase.tanggal)}</TableCell>
-                        <TableCell className="font-medium">{supplierData?.nama || 'N/A'}</TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(purchase.totalNilai)}</TableCell>
-                        <TableCell>
-                          <Select value={purchase.status} onValueChange={(newStatus) => handleStatusChange(purchase.id, newStatus)}>
-                            <SelectTrigger className={cn("h-8 border-none text-xs", {
+                        <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{formatDateForDisplay(purchase.tanggal)}</TableCell>
+                        <TableCell className="p-1 sm:p-2 text-xs sm:text-sm font-medium">{supplierData?.nama || 'N/A'}</TableCell>
+                        <TableCell className="p-1 sm:p-2 text-xs sm:text-sm font-semibold">{formatCurrency(purchase.totalNilai)}</TableCell>
+                        <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">
+                          <Select value={purchase.status} onValueChange={(newStatus) => handleStatusChange(purchase.id, newStatus)} className="w-full">
+                            <SelectTrigger className={cn("h-7 sm:h-8 border-none text-xs sm:text-sm", {
                               'bg-yellow-100 text-yellow-800': purchase.status === 'pending',
                               'bg-green-100 text-green-800': purchase.status === 'completed',
                               'bg-red-100 text-red-800': purchase.status === 'cancelled',
@@ -307,16 +313,16 @@ const PurchaseManagement = () => {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(purchase)}><Edit className="h-4 w-4" /></Button>
+                        <TableCell className="p-1 sm:p-2 text-xs sm:text-sm text-right">
+                          <div className="flex gap-1 sm:gap-2 justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(purchase)} className="h-7 w-7 sm:h-8 sm:w-8"><Edit className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
                             <AlertDialog>
-                              <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Anda Yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data pembelian secara permanen.</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-red-500 hover:text-red-700"><Trash2 className="h-3 w-3 sm:h-4 sm:w-4" /></Button></AlertDialogTrigger>
+                              <AlertDialogContent className="max-w-[90%] sm:max-w-md">
+                                <AlertDialogHeader><AlertDialogTitle className="text-sm sm:text-base">Anda Yakin?</AlertDialogTitle><AlertDialogDescription className="text-xs sm:text-sm">Tindakan ini akan menghapus data pembelian secara permanen.</AlertDialogDescription></AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(purchase.id)} className="bg-red-600 hover:bg-red-700">Ya, Hapus</AlertDialogAction>
+                                  <AlertDialogCancel className="text-xs sm:text-sm">Batal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(purchase.id)} className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm">Ya, Hapus</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -330,72 +336,80 @@ const PurchaseManagement = () => {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex items-center justify-between p-4">
-          <div className="text-sm text-muted-foreground">Menampilkan {Math.min(filteredPurchases.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredPurchases.length, currentPage * itemsPerPage)} dari {filteredPurchases.length} pesanan</div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-            <span className="px-4 text-sm">Hal {currentPage} / {totalPages || 1}</span>
-            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><ChevronRight className="h-4 w-4" /></Button>
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-2 sm:p-4 gap-2 sm:gap-0">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">Menampilkan {Math.min(filteredPurchases.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredPurchases.length, currentPage * itemsPerPage)} dari {filteredPurchases.length} pesanan</div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className="h-7 w-7 sm:h-8 sm:w-8"><ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
+            <span className="px-2 text-xs sm:text-sm">Hal {currentPage} / {totalPages || 1}</span>
+            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0} className="h-7 w-7 sm:h-8 sm:w-8"><ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" /></Button>
           </div>
         </CardFooter>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader><DialogTitle>{editingPurchase ? 'Edit Pembelian' : 'Tambah Pembelian Baru'}</DialogTitle></DialogHeader>
-          <div className="flex-grow overflow-y-auto p-1 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DialogContent className="max-w-[95%] sm:max-w-4xl max-h-[90vh] flex flex-col p-2 sm:p-4">
+          <DialogHeader><DialogTitle className="text-base sm:text-lg">{editingPurchase ? 'Edit Pembelian' : 'Tambah Pembelian Baru'}</DialogTitle></DialogHeader>
+          <div className="flex-grow overflow-y-auto p-1 sm:p-2 space-y-2 sm:space-y-4">
+            <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2">
               <div>
-                <Label>Supplier *</Label>
-                <Select value={newPurchase.supplier} onValueChange={(val) => setNewPurchase(p => ({...p, supplier: val}))}>
-                  <SelectTrigger><SelectValue placeholder="Pilih supplier" /></SelectTrigger>
-                  <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.nama}</SelectItem>)}</SelectContent>
+                <Label className="text-xs sm:text-sm">Supplier *</Label>
+                <Select value={newPurchase.supplier} onValueChange={(val) => setNewPurchase(p => ({...p, supplier: val}))} className="w-full">
+                  <SelectTrigger className="text-xs sm:text-sm py-1 sm:py-2"><SelectValue placeholder="Pilih supplier" /></SelectTrigger>
+                  <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id} className="text-xs sm:text-sm">{s.nama}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Tanggal *</Label>
-                <Input type="date" value={newPurchase.tanggal.toISOString().split('T')[0]} onChange={(e) => setNewPurchase(p => ({...p, tanggal: new Date(e.target.value)}))} />
+                <Label className="text-xs sm:text-sm">Tanggal *</Label>
+                <Input type="date" value={newPurchase.tanggal.toISOString().split('T')[0]} onChange={(e) => setNewPurchase(p => ({...p, tanggal: new Date(e.target.value)}))} className="text-xs sm:text-sm py-1 sm:py-2" />
               </div>
             </div>
-            <Card>
-              <CardHeader><CardTitle className="text-base">Tambah Item</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end pt-2">
+            <Card className="overflow-hidden">
+              <CardHeader><CardTitle className="text-sm sm:text-base">Tambah Item</CardTitle></CardHeader>
+              <CardContent className="p-2 sm:p-4 grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-4 items-end">
                 <div className="sm:col-span-2">
-                  <Label>Nama Barang *</Label>
-                  <Select value={newItem.namaBarang} onValueChange={(val) => { const sb = bahanBaku.find(b => b.nama === val); setNewItem({ ...newItem, namaBarang: val, satuan: sb?.satuan || '', hargaSatuan: sb?.hargaSatuan || 0 }); }}>
-                    <SelectTrigger><SelectValue placeholder="Pilih Bahan Baku" /></SelectTrigger>
-                    <SelectContent>{bahanBaku.map(b => <SelectItem key={b.id} value={b.nama}>{b.nama}</SelectItem>)}</SelectContent>
+                  <Label className="text-xs sm:text-sm">Nama Barang *</Label>
+                  <Select value={newItem.namaBarang} onValueChange={(val) => { const sb = bahanBaku.find(b => b.nama === val); setNewItem({ ...newItem, namaBarang: val, satuan: sb?.satuan || '', hargaSatuan: sb?.hargaSatuan || 0 }); }} className="w-full">
+                    <SelectTrigger className="text-xs sm:text-sm py-1 sm:py-2"><SelectValue placeholder="Pilih Bahan Baku" /></SelectTrigger>
+                    <SelectContent>{bahanBaku.map(b => <SelectItem key={b.id} value={b.nama} className="text-xs sm:text-sm">{b.nama}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Jumlah *</Label><Input type="number" value={newItem.jumlah} onChange={(e) => setNewItem({...newItem, jumlah: parseFloat(e.target.value) || 0})} /></div>
-                <div><Label>Harga Satuan *</Label><Input type="number" value={newItem.hargaSatuan} onChange={(e) => setNewItem({...newItem, hargaSatuan: parseFloat(e.target.value) || 0})} /></div>
+                <div>
+                  <Label className="text-xs sm:text-sm">Jumlah *</Label>
+                  <Input type="number" value={newItem.jumlah} onChange={(e) => setNewItem({...newItem, jumlah: parseFloat(e.target.value) || 0})} className="text-xs sm:text-sm py-1 sm:py-2" />
+                </div>
+                <div>
+                  <Label className="text-xs sm:text-sm">Harga Satuan *</Label>
+                  <Input type="number" value={newItem.hargaSatuan} onChange={(e) => setNewItem({...newItem, hargaSatuan: parseFloat(e.target.value) || 0})} className="text-xs sm:text-sm py-1 sm:py-2" />
+                </div>
                 <Button
-                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                  className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-xs sm:text-sm py-1 sm:py-2"
                   onClick={handleAddItem}
                 >
-                  <Plus className="h-4 w-4 mr-2"/>Tambah
+                  <Plus className="h-3 w-3 sm:h-4 w-4 mr-1 sm:mr-2"/>Tambah
                 </Button>
               </CardContent>
             </Card>
             {newPurchase.items.length > 0 && (
-              <Table>
-                <TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Jumlah</TableHead><TableHead>Harga/Satuan</TableHead><TableHead>Total</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>
+              <Table className="min-w-full">
+                <TableHeader><TableRow><TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Nama</TableHead><TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Jumlah</TableHead><TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Harga/Satuan</TableHead><TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Total</TableHead><TableHead className="p-1 sm:p-2 text-xs sm:text-sm">Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {newPurchase.items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.namaBarang}</TableCell><TableCell>{item.jumlah} {item.satuan}</TableCell>
-                      <TableCell>{formatCurrency(item.hargaSatuan)}</TableCell><TableCell className="font-semibold">{formatCurrency(item.totalHarga)}</TableCell>
-                      <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                    <TableRow key={item.id} className="hover:bg-gray-50">
+                      <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{item.namaBarang}</TableCell>
+                      <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{item.jumlah} {item.satuan}</TableCell>
+                      <TableCell className="p-1 sm:p-2 text-xs sm:text-sm">{formatCurrency(item.hargaSatuan)}</TableCell>
+                      <TableCell className="p-1 sm:p-2 text-xs sm:text-sm font-semibold">{formatCurrency(item.totalHarga)}</TableCell>
+                      <TableCell className="p-1 sm:p-2 text-xs sm:text-sm"><Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)} className="h-7 w-7 sm:h-8 sm:w-8"><Trash2 className="h-3 w-3 sm:h-4 sm:w-4" /></Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
           </div>
-          <DialogFooter className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+          <DialogFooter className="flex flex-col sm:flex-row justify-end gap-2 pt-2 sm:pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto text-xs sm:text-sm py-1 sm:py-2">Batal</Button>
             <Button
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+              className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-xs sm:text-sm py-1 sm:py-2"
               onClick={handleSavePurchase}
             >
               {editingPurchase ? "Update" : "Simpan"}

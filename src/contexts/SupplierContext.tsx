@@ -127,8 +127,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
     const setupRealtime = () => {
       console.log(`[SupplierContext] Setting up realtime subscription (attempt ${retryCount + 1})`);
       
+      // =====================================================================
+      // PERUBAHAN: Nama channel dibuat konsisten, tanpa Date.now()
+      // =====================================================================
       const channel = supabase
-        .channel(`realtime-suppliers-${user.id}-${Date.now()}`)
+        .channel(`realtime-suppliers-${user.id}`)
         .on(
           'postgres_changes',
           { 
@@ -261,8 +264,9 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const toggleSelectionMode = useCallback(() => {
-    setIsSelectionMode(prev => !prev);
-    if (isSelectionMode) {
+    const newMode = !isSelectionMode;
+    setIsSelectionMode(newMode);
+    if (!newMode) { // Jika mode dinonaktifkan
       setSelectedItems([]);
     }
   }, [isSelectionMode]);
@@ -331,8 +335,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       toast.success(`${ids.length} supplier berhasil dihapus!`);
       console.log('[SupplierContext] Bulk delete berhasil untuk', ids.length, 'items');
       
-      // Refresh data to ensure consistency
-      await fetchSuppliers();
+      // No need to refresh data, optimistic update is confirmed by realtime or is correct
       
       return true;
     } catch (err) {
@@ -347,6 +350,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   // --- FUNGSI-FUNGSI CRUD ---
+  // ... (Fungsi addSupplier, updateSupplier, deleteSupplier tetap sama)
   const addSupplier = async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     if (!user) { 
       toast.error('Anda harus login untuk menambahkan supplier'); 

@@ -8,6 +8,7 @@ import { Calendar as CalendarIcon, Settings, TrendingUp, TrendingDown, Plus } fr
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { formatDateForDisplay, toSafeISOString, safeParseDate } from '@/utils/dateUtils';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';

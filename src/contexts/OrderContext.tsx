@@ -8,7 +8,7 @@ import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
-import { orderStatus } from '@/constants/orderConstants'; // Diasumsikan Anda sudah membuat file ini
+import { orderStatusList } from '@/constants/orderConstants'; // Diasumsikan Anda sudah membuat file ini
 import { formatCurrency } from '@/utils/currencyUtils';
 
 interface OrderContextType {

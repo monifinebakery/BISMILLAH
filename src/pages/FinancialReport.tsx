@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Settings, TrendingUp, TrendingDown } from 'lucide-react'; // Settings, TrendingUp, TrendingDown diimpor untuk icon, jika tidak ada masalah.
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 // import { useIsMobile } from '@/hooks/use-mobile'; // Dikomentari sesuai analisis sebelumnya

@@ -159,6 +159,7 @@ const App = () => {
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
+                  <Route path="invoice" element={<InvoicePage />} />
                   
                   {/* ✨ PERBAIKAN UTAMA DI SINI ✨ */}
                   {/* Rute /pesanan dan /pesanan/invoice/:orderId sekarang disatukan */}

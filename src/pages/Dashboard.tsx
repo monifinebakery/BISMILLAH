@@ -11,7 +11,7 @@ import { useRecipe } from "@/contexts/RecipeContext";
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useFinancial } from '@/contexts/FinancialContext';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { format, subDays, startOfDay, endOfDay, differenceInDays } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';

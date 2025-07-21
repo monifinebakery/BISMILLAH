@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react';
 import { useUserSettings, UserSettings } from '@/contexts/UserSettingsContext'; // Impor hook DAN tipe UserSettings
-import RecipeCategoryManager from '@/components/RecipeCategoryManager';
 import { Label } from '@/components/ui/label';
 
 const Settings = () => {
@@ -181,17 +180,6 @@ const Settings = () => {
                   </Select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          {/* Recipe Settings */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg"><ChefHat className="h-5 w-5 mr-2" />Pengaturan Resep</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">Kelola kategori yang digunakan untuk resep Anda.</p>
-              <RecipeCategoryManager />
             </CardContent>
           </Card>
         </div>

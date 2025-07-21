@@ -28,7 +28,7 @@ const FinancialReportPage = () => {
   const { financialTransactions: transactions, addFinancialTransaction, updateFinancialTransaction, deleteFinancialTransaction, loading } = useFinancial();
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
   const [dateRange, setDateRange] = useState({ from: startOfMonth(new Date()), to: endOfDay(new Date()) });
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const isMobile = useIsMobile();
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -36,12 +36,6 @@ const FinancialReportPage = () => {
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const handleEditClick = (transaction) => {
     setEditingTransaction(transaction);
@@ -57,6 +51,7 @@ const FinancialReportPage = () => {
     const updatedList = [...currentList, newCategory.trim()];
     saveSettings({ financialCategories: { ...categories, [type]: updatedList } });
     if (type === 'income') setNewIncomeCategory(''); else setNewExpenseCategory('');
+    toast.success('Kategori berhasil ditambahkan!');
   };
 
   const handleDeleteCategory = (type, categoryToDelete) => {
@@ -72,12 +67,15 @@ const FinancialReportPage = () => {
   const balance = useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
 
   const { categoryData, transactionData, dailyData } = useMemo(() => {
-    const result = { categoryData: { incomeData: [], expenseData: [] }, transactionData: [], dailyData: [] };
-    if (!filteredTransactions || filteredTransactions.length === 0) return result;
-    const incomeByCategory = {};
-    const expenseByCategory = {};
-    const monthlyData = {};
-    const dailyDataMap = {};
+    const result = {
+      categoryData: { incomeData: [], expenseData: [] },
+      transactionData: [],
+      dailyData: []
+    };
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      return result;
+    }
+    const incomeByCategory = {}; const expenseByCategory = {}; const monthlyData = {}; const dailyDataMap = {};
     filteredTransactions.forEach(t => {
       const categoryName = t.category || 'Lainnya';
       if (t.type === 'income') { incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + (t.amount || 0); } 
@@ -107,7 +105,7 @@ const FinancialReportPage = () => {
     };
     return result;
   }, [filteredTransactions]);
-
+  
   const currentTransactions = useMemo(() => {
     const firstItem = (currentPage - 1) * itemsPerPage;
     return filteredTransactions.slice(firstItem, firstItem + itemsPerPage);
@@ -158,7 +156,7 @@ const FinancialReportPage = () => {
       </div>
     );
   };
-  
+
   if (loading || settingsLoading) {
     return <div className="p-6 text-center text-muted-foreground">Memuat data...</div>;
   }
@@ -176,7 +174,16 @@ const FinancialReportPage = () => {
                 {dateRange?.from ? (dateRange.to ? `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}` : formatDateForDisplay(dateRange.from)) : (<span>Pilih tanggal</span>)}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={isMobile ? 1 : 2} /></PopoverContent>
+            <PopoverContent className="w-auto p-0 flex" align="end">
+              <div className="flex flex-col space-y-1 p-2 border-r">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setDateRange({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Hari ini</Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setDateRange({ from: startOfDay(subDays(new Date(), 1)), to: endOfDay(subDays(new Date(), 1)) })}>Kemarin</Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setDateRange({ from: startOfDay(subDays(new Date(), 6)), to: endOfDay(new Date()) })}>7 Hari Terakhir</Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan ini</Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Kemarin</Button>
+              </div>
+              <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} />
+            </PopoverContent>
           </Popover>
         </div>
       </div>
@@ -208,7 +215,9 @@ const FinancialReportPage = () => {
         </CardContent>
         {totalPages > 1 && (<CardFooter className="flex items-center justify-between p-4 border-t"><div className="text-sm text-muted-foreground">Halaman {currentPage} dari {totalPages}</div><div className="flex items-center gap-1"><Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button><Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button></div></CardFooter>)}
       </Card>
+      
       <FinancialTransactionDialog isOpen={isTransactionDialogOpen} onClose={() => {setIsTransactionDialogOpen(false); setEditingTransaction(null);}} onAddTransaction={addFinancialTransaction} onUpdateTransaction={updateFinancialTransaction} categories={settings?.financialCategories} transaction={editingTransaction} />
+      
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Kelola Kategori Keuangan</DialogTitle></DialogHeader>
@@ -220,8 +229,7 @@ const FinancialReportPage = () => {
                 <div className="space-y-1 pt-2 max-h-48 overflow-y-auto">
                   {(settings?.financialCategories?.income || []).map(cat => (
                     <div key={cat} className="flex items-center justify-between text-sm p-1 rounded hover:bg-gray-100"><p>{cat}</p>
-                      <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 size={14} className="text-red-500"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus Kategori "{cat}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory('income', cat)} className="bg-red-600 hover:bg-red-700">Ya, Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+                      <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 size={14} className="text-red-500"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus Kategori "{cat}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory('income', cat)} className="bg-red-600 hover:bg-red-700">Ya, Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                     </div>
                   ))}
                 </div>
@@ -234,8 +242,7 @@ const FinancialReportPage = () => {
                 <div className="space-y-1 pt-2 max-h-48 overflow-y-auto">
                   {(settings?.financialCategories?.expense || []).map(cat => (
                     <div key={cat} className="flex items-center justify-between text-sm p-1 rounded hover:bg-gray-100"><p>{cat}</p>
-                      <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 size={14} className="text-red-500"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus Kategori "{cat}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory('expense', cat)} className="bg-red-600 hover:bg-red-700">Ya, Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+                      <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 size={14} className="text-red-500"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus Kategori "{cat}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCategory('expense', cat)} className="bg-red-600 hover:bg-red-700">Ya, Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                     </div>
                   ))}
                 </div>

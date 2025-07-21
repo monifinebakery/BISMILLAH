@@ -22,7 +22,6 @@ import MobileExportButton from "@/components/MobileExportButton";
 
 // Halaman di-load secara dinamis (lazy-loading)
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
-const HPPCalculatorPage = React.lazy(() => import("./pages/HPPCalculator"));
 const RecipesPage = React.lazy(() => import("./pages/Recipes"));
 const WarehousePage = React.lazy(() => import("./pages/Warehouse"));
 const OrdersPage = React.lazy(() => import("./pages/Orders"));

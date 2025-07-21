@@ -1,18 +1,3 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Users, Plus, Edit, Trash2, Phone, Mail, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { Supplier } from '@/types/supplier';
-import { useSupplier } from '@/contexts/SupplierContext';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 const SupplierManagement = () => {
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSupplier();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,6 +8,8 @@ const SupplierManagement = () => {
   const [newSupplier, setNewSupplier] = useState({
     nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '',
   });
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
+  const [isMultipleSelectMode, setIsMultipleSelectMode] = useState(false);
 
   const filteredSuppliers = useMemo(() => 
     suppliers.filter(supplier =>
@@ -63,7 +50,28 @@ const SupplierManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteSupplier = (id: string) => deleteSupplier(id);
+  const handleDeleteSupplier = async (id: string) => deleteSupplier(id);
+
+  const handleBulkDelete = async () => {
+    if (selectedSupplierIds.length === 0) {
+      toast.error('Pilih setidaknya satu supplier untuk dihapus');
+      return;
+    }
+    for (const id of selectedSupplierIds) {
+      await deleteSupplier(id);
+    }
+    setSelectedSupplierIds([]);
+    setIsMultipleSelectMode(false);
+    toast.success('Supplier berhasil dihapus!');
+  };
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedSupplierIds(currentSuppliers.map(s => s.id));
+    } else {
+      setSelectedSupplierIds([]);
+    }
+  };
 
   if (isLoading) {
     return <div className="p-6 text-center text-muted-foreground">Memuat data supplier...</div>;
@@ -71,7 +79,7 @@ const SupplierManagement = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      {/* ✨ Header (Mirip Halaman Pesanan) */}
+      {/* ✨ Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-full">
@@ -87,7 +95,7 @@ const SupplierManagement = () => {
         </Button>
       </div>
 
-      {/* ✨ Filter Card (Terpisah Seperti Halaman Pesanan) */}
+      {/* ✨ Filter Card */}
       <Card>
         <CardHeader><CardTitle>Filter Supplier</CardTitle></CardHeader>
         <CardContent>
@@ -103,7 +111,7 @@ const SupplierManagement = () => {
         </CardContent>
       </Card>
 
-      {/* ✨ Main Content Card (Mirip Halaman Pesanan) */}
+      {/* ✨ Main Content Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -118,6 +126,24 @@ const SupplierManagement = () => {
                   <SelectItem value="20">20</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsMultipleSelectMode(!isMultipleSelectMode);
+                  setSelectedSupplierIds([]);
+                }}
+              >
+                {isMultipleSelectMode ? 'Keluar Mode Pilih' : 'Mode Pilih Multiple'}
+              </Button>
+              {isMultipleSelectMode && (
+                <Button
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  disabled={selectedSupplierIds.length === 0}
+                >
+                  Hapus Terpilih
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -126,6 +152,15 @@ const SupplierManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isMultipleSelectMode && (
+                    <TableHead>
+                      <input
+                        type="checkbox"
+                        checked={selectedSupplierIds.length === currentSuppliers.length && currentSuppliers.length > 0}
+                        onChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Nama Supplier</TableHead>
                   <TableHead>Kontak</TableHead>
                   <TableHead>Email</TableHead>
@@ -136,6 +171,21 @@ const SupplierManagement = () => {
               <TableBody>
                 {currentSuppliers.length > 0 ? currentSuppliers.map(supplier => (
                   <TableRow key={supplier.id}>
+                    {isMultipleSelectMode && (
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedSupplierIds.includes(supplier.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSupplierIds([...selectedSupplierIds, supplier.id]);
+                            } else {
+                              setSelectedSupplierIds(selectedSupplierIds.filter(id => id !== supplier.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">{supplier.nama}</TableCell>
                     <TableCell>{supplier.kontak}</TableCell>
                     <TableCell>{supplier.email || '-'}</TableCell>
@@ -156,7 +206,7 @@ const SupplierManagement = () => {
                   </TableRow>
                 )) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
+                    <TableCell colSpan={isMultipleSelectMode ? 6 : 5} className="text-center h-24">
                       {searchTerm ? 'Supplier tidak ditemukan.' : 'Belum ada data supplier.'}
                     </TableCell>
                   </TableRow>
@@ -165,7 +215,7 @@ const SupplierManagement = () => {
             </Table>
           </div>
         </CardContent>
-        {/* ✨ Pagination Footer (Mirip Halaman Pesanan) */}
+        {/* ✨ Pagination Footer */}
         {totalPages > 1 && (
           <CardFooter className="flex items-center justify-between p-4 border-t">
             <div className="text-sm text-muted-foreground">

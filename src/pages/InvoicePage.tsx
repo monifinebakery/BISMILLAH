@@ -25,7 +25,7 @@ const InvoicePage = () => {
   
   const [invoiceNumber, setInvoiceNumber] = useState(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
   const [issueDate, setIssueDate] = useState(new Date());
-  const [dueDate, setDueDate] = useState(new Date(new Date().setDate(new Date().getDate() + 14)))
+  const [dueDate, setDueDate] = useState(new Date(new Date().setDate(new Date().getDate() + 14)));
   const [customer, setCustomer] = useState({ name: '', address: '' });
   const [items, setItems] = useState<InvoiceItem[]>([{ id: Date.now(), description: '', quantity: 1, price: 0 }]);
   const [discount, setDiscount] = useState({ type: 'percent', value: 0 });

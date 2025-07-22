@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { toast } from 'sonner';
 import { validateAuthSession } from '@/lib/authUtils';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ const PaymentSuccessPage = () => {
                 {paymentStatus.order_id && <p>Order ID: {paymentStatus.order_id}</p>}
                 {paymentStatus.name && <p>Nama: {paymentStatus.name}</p>}
                 {paymentStatus.email && <p>Email: {paymentStatus.email}</p>}
-                <p>Tanggal: {new Date(paymentStatus.updated_at).toLocaleDateString('id-ID')}</p>
+                <p>Tanggal: {formatDateForDisplay(paymentStatus.updated_at)}</p>
               </div>
             )}
 

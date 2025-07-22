@@ -1,50 +1,37 @@
+// src/types/recipe.ts
+
+// Interface untuk setiap bahan di dalam resep
 export interface RecipeIngredient {
-  id: string;
-  nama: string;
+  id: string; // ID unik dari bahan baku (bahan_baku.id)
+  namaBahan: string;
   jumlah: number;
   satuan: string;
-  hargaPerSatuan: number;
+  hargaSatuan: number;
   totalHarga: number;
 }
 
+// Interface untuk objek resep secara keseluruhan
 export interface Recipe {
   id: string;
-  namaResep: string;
-  deskripsi: string;
-  porsi: number;
-  ingredients: RecipeIngredient[];
-  biayaTenagaKerja: number;
-  biayaOverhead: number;
-  totalHPP: number;
-  hppPerPorsi: number;
-  marginKeuntungan: number;
-  hargaJualPerPorsi: number;
+  userId: string; // ✅ PENTING: Ditambahkan untuk relasi ke pengguna
   createdAt: Date;
-  updatedAt: Date;
-  category: string; // MODIFIED: Tambahkan category
-}
-
-export interface NewRecipe {
+  
   namaResep: string;
-  deskripsi: string;
-  porsi: number;
-  ingredients: RecipeIngredient[];
+  jumlahPorsi: number;
+  kategoriResep: string;
+  deskripsi?: string | null;
+
+  bahanResep: RecipeIngredient[];
+  
   biayaTenagaKerja: number;
   biayaOverhead: number;
-  marginKeuntungan: number;
-  category: string; // MODIFIED: Tambahkan category
+  marginKeuntunganPersen: number; // Lebih deskriptif
+
+  // Hasil kalkulasi
+  totalHpp: number;
+  hppPerPorsi: number;
+  hargaJualPorsi: number;
 }
 
-export interface BahanBaku {
-  id: string;
-  nama: string;
-  kategori: string;
-  stok: number;
-  satuan: string;
-  minimum: number;
-  hargaSatuan: number;
-  supplier: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  tanggalKadaluwarsa?: Date; // Menambahkan ini berdasarkan diskusi sebelumnya
-}
+// Tipe untuk resep baru (lebih ringkas menggunakan Omit)
+export type NewRecipe = Omit<Recipe, 'id' | 'userId' | 'createdAt'>;

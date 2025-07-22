@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { validateAuthSession } from '@/lib/authUtils';
+import { safeParseDate } from '@/utils/dateUtils';
+import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface PaymentStatus {
   id: string;
@@ -12,78 +14,114 @@ export interface PaymentStatus {
   pg_reference_id: string | null;
   order_id: string | null;
   email: string | null;
-  // name: string | null; // <--- BARIS INI DIHAPUS
   payment_status: string;
-  created_at: string;
-  updated_at: string;
+  created_at: Date | undefined;
+  updated_at: Date | undefined;
 }
 
 export const usePaymentStatus = () => {
   const queryClient = useQueryClient();
 
-  const { data: paymentStatus, isLoading, error, refetch } = useQuery({
+  const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
       const isValid = await validateAuthSession();
       if (!isValid) {
         return null;
       }
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
+
+      const { data: { user } }: UserResponse = await supabase.auth.getUser();
       if (!user) {
         return null;
       }
 
-      const { data, error } = await supabase
+      // ===================================================================
+      // --- PERBAIKAN UTAMA DI SINI ---
+      // ===================================================================
+      console.log(`Fetching latest payment status for user: ${user.id}`);
+      const { data: paymentDataArray, error: fetchError } = await supabase
         .from('user_payments')
-        // PERBAIKAN DI SINI: Ubah menjadi satu baris tanpa newline atau spasi berlebihan
         .select(`id,user_id,is_paid,pg_reference_id,order_id,email,payment_status,created_at,updated_at`)
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('created_at', { ascending: false }) // 1. Urutkan dari yang paling baru
+        .limit(1);                                  // 2. Ambil hanya satu record teratas
 
-      if (error) {
-        console.error('Error fetching payment status:', error);
+      if (fetchError) {
+        // Error ini sekarang seharusnya tidak terjadi lagi untuk kasus duplikasi
+        console.error('Error fetching payment status:', fetchError);
         return null;
       }
 
-      return data;
+      // 3. Ambil elemen pertama dari array (jika ada)
+      const latestPaymentData = paymentDataArray && paymentDataArray.length > 0 ? paymentDataArray[0] : null;
+
+      if (latestPaymentData) {
+        console.log('Latest payment status found:', latestPaymentData);
+        return {
+          ...latestPaymentData,
+          created_at: safeParseDate(latestPaymentData.created_at),
+          updated_at: safeParseDate(latestPaymentData.updated_at),
+        };
+      }
+      // ===================================================================
+
+      console.log('No payment status found for user.');
+      return null;
     },
     enabled: true,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 
-  // Set up real-time subscription for payment status updates
+  // useEffect untuk real-time subscription tidak perlu diubah, sudah bagus.
   useEffect(() => {
+    let realtimeChannel: RealtimeChannel | null = null;
+    let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
+
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
 
-      const channel = supabase
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
+
+      if (!user) {
+        return;
+      }
+
+      realtimeChannel = supabase
         .channel('payment-status-changes')
         .on(
           'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_payments',
-            filter: `user_id=eq.${user.id}`
-          },
+          { event: '*', schema: 'public', table: 'user_payments', filter: `user_id=eq.${user.id}` },
           (payload) => {
-            console.log('Payment status updated:', payload);
+            console.log('Real-time payment update received:', payload);
+            // Invalidate query untuk memicu refetch dengan logika yang sudah diperbaiki
             queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
           }
         )
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     };
 
     setupSubscription();
+
+    authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+            setupSubscription();
+        }
+    });
+
+    return () => {
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+        supabase.removeChannel(realtimeChannel);
+      }
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
   }, [queryClient]);
 
   return {
@@ -93,6 +131,6 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid: paymentStatus?.is_paid === true,
     needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    userName: null
+    userName: null // Anda mungkin ingin mengisi ini dari data user di masa depan
   };
 };

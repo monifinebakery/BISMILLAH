@@ -74,7 +74,7 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton
         // Atur jarak dari tepi layar
-        offset={isMobile ? 160 : 24} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
+        offset={isMobile ? 160 : 32} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

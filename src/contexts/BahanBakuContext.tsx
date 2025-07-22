@@ -158,66 +158,67 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // --- BULK DELETE FUNCTION ---
   const bulkDeleteBahanBaku = async (ids: string[]): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menghapus bahan baku');
-      return false;
-    }
+  if (!user) {
+    toast.error('Anda harus login untuk menghapus bahan baku');
+    return false;
+  }
 
-    if (ids.length === 0) {
-      toast.warning('Tidak ada item yang dipilih untuk dihapus');
-      return false;
-    }
+  if (ids.length === 0) {
+    toast.warning('Tidak ada item yang dipilih untuk dihapus');
+    return false;
+  }
 
-    setIsBulkDeleting(true);
+  setIsBulkDeleting(true);
+  
+  try {
+    const itemsToDelete = bahanBaku.filter(item => ids.includes(item.id));
     
-    try {
-      const itemsToDelete = bahanBaku.filter(item => ids.includes(item.id));
-      
-      console.log('[BahanBakuContext] Memulai bulk delete untuk IDs:', ids);
-      
-      const previousBahanBaku = [...bahanBaku];
-      setBahanBaku(prev => prev.filter(item => !ids.includes(item.id)));
-      
-      const { error } = await supabase
-        .from('bahan_baku')
-        .delete()
-        .in('id', ids)
-        .eq('user_id', user.id);
+    console.log('[BahanBakuContext] Memulai bulk delete untuk IDs:', ids);
+    
+    const previousBahanBaku = [...bahanBaku];
+    setBahanBaku(prev => prev.filter(item => !ids.includes(item.id)));
+    
+    const { error } = await supabase
+      .from('bahan_baku')
+      .delete()
+      .in('id', ids)
+      .eq('user_id', user.id);
 
-      if (error) {
-        setBahanBaku(previousBahanBaku);
-        console.error('[BahanBakuContext] Error bulk delete:', error);
-        toast.error(`Gagal menghapus bahan baku: ${error.message}`);
-        return false;
-      }
-
-      for (const item of itemsToDelete) {
-        addActivity({
-          title: 'Bahan Baku Dihapus (Bulk)',
-          description: `${item.nama} telah dihapus dalam operasi bulk delete`,
-          type: 'stok',
-          value: null
-        });
-      }
-
-      setSelectedItems([]);
-      setIsSelectionMode(false);
-
-      toast.success(`${ids.length} bahan baku berhasil dihapus!`);
-      console.log('[BahanBakuContext] Bulk delete berhasil untuk', ids.length, 'items');
-      
-      await fetchBahanBaku();
-      
-      return true;
-    } catch (err) {
-      console.error('[BahanBakuContext] Unexpected error in bulk delete:', err);
-      toast.error('Terjadi kesalahan saat menghapus bahan baku');
-      await fetchBahanBaku();
+    if (error) {
+      setBahanBaku(previousBahanBaku);
+      console.error('[BahanBakuContext] Error bulk delete:', error);
+      toast.error(`Gagal menghapus bahan baku: ${error.message}`);
       return false;
-    } finally {
-      setIsBulkDeleting(false);
     }
-  };
+
+    // Safeguard: Use indexed loop to avoid scoping issues with 'k'
+    itemsToDelete.forEach((item, index) => {
+      addActivity({
+        title: 'Bahan Baku Dihapus (Bulk)',
+        description: `${item.nama} telah dihapus dalam operasi bulk delete`,
+        type: 'stok',
+        value: null
+      });
+    });
+
+    setSelectedItems([]);
+    setIsSelectionMode(false);
+
+    toast.success(`${ids.length} bahan baku berhasil dihapus!`);
+    console.log('[BahanBakuContext] Bulk delete berhasil untuk', ids.length, 'items');
+    
+    await fetchBahanBaku();
+    
+    return true;
+  } catch (err) {
+    console.error('[BahanBakuContext] Unexpected error in bulk delete:', err);
+    toast.error('Terjadi kesalahan saat menghapus bahan baku');
+    await fetchBahanBaku();
+    return false;
+  } finally {
+    setIsBulkDeleting(false);
+  }
+};
 
   // --- FUNGSI-FUNGSI CUD ---
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {

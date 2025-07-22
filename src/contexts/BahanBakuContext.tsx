@@ -8,8 +8,9 @@ import { toast } from 'sonner';
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-// 🔔 UPDATED NOTIFICATION IMPORTS
-import { useNotification, createNotificationHelper } from '@/contexts/NotificationContext';
+// 🔔 FIXED NOTIFICATION IMPORTS
+import { useNotification } from '@/contexts/NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { safeParseDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 

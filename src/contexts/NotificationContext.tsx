@@ -46,8 +46,14 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<boolean>;
   deleteNotification: (notificationId: string) => Promise<boolean>;
   archiveNotification: (notificationId: string) => Promise<boolean>;
+  bulkMarkAsRead: (notificationIds: string[]) => Promise<boolean>;
+  bulkDelete: (notificationIds: string[]) => Promise<boolean>;
+  bulkArchive: (notificationIds: string[]) => Promise<boolean>;
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<boolean>;
   refreshNotifications: () => Promise<void>;
+  getNotificationsByType: (type: string) => Notification[];
+  getUnreadNotifications: () => Notification[];
+  getUrgentNotifications: () => Notification[];
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -70,7 +76,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     // Jangan set isLoading(true) jika ini adalah background refresh
-    // setIsLoading(true); 
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -106,7 +111,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [user, settings]); // Tambahkan settings sebagai dependensi
+  }, [user, settings]);
 
   useEffect(() => {
     loadNotifications();
@@ -125,8 +130,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }, (payload) => {
         console.log('Perubahan notifikasi terdeteksi!', payload);
         
-        // OPTIMASI: Cukup panggil ulang loadNotifications.
-        // Ini lebih sederhana dan menjamin data selalu sinkron.
+        // Refresh notifications setelah perubahan
         loadNotifications();
 
         // Tampilkan toast untuk notifikasi baru
@@ -148,7 +152,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const addNotification = async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     if (!user) return false;
     try {
-      const { error } = await supabase.from('notifications').insert({ ...notificationData, user_id: user.id });
+      const { error } = await supabase
+        .from('notifications')
+        .insert({ 
+          ...notificationData, 
+          user_id: user.id 
+        });
+        
       if (error) throw error;
       return true;
     } catch (error) {
@@ -160,7 +170,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const markAsRead = async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+        
       if (error) throw error;
       return true;
     } catch (error) {
@@ -172,7 +186,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const markAllAsRead = async (): Promise<boolean> => {
     if (!user) return false;
     try {
-      const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+        
       if (error) throw error;
       toast.success('Semua notifikasi telah dibaca');
       return true;
@@ -185,7 +204,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const deleteNotification = async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+        
       if (error) throw error;
       return true;
     } catch (error) {
@@ -196,11 +219,61 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const archiveNotification = async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('notifications').update({ is_archived: true }).eq('id', notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_archived: true })
+        .eq('id', notificationId);
+        
       if (error) throw error;
       return true;
     } catch (error) {
       console.error('Error archiving notification:', error);
+      return false;
+    }
+  };
+
+  // Bulk operations
+  const bulkMarkAsRead = async (notificationIds: string[]): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', notificationIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error bulk marking as read:', error);
+      return false;
+    }
+  };
+
+  const bulkDelete = async (notificationIds: string[]): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', notificationIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      return false;
+    }
+  };
+
+  const bulkArchive = async (notificationIds: string[]): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_archived: true })
+        .in('id', notificationIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error bulk archiving:', error);
       return false;
     }
   };
@@ -210,7 +283,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       const { data, error } = await supabase
         .from('notification_settings')
-        .upsert({ user_id: user.id, ...settings, ...newSettings })
+        .upsert({ 
+          user_id: user.id, 
+          ...settings, 
+          ...newSettings 
+        })
         .select()
         .single();
 
@@ -226,6 +303,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  // Utility functions
+  const getNotificationsByType = useCallback((type: string): Notification[] => {
+    return notifications.filter(n => n.type === type);
+  }, [notifications]);
+
+  const getUnreadNotifications = useCallback((): Notification[] => {
+    return notifications.filter(n => !n.is_read);
+  }, [notifications]);
+
+  const getUrgentNotifications = useCallback((): Notification[] => {
+    return notifications.filter(n => !n.is_read && n.priority >= 3);
+  }, [notifications]);
+
   const value: NotificationContextType = {
     notifications,
     unreadCount,
@@ -237,8 +327,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     markAllAsRead,
     deleteNotification,
     archiveNotification,
+    bulkMarkAsRead,
+    bulkDelete,
+    bulkArchive,
     updateSettings,
     refreshNotifications: loadNotifications,
+    getNotificationsByType,
+    getUnreadNotifications,
+    getUrgentNotifications,
   };
 
   return (

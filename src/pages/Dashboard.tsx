@@ -214,7 +214,7 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/orders" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /orders */}
+                    <Link to="/pesanan" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /pesanan */}
                         <div className="bg-blue-100 p-3 rounded-full mr-4">
                             <ShoppingBag className="h-6 w-6 text-blue-600" /> {/* Changed to ShoppingBag */}
                         </div>

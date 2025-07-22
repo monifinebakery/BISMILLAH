@@ -1,421 +1,398 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useRecipe } from '@/contexts/RecipeContext';
-import { usePromo } from '@/contexts/PromoContext';
-import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
-import { AlertTriangle, Save, Trash2, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText, ShoppingBag, Boxes } from "lucide-react"; // Added ShoppingBag and Boxes icons
+import { Link } from "react-router-dom";
+import { formatCurrency } from '@/utils/currencyUtils';
+import { useActivity } from "@/contexts/ActivityContext";
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { id } from 'date-fns/locale';
+import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-const PromoCalculatorPage = () => {
-  const { recipes } = useRecipe();
-  const { promoHistory, addPromoEstimation, deletePromoEstimation } = usePromo();
-
-  // --- State Management ---
-  const [selectedRecipeId, setSelectedRecipeId] = useState('');
-  const [promoType, setPromoType] = useState('discount_percent');
-  const [discountValue, setDiscountValue] = useState(0);
-  const [bogoBuy, setBogoBuy] = useState(2);
-  const [bogoGet, setBogoGet] = useState(1);
-  const [promoName, setPromoName] = useState('');
-  const [selectedPromos, setSelectedPromos] = useState(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  const selectedRecipe = useMemo(() => recipes.find(r => r.id === selectedRecipeId) || null, [recipes, selectedRecipeId]);
-
-  const originalHpp = selectedRecipe?.hppPerPorsi || 0;
-  const originalPrice = selectedRecipe?.hargaJualPorsi || 0;
-  const originalMarginRp = originalPrice > 0 ? originalPrice - originalHpp : 0;
-  const originalMarginPercent = originalPrice > 0 ? originalMarginRp / originalPrice : 0;
-
-  const promoResult = useMemo(() => {
-    if (!selectedRecipe) return null;
-
-    let price = 0, marginRp = 0, marginPercent = 0, details = {};
-
-    switch (promoType) {
-      case 'discount_percent':
-        const discPercent = Math.min(100, Math.max(0, discountValue));
-        price = originalPrice * (1 - (discPercent / 100));
-        details = { type: '%', value: discPercent };
-        break;
-      case 'discount_rp':
-        const discRp = Math.max(0, discountValue);
-        price = Math.max(0, originalPrice - discRp);
-        details = { type: 'Rp', value: discRp };
-        break;
-      case 'bogo':
-        const buy = Math.max(1, bogoBuy);
-        const get = Math.max(0, bogoGet);
-        if (buy === 0) break;
-        price = (originalPrice * buy) / (buy + get);
-        details = { buy, get };
-        break;
-      default:
-        return null;
+// Helper function untuk format waktu
+const formatDateTime = (date) => {
+    if (!date) return 'Waktu tidak valid';
+    try {
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) return 'Waktu tidak valid';
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        }).format(dateObj);
+    } catch {
+        return 'Waktu tidak valid';
     }
-
-    marginRp = price - originalHpp;
-    marginPercent = price > 0 ? (marginRp / price) : 0;
-
-    return { price, marginRp, marginPercent, details };
-  }, [promoType, discountValue, bogoBuy, bogoGet, selectedRecipe, originalHpp, originalPrice]);
-
-  const handleSave = () => {
-    if (!promoName.trim()) {
-      toast.error('Nama promo wajib diisi.');
-      return;
-    }
-    if (!selectedRecipe || !promoResult) {
-      toast.error('Pilih produk dan pastikan kalkulasi valid.');
-      return;
-    }
-
-    addPromoEstimation({
-      promo_name: promoName.trim(),
-      promo_type: promoType,
-      base_recipe_id: selectedRecipeId,
-      base_recipe_name: selectedRecipe.namaResep,
-      promo_details: promoResult.details,
-      original_price: originalPrice,
-      original_hpp: originalHpp,
-      promo_price_effective: promoResult.price,
-      estimated_margin_percent: promoResult.marginPercent,
-      estimated_margin_rp: promoResult.marginRp,
-    });
-    setPromoName('');
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedPromos.size === 0) {
-      toast.warning('Pilih setidaknya satu promo untuk dihapus.');
-      return;
-    }
-    selectedPromos.forEach(id => deletePromoEstimation(id));
-    setSelectedPromos(new Set());
-    toast.success('Promo berhasil dihapus.');
-  };
-
-  const renderPromoForm = () => {
-    switch (promoType) {
-      case 'discount_percent':
-        return (
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Contoh: 10"
-              value={discountValue || ''}
-              onChange={(e) => setDiscountValue(Math.min(100, Math.max(0, Number(e.target.value))))}
-              min="0"
-              max="100"
-              className="w-24"
-            />
-            <span className="font-semibold text-gray-700">%</span>
-          </div>
-        );
-      case 'discount_rp':
-        return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-700">Rp</span>
-            <Input
-              type="number"
-              placeholder="Contoh: 5000"
-              value={discountValue || ''}
-              onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value)))}
-              min="0"
-              className="w-24"
-            />
-          </div>
-        );
-      case 'bogo':
-        return (
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gray-700">Beli</span>
-            <Input
-              className="w-20 text-center"
-              type="number"
-              value={bogoBuy}
-              onChange={(e) => setBogoBuy(Math.max(1, Number(e.target.value)))}
-              min="1"
-            />
-            <span className="text-gray-700">Gratis</span>
-            <Input
-              className="w-20 text-center"
-              type="number"
-              value={bogoGet}
-              onChange={(e) => setBogoGet(Math.max(0, Number(e.target.value)))}
-              min="0"
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Pagination Logic
-  const totalPages = Math.ceil(promoHistory.length / itemsPerPage);
-  const paginatedPromos = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return promoHistory.slice(start, start + itemsPerPage);
-  }, [promoHistory, currentPage]);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-4 sm:p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Kalkulator & Analisis Promo</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Kolom Kiri: Input */}
-        <div className="space-y-6">
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="bg-white border-b border-blue-100 p-4">
-              <CardTitle className="text-lg font-semibold text-blue-900">1. Pilih Produk Promo</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <Select onValueChange={setSelectedRecipeId} value={selectedRecipeId}>
-                <SelectTrigger className="w-full border-blue-200">
-                  <SelectValue placeholder="Pilih Produk/Resep..." className="text-gray-600" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-blue-200">
-                  {recipes.map((r) => (
-                    <SelectItem
-                      key={r.id}
-                      value={r.id}
-                      className="hover:bg-blue-50 text-gray-800"
-                    >
-                      {r.namaResep}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-            {selectedRecipe && (
-              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 bg-blue-50 rounded-b-lg text-center">
-                <div className="p-3 bg-white rounded-lg shadow-sm">
-                  <p className="text-xl font-bold text-blue-700">{formatCurrency(originalHpp)}</p>
-                  <p className="text-sm text-gray-600">HPP</p>
-                </div>
-                <div className="p-3 bg-white rounded-lg shadow-sm">
-                  <p className="text-xl font-bold text-blue-700">{formatCurrency(originalPrice)}</p>
-                  <p className="text-sm text-gray-600">Harga Asli</p>
-                </div>
-                <div className="p-3 bg-white rounded-lg shadow-sm">
-                  <p className="text-xl font-bold text-green-600">{formatPercentage(originalMarginPercent)}</p>
-                  <p className="text-sm text-gray-600">Margin</p>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="bg-white border-b border-blue-100 p-4">
-              <CardTitle className="text-lg font-semibold text-blue-900">2. Jenis & Kalkulasi Promo</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <Select onValueChange={setPromoType} value={promoType}>
-                <SelectTrigger className="w-full border-blue-200">
-                  <SelectValue placeholder="Pilih Jenis Promo" className="text-gray-600" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-blue-200">
-                  <SelectItem value="discount_percent" className="hover:bg-blue-50 text-gray-800">
-                    Diskon (%)
-                  </SelectItem>
-                  <SelectItem value="discount_rp" className="hover:bg-blue-50 text-gray-800">
-                    Diskon (Rp)
-                  </SelectItem>
-                  <SelectItem value="bogo" className="hover:bg-blue-50 text-gray-800">
-                    Beli X Gratis Y
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {selectedRecipe ? renderPromoForm() : <p className="text-sm text-gray-600 text-center py-4">Pilih produk terlebih dahulu.</p>}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Kolom Kanan: Hasil */}
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="bg-white border-b border-blue-100 p-4">
-            <CardTitle className="text-lg font-semibold text-blue-900">3. Hasil & Simpan Estimasi</CardTitle>
-            <CardDescription className="text-gray-600">Lihat potensi keuntungan dari promo Anda.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            {promoResult ? (
-              <div className="space-y-6 animate-fade-in">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-blue-100 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                    <p className="text-2xl font-bold text-blue-800">{formatCurrency(promoResult.price)}</p>
-                    <p className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                      Harga Efektif{' '}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle size={14} className="text-blue-700" />
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-white text-gray-800 border-blue-200">
-                            <p>Harga jual rata-rata per item setelah promo.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </p>
-                  </div>
-                  <div
-                    className="p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-                    style={{
-                      backgroundColor: promoResult.marginPercent < 0 ? '#FFF1F2' : '#E6FFE6',
-                    }}
-                  >
-                    <p
-                      className={`text-2xl font-bold ${
-                        promoResult.marginPercent < 0 ? 'text-red-700' : 'text-green-700'
-                      }`}
-                    >
-                      {formatPercentage(promoResult.marginPercent)}
-                    </p>
-                    <p className="text-sm text-gray-600">Estimasi Margin</p>
-                  </div>
-                </div>
-                {promoResult.marginPercent < 0 && (
-                  <p className="text-red-600 flex items-center gap-2 text-sm">
-                    <AlertTriangle size={16} /> Margin negatif, keuntungan Anda berkurang!
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nama Promo (e.g., Promo Gajian)"
-                    value={promoName}
-                    onChange={(e) => setPromoName(e.target.value)}
-                    className="flex-1 border-blue-200"
-                  />
-                  <Button
-                    onClick={handleSave}
-                    disabled={!promoName.trim() || !selectedRecipe || !promoResult}
-                    className="bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                  >
-                    <Save size={16} className="mr-2" /> Simpan
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-600 text-center py-10">Hasil akan muncul di sini setelah produk & promo dipilih.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300 mt-6">
-        <CardHeader className="bg-white border-b border-blue-100 p-4 flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold text-blue-900">Riwayat Estimasi Promo</CardTitle>
-          <Button
-            variant="destructive"
-            onClick={handleBulkDelete}
-            disabled={selectedPromos.size === 0}
-            className="bg-red-600 hover:bg-red-700 text-white transition-colors"
-          >
-            <Trash2 size={16} className="mr-2" /> Hapus Terpilih
-          </Button>
-        </CardHeader>
-        <CardContent className="p-6">
-          <Table>
-            <TableHeader className="bg-blue-50">
-              <TableRow>
-                <TableHead>
-                  <input
-                    type="checkbox"
-                    checked={selectedPromos.size === promoHistory.length && promoHistory.length > 0}
-                    onChange={(e) =>
-                      setSelectedPromos(
-                        e.target.checked ? new Set(promoHistory.map((p) => p.id)) : new Set()
-                      )
-                    }
-                    className="rounded border-blue-200"
-                  />
-                </TableHead>
-                <TableHead className="text-gray-800">Nama Promo</TableHead>
-                <TableHead className="text-gray-800">Produk</TableHead>
-                <TableHead className="text-gray-800">Harga Asli</TableHead>
-                <TableHead className="text-gray-800">Harga Promo</TableHead>
-                <TableHead className="text-gray-800">Margin</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedPromos.length > 0 ? (
-                paginatedPromos.map((p) => (
-                  <TableRow
-                    key={p.id}
-                    className="hover:bg-blue-50 transition-colors"
-                  >
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedPromos.has(p.id)}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedPromos);
-                          if (e.target.checked) newSelected.add(p.id);
-                          else newSelected.delete(p.id);
-                          setSelectedPromos(newSelected);
-                        }}
-                        className="rounded border-blue-200"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium text-gray-800">{p.promo_name}</TableCell>
-                    <TableCell className="text-gray-700">{p.base_recipe_name}</TableCell>
-                    <TableCell className="text-gray-700">{formatCurrency(p.original_price)}</TableCell>
-                    <TableCell className="font-semibold text-gray-800">{formatCurrency(p.promo_price_effective)}</TableCell>
-                    <TableCell
-                      className={`font-semibold ${
-                        p.estimated_margin_percent < 0 ? 'text-red-600' : 'text-green-600'
-                      }`}
-                    >
-                      {formatPercentage(p.estimated_margin_percent)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24 text-gray-600">
-                    Belum ada riwayat promo yang disimpan.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          {totalPages > 1 && (
-            <CardFooter className="flex justify-between items-center p-4 bg-white border-t border-blue-100">
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="text-blue-700 hover:bg-blue-50 border-blue-200"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-gray-600">
-                Halaman {currentPage} dari {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="text-blue-700 hover:bg-blue-50 border-blue-200"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardFooter>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
 };
 
-export default PromoCalculatorPage;
+const Dashboard = () => {
+    // Hooks
+    const { activities, loading: activitiesLoading } = useActivity();
+    const { bahanBaku } = useBahanBaku();
+    const { orders } = useOrder();
+    const { settings } = useUserSettings();
+    const isMobile = useIsMobile();
+
+    // State
+    const [date, setDate] = useState({ from: new Date(), to: new Date() });
+    const [productsPage, setProductsPage] = useState(1);
+    const [activitiesPage, setActivitiesPage] = useState(1);
+    const itemsPerPage = 5;
+
+    // --- Logika Inti Menggunakan Fungsi Terpusat ---
+    const filteredOrders = useMemo(() => filterByDateRange(orders, date, 'tanggal'), [orders, date]);
+    const filteredActivities = useMemo(() => filterByDateRange(activities, date, 'timestamp'), [activities, date]);
+
+    // --- Kalkulasi Data Berdasarkan Filter ---
+    const revenueInRange = useMemo(() => calculateGrossRevenue(filteredOrders), [filteredOrders]);
+    const profitInRange = useMemo(() => revenueInRange * 0.3, [revenueInRange]); // Estimasi laba
+    const ordersInRange = useMemo(() => filteredOrders.length, [filteredOrders]);
+    const outstandingInvoices = useMemo(() => filteredOrders.filter(o => o.status === 'BELUM LUNAS').length, [filteredOrders]);
+
+    const bestSellingProducts = useMemo(() => {
+        const productSales = {};
+        const productRevenue = {};
+        filteredOrders.forEach(order => {
+            (order.items || []).forEach(item => {
+                if (!item.namaBarang) return;
+                productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
+                productRevenue[item.namaBarang] = (productRevenue[item.namaBarang] || 0) + ((item.quantity || 0) * (item.hargaSatuan || 0));
+            });
+        });
+        return Object.entries(productSales)
+            .map(([name, quantity]) => ({ name, quantity, revenue: productRevenue[name] || 0 }))
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 20);
+    }, [filteredOrders]);
+
+    const worstSellingProducts = useMemo(() => {
+        const productSales = {};
+        filteredOrders.forEach(order => {
+            (order.items || []).forEach(item => {
+                if (!item.namaBarang) return;
+                productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + (item.quantity || 0);
+            });
+        });
+        return Object.entries(productSales)
+            .map(([name, quantity]) => ({ name, quantity }))
+            .sort((a, b) => a.quantity - b.quantity)
+            .slice(0, 5);
+    }, [filteredOrders]);
+
+    // Helper dan Pagination
+    const getGreeting = () => {
+        const jam = new Date().getHours();
+        let sapaan = "datang";
+        if (jam >= 4 && jam < 11) sapaan = "pagi";
+        else if (jam >= 11 && jam < 15) sapaan = "siang";
+        else if (jam >= 15 && jam < 19) sapaan = "sore";
+        else sapaan = "malam";
+        return settings.ownerName ? `Selamat ${sapaan}, Kak ${settings.ownerName}` : `Selamat ${sapaan}`;
+    };
+
+    const currentProducts = bestSellingProducts.slice((productsPage - 1) * itemsPerPage, productsPage * itemsPerPage);
+    const totalProductsPages = Math.ceil(bestSellingProducts.length / itemsPerPage);
+    const currentActivities = filteredActivities.slice((activitiesPage - 1) * itemsPerPage, activitiesPage * itemsPerPage);
+    const totalActivitiesPages = Math.ceil(filteredActivities.length / itemsPerPage);
+
+    // Komponen Pilihan Cepat Tanggal
+    const DatePresets = ({ setDateRange }) => {
+        const today = new Date();
+        const presets = [
+            { label: "Hari Ini", range: { from: today, to: today } },
+            { label: "Kemarin", range: { from: subDays(today, 1), to: subDays(today, 1) } },
+            { label: "7 Hari Terakhir", range: { from: subDays(today, 6), to: today } },
+            { label: "30 Hari Terakhir", range: { from: subDays(today, 29), to: today } },
+            { label: "Bulan Ini", range: { from: startOfMonth(today), to: endOfMonth(today) } },
+            { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) } },
+        ];
+        return (
+            <div className="flex flex-col space-y-2 p-3">
+                {presets.map(({ label, range }) => (
+                    <Button key={label} variant="ghost" className="w-full justify-start text-sm hover:bg-gray-100 rounded-lg" onClick={() => setDateRange(range)}>
+                        {label}
+                    </Button>
+                ))}
+            </div>
+        );
+    };
+
+    return (
+        <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+                    <p className="text-md text-gray-600 mt-1">{getGreeting()}</p>
+                </div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button id="date" variant="outline" className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm">
+                            <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
+                            {date?.from ? (
+                                date.to && date.from.toDateString() !== date.to.toDateString()
+                                    ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
+                                    : format(date.from, "LLL dd, y", { locale: id })
+                            ) : (
+                                <span className="text-gray-500">Pilih tanggal</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 flex bg-white shadow-lg rounded-xl" align="end">
+                        <DatePresets setDateRange={setDate} />
+                        <div className="border-l border-gray-200">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={date?.from}
+                                selected={date}
+                                onSelect={setDate}
+                                numberOfMonths={isMobile ? 1 : 2}
+                                locale={id}
+                                className="p-3"
+                            />
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 flex items-center">
+                        <div className="bg-blue-100 p-3 rounded-full mr-4">
+                            <CircleDollarSign className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase">Omzet</p>
+                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(revenueInRange)}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 flex items-center">
+                        <div className="bg-green-100 p-3 rounded-full mr-4">
+                            <Package className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase">Total Pesanan</p>
+                            <p className="text-xl font-semibold text-gray-900">{ordersInRange}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 flex items-center">
+                        <div className="bg-purple-100 p-3 rounded-full mr-4">
+                            <Calculator className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase">Laba Bersih</p>
+                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(profitInRange)}</p>
+                            <p className="text-xs text-gray-500 mt-1">(Estimasi)</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 flex items-center">
+                        <div className="bg-orange-100 p-3 rounded-full mr-4">
+                            <ListChecks className="h-6 w-6 text-orange-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase">Piutang</p>
+                            <p className="text-xl font-semibold text-orange-600">{outstandingInvoices}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <Link to="/orders" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /orders */}
+                        <div className="bg-blue-100 p-3 rounded-full mr-4">
+                            <ShoppingBag className="h-6 w-6 text-blue-600" /> {/* Changed to ShoppingBag */}
+                        </div>
+                        <p className="text-lg font-medium text-gray-800">Pesanan</p>
+                    </Link>
+                </Card>
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <Link to="/stock" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /stock */}
+                        <div className="bg-green-100 p-3 rounded-full mr-4">
+                            <Boxes className="h-6 w-6 text-green-600" /> {/* Changed to Boxes */}
+                        </div>
+                        <p className="text-lg font-medium text-gray-800">Kelola Stok</p>
+                    </Link>
+                </Card>
+                <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <Link to="/laporan" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg">
+                        <div className="bg-purple-100 p-3 rounded-full mr-4">
+                            <FileText className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <p className="text-lg font-medium text-gray-800">Laporan Keuangan</p>
+                    </Link>
+                </Card>
+            </div>
+
+            {/* Bottom Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="bg-gray-50 border-b border-gray-100 p-4">
+                            <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
+                                <Trophy className="h-5 w-5 text-yellow-500" />
+                                <span>Produk Terlaris</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-gray-200">
+                                {currentProducts.length > 0 ? currentProducts.map((product, index) => (
+                                    <div key={`${product.name}-${index}`} className="p-4 flex items-center hover:bg-gray-50 transition-colors">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                            <span className="text-sm font-medium text-gray-700">{productsPage * itemsPerPage - itemsPerPage + index + 1}</span>
+                                        </div>
+                                        <div className="ml-4 flex-1 min-w-0">
+                                            <p className="font-medium text-gray-800 truncate">{product.name}</p>
+                                            <div className="flex justify-between mt-1 text-sm">
+                                                <p className="text-gray-500">{product.quantity} terjual</p>
+                                                <p className="font-medium text-gray-800">{formatCurrency(product.revenue)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : <div className="p-6 text-center text-gray-500">Tidak ada data penjualan pada periode ini.</div>}
+                            </div>
+                        </CardContent>
+                        {bestSellingProducts.length > itemsPerPage && (
+                            <CardFooter className="bg-gray-50 border-t border-gray-100 p-3 flex justify-between">
+                                <Button variant="outline" size="sm" onClick={() => setProductsPage(p => p - 1)} disabled={productsPage === 1} className="text-gray-600 hover:bg-gray-200">
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-sm text-gray-600">Halaman {productsPage} dari {totalProductsPages}</span>
+                                <Button variant="outline" size="sm" onClick={() => setProductsPage(p => p + 1)} disabled={productsPage >= totalProductsPages} className="text-gray-600 hover:bg-gray-200">
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </CardFooter>
+                        )}
+                    </Card>
+                    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="bg-gray-50 border-b border-gray-100 p-4">
+                            <CardTitle className="flex items-center gap-2 text-red-600 text-lg">
+                                <Warehouse className="h-5 w-5" />
+                                <span>Stok Kritis</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-gray-200">
+                                {bahanBaku.filter(item => item.stok <= item.minimum).length > 0 ? bahanBaku.filter(item => item.stok <= item.minimum).slice(0, 5).map((item) => (
+                                    <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                        <p className="font-medium text-gray-800 truncate">{item.nama}</p>
+                                        <div className="flex justify-between mt-1 text-sm">
+                                            <p className="text-gray-500">Stok: {item.stok} {item.satuan}</p>
+                                            <p className="text-red-600 font-medium">Minimum: {item.minimum} {item.satuan}</p>
+                                        </div>
+                                    </div>
+                                )) : <div className="p-6 text-center text-gray-500">Tidak ada stok kritis.</div>}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="bg-gray-50 border-b border-gray-100 p-4">
+                            <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
+                                <Activity className="h-5 w-5 text-gray-600" />
+                                <span>Aktivitas Terbaru</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader className="bg-gray-50">
+                                    <TableRow>
+                                        <TableHead className="text-gray-700">Aktivitas</TableHead>
+                                        <TableHead className="text-gray-700">Waktu</TableHead>
+                                        <TableHead className="text-gray-700 text-right">Jumlah</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {activitiesLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-gray-500 py-6">Memuat aktivitas...</TableCell>
+                                        </TableRow>
+                                    ) : currentActivities.length > 0 ? (
+                                        currentActivities.map((activity) => {
+                                            const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
+                                            let amount = 0;
+                                            if (isFinancial && activity.value) {
+                                                const parsed = parseFloat(activity.value);
+                                                amount = isNaN(parsed) ? 0 : parsed;
+                                            }
+                                            return (
+                                                <TableRow key={activity.id}>
+                                                    <TableCell>
+                                                        <p className="font-medium text-gray-800 truncate">{activity.title}</p>
+                                                        <p className="text-sm text-gray-500 truncate">{activity.description}</p>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-gray-500">{formatDateTime(activity.timestamp)}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        {isFinancial && amount !== 0 && (
+                                                            <p className={`text-sm font-medium ${activity.title.toLowerCase().includes('pemasukan') ? 'text-green-600' : 'text-red-600'}`}>
+                                                                {formatCurrency(amount)}
+                                                            </p>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-gray-500 py-6">Belum ada aktivitas pada periode ini.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                        {filteredActivities.length > itemsPerPage && (
+                            <CardFooter className="bg-gray-50 border-t border-gray-100 p-3 flex justify-between">
+                                <Button variant="outline" size="sm" onClick={() => setActivitiesPage(p => p - 1)} disabled={activitiesPage === 1} className="text-gray-600 hover:bg-gray-200">
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-sm text-gray-600">Halaman {activitiesPage} dari {totalActivitiesPages}</span>
+                                <Button variant="outline" size="sm" onClick={() => setActivitiesPage(p => p + 1)} disabled={activitiesPage >= totalActivitiesPages} className="text-gray-600 hover:bg-gray-200">
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </CardFooter>
+                        )}
+                    </Card>
+                    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="bg-gray-50 border-b border-gray-100 p-4">
+                            <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
+                                <TrendingDown className="h-5 w-5 text-gray-600" />
+                                <span>Produk Kurang Laris</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-gray-200">
+                                {worstSellingProducts.length > 0 ? worstSellingProducts.map((product, index) => (
+                                    <div key={`${product.name}-${index}`} className="p-4 hover:bg-gray-50 transition-colors">
+                                        <p className="font-medium text-gray-800 truncate">{product.name}</p>
+                                        <p className="text-sm text-gray-500 mt-1">Hanya {product.quantity} terjual</p>
+                                    </div>
+                                )) : <div className="p-6 text-center text-gray-500">Tidak ada data untuk ditampilkan.</div>}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Dashboard;

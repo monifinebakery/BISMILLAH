@@ -38,7 +38,8 @@ const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 // Hooks dan utilitas
-import { AppProviders } from "@/contexts/AppProviders";
+// 🔔 UPDATE: Pastikan import path sesuai dengan lokasi file AppProviders
+import { AppProviders } from "@/providers/AppProviders"; // atau sesuaikan dengan struktur folder kamu
 import { usePaymentContext } from "./contexts/PaymentContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,14 +71,25 @@ const AppLayout = () => {
       {isMobile ? (
         <div className="min-h-screen flex flex-col bg-background">
           <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-            <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
-            <div className="flex items-center space-x-2">{isPaid && <PaymentStatusIndicator />}<NotificationBell /><MobileExportButton /></div>
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-primary">HPP App</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              {isPaid && <PaymentStatusIndicator />}
+              {/* 🔔 NotificationBell already here - GOOD! */}
+              <NotificationBell />
+              <MobileExportButton />
+            </div>
           </header>
           <main className="flex-1 overflow-auto pb-16">
             <Outlet />
           </main>
           <BottomTabBar />
-          {!isPaid && (<div className="fixed bottom-20 right-4 z-50"><PaymentStatusIndicator size="lg" /></div>)}
+          {!isPaid && (
+            <div className="fixed bottom-20 right-4 z-50">
+              <PaymentStatusIndicator size="lg" />
+            </div>
+          )}
         </div>
       ) : (
         <SidebarProvider>
@@ -88,7 +100,10 @@ const AppLayout = () => {
                 <SidebarTrigger className="-ml-1" />
                 <div className="flex-1" />
                 <div className="flex items-center space-x-4">
-                  <PaymentStatusIndicator /><DateTimeDisplay /><NotificationBell />
+                  <PaymentStatusIndicator />
+                  <DateTimeDisplay />
+                  {/* 🔔 NotificationBell already here - GOOD! */}
+                  <NotificationBell />
                 </div>
               </header>
               <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
@@ -116,6 +131,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {/* 🔔 AppProviders wraps everything - includes NotificationProvider */}
         <AppProviders>
           <Suspense fallback={<PageLoader />}>
             <Routes>

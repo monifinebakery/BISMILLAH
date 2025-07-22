@@ -105,11 +105,6 @@ const AppLayout = () => {
               </main>
             </SidebarInset>
           </div>
-          <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-            <AlertDialogContent>
-              <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction></AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </SidebarProvider>
       )}
     </>

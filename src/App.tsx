@@ -3,13 +3,8 @@
 // Impor yang dibutuhkan
 import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
-// HAPUS: Toaster dari shadcn/ui tidak lagi digunakan
-// import { Toaster } from "@/components/ui/toaster"; 
-// HAPUS: Komponen Sonner sudah dirender di dalam AppProviders
-// import { Toaster as Sonner } from "@/components/ui/sonner"; 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 // Komponen dan Halaman
@@ -39,16 +34,11 @@ const PaymentSuccessPage = React.lazy(() => import("./pages/PaymentSuccessPage")
 const InvoicePage = React.lazy(() => import("./pages/InvoicePage"));
 const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage"));
 
-// Komponen UI dari ShadCN
-import { Button } from "@/components/ui/button";
+// Komponen UI
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // Hooks dan utilitas
-import { AppProviders } from "@/contexts/AppProviders"; // Nama file contexts/AppProviders.tsx
+import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -65,9 +55,7 @@ const PageLoader = () => (
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { isPaid } = usePaymentContext();
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => setShowLogoutConfirm(true);
   const confirmLogout = async () => {
     const success = await performSignOut();
     if (success) {
@@ -114,6 +102,7 @@ const AppLayout = () => {
   );
 };
 
+// Komponen App sekarang hanya fokus pada routing dan setup provider
 const App = () => {
   useEffect(() => {
     const handleAuthFromUrl = async () => {
@@ -128,42 +117,39 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <BrowserRouter>
-          <AppProviders>
-            {/* HAPUS: Komponen <Sonner /> sudah ada di dalam AppProviders */}
-            {/* <Sonner /> */}
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/auth" element={<EmailAuthPage />} />
-                
-                <Route
-                  element={
-                    <AuthGuard>
-                      <PaymentGuard>
-                        <AppLayout />
-                      </PaymentGuard>
-                    </AuthGuard>
-                  }
-                >
-                  <Route index element={<Dashboard />} />
-                  <Route path="resep" element={<RecipesPage />} />
-                  <Route path="gudang" element={<WarehousePage />} />
-                  <Route path="supplier" element={<SupplierManagement />} />
-                  <Route path="pembelian" element={<PurchaseManagement />} />
-                  <Route path="pesanan" element={<OrdersPage />} />
-                  <Route path="invoice" element={<InvoicePage />} />
-                  <Route path="laporan" element={<FinancialReportPage />} />
-                  <Route path="aset" element={<AssetManagement />} />
-                  <Route path="pengaturan" element={<Settings />} />
-                  <Route path="menu" element={<MenuPage />} />
-                  <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  <Route path="promo" element={<PromoCalculatorPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </AppProviders>
-        </BrowserRouter>
+        {/* Router sudah dipindahkan ke main.tsx, jadi kita hapus dari sini */}
+        <AppProviders>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/auth" element={<EmailAuthPage />} />
+              
+              <Route
+                element={
+                  <AuthGuard>
+                    <PaymentGuard>
+                      <AppLayout />
+                    </PaymentGuard>
+                  </AuthGuard>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="resep" element={<RecipesPage />} />
+                <Route path="gudang" element={<WarehousePage />} />
+                <Route path="supplier" element={<SupplierManagement />} />
+                <Route path="pembelian" element={<PurchaseManagement />} />
+                <Route path="pesanan" element={<OrdersPage />} />
+                <Route path="invoice" element={<InvoicePage />} />
+                <Route path="laporan" element={<FinancialReportPage />} />
+                <Route path="aset" element={<AssetManagement />} />
+                <Route path="pengaturan" element={<Settings />} />
+                <Route path="menu" element={<MenuPage />} />
+                <Route path="payment-success" element={<PaymentSuccessPage />} />
+                <Route path="promo" element={<PromoCalculatorPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </AppProviders>
       </TooltipProvider>
     </QueryClientProvider>
   );

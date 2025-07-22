@@ -14,7 +14,6 @@ import { useOrder } from '@/contexts/OrderContext';
 import OrderForm from '@/components/OrderForm';
 import { toast } from 'sonner';
 import type { Order, NewOrder } from '@/types/order';
-import WhatsappFollowUpModal from '@/components/WhatsappFollowUpModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from "@/components/ui/label";
@@ -25,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import FollowUpTemplateManager from '@/components/FollowUpTemplateManager';
+import StatusCell from '@/components/StatusCell';
 
 const OrdersPage = () => {
   const isMobile = useIsMobile();
@@ -48,10 +49,10 @@ const OrdersPage = () => {
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
-  const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
+  const [selectedOrderForWhatsapp, setSelectedOrderForWhatsapp] = useState<Order | null>(null);
   
   // Bulk operation states
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -59,36 +60,25 @@ const OrdersPage = () => {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [bulkEditStatus, setBulkEditStatus] = useState<string>('');
+  
+  // Template manager states
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [selectedOrderForTemplate, setSelectedOrderForTemplate] = useState<Order | null>(null);
 
   // --- Handlers ---
   const handleFollowUpClick = (order: Order) => {
-    setSelectedOrderForWhatsapp(order);
-    setIsWhatsappModalOpen(true);
+    setSelectedOrderForTemplate(order);
+    setShowTemplateManager(true);
   };
 
-  const getWhatsappTemplateByStatus = (status: string, orderData: Order): string => {
-    if (!orderData) return '';
-    
-    const itemsText = (orderData.items || [])
-      .map(item => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
-      .join('\n');
-    
-    const totalText = new Intl.NumberFormat('id-ID', { 
-      style: 'currency', 
-      currency: 'IDR', 
-      minimumFractionDigits: 0 
-    }).format(orderData.totalPesanan || 0);
+  const handleTemplateManager = () => {
+    setSelectedOrderForTemplate(null);
+    setShowTemplateManager(true);
+  };
 
-    switch (status) {
-      case 'confirmed':
-        return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda #${orderData.nomorPesanan} telah kami KONFIRMASI dan sedang kami siapkan.\n\nTerima kasih!`;
-      case 'shipping':
-        return `Halo kak ${orderData.namaPelanggan},\n\nKabar baik! Pesanan Anda #${orderData.nomorPesanan} sudah dalam proses PENGIRIMAN.\n\nMohon ditunggu kedatangannya ya. Terima kasih!`;
-      case 'delivered':
-        return `Halo kak ${orderData.namaPelanggan},\n\nPesanan Anda #${orderData.nomorPesanan} telah TIBA.\n\nTerima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`;
-      default: // pending & status lain
-        return `Halo kak ${orderData.namaPelanggan},\n\nTerima kasih telah memesan. Ini detail pesanan Anda:\nNomor Pesanan: ${orderData.nomorPesanan}\n\nItem:\n${itemsText}\n\nTotal: ${totalText}\n\nMohon konfirmasinya. Terima kasih.`;
-    }
+  const handleSendWhatsApp = (message: string, order: Order) => {
+    // This function can be used for additional logging or tracking
+    console.log('Sending WhatsApp message:', { message, order });
   };
   
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -308,6 +298,14 @@ const OrdersPage = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <Button
+            onClick={handleTemplateManager}
+            variant="outline"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-blue-50 transition-all duration-200 hover:shadow-lg border-blue-300"
+          >
+            <MessageSquare className="h-5 w-5" />
+            Kelola Template
+          </Button>
           <Button
             onClick={handleNewOrder}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
@@ -578,26 +576,11 @@ const OrdersPage = () => {
                       {order.tanggal ? formatDateForDisplay(order.tanggal) : '-'}
                     </TableCell>
                     <TableCell className="p-4">
-                      <Select 
-                        value={order.status} 
-                        onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
-                      >
-                        <SelectTrigger 
-                          className={cn(
-                            getStatusColor(order.status), 
-                            "h-8 border-none text-xs"
-                          )}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {orderStatusList.map(s => (
-                            <SelectItem key={s.key} value={s.key}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <StatusCell 
+                        order={order}
+                        onStatusChange={handleStatusChange}
+                        onTemplateManagerOpen={handleFollowUpClick}
+                      />
                     </TableCell>
                     <TableCell className="text-right p-4">
                       <span className="font-semibold text-green-600 text-base">
@@ -620,6 +603,14 @@ const OrdersPage = () => {
                             <DropdownMenuItem onClick={() => handleFollowUpClick(order)} className="cursor-pointer">
                               <MessageSquare className="h-4 w-4 mr-2" />
                               Follow Up WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleTemplateManager()} className="cursor-pointer">
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Kelola Template
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Lihat Detail
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -828,19 +819,20 @@ const OrdersPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Template Manager */}
+      <FollowUpTemplateManager
+        isOpen={showTemplateManager}
+        onClose={() => setShowTemplateManager(false)}
+        order={selectedOrderForTemplate}
+        onSendWhatsApp={handleSendWhatsApp}
+      />
+
       {/* Modals */}
       <OrderForm 
         open={showOrderForm} 
         onOpenChange={setShowOrderForm} 
         onSubmit={handleSubmit} 
         initialData={editingOrder} 
-      />
-      
-      <WhatsappFollowUpModal
-        isOpen={isWhatsappModalOpen}
-        onClose={() => setIsWhatsappModalOpen(false)}
-        order={selectedOrderForWhatsapp}
-        getWhatsappTemplateByStatus={getWhatsappTemplateByStatus}
       />
     </div>
   );

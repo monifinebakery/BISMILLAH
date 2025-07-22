@@ -39,7 +39,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 
 // Hooks dan utilitas
 // 🔔 UPDATE: Pastikan import path sesuai dengan lokasi file AppProviders
-import { AppProviders } from "@/providers/AppProviders"; // atau sesuaikan dengan struktur folder kamu
+import { AppProviders } from "@/contexts/AppProviders"; // atau sesuaikan dengan struktur folder kamu
 import { usePaymentContext } from "./contexts/PaymentContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";

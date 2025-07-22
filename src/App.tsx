@@ -1,8 +1,12 @@
+// App.jsx
+
 // Impor yang dibutuhkan
 import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+// HAPUS: Toaster dari shadcn/ui tidak lagi digunakan
+// import { Toaster } from "@/components/ui/toaster"; 
+// HAPUS: Komponen Sonner sudah dirender di dalam AppProviders
+// import { Toaster as Sonner } from "@/components/ui/sonner"; 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
@@ -33,7 +37,7 @@ const PurchaseManagement = React.lazy(() => import("./pages/PurchaseManagement")
 const MenuPage = React.lazy(() => import("./pages/MenuPage"));
 const PaymentSuccessPage = React.lazy(() => import("./pages/PaymentSuccessPage"));
 const InvoicePage = React.lazy(() => import("./pages/InvoicePage"));
-const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage")); // ✨ HALAMAN BARU DITAMBAHKAN
+const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage"));
 
 // Komponen UI dari ShadCN
 import { Button } from "@/components/ui/button";
@@ -44,7 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Hooks dan utilitas
-import { AppProviders } from "@/contexts/AppProviders";
+import { AppProviders } from "@/contexts/AppProviders"; // Nama file contexts/AppProviders.tsx
 import { usePaymentContext } from "./contexts/PaymentContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -126,7 +130,8 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <AppProviders>
-            <Sonner />
+            {/* HAPUS: Komponen <Sonner /> sudah ada di dalam AppProviders */}
+            {/* <Sonner /> */}
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/auth" element={<EmailAuthPage />} />

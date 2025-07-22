@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import semua context provider Anda
 import { AuthProvider } from './AuthContext';
@@ -25,6 +25,8 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
  * Router dan Toaster akan diatur di level yang lebih tinggi (misal: App.jsx atau main.jsx).
  */
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <>
       {/* 1. AuthProvider paling luar, karena hampir semua bergantung padanya */}

@@ -97,7 +97,6 @@ const AppLayout = () => {
                 <div className="flex-1" />
                 <div className="flex items-center space-x-4">
                   <PaymentStatusIndicator /><DateTimeDisplay /><NotificationBell />
-                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:bg-destructive/10"><LogOut className="h-4 w-4" /></Button>
                 </div>
               </header>
               <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">

@@ -107,7 +107,6 @@ const AppLayout = () => {
           </div>
           <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
             <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle><AlertDialogDescription>Apakah Anda yakin ingin keluar?</AlertDialogDescription></AlertDialogHeader>
               <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction></AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

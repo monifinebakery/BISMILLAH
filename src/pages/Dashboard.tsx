@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText } from "lucide-react";
+import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText, ShoppingBag, Boxes } from "lucide-react"; // Added ShoppingBag and Boxes icons
 import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
@@ -14,7 +14,7 @@ import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id } from 'date-fns/locale';
 import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
-import { useIsMobile } from '@/hooks/use-mobile'; // Added missing import
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Helper function untuk format waktu
 const formatDateTime = (date) => {
@@ -37,7 +37,7 @@ const Dashboard = () => {
     const { bahanBaku } = useBahanBaku();
     const { orders } = useOrder();
     const { settings } = useUserSettings();
-    const isMobile = useIsMobile(); // Added to use the hook
+    const isMobile = useIsMobile();
 
     // State
     const [date, setDate] = useState({ from: new Date(), to: new Date() });
@@ -153,7 +153,7 @@ const Dashboard = () => {
                                 defaultMonth={date?.from}
                                 selected={date}
                                 onSelect={setDate}
-                                numberOfMonths={isMobile ? 1 : 2} // Use isMobile here
+                                numberOfMonths={isMobile ? 1 : 2}
                                 locale={id}
                                 className="p-3"
                             />
@@ -214,19 +214,19 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/hpp" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg">
+                    <Link to="/orders" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /orders */}
                         <div className="bg-blue-100 p-3 rounded-full mr-4">
-                            <Calculator className="h-6 w-6 text-blue-600" />
+                            <ShoppingBag className="h-6 w-6 text-blue-600" /> {/* Changed to ShoppingBag */}
                         </div>
-                        <p className="text-lg font-medium text-gray-800">Hitung HPP</p>
+                        <p className="text-lg font-medium text-gray-800">Pesanan</p>
                     </Link>
                 </Card>
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/gudang" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg">
+                    <Link to="/stock" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /stock */}
                         <div className="bg-green-100 p-3 rounded-full mr-4">
-                            <Warehouse className="h-6 w-6 text-green-600" />
+                            <Boxes className="h-6 w-6 text-green-600" /> {/* Changed to Boxes */}
                         </div>
-                        <p className="text-lg font-medium text-gray-800">Kelola Gudang</p>
+                        <p className="text-lg font-medium text-gray-800">Kelola Stok</p>
                     </Link>
                 </Card>
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">

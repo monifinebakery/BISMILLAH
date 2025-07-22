@@ -430,10 +430,6 @@ const PurchaseManagement = () => {
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Eye className="h-4 w-4 mr-2" />
-                                Lihat Detail
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => handleDelete(purchase.id)}

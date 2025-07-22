@@ -382,7 +382,7 @@ const Dashboard = () => {
                             <div className="divide-y divide-gray-200">
                                 {worstSellingProducts.length > 0 ? worstSellingProducts.map((product, index) => (
                                     <div key={`${product.name}-${index}`} className="p-4 hover:bg-gray-50 transition-colors">
-                                        <p className="font-medium text-gray-800 truncate">{product.name}</p>
+                                        <p className="font-medium text-green-800 truncate">{product.name}</p>
                                         <p className="text-sm text-gray-500 mt-1">Hanya {product.quantity} terjual</p>
                                     </div>
                                 )) : <div className="p-6 text-center text-gray-500">Tidak ada data untuk ditampilkan.</div>}

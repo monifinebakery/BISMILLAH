@@ -153,22 +153,12 @@ const App = () => {
                   <Route path="gudang" element={<WarehousePage />} />
                   <Route path="supplier" element={<SupplierManagement />} />
                   <Route path="pembelian" element={<PurchaseManagement />} />
-                  {/* HAPUS BARIS INI KARENA SUDAH ADA VERSI NESTEDNYA DI BAWAH */}
-                  {/* <Route path="pesanan" element={<OrdersPage />} /> */} 
+                  <Route path="pesanan" element={<OrdersPage />} />
                   <Route path="laporan" element={<FinancialReportPage />} />
                   <Route path="aset" element={<AssetManagement />} />
                   <Route path="pengaturan" element={<Settings />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="payment-success" element={<PaymentSuccessPage />} />
-                  {/* InvoicePage sudah ada di dalam rute pesanan nested, jadi ini mungkin juga duplikat */}
-                  {/* <Route path="invoice" element={<InvoicePage />} /> */} 
-                  
-                  {/* ✨ INI ADALAH DEFINISI RUTE PESANAN YANG BENAR ✨ */}
-                  <Route path="pesanan">
-                    <Route index element={<OrdersPage />} /> {/* Menangani /pesanan */}
-                    <Route path="invoice/:orderId" element={<InvoicePage />} /> {/* Menangani /pesanan/invoice/:orderId */}
-                  </Route>
-
                   <Route path="promo" element={<PromoCalculatorPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

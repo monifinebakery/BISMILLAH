@@ -75,7 +75,7 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
         // TAMBAHKAN INI: Atur jarak dari tepi layar
         // Nilai default adalah 16px. Kita kurangi menjadi 8px di mobile
         // agar posisinya sedikit lebih naik.
-        offset={isMobile ? 8 : 16}
+        offset={isMobile ? 16 : 8}
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

@@ -8,7 +8,7 @@ import { Session } from '@supabase/supabase-js';
 // Tentukan URL redirect berdasarkan environment
 const getRedirectUrl = () => {
   if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3000/'; // URL lokal Anda untuk pengembangan
+    return 'https://sync--gleaming-peony-f4a091.netlify.app/'; // URL lokal Anda untuk pengembangan
   }
   // Untuk produksi, gunakan subdomain utama aplikasi Anda yang sudah terdaftar di Supabase Auth Settings
   return 'https://kalkulator.monifine.my.id/';

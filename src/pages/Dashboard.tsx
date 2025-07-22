@@ -9,12 +9,12 @@ import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id } from 'date-fns/locale';
 import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
+import { useIsMobile } from '@/hooks/use-mobile'; // Added missing import
 
 // Helper function untuk format waktu
 const formatDateTime = (date) => {
@@ -37,6 +37,7 @@ const Dashboard = () => {
     const { bahanBaku } = useBahanBaku();
     const { orders } = useOrder();
     const { settings } = useUserSettings();
+    const isMobile = useIsMobile(); // Added to use the hook
 
     // State
     const [date, setDate] = useState({ from: new Date(), to: new Date() });
@@ -152,7 +153,7 @@ const Dashboard = () => {
                                 defaultMonth={date?.from}
                                 selected={date}
                                 onSelect={setDate}
-                                numberOfMonths={isMobile ? 1 : 2}
+                                numberOfMonths={isMobile ? 1 : 2} // Use isMobile here
                                 locale={id}
                                 className="p-3"
                             />

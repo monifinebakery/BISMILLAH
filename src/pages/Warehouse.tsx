@@ -219,6 +219,11 @@ const WarehousePage = () => {
     }
   };
 
+  // Define paginate function to avoid undefined reference
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
   const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => 
     value === null || value === undefined ? '' : value;
 
@@ -590,22 +595,26 @@ const WarehousePage = () => {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      onClick={() => paginate(page)}
-                      className={cn(
-                        "h-9 w-9",
-                        currentPage === page
-                          ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
-                          : "hover:bg-gray-100"
-                      )}
-                      variant={currentPage === page ? "default" : "ghost"}
-                      aria-label={`Page ${page}`}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    // Scope page variable locally to avoid conflicts
+                    const pageNumber = page;
+                    return (
+                      <Button
+                        key={pageNumber}
+                        onClick={() => paginate(pageNumber)}
+                        className={cn(
+                          "h-9 w-9",
+                          currentPage === pageNumber
+                            ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
+                            : "hover:bg-gray-100"
+                        )}
+                        variant={currentPage === pageNumber ? "default" : "ghost"}
+                        aria-label={`Page ${pageNumber}`}
+                      >
+                        {pageNumber}
+                      </Button>
+                    );
+                  })}
                   <Button
                     variant="ghost"
                     size="icon"

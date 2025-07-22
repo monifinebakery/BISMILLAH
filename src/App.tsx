@@ -154,6 +154,7 @@ const App = () => {
                   <Route path="supplier" element={<SupplierManagement />} />
                   <Route path="pembelian" element={<PurchaseManagement />} />
                   <Route path="pesanan" element={<OrdersPage />} />
+                  <Route path="invoice" element={<InvoicePage />} />
                   <Route path="laporan" element={<FinancialReportPage />} />
                   <Route path="aset" element={<AssetManagement />} />
                   <Route path="pengaturan" element={<Settings />} />

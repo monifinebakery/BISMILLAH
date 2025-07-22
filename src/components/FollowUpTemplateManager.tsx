@@ -13,6 +13,9 @@ import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemp
 import { orderStatusList } from '@/constants/orderConstants';
 import { cn } from '@/lib/utils';
 
+export default FollowUpTemplateManager;integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },
   { key: '{{nomorPesanan}}', description: 'Nomor pesanan' },
@@ -351,11 +354,6 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
     </Dialog>
   );
 };
-
-export default FollowUpTemplateManager;integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { orderStatusList } from '@/constants/orderConstants';
-import { cn } from '@/lib/utils';
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },

@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import semua context provider Anda
 import { AuthProvider } from './AuthContext';

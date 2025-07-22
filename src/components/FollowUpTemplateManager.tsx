@@ -1,4 +1,4 @@
-// components/FollowUpTemplateManager.jsx - Mobile Friendly Version
+// components/FollowUpTemplateManager.jsx - Clean Version without Fallback
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,23 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Save, RotateCcw, Eye, Code, Info, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
+import { MessageSquare, Save, RotateCcw, Eye, Code, Info, ExternalLink, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { orderStatusList } from '@/constants/orderConstants';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-// Try to import the context, but handle if not available
-let useFollowUpTemplate, useProcessTemplate;
-try {
-  const context = require('@/contexts/FollowUpTemplateContext');
-  useFollowUpTemplate = context.useFollowUpTemplate;
-  useProcessTemplate = context.useProcessTemplate;
-} catch (error) {
-  console.warn('FollowUpTemplateContext not available, using fallback');
-}
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },
@@ -36,98 +27,24 @@ const TEMPLATE_VARIABLES = [
   { key: '{{catatan}}', description: 'Catatan pesanan' }
 ];
 
-const DEFAULT_TEMPLATES = {
-  pending: `Halo kak {{namaPelanggan}},
-
-Terima kasih telah memesan. Ini detail pesanan Anda:
-Nomor Pesanan: {{nomorPesanan}}
-
-Item:
-{{items}}
-
-Total: {{totalPesanan}}
-
-Mohon konfirmasinya. Terima kasih.`,
-
-  confirmed: `Halo kak {{namaPelanggan}},
-
-Pesanan Anda #{{nomorPesanan}} telah kami KONFIRMASI dan sedang kami siapkan.
-
-Terima kasih!`,
-
-  shipping: `Halo kak {{namaPelanggan}},
-
-Kabar baik! Pesanan Anda #{{nomorPesanan}} sudah dalam proses PENGIRIMAN.
-
-Mohon ditunggu kedatangannya ya. Terima kasih!`,
-
-  delivered: `Halo kak {{namaPelanggan}},
-
-Pesanan Anda #{{nomorPesanan}} telah TIBA.
-
-Terima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`,
-
-  cancelled: `Halo kak {{namaPelanggan}},
-
-Pesanan Anda #{{nomorPesanan}} telah DIBATALKAN sesuai permintaan.
-
-Terima kasih atas pengertiannya.`
-};
-
 const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => {
   const isMobile = useIsMobile();
   
-  // Fallback hooks if context not available
-  const contextAvailable = useFollowUpTemplate && useProcessTemplate;
+  const { 
+    templates, 
+    isLoading, 
+    saveAllTemplates, 
+    resetToDefaults,
+    getTemplate 
+  } = useFollowUpTemplate();
   
-  const templateContext = contextAvailable ? useFollowUpTemplate() : null;
-  const processContext = contextAvailable ? useProcessTemplate() : null;
+  const { processTemplate } = useProcessTemplate();
   
-  // Fallback state when context not available
-  const [fallbackTemplates, setFallbackTemplates] = useState(DEFAULT_TEMPLATES);
   const [editingTemplates, setEditingTemplates] = useState({});
   const [activeTab, setActiveTab] = useState('pending');
   const [previewMode, setPreviewMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isVariablesOpen, setIsVariablesOpen] = useState(false);
-
-  // Use context values or fallback
-  const templates = templateContext?.templates || fallbackTemplates;
-  const isLoading = templateContext?.isLoading || false;
-  const saveAllTemplates = templateContext?.saveAllTemplates || (async (templates) => {
-    setFallbackTemplates(templates);
-    toast.success('Template disimpan (mode fallback)');
-    return true;
-  });
-  const resetToDefaults = templateContext?.resetToDefaults || (() => {
-    setFallbackTemplates(DEFAULT_TEMPLATES);
-  });
-  const getTemplate = templateContext?.getTemplate || ((status) => fallbackTemplates[status] || '');
-
-  // Process template function with fallback
-  const processTemplate = processContext?.processTemplate || ((template, orderData) => {
-    if (!orderData || !template) return template;
-    
-    const itemsText = (orderData.items || [])
-      .map(item => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
-      .join('\n');
-    
-    const totalText = new Intl.NumberFormat('id-ID', { 
-      style: 'currency', 
-      currency: 'IDR', 
-      minimumFractionDigits: 0 
-    }).format(orderData.totalPesanan || 0);
-
-    return template
-      .replace(/\{\{namaPelanggan\}\}/g, orderData.namaPelanggan || '')
-      .replace(/\{\{nomorPesanan\}\}/g, orderData.nomorPesanan || '')
-      .replace(/\{\{teleponPelanggan\}\}/g, orderData.teleponPelanggan || '')
-      .replace(/\{\{tanggal\}\}/g, orderData.tanggal ? new Date(orderData.tanggal).toLocaleDateString('id-ID') : '')
-      .replace(/\{\{totalPesanan\}\}/g, totalText)
-      .replace(/\{\{items\}\}/g, itemsText)
-      .replace(/\{\{alamatPengiriman\}\}/g, orderData.alamatPengiriman || '')
-      .replace(/\{\{catatan\}\}/g, orderData.catatan || '');
-  });
+  const [isVariablesOpen, setIsVariablesOpen] = useState(!isMobile); // Open by default on desktop
 
   // Initialize editing templates when templates or dialog opens
   useEffect(() => {
@@ -231,13 +148,10 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                       <Badge variant="outline" className="text-xs">
                         {order.namaPelanggan}
                       </Badge>
+                      <Badge className="bg-green-600 text-white text-xs">
+                        {orderStatusList.find(s => s.key === order.status)?.label || order.status}
+                      </Badge>
                     </div>
-                  )}
-                  
-                  {!contextAvailable && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs mt-2 sm:mt-0">
-                      Mode Fallback
-                    </Badge>
                   )}
                 </DialogTitle>
               </DialogHeader>
@@ -268,23 +182,6 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-              {/* Context Warning */}
-              {!contextAvailable && (
-                <Card className="border-yellow-200 bg-yellow-50">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start gap-2 text-yellow-800">
-                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm">
-                        <p className="font-medium">Template Context Tidak Tersedia</p>
-                        <p className="text-yellow-700 mt-1">
-                          Pastikan FollowUpTemplateProvider sudah di-wrap di App component.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Quick Actions for Current Order - Desktop */}
               {order && !isMobile && (
                 <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
@@ -366,8 +263,9 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                         </div>
                         <ul className="text-xs sm:text-sm text-amber-700 space-y-1">
                           <li>• Klik variabel untuk menyalin ke clipboard</li>
-                          <li>• Template akan otomatis diisi dengan data pesanan</li>
-                          <li>• Gunakan mode preview untuk melihat hasil akhir</li>
+                          <li>• Template akan otomatis diisi dengan data pesanan saat dikirim</li>
+                          <li>• Anda dapat menggabungkan teks bebas dengan variabel</li>
+                          <li>• Gunakan mode preview untuk melihat hasil akhir template</li>
                         </ul>
                       </div>
                     </CardContent>
@@ -397,7 +295,7 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                 </CardHeader>
                 <CardContent className="pt-0">
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    {/* Mobile: Dropdown-style tabs */}
+                    {/* Mobile: Grid-style tabs */}
                     {isMobile ? (
                       <div className="mb-4">
                         <Label className="text-sm text-gray-600 mb-2 block">Pilih Status:</Label>

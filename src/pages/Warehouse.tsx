@@ -201,12 +201,13 @@ const WarehousePage = () => {
   const lowStockItems = useMemo(() => 
     bahanBaku.filter(item => item.stok <= item.minimum), [bahanBaku]);
 
-  const currentItems = useMemo(() => 
-    filteredItems.slice(indexOfFirstItem, indexOfLastItem), [filteredItems, indexOfFirstItem, indexOfLastItem]);
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  // Declare indexOfLastItem and indexOfFirstItem before useMemo
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+  const currentItems = useMemo(() => 
+    filteredItems.slice(indexOfFirstItem, indexOfLastItem), [filteredItems, indexOfFirstItem, indexOfLastItem]);
 
   const allCurrentSelected = currentItems.length > 0 && currentItems.every(item => isSelected(item.id));
   const someCurrentSelected = currentItems.some(item => isSelected(item.id)) && !allCurrentSelected;
@@ -219,7 +220,6 @@ const WarehousePage = () => {
     }
   };
 
-  // Define paginate function to avoid undefined reference
   const paginate = (pageNumber: number) => {
     setCurrentPage(pageNumber);
   };
@@ -596,7 +596,6 @@ const WarehousePage = () => {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                    // Scope page variable locally to avoid conflicts
                     const pageNumber = page;
                     return (
                       <Button

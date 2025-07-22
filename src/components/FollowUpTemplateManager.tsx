@@ -1,4 +1,4 @@
-// FollowUpTemplateManager.jsx
+// components/FollowUpTemplateManager.jsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { orderStatusList } from '@/constants/orderConstants';
 import { cn } from '@/lib/utils';
-import { useAuth } from './AuthContext';
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },
@@ -352,6 +351,11 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
     </Dialog>
   );
 };
+
+export default FollowUpTemplateManager;integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { orderStatusList } from '@/constants/orderConstants';
+import { cn } from '@/lib/utils';
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },

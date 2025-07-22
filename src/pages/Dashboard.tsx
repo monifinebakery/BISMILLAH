@@ -226,7 +226,7 @@ const Dashboard = () => {
                         <div className="bg-green-100 p-3 rounded-full mr-4">
                             <Boxes className="h-6 w-6 text-green-600" /> {/* Changed to Boxes */}
                         </div>
-                        <p className="text-lg font-medium text-gray-800">Kelola Stok</p>
+                        <p className="text-lg font-medium text-gray-800">Kelola Stok Bahan</p>
                     </Link>
                 </Card>
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">

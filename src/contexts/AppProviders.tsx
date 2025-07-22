@@ -17,7 +17,7 @@ import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
-// 🔔 ADD NOTIFICATION PROVIDER IMPORT
+// 🔔 NOTIFICATION PROVIDER IMPORT
 import { NotificationProvider } from './NotificationContext';
 
 /**
@@ -36,36 +36,36 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
         <UserSettingsProvider>
           {/* 3. ActivityProvider, dibutuhkan oleh Financial & Order */}
           <ActivityProvider>
-            {/* 4. FinancialProvider, dibutuhkan oleh Order */}
-            <FinancialProvider>
-              {/* 5. PaymentProvider & PromoProvider */}
-              <PaymentProvider>
-                <PromoProvider>
-                  {/* Provider-provider untuk manajemen data inti */}
-                  <BahanBakuProvider>
-                    <SupplierProvider>
-                      <RecipeProvider>
-                        <AssetProvider>
-                          <PurchaseProvider>
-                            {/* 6. OrderProvider */}
-                            <OrderProvider>
-                              {/* 7. FollowUpTemplateProvider terkait erat dengan order. */}
-                              <FollowUpTemplateProvider>
-                                {/* 🔔 8. NotificationProvider - ADD AFTER ALL BUSINESS LOGIC PROVIDERS */}
-                                <NotificationProvider>
+            {/* 🔔 4. NotificationProvider - MOVED EARLIER, needed by business logic providers */}
+            <NotificationProvider>
+              {/* 5. FinancialProvider, dibutuhkan oleh Order */}
+              <FinancialProvider>
+                {/* 6. PaymentProvider & PromoProvider */}
+                <PaymentProvider>
+                  <PromoProvider>
+                    {/* Provider-provider untuk manajemen data inti - NOW WRAPPED BY NOTIFICATIONS */}
+                    <BahanBakuProvider>
+                      <SupplierProvider>
+                        <RecipeProvider>
+                          <AssetProvider>
+                            <PurchaseProvider>
+                              {/* 7. OrderProvider */}
+                              <OrderProvider>
+                                {/* 8. FollowUpTemplateProvider terkait erat dengan order. */}
+                                <FollowUpTemplateProvider>
                                   {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
                                   {children}
-                                </NotificationProvider>
-                              </FollowUpTemplateProvider>
-                            </OrderProvider>
-                          </PurchaseProvider>
-                        </AssetProvider>
-                      </RecipeProvider>
-                    </SupplierProvider>
-                  </BahanBakuProvider>
-                </PromoProvider>
-              </PaymentProvider>
-            </FinancialProvider>
+                                </FollowUpTemplateProvider>
+                              </OrderProvider>
+                            </PurchaseProvider>
+                          </AssetProvider>
+                        </RecipeProvider>
+                      </SupplierProvider>
+                    </BahanBakuProvider>
+                  </PromoProvider>
+                </PaymentProvider>
+              </FinancialProvider>
+            </NotificationProvider>
           </ActivityProvider>
         </UserSettingsProvider>
       </AuthProvider>

@@ -7,8 +7,8 @@ import { BahanBaku } from '@/types/recipe';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils'; // <-- DITAMBAHKAN/DIUBAH IMPORT safeParseDate
-import { getInputValue } from '@/utils/inputUtils';
+import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/dateUtils';
+import { getInputValue } from '@/utils/inputUtils'; // Use imported version
 
 interface BahanBakuEditDialogProps {
   isOpen: boolean;
@@ -60,22 +60,21 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   useEffect(() => {
     if (item) {
       setFormData({
-        nama: item.nama,
-        kategori: item.kategori,
-        stok: item.stok,
-        satuan: item.satuan,
-        minimum: item.minimum,
-        hargaSatuan: item.hargaSatuan,
-        supplier: item.supplier,
-        // MODIFIKASI DISINI: Gunakan safeParseDate untuk memastikan konsistensi
+        nama: item.nama || '',
+        kategori: item.kategori || '',
+        stok: item.stok || 0,
+        satuan: item.satuan || '',
+        minimum: item.minimum || 0,
+        hargaSatuan: item.hargaSatuan || 0,
+        supplier: item.supplier || '',
         tanggalKadaluwarsa: safeParseDate(item.tanggalKadaluwarsa),
-        jumlahBeliKemasan: item.jumlahBeliKemasan ?? 0,
-        satuanKemasan: item.satuanKemasan ?? '',
-        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? 0,
+        jumlahBeliKemasan: item.jumlahBeliKemasan || 0,
+        satuanKemasan: item.satuanKemasan || '',
+        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan || 0,
       });
     } else {
       setFormData({
-        nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
+        nama: '', kategori: '', stok: 0, satuan: '', minimum: 0,
         hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null,
         jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
       });
@@ -88,52 +87,41 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
   const debouncedSatuanUtama = useDebounce(formData.satuan, 300);
 
   useEffect(() => {
-    const purchaseQuantity = debouncedJumlahBeliKemasan;
-    const purchaseUnit = debouncedSatuanKemasan;
-    const purchaseTotalPrice = debouncedHargaTotalBeliKemasan;
-    const baseUnit = debouncedSatuanUtama?.toLowerCase();
+    const purchaseQuantity = debouncedJumlahBeliKemasan || 0;
+    const purchaseUnit = debouncedSatuanKemasan || '';
+    const purchaseTotalPrice = debouncedHargaTotalBeliKemasan || 0;
+    const baseUnit = debouncedSatuanUtama?.toLowerCase() || '';
 
     let calculatedHarga = 0;
 
-    if (
-      (purchaseQuantity && purchaseQuantity > 0) &&
-      (purchaseTotalPrice && purchaseTotalPrice > 0) &&
-      (purchaseUnit && purchaseUnit !== '') &&
-      baseUnit
-    ) {
+    if (purchaseQuantity > 0 && purchaseTotalPrice > 0 && purchaseUnit && baseUnit) {
       const lowerCasePurchaseUnit = purchaseUnit.toLowerCase();
-      const conversionRates = unitConversionMap[baseUnit];
-      let factor = 0;
+      const conversionRates = unitConversionMap[baseUnit] || {};
+      const factor = conversionRates[lowerCasePurchaseUnit] || (lowerCasePurchaseUnit === baseUnit ? 1 : 0);
 
-      if (conversionRates) {
-        factor = conversionRates[lowerCasePurchaseUnit];
-      }
-
-      if (factor !== undefined && factor > 0) {
+      if (factor > 0) {
         calculatedHarga = purchaseTotalPrice / (purchaseQuantity * factor);
-      } else if (lowerCasePurchaseUnit === baseUnit) {
-        calculatedHarga = purchaseTotalPrice / purchaseQuantity;
       }
     }
 
-    setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) }));
+    setFormData(prev => ({ ...prev, hargaSatuan: parseFloat(calculatedHarga.toFixed(2)) || 0 }));
   }, [debouncedJumlahBeliKemasan, debouncedSatuanKemasan, debouncedHargaTotalBeliKemasan, debouncedSatuanUtama]);
 
   const handleSave = async () => {
     if (
-      !formData.nama || !formData.kategori || !formData.satuan ||
-      formData.stok === undefined || formData.stok < 0 ||
-      formData.hargaSatuan === undefined || formData.hargaSatuan < 0 ||
-      formData.minimum === undefined || formData.minimum < 0
+      !formData.nama?.trim() || !formData.kategori?.trim() || !formData.satuan?.trim() ||
+      (formData.stok !== undefined && formData.stok < 0) ||
+      (formData.hargaSatuan !== undefined && formData.hargaSatuan < 0) ||
+      (formData.minimum !== undefined && formData.minimum < 0)
     ) {
       toast.error("Harap lengkapi semua field wajib dan pastikan nilai tidak negatif.");
       return;
     }
 
     if (
-      formData.jumlahBeliKemasan === undefined || formData.jumlahBeliKemasan <= 0 ||
-      !formData.satuanKemasan || formData.satuanKemasan.trim() === '' ||
-      formData.hargaTotalBeliKemasan === undefined || formData.hargaTotalBeliKemasan <= 0
+      (formData.jumlahBeliKemasan !== undefined && formData.jumlahBeliKemasan <= 0) ||
+      !formData.satuanKemasan?.trim() ||
+      (formData.hargaTotalBeliKemasan !== undefined && formData.hargaTotalBeliKemasan <= 0)
     ) {
       toast.error("Detail Pembelian: Jumlah Beli, Satuan Kemasan, dan Harga Total Beli wajib diisi dan harus lebih dari 0.");
       return;
@@ -141,35 +129,28 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
 
     const updatesToSend: Partial<BahanBaku> = {
       ...formData,
-      stok: parseFloat(String(formData.stok)) || 0,
-      minimum: parseFloat(String(formData.minimum)) || 0,
-      hargaSatuan: parseFloat(String(formData.hargaSatuan)) || 0,
+      stok: formData.stok !== undefined ? parseFloat(String(formData.stok)) || 0 : 0,
+      minimum: formData.minimum !== undefined ? parseFloat(String(formData.minimum)) || 0 : 0,
+      hargaSatuan: formData.hargaSatuan !== undefined ? parseFloat(String(formData.hargaSatuan)) || 0 : 0,
       tanggalKadaluwarsa: formData.tanggalKadaluwarsa,
     };
 
-    await onSave(updatesToSend);
-    onClose();
+    try {
+      await onSave(updatesToSend);
+      onClose();
+      toast.success("Bahan baku berhasil diperbarui!");
+    } catch (error) {
+      toast.error("Gagal menyimpan perubahan.");
+    }
   };
 
   const handleClose = () => {
     setFormData({
-      nama: '', kategori: '', stok: 0, satuan: '', minimum: 0, 
+      nama: '', kategori: '', stok: 0, satuan: '', minimum: 0,
       hargaSatuan: 0, supplier: '', tanggalKadaluwarsa: null,
       jumlahBeliKemasan: 0, satuanKemasan: '', hargaTotalBeliKemasan: 0,
     });
     onClose();
-  };
-
-  const getInputValue = <T extends string | number | null | undefined>(value: T): string | number => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-      return value;
-    }
-
-    return '';
   };
 
   return (
@@ -266,12 +247,13 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                 id="tanggalKadaluwarsa"
                 type="date"
                 value={formatDateToYYYYMMDD(formData.tanggalKadaluwarsa)}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  tanggalKadaluwarsa: e.target.value
-                    ? (isNaN(new Date(e.target.value).getTime()) ? null : new Date(e.target.value))
-                    : null
-                })}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : null;
+                  setFormData({
+                    ...formData,
+                    tanggalKadaluwarsa: date && !isNaN(date.getTime()) ? date : null,
+                  });
+                }}
                 className="border-orange-200 focus:border-orange-400 rounded-md"
               />
             </div>
@@ -288,7 +270,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                       id="jumlahBeliKemasan"
                       type="number"
                       value={getInputValue(formData.jumlahBeliKemasan)}
-                      onChange={(e) => setFormData({ ...formData, jumlahBeliKemasan: parseFloat(e.target.value) || null })}
+                      onChange={(e) => setFormData({ ...formData, jumlahBeliKemasan: parseFloat(e.target.value) || 0 })}
                       placeholder="0"
                       className="rounded-md"
                       required
@@ -317,7 +299,7 @@ const BahanBakuEditDialog = ({ isOpen, onClose, onSave, item }: BahanBakuEditDia
                       id="hargaTotalBeliKemasan"
                       type="number"
                       value={getInputValue(formData.hargaTotalBeliKemasan)}
-                      onChange={(e) => setFormData({ ...formData, hargaTotalBeliKemasan: parseFloat(e.target.value) || null })}
+                      onChange={(e) => setFormData({ ...formData, hargaTotalBeliKemasan: parseFloat(e.target.value) || 0 })}
                       placeholder="0"
                       className="rounded-md"
                       required

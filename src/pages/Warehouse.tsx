@@ -38,23 +38,25 @@ import { formatDateForDisplay } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 
 const WarehousePage = () => {
+  // Get context values with proper fallbacks
+  const contextValue = useBahanBaku();
   const {
-    bahanBaku,
-    addBahanBaku,
-    updateBahanBaku,
-    deleteBahanBaku,
-    isLoading: appDataLoading,
-    selectedItems,
-    isSelectionMode,
-    isBulkDeleting,
-    toggleSelection,
-    selectAll,
-    clearSelection,
-    toggleSelectionMode,
-    isSelected,
-    getSelectedItems,
-    bulkDeleteBahanBaku
-  } = useBahanBaku() || {}; // Fallback to undefined if context fails
+    bahanBaku = [],
+    addBahanBaku = () => Promise.resolve(false),
+    updateBahanBaku = () => Promise.resolve(false),
+    deleteBahanBaku = () => Promise.resolve(false),
+    isLoading: appDataLoading = false,
+    selectedItems = [],
+    isSelectionMode = false,
+    isBulkDeleting = false,
+    toggleSelection = () => {},
+    selectAll = () => {},
+    clearSelection = () => {},
+    toggleSelectionMode = () => {},
+    isSelected = () => false,
+    getSelectedItems = () => [],
+    bulkDeleteBahanBaku = () => Promise.resolve(false)
+  } = contextValue || {};
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
@@ -86,12 +88,41 @@ const WarehousePage = () => {
     'liter': { 'ml': 0.001, 'liter': 1 },
   };
 
+  // Memoized filtered items
+  const filteredItems = useMemo(() => {
+    if (!bahanBaku || !Array.isArray(bahanBaku)) return [];
+    
+    return bahanBaku.filter(item =>
+      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [bahanBaku, searchTerm]);
+
+  const lowStockItems = useMemo(() => {
+    if (!bahanBaku || !Array.isArray(bahanBaku)) return [];
+    
+    return bahanBaku.filter(item => item.stok <= item.minimum);
+  }, [bahanBaku]);
+
+  // Calculate pagination variables
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+  const currentItems = useMemo(() => 
+    filteredItems.slice(indexOfFirstItem, indexOfLastItem), 
+    [filteredItems, indexOfFirstItem, indexOfLastItem]
+  );
+
   // Reset currentPage when filteredItems length changes
   useEffect(() => {
-    if (currentPage > Math.ceil(filteredItems.length / itemsPerPage) || filteredItems.length === 0) {
+    if (filteredItems.length === 0) {
+      setCurrentPage(1);
+    } else if (currentPage > Math.ceil(filteredItems.length / itemsPerPage)) {
       setCurrentPage(1);
     }
-  }, [filteredItems.length]);
+  }, [filteredItems.length, itemsPerPage, currentPage]);
 
   // Calculate hargaSatuan with validation
   useEffect(() => {
@@ -191,24 +222,6 @@ const WarehousePage = () => {
     }
   };
 
-  const filteredItems = useMemo(() => 
-    bahanBaku.filter(item =>
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
-    ), [bahanBaku, searchTerm]);
-
-  const lowStockItems = useMemo(() => 
-    bahanBaku.filter(item => item.stok <= item.minimum), [bahanBaku]);
-
-  // Declare indexOfLastItem and indexOfFirstItem before useMemo
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-
-  const currentItems = useMemo(() => 
-    filteredItems.slice(indexOfFirstItem, indexOfLastItem), [filteredItems, indexOfFirstItem, indexOfLastItem]);
-
   const allCurrentSelected = currentItems.length > 0 && currentItems.every(item => isSelected(item.id));
   const someCurrentSelected = currentItems.some(item => isSelected(item.id)) && !allCurrentSelected;
 
@@ -229,6 +242,21 @@ const WarehousePage = () => {
 
   const getDateInputValue = (date: Date | null): string => 
     date instanceof Date && !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : '';
+
+  // If context is not available, show error
+  if (!contextValue) {
+    return (
+      <div className="container mx-auto p-4 sm:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
+            <p className="text-gray-600">Bahan Baku Context tidak tersedia. Pastikan komponen ini dibungkus dengan BahanBakuProvider.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-8" aria-live="polite">

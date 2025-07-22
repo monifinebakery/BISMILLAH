@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import semua context provider Anda
 import { AuthProvider } from './AuthContext';
@@ -22,11 +22,11 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 /**
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
  * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
- * Router dan Toaster akan diatur di level yang lebih tinggi (misal: App.jsx atau main.jsx).
  */
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Panggil hook useIsMobile untuk membuat variabel isMobile
   const isMobile = useIsMobile();
-  
+
   return (
     <>
       {/* 1. AuthProvider paling luar, karena hampir semua bergantung padanya */}
@@ -70,12 +70,11 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
-        position={isMobile ? 'top-center' : 'bottom-right'}
+        // UPDATE: Posisi diubah ke bawah untuk semua perangkat
+        position={isMobile ? 'bottom-center' : 'bottom-right'}
         closeButton
-        // TAMBAHKAN INI: Atur jarak dari tepi layar
-        // Nilai default adalah 16px. Kita kurangi menjadi 8px di mobile
-        // agar posisinya sedikit lebih naik.
-        offset={isMobile ? 16 : 8}
+        // Atur jarak dari tepi layar
+        offset={isMobile ? 16 : 24} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

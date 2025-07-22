@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useOrder } from "@/contexts/OrderContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";

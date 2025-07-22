@@ -17,6 +17,7 @@ import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
+import { NotificationProvider } from '@/contexts/NotificationContext'; // 🔔 ADD
 
 // Halaman di-load secara dinamis (lazy-loading)
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));

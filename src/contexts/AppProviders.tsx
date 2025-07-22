@@ -67,9 +67,16 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
-        position="top-right"
-        richColors
+        position="bottom-right" // Atau posisi lain yang Anda inginkan
         closeButton
+        toastOptions={{
+          // Kustomisasi ini akan berlaku untuk SEMUA toast
+          classNames: {
+            toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',
+            // Anda tidak perlu lagi mendefinisikan 'success', 'error', dll.
+            // karena gaya di atas akan menjadi gaya default untuk semuanya.
+          },
+        }}
       />
     </>
   );

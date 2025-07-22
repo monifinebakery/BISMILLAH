@@ -576,11 +576,7 @@ const WarehousePage = () => {
                                 <DropdownMenuItem onClick={() => handleEdit(item)} className="cursor-pointer">
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Lihat Detail
-                                </DropdownMenuItem>
+                                </DropdownMenuItem>                               
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   onClick={() => handleDelete(item.id, item.nama)} 

@@ -222,7 +222,7 @@ const Dashboard = () => {
                     </Link>
                 </Card>
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/stock" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /stock */}
+                    <Link to="/gudang" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /stock */}
                         <div className="bg-green-100 p-3 rounded-full mr-4">
                             <Boxes className="h-6 w-6 text-green-600" /> {/* Changed to Boxes */}
                         </div>

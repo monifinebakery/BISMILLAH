@@ -1,5 +1,4 @@
 // src/providers/AppProviders.tsx
-
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -18,6 +17,8 @@ import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
+// 🔔 ADD NOTIFICATION PROVIDER IMPORT
+import { NotificationProvider } from './NotificationContext';
 
 /**
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
@@ -26,7 +27,7 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Panggil hook useIsMobile untuk membuat variabel isMobile
   const isMobile = useIsMobile();
-
+  
   return (
     <>
       {/* 1. AuthProvider paling luar, karena hampir semua bergantung padanya */}
@@ -50,10 +51,11 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
                             <OrderProvider>
                               {/* 7. FollowUpTemplateProvider terkait erat dengan order. */}
                               <FollowUpTemplateProvider>
-                                
-                                {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
-                                {children}
-
+                                {/* 🔔 8. NotificationProvider - ADD AFTER ALL BUSINESS LOGIC PROVIDERS */}
+                                <NotificationProvider>
+                                  {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
+                                  {children}
+                                </NotificationProvider>
                               </FollowUpTemplateProvider>
                             </OrderProvider>
                           </PurchaseProvider>
@@ -67,7 +69,7 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
           </ActivityProvider>
         </UserSettingsProvider>
       </AuthProvider>
-
+      
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
         // UPDATE: Posisi diubah ke bawah untuk semua perangkat

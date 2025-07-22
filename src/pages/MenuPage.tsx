@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut } from 'lucide-react';
+import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { performSignOut } from '@/lib/authUtils';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const MenuPage = () => {
   const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
     try {
       const success = await performSignOut();
-      
       if (success) {
         toast.success("Berhasil keluar");
-        
-        // Force page reload for complete cleanup
         setTimeout(() => {
           window.location.reload();
         }, 500);
@@ -39,10 +50,17 @@ const MenuPage = () => {
       color: 'from-blue-500 to-blue-600'
     },
     {
-      title: 'Laporan Keuangan',
-      description: 'Lihat laporan dan analisis',
-      icon: BarChart3,
-      path: '/laporan',
+      title: 'Manajemen Resep',
+      description: 'Kelola dan hitung HPP resep masakan',
+      icon: ChefHat,
+      path: '/resep',
+      color: 'from-orange-500 to-red-500'
+    },
+    {
+      title: 'Gudang Bahan Baku',
+      description: 'Manajemen stok bahan baku dan inventory',
+      icon: Package,
+      path: '/gudang',
       color: 'from-green-500 to-green-600'
     },
     {
@@ -60,11 +78,33 @@ const MenuPage = () => {
       color: 'from-orange-500 to-orange-600'
     },
     {
-      title: 'Aset',
+      title: 'Pesanan',
+      description: 'Kelola semua pesanan pelanggan',
+      icon: ShoppingCartIcon,
+      path: '/pesanan',
+      color: 'from-red-500 to-pink-600'
+    },
+    {
+      title: 'Laporan Keuangan',
+      description: 'Lihat laporan dan analisis',
+      icon: BarChart3,
+      path: '/laporan',
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      title: 'Manajemen Aset',
       description: 'Manajemen aset bisnis',
       icon: Archive,
       path: '/aset',
       color: 'from-indigo-500 to-indigo-600'
+    },
+    // Menambahkan kembali item Invoice
+    {
+      title: 'Buat Invoice',
+      description: 'Buat faktur manual untuk pelanggan',
+      icon: Receipt,
+      path: '/invoice',
+      color: 'from-cyan-500 to-blue-500'
     },
     {
       title: 'Pengaturan',
@@ -76,7 +116,7 @@ const MenuPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4 pb-20">
+    <div className="min-h-screen bg-gray-50 p-4 pb-20">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Menu Utama</h1>
@@ -87,7 +127,7 @@ const MenuPage = () => {
           {menuItems.map((item) => (
             <Card 
               key={item.path}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 bg-white/80 backdrop-blur-sm"
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 bg-white/80 backdrop-blur-sm rounded-lg"
               onClick={() => navigate(item.path)}
             >
               <CardHeader className="pb-3">
@@ -103,13 +143,13 @@ const MenuPage = () => {
           ))}
         </div>
 
-        {/* Logout Button */}
-        <Card className="bg-red-50 border-red-200">
+        {/* Tombol Keluar */}
+        <Card className="bg-red-50 border-red-200 rounded-lg">
           <CardContent className="p-4">
             <Button
               onClick={handleLogout}
               variant="destructive"
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2 rounded-md"
             >
               <LogOut className="h-5 w-5" />
               <span>Keluar dari Aplikasi</span>
@@ -117,6 +157,22 @@ const MenuPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog Konfirmasi Keluar */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

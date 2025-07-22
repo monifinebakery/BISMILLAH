@@ -13,15 +13,26 @@ interface ExportButtonsProps {
 const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) => {
   const exportToPDF = () => {
     try {
-      // Create formatted content for PDF
+      if (!data || data.length === 0) {
+        toast.error('Tidak ada data untuk diekspor');
+        return;
+      }
+
       let content = `${filename.toUpperCase()}\n`;
       content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n\n`;
       
       data.forEach((item, index) => {
         content += `${index + 1}. `;
         Object.entries(item).forEach(([key, value]) => {
-          if (key !== 'id' && key !== 'user_id') {
-            content += `${key}: ${value} | `;
+          // MODIFIED: Sertakan created_at dan updated_at di PDF/Text
+          if (key !== 'id' && key !== 'user_id') { 
+            let displayValue = value;
+            if (value instanceof Date) { // Handle Date objects
+              displayValue = value.toISOString();
+            } else if (typeof value === 'object' && value !== null) {
+              displayValue = JSON.stringify(value);
+            }
+            content += `${key}: ${displayValue} | `;
           }
         });
         content += '\n';
@@ -39,6 +50,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       
       toast.success('Data berhasil diekspor sebagai PDF/Text');
     } catch (error) {
+      console.error('Export error:', error);
       toast.error('Gagal mengekspor data');
     }
   };
@@ -53,8 +65,9 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       // Collect all unique keys from all objects in the data array
       const allKeys = new Set<string>();
       data.forEach(item => {
-        Object.keys(item).forEach(key => {
-          if (!['id', 'user_id', 'created_at', 'updated_at'].includes(key)) {
+        // MODIFIED: Sertakan semua kunci kecuali 'id' dan 'user_id'
+        Object.keys(item).forEach(key => {    
+          if (!['id', 'user_id'].includes(key)) { 
             allKeys.add(key);
           }
         });
@@ -70,15 +83,22 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
           headers.map(header => {
             let value = item[header];
             
-            // Handle complex data types
+            // Handle null or undefined values
             if (value === null || value === undefined) {
               value = '';
-            } else if (typeof value === 'object') {
+            } 
+            // MODIFIED: Tangani objek Date secara spesifik: konversi ke string ISO
+            else if (value instanceof Date) {
+              value = value.toISOString();
+            } 
+            // Tangani objek kompleks lainnya (seperti array, objek bersarang) dengan stringify
+            else if (typeof value === 'object') {
               value = JSON.stringify(value);
             }
             
-            // Escape commas and quotes for CSV format
-            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            // Terapkan escaping CSV: sertakan dalam tanda kutip ganda jika berisi koma, tanda kutip ganda, atau baris baru
+            // Dan gandakan tanda kutip ganda internal
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
               value = `"${value.replace(/"/g, '""')}"`;
             }
             
@@ -109,17 +129,21 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 text-blue-700 rounded-md shadow-sm transition-colors duration-200" 
+        >
           <Download className="h-4 w-4 mr-2" />
           Export Data
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50">
+      <DropdownMenuContent className="bg-white border-gray-200 shadow-lg rounded-md"> 
+        <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md"> 
           <FileText className="h-4 w-4 mr-2 text-blue-600" />
           Export sebagai PDF/Text
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50">
+        <DropdownMenuItem onClick={exportToExcel} className="hover:bg-green-50 rounded-md"> 
           <FileText className="h-4 w-4 mr-2 text-green-600" />
           Export sebagai Excel/CSV
         </DropdownMenuItem>

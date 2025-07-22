@@ -1,220 +1,314 @@
-import { Calendar, ChefHat, Home, Package, ShoppingCart, FileText, TrendingUp, Settings, Users, ShoppingBag, LogOut } from "lucide-react"
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarGroupLabel, 
+  SidebarGroupContent, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton, 
   SidebarFooter,
   useSidebar
-} from "@/components/ui/sidebar"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { supabase } from "@/integrations/supabase/client"
-import { toast } from "sonner"
-import { performSignOut } from "@/lib/authUtils"
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { DashboardIcon } from "@radix-ui/react-icons";
+import { 
+  Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt 
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { toast } from "sonner";
+import { performSignOut } from "@/lib/authUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// Menu items grouped by category
-const menuGroups = [
-  {
-    label: "Dashboard",
-    items: [
-      {
-        title: "Dashboard",
-        url: "/",
-        icon: Home,
-      },
-      {
-        title: "Kalkulator HPP Cepat",
-        url: "/hpp",
-        icon: TrendingUp,
-      },
-    ]
-  },
-  {
-    label: "Produksi",
-    items: [
-      {
-        title: "Manajemen Resep",
-        url: "/resep",
-        icon: ChefHat,
-      },
-      {
-        title: "Gudang Bahan Baku",
-        url: "/gudang",
-        icon: Package,
-      },
-    ]
-  },
-  {
-    label: "Bisnis",
-    items: [
-      {
-        title: "Supplier",
-        url: "/supplier",
-        icon: Users,
-      },
-      {
-        title: "Pembelian Bahan Baku",
-        url: "/pembelian",
-        icon: ShoppingBag,
-      },
-      {
-        title: "Pesanan",
-        url: "/pesanan",
-        icon: ShoppingCart
-      },
-    ]
-  },
-  {
-    label: "Laporan & Analisis",
-    items: [
-      {
-        title: "Laporan Keuangan",
-        url: "/laporan",
-        icon: FileText,
-      },
-      {
-        title: "Manajemen Aset",
-        url: "/aset",
-        icon: Calendar,
-      },
-    ]
-  }
-]
+// --- Impor Hook Konteks ---
+import { usePaymentContext } from "@/contexts/PaymentContext";
+import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useSupplier } from "@/contexts/SupplierContext";
+import { usePurchase } from "@/contexts/PurchaseContext";
+import { useRecipe } from "@/contexts/RecipeContext";
+import { useActivity } from "@/contexts/ActivityContext";
+import { useOrder } from "@/contexts/OrderContext";
+import { useAssets } from "@/contexts/AssetContext";
+import { useFinancial } from "@/contexts/FinancialContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 
-const settingsItems = [
-  {
-    title: "Pengaturan",
-    url: "/pengaturan",
-    icon: Settings,
-  },
-]
+// --- Impor Fungsi Export Baru ---
+import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { state } = useSidebar()
+  const location = useLocation();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { state } = useSidebar();
+  
+  // Check if sidebar is collapsed
+  const isCollapsed = state === "collapsed";
+  
+  // --- Panggil semua hook untuk mendapatkan data ---
+  const { settings } = useUserSettings();
+  const { isPaid } = usePaymentContext();
+  const { bahanBaku } = useBahanBaku();
+  const { suppliers } = useSupplier();
+  const { purchases } = usePurchase();
+  const { recipes, hppResults } = useRecipe();
+  const { activities } = useActivity();
+  const { orders } = useOrder();
+  const { assets } = useAssets();
+  const { financialTransactions } = useFinancial();
 
-  const handleLogout = async () => {
-    try {
-      const success = await performSignOut();
-      
-      if (success) {
-        toast.success("Berhasil keluar");
-        
-        // Force page reload for complete cleanup
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      } else {
-        toast.error("Gagal keluar");
-      }
-    } catch (error) {
+  const menuGroups = [
+    {
+      label: "Dashboard",
+      items: [
+        { title: "Dashboard", url: "/", icon: DashboardIcon },
+        { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
+      ]
+    },
+    {
+      label: "Hitung HPP",
+      items: [
+        { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
+        { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
+      ]
+    },
+    {
+      label: "Bisnis",
+      items: [
+        { title: "Supplier", url: "/supplier", icon: Users },
+        { title: "Pembelian", url: "/pembelian", icon: ShoppingCart },
+        { title: "Pesanan", url: "/pesanan", icon: FileText },
+      ]
+    },
+    {
+      label: "Laporan & Aset",
+      items: [
+        { title: "Laporan Keuangan", url: "/laporan", icon: TrendingUp },
+        { title: "Manajemen Aset", url: "/aset", icon: Building2 },
+        { title: "Invoice", url: "/invoice", icon: Receipt },
+      ]
+    }
+  ];
+
+  const settingsItems = [
+    { title: "Pengaturan", url: "/pengaturan", icon: Settings },
+  ];
+
+  const confirmLogout = async () => {
+    const success = await performSignOut();
+    if (success) {
+      toast.success("Berhasil keluar");
+      setTimeout(() => window.location.reload(), 500);
+    } else {
       toast.error("Gagal keluar");
     }
-  }
+  };
+
+  const handleExportAllData = () => {
+    const allAppData = {
+      bahanBaku,
+      suppliers,
+      purchases,
+      recipes,
+      hppResults,
+      activities,
+      orders,
+      assets,
+      financialTransactions,
+    };
+    
+    exportAllDataToExcel(allAppData, settings.businessName);
+  };
+
+  // Render menu item with conditional tooltip
+  const renderMenuItem = (item: any, isActive: boolean) => {
+    const menuButton = (
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className={cn(
+          "flex items-center",
+          isCollapsed ? "justify-center px-2" : "justify-start space-x-3"
+        )}
+      >
+        <Link 
+          to={item.url} 
+          className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "space-x-3"
+          )}
+        >
+          <item.icon className="h-5 w-5 flex-shrink-0" />
+          {!isCollapsed && <span>{item.title}</span>}
+        </Link>
+      </SidebarMenuButton>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {menuButton}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {item.title}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuButton;
+  };
+
+  // Render action button with conditional tooltip
+  const renderActionButton = (
+    button: React.ReactNode, 
+    tooltipText: string
+  ) => {
+    if (isCollapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {tooltipText}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return button;
+  };
 
   return (
-    <Sidebar className="border-r border-gray-200 bg-white">
-      <SidebarHeader className={`p-4 border-b border-gray-200 ${state === "collapsed" ? "flex justify-center items-center" : ""}`}>
-        <div className={`flex items-center ${state === "collapsed" ? "justify-center" : "space-x-3"}`}>
-          <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl flex items-center justify-center">
-            <TrendingUp className="h-6 w-6 text-white" />
-          </div>
-          {state === "expanded" && (
-            <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                HPP by Monifine
-              </h2>
-              <p className="text-sm text-gray-600">Sistem Manajemen Bisnis</p>
+    <TooltipProvider>
+      <Sidebar className="border-r">
+        <SidebarHeader className={cn("p-4", isCollapsed && "px-2")}>
+          <div className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "space-x-3"
+          )}>
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+              <TrendingUp className="h-6 w-6" />
             </div>
-          )}
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent className="px-2 py-4">
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label} className="mb-4">
-            {state === "expanded" && (
-              <SidebarGroupLabel className="text-sm font-semibold text-gray-700 mb-1 px-3">
-                {group.label}
-              </SidebarGroupLabel>
+            {!isCollapsed && (
+              <div>
+                <h2 className="text-lg font-bold">HPP by Monifine</h2>
+              </div>
             )}
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild
-                      isActive={location.pathname === item.url}
-                      className={`
-                        px-3 py-2 rounded-lg text-base font-medium transition-all duration-200
-                        ${location.pathname === item.url 
-                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                        }
-                      `}
-                      tooltip={item.title}
-                    >
-                      <Link to={item.url} className="flex items-center space-x-3">
-                        <item.icon className="h-5 w-5" />
-                        <span className="min-w-0 truncate">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
+          </div>
+        </SidebarHeader>
 
-      <SidebarFooter className="p-2 border-t border-gray-200 mt-auto">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={location.pathname === item.url}
-                    className={`
-                      px-3 py-2 rounded-lg text-base font-medium transition-all duration-200
-                      ${location.pathname === item.url 
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                      }
-                    `}
-                    tooltip={item.title}
-                  >
-                    <Link to={item.url} className="flex items-center space-x-3">
-                      <item.icon className="h-5 w-5" />
-                      <span className="min-w-0 truncate">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={handleLogout}
-                  className="px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full"
-                  tooltip="Keluar"
+        <SidebarContent className={cn("px-2 py-4 flex-grow", isCollapsed && "px-1")}>
+          {menuGroups.map((group) => (
+            <SidebarGroup key={group.label} className="mb-4">
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      {renderMenuItem(item, location.pathname === item.url)}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+
+        <SidebarFooter className={cn("p-2 border-t mt-auto", isCollapsed && "px-1")}>
+          <SidebarMenu className="space-y-1">
+            {/* ======================= PERUBAHAN DI SINI ======================= */}
+            {/* Export Button dibuat konsisten dengan item menu lainnya */}
+            <SidebarMenuItem>
+              {renderActionButton(
+                <SidebarMenuButton
+                  onClick={handleExportAllData}
+                  variant="outline"
+                  className={cn(
+                    isCollapsed ? "justify-center px-2" : "w-full"
+                  )}
                 >
-                  <div className="flex items-center space-x-3">
-                    <LogOut className="h-5 w-5" />
-                    {state === "expanded" && <span>Keluar</span>}
+                  <div className={cn(
+                    "flex items-center",
+                    isCollapsed ? "justify-center" : "space-x-3"
+                  )}>
+                    <Download className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>Export Semua Data</span>}
                   </div>
-                </SidebarMenuButton>
+                </SidebarMenuButton>,
+                "Export Semua Data"
+              )}
+            </SidebarMenuItem>
+            {/* ===================== AKHIR DARI PERUBAHAN ===================== */}
+            
+            {/* Settings */}
+            {settingsItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                {renderMenuItem(item, location.pathname === item.url)}
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarFooter>
-    </Sidebar>
-  )
+            ))}
+
+            {/* Logout */}
+            <SidebarMenuItem>
+              {renderActionButton(
+                <SidebarMenuButton 
+                  onClick={() => setShowLogoutConfirm(true)} 
+                  className={cn(
+                    "text-red-500 hover:bg-red-50 hover:text-red-600",
+                    isCollapsed ? "justify-center px-2" : "w-full"
+                  )}
+                >
+                  <div className={cn(
+                    "flex items-center",
+                    isCollapsed ? "justify-center" : "space-x-3"
+                  )}>
+                    <LogOut className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>Keluar</span>}
+                  </div>
+                </SidebarMenuButton>,
+                "Keluar"
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+
+        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin keluar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Sidebar>
+    </TooltipProvider>
+  );
 }

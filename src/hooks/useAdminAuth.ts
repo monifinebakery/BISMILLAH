@@ -59,7 +59,7 @@ export const useAdminAuth = () => {
     });
 
     return () => {
-      authListener?.unsubscribe(); // Cleanup listener saat komponen di-unmount
+      authListener?.subscription?.unsubscribe(); // Cleanup listener saat komponen di-unmount
     };
 
   }, []); // Dependensi kosong agar hanya berjalan sekali saat mount

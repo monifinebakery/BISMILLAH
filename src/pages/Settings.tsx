@@ -1,347 +1,324 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, User, Bell, Palette, Database, Shield, ChefHat } from 'lucide-react'; // MODIFIED: Tambahkan ChefHat
-import { useUserSettings } from '@/hooks/useUserSettings';
-import RecipeCategoryManager from '@/components/RecipeCategoryManager'; // MODIFIED: Tambahkan import RecipeCategoryManager
-import { Label } from '@/components/ui/label'; // MODIFIED: Tambahkan import Label
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { toast } from 'sonner';
+import { 
+  Settings as SettingsIcon, 
+  Save, 
+  Building2, 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin,
+  CheckCircle,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+import { UserSettings } from '@/contexts/UserSettingsContext';
 
-const Settings = () => {
-  const { settings, saveSettings, loading } = useUserSettings();
+const SettingsPage = () => {
+  const { settings, saveSettings, isLoading } = useUserSettings();
+  const [formState, setFormState] = useState<UserSettings | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const handleSettingChange = (category: keyof typeof settings, key: string, value: any) => {
-    if (typeof settings[category] === 'object' && settings[category] !== null) {
-      const newSettings = {
-        ...settings,
-        [category]: {
-          ...(settings[category] as object),
-          [key]: value,
-        },
-      };
-      saveSettings(newSettings);
+  useEffect(() => {
+    if (settings) {
+      setFormState(settings);
     }
-  };
+  }, [settings]);
 
-  const handleDirectChange = (key: keyof typeof settings, value: any) => {
-    const newSettings = {
-      ...settings,
-      [key]: value,
-    };
-    saveSettings(newSettings);
-  };
+  useEffect(() => {
+    if (settings && formState) {
+      const hasChanged = 
+        settings.businessName !== formState.businessName ||
+        settings.ownerName !== formState.ownerName ||
+        settings.email !== formState.email ||
+        settings.phone !== formState.phone ||
+        settings.address !== formState.address;
+      setHasChanges(hasChanged);
+    }
+  }, [settings, formState]);
 
-  if (loading) {
+  if (isLoading || !formState) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 flex items-center justify-center font-inter">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Memuat pengaturan...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 text-lg">Memuat pengaturan...</p>
         </div>
       </div>
     );
   }
 
+  const handleInputChange = (field: keyof UserSettings, value: any) => {
+    setFormState(prev => prev ? { ...prev, [field]: value } : null);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!formState) return;
+
+    setIsSaving(true);
+    try {
+      const settingsToUpdate: Partial<UserSettings> = {
+        businessName: formState.businessName,
+        ownerName: formState.ownerName,
+        email: formState.email,
+        phone: formState.phone,
+        address: formState.address,
+      };
+
+      const success = await saveSettings(settingsToUpdate);
+      if (success) {
+        toast.success('Pengaturan berhasil disimpan!');
+        setHasChanges(false);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    if (settings) {
+      setFormState(settings);
+      setHasChanges(false);
+      toast.info('Perubahan dibatalkan');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-3 sm:p-6 font-inter">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 rounded-full mr-4">
-              <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-white-50 to-white-100">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-xl">
+                  <SettingsIcon className="h-8 w-8" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
+                  <p className="text-blue-100 mt-1">
+                    Kelola informasi bisnis dan preferensi aplikasi Anda
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Pengaturan
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Kelola pengaturan aplikasi dan preferensi
-              </p>
+
+            {/* Status Bar */}
+            <div className="px-8 py-4 bg-gray-50 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {hasChanges ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      <span className="text-sm font-medium text-orange-700">
+                        Ada perubahan yang belum disimpan
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-green-700">
+                        Semua perubahan tersimpan
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Terakhir diperbarui: {new Date().toLocaleString('id-ID')}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Main Form */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Business Information */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <User className="h-5 w-5 mr-2" />
-                Informasi Bisnis
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="businessName">Nama Bisnis</Label>
-                  <Input
-                    id="businessName"
-                    value={settings.businessName}
-                    onChange={(e) => handleDirectChange('businessName', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
-                    className="rounded-md"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ownerName">Nama Pemilik</Label>
-                  <Input
-                    id="ownerName"
-                    value={settings.ownerName}
-                    onChange={(e) => handleDirectChange('ownerName', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
-                    className="rounded-md"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={settings.email || ''}
-                    onChange={(e) => handleDirectChange('email', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
-                    className="rounded-md"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Telepon</Label>
-                  <Input
-                    id="phone"
-                    value={settings.phone || ''}
-                    onChange={(e) => handleDirectChange('phone', e.target.value)}
-                    onBlur={() => saveSettings(settings)}
-                    className="rounded-md"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="address">Alamat</Label>
-                <Input
-                  id="address"
-                  value={settings.address || ''}
-                  onChange={(e) => handleDirectChange('address', e.target.value)}
-                  onBlur={() => saveSettings(settings)}
-                  className="rounded-md"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Appearance - without dark mode */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <Palette className="h-5 w-5 mr-2" />
-                Tampilan
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currency">Mata Uang</Label>
-                  <Select
-                    value={settings.currency}
-                    onValueChange={(value) => handleDirectChange('currency', value)}
-                  >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IDR">Rupiah (IDR)</SelectItem>
-                      <SelectItem value="USD">Dollar (USD)</SelectItem>
-                      <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="language">Bahasa</Label>
-                  <Select
-                    value={settings.language}
-                    onValueChange={(value) => handleDirectChange('language', value)}
-                  >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="id">Bahasa Indonesia</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notifications */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <Bell className="h-5 w-5 mr-2" />
-                Notifikasi
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Stok Rendah</Label>
-                    <p className="text-sm text-muted-foreground">Notifikasi ketika stok bahan baku rendah</p>
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-lg border-0 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <Building2 className="h-5 w-5 text-blue-600" />
                   </div>
-                  <Switch
-                    checked={settings.notifications.lowStock}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'lowStock', checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
                   <div>
-                    <Label>Pesanan Baru</Label>
-                    <p className="text-sm text-muted-foreground">Notifikasi untuk pesanan baru</p>
+                    <CardTitle className="text-xl">Informasi Bisnis</CardTitle>
+                    <CardDescription>
+                      Data bisnis yang akan tampil di invoice dan dokumen
+                    </CardDescription>
                   </div>
-                  <Switch
-                    checked={settings.notifications.newOrder}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'newOrder', checked)}
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                {/* Business Name */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Nama Bisnis
+                  </Label>
+                  <Input 
+                    value={formState.businessName || ''} 
+                    onChange={e => handleInputChange('businessName', e.target.value)}
+                    placeholder="Masukkan nama bisnis Anda"
+                    className="h-12 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
-                <div className="flex items-center justify-between">
+
+                {/* Owner Name */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Nama Pemilik
+                  </Label>
+                  <Input 
+                    value={formState.ownerName || ''} 
+                    onChange={e => handleInputChange('ownerName', e.target.value)}
+                    placeholder="Masukkan nama pemilik bisnis"
+                    className="h-12 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Contact Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Label>
+                    <Input 
+                      type="email" 
+                      value={formState.email || ''} 
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      placeholder="email@bisnis.com"
+                      className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Telepon
+                    </Label>
+                    <Input 
+                      type="tel" 
+                      value={formState.phone || ''} 
+                      onChange={e => handleInputChange('phone', e.target.value)}
+                      placeholder="+62 XXX XXX XXXX"
+                      className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Alamat Lengkap
+                  </Label>
+                  <Textarea 
+                    value={formState.address || ''} 
+                    onChange={e => handleInputChange('address', e.target.value)}
+                    placeholder="Masukkan alamat lengkap bisnis Anda"
+                    className="min-h-[100px] border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar - Preview & Actions */}
+          <div className="space-y-6">
+            {/* Preview Card */}
+            <Card className="shadow-lg border-0 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+                <CardTitle className="text-lg text-green-800">Preview Invoice</CardTitle>
+                <CardDescription className="text-green-600">
+                  Begini informasi Anda akan tampil
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 bg-gray-50">
+                <div className="space-y-3 text-sm">
                   <div>
-                    <Label>Laporan Keuangan</Label>
-                    <p className="text-sm text-muted-foreground">Notifikasi untuk laporan keuangan mingguan</p>
+                    <h3 className="font-bold text-lg text-gray-800">
+                      {formState.businessName || 'Nama Bisnis Anda'}
+                    </h3>
+                    <p className="text-gray-600">
+                      {formState.ownerName || 'Nama Pemilik'}
+                    </p>
                   </div>
-                  <Switch
-                    checked={settings.notifications.financial}
-                    onCheckedChange={(checked) => handleSettingChange('notifications', 'financial', checked)}
-                  />
+                  <div className="space-y-1 text-gray-600">
+                    <p>{formState.address || 'Alamat bisnis akan tampil di sini'}</p>
+                    <p>{formState.phone || 'Nomor telepon'}</p>
+                    <p>{formState.email || 'email@bisnis.com'}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Data Backup */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <Database className="h-5 w-5 mr-2" />
-                Backup Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Backup Otomatis</Label>
-                  <p className="text-sm text-muted-foreground">Backup data secara otomatis</p>
-                </div>
-                <Switch
-                  checked={settings.backup.auto}
-                  onCheckedChange={(checked) => handleSettingChange('backup', 'auto', checked)}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Frekuensi Backup</Label>
-                  <Select
-                    value={settings.backup.frequency}
-                    onValueChange={(value) => handleSettingChange('backup', 'frequency', value)}
-                  >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Harian</SelectItem>
-                      <SelectItem value="weekly">Mingguan</SelectItem>
-                      <SelectItem value="monthly">Bulanan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Lokasi Backup</Label>
-                  <Select
-                    value={settings.backup.location}
-                    onValueChange={(value) => handleSettingChange('backup', 'location', value)}
-                  >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cloud">Cloud Storage</SelectItem>
-                      <SelectItem value="local">Local Storage</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Action Buttons */}
+            <Card className="shadow-lg border-0">
+              <CardContent className="p-6 space-y-4">
+                <Button 
+                  onClick={handleSaveChanges}
+                  disabled={!hasChanges || isSaving}
+                  className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-5 w-5" />
+                      Simpan Perubahan
+                    </>
+                  )}
+                </Button>
 
-          {/* Security */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <Shield className="h-5 w-5 mr-2" />
-                Keamanan
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">Aktifkan autentikasi dua faktor</p>
-                </div>
-                <Switch
-                  checked={settings.security.twoFactor}
-                  onCheckedChange={(checked) => handleSettingChange('security', 'twoFactor', checked)}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Session Timeout (menit)</Label>
-                  <Input
-                    type="number"
-                    value={settings.security.sessionTimeout}
-                    onChange={(e) => handleSettingChange('security', 'sessionTimeout', e.target.value)}
-                    className="rounded-md"
-                  />
-                </div>
-                <div>
-                  <Label>Persyaratan Password</Label>
-                  <Select
-                    value={settings.security.passwordRequirement}
-                    onValueChange={(value) => handleSettingChange('security', 'passwordRequirement', value)}
+                {hasChanges && (
+                  <Button 
+                    onClick={handleReset}
+                    variant="outline"
+                    className="w-full h-10 border-gray-300 hover:bg-gray-50"
                   >
-                    <SelectTrigger className="rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Rendah</SelectItem>
-                      <SelectItem value="medium">Sedang</SelectItem>
-                      <SelectItem value="high">Tinggi</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    Batalkan Perubahan
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tips Card */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <div className="bg-yellow-100 p-2 rounded-lg flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-yellow-800 mb-2">Tips</h4>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      <li>• Informasi ini akan muncul di semua invoice</li>
+                      <li>• Pastikan data kontak sudah benar</li>
+                      <li>• Alamat sebaiknya ditulis lengkap</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          {/* Pengaturan Resep */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <ChefHat className="h-5 w-5 mr-2" />
-                Pengaturan Resep
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">Kelola kategori yang digunakan untuk resep Anda.</p>
-              <RecipeCategoryManager />
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default Settings;
+export default SettingsPage;

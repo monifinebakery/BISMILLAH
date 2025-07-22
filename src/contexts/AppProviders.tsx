@@ -67,14 +67,15 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
-        position="bottom-right" // Atau posisi lain yang Anda inginkan
+        position={isMobile ? 'top-center' : 'bottom-right'}
         closeButton
+        // TAMBAHKAN INI: Atur jarak dari tepi layar
+        // Nilai default adalah 16px. Kita kurangi menjadi 8px di mobile
+        // agar posisinya sedikit lebih naik.
+        offset={isMobile ? 8 : 16}
         toastOptions={{
-          // Kustomisasi ini akan berlaku untuk SEMUA toast
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',
-            // Anda tidak perlu lagi mendefinisikan 'success', 'error', dll.
-            // karena gaya di atas akan menjadi gaya default untuk semuanya.
           },
         }}
       />

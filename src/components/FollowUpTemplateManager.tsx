@@ -12,9 +12,8 @@ import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { orderStatusList } from '@/constants/orderConstants';
 import { cn } from '@/lib/utils';
-
 export default FollowUpTemplateManager;integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from './AuthContext';
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },

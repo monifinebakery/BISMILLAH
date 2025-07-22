@@ -15,7 +15,7 @@ import { useFinancial } from "@/contexts/FinancialContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 
 // --- Impor Fungsi Export ---
-import { exportAllDataToExcel } from "@/lib/exportUtils";
+import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 const MobileExportButton = () => {
   // Panggil semua hook untuk mendapatkan data yang akan diekspor

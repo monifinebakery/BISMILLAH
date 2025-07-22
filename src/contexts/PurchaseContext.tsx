@@ -7,8 +7,9 @@ import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 import { useFinancial } from './FinancialContext';
 import { useSupplier } from './SupplierContext';
-// 🔔 ADD NOTIFICATION IMPORT
-import { useNotification, createNotificationHelper } from '@/contexts/NotificationContext';
+// 🔔 FIXED NOTIFICATION IMPORTS
+import { useNotification } from '@/contexts/NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { formatCurrency } from '@/utils/currencyUtils';
 
 interface PurchaseContextType {

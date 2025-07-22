@@ -71,10 +71,10 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
         // UPDATE: Posisi diubah ke bawah untuk semua perangkat
-        position={isMobile ? 'bottom-center' : 'bottom-right'}
+        position={isMobile ? 'top-center' : 'top-right'}
         closeButton
         // Atur jarak dari tepi layar
-        offset={isMobile ? 24 : 16} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
+        offset={isMobile ? 8 : 16} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

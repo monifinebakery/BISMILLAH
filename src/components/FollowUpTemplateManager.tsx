@@ -1,4 +1,4 @@
-// components/FollowUpTemplateManager.jsx
+// components/FollowUpTemplateManager.jsx - Mobile Friendly Version
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Save, RotateCcw, Eye, Code, Info, ExternalLink } from 'lucide-react';
+import { MessageSquare, Save, RotateCcw, Eye, Code, Info, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { orderStatusList } from '@/constants/orderConstants';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Try to import the context, but handle if not available
+let useFollowUpTemplate, useProcessTemplate;
+try {
+  const context = require('@/contexts/FollowUpTemplateContext');
+  useFollowUpTemplate = context.useFollowUpTemplate;
+  useProcessTemplate = context.useProcessTemplate;
+} catch (error) {
+  console.warn('FollowUpTemplateContext not available, using fallback');
+}
 
 const TEMPLATE_VARIABLES = [
   { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },
@@ -24,21 +36,98 @@ const TEMPLATE_VARIABLES = [
   { key: '{{catatan}}', description: 'Catatan pesanan' }
 ];
 
+const DEFAULT_TEMPLATES = {
+  pending: `Halo kak {{namaPelanggan}},
+
+Terima kasih telah memesan. Ini detail pesanan Anda:
+Nomor Pesanan: {{nomorPesanan}}
+
+Item:
+{{items}}
+
+Total: {{totalPesanan}}
+
+Mohon konfirmasinya. Terima kasih.`,
+
+  confirmed: `Halo kak {{namaPelanggan}},
+
+Pesanan Anda #{{nomorPesanan}} telah kami KONFIRMASI dan sedang kami siapkan.
+
+Terima kasih!`,
+
+  shipping: `Halo kak {{namaPelanggan}},
+
+Kabar baik! Pesanan Anda #{{nomorPesanan}} sudah dalam proses PENGIRIMAN.
+
+Mohon ditunggu kedatangannya ya. Terima kasih!`,
+
+  delivered: `Halo kak {{namaPelanggan}},
+
+Pesanan Anda #{{nomorPesanan}} telah TIBA.
+
+Terima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`,
+
+  cancelled: `Halo kak {{namaPelanggan}},
+
+Pesanan Anda #{{nomorPesanan}} telah DIBATALKAN sesuai permintaan.
+
+Terima kasih atas pengertiannya.`
+};
+
 const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => {
-  const { 
-    templates, 
-    isLoading, 
-    saveAllTemplates, 
-    resetToDefaults,
-    getTemplate 
-  } = useFollowUpTemplate();
+  const isMobile = useIsMobile();
   
-  const { processTemplate } = useProcessTemplate();
+  // Fallback hooks if context not available
+  const contextAvailable = useFollowUpTemplate && useProcessTemplate;
   
+  const templateContext = contextAvailable ? useFollowUpTemplate() : null;
+  const processContext = contextAvailable ? useProcessTemplate() : null;
+  
+  // Fallback state when context not available
+  const [fallbackTemplates, setFallbackTemplates] = useState(DEFAULT_TEMPLATES);
   const [editingTemplates, setEditingTemplates] = useState({});
   const [activeTab, setActiveTab] = useState('pending');
   const [previewMode, setPreviewMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isVariablesOpen, setIsVariablesOpen] = useState(false);
+
+  // Use context values or fallback
+  const templates = templateContext?.templates || fallbackTemplates;
+  const isLoading = templateContext?.isLoading || false;
+  const saveAllTemplates = templateContext?.saveAllTemplates || (async (templates) => {
+    setFallbackTemplates(templates);
+    toast.success('Template disimpan (mode fallback)');
+    return true;
+  });
+  const resetToDefaults = templateContext?.resetToDefaults || (() => {
+    setFallbackTemplates(DEFAULT_TEMPLATES);
+  });
+  const getTemplate = templateContext?.getTemplate || ((status) => fallbackTemplates[status] || '');
+
+  // Process template function with fallback
+  const processTemplate = processContext?.processTemplate || ((template, orderData) => {
+    if (!orderData || !template) return template;
+    
+    const itemsText = (orderData.items || [])
+      .map(item => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
+      .join('\n');
+    
+    const totalText = new Intl.NumberFormat('id-ID', { 
+      style: 'currency', 
+      currency: 'IDR', 
+      minimumFractionDigits: 0 
+    }).format(orderData.totalPesanan || 0);
+
+    return template
+      .replace(/\{\{namaPelanggan\}\}/g, orderData.namaPelanggan || '')
+      .replace(/\{\{nomorPesanan\}\}/g, orderData.nomorPesanan || '')
+      .replace(/\{\{teleponPelanggan\}\}/g, orderData.teleponPelanggan || '')
+      .replace(/\{\{tanggal\}\}/g, orderData.tanggal ? new Date(orderData.tanggal).toLocaleDateString('id-ID') : '')
+      .replace(/\{\{totalPesanan\}\}/g, totalText)
+      .replace(/\{\{items\}\}/g, itemsText)
+      .replace(/\{\{alamatPengiriman\}\}/g, orderData.alamatPengiriman || '')
+      .replace(/\{\{catatan\}\}/g, orderData.catatan || '');
+  });
 
   // Initialize editing templates when templates or dialog opens
   useEffect(() => {
@@ -118,235 +207,358 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-blue-600" />
-            Kelola Template Follow Up WhatsApp
-            {order && (
-              <Badge variant="outline" className="ml-2">
-                Pesanan #{order.nomorPesanan} - {order.namaPelanggan}
-              </Badge>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Quick Actions for Current Order */}
-          {order && (
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-lg text-green-800">
-                  <span className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    Quick Send untuk Pesanan Ini
-                  </span>
-                  <Badge className="bg-green-600 text-white">
-                    Status: {orderStatusList.find(s => s.key === order.status)?.label || order.status}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-green-700 mb-2">
-                      Kirim template untuk status saat ini: <strong>{orderStatusList.find(s => s.key === order.status)?.label || order.status}</strong>
-                    </p>
-                    <p className="text-xs text-green-600">
-                      Pesanan #{order.nomorPesanan} - {order.namaPelanggan} ({order.teleponPelanggan})
-                    </p>
+      <DialogContent className={cn(
+        "w-full h-full max-w-none max-h-none m-0 p-0 rounded-none",
+        "sm:max-w-5xl sm:max-h-[95vh] sm:rounded-lg sm:m-auto sm:p-6",
+        "overflow-hidden"
+      )}>
+        <ScrollArea className="h-full w-full">
+          <div className="p-4 sm:p-0">
+            {/* Mobile Header - Sticky */}
+            <div className="sticky top-0 bg-white z-10 border-b pb-4 mb-4 sm:static sm:border-b-0 sm:pb-0 sm:mb-6">
+              <DialogHeader>
+                <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                    <span className="text-lg sm:text-xl">Template WhatsApp</span>
                   </div>
+                  
+                  {order && (
+                    <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                      <Badge variant="outline" className="text-xs">
+                        #{order.nomorPesanan}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {order.namaPelanggan}
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {!contextAvailable && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs mt-2 sm:mt-0">
+                      Mode Fallback
+                    </Badge>
+                  )}
+                </DialogTitle>
+              </DialogHeader>
+              
+              {/* Mobile Action Buttons */}
+              <div className="flex gap-2 mt-4 sm:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewMode(!previewMode)}
+                  disabled={!order}
+                  className="flex-1"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  {previewMode ? 'Edit' : 'Preview'}
+                </Button>
+                {order && (
                   <Button
                     onClick={handleQuickSend}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white flex-1"
                     size="sm"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Kirim Sekarang
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Kirim WA
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Variable Reference Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Code className="h-5 w-5" />
-                Variabel Template
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {TEMPLATE_VARIABLES.map((variable) => (
-                  <div 
-                    key={variable.key} 
-                    className="flex flex-col p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => {
-                      navigator.clipboard.writeText(variable.key);
-                      toast.success(`Variable ${variable.key} disalin!`);
-                    }}
-                    title="Klik untuk copy"
-                  >
-                    <code className="text-sm font-mono text-blue-600 mb-1">
-                      {variable.key}
-                    </code>
-                    <span className="text-xs text-gray-600">{variable.description}</span>
-                  </div>
-                ))}
+                )}
               </div>
-              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-center gap-2 text-amber-800 mb-2">
-                  <Info className="h-4 w-4" />
-                  <span className="font-medium">Tips Penggunaan</span>
-                </div>
-                <ul className="text-sm text-amber-700 space-y-1">
-                  <li>• Klik variabel untuk menyalin ke clipboard</li>
-                  <li>• Template akan otomatis diisi dengan data pesanan saat dikirim</li>
-                  <li>• Anda dapat menggabungkan teks bebas dengan variabel</li>
-                  <li>• Gunakan mode preview untuk melihat hasil akhir template</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Template Editor Tabs */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Editor Template</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={previewMode ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPreviewMode(!previewMode)}
-                    disabled={!order}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    {previewMode ? 'Mode Edit' : 'Preview'}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-4 lg:grid-cols-5 mb-4">
-                  {orderStatusList.map((status) => (
-                    <TabsTrigger 
-                      key={status.key} 
-                      value={status.key}
-                      className={cn(
-                        "text-xs",
-                        order && order.status === status.key && "ring-2 ring-green-400 bg-green-50"
-                      )}
-                    >
-                      <Badge variant="outline" className="text-xs">
-                        {status.label}
-                      </Badge>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-
-                {orderStatusList.map((status) => (
-                  <TabsContent key={status.key} value={status.key} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-lg font-medium">
-                        Template untuk Status: {status.label}
-                      </Label>
-                      <div className="flex gap-2">
-                        {order && (
-                          <Button
-                            onClick={() => handleSendWhatsApp(status.key)}
-                            className="bg-green-600 hover:bg-green-700"
-                            size="sm"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Kirim WhatsApp
-                          </Button>
-                        )}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Context Warning */}
+              {!contextAvailable && (
+                <Card className="border-yellow-200 bg-yellow-50">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start gap-2 text-yellow-800">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium">Template Context Tidak Tersedia</p>
+                        <p className="text-yellow-700 mt-1">
+                          Pastikan FollowUpTemplateProvider sudah di-wrap di App component.
+                        </p>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                    {previewMode && order ? (
-                      <Card className="bg-green-50 border-green-200">
-                        <CardHeader>
-                          <CardTitle className="text-sm text-green-800 flex items-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            Preview Pesan untuk {order.namaPelanggan}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="bg-white p-4 rounded-lg border">
-                            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-medium leading-relaxed">
-                              {processTemplate(editingTemplates[status.key] || '', order)}
-                            </pre>
+              {/* Quick Actions for Current Order - Desktop */}
+              {order && !isMobile && (
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-lg text-green-800">
+                      <span className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        Quick Send untuk Pesanan Ini
+                      </span>
+                      <Badge className="bg-green-600 text-white">
+                        {orderStatusList.find(s => s.key === order.status)?.label || order.status}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-700 mb-1">
+                          Kirim template untuk status: <strong>{orderStatusList.find(s => s.key === order.status)?.label || order.status}</strong>
+                        </p>
+                        <p className="text-xs text-green-600">
+                          #{order.nomorPesanan} - {order.namaPelanggan} ({order.teleponPelanggan})
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleQuickSend}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        size="sm"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Kirim Sekarang
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Variable Reference Card - Collapsible on Mobile */}
+              <Card>
+                <Collapsible open={isVariablesOpen} onOpenChange={setIsVariablesOpen}>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-base sm:text-lg">
+                        <div className="flex items-center gap-2">
+                          <Code className="h-4 w-4 sm:h-5 sm:w-5" />
+                          Variabel Template
+                        </div>
+                        <ChevronDown className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          isVariablesOpen && "rotate-180"
+                        )} />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {TEMPLATE_VARIABLES.map((variable) => (
+                          <div 
+                            key={variable.key} 
+                            className="flex flex-col p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors active:bg-gray-200"
+                            onClick={() => {
+                              navigator.clipboard.writeText(variable.key);
+                              toast.success(`Variable ${variable.key} disalin!`);
+                            }}
+                            title="Klik untuk copy"
+                          >
+                            <code className="text-xs sm:text-sm font-mono text-blue-600 mb-1 break-all">
+                              {variable.key}
+                            </code>
+                            <span className="text-xs text-gray-600">{variable.description}</span>
                           </div>
-                        </CardContent>
-                      </Card>
+                        ))}
+                      </div>
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-amber-800 mb-2">
+                          <Info className="h-4 w-4 flex-shrink-0" />
+                          <span className="font-medium text-sm">Tips Penggunaan</span>
+                        </div>
+                        <ul className="text-xs sm:text-sm text-amber-700 space-y-1">
+                          <li>• Klik variabel untuk menyalin ke clipboard</li>
+                          <li>• Template akan otomatis diisi dengan data pesanan</li>
+                          <li>• Gunakan mode preview untuk melihat hasil akhir</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+
+              {/* Template Editor Tabs */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <CardTitle className="text-base sm:text-lg">Editor Template</CardTitle>
+                    <div className="flex items-center gap-2">
+                      {!isMobile && (
+                        <Button
+                          variant={previewMode ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPreviewMode(!previewMode)}
+                          disabled={!order}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          {previewMode ? 'Mode Edit' : 'Preview'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    {/* Mobile: Dropdown-style tabs */}
+                    {isMobile ? (
+                      <div className="mb-4">
+                        <Label className="text-sm text-gray-600 mb-2 block">Pilih Status:</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {orderStatusList.map((status) => (
+                            <Button
+                              key={status.key}
+                              variant={activeTab === status.key ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setActiveTab(status.key)}
+                              className={cn(
+                                "text-xs justify-center",
+                                order && order.status === status.key && "ring-2 ring-green-400",
+                                activeTab === status.key && "bg-blue-600 hover:bg-blue-700"
+                              )}
+                            >
+                              {status.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="space-y-4">
-                        <Textarea
-                          value={editingTemplates[status.key] || ''}
-                          onChange={(e) => setEditingTemplates(prev => ({
-                            ...prev,
-                            [status.key]: e.target.value
-                          }))}
-                          placeholder={`Masukkan template untuk status ${status.label}...`}
-                          className="min-h-48 font-mono text-sm resize-none"
-                          rows={10}
-                        />
-                        
-                        {/* Live preview of variables */}
-                        {editingTemplates[status.key] && (
-                          <Card className="bg-blue-50 border-blue-200">
-                            <CardHeader>
-                              <CardTitle className="text-sm text-blue-800">Template dengan Highlighting</CardTitle>
+                      <TabsList className="grid grid-cols-4 lg:grid-cols-5 mb-4 w-full">
+                        {orderStatusList.map((status) => (
+                          <TabsTrigger 
+                            key={status.key} 
+                            value={status.key}
+                            className={cn(
+                              "text-xs",
+                              order && order.status === status.key && "ring-2 ring-green-400 bg-green-50"
+                            )}
+                          >
+                            <Badge variant="outline" className="text-xs">
+                              {status.label}
+                            </Badge>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    )}
+
+                    {orderStatusList.map((status) => (
+                      <TabsContent key={status.key} value={status.key} className="space-y-4 mt-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <Label className="text-base sm:text-lg font-medium">
+                            Template: {status.label}
+                          </Label>
+                          <div className="flex gap-2">
+                            {order && !isMobile && (
+                              <Button
+                                onClick={() => handleSendWhatsApp(status.key)}
+                                className="bg-green-600 hover:bg-green-700"
+                                size="sm"
+                              >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Kirim WhatsApp
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {previewMode && order ? (
+                          <Card className="bg-green-50 border-green-200">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm text-green-800 flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                Preview untuk {order.namaPelanggan}
+                              </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                              <div 
-                                className="text-sm whitespace-pre-wrap leading-relaxed"
-                                dangerouslySetInnerHTML={{
-                                  __html: renderVariableHighlight(editingTemplates[status.key] || '')
-                                }}
-                              />
+                            <CardContent className="pt-0">
+                              <div className="bg-white p-3 sm:p-4 rounded-lg border">
+                                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-medium leading-relaxed">
+                                  {processTemplate(editingTemplates[status.key] || '', order)}
+                                </pre>
+                              </div>
+                              {order && isMobile && (
+                                <Button
+                                  onClick={() => handleSendWhatsApp(status.key)}
+                                  className="bg-green-600 hover:bg-green-700 w-full mt-3"
+                                  size="sm"
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Kirim Template Ini
+                                </Button>
+                              )}
                             </CardContent>
                           </Card>
+                        ) : (
+                          <div className="space-y-4">
+                            <Textarea
+                              value={editingTemplates[status.key] || ''}
+                              onChange={(e) => setEditingTemplates(prev => ({
+                                ...prev,
+                                [status.key]: e.target.value
+                              }))}
+                              placeholder={`Masukkan template untuk status ${status.label}...`}
+                              className="min-h-32 sm:min-h-48 font-mono text-sm resize-none"
+                              rows={isMobile ? 6 : 10}
+                            />
+                            
+                            {/* Live preview of variables */}
+                            {editingTemplates[status.key] && (
+                              <Card className="bg-blue-50 border-blue-200">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm text-blue-800">Template dengan Highlighting</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <div 
+                                    className="text-sm whitespace-pre-wrap leading-relaxed"
+                                    dangerouslySetInnerHTML={{
+                                      __html: renderVariableHighlight(editingTemplates[status.key] || '')
+                                    }}
+                                  />
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          </Card>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </CardContent>
+              </Card>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handleResetAll}
-              className="text-orange-600 border-orange-600 hover:bg-orange-50"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset ke Default
-            </Button>
-            
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Tutup
-              </Button>
-              <Button
-                onClick={handleSaveAll}
-                disabled={isSaving || isLoading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Menyimpan...' : 'Simpan Semua Template'}
-              </Button>
+              {/* Action Buttons - Sticky on Mobile */}
+              <div className={cn(
+                "flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t bg-white",
+                isMobile && "sticky bottom-0 pb-4 -mx-4 px-4"
+              )}>
+                <Button
+                  variant="outline"
+                  onClick={handleResetAll}
+                  className="text-orange-600 border-orange-600 hover:bg-orange-50 order-2 sm:order-1"
+                  size={isMobile ? "default" : "sm"}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset ke Default
+                </Button>
+                
+                <div className="flex gap-2 order-1 sm:order-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={onClose}
+                    className="flex-1 sm:flex-none"
+                    size={isMobile ? "default" : "sm"}
+                  >
+                    Tutup
+                  </Button>
+                  <Button
+                    onClick={handleSaveAll}
+                    disabled={isSaving || isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
+                    size={isMobile ? "default" : "sm"}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSaving ? 'Menyimpan...' : 'Simpan Semua'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

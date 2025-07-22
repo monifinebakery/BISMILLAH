@@ -135,7 +135,6 @@ const PurchaseManagement = () => {
   const handleDelete = async (id: string) => {
     setSelectedPurchaseIds(prev => prev.filter(sId => sId !== id)); // Update state sebelum penghapusan
     await deletePurchase(id);
-    toast.success('Pembelian berhasil dihapus.');
   };
 
   const handleBulkDelete = async () => {

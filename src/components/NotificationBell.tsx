@@ -40,7 +40,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 
 // Icon mapping for different notification types and icons
 const iconMap = {
@@ -58,7 +58,7 @@ const iconMap = {
 };
 
 const NotificationBell = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
@@ -104,7 +104,7 @@ const NotificationBell = () => {
 
     // Navigate to action URL if available
     if (notification.action_url) {
-      router.push(notification.action_url);
+      navigate(notification.action_url);
       setIsOpen(false);
     }
   };
@@ -366,7 +366,7 @@ const NotificationBell = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    router.push('/notifications');
+                    navigate('/notifications');
                     setIsOpen(false);
                   }}
                   className="text-xs text-blue-600 hover:text-blue-700 h-auto p-1"

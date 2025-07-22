@@ -1,7 +1,6 @@
 // src/providers/AppProviders.tsx
 
 import React, { ReactNode } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 // Import semua context provider Anda
@@ -17,17 +16,16 @@ import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from './PurchaseContext';
 import { OrderProvider } from './OrderContext';
-import { FollowUpTemplateProvider } from './FollowUpTemplateContext'; // <-- Provider baru ditambahkan
+import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 
 /**
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
- * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi,
- * serta setup untuk routing dan notifikasi toast.
+ * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
+ * Router dan Toaster akan diatur di level yang lebih tinggi (misal: App.jsx atau main.jsx).
  */
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
-    // Router membungkus semua agar routing berfungsi di seluruh aplikasi
-    <Router>
+    <>
       {/* 1. AuthProvider paling luar, karena hampir semua bergantung padanya */}
       <AuthProvider>
         {/* 2. UserSettingsProvider, mungkin dibutuhkan oleh provider lain */}
@@ -47,11 +45,10 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
                           <PurchaseProvider>
                             {/* 6. OrderProvider */}
                             <OrderProvider>
-                              {/* 7. FollowUpTemplateProvider dibungkus di dalam OrderProvider
-                                  sesuai catatan, karena secara konseptual terkait erat dengan order. */}
+                              {/* 7. FollowUpTemplateProvider terkait erat dengan order. */}
                               <FollowUpTemplateProvider>
                                 
-                                {/* Di sinilah komponen utama aplikasi Anda (seperti <Routes>) akan dirender */}
+                                {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
                                 {children}
 
                               </FollowUpTemplateProvider>
@@ -68,12 +65,12 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
         </UserSettingsProvider>
       </AuthProvider>
 
-      {/* Komponen Toaster untuk notifikasi global, ditempatkan di luar children */}
+      {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
         position="top-right"
         richColors
         closeButton
       />
-    </Router>
+    </>
   );
 };

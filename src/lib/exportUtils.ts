@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 // Deklarasikan XLSX agar TypeScript tidak error karena diimpor dari <script> di index.html
 declare const XLSX: any;

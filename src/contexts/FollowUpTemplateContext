@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 
+// --- INTERFACES & TYPES ---
 interface FollowUpTemplate {
   id?: string;
   user_id: string;
@@ -12,6 +13,18 @@ interface FollowUpTemplate {
   updated_at?: string;
 }
 
+// Data order yang dibutuhkan untuk memproses template
+type OrderData = {
+  namaPelanggan?: string;
+  nomorPesanan?: string;
+  teleponPelanggan?: string;
+  tanggal?: string | Date;
+  totalPesanan?: number;
+  items?: { namaBarang?: string; name?: string; quantity: number }[];
+  alamatPengiriman?: string;
+  catatan?: string;
+};
+
 interface FollowUpTemplateContextType {
   templates: Record<string, string>;
   isLoading: boolean;
@@ -20,9 +33,11 @@ interface FollowUpTemplateContextType {
   saveAllTemplates: (templates: Record<string, string>) => Promise<boolean>;
   getTemplate: (status: string) => string;
   resetToDefaults: () => void;
+  processTemplate: (status: string, orderData: OrderData) => string; // FIX: Moved processTemplate into the context
 }
 
-const DEFAULT_TEMPLATES = {
+// --- CONSTANTS ---
+const DEFAULT_TEMPLATES: Record<string, string> = {
   pending: `Halo kak {{namaPelanggan}},
 
 Terima kasih telah memesan. Ini detail pesanan Anda:
@@ -34,25 +49,21 @@ Item:
 Total: {{totalPesanan}}
 
 Mohon konfirmasinya. Terima kasih.`,
-
   confirmed: `Halo kak {{namaPelanggan}},
 
 Pesanan Anda #{{nomorPesanan}} telah kami KONFIRMASI dan sedang kami siapkan.
 
 Terima kasih!`,
-
   shipping: `Halo kak {{namaPelanggan}},
 
 Kabar baik! Pesanan Anda #{{nomorPesanan}} sudah dalam proses PENGIRIMAN.
 
 Mohon ditunggu kedatangannya ya. Terima kasih!`,
-
   delivered: `Halo kak {{namaPelanggan}},
 
 Pesanan Anda #{{nomorPesanan}} telah TIBA.
 
 Terima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`,
-
   cancelled: `Halo kak {{namaPelanggan}},
 
 Pesanan Anda #{{nomorPesanan}} telah DIBATALKAN sesuai permintaan.
@@ -60,17 +71,19 @@ Pesanan Anda #{{nomorPesanan}} telah DIBATALKAN sesuai permintaan.
 Terima kasih atas pengertiannya.`
 };
 
+// --- CONTEXT ---
 const FollowUpTemplateContext = createContext<FollowUpTemplateContextType | undefined>(undefined);
 
+// --- PROVIDER COMPONENT ---
 export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [templates, setTemplates] = useState<Record<string, string>>(DEFAULT_TEMPLATES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Set initial loading to true
   const { user } = useAuth();
 
-  // Load templates from database
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     if (!user) {
       setTemplates(DEFAULT_TEMPLATES);
+      setIsLoading(false); // Stop loading if no user
       return;
     }
 
@@ -78,16 +91,13 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
     try {
       const { data, error } = await supabase
         .from('followup_templates')
-        .select('*')
+        .select('status, template')
         .eq('user_id', user.id);
       
       if (error) throw error;
       
-      // Start with default templates
       const templatesMap = { ...DEFAULT_TEMPLATES };
-      
-      // Override with user's custom templates
-      if (data && data.length > 0) {
+      if (data) {
         data.forEach(template => {
           templatesMap[template.status] = template.template;
         });
@@ -97,49 +107,16 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
     } catch (error) {
       console.error('Error loading templates:', error);
       toast.error('Gagal memuat template WhatsApp');
-      // Use default templates on error
-      setTemplates(DEFAULT_TEMPLATES);
+      setTemplates(DEFAULT_TEMPLATES); // Fallback to defaults
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  // Save single template
-  const saveTemplate = async (status: string, template: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menyimpan template');
-      return false;
-    }
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
 
-    try {
-      const { error } = await supabase
-        .from('followup_templates')
-        .upsert({
-          user_id: user.id,
-          status: status,
-          template: template,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,status'
-        });
-      
-      if (error) throw error;
-      
-      // Update local state
-      setTemplates(prev => ({
-        ...prev,
-        [status]: template
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast.error(`Gagal menyimpan template untuk status ${status}`);
-      return false;
-    }
-  };
-
-  // Save all templates at once
   const saveAllTemplates = async (templatesData: Record<string, string>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menyimpan template');
@@ -152,46 +129,67 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
         user_id: user.id,
         status: status,
         template: template,
-        updated_at: new Date().toISOString()
       }));
 
       const { error } = await supabase
         .from('followup_templates')
-        .upsert(templateEntries, {
-          onConflict: 'user_id,status'
-        });
+        .upsert(templateEntries, { onConflict: 'user_id,status' });
       
       if (error) throw error;
       
-      // Update local state
       setTemplates(templatesData);
       toast.success('Semua template berhasil disimpan!');
       return true;
     } catch (error) {
-      console.error('Error saving templates:', error);
-      toast.error('Gagal menyimpan template');
+      console.error('Error saving all templates:', error);
+      toast.error('Gagal menyimpan semua template');
       return false;
     } finally {
       setIsLoading(false);
     }
   };
+  
+  const saveTemplate = async (status: string, template: string): Promise<boolean> => {
+      // This is now a convenience wrapper around saveAllTemplates
+      const newTemplates = { ...templates, [status]: template };
+      return saveAllTemplates(newTemplates);
+  };
 
-  // Get template for specific status
   const getTemplate = (status: string): string => {
     return templates[status] || DEFAULT_TEMPLATES[status] || '';
   };
 
-  // Reset to default templates
-  const resetToDefaults = () => {
-    setTemplates({ ...DEFAULT_TEMPLATES });
+  const resetToDefaults = async () => {
+    if (!user) {
+      setTemplates(DEFAULT_TEMPLATES);
+      toast.success("Template telah direset ke default.");
+      return;
+    }
+    // Also delete user's custom templates from the database
+    setIsLoading(true);
+    try {
+        const { error } = await supabase
+            .from('followup_templates')
+            .delete()
+            .eq('user_id', user.id);
+        if (error) throw error;
+        setTemplates(DEFAULT_TEMPLATES);
+        toast.success("Template kustom telah dihapus dan direset ke default.");
+    } catch (error) {
+        console.error('Error resetting templates:', error);
+        toast.error("Gagal mereset template di database.");
+    } finally {
+        setIsLoading(false);
+    }
   };
 
-  // Process template with order data
-  const processTemplate = (template: string, orderData: any): string => {
+  // FIX: Moved processTemplate logic inside the provider and made it part of the context value.
+  const processTemplate = useCallback((status: string, orderData: OrderData): string => {
+    const template = getTemplate(status);
     if (!orderData || !template) return template;
     
     const itemsText = (orderData.items || [])
-      .map((item: any) => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
+      .map((item) => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
       .join('\n');
     
     const totalText = new Intl.NumberFormat('id-ID', { 
@@ -209,12 +207,7 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
       .replace(/\{\{items\}\}/g, itemsText)
       .replace(/\{\{alamatPengiriman\}\}/g, orderData.alamatPengiriman || '')
       .replace(/\{\{catatan\}\}/g, orderData.catatan || '');
-  };
-
-  // Load templates when user changes
-  useEffect(() => {
-    loadTemplates();
-  }, [user]);
+  }, [templates]); // Dependency on templates
 
   const value: FollowUpTemplateContextType = {
     templates,
@@ -224,6 +217,7 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
     saveAllTemplates,
     getTemplate,
     resetToDefaults,
+    processTemplate, // Expose the function through context
   };
 
   return (
@@ -233,6 +227,7 @@ export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ ch
   );
 };
 
+// --- CUSTOM HOOK ---
 export const useFollowUpTemplate = () => {
   const context = useContext(FollowUpTemplateContext);
   if (context === undefined) {
@@ -240,34 +235,3 @@ export const useFollowUpTemplate = () => {
   }
   return context;
 };
-
-// Hook untuk memproses template dengan data order
-export const useProcessTemplate = () => {
-  const processTemplate = (template: string, orderData: any): string => {
-    if (!orderData || !template) return template;
-    
-    const itemsText = (orderData.items || [])
-      .map((item: any) => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
-      .join('\n');
-    
-    const totalText = new Intl.NumberFormat('id-ID', { 
-      style: 'currency', 
-      currency: 'IDR', 
-      minimumFractionDigits: 0 
-    }).format(orderData.totalPesanan || 0);
-
-    return template
-      .replace(/\{\{namaPelanggan\}\}/g, orderData.namaPelanggan || '')
-      .replace(/\{\{nomorPesanan\}\}/g, orderData.nomorPesanan || '')
-      .replace(/\{\{teleponPelanggan\}\}/g, orderData.teleponPelanggan || '')
-      .replace(/\{\{tanggal\}\}/g, orderData.tanggal ? new Date(orderData.tanggal).toLocaleDateString('id-ID') : '')
-      .replace(/\{\{totalPesanan\}\}/g, totalText)
-      .replace(/\{\{items\}\}/g, itemsText)
-      .replace(/\{\{alamatPengiriman\}\}/g, orderData.alamatPengiriman || '')
-      .replace(/\{\{catatan\}\}/g, orderData.catatan || '');
-  };
-
-  return { processTemplate };
-};
-
-export default FollowUpTemplateProvider;

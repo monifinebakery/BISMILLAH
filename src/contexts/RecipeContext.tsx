@@ -512,7 +512,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         marginKeuntunganPersen: originalRecipe.marginKeuntunganPersen,
         totalHpp: originalRecipe.totalHpp,
         hppPerPorsi: originalRecipe.hppPerPorsi,
-        hargaJualPorsi: originalRecipe.hargaJualPorsi,
+        hargaJualPorsi: originalRecipe.hargaJualPorsi || 0, // 🔧 FIX: Ensure fallback value
         jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi || 1,
         hppPerPcs: originalRecipe.hppPerPcs || 0,
         hargaJualPerPcs: originalRecipe.hargaJualPerPcs || 0,

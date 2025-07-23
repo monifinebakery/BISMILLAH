@@ -1,5 +1,6 @@
 // src/contexts/SupplierContext.tsx
 // VERSI REALTIME - FULL UPDATE
+// 🔔 UPDATED WITH NOTIFICATION SYSTEM
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Supplier } from '@/types/supplier';
@@ -9,6 +10,9 @@ import { toast } from 'sonner';
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+// 🔔 ADD NOTIFICATION IMPORTS
+import { useNotification } from './NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { safeParseDate } from '@/utils/dateUtils';
 
 // --- INTERFACE & CONTEXT ---
@@ -31,6 +35,8 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
   // --- DEPENDENCIES ---
   const { user } = useAuth();
   const { addActivity } = useActivity();
+  // 🔔 ADD NOTIFICATION CONTEXT
+  const { addNotification } = useNotification();
   
   // --- HELPER FUNCTION ---
   const transformSupplierFromDB = (dbItem: any): Supplier => ({
@@ -55,92 +61,252 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     const fetchInitialSuppliers = async () => {
-        setIsLoading(true);
+      setIsLoading(true);
+      
+      try {
         const { data, error } = await supabase
-            .from('suppliers')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('nama', { ascending: true });
+          .from('suppliers')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('nama', { ascending: true });
         
         if (error) {
-            toast.error(`Gagal memuat supplier: ${error.message}`);
+          console.error('[SupplierContext] Error fetching suppliers:', error);
+          toast.error(`Gagal memuat supplier: ${error.message}`);
+          
+          // 🔔 CREATE ERROR NOTIFICATION
+          await addNotification(createNotificationHelper.systemError(
+            `Gagal memuat data supplier: ${error.message}`
+          ));
         } else {
-            setSuppliers(data.map(transformSupplierFromDB));
+          setSuppliers(data.map(transformSupplierFromDB));
+          console.log(`[SupplierContext] Loaded ${data.length} suppliers`);
         }
+      } catch (error) {
+        console.error('[SupplierContext] Unexpected error:', error);
+        await addNotification(createNotificationHelper.systemError(
+          `Error tidak terduga saat memuat supplier: ${error instanceof Error ? error.message : 'Unknown error'}`
+        ));
+      } finally {
         setIsLoading(false);
+      }
     };
 
     fetchInitialSuppliers();
 
     const channel = supabase.channel(`realtime-suppliers-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers', filter: `user_id=eq.${user.id}` }, 
-        (payload) => {
-            const transform = transformSupplierFromDB;
-            if (payload.eventType === 'INSERT') setSuppliers(current => [transform(payload.new), ...current].sort((a,b) => a.nama.localeCompare(b.nama)));
-            if (payload.eventType === 'UPDATE') setSuppliers(current => current.map(s => s.id === payload.new.id ? transform(payload.new) : s));
-            if (payload.eventType === 'DELETE') setSuppliers(current => current.filter(s => s.id !== payload.old.id));
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'suppliers', 
+        filter: `user_id=eq.${user.id}` 
+      }, (payload) => {
+        console.log('[SupplierContext] Real-time event received:', payload);
+        const transform = transformSupplierFromDB;
+        
+        if (payload.eventType === 'INSERT') {
+          setSuppliers(current => [transform(payload.new), ...current].sort((a,b) => a.nama.localeCompare(b.nama)));
         }
-      ).subscribe();
+        if (payload.eventType === 'UPDATE') {
+          setSuppliers(current => current.map(s => s.id === payload.new.id ? transform(payload.new) : s));
+        }
+        if (payload.eventType === 'DELETE') {
+          setSuppliers(current => current.filter(s => s.id !== payload.old.id));
+        }
+      })
+      .subscribe();
 
-    return () => supabase.removeChannel(channel);
-  }, [user]);
+    return () => {
+      console.log('[SupplierContext] Cleaning up real-time channel');
+      supabase.removeChannel(channel);
+    };
+  }, [user, addNotification]); // 🔔 ADD addNotification dependency
 
   // --- FUNGSI-FUNGSI (Disederhanakan) ---
   const addSupplier = async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk menambahkan supplier'); return false; }
+    if (!user) { 
+      toast.error('Anda harus login untuk menambahkan supplier'); 
+      return false; 
+    }
 
-    const supplierToInsert = {
-      user_id: user.id,
-      nama: supplier.nama,
-      kontak: supplier.kontak,
-      email: supplier.email,
-      telepon: supplier.telepon,
-      alamat: supplier.alamat,
-      catatan: supplier.catatan ?? null,
-    };
+    try {
+      const supplierToInsert = {
+        user_id: user.id,
+        nama: supplier.nama,
+        kontak: supplier.kontak,
+        email: supplier.email,
+        telepon: supplier.telepon,
+        alamat: supplier.alamat,
+        catatan: supplier.catatan ?? null,
+      };
 
-    const { error } = await supabase.from('suppliers').insert(supplierToInsert);
-    if (error) { toast.error(`Gagal menambahkan supplier: ${error.message}`); return false; }
-    
-    addActivity({ title: 'Supplier Ditambahkan', description: `${supplier.nama} telah ditambahkan`, type: 'supplier', value: null });
-    toast.success(`${supplier.nama} berhasil ditambahkan!`);
-    return true;
+      console.log('[SupplierContext] Adding supplier:', supplierToInsert);
+      const { error } = await supabase.from('suppliers').insert(supplierToInsert);
+      
+      if (error) {
+        console.error('[SupplierContext] Error adding supplier:', error);
+        throw new Error(error.message);
+      }
+      
+      // Activity log
+      addActivity({ 
+        title: 'Supplier Ditambahkan', 
+        description: `${supplier.nama} telah ditambahkan`, 
+        type: 'supplier', 
+        value: null 
+      });
+
+      // Success toast
+      toast.success(`${supplier.nama} berhasil ditambahkan!`);
+
+      // 🔔 CREATE SUCCESS NOTIFICATION
+      await addNotification({
+        title: '🏢 Supplier Baru Ditambahkan!',
+        message: `${supplier.nama} berhasil ditambahkan ke daftar supplier`,
+        type: 'success',
+        icon: 'building',
+        priority: 2,
+        related_type: 'system',
+        action_url: '/supplier',
+        is_read: false,
+        is_archived: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[SupplierContext] Error in addSupplier:', error);
+      toast.error(`Gagal menambahkan supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menambahkan supplier ${supplier.nama}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
+      return false;
+    }
   };
 
   const updateSupplier = async (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk memperbarui supplier'); return false; }
+    if (!user) { 
+      toast.error('Anda harus login untuk memperbarui supplier'); 
+      return false; 
+    }
 
-    const supplierToUpdate: { [key: string]: any } = {};
-    if (supplier.nama !== undefined) supplierToUpdate.nama = supplier.nama;
-    if (supplier.kontak !== undefined) supplierToUpdate.kontak = supplier.kontak;
-    if (supplier.email !== undefined) supplierToUpdate.email = supplier.email;
-    if (supplier.telepon !== undefined) supplierToUpdate.telepon = supplier.telepon;
-    if (supplier.alamat !== undefined) supplierToUpdate.alamat = supplier.alamat;
-    if (supplier.catatan !== undefined) supplierToUpdate.catatan = supplier.catatan;
+    try {
+      const existingSupplier = suppliers.find(s => s.id === id);
 
-    const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
-    if (error) { toast.error(`Gagal memperbarui supplier: ${error.message}`); return false; }
-    
-    toast.success(`Supplier berhasil diperbarui!`);
-    return true;
+      const supplierToUpdate: { [key: string]: any } = {};
+      if (supplier.nama !== undefined) supplierToUpdate.nama = supplier.nama;
+      if (supplier.kontak !== undefined) supplierToUpdate.kontak = supplier.kontak;
+      if (supplier.email !== undefined) supplierToUpdate.email = supplier.email;
+      if (supplier.telepon !== undefined) supplierToUpdate.telepon = supplier.telepon;
+      if (supplier.alamat !== undefined) supplierToUpdate.alamat = supplier.alamat;
+      if (supplier.catatan !== undefined) supplierToUpdate.catatan = supplier.catatan;
+
+      console.log('[SupplierContext] Updating supplier:', id, supplierToUpdate);
+      const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
+      
+      if (error) {
+        console.error('[SupplierContext] Error updating supplier:', error);
+        throw new Error(error.message);
+      }
+      
+      // Success toast
+      toast.success(`Supplier berhasil diperbarui!`);
+
+      // 🔔 CREATE UPDATE NOTIFICATION
+      await addNotification({
+        title: '📝 Supplier Diperbarui',
+        message: `${supplier.nama || existingSupplier?.nama} telah diperbarui`,
+        type: 'info',
+        icon: 'edit',
+        priority: 1,
+        related_type: 'system',
+        action_url: '/supplier',
+        is_read: false,
+        is_archived: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[SupplierContext] Error in updateSupplier:', error);
+      toast.error(`Gagal memperbarui supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal memperbarui supplier: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
+      return false;
+    }
   };
 
   const deleteSupplier = async (id: string): Promise<boolean> => {
-    if (!user) { toast.error('Anda harus login untuk menghapus supplier'); return false; }
-    
-    const supplierToDelete = suppliers.find(s => s.id === id);
-
-    const { error } = await supabase.from('suppliers').delete().eq('id', id);
-    if (error) { toast.error(`Gagal menghapus supplier: ${error.message}`); return false; }
-    
-    if (supplierToDelete) {
-        addActivity({ title: 'Supplier Dihapus', description: `${supplierToDelete.nama} telah dihapus`, type: 'supplier', value: null });
+    if (!user) { 
+      toast.error('Anda harus login untuk menghapus supplier'); 
+      return false; 
     }
-    toast.success(`Supplier berhasil dihapus!`);
-    return true;
+    
+    try {
+      const supplierToDelete = suppliers.find(s => s.id === id);
+      if (!supplierToDelete) {
+        toast.error('Supplier tidak ditemukan');
+        return false;
+      }
+
+      console.log('[SupplierContext] Deleting supplier:', id);
+      const { error } = await supabase.from('suppliers').delete().eq('id', id);
+      
+      if (error) {
+        console.error('[SupplierContext] Error deleting supplier:', error);
+        throw new Error(error.message);
+      }
+      
+      // Activity log
+      addActivity({ 
+        title: 'Supplier Dihapus', 
+        description: `${supplierToDelete.nama} telah dihapus`, 
+        type: 'supplier', 
+        value: null 
+      });
+
+      // Success toast
+      toast.success(`Supplier berhasil dihapus!`);
+
+      // 🔔 CREATE DELETE NOTIFICATION
+      await addNotification({
+        title: '🗑️ Supplier Dihapus',
+        message: `${supplierToDelete.nama} telah dihapus dari daftar supplier`,
+        type: 'warning',
+        icon: 'trash-2',
+        priority: 2,
+        related_type: 'system',
+        action_url: '/supplier',
+        is_read: false,
+        is_archived: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[SupplierContext] Error in deleteSupplier:', error);
+      toast.error(`Gagal menghapus supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menghapus supplier: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
+      return false;
+    }
   };
 
-  const value: SupplierContextType = { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier };
+  const value: SupplierContextType = { 
+    suppliers, 
+    isLoading, 
+    addSupplier, 
+    updateSupplier, 
+    deleteSupplier 
+  };
 
   return <SupplierContext.Provider value={value}>{children}</SupplierContext.Provider>;
 };

@@ -462,65 +462,75 @@ const OrdersPage = () => {
               </div>
 
               {/* Date Range */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal border-gray-300",
-                      !dateRange && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to && toDate(dateRange.from).toDateString() !== toDate(dateRange.to).toDateString() ?
-                        `${format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to), "d MMMM yyyy", { locale: id })}` :
-                        format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })
-                    ) : (
-                      <span>Pilih tanggal</span>
-                    )}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[95vw] max-w-[400px] p-0 bg-white rounded-xl">
-                  <span className="sr-only">
-                    <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
-                  </span>
-                  <div className="flex flex-col">
-                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
-                      <DialogClose asChild>
-                        <Button variant="ghost" size="sm">
-                          <X className="h-5 w-5 text-gray-600" />
-                        </Button>
-                      </DialogClose>
-                    </div>
-                    <DatePresets setDateRange={setDateRange} />
-                    <div className="border-t border-gray-200">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from ? toDate(dateRange.from) : undefined}
-                        selected={dateRange ? { from: toDate(dateRange.from), to: dateRange.to ? toDate(dateRange.to) : undefined } : undefined}
-                        onSelect={(newRange) => {
-                          setDateRange(newRange ? {
-                            from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
-                            to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
-                          } : undefined);
-                          setCurrentPage(1);
-                        }}
-                        numberOfMonths={isMobile ? 1 : 2}
-                        locale={id}
-                        className="p-3"
-                        classNames={{
-                          day: "w-10 h-10 text-sm",
-                          day_selected: "bg-orange-600 text-white",
-                          day_today: "border border-orange-300",
-                        }}
-                      />
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+<Dialog>
+  <DialogTrigger asChild>
+    <Button
+      variant="outline"
+      className={cn(
+        "w-full justify-start text-left font-normal border-gray-300",
+        !dateRange && "text-muted-foreground",
+        "min-h-[48px] px-4 text-base sm:text-sm" // Touch-friendly height and padding
+      )}
+    >
+      <CalendarIcon className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
+      {dateRange?.from ? (
+        dateRange.to && toDate(dateRange.from).toDateString() !== toDate(dateRange.to).toDateString() ?
+          `${format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to), "d MMMM yyyy", { locale: id })}` :
+          format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })
+      ) : (
+        <span>Pilih tanggal</span>
+      )}
+    </Button>
+  </DialogTrigger>
+  <DialogContent className={cn(
+    "w-[95vw] max-w-[400px] p-0 bg-white rounded-xl",
+    "sm:max-w-[350px] md:max-w-[400px]", // Adjust max-width for different screens
+    "overflow-y-auto max-h-[80vh] sm:max-h-[70vh]" // Scrollable container for mobile
+  )}>
+    <span className="sr-only">
+      <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+    </span>
+    <div className="flex flex-col">
+      <div className="p-4 border-b border-gray-200 flex justify-between items-center min-h-[60px]">
+        <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
+        <DialogClose asChild>
+          <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Tutup">
+            <X className="h-6 w-6 text-gray-600" />
+          </Button>
+        </DialogClose>
+      </div>
+      <DatePresets setDateRange={setDateRange} />
+      <div className="border-t border-gray-200 p-3">
+        <Calendar
+          initialFocus
+          mode="range"
+          defaultMonth={dateRange?.from ? toDate(dateRange.from) : new Date('2025-07-23T20:02:00+07:00')}
+          selected={dateRange ? {
+            from: dateRange.from ? toDate(dateRange.from) : undefined,
+            to: dateRange.to ? toDate(dateRange.to) : undefined
+          } : undefined}
+          onSelect={(newRange) => {
+            setDateRange(newRange ? {
+              from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
+              to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
+            } : undefined);
+            setCurrentPage(1);
+          }}
+          numberOfMonths={isMobile ? 1 : window.innerWidth >= 768 ? 2 : 1} // Dynamic based on screen size
+          locale={id}
+          className="w-full"
+          classNames={{
+            day: "w-12 h-12 text-base sm:w-10 sm:h-10 sm:text-sm rounded-full hover:bg-gray-100 focus:bg-orange-100",
+            day_selected: "bg-orange-600 text-white font-medium",
+            day_today: "border-2 border-orange-300 bg-orange-50",
+            months: "flex flex-col sm:flex-row gap-4",
+          }}
+          disabled={(date) => date > new Date('2025-07-23T20:02:00+07:00') || date < new Date('2025-06-23T20:02:00+07:00')}
+        />
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
 
               {/* Status Filter */}
               <Select

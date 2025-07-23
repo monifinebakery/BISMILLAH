@@ -40,10 +40,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     marginKeuntunganPersen: 30,
     // 🧮 NEW: Per PCS fields
     jumlahPcsPerPorsi: 1,
-    // Calculated fields
+    // Calculated fields - 🔧 FIX: Initialize all calculated fields
     totalHpp: 0,
     hppPerPorsi: 0,
-    hargaJualPorsi: 0,
+    hargaJualPorsi: 0, // 🔧 FIX: Ensure this is initialized
     hppPerPcs: 0,
     hargaJualPerPcs: 0,
   });
@@ -60,9 +60,16 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     if (initialData) {
       setRecipeData({
         ...initialData,
+        // 🔧 FIX: Ensure all fields have fallback values
         jumlahPcsPerPorsi: initialData.jumlahPcsPerPorsi || 1,
         hppPerPcs: initialData.hppPerPcs || 0,
         hargaJualPerPcs: initialData.hargaJualPerPcs || 0,
+        hargaJualPorsi: initialData.hargaJualPorsi || 0, // 🔧 FIX: Ensure fallback
+        totalHpp: initialData.totalHpp || 0,
+        hppPerPorsi: initialData.hppPerPorsi || 0,
+        biayaTenagaKerja: initialData.biayaTenagaKerja || 0,
+        biayaOverhead: initialData.biayaOverhead || 0,
+        marginKeuntunganPersen: initialData.marginKeuntunganPersen || 30,
       });
     }
   }, [initialData]);

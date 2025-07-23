@@ -191,35 +191,41 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         checkInventoryAlerts();
       }, 1000);
 
-      const channel = supabase
-        .channel('bahan_baku_changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'bahan_baku',
-          filter: `user_id=eq.${user.id}`,
-        }, (payload) => {
-          const updatedItem = transformBahanBakuFromDB(payload.new);
-          setBahanBaku((prev) => {
-            if (payload.eventType === 'DELETE') {
-              return prev.filter((item) => item.id !== payload.old.id);
+      if (!supabase.getChannels().some(channel => channel.topic === 'bahan_baku_changes')) {
+        const channel = supabase
+          .channel('bahan_baku_changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'bahan_baku',
+            filter: `user_id=eq.${user.id}`,
+          }, (payload) => {
+            const updatedItem = transformBahanBakuFromDB(payload.new);
+            setBahanBaku((prev) => {
+              if (payload.eventType === 'DELETE') {
+                return prev.filter((item) => item.id !== payload.old.id);
+              }
+              if (payload.eventType === 'INSERT') {
+                return [...prev, updatedItem].sort((a, b) => a.nama.localeCompare(b.nama));
+              }
+              if (payload.eventType === 'UPDATE') {
+                return prev.map((item) =>
+                  item.id === updatedItem.id ? updatedItem : item
+                ).sort((a, b) => a.nama.localeCompare(b.nama));
+              }
+              return prev;
+            });
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('Subscribed to bahan_baku changes');
             }
-            if (payload.eventType === 'INSERT') {
-              return [...prev, updatedItem];
-            }
-            if (payload.eventType === 'UPDATE') {
-              return prev.map((item) =>
-                item.id === updatedItem.id ? updatedItem : item
-              );
-            }
-            return prev;
           });
-        })
-        .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      }
     } catch (err: any) {
       console.error('Error fetching bahan baku:', err);
       toast.error(`Gagal memuat bahan baku: ${err.message}`);
@@ -269,7 +275,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (error) throw error;
 
       const newItem = transformBahanBakuFromDB(data);
-      setBahanBaku((prev) => [...prev, newItem]);
+      setBahanBaku((prev) => [...prev, newItem].sort((a, b) => a.nama.localeCompare(b.nama)));
 
       addActivity({
         title: 'Bahan Baku Ditambahkan',
@@ -333,7 +339,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (error) throw error;
 
       const updatedItem = transformBahanBakuFromDB(data);
-      setBahanBaku((prev) => prev.map((item) => (item.id === id ? updatedItem : item)));
+      setBahanBaku((prev) => prev.map((item) => (item.id === id ? updatedItem : item)).sort((a, b) => a.nama.localeCompare(b.nama)));
 
       const itemName = updatedBahan.nama ?? itemBeforeUpdate.nama;
       const oldStock = itemBeforeUpdate.stok;
@@ -442,7 +448,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       const { error } = await supabase.from('bahan_baku').delete().eq('id', id);
       if (error) throw error;
 
-      setBahanBaku((prev) => prev.filter((item) => item.id !== id));
+      setBahanBaku((prev) => prev.filter((item) => item.id !== id).sort((a, b) => a.nama.localeCompare(b.nama)));
 
       toast.success(`${itemToDelete?.nama || 'Item'} berhasil dihapus!`);
 
@@ -480,7 +486,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       const { error } = await supabase.from('bahan_baku').delete().in('id', ids).eq('user_id', user.id);
       if (error) throw error;
 
-      setBahanBaku((prev) => prev.filter((item) => !ids.includes(item.id)));
+      setBahanBaku((prev) => prev.filter((item) => !ids.includes(item.id)).sort((a, b) => a.nama.localeCompare(b.nama)));
       clearSelection();
       toast.success(`${ids.length} bahan baku berhasil dihapus!`);
 

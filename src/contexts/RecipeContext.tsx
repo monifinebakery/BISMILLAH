@@ -374,7 +374,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         
         recipe.totalHpp = calculation.totalHPP;
         recipe.hppPerPorsi = calculation.hppPerPorsi;
-        recipe.hargaJualPorsi = calculation.hargaJualPerPorsi;
+        recipe.hargaJualPorsi = calculation.hargaJualPorsi;
         recipe.hppPerPcs = calculation.hppPerPcs;
         recipe.hargaJualPerPcs = calculation.hargaJualPerPcs;
       }

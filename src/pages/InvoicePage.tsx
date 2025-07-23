@@ -558,5 +558,6 @@ const InvoicePage: React.FC = () => {
     </Card>
   </div>
 </div>
-
+);
+};
 export default InvoicePage;

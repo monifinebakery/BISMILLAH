@@ -342,17 +342,6 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                 rows={3}
               />
             </div>
-
-            <div>
-              <Label htmlFor="fotoUrl">URL Foto (Opsional)</Label>
-              <Input
-                id="fotoUrl"
-                value={formData.fotoUrl || ''}
-                onChange={(e) => handleInputChange('fotoUrl', e.target.value)}
-                placeholder="https://example.com/photo.jpg"
-                className="mt-1"
-              />
-            </div>
           </CardContent>
         </Card>
 

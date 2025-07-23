@@ -190,7 +190,6 @@ const InvoicePage: React.FC = () => {
     setIssueDate(new Date());
     setDueDate(new Date(new Date().setDate(new Date().getDate() + 14)));
     setStatus('BELUM LUNAS');
-    toast.success('Invoice berhasil diduplikasi');
   };
 
   if (loading) {
@@ -234,14 +233,6 @@ const InvoicePage: React.FC = () => {
         <Button 
           variant="secondary" 
           onClick={duplicateInvoice}
-          className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto"
-        >
-          <Copy className="mr-2 h-4 w-4" />
-          Duplikasi
-        </Button>
-        <Button 
-          variant="secondary" 
-          onClick={resetForm}
           className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto"
         >
           <Settings className="mr-2 h-4 w-4" />

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText, ShoppingBag, Boxes } from "lucide-react";
@@ -16,6 +16,7 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id } from 'date-fns/locale';
 import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { VisuallyHidden } from '@/components/ui/visually-hidden'; // Assuming this is available in your UI library
 import NotificationDebugEnhanced from '@/components/NotificationDebugEnhanced';
 
 // Helper function untuk format waktu
@@ -158,6 +159,9 @@ const Dashboard = () => {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[95vw] max-w-[400px] p-0 bg-white rounded-xl">
+                            <VisuallyHidden>
+                                <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+                            </VisuallyHidden>
                             <div className="flex flex-col">
                                 <div className="p-4 border-b border-gray-200">
                                     <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>

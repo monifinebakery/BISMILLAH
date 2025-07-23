@@ -461,7 +461,7 @@ const OrdersPage = () => {
                 />
               </div>
 
-              {/* Date Range */}
+             {/* Date Range */}
 <Dialog>
   <DialogTrigger asChild>
     <Button
@@ -469,54 +469,60 @@ const OrdersPage = () => {
       className={cn(
         "w-full justify-start text-left font-normal border-gray-300",
         !dateRange && "text-muted-foreground",
-        "min-h-[48px] px-4 text-base sm:text-sm" // Touch-friendly height and padding
+        "min-h-[48px] px-4 text-base sm:text-sm rounded-lg transition-all duration-200 hover:bg-gray-50",
+        "focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
       )}
     >
-      <CalendarIcon className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
+      <CalendarIcon className="mr-2 h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
       {dateRange?.from ? (
-        dateRange.to && toDate(dateRange.from).toDateString() !== toDate(dateRange.to).toDateString() ?
-          `${format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to), "d MMMM yyyy", { locale: id })}` :
-          format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })
+        dateRange.to && toDate(dateRange.from)?.toDateString() !== toDate(dateRange.to)?.toDateString() ?
+          `${format(toDate(dateRange.from) || new Date(), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to) || new Date(), "d MMMM yyyy", { locale: id })}` :
+          format(toDate(dateRange.from) || new Date(), "d MMMM yyyy", { locale: id })
       ) : (
         <span>Pilih tanggal</span>
       )}
     </Button>
   </DialogTrigger>
   <DialogContent className={cn(
-    "w-[95vw] max-w-[400px] p-0 bg-white rounded-xl",
-    "sm:max-w-[350px] md:max-w-[400px]", // Adjust max-width for different screens
-    "overflow-y-auto max-h-[80vh] sm:max-h-[70vh]" // Scrollable container for mobile
+    "w-[95vw] max-w-[400px] p-0 bg-white rounded-xl shadow-lg",
+    "sm:max-w-[350px] md:max-w-[400px]",
+    "overflow-y-auto max-h-[85vh] sm:max-h-[75vh]",
+    "focus:outline-none"
   )}>
     <span className="sr-only">
       <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
     </span>
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full">
       <div className="p-4 border-b border-gray-200 flex justify-between items-center min-h-[60px]">
         <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
         <DialogClose asChild>
-          <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Tutup">
+          <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-gray-100" aria-label="Tutup">
             <X className="h-6 w-6 text-gray-600" />
           </Button>
         </DialogClose>
       </div>
       <DatePresets setDateRange={setDateRange} />
-      <div className="border-t border-gray-200 p-3">
+      <div className="border-t border-gray-200 p-3 flex-1 overflow-y-auto">
         <Calendar
           initialFocus
           mode="range"
-          defaultMonth={dateRange?.from ? toDate(dateRange.from) : new Date('2025-07-23T20:02:00+07:00')}
+          defaultMonth={dateRange?.from ? toDate(dateRange.from) : new Date('2025-07-23T20:08:00+07:00')}
           selected={dateRange ? {
             from: dateRange.from ? toDate(dateRange.from) : undefined,
             to: dateRange.to ? toDate(dateRange.to) : undefined
           } : undefined}
           onSelect={(newRange) => {
-            setDateRange(newRange ? {
-              from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
-              to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
-            } : undefined);
-            setCurrentPage(1);
+            try {
+              setDateRange(newRange ? {
+                from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
+                to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
+              } : undefined);
+              setCurrentPage(1);
+            } catch (error) {
+              console.error('Error updating date range:', error);
+            }
           }}
-          numberOfMonths={isMobile ? 1 : window.innerWidth >= 768 ? 2 : 1} // Dynamic based on screen size
+          numberOfMonths={isMobile ? 1 : window.innerWidth >= 768 ? 2 : 1}
           locale={id}
           className="w-full"
           classNames={{
@@ -524,8 +530,10 @@ const OrdersPage = () => {
             day_selected: "bg-orange-600 text-white font-medium",
             day_today: "border-2 border-orange-300 bg-orange-50",
             months: "flex flex-col sm:flex-row gap-4",
+            caption: "text-lg font-semibold text-gray-800",
           }}
-          disabled={(date) => date > new Date('2025-07-23T20:02:00+07:00') || date < new Date('2025-06-23T20:02:00+07:00')}
+          disabled={(date) => date > new Date('2025-07-23T20:08:00+07:00') || date < new Date('2025-06-23T20:08:00+07:00')}
+          onError={(error) => console.warn('Calendar error:', error)}
         />
       </div>
     </div>

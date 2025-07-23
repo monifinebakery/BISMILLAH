@@ -138,7 +138,7 @@ serve(async (req)=>{
             margin_keuntungan: parseFloat(item.marginKeuntungan) || 0,
             total_hpp: parseFloat(item.totalHPP) || 0,
             hpp_per_porsi: parseFloat(item.hppPerPorsi) || 0,
-            harga_jual_per_porsi: parseFloat(item.hargaJualPerPorsi) || 0,
+            harga_jual_porsi: parseFloat(item.hargaJualPerPorsi) || 0,
             jumlah_porsi: parseInt(item.jumlahPorsi) || 1
           }));
         const { error: hppResultsError } = await supabase.from('hpp_results').upsert(hppResultsData, {

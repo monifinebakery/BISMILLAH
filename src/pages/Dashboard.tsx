@@ -16,7 +16,6 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id } from 'date-fns/locale';
 import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { VisuallyHidden } from '@/components/ui/visually-hidden'; // Assuming this is available in your UI library
 import NotificationDebugEnhanced from '@/components/NotificationDebugEnhanced';
 
 // Helper function untuk format waktu
@@ -159,9 +158,9 @@ const Dashboard = () => {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[95vw] max-w-[400px] p-0 bg-white rounded-xl">
-                            <VisuallyHidden>
+                            <span className="sr-only">
                                 <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
-                            </VisuallyHidden>
+                            </span>
                             <div className="flex flex-col">
                                 <div className="p-4 border-b border-gray-200">
                                     <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>

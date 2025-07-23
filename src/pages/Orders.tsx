@@ -277,35 +277,37 @@ const OrdersPage = () => {
     }
   }, [totalPages, currentPage]);
 
-  // Date Presets Component
-  const DatePresets = ({ setDateRange }) => {
-    const today = new Date('2025-07-23T19:43:00+07:00');
+  const DatePresets = ({ setDateRange, onClose }) => {
+    const today = new Date(); // Selalu gunakan tanggal saat ini
     const presets = [
-      { label: "Hari Ini", range: { from: startOfDay(today).toISOString(), to: endOfDay(today).toISOString() } },
-      { label: "Kemarin", range: { from: startOfDay(subDays(today, 1)).toISOString(), to: endOfDay(subDays(today, 1)).toISOString() } },
-      { label: "7 Hari Terakhir", range: { from: startOfDay(subDays(today, 6)).toISOString(), to: endOfDay(today).toISOString() } },
-      { label: "30 Hari Terakhir", range: { from: startOfDay(subDays(today, 29)).toISOString(), to: endOfDay(today).toISOString() } },
-      { label: "Bulan Ini", range: { from: startOfMonth(today).toISOString(), to: endOfMonth(today).toISOString() } },
-      { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)).toISOString(), to: endOfMonth(subMonths(today, 1)).toISOString() } },
+      { label: "Hari Ini", range: { from: startOfDay(today), to: endOfDay(today) } },
+      { label: "Kemarin", range: { from: startOfDay(subDays(today, 1)), to: endOfDay(subDays(today, 1)) } },
+      { label: "7 Hari Terakhir", range: { from: startOfDay(subDays(today, 6)), to: endOfDay(today) } },
+      { label: "30 Hari Terakhir", range: { from: startOfDay(subDays(today, 29)), to: endOfDay(today) } },
+      { label: "Bulan Ini", range: { from: startOfMonth(today), to: endOfMonth(today) } },
+      { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) } },
     ];
     return (
-      <div className="flex flex-col space-y-2 p-3">
-        {presets.map(({ label, range }) => (
-          <Button
-            key={label}
-            variant="ghost"
-            className="w-full justify-start text-sm hover:bg-gray-100 rounded-lg py-2 text-gray-800"
-            onClick={() => {
-              setDateRange(range);
-              setCurrentPage(1);
-            }}
-          >
-            {label}
-          </Button>
-        ))}
+      // Di mobile, ini akan menjadi container horizontal. Di desktop, menjadi vertikal.
+      <div className="p-3 md:border-r">
+        <div className="flex md:flex-col items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+            {presets.map(({ label, range }) => (
+              <Button
+                key={label}
+                variant="ghost"
+                className="w-full justify-start text-sm hover:bg-gray-100 rounded-lg py-2 text-gray-800 whitespace-nowrap px-4"
+                onClick={() => {
+                  setDateRange(range);
+                  onClose?.(); // Menutup popover/dialog setelah dipilih
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+        </div>
       </div>
     );
-  };
+};
 
   // If context is not available, show error
   if (!contextValue) {

@@ -109,7 +109,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           ...prev,
           totalHpp: calculation.totalHPP,
           hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: calculation.hargaJualPerPorsi,
+          hargaJualPorsi: calculation.hargaJualPorsi,
           hppPerPcs: calculation.hppPerPcs,
           hargaJualPerPcs: calculation.hargaJualPerPcs,
         }));
@@ -621,7 +621,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                         <div className="flex justify-between">
                           <span className="text-gray-600">Harga Jual:</span>
                           <span className="font-bold text-green-600">
-                            {formatCurrency(calculationResults.hargaJualPerPorsi)}
+                            {formatCurrency(calculationResults.hargaJualPorsi)}
                           </span>
                         </div>
                       </div>
@@ -653,7 +653,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     <div className="text-center">
                       <div className="text-xs text-gray-300 mb-1">Total Profit Potensi</div>
                       <div className="font-bold text-lg">
-                        {formatCurrency((calculationResults.hargaJualPerPorsi - calculationResults.hppPerPorsi) * formData.jumlahPorsi)}
+                        {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * formData.jumlahPorsi)}
                       </div>
                       <div className="text-xs text-gray-300 mt-1">
                         Margin {formData.marginKeuntunganPersen}%

@@ -109,9 +109,9 @@ const RecipesPage = () => {
   // --- Statistics ---
   const recipeStats = useMemo(() => {
     const totalRecipes = recipes.length;
-    const totalHPP = recipes.reduce((sum, recipe) => sum + recipe.totalHpp, 0);
-    const avgHppPerPorsi = totalRecipes > 0 ? recipes.reduce((sum, recipe) => sum + recipe.hppPerPorsi, 0) / totalRecipes : 0;
-    const avgProfit = totalRecipes > 0 ? recipes.reduce((sum, recipe) => sum + (recipe.hargaJualPorsi - recipe.hppPerPorsi), 0) / totalRecipes : 0;
+    const totalHPP = recipes.reduce((sum, recipe) => sum + (recipe.totalHpp || 0), 0);
+    const avgHppPerPorsi = totalRecipes > 0 ? recipes.reduce((sum, recipe) => sum + (recipe.hppPerPorsi || 0), 0) / totalRecipes : 0;
+    const avgProfit = totalRecipes > 0 ? recipes.reduce((sum, recipe) => sum + ((recipe.hargaJualPorsi || 0) - (recipe.hppPerPorsi || 0)), 0) / totalRecipes : 0;
     
     return {
       totalRecipes,
@@ -361,9 +361,9 @@ const RecipesPage = () => {
                 </TableHeader>
                 <TableBody>
                   {currentRecipes.length > 0 ? currentRecipes.map(recipe => {
-                    const profitPerPorsi = recipe.hargaJualPorsi - recipe.hppPerPorsi;
+                    const profitPerPorsi = (recipe.hargaJualPorsi || 0) - (recipe.hppPerPorsi || 0);
                     const profitPerPcs = (recipe.hargaJualPerPcs || 0) - (recipe.hppPerPcs || 0);
-                    const marginPercent = recipe.hargaJualPorsi > 0 ? (profitPerPorsi / recipe.hargaJualPorsi) * 100 : 0;
+                    const marginPercent = (recipe.hargaJualPorsi || 0) > 0 ? (profitPerPorsi / (recipe.hargaJualPorsi || 1)) * 100 : 0;
                     
                     return (
                       <TableRow key={recipe.id} className="hover:bg-gray-50/50 transition-colors">
@@ -385,20 +385,20 @@ const RecipesPage = () => {
                           )}
                         </TableCell>
                         <TableCell>{recipe.jumlahPorsi}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(recipe.hppPerPorsi)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(recipe.hppPerPorsi || 0)}</TableCell>
                         <TableCell className="text-right text-sm text-gray-600">
                           {recipe.hppPerPcs ? formatCurrency(recipe.hppPerPcs) : '-'}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-600">
-                          {formatCurrency(recipe.hargaJualPorsi)}
+                          {formatCurrency(recipe.hargaJualPorsi || 0)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-green-600">
                           {recipe.hargaJualPerPcs ? formatCurrency(recipe.hargaJualPerPcs) : '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="text-right">
-                            <div className="font-semibold text-green-600">{formatCurrency(profitPerPorsi)}</div>
-                            <div className="text-xs text-gray-500">{formatPercentage(marginPercent / 100)}</div>
+                            <div className="font-semibold text-green-600">{formatCurrency(profitPerPorsi || 0)}</div>
+                            <div className="text-xs text-gray-500">{formatPercentage((marginPercent || 0) / 100)}</div>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

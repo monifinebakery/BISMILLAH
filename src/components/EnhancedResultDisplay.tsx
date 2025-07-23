@@ -21,7 +21,7 @@ interface HPPCalculationResult {
   totalHPP: number;
   hppPerPorsi: number;
   hppPerPcs: number;
-  hargaJualPerPorsi: number;
+  hargaJualPorsi: number;
   hargaJualPerPcs: number;
   marginKeuntungan: number;
   profitabilitas: number;
@@ -33,7 +33,7 @@ interface EnhancedResultDisplayProps {
 }
 
 const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProps) => {
-  const profitPerPorsi = hppData.hargaJualPerPorsi - hppData.hppPerPorsi;
+  const profitPerPorsi = hppData.hargaJualPorsi - hppData.hppPerPorsi;
   const profitPerPcs = hppData.hargaJualPerPcs - hppData.hppPerPcs;
   const totalPcsProduced = hppData.jumlahPorsi * hppData.jumlahPcsPerPorsi;
   const totalProfit = profitPerPorsi * hppData.jumlahPorsi;
@@ -160,7 +160,7 @@ const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProp
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Harga Jual:</span>
                   <span className="font-bold text-green-600 text-xl">
-                    {formatCurrency(hppData.hargaJualPerPorsi)}
+                    {formatCurrency(hppData.hargaJualPorsi)}
                   </span>
                 </div>
                 {hppData.marginKeuntunganPersen > 0 && (
@@ -295,7 +295,7 @@ const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProp
             <div className="space-y-2">
               <h5 className="font-medium text-gray-700 mb-2">💵 Harga Jual & Profit:</h5>
               <ul className="space-y-1 text-gray-600">
-                <li>• Harga jual per porsi: <span className="font-medium text-green-600">{formatCurrency(hppData.hargaJualPerPorsi)}</span></li>
+                <li>• Harga jual per porsi: <span className="font-medium text-green-600">{formatCurrency(hppData.hargaJualPorsi)}</span></li>
                 <li>• Harga jual per pcs: <span className="font-medium text-green-600">{formatCurrency(hppData.hargaJualPerPcs)}</span></li>
                 <li>• Total profit: <span className="font-medium text-green-600">{formatCurrency(totalProfit)}</span></li>
                 <li>• Margin keuntungan: <span className="font-medium">{hppData.marginKeuntunganPersen}%</span></li>

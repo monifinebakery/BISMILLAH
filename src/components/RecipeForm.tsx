@@ -1,6 +1,3 @@
-// src/components/RecipeForm.tsx
-// 🧮 UPDATED WITH HPP PER PCS CALCULATION SUPPORT
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,12 +35,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     biayaTenagaKerja: 0,
     biayaOverhead: 0,
     marginKeuntunganPersen: 30,
-    // 🧮 NEW: Per PCS fields
     jumlahPcsPerPorsi: 1,
-    // Calculated fields - 🔧 FIX: Initialize all calculated fields
     totalHpp: 0,
     hppPerPorsi: 0,
-    hargaJualPorsi: 0, // 🔧 FIX: Ensure this is initialized
+    hargaJualPorsi: 0,
     hppPerPcs: 0,
     hargaJualPerPcs: 0,
   });
@@ -60,11 +55,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     if (initialData) {
       setRecipeData({
         ...initialData,
-        // 🔧 FIX: Ensure all fields have fallback values
         jumlahPcsPerPorsi: initialData.jumlahPcsPerPorsi || 1,
         hppPerPcs: initialData.hppPerPcs || 0,
         hargaJualPerPcs: initialData.hargaJualPerPcs || 0,
-        hargaJualPorsi: initialData.hargaJualPorsi || 0, // 🔧 FIX: Ensure fallback
+        hargaJualPorsi: initialData.hargaJualPorsi || 0,
         totalHpp: initialData.totalHpp || 0,
         hppPerPorsi: initialData.hppPerPorsi || 0,
         biayaTenagaKerja: initialData.biayaTenagaKerja || 0,
@@ -74,7 +68,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     }
   }, [initialData]);
 
-  // 🧮 Enhanced HPP Calculation with Per PCS Support
+  // Enhanced HPP Calculation with Per PCS Support
   useEffect(() => {
     const calculateHPP = () => {
       const totalBahanBaku = recipeData.bahanResep?.reduce((sum, item) => sum + item.totalHarga, 0) || 0;
@@ -90,7 +84,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       // Calculate HPP per porsi
       const hppPerPorsi = jumlahPorsi > 0 ? totalHpp / jumlahPorsi : 0;
       
-      // 🧮 Calculate HPP per PCS
+      // Calculate HPP per PCS
       const hppPerPcs = jumlahPcsPerPorsi > 0 ? hppPerPorsi / jumlahPcsPerPorsi : 0;
       
       // Calculate margin amount
@@ -100,12 +94,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       const hargaJualPorsi = hppPerPorsi + (marginAmount / jumlahPorsi);
       const hargaJualPerPcs = hppPerPcs + (marginAmount / jumlahPorsi / jumlahPcsPerPorsi);
 
-      // 🔧 FIX: Update state with proper field names
       setRecipeData(prev => ({
         ...prev,
         totalHpp,
         hppPerPorsi,
-        hargaJualPorsi, // 🔧 FIX: Ensure this matches the field name
+        hargaJualPorsi,
         hppPerPcs,
         hargaJualPerPcs,
       }));
@@ -117,7 +110,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
     recipeData.biayaTenagaKerja,
     recipeData.biayaOverhead,
     recipeData.jumlahPorsi,
-    recipeData.jumlahPcsPerPorsi, // 🧮 NEW dependency
+    recipeData.jumlahPcsPerPorsi,
     recipeData.marginKeuntunganPersen
   ]);
 
@@ -137,7 +130,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       return;
     }
 
-    // Check if ingredient already exists
     const existingIngredient = recipeData.bahanResep?.find(item => item.id === selectedBahan.id);
     if (existingIngredient) {
       toast.error("Bahan sudah ditambahkan. Edit jumlahnya jika diperlukan.");
@@ -146,7 +138,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
 
     const ingredientToAdd: RecipeIngredient = {
       id: selectedBahan.id,
-      nama: selectedBahan.nama, // Updated field name
+      nama: selectedBahan.nama,
       jumlah: newIngredient.jumlah,
       satuan: selectedBahan.satuan,
       hargaSatuan: selectedBahan.hargaSatuan,
@@ -220,7 +212,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
   const handleSave = () => {
     if (!validateRecipe()) return;
     
-    // 🔧 DEBUG: Log recipeData to check field names
     console.log('[RecipeForm] Saving recipe with data:', recipeData);
     
     const recipeToSave: NewRecipe = {
@@ -236,7 +227,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi || 1,
       totalHpp: recipeData.totalHpp || 0,
       hppPerPorsi: recipeData.hppPerPorsi || 0,
-      hargaJualPorsi: recipeData.hargaJualPorsi || 0, // 🔧 FIX: Use recipeData field
+      hargaJualPorsi: recipeData.hargaJualPorsi || 0,
       hppPerPcs: recipeData.hppPerPcs || 0,
       hargaJualPerPcs: recipeData.hargaJualPerPcs || 0,
     };
@@ -276,12 +267,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
             
             <div>
               <Label htmlFor="kategoriResep">Kategori Resep</Label>
-              <Select value={recipeData.kategoriResep || ''} onValueChange={val => handleInputChange('kategoriResep', val)}>
+              <Select value={recipeData.kategoriResep || 'none'} onValueChange={val => handleInputChange('kategoriResep', val === 'none' ? null : val)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Pilih Kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tidak Ada Kategori</SelectItem>
+                  <SelectItem value="none">Tidak Ada Kategori</SelectItem>
                   {(settings?.recipeCategories || []).map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
@@ -301,7 +292,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
               />
             </div>
 
-            {/* 🧮 NEW: Jumlah PCS per Porsi */}
+            {/* Jumlah PCS per Porsi */}
             <div>
               <Label htmlFor="jumlahPcsPerPorsi">
                 Jumlah Pcs per Porsi *
@@ -594,7 +585,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
               </div>
             </div>
 
-            {/* 🧮 Per PCS */}
+            {/* Per PCS */}
             <div className="bg-white p-4 rounded-lg space-y-3">
               <div className="flex items-center gap-2 text-orange-700 font-semibold">
                 <Package className="h-5 w-5" />

@@ -176,7 +176,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       hppPerPorsi,
       hppPerPcs,
       marginKeuntungan,
-      hargaJualPerPorsi,
+      hargaJualPorsi,
       hargaJualPerPcs,
       profitabilitas
     };

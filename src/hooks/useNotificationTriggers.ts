@@ -1,6 +1,8 @@
 // hooks/useNotificationTriggers.js
 import { useEffect } from 'react';
-import { useNotification, createNotificationHelper } from '@/contexts/NotificationContext';
+// 🔧 FIXED: Separate imports
+import { useNotification } from '@/contexts/NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { useOrder } from '@/contexts/OrderContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { usePurchase } from '@/contexts/PurchaseContext';
@@ -48,7 +50,7 @@ export const useNotificationTriggers = () => {
     },
 
     triggerOrderStatusChanged: (orderId: string, orderNumber: string, newStatus: string) => {
-      const notificationData = createNotificationHelper.orderStatusChanged(orderId, orderNumber, newStatus);
+      const notificationData = createNotificationHelper.orderStatusChanged(orderId, orderNumber, '', newStatus);
       return addNotification(notificationData);
     },
 
@@ -88,7 +90,9 @@ export const useNotificationTemplates = () => {
       type: 'success' as const,
       icon: 'shopping-cart',
       priority: 2 as const,
-      related_type: 'order' as const
+      related_type: 'order' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     orderConfirmed: (orderNumber: string) => ({
@@ -97,7 +101,9 @@ export const useNotificationTemplates = () => {
       type: 'success' as const,
       icon: 'check-circle',
       priority: 2 as const,
-      related_type: 'order' as const
+      related_type: 'order' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     orderShipped: (orderNumber: string, customerName: string) => ({
@@ -106,7 +112,9 @@ export const useNotificationTemplates = () => {
       type: 'info' as const,
       icon: 'package',
       priority: 2 as const,
-      related_type: 'order' as const
+      related_type: 'order' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     orderDelivered: (orderNumber: string) => ({
@@ -115,7 +123,9 @@ export const useNotificationTemplates = () => {
       type: 'success' as const,
       icon: 'check-circle',
       priority: 1 as const,
-      related_type: 'order' as const
+      related_type: 'order' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     // Inventory templates
@@ -126,7 +136,9 @@ export const useNotificationTemplates = () => {
       icon: 'alert-triangle',
       priority: 3 as const,
       related_type: 'inventory' as const,
-      action_url: '/inventory'
+      action_url: '/gudang',
+      is_read: false,
+      is_archived: false
     }),
 
     stockOut: (itemName: string) => ({
@@ -136,7 +148,9 @@ export const useNotificationTemplates = () => {
       icon: 'alert-circle',
       priority: 4 as const,
       related_type: 'inventory' as const,
-      action_url: '/inventory'
+      action_url: '/gudang',
+      is_read: false,
+      is_archived: false
     }),
 
     expiringStock: (itemName: string, daysLeft: number) => ({
@@ -145,7 +159,9 @@ export const useNotificationTemplates = () => {
       type: 'warning' as const,
       icon: 'calendar',
       priority: 3 as const,
-      related_type: 'inventory' as const
+      related_type: 'inventory' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     // Purchase templates
@@ -156,7 +172,9 @@ export const useNotificationTemplates = () => {
       icon: 'package',
       priority: 2 as const,
       related_type: 'purchase' as const,
-      action_url: '/purchases'
+      action_url: '/pembelian',
+      is_read: false,
+      is_archived: false
     }),
 
     // System templates
@@ -166,7 +184,9 @@ export const useNotificationTemplates = () => {
       type: 'success' as const,
       icon: 'check-circle',
       priority: 1 as const,
-      related_type: 'system' as const
+      related_type: 'system' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     backupFailed: (reason: string) => ({
@@ -175,7 +195,9 @@ export const useNotificationTemplates = () => {
       type: 'error' as const,
       icon: 'alert-circle',
       priority: 3 as const,
-      related_type: 'system' as const
+      related_type: 'system' as const,
+      is_read: false,
+      is_archived: false
     }),
 
     maintenanceMode: (duration: string) => ({
@@ -185,7 +207,9 @@ export const useNotificationTemplates = () => {
       icon: 'alert-triangle',
       priority: 4 as const,
       related_type: 'system' as const,
-      expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString() // 8 hours
+      expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
+      is_read: false,
+      is_archived: false
     }),
 
     // Business templates
@@ -196,7 +220,9 @@ export const useNotificationTemplates = () => {
       icon: 'calendar',
       priority: 1 as const,
       related_type: 'system' as const,
-      action_url: '/dashboard'
+      action_url: '/',
+      is_read: false,
+      is_archived: false
     }),
 
     monthlyReport: (month: string) => ({
@@ -206,7 +232,9 @@ export const useNotificationTemplates = () => {
       icon: 'calendar',
       priority: 2 as const,
       related_type: 'system' as const,
-      action_url: '/reports'
+      action_url: '/laporan',
+      is_read: false,
+      is_archived: false
     })
   };
 

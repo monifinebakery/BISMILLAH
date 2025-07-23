@@ -1,5 +1,5 @@
 // src/contexts/RecipeContext.tsx
-// 🔔 UPDATED WITH NOTIFICATION SYSTEM & HPP PER PCS CALCULATION
+// 🔔 FIXED FUNCTION ORDER - NO REFERENCE ERRORS
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Recipe, NewRecipe } from '@/types/recipe';
@@ -71,6 +71,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     id: dbItem.id,
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
+    updatedAt: safeParseDate(dbItem.updated_at),
     namaResep: dbItem.nama_resep,
     jumlahPorsi: Number(dbItem.jumlah_porsi),
     kategoriResep: dbItem.kategori_resep,
@@ -254,131 +255,8 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return recipes.filter(recipe => recipe.kategoriResep === category);
   }, [recipes]);
 
-  // 🧮 NEW: Duplicate recipe
-  const duplicateRecipe = useCallback(async (id: string, newName: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menduplikasi resep.');
-      return false;
-    }
-
-    try {
-      const originalRecipe = recipes.find(r => r.id === id);
-      if (!originalRecipe) {
-        toast.error('Resep tidak ditemukan');
-        return false;
-      }
-
-      const duplicatedRecipe: NewRecipe = {
-        namaResep: newName,
-        jumlahPorsi: originalRecipe.jumlahPorsi,
-        kategoriResep: originalRecipe.kategoriResep,
-        deskripsi: originalRecipe.deskripsi,
-        fotoUrl: originalRecipe.fotoUrl,
-        bahanResep: [...originalRecipe.bahanResep],
-        biayaTenagaKerja: originalRecipe.biayaTenagaKerja,
-        biayaOverhead: originalRecipe.biayaOverhead,
-        marginKeuntunganPersen: originalRecipe.marginKeuntunganPersen,
-        totalHpp: originalRecipe.totalHpp,
-        hppPerPorsi: originalRecipe.hppPerPorsi,
-        hargaJualPorsi: originalRecipe.hargaJualPorsi,
-        jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi || 1,
-        hppPerPcs: originalRecipe.hppPerPcs || 0,
-        hargaJualPerPcs: originalRecipe.hargaJualPerPcs || 0,
-      };
-
-      const success = await addRecipe(duplicatedRecipe);
-      if (success) {
-        await addNotification({
-          title: '📋 Resep Diduplikasi',
-          message: `Resep "${newName}" berhasil diduplikasi dari "${originalRecipe.namaResep}"`,
-          type: 'success',
-          icon: 'copy',
-          priority: 2,
-          related_type: 'system',
-          action_url: '/resep',
-          is_read: false,
-          is_archived: false
-        });
-      }
-
-      return success;
-    } catch (error) {
-      console.error('[RecipeContext] Error duplicating recipe:', error);
-      toast.error('Gagal menduplikasi resep');
-      return false;
-    }
-  }, [user, recipes, addRecipe, addNotification]);
-
-  useEffect(() => {
-    if (!user) {
-      setRecipes([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchRecipes = async () => {
-      setIsLoading(true);
-      
-      try {
-        console.log('[RecipeContext] Fetching recipes for user:', user.id);
-        const { data, error } = await supabase
-          .from('recipes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('nama_resep', { ascending: true });
-
-        if (error) {
-          console.error('[RecipeContext] Error fetching recipes:', error);
-          toast.error(`Gagal memuat resep: ${error.message}`);
-          
-          // 🔔 CREATE ERROR NOTIFICATION
-          await addNotification(createNotificationHelper.systemError(
-            `Gagal memuat data resep: ${error.message}`
-          ));
-        } else {
-          setRecipes(data.map(transformFromDB));
-          console.log(`[RecipeContext] Loaded ${data.length} recipes`);
-        }
-      } catch (error) {
-        console.error('[RecipeContext] Unexpected error:', error);
-        await addNotification(createNotificationHelper.systemError(
-          `Error tidak terduga saat memuat resep: ${error instanceof Error ? error.message : 'Unknown error'}`
-        ));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchRecipes();
-    
-    const channel = supabase.channel(`realtime-recipes-${user.id}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'recipes', 
-        filter: `user_id=eq.${user.id}` 
-      }, (payload) => {
-        console.log('[RecipeContext] Real-time event received:', payload);
-        
-        if (payload.eventType === 'INSERT') {
-          setRecipes(current => [transformFromDB(payload.new), ...current].sort((a,b) => a.namaResep.localeCompare(b.namaResep)));
-        }
-        if (payload.eventType === 'UPDATE') {
-          setRecipes(current => current.map(r => r.id === payload.new.id ? transformFromDB(payload.new) : r));
-        }
-        if (payload.eventType === 'DELETE') {
-          setRecipes(current => current.filter(r => r.id !== payload.old.id));
-        }
-      })
-      .subscribe();
-      
-    return () => {
-      console.log('[RecipeContext] Cleaning up real-time channel');
-      supabase.removeChannel(channel);
-    };
-  }, [user, addNotification, transformFromDB]); // 🔔 ADD transformFromDB dependency
-
-  const addRecipe = async (recipe: NewRecipe): Promise<boolean> => {
+  // 🔧 MOVED: All CRUD functions defined before duplicateRecipe
+  const addRecipe = useCallback(async (recipe: NewRecipe): Promise<boolean> => {
     if (!user) { 
       toast.error('Anda harus login untuk menambahkan resep.');
       return false;
@@ -435,7 +313,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // 🔔 CREATE SUCCESS NOTIFICATION
       await addNotification({
         title: '👨‍🍳 Resep Baru Dibuat!',
-        message: `Resep "${recipe.namaResep}" berhasil ditambahkan dengan HPP Rp ${recipe.hppPerPorsi?.toLocaleString()}/porsi (Rp ${recipe.hppPerPcs?.toLocaleString()}/pcs)`,
+        message: `Resep "${recipe.namaResep}" berhasil ditambahkan dengan HPP Rp ${recipe.hppPerPorsi?.toLocaleString()}/porsi${recipe.hppPerPcs ? ` (Rp ${recipe.hppPerPcs.toLocaleString()}/pcs)` : ''}`,
         type: 'success',
         icon: 'chef-hat',
         priority: 2,
@@ -457,9 +335,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       
       return false;
     }
-  };
+  }, [user, validateRecipeData, calculateHPP, transformToDB, addActivity, addNotification]);
 
-  const updateRecipe = async (id: string, recipe: Partial<NewRecipe>): Promise<boolean> => {
+  const updateRecipe = useCallback(async (id: string, recipe: Partial<NewRecipe>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk memperbarui resep.');
       return false;
@@ -547,9 +425,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       
       return false;
     }
-  };
+  }, [user, recipes, calculateHPP, transformToDB, addActivity, addNotification]);
 
-  const deleteRecipe = async (id: string): Promise<boolean> => {
+  const deleteRecipe = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menghapus resep.');
       return false;
@@ -606,7 +484,132 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       
       return false;
     }
-  };
+  }, [user, recipes, addActivity, addNotification]);
+
+  // 🧮 NEW: Duplicate recipe (NOW PROPERLY PLACED AFTER addRecipe)
+  const duplicateRecipe = useCallback(async (id: string, newName: string): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk menduplikasi resep.');
+      return false;
+    }
+
+    try {
+      const originalRecipe = recipes.find(r => r.id === id);
+      if (!originalRecipe) {
+        toast.error('Resep tidak ditemukan');
+        return false;
+      }
+
+      const duplicatedRecipe: NewRecipe = {
+        namaResep: newName,
+        jumlahPorsi: originalRecipe.jumlahPorsi,
+        kategoriResep: originalRecipe.kategoriResep,
+        deskripsi: originalRecipe.deskripsi,
+        fotoUrl: originalRecipe.fotoUrl,
+        bahanResep: [...originalRecipe.bahanResep],
+        biayaTenagaKerja: originalRecipe.biayaTenagaKerja,
+        biayaOverhead: originalRecipe.biayaOverhead,
+        marginKeuntunganPersen: originalRecipe.marginKeuntunganPersen,
+        totalHpp: originalRecipe.totalHpp,
+        hppPerPorsi: originalRecipe.hppPerPorsi,
+        hargaJualPorsi: originalRecipe.hargaJualPorsi,
+        jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi || 1,
+        hppPerPcs: originalRecipe.hppPerPcs || 0,
+        hargaJualPerPcs: originalRecipe.hargaJualPerPcs || 0,
+      };
+
+      const success = await addRecipe(duplicatedRecipe);
+      if (success) {
+        await addNotification({
+          title: '📋 Resep Diduplikasi',
+          message: `Resep "${newName}" berhasil diduplikasi dari "${originalRecipe.namaResep}"`,
+          type: 'success',
+          icon: 'copy',
+          priority: 2,
+          related_type: 'system',
+          action_url: '/resep',
+          is_read: false,
+          is_archived: false
+        });
+      }
+
+      return success;
+    } catch (error) {
+      console.error('[RecipeContext] Error duplicating recipe:', error);
+      toast.error('Gagal menduplikasi resep');
+      return false;
+    }
+  }, [user, recipes, addRecipe, addNotification]);
+
+  // Data fetching and real-time setup
+  useEffect(() => {
+    if (!user) {
+      setRecipes([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchRecipes = async () => {
+      setIsLoading(true);
+      
+      try {
+        console.log('[RecipeContext] Fetching recipes for user:', user.id);
+        const { data, error } = await supabase
+          .from('recipes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('nama_resep', { ascending: true });
+
+        if (error) {
+          console.error('[RecipeContext] Error fetching recipes:', error);
+          toast.error(`Gagal memuat resep: ${error.message}`);
+          
+          // 🔔 CREATE ERROR NOTIFICATION
+          await addNotification(createNotificationHelper.systemError(
+            `Gagal memuat data resep: ${error.message}`
+          ));
+        } else {
+          setRecipes(data.map(transformFromDB));
+          console.log(`[RecipeContext] Loaded ${data.length} recipes`);
+        }
+      } catch (error) {
+        console.error('[RecipeContext] Unexpected error:', error);
+        await addNotification(createNotificationHelper.systemError(
+          `Error tidak terduga saat memuat resep: ${error instanceof Error ? error.message : 'Unknown error'}`
+        ));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRecipes();
+    
+    const channel = supabase.channel(`realtime-recipes-${user.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'recipes', 
+        filter: `user_id=eq.${user.id}` 
+      }, (payload) => {
+        console.log('[RecipeContext] Real-time event received:', payload);
+        
+        if (payload.eventType === 'INSERT') {
+          setRecipes(current => [transformFromDB(payload.new), ...current].sort((a,b) => a.namaResep.localeCompare(b.namaResep)));
+        }
+        if (payload.eventType === 'UPDATE') {
+          setRecipes(current => current.map(r => r.id === payload.new.id ? transformFromDB(payload.new) : r));
+        }
+        if (payload.eventType === 'DELETE') {
+          setRecipes(current => current.filter(r => r.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      console.log('[RecipeContext] Cleaning up real-time channel');
+      supabase.removeChannel(channel);
+    };
+  }, [user, addNotification, transformFromDB]);
 
   const value: RecipeContextType = {
     recipes,

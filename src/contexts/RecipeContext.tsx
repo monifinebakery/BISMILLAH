@@ -21,7 +21,7 @@ interface HPPCalculationResult {
   hppPerPorsi: number;             // HPP per serving
   hppPerPcs: number;               // HPP per piece (if applicable)
   marginKeuntungan: number;        // Profit margin amount
-  hargaJualPerPorsi: number;       // Selling price per serving
+  hargaJualPorsi: number;       // Selling price per serving
   hargaJualPerPcs: number;         // Selling price per piece (if applicable)
   profitabilitas: number;          // Profitability percentage
 }
@@ -162,7 +162,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const marginKeuntungan = (totalHPP * marginKeuntunganPersen) / 100;
 
     // 6. Calculate selling prices
-    const hargaJualPerPorsi = hppPerPorsi + (marginKeuntungan / jumlahPorsi);
+    const hargaJualPorsi = hppPerPorsi + (marginKeuntungan / jumlahPorsi);
     const hargaJualPerPcs = hppPerPcs + (marginKeuntungan / jumlahPorsi / jumlahPcsPerPorsi);
 
     // 7. Calculate profitability

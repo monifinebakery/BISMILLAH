@@ -68,7 +68,7 @@ const TableHeaderRow: React.FC<{
       <TableHead className="font-semibold text-gray-700">Pelanggan</TableHead>
       <TableHead className="font-semibold text-gray-700">Tanggal</TableHead>
       <TableHead className="font-semibold text-gray-700 w-[180px]">Status</TableHead>
-      <TableHead className="font-semibold text-gray-700">Total</TableHead>
+      <TableHead className="text-right font-semibold text-gray-700">Total</TableHead>
       <TableHead className="text-center font-semibold text-gray-700 w-20">Aksi</TableHead>
     </TableRow>
   );
@@ -131,9 +131,9 @@ const OrderTableRow: React.FC<{
           <div className="font-medium text-gray-900">
             {order.namaPelanggan || '-'}
           </div>
-          {order.telefonPelanggan && (
+          {order.teleponPelanggan && (
             <div className="text-xs text-gray-500 mt-1">
-              {order.telefonPelanggan}
+              {order.teleponPelanggan}
             </div>
           )}
         </div>
@@ -284,7 +284,6 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
   className,
   compact = false
 }) => {
-  // 🎯 Handle individual selection toggle
   const handleToggleSelection = (orderId: string) => {
     const newSelection = selectedOrderIds.includes(orderId)
       ? selectedOrderIds.filter(id => id !== orderId)
@@ -293,12 +292,10 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
     onSelectionChange(newSelection);
   };
 
-  // 🎯 Handle select all toggle
   const handleToggleSelectAll = (checked: boolean) => {
     if (checked) {
       onSelectAllCurrentPage();
     } else {
-      // Remove current page orders from selection
       const currentPageIds = orders.map(order => order.id);
       const newSelection = selectedOrderIds.filter(id => !currentPageIds.includes(id));
       onSelectionChange(newSelection);
@@ -306,11 +303,9 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   return (
-    <div className={cn("bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden", className)}>
-      {/* Table Container */}
+    <div className={cn("overflow-hidden", className)}>
       <div className="overflow-x-auto">
         <Table className="min-w-full text-sm text-left text-gray-700">
-          {/* Table Header */}
           <TableHeader>
             <TableHeaderRow
               isSelectionMode={isSelectionMode}
@@ -320,8 +315,6 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
               compact={compact}
             />
           </TableHeader>
-
-          {/* Table Body */}
           <TableBody>
             {loading ? (
               <LoadingState />

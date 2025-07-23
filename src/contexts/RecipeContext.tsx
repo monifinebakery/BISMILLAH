@@ -78,12 +78,12 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     deskripsi: dbItem.deskripsi,
     fotoUrl: dbItem.foto_url,
     bahanResep: dbItem.bahan_resep || [],
-    biayaTenagaKerja: Number(dbItem.biaya_tenaga_kerja),
-    biayaOverhead: Number(dbItem.biaya_overhead),
-    marginKeuntunganPersen: Number(dbItem.margin_keuntungan_persen),
-    totalHpp: Number(dbItem.total_hpp),
-    hppPerPorsi: Number(dbItem.hpp_per_porsi),
-    hargaJualPorsi: Number(dbItem.harga_jual_porsi),
+    biayaTenagaKerja: Number(dbItem.biaya_tenaga_kerja) || 0,
+    biayaOverhead: Number(dbItem.biaya_overhead) || 0,
+    marginKeuntunganPersen: Number(dbItem.margin_keuntungan_persen) || 0,
+    totalHpp: Number(dbItem.total_hpp) || 0,
+    hppPerPorsi: Number(dbItem.hpp_per_porsi) || 0,
+    hargaJualPorsi: Number(dbItem.harga_jual_porsi) || 0, // 🔧 FIX: Ensure fallback value
     // 🧮 NEW: HPP per PCS fields
     jumlahPcsPerPorsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
     hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,

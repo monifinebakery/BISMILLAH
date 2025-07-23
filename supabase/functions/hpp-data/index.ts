@@ -115,7 +115,7 @@ serve(async (req)=>{
             total_hpp: parseFloat(item.totalHPP) || 0,
             hpp_per_porsi: parseFloat(item.hppPerPorsi) || 0,
             margin_keuntungan: parseFloat(item.marginKeuntungan) || 0,
-            harga_jual_per_porsi: parseFloat(item.hargaJualPerPorsi) || 0
+            harga_jual_porsi: parseFloat(item.hargaJualPorsi) || 0
           }));
         const { error: recipesError } = await supabase.from('hpp_recipes').upsert(recipesData, {
           onConflict: 'id'

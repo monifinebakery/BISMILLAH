@@ -97,14 +97,15 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       const marginAmount = (totalHpp * marginPersen) / 100;
       
       // Calculate selling prices
-      const hargaJualPerPorsi = hppPerPorsi + (marginAmount / jumlahPorsi);
+      const hargaJualPorsi = hppPerPorsi + (marginAmount / jumlahPorsi);
       const hargaJualPerPcs = hppPerPcs + (marginAmount / jumlahPorsi / jumlahPcsPerPorsi);
 
+      // 🔧 FIX: Update state with proper field names
       setRecipeData(prev => ({
         ...prev,
         totalHpp,
         hppPerPorsi,
-        hargaJualPorsi,
+        hargaJualPorsi, // 🔧 FIX: Ensure this matches the field name
         hppPerPcs,
         hargaJualPerPcs,
       }));
@@ -219,6 +220,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
   const handleSave = () => {
     if (!validateRecipe()) return;
     
+    // 🔧 DEBUG: Log recipeData to check field names
+    console.log('[RecipeForm] Saving recipe with data:', recipeData);
+    
     const recipeToSave: NewRecipe = {
       namaResep: recipeData.namaResep!.trim(),
       jumlahPorsi: recipeData.jumlahPorsi!,
@@ -232,11 +236,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ initialData, onSave, onCancel }
       jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi || 1,
       totalHpp: recipeData.totalHpp || 0,
       hppPerPorsi: recipeData.hppPerPorsi || 0,
-      hargaJualPorsi: recipeData.hargaJualPorsi || 0,
+      hargaJualPorsi: recipeData.hargaJualPorsi || 0, // 🔧 FIX: Use recipeData field
       hppPerPcs: recipeData.hppPerPcs || 0,
       hargaJualPerPcs: recipeData.hargaJualPerPcs || 0,
     };
 
+    console.log('[RecipeForm] Recipe to save:', recipeToSave);
     onSave(recipeToSave);
   };
 

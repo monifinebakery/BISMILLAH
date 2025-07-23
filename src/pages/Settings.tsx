@@ -21,13 +21,17 @@ import {
   Loader2
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
-import NotificationSettingsForm from '@/components/NotificationSettingsForm'; // <-- 1. IMPORT KOMPONEN BARU
+import NotificationSettingsForm from '@/components/NotificationSettingsForm';
+// 🔧 ADD DEBUG COMPONENT IMPORT
+import NotificationDebugEnhanced from '@/components/NotificationDebugEnhanced';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  // 🔧 ADD DEBUG MODE STATE
+  const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
 
   useEffect(() => {
     if (settings) {
@@ -100,15 +104,28 @@ const SettingsPage = () => {
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <SettingsIcon className="h-8 w-8" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white/20 p-3 rounded-xl">
+                    <SettingsIcon className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
+                    <p className="text-orange-100 mt-1">
+                      Kelola informasi bisnis dan preferensi aplikasi Anda
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
-                  <p className="text-orange-100 mt-1">
-                    Kelola informasi bisnis dan preferensi aplikasi Anda
-                  </p>
+                {/* 🔧 DEBUG TOGGLE BUTTON */}
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => setShowDebug(!showDebug)}
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                  >
+                    {showDebug ? '🔧 Hide Debug' : '🔧 Show Debug'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -187,16 +204,37 @@ const SettingsPage = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2"><Mail className="h-4 w-4" />Email</Label>
-                    <Input type="email" value={formState.email || ''} onChange={e => handleInputChange('email', e.target.value)} placeholder="email@bisnis.com" className="h-11 border-gray-300" />
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Label>
+                    <Input 
+                      type="email" 
+                      value={formState.email || ''} 
+                      onChange={e => handleInputChange('email', e.target.value)} 
+                      placeholder="email@bisnis.com" 
+                      className="h-11 border-gray-300" 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2"><Phone className="h-4 w-4" />Telepon</Label>
-                    <Input type="tel" value={formState.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} placeholder="+62 XXX XXX XXXX" className="h-11 border-gray-300" />
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Telepon
+                    </Label>
+                    <Input 
+                      type="tel" 
+                      value={formState.phone || ''} 
+                      onChange={e => handleInputChange('phone', e.target.value)} 
+                      placeholder="+62 XXX XXX XXXX" 
+                      className="h-11 border-gray-300" 
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2"><MapPin className="h-4 w-4" />Alamat Lengkap</Label>
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Alamat Lengkap
+                  </Label>
                   <Textarea 
                     value={formState.address || ''} 
                     onChange={e => handleInputChange('address', e.target.value)}
@@ -208,8 +246,11 @@ const SettingsPage = () => {
               </CardContent>
             </Card>
 
-            {/* 2. TAMBAHKAN KOMPONEN PENGATURAN NOTIFIKASI DI SINI */}
+            {/* Notification Settings Form */}
             <NotificationSettingsForm />
+
+            {/* 🔧 DEBUG COMPONENT - CONDITIONALLY SHOWN */}
+            {showDebug && <NotificationDebugEnhanced />}
 
           </div>
 
@@ -226,9 +267,15 @@ const SettingsPage = () => {
                   className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   {isSaving ? (
-                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Menyimpan...</>
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Menyimpan...
+                    </>
                   ) : (
-                    <><Save className="mr-2 h-5 w-5" />Simpan Perubahan</>
+                    <>
+                      <Save className="mr-2 h-5 w-5" />
+                      Simpan Perubahan
+                    </>
                   )}
                 </Button>
                 {hasChanges && (
@@ -255,11 +302,34 @@ const SettingsPage = () => {
                       <li>Informasi ini akan muncul di semua invoice</li>
                       <li>Pastikan data kontak sudah benar</li>
                       <li>Alamat sebaiknya ditulis lengkap</li>
+                      {showDebug && (
+                        <li className="text-orange-600">🔧 Debug mode aktif - lihat komponen debug di bawah</li>
+                      )}
                     </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* 🔧 DEBUG INFO SIDEBAR */}
+            {showDebug && (
+              <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-orange-800">🔧 Debug Mode</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-orange-700 space-y-2">
+                  <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
+                  <p><strong>Purpose:</strong> Diagnose notification issues</p>
+                  <p><strong>Instructions:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Scroll down to debug component</li>
+                    <li>Run diagnostics tests</li>
+                    <li>Check browser console (F12)</li>
+                    <li>Compare context vs database data</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

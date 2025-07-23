@@ -1,12 +1,13 @@
-// src/providers/AppProviders.tsx
+// src/contexts/AppProviders.tsx
+// 🔧 FIXED IMPORT PATHS TO MATCH YOUR PROJECT STRUCTURE
 
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Import semua context provider Anda
+// Import semua context provider Anda dengan path yang konsisten
 import { AuthProvider } from './AuthContext';
-import { NotificationProvider } from './NotificationContext'; // <-- Provider Notifikasi
+import { NotificationProvider } from './NotificationContext'; // 🔧 FIXED: Local import path
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from './FinancialContext';
@@ -26,7 +27,7 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
  */
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   const isMobile = useIsMobile();
-
+  
   return (
     <>
       {/* 1. AuthProvider paling luar */}
@@ -45,10 +46,8 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
                             <PurchaseProvider>
                               <OrderProvider>
                                 <FollowUpTemplateProvider>
-                                  
                                   {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
                                   {children}
-
                                 </FollowUpTemplateProvider>
                               </OrderProvider>
                             </PurchaseProvider>
@@ -63,12 +62,12 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
           </UserSettingsProvider>
         </NotificationProvider>
       </AuthProvider>
-
+      
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton
-        offset={isMobile ? 24 : 16} // Sesuaikan jarak sesuai kebutuhan
+        offset={isMobile ? 24 : 16}
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

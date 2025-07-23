@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { BahanBaku } from '@/types/bahanBaku';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -50,6 +50,8 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addNotification } = useNotification();
+
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const transformBahanBakuFromDB = (dbItem: any): BahanBaku => ({
     id: dbItem.id,
@@ -148,7 +150,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
 
       for (const item of expiringItems) {
-        if (!criticalExpiringItems.includes(item)) {
+        if (!criticalExpiringItems.some(critical => critical.id === item.id)) {
           const daysLeft = getDaysUntilExpiry(item.tanggalKadaluwarsa);
           await addNotification({
             title: '⏰ Akan Expired',
@@ -189,46 +191,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       const transformedData = data.map(transformBahanBakuFromDB);
       setBahanBaku(transformedData);
 
-      // Hanya subscribe jika belum ada channel aktif
-      if (!supabase.getChannels().some(channel => channel.topic === 'bahan_baku_changes')) {
-        const channel = supabase
-          .channel('bahan_baku_changes')
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'bahan_baku',
-            filter: `user_id=eq.${user.id}`,
-          }, (payload) => {
-            console.log('Received change:', payload.eventType, payload.new?.id || payload.old?.id);
-            const updatedItem = transformBahanBakuFromDB(payload.new);
-            setBahanBaku((prev) => {
-              if (payload.eventType === 'DELETE') {
-                return prev.filter((item) => item.id !== payload.old.id);
-              }
-              if (payload.eventType === 'INSERT') {
-                return [...prev, updatedItem].sort((a, b) => a.nama.localeCompare(b.nama));
-              }
-              if (payload.eventType === 'UPDATE') {
-                return prev.map((item) =>
-                  item.id === updatedItem.id ? updatedItem : item
-                ).sort((a, b) => a.nama.localeCompare(b.nama));
-              }
-              return prev;
-            });
-          })
-          .subscribe((status) => {
-            console.log('Subscription status:', status);
-            if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to bahan_baku changes');
-            }
-          });
-
-        // Cleanup subscription
-        return () => {
-          supabase.removeChannel(channel);
-          console.log('Channel unsubscribed');
-        };
-      }
+      await checkInventoryAlerts(); // Check alerts after fetching
     } catch (err: any) {
       console.error('Error fetching bahan baku:', err);
       toast.error(`Gagal memuat bahan baku: ${err.message}`);
@@ -240,17 +203,58 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   }, [user, addNotification, checkInventoryAlerts]);
 
+  // Setup subscription once on mount
   useEffect(() => {
-    const cleanup = fetchBahanBaku();
-    setSelectedItems([]);
-    setIsSelectionMode(false);
+    if (!user || subscriptionRef.current) return;
+
+    const channel = supabase
+      .channel('bahan_baku_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bahan_baku',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        console.log('Received change:', payload.eventType, payload.new?.id || payload.old?.id);
+        const updatedItem = transformBahanBakuFromDB(payload.new);
+        setBahanBaku((prev) => {
+          if (payload.eventType === 'DELETE') {
+            return prev.filter((item) => item.id !== payload.old.id);
+          }
+          if (payload.eventType === 'INSERT') {
+            return [...prev, updatedItem].sort((a, b) => a.nama.localeCompare(b.nama));
+          }
+          if (payload.eventType === 'UPDATE') {
+            return prev.map((item) =>
+              item.id === updatedItem.id ? updatedItem : item
+            ).sort((a, b) => a.nama.localeCompare(b.nama));
+          }
+          return prev;
+        });
+      })
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to bahan_baku changes');
+          subscriptionRef.current = channel;
+        }
+      });
+
     return () => {
-      if (cleanup && typeof cleanup === 'function') {
-        cleanup();
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+        console.log('Channel unsubscribed');
       }
       supabase.removeAllChannels();
       console.log('All channels removed on unmount');
     };
+  }, [user]);
+
+  useEffect(() => {
+    fetchBahanBaku();
+    setSelectedItems([]);
+    setIsSelectionMode(false);
   }, [fetchBahanBaku]);
 
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
@@ -576,8 +580,8 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const toggleSelectionMode = useCallback(() => {
     setIsSelectionMode(prev => !prev);
-    if (isSelectionMode) {
-      setSelectedItems([]);
+    if (!isSelectionMode) {
+      setSelectedItems([]); // Only clear when entering selection mode
     }
   }, [isSelectionMode]);
 

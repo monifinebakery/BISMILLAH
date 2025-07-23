@@ -43,7 +43,7 @@ export interface Recipe {
   // Calculated Results - Per Porsi
   totalHpp: number; // Total HPP untuk semua porsi
   hppPerPorsi: number; // HPP per porsi
-  hargaJualPorsi: number; // Harga jual per porsi
+  hargaJualPorsi: number; // 🔧 FIX: Make required field // Harga jual per porsi
   
   // 🧮 NEW: Calculated Results - Per PCS
   hppPerPcs?: number; // HPP per piece

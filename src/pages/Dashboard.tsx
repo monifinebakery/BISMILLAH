@@ -126,42 +126,47 @@ const Dashboard = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-                    <p className="text-md text-gray-600 mt-1">{getGreeting()}</p>
-                </div>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button id="date" variant="outline" className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm">
-                            <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
-                            {date?.from ? (
-                                date.to && date.from.toDateString() !== date.to.toDateString()
-                                    ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
-                                    : format(date.from, "LLL dd, y", { locale: id })
-                            ) : (
-                                <span className="text-gray-500">Pilih tanggal</span>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 flex bg-white shadow-lg rounded-xl" align="end">
-                        <DatePresets setDateRange={setDate} />
-                        <div className="border-l border-gray-200">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={date?.from}
-                                selected={date}
-                                onSelect={setDate}
-                                numberOfMonths={isMobile ? 1 : 2}
-                                locale={id}
-                                className="p-3"
-                            />
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
+  {/* Header */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+      <p className="text-sm sm:text-md text-gray-600 mt-1">{getGreeting()}</p>
+    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id="date"
+          variant="outline"
+          className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm p-2 sm:p-3"
+        >
+          <CalendarIcon className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />
+          {date?.from ? (
+            date.to && date.from.toDateString() !== date.to.toDateString()
+              ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
+              : format(date.from, "LLL dd, y", { locale: id })
+          ) : (
+            <span className="text-gray-500 text-sm sm:text-base">Pilih tanggal</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-full sm:w-auto p-0 flex flex-col sm:flex-row bg-white shadow-lg rounded-xl" align="end">
+        <DatePresets setDateRange={setDate} className="w-full sm:w-[200px] p-3 border-b sm:border-b-0 sm:border-r border-gray-200" />
+        <div className="w-full">
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={setDate}
+            numberOfMonths={isMobile ? 1 : 2}
+            locale={id}
+            className="p-2 sm:p-3"
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
+  </div>
+</div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

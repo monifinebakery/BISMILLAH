@@ -32,10 +32,10 @@ const RecipeList = ({ recipes, onEdit, onDelete, onDuplicate }: RecipeListProps)
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
       {recipes.map((recipe) => {
-        // Calculate metrics
-        const profitPerPorsi = recipe.hargaJualPorsi - recipe.hppPerPorsi;
+        // Calculate metrics with safe fallbacks
+        const profitPerPorsi = (recipe.hargaJualPorsi || 0) - (recipe.hppPerPorsi || 0);
         const profitPerPcs = (recipe.hargaJualPerPcs || 0) - (recipe.hppPerPcs || 0);
-        const marginPercent = recipe.hargaJualPorsi > 0 ? (profitPerPorsi / recipe.hargaJualPorsi) * 100 : 0;
+        const marginPercent = (recipe.hargaJualPorsi || 0) > 0 ? (profitPerPorsi / (recipe.hargaJualPorsi || 1)) * 100 : 0;
         const hasPerPcsData = recipe.hppPerPcs && recipe.hargaJualPerPcs && recipe.jumlahPcsPerPorsi;
 
         return (
@@ -100,19 +100,19 @@ const RecipeList = ({ recipes, onEdit, onDelete, onDuplicate }: RecipeListProps)
                   <div className="space-y-1">
                     <span className="text-gray-600">Total HPP:</span>
                     <div className="font-medium text-blue-600">
-                      {formatCurrency(recipe.totalHpp)}
+                      {formatCurrency(recipe.totalHpp || 0)}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <span className="text-gray-600">HPP/Porsi:</span>
                     <div className="font-medium text-blue-600">
-                      {formatCurrency(recipe.hppPerPorsi)}
+                      {formatCurrency(recipe.hppPerPorsi || 0)}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <span className="text-gray-600">Harga Jual:</span>
                     <div className="font-semibold text-green-600">
-                      {formatCurrency(recipe.hargaJualPorsi)}
+                      {formatCurrency(recipe.hargaJualPorsi || 0)}
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -138,13 +138,13 @@ const RecipeList = ({ recipes, onEdit, onDelete, onDuplicate }: RecipeListProps)
                       <div className="space-y-1">
                         <span className="text-gray-600">HPP/Pcs:</span>
                         <div className="font-medium text-blue-600">
-                          {formatCurrency(recipe.hppPerPcs)}
+                          {formatCurrency(recipe.hppPerPcs || 0)}
                         </div>
                       </div>
                       <div className="space-y-1">
                         <span className="text-gray-600">Harga Jual:</span>
                         <div className="font-semibold text-green-600">
-                          {formatCurrency(recipe.hargaJualPerPcs)}
+                          {formatCurrency(recipe.hargaJualPerPcs || 0)}
                         </div>
                       </div>
                       <div className="space-y-1">
@@ -205,19 +205,19 @@ const RecipeList = ({ recipes, onEdit, onDelete, onDuplicate }: RecipeListProps)
                     <div className="flex justify-between">
                       <span>Bahan Baku:</span>
                       <span className="font-medium">
-                        {formatCurrency((recipe.totalHpp - recipe.biayaTenagaKerja - recipe.biayaOverhead))}
+                        {formatCurrency(Math.max(0, (recipe.totalHpp || 0) - (recipe.biayaTenagaKerja || 0) - (recipe.biayaOverhead || 0)))}
                       </span>
                     </div>
-                    {recipe.biayaTenagaKerja > 0 && (
+                    {(recipe.biayaTenagaKerja || 0) > 0 && (
                       <div className="flex justify-between">
                         <span>Tenaga Kerja:</span>
-                        <span className="font-medium">{formatCurrency(recipe.biayaTenagaKerja)}</span>
+                        <span className="font-medium">{formatCurrency(recipe.biayaTenagaKerja || 0)}</span>
                       </div>
                     )}
-                    {recipe.biayaOverhead > 0 && (
+                    {(recipe.biayaOverhead || 0) > 0 && (
                       <div className="flex justify-between">
                         <span>Overhead:</span>
-                        <span className="font-medium">{formatCurrency(recipe.biayaOverhead)}</span>
+                        <span className="font-medium">{formatCurrency(recipe.biayaOverhead || 0)}</span>
                       </div>
                     )}
                   </div>

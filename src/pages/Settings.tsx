@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import SimpleNotificationTest from '@/components/SimpleNotificationTest';
 import { toast } from 'sonner';
 import { 
   Settings as SettingsIcon, 
@@ -249,7 +248,6 @@ const SettingsPage = () => {
 
             {/* Notification Settings Form */}
             <NotificationSettingsForm />
-            <SimpleNotificationTest />
 
             {/* 🔧 DEBUG COMPONENT - CONDITIONALLY SHOWN */}
             {showDebug && <NotificationDebugEnhanced />}

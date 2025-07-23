@@ -1,5 +1,6 @@
 // src/contexts/AssetContext.tsx
 // VERSI REALTIME - DATABASE SEBAGAI SATU-SATUNYA SUMBER KEBENARAN
+// 🔔 UPDATED WITH NOTIFICATION SYSTEM
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Asset } from '@/types/asset';
@@ -8,6 +9,9 @@ import { toast } from 'sonner';
 // --- Dependensi ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+// 🔔 ADD NOTIFICATION IMPORTS
+import { useNotification } from './NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { safeParseDate } from '@/utils/dateUtils';
 
@@ -33,6 +37,8 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // --- DEPENDENSI ---
   const contextValue = useAuth();
   const activityContextValue = useActivity();
+  // 🔔 ADD NOTIFICATION CONTEXT
+  const { addNotification } = useNotification();
   
   const user = contextValue?.user;
   const addActivity = activityContextValue?.addActivity || (() => {});
@@ -118,6 +124,11 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         console.error('[AssetContext] Error fetching assets:', error);
         setError(error instanceof Error ? error.message : 'Gagal memuat aset');
         toast.error(`Gagal memuat aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        
+        // 🔔 CREATE ERROR NOTIFICATION
+        await addNotification(createNotificationHelper.systemError(
+          `Gagal memuat data aset: ${error instanceof Error ? error.message : 'Unknown error'}`
+        ));
       } finally {
         setIsLoading(false);
       }
@@ -172,7 +183,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.log("[AssetContext] Membersihkan channel realtime aset.");
       supabase.removeChannel(channel);
     };
-  }, [user, transformAssetFromDB]); // KUNCI UTAMA: Bereaksi hanya terhadap perubahan `user`.
+  }, [user, transformAssetFromDB, addNotification]); // 🔔 ADD addNotification dependency
 
   // ===================================================================
   // --- FUNGSI-FUNGSI CRUD (Disederhanakan) ---
@@ -208,7 +219,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error(error.message);
       }
 
-      // UI akan diupdate oleh listener, tapi kita tetap bisa melakukan aksi lain di sini
+      // Activity log
       addActivity({
         title: 'Aset Ditambahkan',
         description: `${asset.nama} telah ditambahkan ke daftar aset.`,
@@ -216,13 +227,35 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         value: null,
       });
 
+      // Success toast
+      toast.success(`Aset ${asset.nama} berhasil ditambahkan!`);
+
+      // 🔔 CREATE SUCCESS NOTIFICATION
+      await addNotification({
+        title: '🏢 Aset Baru Ditambahkan!',
+        message: `${asset.nama} berhasil ditambahkan dengan nilai Rp ${asset.nilaiAwal.toLocaleString()}`,
+        type: 'success',
+        icon: 'package',
+        priority: 2,
+        related_type: 'system',
+        action_url: '/aset',
+        is_read: false,
+        is_archived: false
+      });
+
       return true;
     } catch (error) {
       console.error('[AssetContext] Error adding asset:', error);
       toast.error(`Gagal menyimpan aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menambahkan aset ${asset.nama}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
       return false;
     }
-  }, [user, addActivity]);
+  }, [user, addActivity, addNotification]);
 
   const updateAsset = useCallback(async (id: string, asset: Partial<Omit<Asset, 'id' | 'userId'>>): Promise<boolean> => {
     if (!user) {
@@ -236,22 +269,24 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     
     try {
-      // Transformasi ke snake_case
-      const assetToUpdate: { [key: string]: any } = {};
+      const assetToUpdate = assets.find(a => a.id === id);
       
-      if (asset.nama !== undefined) assetToUpdate.nama = asset.nama?.trim();
-      if (asset.kategori !== undefined) assetToUpdate.kategori = asset.kategori;
-      if (asset.nilaiAwal !== undefined) assetToUpdate.nilai_awal = asset.nilaiAwal;
-      if (asset.nilaiSaatIni !== undefined) assetToUpdate.nilai_sekarang = asset.nilaiSaatIni;
-      if (asset.tanggalPembelian !== undefined) assetToUpdate.tanggal_beli = asset.tanggalPembelian;
-      if (asset.kondisi !== undefined) assetToUpdate.kondisi = asset.kondisi;
-      if (asset.lokasi !== undefined) assetToUpdate.lokasi = asset.lokasi?.trim();
-      if (asset.deskripsi !== undefined) assetToUpdate.deskripsi = asset.deskripsi?.trim() || null;
-      if (asset.depresiasi !== undefined) assetToUpdate.depresiasi = asset.depresiasi;
+      // Transformasi ke snake_case
+      const updateData: { [key: string]: any } = {};
+      
+      if (asset.nama !== undefined) updateData.nama = asset.nama?.trim();
+      if (asset.kategori !== undefined) updateData.kategori = asset.kategori;
+      if (asset.nilaiAwal !== undefined) updateData.nilai_awal = asset.nilaiAwal;
+      if (asset.nilaiSaatIni !== undefined) updateData.nilai_sekarang = asset.nilaiSaatIni;
+      if (asset.tanggalPembelian !== undefined) updateData.tanggal_beli = asset.tanggalPembelian;
+      if (asset.kondisi !== undefined) updateData.kondisi = asset.kondisi;
+      if (asset.lokasi !== undefined) updateData.lokasi = asset.lokasi?.trim();
+      if (asset.deskripsi !== undefined) updateData.deskripsi = asset.deskripsi?.trim() || null;
+      if (asset.depresiasi !== undefined) updateData.depresiasi = asset.depresiasi;
 
       const { error } = await supabase
         .from('assets')
-        .update(assetToUpdate)
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', user.id); // Extra security check
 
@@ -259,13 +294,35 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error(error.message);
       }
 
+      // Success toast
+      toast.success(`Aset ${asset.nama || assetToUpdate?.nama} berhasil diperbarui!`);
+
+      // 🔔 CREATE UPDATE NOTIFICATION
+      await addNotification({
+        title: '📝 Aset Diperbarui',
+        message: `${asset.nama || assetToUpdate?.nama} telah diperbarui`,
+        type: 'info',
+        icon: 'edit',
+        priority: 1,
+        related_type: 'system',
+        action_url: '/aset',
+        is_read: false,
+        is_archived: false
+      });
+
       return true;
     } catch (error) {
       console.error('[AssetContext] Error updating asset:', error);
       toast.error(`Gagal memperbarui aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal memperbarui aset: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
       return false;
     }
-  }, [user]);
+  }, [user, assets, addNotification]);
 
   const deleteAsset = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
@@ -292,11 +349,28 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
 
       if (assetToDelete) {
+        // Activity log
         addActivity({
           title: 'Aset Dihapus',
           description: `${assetToDelete.nama} telah dihapus.`,
           type: 'aset',
           value: null,
+        });
+
+        // Success toast
+        toast.success(`Aset ${assetToDelete.nama} berhasil dihapus!`);
+
+        // 🔔 CREATE DELETE NOTIFICATION
+        await addNotification({
+          title: '🗑️ Aset Dihapus',
+          message: `${assetToDelete.nama} telah dihapus dari daftar aset`,
+          type: 'warning',
+          icon: 'trash-2',
+          priority: 2,
+          related_type: 'system',
+          action_url: '/aset',
+          is_read: false,
+          is_archived: false
         });
       }
 
@@ -304,9 +378,15 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } catch (error) {
       console.error('[AssetContext] Error deleting asset:', error);
       toast.error(`Gagal menghapus aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menghapus aset: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
       return false;
     }
-  }, [user, assets, addActivity]);
+  }, [user, assets, addActivity, addNotification]);
 
   const value: AssetContextType = {
     assets,

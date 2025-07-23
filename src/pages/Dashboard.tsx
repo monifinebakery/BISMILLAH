@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText, ShoppingBag, Boxes } from "lucide-react"; // Added ShoppingBag and Boxes icons
+import { Calculator, Warehouse, Package, Trophy, Activity, TrendingDown, CircleDollarSign, ListChecks, ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileText, ShoppingBag, Boxes } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useActivity } from "@/contexts/ActivityContext";
@@ -116,7 +117,12 @@ const Dashboard = () => {
         return (
             <div className="flex flex-col space-y-2 p-3">
                 {presets.map(({ label, range }) => (
-                    <Button key={label} variant="ghost" className="w-full justify-start text-sm hover:bg-gray-100 rounded-lg" onClick={() => setDateRange(range)}>
+                    <Button
+                        key={label}
+                        variant="ghost"
+                        className="w-full justify-start text-sm hover:bg-gray-100 rounded-lg py-2 text-gray-800"
+                        onClick={() => setDateRange(range)}
+                    >
                         {label}
                     </Button>
                 ))}
@@ -126,47 +132,93 @@ const Dashboard = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-  {/* Header */}
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-      <p className="text-sm sm:text-md text-gray-600 mt-1">{getGreeting()}</p>
-    </div>
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          id="date"
-          variant="outline"
-          className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm p-2 sm:p-3"
-        >
-          <CalendarIcon className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />
-          {date?.from ? (
-            date.to && date.from.toDateString() !== date.to.toDateString()
-              ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
-              : format(date.from, "LLL dd, y", { locale: id })
-          ) : (
-            <span className="text-gray-500 text-sm sm:text-base">Pilih tanggal</span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full sm:w-auto p-0 flex flex-col sm:flex-row bg-white shadow-lg rounded-xl" align="end">
-        <DatePresets setDateRange={setDate} className="w-full sm:w-[200px] p-3 border-b sm:border-b-0 sm:border-r border-gray-200" />
-        <div className="w-full">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
-            numberOfMonths={isMobile ? 1 : 2}
-            locale={id}
-            className="p-2 sm:p-3"
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
-  </div>
-</div>
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+                    <p className="text-md text-gray-600 mt-1">{getGreeting()}</p>
+                </div>
+                {isMobile ? (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm py-2"
+                            >
+                                <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
+                                <span className="truncate">
+                                    {date?.from ? (
+                                        date.to && date.from.toDateString() !== date.to.toDateString()
+                                            ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
+                                            : format(date.from, "LLL dd, y", { locale: id })
+                                    ) : (
+                                        <span className="text-gray-500">Pilih tanggal</span>
+                                    )}
+                                </span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="w-[95vw] max-w-[400px] p-0 bg-white rounded-xl">
+                            <div className="flex flex-col">
+                                <div className="p-4 border-b border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
+                                </div>
+                                <DatePresets setDateRange={setDate} />
+                                <div className="border-t border-gray-200">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={date?.from}
+                                        selected={date}
+                                        onSelect={setDate}
+                                        numberOfMonths={1}
+                                        locale={id}
+                                        className="p-3"
+                                        classNames={{
+                                            day: "w-10 h-10 text-sm",
+                                            day_selected: "bg-blue-600 text-white",
+                                            day_today: "border border-blue-300",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                ) : (
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant="outline"
+                                className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm"
+                            >
+                                <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
+                                {date?.from ? (
+                                    date.to && date.from.toDateString() !== date.to.toDateString()
+                                        ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
+                                        : format(date.from, "LLL dd, y", { locale: id })
+                                ) : (
+                                    <span className="text-gray-500">Pilih tanggal</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 flex bg-white shadow-lg rounded-xl" align="end">
+                            <DatePresets setDateRange={setDate} />
+                            <div className="border-l border-gray-200">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={date?.from}
+                                    selected={date}
+                                    onSelect={setDate}
+                                    numberOfMonths={2}
+                                    locale={id}
+                                    className="p-3"
+                                />
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                )}
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -220,17 +272,17 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/orders" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /orders */}
+                    <Link to="/orders" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg">
                         <div className="bg-blue-100 p-3 rounded-full mr-4">
-                            <ShoppingBag className="h-6 w-6 text-blue-600" /> {/* Changed to ShoppingBag */}
+                            <ShoppingBag className="h-6 w-6 text-blue-600" />
                         </div>
                         <p className="text-lg font-medium text-gray-800">Pesanan</p>
                     </Link>
                 </Card>
                 <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Link to="/stock" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg"> {/* Changed to /stock */}
+                    <Link to="/stock" className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg">
                         <div className="bg-green-100 p-3 rounded-full mr-4">
-                            <Boxes className="h-6 w-6 text-green-600" /> {/* Changed to Boxes */}
+                            <Boxes className="h-6 w-6 text-green-600" />
                         </div>
                         <p className="text-lg font-medium text-gray-800">Kelola Stok</p>
                     </Link>

@@ -204,361 +204,359 @@ const InvoicePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <Card className="print:hidden shadow-lg border-0">
-  <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-4 sm:p-6">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div className="flex items-center space-x-3">
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <FileText className="h-8 w-8" />
-        <div>
-          <CardTitle className="text-2xl font-bold">
-            {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
-          </CardTitle>
-          {orderId && (
-            <p className="text-blue-100 text-sm">Order ID: {orderId}</p>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 p-4">
+  <div className="max-w-6xl mx-auto space-y-6">
+    {/* Header */}
+    <Card className="print:hidden shadow-lg border-0">
+      <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <FileText className="h-8 w-8" />
+            <div>
+              <CardTitle className="text-xl sm:text-2xl font-bold">
+                {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
+              </CardTitle>
+              {orderId && (
+                <p className="text-blue-100 text-xs sm:text-sm">Order ID: {orderId}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+            <Button 
+              variant="secondary" 
+              onClick={duplicateInvoice}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto py-2 text-sm sm:text-base"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button 
+              onClick={handleExportPDF}
+              className="bg-white text-blue-600 hover:bg-gray-100 w-full sm:w-auto py-3 px-4 flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <Download className="h-5 w-5" />
+              Export PDF
+            </Button>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-        <Button 
-          variant="secondary" 
-          onClick={duplicateInvoice}
-          className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto"
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Reset
-        </Button>
-        <Button 
-          onClick={handleExportPDF}
-          className="bg-white text-blue-600 hover:bg-gray-100 w-full sm:w-auto py-2 px-4 flex items-center justify-center gap-2 text-sm sm:text-base"
-        >
-          <Download className="h-5 w-5" />
-          Export PDF
-        </Button>
-      </div>
-    </div>
-  </CardHeader>
-</Card>
+      </CardHeader>
+    </Card>
 
-        {/* Invoice Content */}
-        <Card className="shadow-xl border-0 overflow-hidden" id="invoice-content">
-          <div className="bg-white p-8">
-            {/* Header Section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mb-8 pb-8 border-b-2 border-gray-200">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                  {settings.businessName || 'Nama Bisnis Anda'}
-                </h1>
-                <p className="text-lg text-gray-600">{settings.ownerName || 'Nama Pemilik'}</p>
-                <div className="mt-3 space-y-1 text-sm text-gray-500">
-                  <p>{settings.address || 'Alamat Bisnis'}</p>
-                  <p>{settings.phone || 'Telepon Bisnis'}</p>
-                  <p>{settings.email || 'Email Bisnis'}</p>
-                </div>
-              </div>
+    {/* Invoice Content */}
+    <Card className="shadow-xl border-0 overflow-hidden" id="invoice-content">
+      <div className="bg-white p-4 sm:p-8">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 mb-6 sm:mb-8 pb-4 sm:pb-8 border-b-2 border-gray-200">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+              {settings.businessName || 'Nama Bisnis Anda'}
+            </h1>
+            <p className="text-base sm:text-lg text-gray-600">{settings.ownerName || 'Nama Pemilik'}</p>
+            <div className="mt-2 space-y-1 text-xs sm:text-sm text-gray-500">
+              <p>{settings.address || 'Alamat Bisnis'}</p>
+              <p>{settings.phone || 'Telepon Bisnis'}</p>
+              <p>{settings.email || 'Email Bisnis'}</p>
+            </div>
+          </div>
 
-              <div className="flex flex-col items-end">
-                <h2 className="text-4xl font-bold text-gray-300 uppercase tracking-wider mb-4">
-                  INVOICE
-                </h2>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <Label className="text-gray-600 font-medium">No. Invoice:</Label>
-                    <Input 
-                      value={invoiceNumber} 
-                      onChange={e => setInvoiceNumber(e.target.value)} 
-                      className="text-right font-mono bg-transparent border-none p-0 h-auto"
-                    />
-                    
-                    <Label className="text-gray-600 font-medium">Tanggal:</Label>
-                    <Input 
-                      type="date" 
-                      value={format(issueDate, 'yyyy-MM-dd')} 
-                      onChange={e => setIssueDate(new Date(e.target.value))} 
-                      className="text-right bg-transparent border-none p-0 h-auto"
-                    />
-                    
-                    <Label className="text-gray-600 font-medium">Jatuh Tempo:</Label>
-                    <Input 
-                      type="date" 
-                      value={format(dueDate, 'yyyy-MM-dd')} 
-                      onChange={e => setDueDate(new Date(e.target.value))} 
-                      className="text-right bg-transparent border-none p-0 h-auto"
-                    />
-                  </div>
-                </div>
+          <div className="flex flex-col items-end">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-300 uppercase tracking-wider mb-2 sm:mb-4">
+              INVOICE
+            </h2>
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-x-4 sm:gap-y-2 text-xs sm:text-sm">
+                <Label className="text-gray-600 font-medium">No. Invoice:</Label>
+                <Input 
+                  value={invoiceNumber} 
+                  onChange={e => setInvoiceNumber(e.target.value)} 
+                  className="text-right font-mono bg-transparent border-none p-0 h-auto"
+                />
+                
+                <Label className="text-gray-600 font-medium">Tanggal:</Label>
+                <Input 
+                  type="date" 
+                  value={format(issueDate, 'yyyy-MM-dd')} 
+                  onChange={e => setIssueDate(new Date(e.target.value))} 
+                  className="text-right bg-transparent border-none p-0 h-auto"
+                />
+                
+                <Label className="text-gray-600 font-medium">Jatuh Tempo:</Label>
+                <Input 
+                  type="date" 
+                  value={format(dueDate, 'yyyy-MM-dd')} 
+                  onChange={e => setDueDate(new Date(e.target.value))} 
+                  className="text-right bg-transparent border-none p-0 h-auto"
+                />
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Customer and Status Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Ditagihkan Kepada:</h3>
-                <div className="space-y-3">
-                  <Input 
-                    placeholder="Nama Pelanggan" 
-                    value={customer.name} 
-                    onChange={e => setCustomer({...customer, name: e.target.value})} 
-                    className="font-bold text-lg border-gray-300 focus:border-blue-500"
-                  />
+        {/* Customer and Status Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Ditagihkan Kepada:</h3>
+            <div className="space-y-3">
+              <Input 
+                placeholder="Nama Pelanggan" 
+                value={customer.name} 
+                onChange={e => setCustomer({...customer, name: e.target.value})} 
+                className="font-bold text-base sm:text-lg border-gray-300 focus:border-blue-500"
+              />
+              <Textarea 
+                placeholder="Alamat Pelanggan" 
+                value={customer.address} 
+                onChange={e => setCustomer({...customer, address: e.target.value})} 
+                className="text-gray-600 border-gray-300 focus:border-blue-500"
+                rows={3}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input 
+                  placeholder="Telepon" 
+                  value={customer.phone} 
+                  onChange={e => setCustomer({...customer, phone: e.target.value})} 
+                  className="text-gray-600 border-gray-300 focus:border-blue-500"
+                />
+                <Input 
+                  placeholder="Email" 
+                  type="email"
+                  value={customer.email} 
+                  onChange={e => setCustomer({...customer, email: e.target.value})} 
+                  className="text-gray-600 border-gray-300 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-end justify-start">
+            <div className="w-full max-w-xs">
+              <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 block">
+                Status Pembayaran
+              </Label>
+              <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                <SelectTrigger className={`w-full font-bold text-base sm:text-lg py-2 sm:py-3 border-2 ${getStatusBadge()}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem>
+                  <SelectItem value="LUNAS">LUNAS</SelectItem>
+                  <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <div className="mb-6 sm:mb-8">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Detail Items:</h3>
+          
+          {/* Table Header */}
+          <div className="hidden sm:grid grid-cols-12 gap-2 sm:gap-4 bg-gray-50 p-2 sm:p-4 rounded-t-lg border">
+            <div className="col-span-5">
+              <Label className="font-semibold text-gray-700 text-xs sm:text-sm">Deskripsi</Label>
+            </div>
+            <div className="col-span-2 text-center">
+              <Label className="font-semibold text-gray-700 text-xs sm:text-sm">Jumlah</Label>
+            </div>
+            <div className="col-span-2 text-right">
+              <Label className="font-semibold text-gray-700 text-xs sm:text-sm">Harga Satuan</Label>
+            </div>
+            <div className="col-span-2 text-right">
+              <Label className="font-semibold text-gray-700 text-xs sm:text-sm">Total</Label>
+            </div>
+            <div className="col-span-1"></div>
+          </div>
+          
+          {/* Table Items */}
+          <div className="border border-t-0 rounded-b-lg">
+            {items.map((item, index) => (
+              <div key={item.id} className={`grid grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b last:border-b-0`}>
+                <div className="col-span-12 sm:col-span-5">
+                  <Label className="sm:hidden font-medium text-gray-600 mb-1 block text-xs">Deskripsi:</Label>
                   <Textarea 
-                    placeholder="Alamat Pelanggan" 
-                    value={customer.address} 
-                    onChange={e => setCustomer({...customer, address: e.target.value})} 
-                    className="text-gray-600 border-gray-300 focus:border-blue-500"
-                    rows={3}
-                  />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Input 
-                      placeholder="Telepon" 
-                      value={customer.phone} 
-                      onChange={e => setCustomer({...customer, phone: e.target.value})} 
-                      className="text-gray-600 border-gray-300 focus:border-blue-500"
-                    />
-                    <Input 
-                      placeholder="Email" 
-                      type="email"
-                      value={customer.email} 
-                      onChange={e => setCustomer({...customer, email: e.target.value})} 
-                      className="text-gray-600 border-gray-300 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col items-end justify-start">
-                <div className="w-full max-w-xs">
-                  <Label className="text-lg font-semibold text-gray-700 mb-3 block">
-                    Status Pembayaran
-                  </Label>
-                  <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                    <SelectTrigger className={`w-full font-bold text-lg py-3 border-2 ${getStatusBadge()}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BELUM LUNAS">BELUM LUNAS</SelectItem>
-                      <SelectItem value="LUNAS">LUNAS</SelectItem>
-                      <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Items Table */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Detail Items:</h3>
-              
-              {/* Table Header */}
-              <div className="hidden md:grid grid-cols-12 gap-4 bg-gray-50 p-4 rounded-t-lg border">
-                <div className="col-span-5">
-                  <Label className="font-semibold text-gray-700">Deskripsi</Label>
-                </div>
-                <div className="col-span-2 text-center">
-                  <Label className="font-semibold text-gray-700">Jumlah</Label>
-                </div>
-                <div className="col-span-2 text-right">
-                  <Label className="font-semibold text-gray-700">Harga Satuan</Label>
-                </div>
-                <div className="col-span-2 text-right">
-                  <Label className="font-semibold text-gray-700">Total</Label>
-                </div>
-                <div className="col-span-1"></div>
-              </div>
-              
-              {/* Table Items */}
-              <div className="border border-t-0 rounded-b-lg">
-                {items.map((item, index) => (
-                  <div key={item.id} className={`grid grid-cols-12 gap-4 p-4 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b last:border-b-0`}>
-                    <div className="col-span-12 md:col-span-5">
-                      <Label className="md:hidden font-medium text-gray-600 mb-1 block">Deskripsi:</Label>
-                      <Textarea 
-                        placeholder="Deskripsi produk/jasa" 
-                        value={item.description} 
-                        onChange={e => handleItemChange(item.id, 'description', e.target.value)} 
-                        className="resize-none border-gray-300 focus:border-blue-500"
-                        rows={2}
-                      />
-                    </div>
-                    
-                    <div className="col-span-4 md:col-span-2">
-                      <Label className="md:hidden font-medium text-gray-600 mb-1 block">Jumlah:</Label>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        value={item.quantity} 
-                        onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} 
-                        className="text-center font-mono border-gray-300 focus:border-blue-500"
-                      />
-                    </div>
-                    
-                    <div className="col-span-4 md:col-span-2">
-                      <Label className="md:hidden font-medium text-gray-600 mb-1 block">Harga:</Label>
-                      <Input 
-                        type="number" 
-                        min="0"
-                        value={item.price} 
-                        onChange={e => handleItemChange(item.id, 'price', e.target.value)} 
-                        className="text-right font-mono border-gray-300 focus:border-blue-500"
-                      />
-                    </div>
-                    
-                    <div className="col-span-3 md:col-span-2 flex items-center justify-end">
-                      <Label className="md:hidden font-medium text-gray-600 mr-2">Total:</Label>
-                      <span className="font-bold text-lg font-mono">
-                        {formatCurrency(item.quantity * item.price)}
-                      </span>
-                    </div>
-                    
-                    <div className="col-span-1 flex items-center justify-center">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 print:hidden"
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <Button 
-                onClick={addItem} 
-                variant="outline" 
-                className="mt-4 w-full print:hidden hover:bg-blue-50 border-blue-200 text-blue-600"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Item Baru
-              </Button>
-            </div>
-
-            {/* Bottom Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Payment Instructions & Notes */}
-              <div className="space-y-6">
-                <div>
-                  <Label className="text-lg font-semibold text-gray-700 mb-3 block">
-                    Instruksi Pembayaran
-                  </Label>
-                  <Textarea 
-                    value={paymentInstructions} 
-                    onChange={e => setPaymentInstructions(e.target.value)} 
-                    className="text-gray-700 border-gray-300 focus:border-blue-500"
-                    rows={4}
+                    placeholder="Deskripsi produk/jasa" 
+                    value={item.description} 
+                    onChange={e => handleItemChange(item.id, 'description', e.target.value)} 
+                    className="resize-none border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                    rows={2}
                   />
                 </div>
                 
-                <div>
-                  <Label className="text-lg font-semibold text-gray-700 mb-3 block">
-                    Catatan Tambahan
-                  </Label>
-                  <Textarea 
-                    value={notes} 
-                    onChange={e => setNotes(e.target.value)} 
-                    className="text-gray-700 border-gray-300 focus:border-blue-500"
-                    rows={3}
+                <div className="col-span-4 sm:col-span-2">
+                  <Label className="sm:hidden font-medium text-gray-600 mb-1 block text-xs">Jumlah:</Label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    value={item.quantity} 
+                    onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} 
+                    className="text-center font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
                   />
                 </div>
+                
+                <div className="col-span-4 sm:col-span-2">
+                  <Label className="sm:hidden font-medium text-gray-600 mb-1 block text-xs">Harga:</Label>
+                  <Input 
+                    type="number" 
+                    min="0"
+                    value={item.price} 
+                    onChange={e => handleItemChange(item.id, 'price', e.target.value)} 
+                    className="text-right font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                  />
+                </div>
+                
+                <div className="col-span-3 sm:col-span-2 flex items-center justify-end">
+                  <Label className="sm:hidden font-medium text-gray-600 mr-1 text-xs">Total:</Label>
+                  <span className="font-bold text-base sm:text-lg font-mono">
+                    {formatCurrency(item.quantity * item.price)}
+                  </span>
+                </div>
+                
+                <div className="col-span-1 flex items-center justify-center">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeItem(item.id)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 print:hidden"
+                    disabled={items.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </div>
               </div>
+            ))}
+          </div>
+          
+          <Button 
+            onClick={addItem} 
+            variant="outline" 
+            className="mt-3 sm:mt-4 w-full print:hidden hover:bg-blue-50 border-blue-200 text-blue-600 py-2 text-sm"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Item Baru
+          </Button>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          {/* Payment Instructions & Notes */}
+          <div className="space-y-4 sm:space-y-6">
+            <div>
+              <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 block">
+                Instruksi Pembayaran
+              </Label>
+              <Textarea 
+                value={paymentInstructions} 
+                onChange={e => setPaymentInstructions(e.target.value)} 
+                className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                rows={4}
+              />
+            </div>
+            
+            <div>
+              <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 block">
+                Catatan Tambahan
+              </Label>
+              <Textarea 
+                value={notes} 
+                onChange={e => setNotes(e.target.value)} 
+                className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          {/* Totals */}
+          <div>
+            <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-200">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Ringkasan Pembayaran</h3>
               
-              {/* Totals */}
-              <div>
-                <div className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Ringkasan Pembayaran</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-mono text-lg">{formatCurrency(subtotal)}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-gray-600">Diskon</Label>
-                        <Input 
-                          type="number" 
-                          min="0"
-                          value={discount.value} 
-                          onChange={e => setDiscount({...discount, value: Number(e.target.value) || 0})} 
-                          className="w-20 h-8 text-center text-sm border-gray-300"
-                        />
-                        <Select 
-                          value={discount.type} 
-                          onValueChange={(v: any) => setDiscount({...discount, type: v})}
-                        >
-                          <SelectTrigger className="w-16 h-8 text-sm border-gray-300">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percent">%</SelectItem>
-                            <SelectItem value="fixed">Rp</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <span className="font-mono text-lg text-red-600">
-                        - {formatCurrency(discountAmount)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-gray-600">Pajak</Label>
-                        <Input 
-                          type="number" 
-                          min="0"
-                          max="100"
-                          value={tax.value} 
-                          onChange={e => setTax({...tax, value: Number(e.target.value) || 0})} 
-                          className="w-20 h-8 text-center text-sm border-gray-300"
-                        />
-                        <span className="text-sm text-gray-600">%</span>
-                      </div>
-                      <span className="font-mono text-lg text-green-600">
-                        + {formatCurrency(taxAmount)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <Label className="text-gray-600">Biaya Pengiriman</Label>
-                      <Input 
-                        type="number" 
-                        min="0"
-                        value={shipping} 
-                        onChange={e => setShipping(Number(e.target.value) || 0)} 
-                        className="w-32 h-8 text-right text-sm font-mono border-gray-300"
-                      />
-                    </div>
-                    
-                    <div className="border-t-2 border-gray-300 pt-4 mt-4">
-                      <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg">
-                        <span className="text-xl font-bold text-gray-800">GRAND TOTAL</span>
-                        <span className="text-2xl font-bold text-blue-600 font-mono">
-                          {formatCurrency(total)}
-                        </span>
-                      </div>
-                    </div>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-xs sm:text-sm">Subtotal</span>
+                  <span className="font-mono text-base sm:text-lg">{formatCurrency(subtotal)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Label className="text-gray-600 text-xs sm:text-sm">Diskon</Label>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      value={discount.value} 
+                      onChange={e => setDiscount({...discount, value: Number(e.target.value) || 0})} 
+                      className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-300"
+                    />
+                    <Select 
+                      value={discount.type} 
+                      onValueChange={(v: any) => setDiscount({...discount, type: v})}
+                    >
+                      <SelectTrigger className="w-12 sm:w-16 h-8 text-xs sm:text-sm border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="fixed">Rp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <span className="font-mono text-base sm:text-lg text-red-600">
+                    - {formatCurrency(discountAmount)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Label className="text-gray-600 text-xs sm:text-sm">Pajak</Label>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      max="100"
+                      value={tax.value} 
+                      onChange={e => setTax({...tax, value: Number(e.target.value) || 0})} 
+                      className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-300"
+                    />
+                    <span className="text-xs sm:text-sm text-gray-600">%</span>
+                  </div>
+                  <span className="font-mono text-base sm:text-lg text-green-600">
+                    + {formatCurrency(taxAmount)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <Label className="text-gray-600 text-xs sm:text-sm">Biaya Pengiriman</Label>
+                  <Input 
+                    type="number" 
+                    min="0"
+                    value={shipping} 
+                    onChange={e => setShipping(Number(e.target.value) || 0)} 
+                    className="w-20 sm:w-32 h-8 text-right text-xs sm:text-sm font-mono border-gray-300"
+                  />
+                </div>
+                
+                <div className="border-t-2 border-gray-300 pt-3 sm:pt-4 mt-3 sm:mt-4">
+                  <div className="flex justify-between items-center bg-blue-50 p-3 sm:p-4 rounded-lg">
+                    <span className="text-base sm:text-xl font-bold text-gray-800">GRAND TOTAL</span>
+                    <span className="text-lg sm:text-2xl font-bold text-blue-600 font-mono">
+                      {formatCurrency(total)}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
-    </div>
-  );
-};
+    </Card>
+  </div>
+</div>
 
 export default InvoicePage;

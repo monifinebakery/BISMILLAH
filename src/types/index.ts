@@ -55,7 +55,7 @@ export interface HPPResult {
   marginKeuntungan: number;
   totalHPP: number;
   hppPerPorsi: number;
-  hargaJualPerPorsi: number;
+  hargaJualPorsi: number;
   jumlahPorsi: number;
   timestamp: Date;
   createdAt: Date | null;

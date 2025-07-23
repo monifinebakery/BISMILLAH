@@ -1,8 +1,8 @@
 // App.jsx
 
 // Impor yang dibutuhkan
-import React, { Suspense, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import React, { Suspense, useEffect } from 'react';
+import { Routes, Route, Outlet } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -102,7 +102,6 @@ const AppLayout = () => {
   );
 };
 
-// Komponen App sekarang hanya fokus pada routing dan setup provider
 const App = () => {
   useEffect(() => {
     const handleAuthFromUrl = async () => {
@@ -117,7 +116,6 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {/* Router sudah dipindahkan ke main.tsx, jadi kita hapus dari sini */}
         <AppProviders>
           <Suspense fallback={<PageLoader />}>
             <Routes>

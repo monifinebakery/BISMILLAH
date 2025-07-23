@@ -40,6 +40,20 @@ import { cn } from '@/lib/utils';
 const WarehousePage = () => {
   // Get context values with proper fallbacks
   const contextValue = useBahanBaku();
+  if (!contextValue) {
+    return (
+      <div className="container mx-auto p-4 sm:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
+            <p className="text-gray-600">Bahan Baku Context tidak tersedia. Pastikan komponen ini dibungkus dengan BahanBakuProvider.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const {
     bahanBaku = [],
     addBahanBaku = () => Promise.resolve(false),
@@ -55,8 +69,8 @@ const WarehousePage = () => {
     toggleSelectionMode = () => {},
     isSelected = () => false,
     getSelectedItems = () => [],
-    bulkDeleteBahanBaku = () => Promise.resolve(false)
-  } = contextValue || {};
+    bulkDeleteBahanBaku = () => Promise.resolve(false),
+  } = contextValue;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
@@ -90,19 +104,19 @@ const WarehousePage = () => {
 
   // Memoized filtered items
   const filteredItems = useMemo(() => {
-    if (!bahanBaku || !Array.isArray(bahanBaku)) return [];
-    
-    return bahanBaku.filter(item =>
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    return Array.isArray(bahanBaku) 
+      ? bahanBaku.filter(item =>
+          item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
+      : [];
   }, [bahanBaku, searchTerm]);
 
   const lowStockItems = useMemo(() => {
-    if (!bahanBaku || !Array.isArray(bahanBaku)) return [];
-    
-    return bahanBaku.filter(item => item.stok <= item.minimum);
+    return Array.isArray(bahanBaku) 
+      ? bahanBaku.filter(item => item.stok <= item.minimum)
+      : [];
   }, [bahanBaku]);
 
   // Calculate pagination variables
@@ -111,18 +125,17 @@ const WarehousePage = () => {
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   const currentItems = useMemo(() => 
-    filteredItems.slice(indexOfFirstItem, indexOfLastItem), 
+    filteredItems.slice(Math.max(0, indexOfFirstItem), indexOfLastItem), 
     [filteredItems, indexOfFirstItem, indexOfLastItem]
   );
 
-  // Reset currentPage when filteredItems length changes
+  // Reset currentPage when filteredItems length or itemsPerPage changes
   useEffect(() => {
-    if (filteredItems.length === 0) {
-      setCurrentPage(1);
-    } else if (currentPage > Math.ceil(filteredItems.length / itemsPerPage)) {
+    const maxPage = Math.ceil(filteredItems.length / itemsPerPage);
+    if (filteredItems.length === 0 || currentPage > maxPage) {
       setCurrentPage(1);
     }
-  }, [filteredItems.length, itemsPerPage, currentPage]);
+  }, [filteredItems.length, itemsPerPage]);
 
   // Calculate hargaSatuan with validation
   useEffect(() => {
@@ -222,8 +235,15 @@ const WarehousePage = () => {
     }
   };
 
-  const allCurrentSelected = currentItems.length > 0 && currentItems.every(item => isSelected(item.id));
-  const someCurrentSelected = currentItems.some(item => isSelected(item.id)) && !allCurrentSelected;
+  const allCurrentSelected = useMemo(() => 
+    currentItems.length > 0 && currentItems.every(item => isSelected(item.id)),
+    [currentItems, isSelected]
+  );
+
+  const someCurrentSelected = useMemo(() => 
+    currentItems.some(item => isSelected(item.id)) && !allCurrentSelected,
+    [currentItems, isSelected, allCurrentSelected]
+  );
 
   const handleSelectAllCurrent = () => {
     if (allCurrentSelected) {
@@ -242,21 +262,6 @@ const WarehousePage = () => {
 
   const getDateInputValue = (date: Date | null): string => 
     date instanceof Date && !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : '';
-
-  // If context is not available, show error
-  if (!contextValue) {
-    return (
-      <div className="container mx-auto p-4 sm:p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
-            <p className="text-gray-600">Bahan Baku Context tidak tersedia. Pastikan komponen ini dibungkus dengan BahanBakuProvider.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4 sm:p-8" aria-live="polite">
@@ -576,7 +581,7 @@ const WarehousePage = () => {
                                 <DropdownMenuItem onClick={() => handleEdit(item)} className="cursor-pointer">
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
-                                </DropdownMenuItem>                               
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   onClick={() => handleDelete(item.id, item.nama)} 
@@ -599,7 +604,7 @@ const WarehousePage = () => {
             {filteredItems.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
                 <div className="text-sm text-gray-600 mb-4 sm:mb-0">
-                  Showing <span className="font-semibold">{indexOfFirstItem + 1}</span> to{' '}
+                  Showing <span className="font-semibold">{Math.max(1, indexOfFirstItem + 1)}</span> to{' '}
                   <span className="font-semibold">{Math.min(indexOfLastItem, filteredItems.length)}</span> of{' '}
                   <span className="font-semibold">{filteredItems.length}</span> entries
                   {selectedItems.length > 0 && (
@@ -810,11 +815,10 @@ const WarehousePage = () => {
                       value={getDateInputValue(newItem.tanggalKadaluwarsa)}
                       onChange={(e) => {
                         const date = e.target.value ? new Date(e.target.value) : null;
-                        if (date && !isNaN(date.getTime())) {
-                          setNewItem({ ...newItem, tanggalKadaluwarsa: date });
-                        } else {
-                          setNewItem({ ...newItem, tanggalKadaluwarsa: null });
-                        }
+                        setNewItem(prev => ({
+                          ...prev,
+                          tanggalKadaluwarsa: date && !isNaN(date.getTime()) ? date : null,
+                        }));
                       }}
                       placeholder="Pilih tanggal kadaluwarsa"
                       className="mt-1"

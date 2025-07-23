@@ -79,7 +79,7 @@ export interface HPPCalculation {
   hppPerPorsi: number;
   hppPerPcs: number;
   marginKeuntungan: number;
-  hargaJualPerPorsi: number;
+  hargaJualPorsi: number;
   hargaJualPerPcs: number;
   profitabilitas: number; // Percentage
   

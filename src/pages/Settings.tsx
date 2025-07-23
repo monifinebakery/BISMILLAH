@@ -1,4 +1,5 @@
 // src/pages/SettingsPage.tsx
+// CLEAN VERSION - NO DEBUG MODE
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,16 +23,12 @@ import {
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';
-// 🔧 ADD DEBUG COMPONENT IMPORT
-import NotificationDebugEnhanced from '@/components/NotificationDebugEnhanced';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  // 🔧 ADD DEBUG MODE STATE
-  const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
 
   useEffect(() => {
     if (settings) {
@@ -81,7 +78,6 @@ const SettingsPage = () => {
 
       const success = await saveSettings(settingsToUpdate);
       if (success) {
-        // Toast sudah ada di dalam context, tidak perlu panggil lagi
         setHasChanges(false);
       }
     } finally {
@@ -104,28 +100,15 @@ const SettingsPage = () => {
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="bg-white/20 p-3 rounded-xl">
-                    <SettingsIcon className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
-                    <p className="text-orange-100 mt-1">
-                      Kelola informasi bisnis dan preferensi aplikasi Anda
-                    </p>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-xl">
+                  <SettingsIcon className="h-8 w-8" />
                 </div>
-                {/* 🔧 DEBUG TOGGLE BUTTON */}
-                <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => setShowDebug(!showDebug)}
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                  >
-                    {showDebug ? '🔧 Hide Debug' : '🔧 Show Debug'}
-                  </Button>
+                <div>
+                  <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
+                  <p className="text-orange-100 mt-1">
+                    Kelola informasi bisnis dan preferensi aplikasi Anda
+                  </p>
                 </div>
               </div>
             </div>
@@ -249,9 +232,6 @@ const SettingsPage = () => {
             {/* Notification Settings Form */}
             <NotificationSettingsForm />
 
-            {/* 🔧 DEBUG COMPONENT - CONDITIONALLY SHOWN */}
-            {showDebug && <NotificationDebugEnhanced />}
-
           </div>
 
           {/* Kolom Kanan: Sidebar Actions & Preview */}
@@ -302,34 +282,11 @@ const SettingsPage = () => {
                       <li>Informasi ini akan muncul di semua invoice</li>
                       <li>Pastikan data kontak sudah benar</li>
                       <li>Alamat sebaiknya ditulis lengkap</li>
-                      {showDebug && (
-                        <li className="text-orange-600">🔧 Debug mode aktif - lihat komponen debug di bawah</li>
-                      )}
                     </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* 🔧 DEBUG INFO SIDEBAR */}
-            {showDebug && (
-              <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-orange-800">🔧 Debug Mode</CardTitle>
-                </CardHeader>
-                <CardContent className="text-xs text-orange-700 space-y-2">
-                  <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
-                  <p><strong>Purpose:</strong> Diagnose notification issues</p>
-                  <p><strong>Instructions:</strong></p>
-                  <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Scroll down to debug component</li>
-                    <li>Run diagnostics tests</li>
-                    <li>Check browser console (F12)</li>
-                    <li>Compare context vs database data</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>

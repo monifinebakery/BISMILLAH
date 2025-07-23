@@ -55,7 +55,7 @@ const TableHeaderRow: React.FC<{
         {isSelectionMode && (
           <Checkbox
             checked={allSelected}
-            ref={(el) => { if (el) el.indeterminate = someSelected; }}
+            ref={(el) => { if (el) el.indeterminate = someSelected; )}
             onCheckedChange={onToggleAll}
             className="border-gray-400"
             aria-label="Select all orders"

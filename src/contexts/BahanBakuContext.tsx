@@ -1,5 +1,5 @@
 // src/contexts/BahanBakuContext.tsx
-// FIXED VERSION - SAFE NOTIFICATION INTEGRATION
+// COMPLETE VERSION - FULL NOTIFICATION INTEGRATION & SUPABASE SYNC
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { BahanBaku } from '@/types/bahanbaku';
@@ -7,14 +7,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+import { useNotification } from './NotificationContext';
+import { createNotificationHelper } from '../utils/notificationHelpers';
 import { safeParseDate } from '@/utils/dateUtils';
 
 interface BahanBakuContextType {
   bahanBaku: BahanBaku[];
   isLoading: boolean;
+  selectedItems: Set<string>;
+  selectMode: boolean;
   addBahanBaku: (bahanBaku: Omit<BahanBaku, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   updateBahanBaku: (id: string, bahanBaku: Partial<Omit<BahanBaku, 'id' | 'userId'>>) => Promise<boolean>;
   deleteBahanBaku: (id: string) => Promise<boolean>;
+  toggleSelectMode: () => void;
+  toggleSelectItem: (id: string) => void;
+  selectAllItems: () => void;
+  deselectAllItems: () => void;
+  deleteSelectedItems: () => Promise<boolean>;
+  refreshData: () => Promise<void>;
 }
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
@@ -22,34 +32,14 @@ const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefin
 export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+  
   const { user } = useAuth();
   const { addActivity } = useActivity();
+  const { addNotification } = useNotification();
 
   console.log('[BahanBakuContext] Provider initialized', { user: user?.id });
-
-  // 🔧 SAFE: Lazy load notification helper to avoid circular dependency
-  const getNotificationHelper = useCallback(async () => {
-    try {
-      const { createNotificationHelper } = await import('../utils/notificationHelpers');
-      return createNotificationHelper;
-    } catch (error) {
-      console.warn('[BahanBakuContext] Could not load notification helpers:', error);
-      return null;
-    }
-  }, []);
-
-  // 🔧 SAFE: Lazy load notification context to avoid circular dependency
-  const getNotificationContext = useCallback(async () => {
-    try {
-      const { useNotification } = await import('./NotificationContext');
-      // This is a bit tricky - we can't use hooks inside async functions
-      // So we'll handle this differently in the CRUD functions
-      return useNotification;
-    } catch (error) {
-      console.warn('[BahanBakuContext] Could not load notification context:', error);
-      return null;
-    }
-  }, []);
 
   const transformFromDB = (dbItem: any): BahanBaku => ({
     id: dbItem.id,
@@ -68,79 +58,103 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     updatedAt: safeParseDate(dbItem.updated_at),
   });
 
-  // 🔧 SAFE: Check for low stock without causing infinite loops
+  // 🔔 Smart low stock check with notification
   const checkLowStock = useCallback(async (items: BahanBaku[]) => {
     if (!user || items.length === 0) return;
 
     try {
-      const helper = await getNotificationHelper();
-      if (!helper) return;
-
-      // Find items with low stock that we haven't already notified about recently
-      const lowStockItems = items.filter(item => item.stok <= item.minimum);
+      const lowStockItems = items.filter(item => item.stok <= item.minimum && item.minimum > 0);
+      const outOfStockItems = items.filter(item => item.stok === 0);
       
-      if (lowStockItems.length > 0) {
-        // For now, just log - we can implement actual notification later
-        console.log('[BahanBakuContext] Low stock items detected:', lowStockItems.length);
-        
-        // Optional: Create a single summary notification instead of individual ones
-        // This prevents notification spam
-        if (lowStockItems.length === 1) {
-          const item = lowStockItems[0];
-          console.log(`[BahanBakuContext] Would create notification for: ${item.nama} (${item.stok}/${item.minimum})`);
-        } else {
-          console.log(`[BahanBakuContext] Would create summary notification for ${lowStockItems.length} low stock items`);
-        }
+      console.log('[BahanBakuContext] Stock check:', { 
+        total: items.length, 
+        lowStock: lowStockItems.length,
+        outOfStock: outOfStockItems.length 
+      });
+
+      // Create notifications for out of stock items (high priority)
+      for (const item of outOfStockItems) {
+        await addNotification(createNotificationHelper.stockOut(item.nama));
+      }
+
+      // Create notifications for low stock items (but not out of stock)
+      const justLowStock = lowStockItems.filter(item => item.stok > 0);
+      for (const item of justLowStock) {
+        await addNotification(createNotificationHelper.lowStock(item.nama, item.stok, item.minimum));
+      }
+
+      // Create summary notification if there are multiple issues
+      if (lowStockItems.length > 3) {
+        await addNotification({
+          title: '📊 Ringkasan Stok Gudang',
+          message: `${outOfStockItems.length} item habis, ${justLowStock.length} item stok menipis`,
+          type: 'warning',
+          icon: 'alert-triangle',
+          priority: 3,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
       }
     } catch (error) {
-      console.warn('[BahanBakuContext] Error checking low stock:', error);
+      console.warn('[BahanBakuContext] Error in stock check:', error);
     }
-  }, [user, getNotificationHelper]);
+  }, [user, addNotification]);
 
+  // 🔄 Refresh data function
+  const refreshData = useCallback(async () => {
+    if (!user) return;
+
+    console.log('[BahanBakuContext] Refreshing data...');
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('nama', { ascending: true });
+
+      if (error) {
+        console.error('[BahanBakuContext] Refresh error:', error);
+        toast.error(`Gagal memuat data: ${error.message}`);
+        
+        // Create error notification
+        await addNotification(createNotificationHelper.systemError(
+          `Gagal memuat data gudang: ${error.message}`
+        ));
+      } else {
+        const transformedData = (data || []).map(transformFromDB);
+        console.log('[BahanBakuContext] Data refreshed:', transformedData.length, 'items');
+        setBahanBaku(transformedData);
+        
+        // Check stock after refresh (with delay to avoid spam)
+        setTimeout(() => checkLowStock(transformedData), 2000);
+      }
+    } catch (error) {
+      console.error('[BahanBakuContext] Unexpected refresh error:', error);
+      toast.error('Terjadi kesalahan saat memuat data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, addNotification, checkLowStock]);
+
+  // 🚀 Initial data load and real-time setup
   useEffect(() => {
     console.log('[BahanBakuContext] useEffect triggered', { user: user?.id });
     
     if (!user) {
       console.log('[BahanBakuContext] No user, clearing data');
       setBahanBaku([]);
+      setSelectedItems(new Set());
+      setSelectMode(false);
       setIsLoading(false);
       return;
     }
 
-    const fetchInitialData = async () => {
-      console.log('[BahanBakuContext] Fetching initial data...');
-      setIsLoading(true);
-      
-      try {
-        const { data, error } = await supabase
-          .from('bahan_baku')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('nama', { ascending: true });
-
-        console.log('[BahanBakuContext] Query result:', { data, error });
-
-        if (error) {
-          console.error('[BahanBakuContext] Database error:', error);
-          toast.error(`Gagal memuat bahan baku: ${error.message}`);
-        } else {
-          const transformedData = (data || []).map(transformFromDB);
-          console.log('[BahanBakuContext] Data transformed:', transformedData.length, 'items');
-          setBahanBaku(transformedData);
-          
-          // 🔧 SAFE: Check low stock after data is loaded (not in useEffect dependency)
-          setTimeout(() => checkLowStock(transformedData), 1000);
-        }
-      } catch (error) {
-        console.error('[BahanBakuContext] Unexpected error:', error);
-        toast.error('Terjadi kesalahan saat memuat data');
-      } finally {
-        console.log('[BahanBakuContext] Loading finished');
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialData();
+    // Initial data load
+    refreshData();
 
     // Set up real-time subscription
     const channel = supabase
@@ -153,24 +167,52 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       }, (payload) => {
         console.log('[BahanBakuContext] Real-time event:', payload);
         
-        if (payload.eventType === 'INSERT') {
-          setBahanBaku(current => [transformFromDB(payload.new), ...current].sort((a, b) => a.nama.localeCompare(b.nama)));
-        }
-        if (payload.eventType === 'UPDATE') {
-          setBahanBaku(current => current.map(item => item.id === payload.new.id ? transformFromDB(payload.new) : item));
-        }
-        if (payload.eventType === 'DELETE') {
-          setBahanBaku(current => current.filter(item => item.id !== payload.old.id));
+        try {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newItem = transformFromDB(payload.new);
+            setBahanBaku(current => {
+              const updated = [newItem, ...current].sort((a, b) => a.nama.localeCompare(b.nama));
+              // Check stock for new item
+              setTimeout(() => checkLowStock([newItem]), 1000);
+              return updated;
+            });
+          }
+          
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const updatedItem = transformFromDB(payload.new);
+            setBahanBaku(current => {
+              const updated = current.map(item => item.id === updatedItem.id ? updatedItem : item);
+              // Check stock for updated item
+              setTimeout(() => checkLowStock([updatedItem]), 1000);
+              return updated;
+            });
+          }
+          
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            const deletedId = payload.old.id;
+            setBahanBaku(current => current.filter(item => item.id !== deletedId));
+            // Remove from selection if it was selected
+            setSelectedItems(current => {
+              const updated = new Set(current);
+              updated.delete(deletedId);
+              return updated;
+            });
+          }
+        } catch (error) {
+          console.error('[BahanBakuContext] Error handling real-time event:', error);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[BahanBakuContext] Real-time subscription status:', status);
+      });
 
     return () => {
       console.log('[BahanBakuContext] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user]); // 🔧 SAFE: ONLY user dependency, no notification dependencies
+  }, [user, refreshData, checkLowStock]);
 
+  // 📦 CRUD Operations
   const addBahanBaku = async (bahanBaku: Omit<BahanBaku, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan bahan baku');
@@ -180,21 +222,25 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const bahanBakuToInsert = {
         user_id: user.id,
-        nama: bahanBaku.nama,
-        satuan: bahanBaku.satuan,
+        nama: bahanBaku.nama?.trim(),
+        satuan: bahanBaku.satuan?.trim(),
         stok: bahanBaku.stok,
         minimum: bahanBaku.minimum,
         harga_per_satuan: bahanBaku.hargaPerSatuan,
-        supplier: bahanBaku.supplier,
-        kategori: bahanBaku.kategori,
-        lokasi: bahanBaku.lokasi,
+        supplier: bahanBaku.supplier?.trim(),
+        kategori: bahanBaku.kategori?.trim(),
+        lokasi: bahanBaku.lokasi?.trim(),
         tanggal_expired: bahanBaku.tanggalExpired?.toISOString(),
-        catatan: bahanBaku.catatan,
+        catatan: bahanBaku.catatan?.trim() || null,
       };
 
+      console.log('[BahanBakuContext] Adding item:', bahanBakuToInsert);
       const { error } = await supabase.from('bahan_baku').insert(bahanBakuToInsert);
       
-      if (error) throw error;
+      if (error) {
+        console.error('[BahanBakuContext] Insert error:', error);
+        throw new Error(error.message);
+      }
 
       // Activity log
       addActivity({
@@ -204,24 +250,30 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         value: null,
       });
 
+      // Success toast
       toast.success(`${bahanBaku.nama} berhasil ditambahkan!`);
 
-      // 🔧 SAFE: Try to create notification without blocking main operation
-      try {
-        const helper = await getNotificationHelper();
-        if (helper) {
-          // We'll implement this later when we have a safe way to call useNotification
-          console.log(`[BahanBakuContext] Would create add notification for: ${bahanBaku.nama}`);
-        }
-      } catch (notificationError) {
-        console.warn('[BahanBakuContext] Could not create add notification:', notificationError);
-        // Don't fail the main operation if notification fails
-      }
+      // 🔔 Success notification
+      await addNotification({
+        title: '📦 Bahan Baku Baru!',
+        message: `${bahanBaku.nama} berhasil ditambahkan dengan stok ${bahanBaku.stok} ${bahanBaku.satuan}`,
+        type: 'success',
+        icon: 'package',
+        priority: 2,
+        related_type: 'inventory',
+        action_url: '/gudang',
+        is_read: false,
+        is_archived: false
+      });
 
       return true;
     } catch (error) {
       console.error('[BahanBakuContext] Error adding:', error);
-      toast.error(`Gagal menambahkan bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = `Gagal menambahkan bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      toast.error(errorMessage);
+      
+      // 🔔 Error notification
+      await addNotification(createNotificationHelper.systemError(errorMessage));
       return false;
     }
   };
@@ -233,36 +285,54 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
+      const existingItem = bahanBaku.find(item => item.id === id);
       const dataToUpdate: { [key: string]: any } = {};
       
-      if (bahanBaku.nama !== undefined) dataToUpdate.nama = bahanBaku.nama;
-      if (bahanBaku.satuan !== undefined) dataToUpdate.satuan = bahanBaku.satuan;
+      if (bahanBaku.nama !== undefined) dataToUpdate.nama = bahanBaku.nama?.trim();
+      if (bahanBaku.satuan !== undefined) dataToUpdate.satuan = bahanBaku.satuan?.trim();
       if (bahanBaku.stok !== undefined) dataToUpdate.stok = bahanBaku.stok;
       if (bahanBaku.minimum !== undefined) dataToUpdate.minimum = bahanBaku.minimum;
       if (bahanBaku.hargaPerSatuan !== undefined) dataToUpdate.harga_per_satuan = bahanBaku.hargaPerSatuan;
-      if (bahanBaku.supplier !== undefined) dataToUpdate.supplier = bahanBaku.supplier;
-      if (bahanBaku.kategori !== undefined) dataToUpdate.kategori = bahanBaku.kategori;
-      if (bahanBaku.lokasi !== undefined) dataToUpdate.lokasi = bahanBaku.lokasi;
+      if (bahanBaku.supplier !== undefined) dataToUpdate.supplier = bahanBaku.supplier?.trim();
+      if (bahanBaku.kategori !== undefined) dataToUpdate.kategori = bahanBaku.kategori?.trim();
+      if (bahanBaku.lokasi !== undefined) dataToUpdate.lokasi = bahanBaku.lokasi?.trim();
       if (bahanBaku.tanggalExpired !== undefined) dataToUpdate.tanggal_expired = bahanBaku.tanggalExpired?.toISOString();
-      if (bahanBaku.catatan !== undefined) dataToUpdate.catatan = bahanBaku.catatan;
+      if (bahanBaku.catatan !== undefined) dataToUpdate.catatan = bahanBaku.catatan?.trim() || null;
 
-      const { error } = await supabase.from('bahan_baku').update(dataToUpdate).eq('id', id);
+      console.log('[BahanBakuContext] Updating item:', id, dataToUpdate);
+      const { error } = await supabase.from('bahan_baku').update(dataToUpdate).eq('id', id).eq('user_id', user.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('[BahanBakuContext] Update error:', error);
+        throw new Error(error.message);
+      }
 
+      // Success toast
       toast.success('Bahan baku berhasil diperbarui!');
 
-      // 🔧 SAFE: Check if updated item now has low stock
-      if (bahanBaku.stok !== undefined && bahanBaku.minimum !== undefined) {
-        if (bahanBaku.stok <= bahanBaku.minimum) {
-          console.log(`[BahanBakuContext] Item ${bahanBaku.nama || 'updated item'} now has low stock: ${bahanBaku.stok}/${bahanBaku.minimum}`);
-        }
+      // 🔔 Update notification (only for significant changes)
+      if (bahanBaku.nama || bahanBaku.stok !== undefined) {
+        await addNotification({
+          title: '📝 Bahan Baku Diperbarui',
+          message: `${bahanBaku.nama || existingItem?.nama || 'Item'} telah diperbarui`,
+          type: 'info',
+          icon: 'edit',
+          priority: 1,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
       }
 
       return true;
     } catch (error) {
       console.error('[BahanBakuContext] Error updating:', error);
-      toast.error(`Gagal memperbarui bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = `Gagal memperbarui bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      toast.error(errorMessage);
+      
+      // 🔔 Error notification
+      await addNotification(createNotificationHelper.systemError(errorMessage));
       return false;
     }
   };
@@ -274,26 +344,149 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
-      const bahanBakuToDelete = bahanBaku.find(item => item.id === id);
-      
-      const { error } = await supabase.from('bahan_baku').delete().eq('id', id);
-      
-      if (error) throw error;
-
-      if (bahanBakuToDelete) {
-        addActivity({
-          title: 'Bahan Baku Dihapus',
-          description: `${bahanBakuToDelete.nama} telah dihapus dari gudang`,
-          type: 'gudang',
-          value: null,
-        });
+      const itemToDelete = bahanBaku.find(item => item.id === id);
+      if (!itemToDelete) {
+        toast.error('Item tidak ditemukan');
+        return false;
       }
 
+      console.log('[BahanBakuContext] Deleting item:', id);
+      const { error } = await supabase.from('bahan_baku').delete().eq('id', id).eq('user_id', user.id);
+      
+      if (error) {
+        console.error('[BahanBakuContext] Delete error:', error);
+        throw new Error(error.message);
+      }
+
+      // Activity log
+      addActivity({
+        title: 'Bahan Baku Dihapus',
+        description: `${itemToDelete.nama} telah dihapus dari gudang`,
+        type: 'gudang',
+        value: null,
+      });
+
+      // Remove from selection
+      setSelectedItems(current => {
+        const updated = new Set(current);
+        updated.delete(id);
+        return updated;
+      });
+
+      // Success toast
       toast.success('Bahan baku berhasil dihapus!');
+
+      // 🔔 Delete notification
+      await addNotification({
+        title: '🗑️ Bahan Baku Dihapus',
+        message: `${itemToDelete.nama} telah dihapus dari gudang`,
+        type: 'warning',
+        icon: 'trash-2',
+        priority: 2,
+        related_type: 'inventory',
+        action_url: '/gudang',
+        is_read: false,
+        is_archived: false
+      });
+
       return true;
     } catch (error) {
       console.error('[BahanBakuContext] Error deleting:', error);
-      toast.error(`Gagal menghapus bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = `Gagal menghapus bahan baku: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      toast.error(errorMessage);
+      
+      // 🔔 Error notification
+      await addNotification(createNotificationHelper.systemError(errorMessage));
+      return false;
+    }
+  };
+
+  // 🎯 Selection Functions
+  const toggleSelectMode = () => {
+    setSelectMode(prev => !prev);
+    if (selectMode) {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedItems(current => {
+      const updated = new Set(current);
+      if (updated.has(id)) {
+        updated.delete(id);
+      } else {
+        updated.add(id);
+      }
+      return updated;
+    });
+  };
+
+  const selectAllItems = () => {
+    setSelectedItems(new Set(bahanBaku.map(item => item.id)));
+  };
+
+  const deselectAllItems = () => {
+    setSelectedItems(new Set());
+  };
+
+  const deleteSelectedItems = async (): Promise<boolean> => {
+    if (selectedItems.size === 0) {
+      toast.error('Tidak ada item yang dipilih');
+      return false;
+    }
+
+    try {
+      const itemsToDelete = bahanBaku.filter(item => selectedItems.has(item.id));
+      const itemIds = Array.from(selectedItems);
+
+      console.log('[BahanBakuContext] Deleting selected items:', itemIds.length);
+      const { error } = await supabase
+        .from('bahan_baku')
+        .delete()
+        .in('id', itemIds)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('[BahanBakuContext] Bulk delete error:', error);
+        throw new Error(error.message);
+      }
+
+      // Activity log
+      addActivity({
+        title: 'Bahan Baku Dihapus (Batch)',
+        description: `${itemIds.length} item telah dihapus dari gudang`,
+        type: 'gudang',
+        value: null,
+      });
+
+      // Clear selection
+      setSelectedItems(new Set());
+      setSelectMode(false);
+
+      // Success toast
+      toast.success(`${itemIds.length} item berhasil dihapus!`);
+
+      // 🔔 Bulk delete notification
+      await addNotification({
+        title: '🗑️ Batch Delete Berhasil',
+        message: `${itemIds.length} bahan baku telah dihapus dari gudang`,
+        type: 'warning',
+        icon: 'trash-2',
+        priority: 2,
+        related_type: 'inventory',
+        action_url: '/gudang',
+        is_read: false,
+        is_archived: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[BahanBakuContext] Error deleting selected items:', error);
+      const errorMessage = `Gagal menghapus item: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      toast.error(errorMessage);
+      
+      // 🔔 Error notification
+      await addNotification(createNotificationHelper.systemError(errorMessage));
       return false;
     }
   };
@@ -301,15 +494,25 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   const value: BahanBakuContextType = {
     bahanBaku,
     isLoading,
+    selectedItems,
+    selectMode,
     addBahanBaku,
     updateBahanBaku,
     deleteBahanBaku,
+    toggleSelectMode,
+    toggleSelectItem,
+    selectAllItems,
+    deselectAllItems,
+    deleteSelectedItems,
+    refreshData,
   };
 
   console.log('[BahanBakuContext] Providing value:', { 
     itemCount: bahanBaku.length, 
     isLoading,
-    hasUser: !!user 
+    hasUser: !!user,
+    selectedCount: selectedItems.size,
+    selectMode
   });
 
   return (

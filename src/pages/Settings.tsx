@@ -249,6 +249,7 @@ const SettingsPage = () => {
 
             {/* Notification Settings Form */}
             <NotificationSettingsForm />
+            <SimpleNotificationTest />
 
             {/* 🔧 DEBUG COMPONENT - CONDITIONALLY SHOWN */}
             {showDebug && <NotificationDebugEnhanced />}

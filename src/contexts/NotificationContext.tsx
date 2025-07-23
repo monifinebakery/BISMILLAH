@@ -41,7 +41,8 @@ interface NotificationContextType {
   urgentCount: number;
   isLoading: boolean;
   settings: NotificationSettings | null;
-  addNotification: (notification: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'is_read' | 'is_archived'>) => Promise<boolean>;
+  // 🔧 FIXED: Consistent signature with helper functions
+  addNotification: (notification: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   markAsRead: (notificationId: string) => Promise<boolean>;
   markAllAsRead: () => Promise<boolean>;
   deleteNotification: (notificationId: string) => Promise<boolean>;
@@ -141,10 +142,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     };
   }, [user, loadNotifications]);
 
-  const addNotification = async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'is_read' | 'is_archived'>): Promise<boolean> => {
+  // 🔧 FIXED: Accept both is_read and is_archived, with defaults
+  const addNotification = async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     if (!user) return false;
     try {
-      const { error } = await supabase.from('notifications').insert({ ...notificationData, user_id: user.id });
+      const dataToInsert = {
+        ...notificationData,
+        user_id: user.id,
+        is_read: notificationData.is_read ?? false,
+        is_archived: notificationData.is_archived ?? false
+      };
+      
+      const { error } = await supabase.from('notifications').insert(dataToInsert);
       if (error) throw error;
       return true;
     } catch (error) {

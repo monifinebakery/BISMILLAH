@@ -209,55 +209,55 @@ const InvoicePage: React.FC = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <Card className="print:hidden shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={() => navigate(-1)}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <FileText className="h-8 w-8" />
-                <div>
-                  <CardTitle className="text-2xl font-bold">
-                    {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
-                  </CardTitle>
-                  {orderId && (
-                    <p className="text-blue-100 text-sm">Order ID: {orderId}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="secondary" 
-                  onClick={duplicateInvoice}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Duplikasi
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  onClick={resetForm}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Reset
-                </Button>
-                <Button 
-                  onClick={handleExportPDF}
-                  className="bg-white text-blue-600 hover:bg-gray-100"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export PDF
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+  <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-4 sm:p-6">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center space-x-3">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <FileText className="h-8 w-8" />
+        <div>
+          <CardTitle className="text-2xl font-bold">
+            {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
+          </CardTitle>
+          {orderId && (
+            <p className="text-blue-100 text-sm">Order ID: {orderId}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+        <Button 
+          variant="secondary" 
+          onClick={duplicateInvoice}
+          className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto"
+        >
+          <Copy className="mr-2 h-4 w-4" />
+          Duplikasi
+        </Button>
+        <Button 
+          variant="secondary" 
+          onClick={resetForm}
+          className="bg-white/20 hover:bg-white/30 text-white border-white/20 w-full sm:w-auto"
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Reset
+        </Button>
+        <Button 
+          onClick={handleExportPDF}
+          className="bg-white text-blue-600 hover:bg-gray-100 w-full sm:w-auto py-2 px-4 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Download className="h-5 w-5" />
+          Export PDF
+        </Button>
+      </div>
+    </div>
+  </CardHeader>
+</Card>
 
         {/* Invoice Content */}
         <Card className="shadow-xl border-0 overflow-hidden" id="invoice-content">

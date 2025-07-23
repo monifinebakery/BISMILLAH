@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, Component } from 'react';
-import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, toDate } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Loader2, CheckSquare, X, MoreHorizontal, Eye } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
@@ -64,8 +64,8 @@ const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30),
-    to: new Date()
+    from: startOfDay(subDays(new Date('2025-07-23T19:43:00+07:00'), 30)).toISOString(),
+    to: endOfDay(new Date('2025-07-23T19:43:00+07:00')).toISOString()
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -223,11 +223,11 @@ const OrdersPage = () => {
     if (!orders || !Array.isArray(orders)) return [];
 
     try {
-      const rangeFrom = dateRange?.from ? startOfDay(dateRange.from) : null;
-      const rangeTo = dateRange?.to ? endOfDay(dateRange.to) : null;
+      const rangeFrom = dateRange?.from ? new Date(dateRange.from) : null;
+      const rangeTo = dateRange?.to ? new Date(dateRange.to) : null;
 
       return orders.filter(order => {
-        if (!order) return false;
+        if (!order || !order.tanggal) return false;
 
         const matchesSearch =
           order.nomorPesanan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,9 +241,12 @@ const OrdersPage = () => {
             const orderDate = new Date(order.tanggal);
             if (!isNaN(orderDate.getTime())) {
               matchesDate = orderDate >= rangeFrom && orderDate <= rangeTo;
+            } else {
+              matchesDate = false;
             }
           } catch (error) {
             console.warn('Invalid date in order:', order.tanggal);
+            matchesDate = false;
           }
         }
 
@@ -276,14 +279,14 @@ const OrdersPage = () => {
 
   // Date Presets Component
   const DatePresets = ({ setDateRange }) => {
-    const today = new Date();
+    const today = new Date('2025-07-23T19:43:00+07:00');
     const presets = [
-      { label: "Hari Ini", range: { from: today, to: today } },
-      { label: "Kemarin", range: { from: subDays(today, 1), to: subDays(today, 1) } },
-      { label: "7 Hari Terakhir", range: { from: subDays(today, 6), to: today } },
-      { label: "30 Hari Terakhir", range: { from: subDays(today, 29), to: today } },
-      { label: "Bulan Ini", range: { from: startOfMonth(today), to: endOfMonth(today) } },
-      { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) } },
+      { label: "Hari Ini", range: { from: startOfDay(today).toISOString(), to: endOfDay(today).toISOString() } },
+      { label: "Kemarin", range: { from: startOfDay(subDays(today, 1)).toISOString(), to: endOfDay(subDays(today, 1)).toISOString() } },
+      { label: "7 Hari Terakhir", range: { from: startOfDay(subDays(today, 6)).toISOString(), to: endOfDay(today).toISOString() } },
+      { label: "30 Hari Terakhir", range: { from: startOfDay(subDays(today, 29)).toISOString(), to: endOfDay(today).toISOString() } },
+      { label: "Bulan Ini", range: { from: startOfMonth(today).toISOString(), to: endOfMonth(today).toISOString() } },
+      { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)).toISOString(), to: endOfMonth(subMonths(today, 1)).toISOString() } },
     ];
     return (
       <div className="flex flex-col space-y-2 p-3">
@@ -468,9 +471,9 @@ const OrdersPage = () => {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange?.from ? (
-                      dateRange.to && dateRange.from.toDateString() !== dateRange.to.toDateString() ?
-                        `${format(dateRange.from, "d LLL y", { locale: id })} - ${format(dateRange.to, "d LLL y", { locale: id })}` :
-                        format(dateRange.from, "d LLL y", { locale: id })
+                      dateRange.to && toDate(dateRange.from).toDateString() !== toDate(dateRange.to).toDateString() ?
+                        `${format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to), "d MMMM yyyy", { locale: id })}` :
+                        format(toDate(dateRange.from), "d MMMM yyyy", { locale: id })
                     ) : (
                       <span>Pilih tanggal</span>
                     )}
@@ -494,10 +497,13 @@ const OrdersPage = () => {
                       <Calendar
                         initialFocus
                         mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
+                        defaultMonth={dateRange?.from ? toDate(dateRange.from) : undefined}
+                        selected={dateRange ? { from: toDate(dateRange.from), to: dateRange.to ? toDate(dateRange.to) : undefined } : undefined}
                         onSelect={(newRange) => {
-                          setDateRange(newRange);
+                          setDateRange(newRange ? {
+                            from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
+                            to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
+                          } : undefined);
                           setCurrentPage(1);
                         }}
                         numberOfMonths={isMobile ? 1 : 2}

@@ -1,6 +1,3 @@
-// src/hooks/useOrdersBulkActions.tsx
-// 🔧 ORDERS BULK ACTIONS HOOK - Manages bulk operations and selections
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Order } from '@/types/order';
 

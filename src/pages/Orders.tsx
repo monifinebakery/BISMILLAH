@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, Component } from 'react';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, toDate } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, Plus, Search, Edit, Package, MessageSquare, FileText, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Loader2, CheckSquare, X, MoreHorizontal, Eye } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';

@@ -129,7 +129,7 @@ export const exportAllDataToExcel = (allData: any, businessName?: string) => {
                 totalHPP: r.totalHPP,
                 hppPerPorsi: r.hppPerPorsi, 
                 marginKeuntungan: r.marginKeuntungan, 
-                hargaJualPerPorsi: r.hargaJualPerPorsi
+                hargaJualPorsi: r.hargaJualPorsi
             }))
         ),
         headers: {

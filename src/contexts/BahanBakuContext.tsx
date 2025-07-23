@@ -90,7 +90,6 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const checkInventoryAlerts = useCallback(async () => {
     if (!user || bahanBaku.length === 0) return;
-
     try {
       const lowStock = getLowStockItems();
       const outOfStock = getOutOfStockItems();

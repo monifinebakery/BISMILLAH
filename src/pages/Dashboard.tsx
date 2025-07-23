@@ -41,11 +41,17 @@ const Dashboard = () => {
     const { settings } = useUserSettings();
     const isMobile = useIsMobile();
 
-    // State
-    const [date, setDate] = useState({ from: new Date(), to: new Date() });
-    const [productsPage, setProductsPage] = useState(1);
-    const [activitiesPage, setActivitiesPage] = useState(1);
-    const itemsPerPage = 5;
+    // State: Store dates as ISO strings
+    const [date, setDate] = useState({
+        from: new Date().toISOString(),
+        to: new Date().toISOString(),
+    });
+
+    // Convert ISO strings to Date objects for Calendar
+    const calendarDate = useMemo(() => ({
+        from: date.from ? new Date(date.from) : null,
+        to: date.to ? new Date(date.to) : null,
+    }), [date]);
 
     // --- Logika Inti Menggunakan Fungsi Terpusat ---
     const filteredOrders = useMemo(() => filterByDateRange(orders, date, 'tanggal'), [orders, date]);
@@ -107,12 +113,12 @@ const Dashboard = () => {
     const DatePresets = ({ setDateRange }) => {
         const today = new Date();
         const presets = [
-            { label: "Hari Ini", range: { from: today, to: today } },
-            { label: "Kemarin", range: { from: subDays(today, 1), to: subDays(today, 1) } },
-            { label: "7 Hari Terakhir", range: { from: subDays(today, 6), to: today } },
-            { label: "30 Hari Terakhir", range: { from: subDays(today, 29), to: today } },
-            { label: "Bulan Ini", range: { from: startOfMonth(today), to: endOfMonth(today) } },
-            { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) } },
+            { label: "Hari Ini", range: { from: today.toISOString(), to: today.toISOString() } },
+            { label: "Kemarin", range: { from: subDays(today, 1).toISOString(), to: subDays(today, 1).toISOString() } },
+            { label: "7 Hari Terakhir", range: { from: subDays(today, 6).toISOString(), to: today.toISOString() } },
+            { label: "30 Hari Terakhir", range: { from: subDays(today, 29).toISOString(), to: today.toISOString() } },
+            { label: "Bulan Ini", range: { from: startOfMonth(today).toISOString(), to: endOfMonth(today).toISOString() } },
+            { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)).toISOString(), to: endOfMonth(subMonths(today, 1)).toISOString() } },
         ];
         return (
             <div className="flex flex-col space-y-2 p-3">
@@ -147,10 +153,10 @@ const Dashboard = () => {
                             >
                                 <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
                                 <span className="truncate">
-                                    {date?.from ? (
-                                        date.to && date.from.toDateString() !== date.to.toDateString()
-                                            ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
-                                            : format(date.from, "LLL dd, y", { locale: id })
+                                    {calendarDate.from ? (
+                                        calendarDate.to && calendarDate.from.toDateString() !== calendarDate.to.toDateString()
+                                            ? `${format(calendarDate.from, "LLL dd, y", { locale: id })} - ${format(calendarDate.to, "LLL dd, y", { locale: id })}`
+                                            : format(calendarDate.from, "LLL dd, y", { locale: id })
                                     ) : (
                                         <span className="text-gray-500">Pilih tanggal</span>
                                     )}
@@ -170,9 +176,14 @@ const Dashboard = () => {
                                     <Calendar
                                         initialFocus
                                         mode="range"
-                                        defaultMonth={date?.from}
-                                        selected={date}
-                                        onSelect={setDate}
+                                        defaultMonth={calendarDate.from}
+                                        selected={calendarDate}
+                                        onSelect={(range) => {
+                                            setDate(range ? {
+                                                from: range.from ? new Date(range.from).toISOString() : null,
+                                                to: range.to ? new Date(range.to).toISOString() : null,
+                                            } : null);
+                                        }}
                                         numberOfMonths={1}
                                         locale={id}
                                         className="p-3"
@@ -195,10 +206,10 @@ const Dashboard = () => {
                                 className="w-full sm:w-[300px] justify-start text-left font-medium bg-white border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm"
                             >
                                 <CalendarIcon className="mr-2 h-5 w-5 text-gray-500" />
-                                {date?.from ? (
-                                    date.to && date.from.toDateString() !== date.to.toDateString()
-                                        ? `${format(date.from, "LLL dd, y", { locale: id })} - ${format(date.to, "LLL dd, y", { locale: id })}`
-                                        : format(date.from, "LLL dd, y", { locale: id })
+                                {calendarDate.from ? (
+                                    calendarDate.to && calendarDate.from.toDateString() !== calendarDate.to.toDateString()
+                                        ? `${format(calendarDate.from, "LLL dd, y", { locale: id })} - ${format(calendarDate.to, "LLL dd, y", { locale: id })}`
+                                        : format(calendarDate.from, "LLL dd, y", { locale: id })
                                 ) : (
                                     <span className="text-gray-500">Pilih tanggal</span>
                                 )}
@@ -210,9 +221,14 @@ const Dashboard = () => {
                                 <Calendar
                                     initialFocus
                                     mode="range"
-                                    defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
+                                    defaultMonth={calendarDate.from}
+                                    selected={calendarDate}
+                                    onSelect={(range) => {
+                                        setDate(range ? {
+                                            from: range.from ? new Date(range.from).toISOString() : null,
+                                            to: range.to ? new Date(range.to).toISOString() : null,
+                                        } : null);
+                                    }}
                                     numberOfMonths={2}
                                     locale={id}
                                     className="p-3"

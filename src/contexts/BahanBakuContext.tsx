@@ -1,10 +1,12 @@
 // src/contexts/BahanBakuContext.tsx
-// COMPLETE VERSION - REAL-TIME LOOP FIX & NOTIFICATION INTEGRATION
+// FIXED VERSION - NO RENDERING LOOPS & WORKING SELECTION
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { BahanBaku } from '@/types/bahanbaku';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { BahanBaku } from '@/types/bahanBaku';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useNotification } from './NotificationContext';
@@ -12,21 +14,25 @@ import { createNotificationHelper } from '../utils/notificationHelpers';
 import { safeParseDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 
+// --- INTERFACE & CONTEXT ---
 interface BahanBakuContextType {
   bahanBaku: BahanBaku[];
   isLoading: boolean;
-  selectedItems: Set<string>;
-  selectMode: boolean;
-  addBahanBaku: (bahanBaku: Omit<BahanBaku, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updateBahanBaku: (id: string, bahanBaku: Partial<Omit<BahanBaku, 'id' | 'userId'>>) => Promise<boolean>;
+  selectedItems: string[];
+  isSelectionMode: boolean;
+  isBulkDeleting: boolean;
+  addBahanBaku: (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
+  updateBahanBaku: (id: string, bahan: Partial<BahanBaku>) => Promise<boolean>;
   deleteBahanBaku: (id: string) => Promise<boolean>;
-  getBahanBakuByName: (name: string) => BahanBaku | undefined;
-  reduceStok: (name: string, quantity: number) => Promise<boolean>;
-  toggleSelectMode: () => void;
-  toggleSelectItem: (id: string) => void;
-  selectAllItems: () => void;
-  deselectAllItems: () => void;
-  deleteSelectedItems: () => Promise<boolean>;
+  getBahanBakuByName: (nama: string) => BahanBaku | undefined;
+  reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
+  bulkDeleteBahanBaku: (ids: string[]) => Promise<boolean>;
+  toggleSelection: (id: string) => void;
+  selectAll: () => void;
+  clearSelection: () => void;
+  toggleSelectionMode: () => void;
+  isSelected: (id: string) => boolean;
+  getSelectedItems: () => BahanBaku[];
   refreshData: () => Promise<void>;
   checkInventoryAlerts: () => Promise<void>;
   getExpiringItems: (days?: number) => BahanBaku[];
@@ -36,88 +42,171 @@ interface BahanBakuContextType {
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
 
+// --- PROVIDER COMPONENT ---
 export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [selectMode, setSelectMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  
+
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addNotification } = useNotification();
 
-  const transformFromDB = (dbItem: any): BahanBaku => ({
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const alertsCheckedRef = useRef<boolean>(false); // 🔧 FIX: Prevent infinite alerts
+
+  console.log('[BahanBakuContext] Provider render', { 
+    user: user?.id,
+    itemCount: bahanBaku.length,
+    selectedCount: selectedItems.length,
+    selectionMode: isSelectionMode
+  });
+
+  const transformBahanBakuFromDB = useCallback((dbItem: any): BahanBaku => ({
     id: dbItem.id,
     nama: dbItem.nama,
-    satuan: dbItem.satuan,
-    stok: Number(dbItem.stok) || 0,
-    minimum: Number(dbItem.minimum) || 0,
-    hargaPerSatuan: Number(dbItem.harga_per_satuan) || 0,
-    supplier: dbItem.supplier,
     kategori: dbItem.kategori,
-    lokasi: dbItem.lokasi,
-    tanggalExpired: dbItem.tanggal_expired ? safeParseDate(dbItem.tanggal_expired) : null,
-    catatan: dbItem.catatan,
+    stok: Number(dbItem.stok) || 0,
+    satuan: dbItem.satuan,
+    hargaSatuan: Number(dbItem.harga_satuan) || 0,
+    minimum: Number(dbItem.minimum) || 0,
+    supplier: dbItem.supplier,
+    tanggalKadaluwarsa: safeParseDate(dbItem.tanggal_kadaluwarsa),
     userId: dbItem.user_id,
     createdAt: safeParseDate(dbItem.created_at),
     updatedAt: safeParseDate(dbItem.updated_at),
-  });
+    jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
+    satuanKemasan: dbItem.satuan_kemasan,
+    hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
+  }), []);
 
-  const getDaysUntilExpiry = (expiryDate: Date | null): number => {
+  const getDaysUntilExpiry = useCallback((expiryDate: Date | null): number => {
     if (!expiryDate) return Infinity;
     const today = new Date();
     const expiry = new Date(expiryDate);
     const diffTime = expiry.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
+  }, []);
 
-  const getLowStockItems = useCallback((): BahanBaku[] => {
-    return bahanBaku.filter(item => item.stok > 0 && item.stok <= item.minimum);
+  const isExpiringSoon = useCallback((item: BahanBaku, days: number = 7): boolean => {
+    if (!item.tanggalKadaluwarsa) return false;
+    const daysUntilExpiry = getDaysUntilExpiry(item.tanggalKadaluwarsa);
+    return daysUntilExpiry <= days && daysUntilExpiry > 0;
+  }, [getDaysUntilExpiry]);
+
+  // 🔧 FIX: Simple helper functions without dependencies on bahanBaku
+  const getLowStockItems = useCallback((items: BahanBaku[] = bahanBaku): BahanBaku[] => {
+    return items.filter(item => item.stok > 0 && item.stok <= item.minimum);
   }, [bahanBaku]);
 
-  const getOutOfStockItems = useCallback((): BahanBaku[] => {
-    return bahanBaku.filter(item => item.stok === 0);
+  const getOutOfStockItems = useCallback((items: BahanBaku[] = bahanBaku): BahanBaku[] => {
+    return items.filter(item => item.stok === 0);
   }, [bahanBaku]);
 
-  const getExpiringItems = useCallback((days: number = 7): BahanBaku[] => {
-    return bahanBaku.filter(item => {
-        if (!item.tanggalExpired) return false;
-        const daysUntilExpiry = getDaysUntilExpiry(item.tanggalExpired);
-        return daysUntilExpiry <= days && daysUntilExpiry > 0;
-    });
-  }, [bahanBaku]);
+  const getExpiringItems = useCallback((days: number = 7, items: BahanBaku[] = bahanBaku): BahanBaku[] => {
+    return items.filter(item => isExpiringSoon(item, days));
+  }, [bahanBaku, isExpiringSoon]);
 
-  const checkInventoryAlerts = useCallback(async () => {
-    if (!user || bahanBaku.length === 0) return;
+  // 🔧 FIX: Isolated alert check function
+  const checkInventoryAlerts = useCallback(async (itemsToCheck?: BahanBaku[]): Promise<void> => {
+    if (!user) return;
+    
+    const items = itemsToCheck || bahanBaku;
+    if (items.length === 0) return;
+
+    console.log('[BahanBakuContext] Checking inventory alerts for', items.length, 'items');
+
     try {
-      const lowStock = getLowStockItems();
-      const outOfStock = getOutOfStockItems();
-      const expiring = getExpiringItems(7);
+      const lowStockItems = getLowStockItems(items);
+      const outOfStockItems = getOutOfStockItems(items);
+      const expiringItems = getExpiringItems(7, items);
+      const criticalExpiringItems = getExpiringItems(3, items);
 
-      for (const item of outOfStock) {
-        await addNotification(createNotificationHelper.stockOut(item.nama));
+      console.log('[BahanBakuContext] Alert counts:', {
+        lowStock: lowStockItems.length,
+        outOfStock: outOfStockItems.length,
+        expiring: expiringItems.length,
+        criticalExpiring: criticalExpiringItems.length
+      });
+
+      // Create notifications for critical issues
+      for (const item of outOfStockItems.slice(0, 3)) { // Limit to prevent spam
+        await addNotification({
+          title: '🚫 Stok Habis!',
+          message: `${item.nama} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
+          type: 'error',
+          icon: 'alert-circle',
+          priority: 4,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
       }
-      for (const item of lowStock) {
-        await addNotification(createNotificationHelper.lowStock(item.nama, item.stok, item.minimum));
+
+      for (const item of lowStockItems.slice(0, 3)) { // Limit to prevent spam
+        await addNotification({
+          title: '⚠️ Stok Menipis!',
+          message: `${item.nama} tersisa ${item.stok} ${item.satuan} dari minimum ${item.minimum}. Pertimbangkan untuk melakukan pembelian.`,
+          type: 'warning',
+          icon: 'alert-triangle',
+          priority: 3,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
       }
-      for (const item of expiring) {
-        const daysLeft = getDaysUntilExpiry(item.tanggalExpired);
-        await addNotification(createNotificationHelper.expiringSoon(item.nama, daysLeft));
+
+      for (const item of criticalExpiringItems.slice(0, 2)) { // Limit to prevent spam
+        const daysLeft = getDaysUntilExpiry(item.tanggalKadaluwarsa);
+        await addNotification({
+          title: '🔥 Segera Expired!',
+          message: `${item.nama} akan expired dalam ${daysLeft} hari! Gunakan segera atau akan mengalami kerugian ${formatCurrency(item.stok * item.hargaSatuan)}.`,
+          type: 'error',
+          icon: 'calendar',
+          priority: 4,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
       }
+
+      // Summary notification for multiple issues
+      const totalIssues = outOfStockItems.length + lowStockItems.length + criticalExpiringItems.length;
+      if (totalIssues > 5) {
+        await addNotification({
+          title: '📊 Ringkasan Alert Gudang',
+          message: `${outOfStockItems.length} habis, ${lowStockItems.length} menipis, ${criticalExpiringItems.length} akan expired`,
+          type: 'warning',
+          icon: 'alert-triangle',
+          priority: 3,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
+      }
+
+      alertsCheckedRef.current = true; // Mark as checked
     } catch (error) {
-      console.error('Error checking inventory alerts:', error);
+      console.error('[BahanBakuContext] Error checking inventory alerts:', error);
     }
-  }, [user, bahanBaku, addNotification, getLowStockItems, getOutOfStockItems, getExpiringItems]);
+  }, [user, bahanBaku, addNotification, getLowStockItems, getOutOfStockItems, getExpiringItems, getDaysUntilExpiry]);
 
-  const refreshData = useCallback(async (isInitialLoad = false) => {
+  // 🔧 FIX: Separate fetch function without alert check
+  const fetchBahanBaku = useCallback(async (shouldCheckAlerts: boolean = false) => {
     if (!user) {
-        setBahanBaku([]);
-        setIsLoading(false);
-        return;
+      setBahanBaku([]);
+      setIsLoading(false);
+      return;
     }
 
-    if (isInitialLoad) setIsLoading(true);
+    console.log('[BahanBakuContext] Fetching data...');
+    setIsLoading(true);
     
     try {
       const { data, error } = await supabase
@@ -126,198 +215,368 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         .eq('user_id', user.id)
         .order('nama', { ascending: true });
 
-      if (error) throw error;
-      
-      const transformedData = (data || []).map(transformFromDB);
+      if (error) {
+        throw new Error(`Gagal mengambil data: ${error.message}`);
+      }
+
+      const transformedData = data.map(transformBahanBakuFromDB);
+      console.log('[BahanBakuContext] Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
-      
-    } catch (error: any) {
-      toast.error(`Gagal memuat data gudang: ${error.message}`);
+
+      // 🔧 FIX: Only check alerts on initial load, not on every fetch
+      if (shouldCheckAlerts && !alertsCheckedRef.current && transformedData.length > 0) {
+        setTimeout(() => {
+          checkInventoryAlerts(transformedData);
+        }, 2000); // Delay to prevent immediate loop
+      }
+    } catch (err: any) {
+      console.error('[BahanBakuContext] Error fetching bahan baku:', err);
+      toast.error(`Gagal memuat bahan baku: ${err.message}`);
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal memuat data inventory: ${err.message}`
+      ));
     } finally {
-      if (isInitialLoad) setIsLoading(false);
-    }
-  }, [user]);
-
-  // ✅ FIX: This useEffect now ONLY depends on the user.
-  // This prevents the infinite loop.
-  useEffect(() => {
-    if (!user) {
-      setBahanBaku([]);
-      setSelectedItems(new Set());
-      setSelectMode(false);
       setIsLoading(false);
-      return;
     }
+  }, [user, transformBahanBakuFromDB, addNotification, checkInventoryAlerts]);
 
-    refreshData(true);
+  // 🔧 FIX: Separate refresh function
+  const refreshData = useCallback(async () => {
+    await fetchBahanBaku(false); // Don't check alerts on refresh
+  }, [fetchBahanBaku]);
+
+  // Setup subscription once on mount
+  useEffect(() => {
+    if (!user || subscriptionRef.current) return;
+
+    console.log('[BahanBakuContext] Setting up subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`realtime-bahan-baku-${user.id}`)
+      .channel(`bahan_baku_changes_${user.id}`) // Unique channel name
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'bahan_baku',
-        filter: `user_id=eq.${user.id}`
+        filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        console.log('[BahanBakuContext] Real-time event received, refreshing data:', payload.eventType);
-        // Re-fetch data on any change. This is simpler and more reliable.
-        refreshData(false);
+        console.log('[BahanBakuContext] Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+        
+        setBahanBaku((prev) => {
+          if (payload.eventType === 'DELETE') {
+            const filtered = prev.filter((item) => item.id !== payload.old.id);
+            // Remove from selection if deleted
+            setSelectedItems(current => current.filter(id => id !== payload.old.id));
+            return filtered;
+          }
+          if (payload.eventType === 'INSERT') {
+            const newItem = transformBahanBakuFromDB(payload.new);
+            return [...prev, newItem].sort((a, b) => a.nama.localeCompare(b.nama));
+          }
+          if (payload.eventType === 'UPDATE') {
+            const updatedItem = transformBahanBakuFromDB(payload.new);
+            return prev.map((item) =>
+              item.id === updatedItem.id ? updatedItem : item
+            ).sort((a, b) => a.nama.localeCompare(b.nama));
+          }
+          return prev;
+        });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[BahanBakuContext] Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          subscriptionRef.current = channel;
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (subscriptionRef.current) {
+        console.log('[BahanBakuContext] Cleaning up subscription');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // We intentionally leave out refreshData to prevent loops.
+  }, [user, transformBahanBakuFromDB]);
 
-  const addBahanBaku = async (bahanBakuData: Omit<BahanBaku, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
-    if (!user) return false;
+  // Initial data load
+  useEffect(() => {
+    console.log('[BahanBakuContext] Initial data load for user:', user?.id);
+    fetchBahanBaku(true); // Check alerts on initial load
+    setSelectedItems([]);
+    setIsSelectionMode(false);
+    alertsCheckedRef.current = false; // Reset alert check flag
+  }, [user]); // 🔧 FIX: Only depend on user, not fetchBahanBaku
+
+  // 🔧 FIX: Simplified selection functions
+  const toggleSelection = useCallback((id: string) => {
+    console.log('[BahanBakuContext] Toggle selection:', id);
+    setSelectedItems(prev => {
+      const isCurrentlySelected = prev.includes(id);
+      if (isCurrentlySelected) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    console.log('[BahanBakuContext] Select all items');
+    setSelectedItems(bahanBaku.map(item => item.id));
+  }, [bahanBaku]);
+
+  const clearSelection = useCallback(() => {
+    console.log('[BahanBakuContext] Clear selection');
+    setSelectedItems([]);
+  }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    console.log('[BahanBakuContext] Toggle selection mode');
+    setIsSelectionMode(prev => {
+      if (prev) {
+        // Exiting selection mode - clear selections
+        setSelectedItems([]);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const isSelected = useCallback((id: string) => {
+    return selectedItems.includes(id);
+  }, [selectedItems]);
+
+  const getSelectedItems = useCallback(() => {
+    return bahanBaku.filter(item => selectedItems.includes(item.id));
+  }, [bahanBaku, selectedItems]);
+
+  // CRUD Operations (simplified)
+  const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk menambahkan bahan baku');
+      return false;
+    }
+
     try {
-      const { error } = await supabase.from('bahan_baku').insert({
-          user_id: user.id,
-          nama: bahanBakuData.nama?.trim(),
-          satuan: bahanBakuData.satuan?.trim(),
-          stok: bahanBakuData.stok,
-          minimum: bahanBakuData.minimum,
-          harga_per_satuan: bahanBakuData.hargaPerSatuan,
-          supplier: bahanBakuData.supplier?.trim(),
-          kategori: bahanBakuData.kategori?.trim(),
-          lokasi: bahanBakuData.lokasi?.trim(),
-          tanggal_expired: bahanBakuData.tanggalExpired?.toISOString(),
-          catatan: bahanBakuData.catatan?.trim() || null,
-      });
+      const bahanToInsert = {
+        user_id: user.id,
+        nama: bahan.nama,
+        kategori: bahan.kategori,
+        stok: bahan.stok,
+        satuan: bahan.satuan,
+        harga_satuan: bahan.hargaSatuan,
+        minimum: bahan.minimum,
+        supplier: bahan.supplier,
+        tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa,
+        jumlah_beli_kemasan: bahan.jumlahBeliKemasan,
+        satuan_kemasan: bahan.satuanKemasan,
+        harga_total_beli_kemasan: bahan.hargaTotalBeliKemasan
+      };
+
+      const { error } = await supabase
+        .from('bahan_baku')
+        .insert(bahanToInsert);
+
       if (error) throw error;
-      toast.success(`${bahanBakuData.nama} berhasil ditambahkan!`);
-      // Real-time will handle the UI update
+
+      addActivity({
+        title: 'Bahan Baku Ditambahkan',
+        description: `${bahan.nama} telah ditambahkan ke gudang.`,
+        type: 'stok',
+      });
+
+      toast.success(`${bahan.nama} berhasil ditambahkan ke inventory!`);
+
+      // Create success notification
+      await addNotification({
+        title: '📦 Item Baru Ditambahkan!',
+        message: `${bahan.nama} berhasil ditambahkan dengan stok ${bahan.stok} ${bahan.satuan}`,
+        type: 'success',
+        icon: 'package',
+        priority: 2,
+        related_type: 'inventory',
+        action_url: '/gudang',
+        is_read: false,
+        is_archived: false
+      });
+
       return true;
     } catch (error: any) {
+      console.error('[BahanBakuContext] Error adding bahan baku:', error);
       toast.error(`Gagal menambahkan: ${error.message}`);
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menambahkan ${bahan.nama}: ${error.message}`
+      ));
       return false;
     }
   };
 
-  const updateBahanBaku = async (id: string, updatedData: Partial<Omit<BahanBaku, 'id' | 'userId'>>): Promise<boolean> => {
-    if (!user) return false;
+  const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk memperbarui bahan baku');
+      return false;
+    }
+
     try {
-      const dataToUpdate: { [key: string]: any } = {};
-      if (updatedData.nama !== undefined) dataToUpdate.nama = updatedData.nama;
-      if (updatedData.stok !== undefined) dataToUpdate.stok = updatedData.stok;
-      // ... (add other fields as needed)
-      
-      const { error } = await supabase.from('bahan_baku').update(dataToUpdate).eq('id', id);
+      const itemBeforeUpdate = bahanBaku.find(b => b.id === id);
+      if (!itemBeforeUpdate) throw new Error("Item tidak ditemukan untuk diperbarui.");
+
+      const bahanToUpdate: { [key: string]: any } = {};
+      if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
+      if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
+      if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
+      if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
+      if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
+      if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
+      if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
+      if (updatedBahan.tanggalKadaluwarsa !== undefined) bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa;
+      if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan;
+      if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;
+      if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan;
+
+      const { error } = await supabase
+        .from('bahan_baku')
+        .update(bahanToUpdate)
+        .eq('id', id);
+
       if (error) throw error;
-      toast.success('Bahan baku berhasil diperbarui!');
-      // Real-time will handle the UI update
+
+      const itemName = updatedBahan.nama ?? itemBeforeUpdate.nama;
+      toast.success(`${itemName} berhasil diperbarui!`);
+
       return true;
     } catch (error: any) {
+      console.error('[BahanBakuContext] Error updating bahan baku:', error);
       toast.error(`Gagal memperbarui: ${error.message}`);
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal mengubah stok: ${error.message}`
+      ));
       return false;
     }
   };
 
   const deleteBahanBaku = async (id: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      toast.error("Anda harus login untuk menghapus bahan baku.");
+      return false;
+    }
+
     try {
+      const itemToDelete = bahanBaku.find(b => b.id === id);
       const { error } = await supabase.from('bahan_baku').delete().eq('id', id);
       if (error) throw error;
-      toast.success('Bahan baku berhasil dihapus.');
-      // Real-time will handle the UI update
+
+      toast.success(`${itemToDelete?.nama || 'Item'} berhasil dihapus!`);
+
+      if (itemToDelete) {
+        await addNotification({
+          title: '🗑️ Item Dihapus',
+          message: `${itemToDelete.nama} telah dihapus dari inventory`,
+          type: 'warning',
+          icon: 'trash-2',
+          priority: 2,
+          related_type: 'inventory',
+          action_url: '/gudang',
+          is_read: false,
+          is_archived: false
+        });
+      }
+
       return true;
     } catch (error: any) {
+      console.error('[BahanBakuContext] Error deleting bahan baku:', error);
       toast.error(`Gagal menghapus: ${error.message}`);
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal menghapus item: ${error.message}`
+      ));
       return false;
     }
   };
 
-  const deleteSelectedItems = async (): Promise<boolean> => {
-    if (selectedItems.size === 0) return false;
+  const bulkDeleteBahanBaku = async (ids: string[]): Promise<boolean> => {
+    if (!user || ids.length === 0) return false;
+    
     setIsBulkDeleting(true);
     try {
-      const itemIds = Array.from(selectedItems);
-      const { error } = await supabase.from('bahan_baku').delete().in('id', itemIds);
+      const itemsToDelete = bahanBaku.filter(b => ids.includes(b.id));
+      const { error } = await supabase.from('bahan_baku').delete().in('id', ids).eq('user_id', user.id);
       if (error) throw error;
-      
-      deselectAllItems();
-      toast.success(`${itemIds.length} item berhasil dihapus!`);
-      // Real-time will handle the UI update
+
+      clearSelection();
+      setIsSelectionMode(false);
+      toast.success(`${ids.length} bahan baku berhasil dihapus!`);
+
+      await addNotification({
+        title: '🗑️ Bulk Delete Inventory',
+        message: `${ids.length} item berhasil dihapus dari inventory`,
+        type: 'warning',
+        icon: 'trash-2',
+        priority: 2,
+        related_type: 'inventory',
+        action_url: '/gudang',
+        is_read: false,
+        is_archived: false
+      });
+
       return true;
     } catch (error: any) {
-      toast.error(`Gagal menghapus item terpilih: ${error.message}`);
+      console.error('[BahanBakuContext] Error bulk deleting:', error);
+      toast.error(`Gagal menghapus: ${error.message}`);
+      await addNotification(createNotificationHelper.systemError(
+        `Gagal bulk delete: ${error.message}`
+      ));
       return false;
     } finally {
       setIsBulkDeleting(false);
     }
   };
-  
-  const getBahanBakuByName = useCallback((name: string): BahanBaku | undefined => {
-    return bahanBaku.find(item => item.nama.toLowerCase() === name.toLowerCase());
+
+  const getBahanBakuByName = useCallback((nama: string): BahanBaku | undefined => {
+    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
   }, [bahanBaku]);
 
-  const reduceStok = useCallback(async (name: string, quantity: number): Promise<boolean> => {
-    const item = getBahanBakuByName(name);
-    if (!item) {
-      toast.error(`Bahan baku ${name} tidak ditemukan.`);
+  const reduceStok = async (nama: string, jumlah: number): Promise<boolean> => {
+    const bahan = getBahanBakuByName(nama);
+    if (!bahan) {
+      toast.error(`Bahan baku ${nama} tidak ditemukan.`);
       return false;
     }
-    if (item.stok < quantity) {
-      toast.error(`Stok ${name} (${item.stok}) tidak cukup.`);
+    if (bahan.stok < jumlah) {
+      toast.error(`Stok ${nama} (${bahan.stok}) tidak cukup untuk dikurangi ${jumlah}.`);
       return false;
     }
-    return await updateBahanBaku(item.id, { stok: item.stok - quantity });
-  }, [getBahanBakuByName, updateBahanBaku]);
-
-  const toggleSelectMode = () => {
-    setSelectMode(prev => {
-        const newMode = !prev;
-        if (!newMode) { // If turning off select mode
-            setSelectedItems(new Set());
-        }
-        return newMode;
-    });
-  };
-
-  const toggleSelectItem = (id: string) => {
-    setSelectedItems(current => {
-      const updated = new Set(current);
-      if (updated.has(id)) {
-        updated.delete(id);
-      } else {
-        updated.add(id);
-      }
-      return updated;
-    });
-  };
-
-  const selectAllItems = () => {
-    setSelectedItems(new Set(bahanBaku.map(item => item.id)));
-  };
-
-  const deselectAllItems = () => {
-    setSelectedItems(new Set());
+    return await updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
   };
 
   const value: BahanBakuContextType = {
     bahanBaku,
     isLoading,
     selectedItems,
-    selectMode,
+    isSelectionMode,
+    isBulkDeleting,
     addBahanBaku,
     updateBahanBaku,
     deleteBahanBaku,
     getBahanBakuByName,
     reduceStok,
-    toggleSelectMode,
-    toggleSelectItem,
-    selectAllItems,
-    deselectAllItems,
-    deleteSelectedItems,
-    refreshData: () => refreshData(true),
+    bulkDeleteBahanBaku,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    toggleSelectionMode,
+    isSelected,
+    getSelectedItems,
+    refreshData,
     checkInventoryAlerts,
     getExpiringItems,
     getLowStockItems,
     getOutOfStockItems,
   };
+
+  console.log('[BahanBakuContext] Providing context value:', {
+    itemCount: bahanBaku.length,
+    selectedCount: selectedItems.length,
+    selectionMode: isSelectionMode,
+    loading: isLoading
+  });
 
   return (
     <BahanBakuContext.Provider value={value}>

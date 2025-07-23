@@ -64,8 +64,8 @@ const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay(subDays(new Date('2025-07-23T19:43:00+07:00'), 30)).toISOString(),
-    to: endOfDay(new Date('2025-07-23T19:43:00+07:00')).toISOString()
+    from: startOfDay(subDays(new Date(), 30)),
+    to: endOfDay(new Date())
   });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -277,40 +277,99 @@ const OrdersPage = () => {
     }
   }, [totalPages, currentPage]);
 
+  // 🔧 FIXED: Enhanced Date Presets Component
   const DatePresets = ({ setDateRange, onClose }) => {
-  const today = new Date('2025-07-23T20:11:00+07:00'); // Set to current date and time
-  const presets = [
-    { label: "Hari Ini", range: { from: startOfDay(today).toISOString(), to: endOfDay(today).toISOString() } },
-    { label: "Kemarin", range: { from: startOfDay(subDays(today, 1)).toISOString(), to: endOfDay(subDays(today, 1)).toISOString() } },
-    { label: "7 Hari Terakhir", range: { from: startOfDay(subDays(today, 6)).toISOString(), to: endOfDay(today).toISOString() } },
-    { label: "30 Hari Terakhir", range: { from: startOfDay(subDays(today, 29)).toISOString(), to: endOfDay(today).toISOString() } },
-    { label: "Bulan Ini", range: { from: startOfMonth(today).toISOString(), to: endOfMonth(today).toISOString() } },
-    { label: "Bulan Lalu", range: { from: startOfMonth(subMonths(today, 1)).toISOString(), to: endOfMonth(subMonths(today, 1)).toISOString() } },
-  ];
-  return (
-    <div className="p-3 md:border-r border-gray-200">
-      <div className="flex flex-row md:flex-col items-center gap-2 overflow-x-auto pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-        {presets.map(({ label, range }) => (
-          <Button
-            key={label}
-            variant="ghost"
-            className="w-full sm:w-auto min-w-[120px] justify-start text-sm hover:bg-gray-100 rounded-lg py-2 px-4 transition-all duration-200 text-gray-800 whitespace-nowrap"
-            onClick={() => {
-              try {
-                setDateRange(range);
-                onClose?.(); // Close dialog after selection
-              } catch (error) {
-                console.error('Error setting date range preset:', error);
-              }
-            }}
-          >
-            {label}
-          </Button>
-        ))}
+    const today = new Date();
+    const presets = [
+      { 
+        label: "Hari Ini", 
+        range: { 
+          from: startOfDay(today), 
+          to: endOfDay(today) 
+        } 
+      },
+      { 
+        label: "Kemarin", 
+        range: { 
+          from: startOfDay(subDays(today, 1)), 
+          to: endOfDay(subDays(today, 1)) 
+        } 
+      },
+      { 
+        label: "7 Hari Terakhir", 
+        range: { 
+          from: startOfDay(subDays(today, 6)), 
+          to: endOfDay(today) 
+        } 
+      },
+      { 
+        label: "30 Hari Terakhir", 
+        range: { 
+          from: startOfDay(subDays(today, 29)), 
+          to: endOfDay(today) 
+        } 
+      },
+      { 
+        label: "Bulan Ini", 
+        range: { 
+          from: startOfMonth(today), 
+          to: endOfMonth(today) 
+        } 
+      },
+      { 
+        label: "Bulan Lalu", 
+        range: { 
+          from: startOfMonth(subMonths(today, 1)), 
+          to: endOfMonth(subMonths(today, 1)) 
+        } 
+      },
+    ];
+
+    return (
+      <div className="border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50/50">
+        <div className="p-3">
+          <h4 className="font-medium text-gray-700 mb-3 text-sm">Pilih Cepat</h4>
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+            {presets.map(({ label, range }) => (
+              <Button
+                key={label}
+                variant="ghost"
+                size="sm"
+                className="justify-start text-sm hover:bg-gray-100 h-9 px-3 text-gray-700 border border-transparent hover:border-gray-200"
+                onClick={() => {
+                  try {
+                    setDateRange(range);
+                    setCurrentPage(1);
+                    if (onClose) onClose();
+                  } catch (error) {
+                    console.error('Error setting date range preset:', error);
+                  }
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
+
+  // Format date range for display
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Pilih rentang tanggal";
+    
+    try {
+      if (dateRange.to && dateRange.from !== dateRange.to) {
+        return `${format(dateRange.from, "d MMM yyyy", { locale: id })} - ${format(dateRange.to, "d MMM yyyy", { locale: id })}`;
+      } else {
+        return format(dateRange.from, "d MMMM yyyy", { locale: id });
+      }
+    } catch (error) {
+      console.error('Error formatting date range:', error);
+      return "Tanggal tidak valid";
+    }
+  };
 
   // If context is not available, show error
   if (!contextValue) {
@@ -443,105 +502,137 @@ const OrdersPage = () => {
           </Card>
         )}
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filter Pesanan</CardTitle>
+        {/* 🔧 FIXED: Better Filters Layout */}
+        <Card className="mb-6 shadow-lg border-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-800">Filter & Pencarian</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Search */}
-              <div className="relative sm:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Search Input */}
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Cari No. Pesanan / Nama..."
+                  placeholder="Cari nomor pesanan atau nama pelanggan..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="pl-10 h-11 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 transition-colors"
                 />
               </div>
 
-             {/* Date Range */}
-<Dialog>
-  <DialogTrigger asChild>
-    <Button
-      variant="outline"
-      className={cn(
-        "w-full justify-start text-left font-normal border-gray-300",
-        !dateRange && "text-muted-foreground",
-        "min-h-[48px] px-4 text-base sm:text-sm rounded-lg transition-all duration-200 hover:bg-gray-50",
-        "focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-      )}
-    >
-      <CalendarIcon className="mr-2 h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
-      {dateRange?.from ? (
-        dateRange.to && toDate(dateRange.from)?.toDateString() !== toDate(dateRange.to)?.toDateString() ?
-          `${format(toDate(dateRange.from) || new Date(), "d MMMM yyyy", { locale: id })} - ${format(toDate(dateRange.to) || new Date(), "d MMMM yyyy", { locale: id })}` :
-          format(toDate(dateRange.from) || new Date(), "d MMMM yyyy", { locale: id })
-      ) : (
-        <span>Pilih tanggal</span>
-      )}
-    </Button>
-  </DialogTrigger>
-  <DialogContent className={cn(
-    "w-[95vw] max-w-[400px] p-0 bg-white rounded-xl shadow-lg",
-    "sm:max-w-[350px] md:max-w-[400px]",
-    "overflow-y-auto max-h-[85vh] sm:max-h-[75vh]",
-    "focus:outline-none"
-  )}>
-    <span className="sr-only">
-      <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
-    </span>
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200 flex justify-between items-center min-h-[60px]">
-        <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
-        <DialogClose asChild>
-          <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-gray-100" aria-label="Tutup">
-            <X className="h-6 w-6 text-gray-600" />
-          </Button>
-        </DialogClose>
-      </div>
-      <DatePresets setDateRange={setDateRange} />
-      <div className="border-t border-gray-200 p-3 flex-1 overflow-y-auto">
-        <Calendar
-          initialFocus
-          mode="range"
-          defaultMonth={dateRange?.from ? toDate(dateRange.from) : new Date('2025-07-23T20:08:00+07:00')}
-          selected={dateRange ? {
-            from: dateRange.from ? toDate(dateRange.from) : undefined,
-            to: dateRange.to ? toDate(dateRange.to) : undefined
-          } : undefined}
-          onSelect={(newRange) => {
-            try {
-              setDateRange(newRange ? {
-                from: newRange.from ? startOfDay(newRange.from).toISOString() : undefined,
-                to: newRange.to ? endOfDay(newRange.to).toISOString() : undefined
-              } : undefined);
-              setCurrentPage(1);
-            } catch (error) {
-              console.error('Error updating date range:', error);
-            }
-          }}
-          numberOfMonths={isMobile ? 1 : window.innerWidth >= 768 ? 2 : 1}
-          locale={id}
-          className="w-full"
-          classNames={{
-            day: "w-12 h-12 text-base sm:w-10 sm:h-10 sm:text-sm rounded-full hover:bg-gray-100 focus:bg-orange-100",
-            day_selected: "bg-orange-600 text-white font-medium",
-            day_today: "border-2 border-orange-300 bg-orange-50",
-            months: "flex flex-col sm:flex-row gap-4",
-            caption: "text-lg font-semibold text-gray-800",
-          }}
-          disabled={(date) => date > new Date('2025-07-23T20:08:00+07:00') || date < new Date('2025-06-23T20:08:00+07:00')}
-          onError={(error) => console.warn('Calendar error:', error)}
-        />
-      </div>
-    </div>
-  </DialogContent>
-</Dialog>
+              {/* 🔧 FIXED: Enhanced Date Range Picker */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-11 px-4 border-gray-300 rounded-lg shadow-sm",
+                      !dateRange && "text-muted-foreground",
+                      "hover:bg-gray-50 focus:border-orange-500 focus:ring-orange-500 transition-colors"
+                    )}
+                  >
+                    <CalendarIcon className="mr-3 h-4 w-4 text-gray-500" />
+                    <span className="flex-1 truncate">
+                      {formatDateRange()}
+                    </span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[95vw] max-w-4xl p-0 bg-white rounded-xl shadow-xl">
+                  <DialogHeader className="px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <DialogTitle className="text-lg font-semibold text-gray-800">
+                        Pilih Rentang Tanggal
+                      </DialogTitle>
+                      <DialogClose asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </DialogHeader>
+                  
+                  <div className="flex flex-col md:flex-row">
+                    {/* Date Presets */}
+                    <div className="md:w-64 flex-shrink-0">
+                      <DatePresets 
+                        setDateRange={setDateRange} 
+                        onClose={() => {
+                          // Don't auto-close on mobile
+                          if (!isMobile) {
+                            document.querySelector('[data-state="open"] button')?.click();
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Calendar */}
+                    <div className="flex-1 p-6">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from || new Date()}
+                        selected={dateRange}
+                        onSelect={(newRange) => {
+                          try {
+                            setDateRange(newRange);
+                            setCurrentPage(1);
+                          } catch (error) {
+                            console.error('Error updating date range:', error);
+                          }
+                        }}
+                        numberOfMonths={isMobile ? 1 : 2}
+                        locale={id}
+                        className="w-full"
+                        classNames={{
+                          months: "flex flex-col sm:flex-row gap-4 justify-center",
+                          month: "space-y-4",
+                          caption: "flex justify-center pt-1 relative items-center text-sm font-medium",
+                          caption_label: "text-sm font-medium",
+                          nav: "space-x-1 flex items-center",
+                          nav_button: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 w-7",
+                          nav_button_previous: "absolute left-1",
+                          nav_button_next: "absolute right-1",
+                          table: "w-full border-collapse space-y-1",
+                          head_row: "flex",
+                          head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+                          row: "flex w-full mt-2",
+                          cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                          day: cn(
+                            "inline-flex items-center justify-center rounded-md text-sm font-normal ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-selected:opacity-100 h-8 w-8 hover:bg-accent hover:text-accent-foreground"
+                          ),
+                          day_selected: "bg-orange-500 text-primary-foreground hover:bg-orange-600 hover:text-primary-foreground focus:bg-orange-500 focus:text-primary-foreground",
+                          day_today: "bg-accent text-accent-foreground font-semibold",
+                          day_outside: "text-muted-foreground opacity-50",
+                          day_disabled: "text-muted-foreground opacity-50",
+                          day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                          day_hidden: "invisible",
+                        }}
+                        disabled={(date) => date > new Date() || date < new Date('2020-01-01')}
+                      />
+                      
+                      {/* Quick Action Buttons */}
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDateRange(undefined)}
+                          className="text-gray-600 hover:text-gray-800"
+                        >
+                          Reset
+                        </Button>
+                        <DialogClose asChild>
+                          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+                            Terapkan
+                          </Button>
+                        </DialogClose>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Status Filter */}
               <Select
@@ -551,7 +642,7 @@ const OrdersPage = () => {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="border-gray-300">
+                <SelectTrigger className="h-11 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 transition-colors">
                   <SelectValue placeholder="Filter Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -564,6 +655,44 @@ const OrdersPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Filter Summary */}
+            {(searchTerm || statusFilter !== 'all' || dateRange) && (
+              <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-medium text-orange-800">Filter aktif:</span>
+                  {searchTerm && (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Pencarian: "{searchTerm}"
+                    </Badge>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Status: {orderStatusList.find(s => s.key === statusFilter)?.label}
+                    </Badge>
+                  )}
+                  {dateRange && (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Tanggal: {formatDateRange()}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                      setDateRange(undefined);
+                      setCurrentPage(1);
+                    }}
+                    className="h-6 px-2 text-orange-700 hover:text-orange-900 hover:bg-orange-100"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

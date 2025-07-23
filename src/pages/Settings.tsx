@@ -1,3 +1,6 @@
+// src/pages/SettingsPage.tsx
+// CLEAN VERSION - NO DEBUG MODE
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +22,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
+import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
@@ -74,7 +78,6 @@ const SettingsPage = () => {
 
       const success = await saveSettings(settingsToUpdate);
       if (success) {
-        toast.success('Pengaturan berhasil disimpan!');
         setHasChanges(false);
       }
     } finally {
@@ -91,11 +94,11 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white-50 to-white-100">
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl">
@@ -103,7 +106,7 @@ const SettingsPage = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
-                  <p className="text-blue-100 mt-1">
+                  <p className="text-orange-100 mt-1">
                     Kelola informasi bisnis dan preferensi aplikasi Anda
                   </p>
                 </div>
@@ -131,19 +134,20 @@ const SettingsPage = () => {
                   )}
                 </div>
                 <div className="text-xs text-gray-500">
-                  Terakhir diperbarui: {new Date().toLocaleString('id-ID')}
+                  Terakhir diperbarui: {settings?.updatedAt ? new Date(settings.updatedAt).toLocaleString('id-ID') : 'N/A'}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Form */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Business Information */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Kolom Kiri: Forms */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Business Information Form */}
             <Card className="shadow-lg border-0 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+              <CardHeader className="bg-gray-50 border-b">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 p-2 rounded-lg">
                     <Building2 className="h-5 w-5 text-blue-600" />
@@ -151,13 +155,12 @@ const SettingsPage = () => {
                   <div>
                     <CardTitle className="text-xl">Informasi Bisnis</CardTitle>
                     <CardDescription>
-                      Data bisnis yang akan tampil di invoice dan dokumen
+                      Data ini akan tampil di invoice dan dokumen lainnya.
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-8 space-y-6">
-                {/* Business Name */}
+              <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
@@ -167,11 +170,9 @@ const SettingsPage = () => {
                     value={formState.businessName || ''} 
                     onChange={e => handleInputChange('businessName', e.target.value)}
                     placeholder="Masukkan nama bisnis Anda"
-                    className="h-12 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="h-11 text-base border-gray-300"
                   />
                 </div>
-
-                {/* Owner Name */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -181,11 +182,9 @@ const SettingsPage = () => {
                     value={formState.ownerName || ''} 
                     onChange={e => handleInputChange('ownerName', e.target.value)}
                     placeholder="Masukkan nama pemilik bisnis"
-                    className="h-12 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="h-11 text-base border-gray-300"
                   />
                 </div>
-
-                {/* Contact Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -195,12 +194,11 @@ const SettingsPage = () => {
                     <Input 
                       type="email" 
                       value={formState.email || ''} 
-                      onChange={e => handleInputChange('email', e.target.value)}
-                      placeholder="email@bisnis.com"
-                      className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      onChange={e => handleInputChange('email', e.target.value)} 
+                      placeholder="email@bisnis.com" 
+                      className="h-11 border-gray-300" 
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                       <Phone className="h-4 w-4" />
@@ -209,14 +207,12 @@ const SettingsPage = () => {
                     <Input 
                       type="tel" 
                       value={formState.phone || ''} 
-                      onChange={e => handleInputChange('phone', e.target.value)}
-                      placeholder="+62 XXX XXX XXXX"
-                      className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      onChange={e => handleInputChange('phone', e.target.value)} 
+                      placeholder="+62 XXX XXX XXXX" 
+                      className="h-11 border-gray-300" 
                     />
                   </div>
                 </div>
-
-                {/* Address */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
@@ -226,46 +222,25 @@ const SettingsPage = () => {
                     value={formState.address || ''} 
                     onChange={e => handleInputChange('address', e.target.value)}
                     placeholder="Masukkan alamat lengkap bisnis Anda"
-                    className="min-h-[100px] border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="min-h-[100px] border-gray-300"
                     rows={4}
                   />
                 </div>
               </CardContent>
             </Card>
+
+            {/* Notification Settings Form */}
+            <NotificationSettingsForm />
+
           </div>
 
-          {/* Sidebar - Preview & Actions */}
+          {/* Kolom Kanan: Sidebar Actions & Preview */}
           <div className="space-y-6">
-            {/* Preview Card */}
-            <Card className="shadow-lg border-0 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
-                <CardTitle className="text-lg text-green-800">Preview Invoice</CardTitle>
-                <CardDescription className="text-green-600">
-                  Begini informasi Anda akan tampil
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 bg-gray-50">
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800">
-                      {formState.businessName || 'Nama Bisnis Anda'}
-                    </h3>
-                    <p className="text-gray-600">
-                      {formState.ownerName || 'Nama Pemilik'}
-                    </p>
-                  </div>
-                  <div className="space-y-1 text-gray-600">
-                    <p>{formState.address || 'Alamat bisnis akan tampil di sini'}</p>
-                    <p>{formState.phone || 'Nomor telepon'}</p>
-                    <p>{formState.email || 'email@bisnis.com'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Action Buttons */}
             <Card className="shadow-lg border-0">
-              <CardContent className="p-6 space-y-4">
+              <CardHeader>
+                <CardTitle>Aksi</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Button 
                   onClick={handleSaveChanges}
                   disabled={!hasChanges || isSaving}
@@ -283,7 +258,6 @@ const SettingsPage = () => {
                     </>
                   )}
                 </Button>
-
                 {hasChanges && (
                   <Button 
                     onClick={handleReset}
@@ -296,7 +270,6 @@ const SettingsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Tips Card */}
             <Card className="shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
@@ -305,10 +278,10 @@ const SettingsPage = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-yellow-800 mb-2">Tips</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• Informasi ini akan muncul di semua invoice</li>
-                      <li>• Pastikan data kontak sudah benar</li>
-                      <li>• Alamat sebaiknya ditulis lengkap</li>
+                    <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                      <li>Informasi ini akan muncul di semua invoice</li>
+                      <li>Pastikan data kontak sudah benar</li>
+                      <li>Alamat sebaiknya ditulis lengkap</li>
                     </ul>
                   </div>
                 </div>

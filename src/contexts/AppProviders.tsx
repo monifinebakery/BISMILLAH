@@ -1,11 +1,13 @@
-// src/providers/AppProviders.tsx
+// src/contexts/AppProviders.tsx
+// 🔧 FIXED IMPORT PATHS TO MATCH YOUR PROJECT STRUCTURE
 
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Import semua context provider Anda
+// Import semua context provider Anda dengan path yang konsisten
 import { AuthProvider } from './AuthContext';
+import { NotificationProvider } from './NotificationContext'; // 🔧 FIXED: Local import path
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from './FinancialContext';
@@ -24,57 +26,48 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
  * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
  */
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Panggil hook useIsMobile untuk membuat variabel isMobile
   const isMobile = useIsMobile();
-
+  
   return (
     <>
-      {/* 1. AuthProvider paling luar, karena hampir semua bergantung padanya */}
+      {/* 1. AuthProvider paling luar */}
       <AuthProvider>
-        {/* 2. UserSettingsProvider, mungkin dibutuhkan oleh provider lain */}
-        <UserSettingsProvider>
-          {/* 3. ActivityProvider, dibutuhkan oleh Financial & Order */}
-          <ActivityProvider>
-            {/* 4. FinancialProvider, dibutuhkan oleh Order */}
-            <FinancialProvider>
-              {/* 5. PaymentProvider & PromoProvider */}
-              <PaymentProvider>
-                <PromoProvider>
-                  {/* Provider-provider untuk manajemen data inti */}
-                  <BahanBakuProvider>
-                    <SupplierProvider>
-                      <RecipeProvider>
-                        <AssetProvider>
-                          <PurchaseProvider>
-                            {/* 6. OrderProvider */}
-                            <OrderProvider>
-                              {/* 7. FollowUpTemplateProvider terkait erat dengan order. */}
-                              <FollowUpTemplateProvider>
-                                
-                                {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
-                                {children}
-
-                              </FollowUpTemplateProvider>
-                            </OrderProvider>
-                          </PurchaseProvider>
-                        </AssetProvider>
-                      </RecipeProvider>
-                    </SupplierProvider>
-                  </BahanBakuProvider>
-                </PromoProvider>
-              </PaymentProvider>
-            </FinancialProvider>
-          </ActivityProvider>
-        </UserSettingsProvider>
+        {/* 2. NotificationProvider di sini, karena provider lain di bawahnya akan menggunakannya */}
+        <NotificationProvider>
+          <UserSettingsProvider>
+            <ActivityProvider>
+              <FinancialProvider>
+                <PaymentProvider>
+                  <PromoProvider>
+                    <BahanBakuProvider>
+                      <SupplierProvider>
+                        <RecipeProvider>
+                          <AssetProvider>
+                            <PurchaseProvider>
+                              <OrderProvider>
+                                <FollowUpTemplateProvider>
+                                  {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
+                                  {children}
+                                </FollowUpTemplateProvider>
+                              </OrderProvider>
+                            </PurchaseProvider>
+                          </AssetProvider>
+                        </RecipeProvider>
+                      </SupplierProvider>
+                    </BahanBakuProvider>
+                  </PromoProvider>
+                </PaymentProvider>
+              </FinancialProvider>
+            </ActivityProvider>
+          </UserSettingsProvider>
+        </NotificationProvider>
       </AuthProvider>
-
+      
       {/* Komponen Toaster untuk notifikasi global */}
       <Toaster 
-        // UPDATE: Posisi diubah ke bawah untuk semua perangkat
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton
-        // Atur jarak dari tepi layar
-        offset={isMobile ? 160 : 32} // Sedikit lebih jauh agar tidak menempel di navigasi mobile
+        offset={isMobile ? 24 : 16}
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',

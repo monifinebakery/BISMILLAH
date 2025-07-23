@@ -1,10 +1,15 @@
+// src/contexts/UserSettingsContext.tsx
+// 🔔 UPDATED WITH NOTIFICATION SYSTEM
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+// 🔔 ADD NOTIFICATION IMPORTS
+import { useNotification } from './NotificationContext';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { toast } from 'sonner';
 
 // --- INTERFACES & DEFAULTS ---
-
 interface FinancialCategories {
   income: string[];
   expense: string[];
@@ -23,6 +28,8 @@ export interface UserSettings {
   };
   financialCategories: FinancialCategories;
   recipeCategories: string[];
+  // 🔔 ADD TIMESTAMPS FOR TRACKING
+  updatedAt?: string;
 }
 
 interface UserSettingsContextType {
@@ -52,9 +59,10 @@ const defaultSettings: UserSettings = {
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
 // --- PROVIDER COMPONENT ---
-
 export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  // 🔔 ADD NOTIFICATION CONTEXT
+  const { addNotification } = useNotification();
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,25 +74,48 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
     
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('settings_data')
-      .eq('user_id', user.id)
-      .limit(1) // ✨ Ambil hanya 1 baris
-      .single();
+    
+    try {
+      console.log('[UserSettingsContext] Fetching settings for user:', user.id);
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('settings_data')
+        .eq('user_id', user.id)
+        .limit(1) // ✨ Ambil hanya 1 baris
+        .single();
 
-    if (error && error.code !== 'PGRST116') {
-      toast.error("Gagal memuat pengaturan.");
-    }
+      if (error && error.code !== 'PGRST116') {
+        console.error('[UserSettingsContext] Error fetching settings:', error);
+        toast.error("Gagal memuat pengaturan.");
+        
+        // 🔔 CREATE ERROR NOTIFICATION
+        await addNotification(createNotificationHelper.systemError(
+          `Gagal memuat pengaturan pengguna: ${error.message}`
+        ));
+      }
 
-    if (data?.settings_data) {
-      // Gabungkan data dari DB dengan default untuk memastikan semua properti ada
-      setSettings({ ...defaultSettings, ...data.settings_data });
-    } else {
-      setSettings(defaultSettings);
+      if (data?.settings_data) {
+        // Gabungkan data dari DB dengan default untuk memastikan semua properti ada
+        const mergedSettings = { 
+          ...defaultSettings, 
+          ...data.settings_data,
+          updatedAt: new Date().toISOString()
+        };
+        setSettings(mergedSettings);
+        console.log('[UserSettingsContext] Settings loaded successfully');
+      } else {
+        setSettings(defaultSettings);
+        console.log('[UserSettingsContext] Using default settings');
+      }
+    } catch (error) {
+      console.error('[UserSettingsContext] Unexpected error:', error);
+      await addNotification(createNotificationHelper.systemError(
+        `Error tidak terduga saat memuat pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [user]);
+  }, [user, addNotification]); // 🔔 ADD addNotification dependency
 
   useEffect(() => {
     fetchSettings();
@@ -96,23 +127,107 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       return false;
     }
 
-    const updatedSettings = { ...settings, ...newSettings };
+    try {
+      const updatedSettings = { 
+        ...settings, 
+        ...newSettings,
+        updatedAt: new Date().toISOString()
+      };
 
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({ 
-        user_id: user.id, 
-        settings_data: updatedSettings 
-      }, { onConflict: 'user_id' });
+      console.log('[UserSettingsContext] Saving settings:', updatedSettings);
+      
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({ 
+          user_id: user.id, 
+          settings_data: updatedSettings 
+        }, { onConflict: 'user_id' });
 
-    if (error) {
-      toast.error("Gagal menyimpan pengaturan: " + error.message);
+      if (error) {
+        console.error('[UserSettingsContext] Error saving settings:', error);
+        toast.error("Gagal menyimpan pengaturan: " + error.message);
+        
+        // 🔔 CREATE ERROR NOTIFICATION
+        await addNotification(createNotificationHelper.systemError(
+          `Gagal menyimpan pengaturan: ${error.message}`
+        ));
+        
+        return false;
+      }
+
+      setSettings(updatedSettings);
+      console.log('[UserSettingsContext] Settings saved successfully');
+
+      // 🔔 CREATE SUCCESS NOTIFICATION (only for significant changes)
+      if (hasSignificantChanges(settings, newSettings)) {
+        await addNotification({
+          title: '⚙️ Pengaturan Diperbarui',
+          message: getUpdateMessage(newSettings),
+          type: 'success',
+          icon: 'settings',
+          priority: 1,
+          related_type: 'system',
+          action_url: '/pengaturan',
+          is_read: false,
+          is_archived: false
+        });
+
+        // Show toast for significant changes
+        toast.success("Pengaturan berhasil disimpan!");
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[UserSettingsContext] Error in saveSettings:', error);
+      toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 🔔 CREATE ERROR NOTIFICATION
+      await addNotification(createNotificationHelper.systemError(
+        `Error saat menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ));
+      
       return false;
     }
+  };
 
-    setSettings(updatedSettings);
-    // Tidak perlu toast sukses di sini agar tidak mengganggu saat auto-save
-    return true;
+  // 🔔 HELPER FUNCTION: Check if changes are significant enough for notification
+  const hasSignificantChanges = (oldSettings: UserSettings, newSettings: Partial<UserSettings>): boolean => {
+    // Consider business info changes as significant
+    const significantFields = ['businessName', 'ownerName', 'email', 'phone', 'address'];
+    
+    return significantFields.some(field => {
+      const fieldKey = field as keyof UserSettings;
+      return newSettings[fieldKey] !== undefined && 
+             newSettings[fieldKey] !== oldSettings[fieldKey];
+    }) || 
+    // Or notification preferences changes
+    (newSettings.notifications && 
+     JSON.stringify(newSettings.notifications) !== JSON.stringify(oldSettings.notifications)) ||
+    // Or category changes
+    (newSettings.financialCategories && 
+     JSON.stringify(newSettings.financialCategories) !== JSON.stringify(oldSettings.financialCategories)) ||
+    (newSettings.recipeCategories && 
+     JSON.stringify(newSettings.recipeCategories) !== JSON.stringify(oldSettings.recipeCategories));
+  };
+
+  // 🔔 HELPER FUNCTION: Generate update message
+  const getUpdateMessage = (newSettings: Partial<UserSettings>): string => {
+    if (newSettings.businessName || newSettings.ownerName) {
+      return 'Informasi bisnis telah diperbarui';
+    }
+    if (newSettings.email || newSettings.phone) {
+      return 'Informasi kontak telah diperbarui';
+    }
+    if (newSettings.notifications) {
+      return 'Pengaturan notifikasi telah diperbarui';
+    }
+    if (newSettings.financialCategories) {
+      return 'Kategori keuangan telah diperbarui';
+    }
+    if (newSettings.recipeCategories) {
+      return 'Kategori resep telah diperbarui';
+    }
+    return 'Pengaturan aplikasi telah diperbarui';
   };
 
   return (

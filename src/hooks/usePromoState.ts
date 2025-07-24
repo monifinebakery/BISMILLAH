@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { PromoFormState, FormErrors, UsePromoStateReturn } from '@/types';
 import { DEFAULT_VALUES, VALIDATION_RULES } from '@/utils/constants';
-import { debounce } from '@/utils/constants';
+import { DEBOUNCE } from '@/utils/constants';
 
 // 🎯 Initial form state
 const initialFormState: PromoFormState = {

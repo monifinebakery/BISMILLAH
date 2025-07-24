@@ -72,7 +72,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
           .order('nama', { ascending: true });
         
         if (error) {
-          console.error('[SupplierContext] Error fetching suppliers:', error);
+          logger.error('SupplierContext - Error fetching suppliers:', error);
           toast.error(`Gagal memuat supplier: ${error.message}`);
           
           // 🔔 CREATE ERROR NOTIFICATION
@@ -81,10 +81,10 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
           ));
         } else {
           setSuppliers(data.map(transformSupplierFromDB));
-          logger.context(`[SupplierContext] Loaded ${data.length} suppliers`);
+          logger.context('SupplierContext', `Loaded ${data.length} suppliers`);
         }
       } catch (error) {
-        console.error('[SupplierContext] Unexpected error:', error);
+        logger.error('SupplierContext - Unexpected error:', error);
         await addNotification(createNotificationHelper.systemError(
           `Error tidak terduga saat memuat supplier: ${error instanceof Error ? error.message : 'Unknown error'}`
         ));
@@ -141,11 +141,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         catatan: supplier.catatan ?? null,
       };
 
-      logger.context('SupplierContext', 'Adding supplier:', 'supplierToInsert);
+      logger.context('SupplierContext', 'Adding supplier:', supplierToInsert);
       const { error } = await supabase.from('suppliers').insert(supplierToInsert);
       
       if (error) {
-        console.error('[SupplierContext] Error adding supplier:', error);
+        logger.error('SupplierContext - Error adding supplier:', error);
         throw new Error(error.message);
       }
       
@@ -175,7 +175,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in addSupplier:', error);
+      logger.error('SupplierContext - Error in addSupplier:', error);
       toast.error(`Gagal menambahkan supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -208,7 +208,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
       
       if (error) {
-        console.error('[SupplierContext] Error updating supplier:', error);
+        logger.error('SupplierContext - Error updating supplier:', error);
         throw new Error(error.message);
       }
       
@@ -230,7 +230,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in updateSupplier:', error);
+      logger.error('SupplierContext - Error in updateSupplier:', error);
       toast.error(`Gagal memperbarui supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -255,11 +255,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      logger.context('SupplierContext' Deleting supplier:', id);
+      logger.context('SupplierContext', 'Deleting supplier:', id);
       const { error } = await supabase.from('suppliers').delete().eq('id', id);
       
       if (error) {
-        console.error('[SupplierContext] Error deleting supplier:', error);
+        logger.error('SupplierContext - Error deleting supplier:', error);
         throw new Error(error.message);
       }
       
@@ -289,7 +289,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in deleteSupplier:', error);
+      logger.error('SupplierContext - Error in deleteSupplier:', error);
       toast.error(`Gagal menghapus supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION

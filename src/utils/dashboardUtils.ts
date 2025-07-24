@@ -23,7 +23,9 @@ export {
   getRelativeTimeDescription as formatRelativeTime,
   isDateInRange,
   getDaysBetween,
-  toSafeISOString
+  toSafeISOString,
+  toSafeISOString as toISOString, // Add alias for backward compatibility
+  DateRange
 } from '@/utils/dateUtils';
 
 // ==================== DATE RANGE PRESETS ====================
@@ -340,6 +342,7 @@ export const DateUtils = {
   formatDate: formatDateForDisplay,
   formatDateRange,
   formatRelativeTime: getRelativeTimeDescription,
+  toISOString: toSafeISOString, // Add toISOString alias
   isDateInRange,
   getDaysBetween
 };

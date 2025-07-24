@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
 // Import modular orders types and utils
-import { Order, NewOrder, OrderItem } from '../types';
+import { Order, NewOrder, OrderItem } from '@/types';
 import { formatCurrency, generateOrderNumber } from '../utils';
 import { orderStatusList } from '@/constants/orderConstants';
 

@@ -12,7 +12,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { BahanBaku } from '@/types/bahanBaku';
 import { toast } from 'sonner';
-import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatDateForDisplay } from '@/utils/dashboardUtils';
 import { generateUUID } from '@/utils/uuid';
 import { formatCurrency } from '@/utils/formatUtils';
 import { Purchase, PurchaseItem } from '@/types/supplier';

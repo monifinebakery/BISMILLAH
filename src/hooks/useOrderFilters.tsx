@@ -1,8 +1,8 @@
 // src/components/orders/hooks/useOrderFilters.ts
 import { useState, useMemo, useCallback } from 'react';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
-import { Order, OrderFilters, DateRange } from '../types';
-import { filterOrders } from '../utils';
+import { Order, OrderFilters, DateRange } from '@/types';
+import { filterOrders } from '@/utils';
 
 export interface UseOrderFiltersResult {
   filters: OrderFilters;

@@ -204,7 +204,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (supplier.alamat !== undefined) supplierToUpdate.alamat = supplier.alamat;
       if (supplier.catatan !== undefined) supplierToUpdate.catatan = supplier.catatan;
 
-      logger.context('SupplierContext', 'Updating supplier:', 'id', 'supplierToUpdate);
+      logger.context('SupplierContext', 'Updating supplier:', id, supplierToUpdate);
       const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
       
       if (error) {
@@ -255,7 +255,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      logger.context('[SupplierContext] Deleting supplier:', id);
+      logger.context('SupplierContext' Deleting supplier:', id);
       const { error } = await supabase.from('suppliers').delete().eq('id', id);
       
       if (error) {

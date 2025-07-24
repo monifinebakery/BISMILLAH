@@ -1,4 +1,4 @@
-import React, { useMemo, useState, Component } from 'react';
+import React, { useMemo, useState, Component, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -103,9 +103,81 @@ const parseDate = (dateString) => {
     }
 };
 
+// Date presets component - moved outside to prevent re-creation
+const DatePresets = React.memo(({ setDateRange, onClose = () => {} }) => {
+    const today = new Date();
+    const presets = useMemo(() => [
+        { 
+            label: "Hari Ini", 
+            range: { 
+                from: today.toISOString(), 
+                to: today.toISOString() 
+            } 
+        },
+        { 
+            label: "Kemarin", 
+            range: { 
+                from: subDays(today, 1).toISOString(), 
+                to: subDays(today, 1).toISOString() 
+            } 
+        },
+        { 
+            label: "7 Hari Terakhir", 
+            range: { 
+                from: subDays(today, 6).toISOString(), 
+                to: today.toISOString() 
+            } 
+        },
+        { 
+            label: "30 Hari Terakhir", 
+            range: { 
+                from: subDays(today, 29).toISOString(), 
+                to: today.toISOString() 
+            } 
+        },
+        { 
+            label: "Bulan Ini", 
+            range: { 
+                from: startOfMonth(today).toISOString(), 
+                to: endOfMonth(today).toISOString() 
+            } 
+        },
+        { 
+            label: "Bulan Lalu", 
+            range: { 
+                from: startOfMonth(subMonths(today, 1)).toISOString(), 
+                to: endOfMonth(subMonths(today, 1)).toISOString() 
+            } 
+        },
+    ], [today]);
+
+    const handlePresetClick = useCallback((range) => {
+        setDateRange(range);
+        onClose();
+    }, [setDateRange, onClose]);
+
+    return (
+        <div className="flex flex-col space-y-1 p-3 bg-white">
+            <div className="pb-2 mb-2 border-b border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700">Pilihan Cepat</h4>
+            </div>
+            {presets.map(({ label, range }) => (
+                <Button
+                    key={label}
+                    variant="ghost"
+                    className="w-full justify-start text-sm hover:bg-blue-50 hover:text-blue-700 rounded-md py-2 px-3 text-gray-700 font-normal"
+                    onClick={() => handlePresetClick(range)}
+                >
+                    {label}
+                </Button>
+            ))}
+        </div>
+    );
+});
+
 const Dashboard = () => {
     // Initialize dates safely
-    const today = new Date();
+    const today = useMemo(() => new Date(), []);
     const [date, setDate] = useState(() => {
         const todayISO = today.toISOString();
         return {
@@ -117,7 +189,16 @@ const Dashboard = () => {
     const [productsPage, setProductsPage] = useState(1);
     const [activitiesPage, setActivitiesPage] = useState(1);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [mounted, setMounted] = useState(true);
     const itemsPerPage = 5;
+
+    // Cleanup effect to prevent memory leaks
+    useEffect(() => {
+        setMounted(true);
+        return () => {
+            setMounted(false);
+        };
+    }, []);
 
     // Hooks with safe defaults
     const { activities = [], loading: activitiesLoading = false } = useActivity() || {};
@@ -128,65 +209,71 @@ const Dashboard = () => {
 
     // Convert ISO strings to Date objects for Calendar with null safety
     const calendarDate = useMemo(() => {
+        if (!mounted) return { from: null, to: null };
+        
         const fromDate = parseDate(date?.from);
         const toDate = parseDate(date?.to);
         return {
             from: fromDate,
             to: toDate,
         };
-    }, [date]);
+    }, [date, mounted]);
 
     // Safe date filtering with error handling
     const filteredOrders = useMemo(() => {
         try {
-            if (!Array.isArray(orders) || !date?.from || !date?.to) return [];
+            if (!mounted || !Array.isArray(orders) || !date?.from || !date?.to) return [];
             return filterByDateRange(orders, date, 'tanggal');
         } catch (error) {
             console.warn('Order filtering error:', error);
             return [];
         }
-    }, [orders, date]);
+    }, [orders, date, mounted]);
 
     const filteredActivities = useMemo(() => {
         try {
-            if (!Array.isArray(activities) || !date?.from || !date?.to) return [];
+            if (!mounted || !Array.isArray(activities) || !date?.from || !date?.to) return [];
             return filterByDateRange(activities, date, 'timestamp');
         } catch (error) {
             console.warn('Activity filtering error:', error);
             return [];
         }
-    }, [activities, date]);
+    }, [activities, date, mounted]);
 
     // Safe calculations with fallbacks
     const revenueInRange = useMemo(() => {
         try {
+            if (!mounted) return 0;
             return calculateGrossRevenue(filteredOrders);
         } catch (error) {
             console.warn('Revenue calculation error:', error);
             return 0;
         }
-    }, [filteredOrders]);
+    }, [filteredOrders, mounted]);
 
     const profitInRange = useMemo(() => {
         try {
+            if (!mounted) return 0;
             return revenueInRange * 0.3;
         } catch (error) {
             console.warn('Profit calculation error:', error);
             return 0;
         }
-    }, [revenueInRange]);
+    }, [revenueInRange, mounted]);
 
     const ordersInRange = useMemo(() => {
         try {
+            if (!mounted) return 0;
             return Array.isArray(filteredOrders) ? filteredOrders.length : 0;
         } catch (error) {
             console.warn('Orders count error:', error);
             return 0;
         }
-    }, [filteredOrders]);
+    }, [filteredOrders, mounted]);
 
     const outstandingInvoices = useMemo(() => {
         try {
+            if (!mounted) return 0;
             return Array.isArray(filteredOrders) 
                 ? filteredOrders.filter(o => o?.status === 'BELUM LUNAS').length 
                 : 0;
@@ -194,33 +281,42 @@ const Dashboard = () => {
             console.warn('Outstanding invoices calculation error:', error);
             return 0;
         }
-    }, [filteredOrders]);
+    }, [filteredOrders, mounted]);
 
-    // Safe product sales calculation
+    // Safe product sales calculation with stable keys
     const bestSellingProducts = useMemo(() => {
         try {
-            if (!Array.isArray(filteredOrders)) return [];
+            if (!mounted || !Array.isArray(filteredOrders)) return [];
             
             const productSales = {};
             const productRevenue = {};
             
-            filteredOrders.forEach(order => {
+            filteredOrders.forEach((order, orderIndex) => {
                 if (!order?.items || !Array.isArray(order.items)) return;
                 
-                order.items.forEach(item => {
+                order.items.forEach((item, itemIndex) => {
                     if (!item?.namaBarang) return;
                     const quantity = Number(item.quantity) || 0;
                     const harga = Number(item.hargaSatuan) || 0;
+                    const key = `${item.namaBarang}_${orderIndex}_${itemIndex}`;
                     
-                    productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + quantity;
-                    productRevenue[item.namaBarang] = (productRevenue[item.namaBarang] || 0) + (quantity * harga);
+                    if (!productSales[item.namaBarang]) {
+                        productSales[item.namaBarang] = { quantity: 0, key };
+                    }
+                    if (!productRevenue[item.namaBarang]) {
+                        productRevenue[item.namaBarang] = 0;
+                    }
+                    
+                    productSales[item.namaBarang].quantity += quantity;
+                    productRevenue[item.namaBarang] += (quantity * harga);
                 });
             });
             
             return Object.entries(productSales)
-                .map(([name, quantity]) => ({ 
+                .map(([name, data]) => ({ 
+                    id: data.key,
                     name, 
-                    quantity: Number(quantity) || 0, 
+                    quantity: Number(data.quantity) || 0, 
                     revenue: Number(productRevenue[name]) || 0 
                 }))
                 .sort((a, b) => b.quantity - a.quantity)
@@ -229,35 +325,44 @@ const Dashboard = () => {
             console.warn('Best selling products calculation error:', error);
             return [];
         }
-    }, [filteredOrders]);
+    }, [filteredOrders, mounted]);
 
     const worstSellingProducts = useMemo(() => {
         try {
-            if (!Array.isArray(filteredOrders)) return [];
+            if (!mounted || !Array.isArray(filteredOrders)) return [];
             
             const productSales = {};
-            filteredOrders.forEach(order => {
+            filteredOrders.forEach((order, orderIndex) => {
                 if (!order?.items || !Array.isArray(order.items)) return;
                 
-                order.items.forEach(item => {
+                order.items.forEach((item, itemIndex) => {
                     if (!item?.namaBarang) return;
                     const quantity = Number(item.quantity) || 0;
-                    productSales[item.namaBarang] = (productSales[item.namaBarang] || 0) + quantity;
+                    const key = `${item.namaBarang}_worst_${orderIndex}_${itemIndex}`;
+                    
+                    if (!productSales[item.namaBarang]) {
+                        productSales[item.namaBarang] = { quantity: 0, key };
+                    }
+                    productSales[item.namaBarang].quantity += quantity;
                 });
             });
             
             return Object.entries(productSales)
-                .map(([name, quantity]) => ({ name, quantity: Number(quantity) || 0 }))
+                .map(([name, data]) => ({ 
+                    id: data.key,
+                    name, 
+                    quantity: Number(data.quantity) || 0 
+                }))
                 .sort((a, b) => a.quantity - b.quantity)
                 .slice(0, 5);
         } catch (error) {
             console.warn('Worst selling products calculation error:', error);
             return [];
         }
-    }, [filteredOrders]);
+    }, [filteredOrders, mounted]);
 
     // Safe greeting function
-    const getGreeting = () => {
+    const getGreeting = useCallback(() => {
         try {
             const jam = new Date().getHours();
             let sapaan = "datang";
@@ -272,55 +377,57 @@ const Dashboard = () => {
             console.warn('Greeting generation error:', error);
             return "Selamat datang";
         }
-    };
+    }, [settings?.ownerName]);
 
-    // Safe pagination
+    // Safe pagination with bounds checking
     const currentProducts = useMemo(() => {
         try {
-            if (!Array.isArray(bestSellingProducts)) return [];
-            const start = (productsPage - 1) * itemsPerPage;
+            if (!mounted || !Array.isArray(bestSellingProducts)) return [];
+            const start = Math.max(0, (productsPage - 1) * itemsPerPage);
             const end = start + itemsPerPage;
             return bestSellingProducts.slice(start, end);
         } catch (error) {
             console.warn('Product pagination error:', error);
             return [];
         }
-    }, [bestSellingProducts, productsPage]);
+    }, [bestSellingProducts, productsPage, mounted]);
 
     const totalProductsPages = useMemo(() => {
         try {
-            return Math.ceil((bestSellingProducts?.length || 0) / itemsPerPage);
+            if (!mounted) return 1;
+            return Math.max(1, Math.ceil((bestSellingProducts?.length || 0) / itemsPerPage));
         } catch (error) {
             console.warn('Product pages calculation error:', error);
             return 1;
         }
-    }, [bestSellingProducts]);
+    }, [bestSellingProducts, mounted]);
 
     const currentActivities = useMemo(() => {
         try {
-            if (!Array.isArray(filteredActivities)) return [];
-            const start = (activitiesPage - 1) * itemsPerPage;
+            if (!mounted || !Array.isArray(filteredActivities)) return [];
+            const start = Math.max(0, (activitiesPage - 1) * itemsPerPage);
             const end = start + itemsPerPage;
             return filteredActivities.slice(start, end);
         } catch (error) {
             console.warn('Activity pagination error:', error);
             return [];
         }
-    }, [filteredActivities, activitiesPage]);
+    }, [filteredActivities, activitiesPage, mounted]);
 
     const totalActivitiesPages = useMemo(() => {
         try {
-            return Math.ceil((filteredActivities?.length || 0) / itemsPerPage);
+            if (!mounted) return 1;
+            return Math.max(1, Math.ceil((filteredActivities?.length || 0) / itemsPerPage));
         } catch (error) {
             console.warn('Activity pages calculation error:', error);
             return 1;
         }
-    }, [filteredActivities]);
+    }, [filteredActivities, mounted]);
 
     // Safe date range setter
-    const setDateRange = (newRange) => {
+    const setDateRange = useCallback((newRange) => {
         try {
-            if (!newRange) return;
+            if (!mounted || !newRange) return;
             
             const fromISO = toISOString(newRange.from);
             const toISO = toISOString(newRange.to);
@@ -332,79 +439,45 @@ const Dashboard = () => {
         } catch (error) {
             console.warn('Date range setting error:', error);
         }
-    };
+    }, [mounted]);
 
-    // Date presets component
-    const DatePresets = ({ setDateRange }) => {
-        const today = new Date();
-        const presets = [
-            { 
-                label: "Hari Ini", 
-                range: { 
-                    from: today.toISOString(), 
-                    to: today.toISOString() 
-                } 
-            },
-            { 
-                label: "Kemarin", 
-                range: { 
-                    from: subDays(today, 1).toISOString(), 
-                    to: subDays(today, 1).toISOString() 
-                } 
-            },
-            { 
-                label: "7 Hari Terakhir", 
-                range: { 
-                    from: subDays(today, 6).toISOString(), 
-                    to: today.toISOString() 
-                } 
-            },
-            { 
-                label: "30 Hari Terakhir", 
-                range: { 
-                    from: subDays(today, 29).toISOString(), 
-                    to: today.toISOString() 
-                } 
-            },
-            { 
-                label: "Bulan Ini", 
-                range: { 
-                    from: startOfMonth(today).toISOString(), 
-                    to: endOfMonth(today).toISOString() 
-                } 
-            },
-            { 
-                label: "Bulan Lalu", 
-                range: { 
-                    from: startOfMonth(subMonths(today, 1)).toISOString(), 
-                    to: endOfMonth(subMonths(today, 1)).toISOString() 
-                } 
-            },
-        ];
+    // Reset pagination when data changes
+    useEffect(() => {
+        if (mounted) {
+            setProductsPage(1);
+            setActivitiesPage(1);
+        }
+    }, [date, mounted]);
 
-        return (
-            <div className="flex flex-col space-y-1 p-3 bg-white">
-                <div className="pb-2 mb-2 border-b border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700">Pilihan Cepat</h4>
-                </div>
-                {presets.map(({ label, range }) => (
-                    <Button
-                        key={label}
-                        variant="ghost"
-                        className="w-full justify-start text-sm hover:bg-blue-50 hover:text-blue-700 rounded-md py-2 px-3 text-gray-700 font-normal"
-                        onClick={() => setDateRange(range)}
-                    >
-                        {label}
-                    </Button>
-                ))}
-            </div>
-        );
-    };
+    // Safe pagination handlers
+    const handleProductsPageChange = useCallback((direction) => {
+        if (!mounted) return;
+        
+        setProductsPage(prevPage => {
+            if (direction === 'prev') {
+                return Math.max(1, prevPage - 1);
+            } else {
+                return Math.min(totalProductsPages, prevPage + 1);
+            }
+        });
+    }, [totalProductsPages, mounted]);
+
+    const handleActivitiesPageChange = useCallback((direction) => {
+        if (!mounted) return;
+        
+        setActivitiesPage(prevPage => {
+            if (direction === 'prev') {
+                return Math.max(1, prevPage - 1);
+            } else {
+                return Math.min(totalActivitiesPages, prevPage + 1);
+            }
+        });
+    }, [totalActivitiesPages, mounted]);
 
     // Format date range for display
-    const formatDateRange = () => {
+    const formatDateRange = useCallback(() => {
         try {
-            if (!calendarDate.from) return "Pilih rentang tanggal";
+            if (!mounted || !calendarDate.from) return "Pilih rentang tanggal";
             
             if (!calendarDate.to || calendarDate.from.toDateString() === calendarDate.to.toDateString()) {
                 return format(calendarDate.from, "dd MMM yyyy", { locale: id });
@@ -415,7 +488,31 @@ const Dashboard = () => {
             console.warn('Date range formatting error:', error);
             return "Tanggal tidak valid";
         }
-    };
+    }, [calendarDate, mounted]);
+
+    // Handle calendar selection
+    const handleCalendarSelect = useCallback((range) => {
+        if (!mounted || !range) return;
+        
+        try {
+            setDateRange({
+                from: range.from,
+                to: range.to || range.from
+            });
+        } catch (error) {
+            console.warn('Calendar selection error:', error);
+        }
+    }, [mounted, setDateRange]);
+
+    // Early return if not mounted to prevent DOM manipulation errors
+    if (!mounted) {
+        return (
+            <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-600 mt-2">Memuat dashboard...</p>
+            </div>
+        );
+    }
 
     return (
         <ErrorBoundary>
@@ -450,21 +547,14 @@ const Dashboard = () => {
                                                 <h3 className="text-lg font-semibold text-gray-800">Pilih Rentang Tanggal</h3>
                                                 <p className="text-sm text-gray-600 mt-1">Pilih periode untuk melihat data</p>
                                             </div>
-                                            <DatePresets setDateRange={setDateRange} />
+                                            <DatePresets setDateRange={setDateRange} onClose={() => setIsCalendarOpen(false)} />
                                             <div className="border-t border-gray-200">
                                                 <Calendar
                                                     initialFocus
                                                     mode="range"
                                                     defaultMonth={calendarDate.from}
                                                     selected={calendarDate}
-                                                    onSelect={(range) => {
-                                                        if (range) {
-                                                            setDateRange({
-                                                                from: range.from,
-                                                                to: range.to || range.from
-                                                            });
-                                                        }
-                                                    }}
+                                                    onSelect={handleCalendarSelect}
                                                     numberOfMonths={1}
                                                     locale={id}
                                                     className="p-3"
@@ -500,14 +590,7 @@ const Dashboard = () => {
                                                 mode="range"
                                                 defaultMonth={calendarDate.from}
                                                 selected={calendarDate}
-                                                onSelect={(range) => {
-                                                    if (range) {
-                                                        setDateRange({
-                                                            from: range.from,
-                                                            to: range.to || range.from
-                                                        });
-                                                    }
-                                                }}
+                                                onSelect={handleCalendarSelect}
                                                 numberOfMonths={2}
                                                 locale={id}
                                                 className="p-3"
@@ -623,7 +706,7 @@ const Dashboard = () => {
                             <CardContent className="p-0">
                                 <div className="divide-y divide-gray-200">
                                     {currentProducts.length > 0 ? currentProducts.map((product, index) => (
-                                        <div key={`${product.name}-${index}`} className="p-4 flex items-center hover:bg-gray-50 transition-colors">
+                                        <div key={product.id} className="p-4 flex items-center hover:bg-gray-50 transition-colors">
                                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center justify-center">
                                                 <span className="text-sm font-bold text-white">{(productsPage - 1) * itemsPerPage + index + 1}</span>
                                             </div>
@@ -648,7 +731,7 @@ const Dashboard = () => {
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
-                                        onClick={() => setProductsPage(p => Math.max(1, p - 1))} 
+                                        onClick={() => handleProductsPageChange('prev')} 
                                         disabled={productsPage === 1} 
                                         className="text-gray-600 hover:bg-gray-200"
                                     >
@@ -660,7 +743,7 @@ const Dashboard = () => {
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
-                                        onClick={() => setProductsPage(p => Math.min(totalProductsPages, p + 1))} 
+                                        onClick={() => handleProductsPageChange('next')} 
                                         disabled={productsPage >= totalProductsPages} 
                                         className="text-gray-600 hover:bg-gray-200"
                                     >
@@ -685,7 +768,7 @@ const Dashboard = () => {
                                         );
                                         
                                         return kritisItems.length > 0 ? kritisItems.slice(0, 5).map((item) => (
-                                            <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                            <div key={`stock-${item.id}`} className="p-4 hover:bg-gray-50 transition-colors">
                                                 <p className="font-medium text-gray-800 truncate">{item.nama}</p>
                                                 <div className="flex justify-between mt-1 text-sm">
                                                     <p className="text-gray-500">Stok: {item.stok} {item.satuan}</p>
@@ -733,15 +816,17 @@ const Dashboard = () => {
                                                 </TableCell>
                                             </TableRow>
                                         ) : currentActivities.length > 0 ? (
-                                            currentActivities.map((activity) => {
+                                            currentActivities.map((activity, index) => {
                                                 const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity?.type);
                                                 let amount = 0;
                                                 if (isFinancial && activity?.value) {
                                                     const parsed = parseFloat(activity.value);
                                                     amount = isNaN(parsed) ? 0 : parsed;
                                                 }
+                                                const uniqueKey = `activity-${activity?.id || index}-${activitiesPage}`;
+                                                
                                                 return (
-                                                    <TableRow key={activity?.id || Math.random()} className="hover:bg-gray-50">
+                                                    <TableRow key={uniqueKey} className="hover:bg-gray-50">
                                                         <TableCell>
                                                             <p className="font-medium text-gray-800 truncate">{activity?.title || 'Aktivitas tidak diketahui'}</p>
                                                             <p className="text-sm text-gray-500 truncate">{activity?.description || ''}</p>
@@ -779,7 +864,7 @@ const Dashboard = () => {
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
-                                        onClick={() => setActivitiesPage(p => Math.max(1, p - 1))} 
+                                        onClick={() => handleActivitiesPageChange('prev')} 
                                         disabled={activitiesPage === 1} 
                                         className="text-gray-600 hover:bg-gray-200"
                                     >
@@ -791,7 +876,7 @@ const Dashboard = () => {
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
-                                        onClick={() => setActivitiesPage(p => Math.min(totalActivitiesPages, p + 1))} 
+                                        onClick={() => handleActivitiesPageChange('next')} 
                                         disabled={activitiesPage >= totalActivitiesPages} 
                                         className="text-gray-600 hover:bg-gray-200"
                                     >
@@ -810,8 +895,8 @@ const Dashboard = () => {
                             </CardHeader>
                             <CardContent className="p-0">
                                 <div className="divide-y divide-gray-200">
-                                    {worstSellingProducts.length > 0 ? worstSellingProducts.map((product, index) => (
-                                        <div key={`${product.name}-${index}`} className="p-4 hover:bg-gray-50 transition-colors">
+                                    {worstSellingProducts.length > 0 ? worstSellingProducts.map((product) => (
+                                        <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
                                             <p className="font-medium text-gray-800 truncate">{product.name}</p>
                                             <p className="text-sm text-gray-500 mt-1">Hanya {product.quantity} terjual</p>
                                         </div>

@@ -1,12 +1,12 @@
-// src/components/orders/components/DatePresets.tsx
+// src/components/orders/components/DatePresets.tsx (FIXED VERSION)
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DateRange } from '@/types/order';
-import { getDateRangePreset } from '@/utils/dateUtils';
-import { DATE_RANGE_PRESETS } from '@/constants/orderConstants';
+import { DateRange } from '../types';
+import { getDateRangePreset } from '../utils';
+import { DATE_RANGE_PRESETS } from '../constants/orderConstants';
 
 interface DatePresetsProps {
-  setDateRange: (range: DateRange) => void;
+  setDateRange: (range: DateRange | undefined) => void;
   onClose?: () => void;
   setCurrentPage?: (page: number) => void;
 }
@@ -18,16 +18,37 @@ const DatePresets: React.FC<DatePresetsProps> = ({
 }) => {
   const handlePresetClick = (key: string) => {
     try {
+      console.log('Selecting date preset:', key);
+      
+      // Validate that setDateRange is a function
+      if (typeof setDateRange !== 'function') {
+        console.error('setDateRange is not a function:', setDateRange);
+        return;
+      }
+      
       const range = getDateRangePreset(key);
+      console.log('Generated date range:', range);
+      
+      // Validate the generated range
+      if (!range || !range.from) {
+        console.error('Invalid date range generated:', range);
+        return;
+      }
+      
       setDateRange(range);
-      if (setCurrentPage) {
+      
+      // Reset to first page if function is provided
+      if (setCurrentPage && typeof setCurrentPage === 'function') {
         setCurrentPage(1);
       }
-      if (onClose) {
+      
+      // Close dialog if function is provided
+      if (onClose && typeof onClose === 'function') {
         onClose();
       }
     } catch (error) {
-      console.error('Error setting date range preset:', error);
+      console.error('Error selecting preset:', error);
+      // Don't crash the UI, just log the error
     }
   };
 
@@ -41,8 +62,9 @@ const DatePresets: React.FC<DatePresetsProps> = ({
               key={key}
               variant="ghost"
               size="sm"
-              className="justify-start text-sm hover:bg-gray-100 h-9 px-3 text-gray-700 border border-transparent hover:border-gray-200"
+              className="justify-start text-sm hover:bg-gray-100 h-9 px-3 text-gray-700 border border-transparent hover:border-gray-200 transition-colors"
               onClick={() => handlePresetClick(key)}
+              type="button" // Prevent form submission
             >
               {label}
             </Button>

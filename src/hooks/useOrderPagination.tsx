@@ -1,6 +1,6 @@
 // src/components/orders/hooks/useOrderPagination.ts
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Order, PaginationState } from '@/types';
+import { Order, PaginationState } from '@/types/order';
 import { DEFAULT_ITEMS_PER_PAGE } from '@/constants/orderConstants';
 
 export interface UseOrderPaginationResult extends PaginationState {

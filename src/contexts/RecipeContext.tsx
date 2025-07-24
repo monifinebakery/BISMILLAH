@@ -127,7 +127,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     marginKeuntunganPersen: number,
     jumlahPcsPerPorsi: number = 1
   ): HPPCalculationResult => {
-    console.log('[RecipeContext] Calculating HPP with params:', {
+    logger.context('[RecipeContext] Calculating HPP with params:', {
       bahanCount: bahanResep.length,
       jumlahPorsi,
       biayaTenagaKerja,
@@ -182,7 +182,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       profitabilitas
     };
 
-    console.log('[RecipeContext] HPP calculation result:', result);
+    logger.context('[RecipeContext] HPP calculation result:', result);
     return result;
   }, [calculateIngredientCost]);
 
@@ -271,7 +271,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
     
     try {
-      console.log('[RecipeContext] Adding recipe:', recipe);
+      logger.context('[RecipeContext] Adding recipe:', recipe);
       
       // 🧮 Calculate HPP if not provided
       if (!recipe.totalHpp || !recipe.hppPerPorsi) {
@@ -345,7 +345,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
     
     try {
-      console.log('[RecipeContext] Updating recipe:', id, recipe);
+      logger.context('[RecipeContext] Updating recipe:', id, recipe);
       
       // 🧮 Recalculate HPP if relevant data changed
       const existingRecipe = recipes.find(r => r.id === id);
@@ -441,7 +441,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return false;
       }
 
-      console.log('[RecipeContext] Deleting recipe:', id);
+      logger.context('[RecipeContext] Deleting recipe:', id);
       const { error } = await supabase.from('recipes').delete().eq('id', id);
 
       if (error) {
@@ -554,7 +554,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       
       try {
-        console.log('[RecipeContext] Fetching recipes for user:', user.id);
+        logger.context('[RecipeContext] Fetching recipes for user:', user.id);
         const { data, error } = await supabase
           .from('recipes')
           .select('*')
@@ -571,7 +571,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ));
         } else {
           setRecipes(data.map(transformFromDB));
-          console.log(`[RecipeContext] Loaded ${data.length} recipes`);
+          logger.context(`[RecipeContext] Loaded ${data.length} recipes`);
         }
       } catch (error) {
         console.error('[RecipeContext] Unexpected error:', error);
@@ -592,7 +592,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         table: 'recipes', 
         filter: `user_id=eq.${user.id}` 
       }, (payload) => {
-        console.log('[RecipeContext] Real-time event received:', payload);
+        logger.context('[RecipeContext] Real-time event received:', payload);
         
         if (payload.eventType === 'INSERT') {
           setRecipes(current => [transformFromDB(payload.new), ...current].sort((a,b) => a.namaResep.localeCompare(b.namaResep)));
@@ -607,7 +607,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       .subscribe();
       
     return () => {
-      console.log('[RecipeContext] Cleaning up real-time channel');
+      logger.context('[RecipeContext] Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification, transformFromDB]);

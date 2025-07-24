@@ -24,7 +24,7 @@ interface OrderTableProps {
   hasFilters: boolean;
   onToggleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onToggleSelectOrder: (orderId: string, checked: boolean) => void;
-  onStatusChange?: (orderId: string, newStatus: string) => void;
+  onStatusChange?: (orderId: string, newStatus: OrderStatus) => void; // Updated to use OrderStatus type
   onEdit?: (order: Order) => void;
   onDelete?: (orderId: string) => void;
   onFollowUp?: (order: Order) => void;
@@ -145,7 +145,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   <OrderStatusCell
                     order={order}
                     onStatusChange={onStatusChange}
-                    onFollowUpClick={onFollowUp}
+                    onTemplateManagerOpen={onFollowUp} // Corrected to match OrderStatusCell prop
                     disabled={isSelectionMode}
                   />
                 </TableCell>

@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { Percent, DollarSign, Gift, AlertCircle, Info, Zap } from 'lucide-react';
 import { PromoConfigurationProps, PromoType } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency } from '@/utils/currencyUtils';
 import { PROMO_TYPE_LABELS, VALIDATION_RULES } from '../utils/constants';
 
 interface PromoConfigurationComponent extends React.FC<PromoConfigurationProps> {

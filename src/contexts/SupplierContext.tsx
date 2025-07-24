@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Supplier } from '@/types/supplier';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';

@@ -78,7 +78,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // If user is not logged in, clear data
     if (!user) {
-      console.log("[PromoContext] User logout, clearing promo data.");
+      logger.context("[PromoContext] User logout, clearing promo data.");
       setPromoHistory([]);
       setIsLoading(false);
       setError(null);
@@ -88,7 +88,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // User is logged in, fetch data and setup realtime
     const fetchInitialData = async () => {
       try {
-        console.log(`[PromoContext] User detected (${user.id}), loading promo data...`);
+        logger.context(`[PromoContext] User detected (${user.id}), loading promo data...`);
         setIsLoading(true);
         setError(null);
 
@@ -108,7 +108,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             .filter((promo): promo is PromoEstimation => promo !== null);
           
           setPromoHistory(transformedPromos);
-          console.log(`[PromoContext] Loaded ${transformedPromos.length} promo estimations`);
+          logger.context(`[PromoContext] Loaded ${transformedPromos.length} promo estimations`);
         } else {
           setPromoHistory([]);
         }
@@ -137,7 +137,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         },
         (payload) => {
           try {
-            console.log('[PromoContext] Realtime change received:', payload);
+            logger.context('[PromoContext] Realtime change received:', payload);
 
             if (payload.eventType === 'INSERT' && payload.new) {
               const newPromo = transformFromDB(payload.new);
@@ -168,7 +168,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Cleanup function
     return () => {
-      console.log("[PromoContext] Cleaning up realtime channel.");
+      logger.context("[PromoContext] Cleaning up realtime channel.");
       supabase.removeChannel(channel);
     };
   }, [user, authContext, transformFromDB]);

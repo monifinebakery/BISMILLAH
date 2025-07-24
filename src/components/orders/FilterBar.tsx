@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { OrderFilters, DateRange } from '@/types';
+import { OrderFilters, DateRange } from '@/types/order';
 import { orderStatusList } from '@/constants/orderConstants';
 import { formatDateRange } from '@/utils/dashboardUtils';
 import DateRangePicker from '@/components/ui/DateRangePicker';

@@ -141,7 +141,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         catatan: supplier.catatan ?? null,
       };
 
-      logger.context('[SupplierContext] Adding supplier:', supplierToInsert);
+      logger.context('SupplierContext', 'Adding supplier:', 'supplierToInsert);
       const { error } = await supabase.from('suppliers').insert(supplierToInsert);
       
       if (error) {

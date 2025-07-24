@@ -102,7 +102,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         table: 'suppliers', 
         filter: `user_id=eq.${user.id}` 
       }, (payload) => {
-        logger.context('[SupplierContext] Real-time event received:', payload);
+        logger.context('SupplierContext', 'Real-time event received:', payload);
         const transform = transformSupplierFromDB;
         
         if (payload.eventType === 'INSERT') {

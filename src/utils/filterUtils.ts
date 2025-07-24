@@ -1,6 +1,6 @@
 // src/components/orders/utils/filterUtils.ts
 import { Order, OrderFilters, DateRange } from '../types';
-import { parseDate } from './dateUtils';
+import { parseDate } from './dashboardUtils';
 
 export const filterOrders = (
   orders: Order[], 

@@ -1,46 +1,19 @@
-// src/components/orders/index.ts
-// 📁 ORDERS COMPONENTS EXPORT BARREL - Clean imports
+// src/components/orders/components/index.ts
 
-// 🎯 Main Order Components
-export { OrdersHeader } from './OrdersHeader';
-export { OrdersFilters } from './OrdersFilters';  
-export { OrdersBulkActions } from './OrdersBulkActions';
+// Core table components
+export { default as OrderTable } from './OrderTable';
+export { default as OrderStatusCell } from './OrderStatusCell';
+export { default as EmptyState } from './EmptyState';
 
-// 🎯 Component Types
-export type { OrdersHeaderProps, OrderStats } from './OrdersHeader';
-export type { OrdersFiltersProps } from './OrdersFilters';
-export type { OrdersBulkActionsProps } from './OrdersBulkActions';
+// Filter and control components
+export { default as FilterBar } from './FilterBar';
+export { default as DateRangePicker } from './DateRangePicker';
+export { default as DatePresets } from './DatePresets';
+export { default as TableControls } from './TableControls';
+export { default as PaginationControls } from './PaginationControls';
 
-// 🎣 Custom Hooks
-export { useOrdersFilters } from '../hooks/useOrdersFilters';
-export { useOrdersPagination, generatePageNumbers } from '../hooks/useOrdersPagination';
-export { useOrdersBulkActions, getBulkActionConfirmationText } from '../hooks/useOrdersBulkActions';
+// Selection and bulk operation components
+export { default as SelectionToolbar } from './SelectionToolbar';
 
-// 🎣 Hook Types
-export type { 
-  UseOrdersFiltersReturn, 
-  FilterState 
-} from '../hooks/useOrdersFilters';
-
-export type { 
-  UseOrdersPaginationReturn 
-} from '../hooks/useOrdersPagination';
-
-export type { 
-  UseOrdersBulkActionsReturn 
-} from '../hooks/useOrdersBulkActions';
-
-// 🎨 UI Components
-export { DateRangePicker } from '../ui/DateRangePicker';
-export { FilterSummary, createFilterItem, createCommonFilters } from '../ui/FilterSummary';
-
-// 🎨 UI Component Types
-export type { 
-  DateRangePickerProps, 
-  DatePreset 
-} from '../ui/DateRangePicker';
-
-export type { 
-  FilterSummaryProps, 
-  FilterItem 
-} from '../ui/FilterSummary';
+// Loading and error components
+export * from './LoadingStates';

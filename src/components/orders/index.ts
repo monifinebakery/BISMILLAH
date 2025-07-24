@@ -7,7 +7,7 @@ export { default as EmptyState } from './EmptyState';
 
 // Filter and control components
 export { default as FilterBar } from './FilterBar';
-export { default as DateRangePicker } from './DateRangePicker';
+export { default as DateRangePicker } from '@/components/ui/DateRangePicker';
 export { default as DatePresets } from './DatePresets';
 export { default as TableControls } from './TableControls';
 export { default as PaginationControls } from './PaginationControls';

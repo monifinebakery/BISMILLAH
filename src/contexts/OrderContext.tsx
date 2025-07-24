@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Import modular orders types and utils
 import { Order, NewOrder, OrderContextType } from '@/components/orders/types';
-import { parseDate } from '@/utils/dateUtils';
+import { parseDate } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { isValidDate } from '@/utils/dateUtils';

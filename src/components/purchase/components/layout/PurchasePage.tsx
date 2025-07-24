@@ -1,5 +1,5 @@
 import React, { Suspense, useState } from 'react';
-import { usePurchase } from '@/contexts/PurchaseContext';
+import { usePurchase } from '@/components/purchase/context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { PurchaseTableProvider } from '@/components/purchase/context/PurchaseTableContext';

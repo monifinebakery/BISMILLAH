@@ -1,6 +1,6 @@
 // src/components/orders/hooks/useOrderSelection.ts
 import { useState, useCallback, useMemo } from 'react';
-import { Order } from '../types';
+import { Order } from '@/types/order';
 
 export interface UseOrderSelectionResult {
   selectedOrderIds: string[];

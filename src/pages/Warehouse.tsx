@@ -18,7 +18,7 @@ import TablePagination from '@/components/warehouse/TablePagination';
 // Dynamic imports for dialogs
 const AddItemDialog = React.lazy(() => import('@/components/warehouse/AddItemDialog'));
 const BulkDeleteDialog = React.lazy(() => import('@/components/warehouse/BulkDeleteDialog'));
-const BahanBakuEditDialog = React.lazy(() => import('@/components/BahanBakuEditDialog'));
+const BahanBakuEditDialog = React.lazy(() => import('@/components/warehouse/BahanBakuEditDialog'));
 
 // Loading fallback component
 const DialogLoader: React.FC = () => (

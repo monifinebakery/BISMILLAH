@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Supplier } from '@/types/supplier';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
@@ -71,7 +72,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
           .order('nama', { ascending: true });
         
         if (error) {
-          console.error('[SupplierContext] Error fetching suppliers:', error);
+          logger.error('SupplierContext - Error fetching suppliers:', error);
           toast.error(`Gagal memuat supplier: ${error.message}`);
           
           // 🔔 CREATE ERROR NOTIFICATION
@@ -80,10 +81,10 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
           ));
         } else {
           setSuppliers(data.map(transformSupplierFromDB));
-          console.log(`[SupplierContext] Loaded ${data.length} suppliers`);
+          logger.context('SupplierContext', `Loaded ${data.length} suppliers`);
         }
       } catch (error) {
-        console.error('[SupplierContext] Unexpected error:', error);
+        logger.error('SupplierContext - Unexpected error:', error);
         await addNotification(createNotificationHelper.systemError(
           `Error tidak terduga saat memuat supplier: ${error instanceof Error ? error.message : 'Unknown error'}`
         ));
@@ -101,7 +102,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         table: 'suppliers', 
         filter: `user_id=eq.${user.id}` 
       }, (payload) => {
-        console.log('[SupplierContext] Real-time event received:', payload);
+        logger.context('SupplierContext', 'Real-time event received:', payload);
         const transform = transformSupplierFromDB;
         
         if (payload.eventType === 'INSERT') {
@@ -117,7 +118,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       .subscribe();
 
     return () => {
-      console.log('[SupplierContext] Cleaning up real-time channel');
+      logger.context('SupplierContext', 'Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification]); // 🔔 ADD addNotification dependency
@@ -140,11 +141,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         catatan: supplier.catatan ?? null,
       };
 
-      console.log('[SupplierContext] Adding supplier:', supplierToInsert);
+      logger.context('SupplierContext', 'Adding supplier:', supplierToInsert);
       const { error } = await supabase.from('suppliers').insert(supplierToInsert);
       
       if (error) {
-        console.error('[SupplierContext] Error adding supplier:', error);
+        logger.error('SupplierContext - Error adding supplier:', error);
         throw new Error(error.message);
       }
       
@@ -174,7 +175,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in addSupplier:', error);
+      logger.error('SupplierContext - Error in addSupplier:', error);
       toast.error(`Gagal menambahkan supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -203,11 +204,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (supplier.alamat !== undefined) supplierToUpdate.alamat = supplier.alamat;
       if (supplier.catatan !== undefined) supplierToUpdate.catatan = supplier.catatan;
 
-      console.log('[SupplierContext] Updating supplier:', id, supplierToUpdate);
+      logger.context('SupplierContext', 'Updating supplier:', id, supplierToUpdate);
       const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
       
       if (error) {
-        console.error('[SupplierContext] Error updating supplier:', error);
+        logger.error('SupplierContext - Error updating supplier:', error);
         throw new Error(error.message);
       }
       
@@ -229,7 +230,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in updateSupplier:', error);
+      logger.error('SupplierContext - Error in updateSupplier:', error);
       toast.error(`Gagal memperbarui supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -254,11 +255,11 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      console.log('[SupplierContext] Deleting supplier:', id);
+      logger.context('SupplierContext', 'Deleting supplier:', id);
       const { error } = await supabase.from('suppliers').delete().eq('id', id);
       
       if (error) {
-        console.error('[SupplierContext] Error deleting supplier:', error);
+        logger.error('SupplierContext - Error deleting supplier:', error);
         throw new Error(error.message);
       }
       
@@ -288,7 +289,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error) {
-      console.error('[SupplierContext] Error in deleteSupplier:', error);
+      logger.error('SupplierContext - Error in deleteSupplier:', error);
       toast.error(`Gagal menghapus supplier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION

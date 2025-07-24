@@ -2,9 +2,10 @@
 // FIXED VERSION - NO RENDERING LOOPS & WORKING SELECTION
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { BahanBaku } from '@/types/bahanBaku';
+import { BahanBaku } from '@/types/warehouse';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
@@ -57,7 +58,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const alertsCheckedRef = useRef<boolean>(false); // 🔧 FIX: Prevent infinite alerts
 
-  console.log('[BahanBakuContext] Provider render', { 
+  logger.context('BahanBakuContext', 'Provider render', { 
     user: user?.id,
     itemCount: bahanBaku.length,
     selectedCount: selectedItems.length,
@@ -116,7 +117,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     const items = itemsToCheck || bahanBaku;
     if (items.length === 0) return;
 
-    console.log('[BahanBakuContext] Checking inventory alerts for', items.length, 'items');
+    logger.context('BahanBakuContext', 'Checking inventory alerts for', items.length, 'items');
 
     try {
       const lowStockItems = getLowStockItems(items);
@@ -124,7 +125,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       const expiringItems = getExpiringItems(7, items);
       const criticalExpiringItems = getExpiringItems(3, items);
 
-      console.log('[BahanBakuContext] Alert counts:', {
+      logger.context('BahanBakuContext', 'Alert counts:', {
         lowStock: lowStockItems.length,
         outOfStock: outOfStockItems.length,
         expiring: expiringItems.length,
@@ -193,7 +194,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       alertsCheckedRef.current = true; // Mark as checked
     } catch (error) {
-      console.error('[BahanBakuContext] Error checking inventory alerts:', error);
+      logger.error('BahanBakuContext - Error checking inventory alerts:', error);
     }
   }, [user, bahanBaku, addNotification, getLowStockItems, getOutOfStockItems, getExpiringItems, getDaysUntilExpiry]);
 
@@ -205,7 +206,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       return;
     }
 
-    console.log('[BahanBakuContext] Fetching data...');
+    logger.context('BahanBakuContext', 'Fetching data...');
     setIsLoading(true);
     
     try {
@@ -220,7 +221,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
 
       const transformedData = data.map(transformBahanBakuFromDB);
-      console.log('[BahanBakuContext] Data loaded:', transformedData.length, 'items');
+      logger.context('BahanBakuContext', 'Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
 
       // 🔧 FIX: Only check alerts on initial load, not on every fetch
@@ -230,7 +231,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         }, 2000); // Delay to prevent immediate loop
       }
     } catch (err: any) {
-      console.error('[BahanBakuContext] Error fetching bahan baku:', err);
+      logger.error('BahanBakuContext - Error fetching bahan baku:', err);
       toast.error(`Gagal memuat bahan baku: ${err.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal memuat data inventory: ${err.message}`
@@ -249,7 +250,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   useEffect(() => {
     if (!user || subscriptionRef.current) return;
 
-    console.log('[BahanBakuContext] Setting up subscription for user:', user.id);
+    logger.context('BahanBakuContext', 'Setting up subscription for user:', user.id);
 
     const channel = supabase
       .channel(`bahan_baku_changes_${user.id}`) // Unique channel name
@@ -259,7 +260,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         table: 'bahan_baku',
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        console.log('[BahanBakuContext] Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+        logger.context('BahanBakuContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
         
         setBahanBaku((prev) => {
           if (payload.eventType === 'DELETE') {
@@ -282,7 +283,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         });
       })
       .subscribe((status) => {
-        console.log('[BahanBakuContext] Subscription status:', status);
+        logger.context('BahanBakuContext', 'Subscription status:', status);
         if (status === 'SUBSCRIBED') {
           subscriptionRef.current = channel;
         }
@@ -290,7 +291,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     return () => {
       if (subscriptionRef.current) {
-        console.log('[BahanBakuContext] Cleaning up subscription');
+        logger.context('BahanBakuContext', 'Cleaning up subscription');
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
@@ -299,7 +300,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // Initial data load
   useEffect(() => {
-    console.log('[BahanBakuContext] Initial data load for user:', user?.id);
+    logger.context('BahanBakuContext', 'Initial data load for user:', user?.id);
     fetchBahanBaku(true); // Check alerts on initial load
     setSelectedItems([]);
     setIsSelectionMode(false);
@@ -308,7 +309,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // 🔧 FIX: Simplified selection functions
   const toggleSelection = useCallback((id: string) => {
-    console.log('[BahanBakuContext] Toggle selection:', id);
+    logger.context('BahanBakuContext', 'Toggle selection:', id);
     setSelectedItems(prev => {
       const isCurrentlySelected = prev.includes(id);
       if (isCurrentlySelected) {
@@ -320,17 +321,17 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, []);
 
   const selectAll = useCallback(() => {
-    console.log('[BahanBakuContext] Select all items');
+    logger.context('BahanBakuContext', 'Select all items');
     setSelectedItems(bahanBaku.map(item => item.id));
   }, [bahanBaku]);
 
   const clearSelection = useCallback(() => {
-    console.log('[BahanBakuContext] Clear selection');
+    logger.context('BahanBakuContext', 'Clear selection');
     setSelectedItems([]);
   }, []);
 
   const toggleSelectionMode = useCallback(() => {
-    console.log('[BahanBakuContext] Toggle selection mode');
+    logger.context('BahanBakuContext', 'Toggle selection mode');
     setIsSelectionMode(prev => {
       if (prev) {
         // Exiting selection mode - clear selections
@@ -400,7 +401,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error: any) {
-      console.error('[BahanBakuContext] Error adding bahan baku:', error);
+      logger.error('BahanBakuContext - Error adding bahan baku:', error);
       toast.error(`Gagal menambahkan: ${error.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal menambahkan ${bahan.nama}: ${error.message}`
@@ -444,7 +445,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error: any) {
-      console.error('[BahanBakuContext] Error updating bahan baku:', error);
+      logger.error('BahanBakuContext - Error updating bahan baku:', error);
       toast.error(`Gagal memperbarui: ${error.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal mengubah stok: ${error.message}`
@@ -482,7 +483,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error: any) {
-      console.error('[BahanBakuContext] Error deleting bahan baku:', error);
+      logger.error('BahanBakuContext - Error deleting bahan baku:', error);
       toast.error(`Gagal menghapus: ${error.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal menghapus item: ${error.message}`
@@ -518,7 +519,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error: any) {
-      console.error('[BahanBakuContext] Error bulk deleting:', error);
+      logger.error('BahanBakuContext - Error bulk deleting:', error);
       toast.error(`Gagal menghapus: ${error.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal bulk delete: ${error.message}`
@@ -571,7 +572,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     getOutOfStockItems,
   };
 
-  console.log('[BahanBakuContext] Providing context value:', {
+  logger.context('BahanBakuContext', 'Providing context value:', {
     itemCount: bahanBaku.length,
     selectedCount: selectedItems.length,
     selectionMode: isSelectionMode,

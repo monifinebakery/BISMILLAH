@@ -9,10 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 // Import modular warehouse types and utils
 import { BahanBaku, WarehouseContextType } from '@/types';
 import { parseDate } from '@/utils/dashboardUtils';
-  , 
-  isValidDate,
-  formatCurrency 
-} from '@/utils';
+import { isValidDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/dateUtils';   
 
 // Dependencies
 import { useAuth } from './AuthContext';

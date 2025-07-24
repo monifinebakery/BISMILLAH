@@ -1,27 +1,29 @@
 // components/index.ts - Components Exports
+import React from 'react'; // Impor React diperlukan untuk JSX dan typing
 
 // 🍽️ Product Selection Components
 export { default as ProductSelection } from './ProductSelection';
-export type { ProductSelectionProps } from '../types';
+// Asumsi tipe-tipe ini diekspor dari file types terpusat
+// export type { ProductSelectionProps } from '../types'; 
 
 // 🎯 Promo Configuration Components
 export { default as PromoConfiguration } from './PromoConfiguration';
-export type { PromoConfigurationProps } from '../types';
+// export type { PromoConfigurationProps } from '../types';
 
 // 📝 Dynamic Promo Forms
 export { default as PromoTypeForm } from './PromoTypeForm';
 
 // 📊 Calculation Results
 export { default as CalculationResults } from './CalculationResults';
-export type { CalculationResultsProps } from '../types';
+// export type { CalculationResultsProps } from '../types';
 
 // 📋 History Table
 export { default as PromoHistoryTable } from './PromoHistoryTable';
-export type { PromoHistoryTableProps } from '../types';
+// export type { PromoHistoryTableProps } from '../types';
 
 // 📄 Pagination Controls
 export { default as PaginationControls, CompactPaginationControls, PaginationSummary } from './PaginationControls';
-export type { PaginationControlsProps } from '../types';
+// export type { PaginationControlsProps } from '../types';
 
 // 🎭 Loading & Error States
 export {
@@ -332,7 +334,8 @@ export const CompositionHelpers = {
 
   // Higher-order component wrapper
   withProps: <P extends object>(defaultProps: Partial<P>) => 
-    <C extends React.ComponentType<P>>(Component: C) => {
+    // FIX: Tambahkan koma setelah C extends ...
+    <C extends React.ComponentType<P>,>(Component: C) => {
       const WrappedComponent = (props: P) => (
         <Component {...defaultProps} {...props} />
       );
@@ -362,7 +365,7 @@ export const PerformanceMonitor = {
 
   // Memory usage tracker
   trackMemory: (componentName: string) => {
-    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
+    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in (performance as any)) {
       const memory = (performance as any).memory;
       console.log(`💾 ${componentName} memory:`, {
         used: `${(memory.usedJSHeapSize / 1048576).toFixed(2)} MB`,
@@ -371,18 +374,4 @@ export const PerformanceMonitor = {
       });
     }
   }
-};
-
-// Export all for easy access
-export {
-  ComponentUtils,
-  ComponentTheme,
-  ComponentVariants,
-  createComponentProps,
-  ResponsiveHelpers,
-  AnimationHelpers,
-  AccessibilityHelpers,
-  DevHelpers,
-  CompositionHelpers,
-  PerformanceMonitor
 };

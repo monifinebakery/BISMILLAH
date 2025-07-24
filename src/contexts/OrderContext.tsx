@@ -7,6 +7,7 @@ import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
 import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
+import { logger } from '@/utils/logger';
 // 🔔 FIXED NOTIFICATION IMPORTS
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';

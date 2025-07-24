@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+import { logger } from '@/utils/logger';
 // 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '../utils/notificationHelpers';
@@ -126,7 +127,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     marginKeuntunganPersen: number,
     jumlahPcsPerPorsi: number = 1
   ): HPPCalculationResult => {
-    console.log('[RecipeContext] Calculating HPP with params:', {
+    logger.context('RecipeContext', 'Calculating HPP with params:', {
       bahanCount: bahanResep.length,
       jumlahPorsi,
       biayaTenagaKerja,
@@ -181,7 +182,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       profitabilitas
     };
 
-    console.log('[RecipeContext] HPP calculation result:', result);
+    logger.context('RecipeContext', 'HPP calculation result:', result);
     return result;
   }, [calculateIngredientCost]);
 
@@ -270,7 +271,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
     
     try {
-      console.log('[RecipeContext] Adding recipe:', recipe);
+      logger.context('RecipeContext', 'Adding recipe:', recipe);
       
       // 🧮 Calculate HPP if not provided
       if (!recipe.totalHpp || !recipe.hppPerPorsi) {
@@ -295,7 +296,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .insert({ ...transformToDB(recipe), user_id: user.id });
 
       if (error) {
-        console.error('[RecipeContext] Error adding recipe:', error);
+        logger.error('RecipeContext - Error adding recipe:', error);
         throw new Error(error.message);
       }
 
@@ -325,7 +326,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in addRecipe:', error);
+      logger.error('RecipeContext - Error in addRecipe:', error);
       toast.error(`Gagal menambah resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -344,7 +345,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
     
     try {
-      console.log('[RecipeContext] Updating recipe:', id, recipe);
+      logger.context('RecipeContext', 'Updating recipe:', id, recipe);
       
       // 🧮 Recalculate HPP if relevant data changed
       const existingRecipe = recipes.find(r => r.id === id);
@@ -385,7 +386,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .eq('id', id);
 
       if (error) {
-        console.error('[RecipeContext] Error updating recipe:', error);
+        logger.error('RecipeContext - Error updating recipe:', error);
         throw new Error(error.message);
       }
       
@@ -415,7 +416,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in updateRecipe:', error);
+      logger.error('RecipeContext - Error in updateRecipe:', error);
       toast.error(`Gagal memperbarui resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -440,11 +441,11 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return false;
       }
 
-      console.log('[RecipeContext] Deleting recipe:', id);
+      logger.context('RecipeContext', 'Deleting recipe:', id);
       const { error } = await supabase.from('recipes').delete().eq('id', id);
 
       if (error) {
-        console.error('[RecipeContext] Error deleting recipe:', error);
+        logger.error('RecipeContext - Error deleting recipe:', error);
         throw new Error(error.message);
       }
       
@@ -474,7 +475,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in deleteRecipe:', error);
+      logger.error('RecipeContext - Error in deleteRecipe:', error);
       toast.error(`Gagal menghapus resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -535,7 +536,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return success;
     } catch (error) {
-      console.error('[RecipeContext] Error duplicating recipe:', error);
+      logger.error('RecipeContext - Error duplicating recipe:', error);
       toast.error('Gagal menduplikasi resep');
       return false;
     }
@@ -553,7 +554,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       
       try {
-        console.log('[RecipeContext] Fetching recipes for user:', user.id);
+        logger.context('RecipeContext', 'Fetching recipes for user:', user.id);
         const { data, error } = await supabase
           .from('recipes')
           .select('*')
@@ -561,7 +562,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           .order('nama_resep', { ascending: true });
 
         if (error) {
-          console.error('[RecipeContext] Error fetching recipes:', error);
+          logger.error('RecipeContext - Error fetching recipes:', error);
           toast.error(`Gagal memuat resep: ${error.message}`);
           
           // 🔔 CREATE ERROR NOTIFICATION
@@ -570,10 +571,10 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ));
         } else {
           setRecipes(data.map(transformFromDB));
-          console.log(`[RecipeContext] Loaded ${data.length} recipes`);
+          logger.context('RecipeContext', `Loaded ${data.length} recipes`);
         }
       } catch (error) {
-        console.error('[RecipeContext] Unexpected error:', error);
+        logger.error('RecipeContext - Unexpected error:', error);
         await addNotification(createNotificationHelper.systemError(
           `Error tidak terduga saat memuat resep: ${error instanceof Error ? error.message : 'Unknown error'}`
         ));
@@ -591,7 +592,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         table: 'recipes', 
         filter: `user_id=eq.${user.id}` 
       }, (payload) => {
-        console.log('[RecipeContext] Real-time event received:', payload);
+        logger.context('RecipeContext', 'Real-time event received:', payload);
         
         if (payload.eventType === 'INSERT') {
           setRecipes(current => [transformFromDB(payload.new), ...current].sort((a,b) => a.namaResep.localeCompare(b.namaResep)));
@@ -606,7 +607,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       .subscribe();
       
     return () => {
-      console.log('[RecipeContext] Cleaning up real-time channel');
+      logger.context('RecipeContext', 'Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification, transformFromDB]);

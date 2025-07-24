@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { safeParseDate } from '@/utils/dateUtils';
+import { logger } from '@/utils/logger';
 
 interface PromoContextType {
   promoHistory: PromoEstimation[];
@@ -30,7 +31,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const transformFromDB = useCallback((dbItem: any): PromoEstimation | null => {
     try {
       if (!dbItem || !dbItem.id) {
-        console.warn('Invalid promo data received from database:', dbItem);
+        logger.warn('PromoContext - Invalid promo data received from database:', dbItem);
         return null;
       }
 
@@ -50,7 +51,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         estimated_margin_rp: Number(dbItem.estimated_margin_rp) || 0,
       };
     } catch (error) {
-      console.error('Error transforming promo from DB:', error);
+      logger.error('PromoContext - Error transforming promo from DB:', error);
       return null;
     }
   }, []);
@@ -64,7 +65,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     // If auth context is not available, handle gracefully
     if (!authContext) {
-      console.warn('[PromoContext] Auth context not available');
+      logger.warn('PromoContext - Auth context not available');
       setIsLoading(false);
       setError('Auth context not available');
       return;
@@ -77,7 +78,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // If user is not logged in, clear data
     if (!user) {
-      console.log("[PromoContext] User logout, clearing promo data.");
+      logger.context('PromoContext', 'User logout, clearing promo data.');
       setPromoHistory([]);
       setIsLoading(false);
       setError(null);
@@ -87,7 +88,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // User is logged in, fetch data and setup realtime
     const fetchInitialData = async () => {
       try {
-        console.log(`[PromoContext] User detected (${user.id}), loading promo data...`);
+        logger.context('PromoContext', `User detected (${user.id}), loading promo data...`);
         setIsLoading(true);
         setError(null);
 
@@ -107,12 +108,12 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             .filter((promo): promo is PromoEstimation => promo !== null);
           
           setPromoHistory(transformedPromos);
-          console.log(`[PromoContext] Loaded ${transformedPromos.length} promo estimations`);
+          logger.context('PromoContext', `Loaded ${transformedPromos.length} promo estimations`);
         } else {
           setPromoHistory([]);
         }
       } catch (error) {
-        console.error('[PromoContext] Error fetching promo history:', error);
+        logger.error('PromoContext - Error fetching promo history:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         setError(`Gagal memuat riwayat promo: ${errorMessage}`);
         toast.error(`Gagal memuat riwayat promo: ${errorMessage}`);
@@ -136,7 +137,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         },
         (payload) => {
           try {
-            console.log('[PromoContext] Realtime change received:', payload);
+            logger.context('PromoContext', 'Realtime change received:', payload);
 
             if (payload.eventType === 'INSERT' && payload.new) {
               const newPromo = transformFromDB(payload.new);
@@ -159,7 +160,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               setPromoHistory(current => current.filter(p => p.id !== deletedPromoId));
             }
           } catch (error) {
-            console.error('[PromoContext] Error handling realtime event:', error);
+            logger.error('PromoContext - Error handling realtime event:', error);
           }
         }
       )
@@ -167,7 +168,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Cleanup function
     return () => {
-      console.log("[PromoContext] Cleaning up realtime channel.");
+      logger.context('PromoContext', 'Cleaning up realtime channel.');
       supabase.removeChannel(channel);
     };
   }, [user, authContext, transformFromDB]);
@@ -209,7 +210,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setError(null);
       return true;
     } catch (error) {
-      console.error('[PromoContext] Error adding promo estimation:', error);
+      logger.error('PromoContext - Error adding promo estimation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Gagal menyimpan estimasi: ${errorMessage}`);
       return false;
@@ -243,7 +244,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setError(null);
       return true;
     } catch (error) {
-      console.error('[PromoContext] Error deleting promo estimation:', error);
+      logger.error('PromoContext - Error deleting promo estimation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Gagal menghapus estimasi: ${errorMessage}`);
       return false;

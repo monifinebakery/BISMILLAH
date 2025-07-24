@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- INTERFACES & DEFAULTS ---
 interface FinancialCategories {
@@ -76,7 +77,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     
     try {
-      console.log('[UserSettingsContext] Fetching settings for user:', user.id);
+      logger.context('UserSettingsContext', 'Fetching settings for user:', user.id);
       const { data, error } = await supabase
         .from('user_settings')
         .select('settings_data')
@@ -102,10 +103,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           updatedAt: new Date().toISOString()
         };
         setSettings(mergedSettings);
-        console.log('[UserSettingsContext] Settings loaded successfully');
+       logger.context('UserSettingsContext', 'Settings loaded successfully');
       } else {
         setSettings(defaultSettings);
-        console.log('[UserSettingsContext] Using default settings');
+        logger.context('UserSettingsContext', 'Using default settings');
       }
     } catch (error) {
       console.error('[UserSettingsContext] Unexpected error:', error);
@@ -134,7 +135,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         updatedAt: new Date().toISOString()
       };
 
-      console.log('[UserSettingsContext] Saving settings:', updatedSettings);
+     logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
       
       const { error } = await supabase
         .from('user_settings')
@@ -156,7 +157,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       setSettings(updatedSettings);
-      console.log('[UserSettingsContext] Settings saved successfully');
+      logger.context('UserSettingsContext', 'Settings saved successfully');
 
       // 🔔 CREATE SUCCESS NOTIFICATION (only for significant changes)
       if (hasSignificantChanges(settings, newSettings)) {

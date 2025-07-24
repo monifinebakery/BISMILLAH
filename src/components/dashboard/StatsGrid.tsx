@@ -1,0 +1,133 @@
+// components/dashboard/StatsGrid.tsx
+import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { CircleDollarSign, Package, Calculator, ListChecks } from "lucide-react";
+import { formatCurrency } from '@/utils/currencyUtils';
+
+interface Stats {
+  revenue: number;
+  orders: number;
+  profit: number;
+  outstandingInvoices: number;
+}
+
+interface Props {
+  stats: Stats;
+  isLoading: boolean;
+}
+
+// 📊 Individual Stat Card Component
+const StatCard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  description?: string;
+  bgColor: string;
+  iconColor: string;
+  valueColor?: string;
+  isLoading?: boolean;
+}> = ({ 
+  icon, 
+  label, 
+  value, 
+  description, 
+  bgColor, 
+  iconColor, 
+  valueColor = "text-gray-900",
+  isLoading = false 
+}) => {
+  return (
+    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+      <CardContent className="p-6 flex items-center">
+        {/* 🎨 Icon */}
+        <div className={`${bgColor} p-3 rounded-full mr-4 flex-shrink-0`}>
+          <div className={`h-6 w-6 ${iconColor}`}>
+            {icon}
+          </div>
+        </div>
+        
+        {/* 📈 Content */}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium truncate">
+            {label}
+          </p>
+          
+          {isLoading ? (
+            <div className="h-6 bg-gray-200 animate-pulse rounded mt-1"></div>
+          ) : (
+            <p className={`text-xl font-semibold ${valueColor} truncate`}>
+              {value}
+            </p>
+          )}
+          
+          {description && (
+            <p className="text-xs text-gray-500 mt-1 truncate">
+              {description}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
+  // 📊 Stats configuration
+  const statsConfig = [
+    {
+      key: 'revenue',
+      icon: <CircleDollarSign className="h-6 w-6" />,
+      label: 'Omzet',
+      value: formatCurrency(stats.revenue),
+      bgColor: 'bg-blue-100',
+      iconColor: 'text-blue-600'
+    },
+    {
+      key: 'orders',
+      icon: <Package className="h-6 w-6" />,
+      label: 'Total Pesanan',
+      value: stats.orders.toLocaleString('id-ID'),
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600'
+    },
+    {
+      key: 'profit',
+      icon: <Calculator className="h-6 w-6" />,
+      label: 'Laba Bersih',
+      value: formatCurrency(stats.profit),
+      description: '(Estimasi 30%)',
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600'
+    },
+    {
+      key: 'invoices',
+      icon: <ListChecks className="h-6 w-6" />,
+      label: 'Piutang',
+      value: stats.outstandingInvoices.toLocaleString('id-ID'),
+      description: 'Invoice belum lunas',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      valueColor: stats.outstandingInvoices > 0 ? 'text-orange-600' : 'text-gray-900'
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {statsConfig.map((stat) => (
+        <StatCard
+          key={stat.key}
+          icon={stat.icon}
+          label={stat.label}
+          value={stat.value}
+          description={stat.description}
+          bgColor={stat.bgColor}
+          iconColor={stat.iconColor}
+          valueColor={stat.valueColor}
+          isLoading={isLoading}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default StatsGrid;

@@ -4,8 +4,8 @@ import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Order } from '../types';
-import { orderStatusList, getStatusColor } from '../constants/orderConstants';
+import { Order } from '@/types';
+import { orderStatusList, getStatusColor } from '@/constants/orderConstants';
 
 interface OrderStatusCellProps {
   order: Order;

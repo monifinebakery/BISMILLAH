@@ -4,7 +4,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { PurchaseTableProvider } from '@/components/purchase/components/context/PurchaseTableContext';
 import PurchaseHeader from './PurchaseHeader';
-import LoadingPurchaseState from '../states/LoadingPurchaseState';
+import LoadingPurchaseState from '@/components/purchase/components/states/LoadingPurchaseState';
 import ErrorPurchaseState from '../states/ErrorPurchaseState';
 import { calculatePurchaseStats } from '../../utils/purchaseHelpers';
 

@@ -16,7 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { CalculationResultsProps, CalculationResult, Recipe } from '@/types';
-import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
 import { analyzeMargin } from '@/utils/calculationUtils';
 
 interface CalculationResultsComponent extends React.FC<CalculationResultsProps> {

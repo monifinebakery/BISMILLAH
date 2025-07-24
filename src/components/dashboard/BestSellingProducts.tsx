@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Package, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { calculatePagination, generateListKey } from '@/utils/dashboardUtils';
 
 interface Product {

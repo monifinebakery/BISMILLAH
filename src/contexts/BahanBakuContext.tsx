@@ -1,39 +1,30 @@
 // src/contexts/BahanBakuContext.tsx
-// FIXED VERSION - NO RENDERING LOOPS & WORKING SELECTION
+// MODULAR VERSION - Integrated with Warehouse Components
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { BahanBaku } from '@/types/warehouse';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
-// --- DEPENDENCIES ---
+// Import modular warehouse types and utils
+import { BahanBaku, WarehouseContextType } from '@/types';
+import { 
+  parseDate, 
+  isValidDate,
+  formatCurrency 
+} from '@/utils';
+
+// Dependencies
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useNotification } from './NotificationContext';
-import { createNotificationHelper } from '../utils/notificationHelpers';
-import { safeParseDate } from '@/utils/dateUtils';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 
-// --- INTERFACE & CONTEXT ---
-interface BahanBakuContextType {
-  bahanBaku: BahanBaku[];
-  isLoading: boolean;
-  selectedItems: string[];
-  isSelectionMode: boolean;
-  isBulkDeleting: boolean;
-  addBahanBaku: (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
-  updateBahanBaku: (id: string, bahan: Partial<BahanBaku>) => Promise<boolean>;
-  deleteBahanBaku: (id: string) => Promise<boolean>;
+// Enhanced context interface extending the modular one
+interface BahanBakuContextType extends WarehouseContextType {
+  // Additional context-specific methods
   getBahanBakuByName: (nama: string) => BahanBaku | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
-  bulkDeleteBahanBaku: (ids: string[]) => Promise<boolean>;
-  toggleSelection: (id: string) => void;
-  selectAll: () => void;
-  clearSelection: () => void;
-  toggleSelectionMode: () => void;
-  isSelected: (id: string) => boolean;
-  getSelectedItems: () => BahanBaku[];
   refreshData: () => Promise<void>;
   checkInventoryAlerts: () => Promise<void>;
   getExpiringItems: (days?: number) => BahanBaku[];
@@ -43,48 +34,55 @@ interface BahanBakuContextType {
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
 
-// --- PROVIDER COMPONENT ---
-export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+// Utility functions (can be moved to warehouse/utils if needed)
+const transformBahanBakuFromDB = (dbItem: any): BahanBaku => ({
+  id: dbItem.id,
+  nama: dbItem.nama,
+  kategori: dbItem.kategori,
+  stok: Number(dbItem.stok) || 0,
+  satuan: dbItem.satuan,
+  hargaSatuan: Number(dbItem.harga_satuan) || 0,
+  minimum: Number(dbItem.minimum) || 0,
+  supplier: dbItem.supplier,
+  tanggalKadaluwarsa: parseDate(dbItem.tanggal_kadaluwarsa),
+  userId: dbItem.user_id,
+  createdAt: parseDate(dbItem.created_at),
+  updatedAt: parseDate(dbItem.updated_at),
+  jumlahBeliKemasan: dbItem.jumlah_beli_kemasan || 0,
+  satuanKemasan: dbItem.satuan_kemasan || '',
+  hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan || 0,
+});
 
-  const { user } = useAuth();
-  const { addActivity } = useActivity();
-  const { addNotification } = useNotification();
+const transformBahanBakuToDB = (bahan: Partial<BahanBaku>): { [key: string]: any } => {
+  const dbItem: { [key: string]: any } = {};
+  
+  if (bahan.nama !== undefined) dbItem.nama = bahan.nama;
+  if (bahan.kategori !== undefined) dbItem.kategori = bahan.kategori;
+  if (bahan.stok !== undefined) dbItem.stok = bahan.stok;
+  if (bahan.satuan !== undefined) dbItem.satuan = bahan.satuan;
+  if (bahan.hargaSatuan !== undefined) dbItem.harga_satuan = bahan.hargaSatuan;
+  if (bahan.minimum !== undefined) dbItem.minimum = bahan.minimum;
+  if (bahan.supplier !== undefined) dbItem.supplier = bahan.supplier;
+  if (bahan.tanggalKadaluwarsa !== undefined) {
+    dbItem.tanggal_kadaluwarsa = bahan.tanggalKadaluwarsa;
+  }
+  if (bahan.jumlahBeliKemasan !== undefined) {
+    dbItem.jumlah_beli_kemasan = bahan.jumlahBeliKemasan;
+  }
+  if (bahan.satuanKemasan !== undefined) {
+    dbItem.satuan_kemasan = bahan.satuanKemasan;
+  }
+  if (bahan.hargaTotalBeliKemasan !== undefined) {
+    dbItem.harga_total_beli_kemasan = bahan.hargaTotalBeliKemasan;
+  }
+  
+  return dbItem;
+};
 
-  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const alertsCheckedRef = useRef<boolean>(false); // 🔧 FIX: Prevent infinite alerts
-
-  logger.context('BahanBakuContext', 'Provider render', { 
-    user: user?.id,
-    itemCount: bahanBaku.length,
-    selectedCount: selectedItems.length,
-    selectionMode: isSelectionMode
-  });
-
-  const transformBahanBakuFromDB = useCallback((dbItem: any): BahanBaku => ({
-    id: dbItem.id,
-    nama: dbItem.nama,
-    kategori: dbItem.kategori,
-    stok: Number(dbItem.stok) || 0,
-    satuan: dbItem.satuan,
-    hargaSatuan: Number(dbItem.harga_satuan) || 0,
-    minimum: Number(dbItem.minimum) || 0,
-    supplier: dbItem.supplier,
-    tanggalKadaluwarsa: safeParseDate(dbItem.tanggal_kadaluwarsa),
-    userId: dbItem.user_id,
-    createdAt: safeParseDate(dbItem.created_at),
-    updatedAt: safeParseDate(dbItem.updated_at),
-    jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
-    satuanKemasan: dbItem.satuan_kemasan,
-    hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
-  }), []);
-
+// Custom hooks for inventory analysis
+const useInventoryAnalysis = (bahanBaku: BahanBaku[]) => {
   const getDaysUntilExpiry = useCallback((expiryDate: Date | null): number => {
-    if (!expiryDate) return Infinity;
+    if (!expiryDate || !isValidDate(expiryDate)) return Infinity;
     const today = new Date();
     const expiry = new Date(expiryDate);
     const diffTime = expiry.getTime() - today.getTime();
@@ -97,7 +95,6 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     return daysUntilExpiry <= days && daysUntilExpiry > 0;
   }, [getDaysUntilExpiry]);
 
-  // 🔧 FIX: Simple helper functions without dependencies on bahanBaku
   const getLowStockItems = useCallback((items: BahanBaku[] = bahanBaku): BahanBaku[] => {
     return items.filter(item => item.stok > 0 && item.stok <= item.minimum);
   }, [bahanBaku]);
@@ -110,7 +107,97 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     return items.filter(item => isExpiringSoon(item, days));
   }, [bahanBaku, isExpiringSoon]);
 
-  // 🔧 FIX: Isolated alert check function
+  return {
+    getDaysUntilExpiry,
+    isExpiringSoon,
+    getLowStockItems,
+    getOutOfStockItems,
+    getExpiringItems
+  };
+};
+
+// Custom hook for selection management (integrated with warehouse selection logic)
+const useWarehouseSelection = () => {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  const toggleSelection = useCallback((id: string) => {
+    logger.context('BahanBakuContext', 'Toggle selection:', id);
+    setSelectedItems(prev => {
+      const isCurrentlySelected = prev.includes(id);
+      if (isCurrentlySelected) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  }, []);
+
+  const selectAll = useCallback((items: BahanBaku[]) => {
+    logger.context('BahanBakuContext', 'Select all items');
+    setSelectedItems(items.map(item => item.id));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    logger.context('BahanBakuContext', 'Clear selection');
+    setSelectedItems([]);
+  }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    logger.context('BahanBakuContext', 'Toggle selection mode');
+    setIsSelectionMode(prev => {
+      if (prev) {
+        setSelectedItems([]);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const isSelected = useCallback((id: string) => {
+    return selectedItems.includes(id);
+  }, [selectedItems]);
+
+  const getSelectedItems = useCallback((allItems: BahanBaku[]) => {
+    return allItems.filter(item => selectedItems.includes(item.id));
+  }, [selectedItems]);
+
+  return {
+    selectedItems,
+    isSelectionMode,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    toggleSelectionMode,
+    isSelected,
+    getSelectedItems
+  };
+};
+
+// Provider Component
+export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const { user } = useAuth();
+  const { addActivity } = useActivity();
+  const { addNotification } = useNotification();
+
+  // Custom hooks
+  const selection = useWarehouseSelection();
+  const analysis = useInventoryAnalysis(bahanBaku);
+
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const alertsCheckedRef = useRef<boolean>(false);
+
+  logger.context('BahanBakuContext', 'Provider render', { 
+    user: user?.id,
+    itemCount: bahanBaku.length,
+    selectedCount: selection.selectedItems.length,
+    selectionMode: selection.isSelectionMode
+  });
+
+  // Alert checking function
   const checkInventoryAlerts = useCallback(async (itemsToCheck?: BahanBaku[]): Promise<void> => {
     if (!user) return;
     
@@ -120,10 +207,10 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     logger.context('BahanBakuContext', 'Checking inventory alerts for', items.length, 'items');
 
     try {
-      const lowStockItems = getLowStockItems(items);
-      const outOfStockItems = getOutOfStockItems(items);
-      const expiringItems = getExpiringItems(7, items);
-      const criticalExpiringItems = getExpiringItems(3, items);
+      const lowStockItems = analysis.getLowStockItems(items);
+      const outOfStockItems = analysis.getOutOfStockItems(items);
+      const expiringItems = analysis.getExpiringItems(7, items);
+      const criticalExpiringItems = analysis.getExpiringItems(3, items);
 
       logger.context('BahanBakuContext', 'Alert counts:', {
         lowStock: lowStockItems.length,
@@ -132,8 +219,8 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         criticalExpiring: criticalExpiringItems.length
       });
 
-      // Create notifications for critical issues
-      for (const item of outOfStockItems.slice(0, 3)) { // Limit to prevent spam
+      // Create notifications for critical issues (limit to prevent spam)
+      for (const item of outOfStockItems.slice(0, 3)) {
         await addNotification({
           title: '🚫 Stok Habis!',
           message: `${item.nama} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
@@ -147,7 +234,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         });
       }
 
-      for (const item of lowStockItems.slice(0, 3)) { // Limit to prevent spam
+      for (const item of lowStockItems.slice(0, 3)) {
         await addNotification({
           title: '⚠️ Stok Menipis!',
           message: `${item.nama} tersisa ${item.stok} ${item.satuan} dari minimum ${item.minimum}. Pertimbangkan untuk melakukan pembelian.`,
@@ -161,8 +248,8 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         });
       }
 
-      for (const item of criticalExpiringItems.slice(0, 2)) { // Limit to prevent spam
-        const daysLeft = getDaysUntilExpiry(item.tanggalKadaluwarsa);
+      for (const item of criticalExpiringItems.slice(0, 2)) {
+        const daysLeft = analysis.getDaysUntilExpiry(item.tanggalKadaluwarsa);
         await addNotification({
           title: '🔥 Segera Expired!',
           message: `${item.nama} akan expired dalam ${daysLeft} hari! Gunakan segera atau akan mengalami kerugian ${formatCurrency(item.stok * item.hargaSatuan)}.`,
@@ -192,13 +279,13 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         });
       }
 
-      alertsCheckedRef.current = true; // Mark as checked
+      alertsCheckedRef.current = true;
     } catch (error) {
       logger.error('BahanBakuContext - Error checking inventory alerts:', error);
     }
-  }, [user, bahanBaku, addNotification, getLowStockItems, getOutOfStockItems, getExpiringItems, getDaysUntilExpiry]);
+  }, [user, bahanBaku, addNotification, analysis]);
 
-  // 🔧 FIX: Separate fetch function without alert check
+  // Data fetching
   const fetchBahanBaku = useCallback(async (shouldCheckAlerts: boolean = false) => {
     if (!user) {
       setBahanBaku([]);
@@ -224,11 +311,10 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       logger.context('BahanBakuContext', 'Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
 
-      // 🔧 FIX: Only check alerts on initial load, not on every fetch
       if (shouldCheckAlerts && !alertsCheckedRef.current && transformedData.length > 0) {
         setTimeout(() => {
           checkInventoryAlerts(transformedData);
-        }, 2000); // Delay to prevent immediate loop
+        }, 2000);
       }
     } catch (err: any) {
       logger.error('BahanBakuContext - Error fetching bahan baku:', err);
@@ -239,21 +325,20 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [user, transformBahanBakuFromDB, addNotification, checkInventoryAlerts]);
+  }, [user, addNotification, checkInventoryAlerts]);
 
-  // 🔧 FIX: Separate refresh function
   const refreshData = useCallback(async () => {
-    await fetchBahanBaku(false); // Don't check alerts on refresh
+    await fetchBahanBaku(false);
   }, [fetchBahanBaku]);
 
-  // Setup subscription once on mount
+  // Setup subscription
   useEffect(() => {
     if (!user || subscriptionRef.current) return;
 
     logger.context('BahanBakuContext', 'Setting up subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`bahan_baku_changes_${user.id}`) // Unique channel name
+      .channel(`bahan_baku_changes_${user.id}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -266,7 +351,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
           if (payload.eventType === 'DELETE') {
             const filtered = prev.filter((item) => item.id !== payload.old.id);
             // Remove from selection if deleted
-            setSelectedItems(current => current.filter(id => id !== payload.old.id));
+            selection.toggleSelection(payload.old.id);
             return filtered;
           }
           if (payload.eventType === 'INSERT') {
@@ -296,60 +381,17 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         subscriptionRef.current = null;
       }
     };
-  }, [user, transformBahanBakuFromDB]);
+  }, [user, selection.toggleSelection]);
 
   // Initial data load
   useEffect(() => {
     logger.context('BahanBakuContext', 'Initial data load for user:', user?.id);
-    fetchBahanBaku(true); // Check alerts on initial load
-    setSelectedItems([]);
-    setIsSelectionMode(false);
-    alertsCheckedRef.current = false; // Reset alert check flag
-  }, [user]); // 🔧 FIX: Only depend on user, not fetchBahanBaku
+    fetchBahanBaku(true);
+    selection.clearSelection();
+    alertsCheckedRef.current = false;
+  }, [user]);
 
-  // 🔧 FIX: Simplified selection functions
-  const toggleSelection = useCallback((id: string) => {
-    logger.context('BahanBakuContext', 'Toggle selection:', id);
-    setSelectedItems(prev => {
-      const isCurrentlySelected = prev.includes(id);
-      if (isCurrentlySelected) {
-        return prev.filter(item => item !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
-  }, []);
-
-  const selectAll = useCallback(() => {
-    logger.context('BahanBakuContext', 'Select all items');
-    setSelectedItems(bahanBaku.map(item => item.id));
-  }, [bahanBaku]);
-
-  const clearSelection = useCallback(() => {
-    logger.context('BahanBakuContext', 'Clear selection');
-    setSelectedItems([]);
-  }, []);
-
-  const toggleSelectionMode = useCallback(() => {
-    logger.context('BahanBakuContext', 'Toggle selection mode');
-    setIsSelectionMode(prev => {
-      if (prev) {
-        // Exiting selection mode - clear selections
-        setSelectedItems([]);
-      }
-      return !prev;
-    });
-  }, []);
-
-  const isSelected = useCallback((id: string) => {
-    return selectedItems.includes(id);
-  }, [selectedItems]);
-
-  const getSelectedItems = useCallback(() => {
-    return bahanBaku.filter(item => selectedItems.includes(item.id));
-  }, [bahanBaku, selectedItems]);
-
-  // CRUD Operations (simplified)
+  // CRUD Operations
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan bahan baku');
@@ -359,17 +401,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const bahanToInsert = {
         user_id: user.id,
-        nama: bahan.nama,
-        kategori: bahan.kategori,
-        stok: bahan.stok,
-        satuan: bahan.satuan,
-        harga_satuan: bahan.hargaSatuan,
-        minimum: bahan.minimum,
-        supplier: bahan.supplier,
-        tanggal_kadaluwarsa: bahan.tanggalKadaluwarsa,
-        jumlah_beli_kemasan: bahan.jumlahBeliKemasan,
-        satuan_kemasan: bahan.satuanKemasan,
-        harga_total_beli_kemasan: bahan.hargaTotalBeliKemasan
+        ...transformBahanBakuToDB(bahan)
       };
 
       const { error } = await supabase
@@ -386,7 +418,6 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       toast.success(`${bahan.nama} berhasil ditambahkan ke inventory!`);
 
-      // Create success notification
       await addNotification({
         title: '📦 Item Baru Ditambahkan!',
         message: `${bahan.nama} berhasil ditambahkan dengan stok ${bahan.stok} ${bahan.satuan}`,
@@ -420,18 +451,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       const itemBeforeUpdate = bahanBaku.find(b => b.id === id);
       if (!itemBeforeUpdate) throw new Error("Item tidak ditemukan untuk diperbarui.");
 
-      const bahanToUpdate: { [key: string]: any } = {};
-      if (updatedBahan.nama !== undefined) bahanToUpdate.nama = updatedBahan.nama;
-      if (updatedBahan.kategori !== undefined) bahanToUpdate.kategori = updatedBahan.kategori;
-      if (updatedBahan.stok !== undefined) bahanToUpdate.stok = updatedBahan.stok;
-      if (updatedBahan.satuan !== undefined) bahanToUpdate.satuan = updatedBahan.satuan;
-      if (updatedBahan.hargaSatuan !== undefined) bahanToUpdate.harga_satuan = updatedBahan.hargaSatuan;
-      if (updatedBahan.minimum !== undefined) bahanToUpdate.minimum = updatedBahan.minimum;
-      if (updatedBahan.supplier !== undefined) bahanToUpdate.supplier = updatedBahan.supplier;
-      if (updatedBahan.tanggalKadaluwarsa !== undefined) bahanToUpdate.tanggal_kadaluwarsa = updatedBahan.tanggalKadaluwarsa;
-      if (updatedBahan.jumlahBeliKemasan !== undefined) bahanToUpdate.jumlah_beli_kemasan = updatedBahan.jumlahBeliKemasan;
-      if (updatedBahan.satuanKemasan !== undefined) bahanToUpdate.satuan_kemasan = updatedBahan.satuanKemasan;
-      if (updatedBahan.hargaTotalBeliKemasan !== undefined) bahanToUpdate.harga_total_beli_kemasan = updatedBahan.hargaTotalBeliKemasan;
+      const bahanToUpdate = transformBahanBakuToDB(updatedBahan);
 
       const { error } = await supabase
         .from('bahan_baku')
@@ -497,12 +517,10 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     setIsBulkDeleting(true);
     try {
-      const itemsToDelete = bahanBaku.filter(b => ids.includes(b.id));
       const { error } = await supabase.from('bahan_baku').delete().in('id', ids).eq('user_id', user.id);
       if (error) throw error;
 
-      clearSelection();
-      setIsSelectionMode(false);
+      selection.clearSelection();
       toast.success(`${ids.length} bahan baku berhasil dihapus!`);
 
       await addNotification({
@@ -530,6 +548,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
+  // Additional utility methods
   const getBahanBakuByName = useCallback((nama: string): BahanBaku | undefined => {
     return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
   }, [bahanBaku]);
@@ -547,35 +566,41 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     return await updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
   };
 
+  // Context value
   const value: BahanBakuContextType = {
+    // Warehouse context interface
     bahanBaku,
-    isLoading,
-    selectedItems,
-    isSelectionMode,
-    isBulkDeleting,
+    loading: isLoading,
     addBahanBaku,
     updateBahanBaku,
     deleteBahanBaku,
+    bulkDeleteBahanBaku,
+    
+    // Selection interface (integrated with modular warehouse)
+    selectedItems: selection.selectedItems,
+    isSelectionMode: selection.isSelectionMode,
+    isBulkDeleting,
+    toggleSelection: selection.toggleSelection,
+    selectAll: () => selection.selectAll(bahanBaku),
+    clearSelection: selection.clearSelection,
+    toggleSelectionMode: selection.toggleSelectionMode,
+    isSelected: selection.isSelected,
+    getSelectedItems: () => selection.getSelectedItems(bahanBaku),
+    
+    // Additional context methods
     getBahanBakuByName,
     reduceStok,
-    bulkDeleteBahanBaku,
-    toggleSelection,
-    selectAll,
-    clearSelection,
-    toggleSelectionMode,
-    isSelected,
-    getSelectedItems,
     refreshData,
     checkInventoryAlerts,
-    getExpiringItems,
-    getLowStockItems,
-    getOutOfStockItems,
+    getExpiringItems: analysis.getExpiringItems,
+    getLowStockItems: analysis.getLowStockItems,
+    getOutOfStockItems: analysis.getOutOfStockItems,
   };
 
   logger.context('BahanBakuContext', 'Providing context value:', {
     itemCount: bahanBaku.length,
-    selectedCount: selectedItems.length,
-    selectionMode: isSelectionMode,
+    selectedCount: selection.selectedItems.length,
+    selectionMode: selection.isSelectionMode,
     loading: isLoading
   });
 

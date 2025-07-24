@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BahanBaku, WarehouseContextType } from '@/types';
 import { parseDate } from '@/utils/dashboardUtils';
 import { isValidDate } from '@/utils/dateUtils';
-import { formatCurrency } from '@/utils/dateUtils';   
+import { formatCurrency } from '@/utils/currencyUtils';   
 
 // Dependencies
 import { useAuth } from './AuthContext';

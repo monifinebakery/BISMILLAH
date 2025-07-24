@@ -15,7 +15,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatDateForDisplay } from '@/utils/dateUtils';
-import { formatCurrency, formatLargeNumber } from '@/utils/currencyUtils';
+import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";

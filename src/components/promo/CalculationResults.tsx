@@ -1,255 +1,500 @@
-// components/promo/ResultsCard.tsx
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+// components/CalculationResults.tsx - Results Display
+
+import React, { useState, useMemo } from 'react';
 import { 
+  Calculator, 
   TrendingUp, 
   TrendingDown, 
   AlertTriangle, 
-  Save, 
-  Loader2, 
-  Calculator,
-  HelpCircle 
+  CheckCircle, 
+  DollarSign,
+  Percent,
+  Save,
+  BarChart3,
+  Eye,
+  EyeOff,
+  Info
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
-import { cn } from '@/lib/utils';
+import { CalculationResultsProps, CalculationResult, Recipe } from '../types';
+import { formatCurrency, formatPercentage } from '../utils';
+import { analyzeMargin } from '../utils/calculationUtils';
 
-interface PromoResult {
-  price: number;
+interface CalculationResultsComponent extends React.FC<CalculationResultsProps> {
+  Header: React.FC<HeaderProps>;
+  PriceComparison: React.FC<PriceComparisonProps>;
+  MarginAnalysis: React.FC<MarginAnalysisProps>;
+  SaveSection: React.FC<SaveSectionProps>;
+  DetailedBreakdown: React.FC<DetailedBreakdownProps>;
+}
+
+interface HeaderProps {
+  result: CalculationResult;
+  recipe: Recipe;
+}
+
+interface PriceComparisonProps {
+  originalPrice: number;
+  promoPrice: number;
+  discountAmount?: number;
+  discountPercent?: number;
+}
+
+interface MarginAnalysisProps {
   marginRp: number;
   marginPercent: number;
-  details: any;
   isNegativeMargin: boolean;
+  hpp: number;
 }
 
-interface Recipe {
-  id: string;
-  namaResep: string;
-}
-
-interface Props {
-  promoResult: PromoResult | null;
+interface SaveSectionProps {
   promoName: string;
-  setPromoName: (name: string) => void;
+  onPromoNameChange: (name: string) => void;
   onSave: () => void;
   isSaving: boolean;
-  selectedRecipe: Recipe | null;
+  disabled?: boolean;
 }
 
-// 📊 Metric Card Component
-const MetricCard: React.FC<{
-  title: string;
-  value: string;
-  subtitle?: string;
-  isNegative?: boolean;
-  icon: React.ReactNode;
-  tooltip?: string;
-}> = ({ title, value, subtitle, isNegative = false, icon, tooltip }) => (
-  <div className={cn(
-    "p-6 rounded-xl border hover:shadow-lg transition-all duration-300 hover:-translate-y-1",
-    isNegative 
-      ? "bg-gradient-to-br from-red-100 to-red-50 border-red-200" 
-      : "bg-gradient-to-br from-blue-100 to-blue-50 border-blue-200"
-  )}>
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <div className={cn(
-          "p-2 rounded-lg",
-          isNegative ? "bg-red-200" : "bg-blue-200"
-        )}>
-          <div className={cn(
-            "h-4 w-4",
-            isNegative ? "text-red-700" : "text-blue-700"
-          )}>
-            {icon}
-          </div>
-        </div>
-        <span className={cn(
-          "text-sm font-medium",
-          isNegative ? "text-red-700" : "text-blue-700"
-        )}>
-          {title}
-        </span>
+interface DetailedBreakdownProps {
+  isVisible: boolean;
+  onToggle: () => void;
+  result: CalculationResult;
+  recipe: Recipe;
+}
+
+// 📊 Header Component
+const Header: React.FC<HeaderProps> = ({ result, recipe }) => {
+  const getStatusIcon = () => {
+    if (result.isNegativeMargin) {
+      return <AlertTriangle className="h-6 w-6 text-red-500" />;
+    }
+    return <CheckCircle className="h-6 w-6 text-green-500" />;
+  };
+
+  const getStatusText = () => {
+    if (result.isNegativeMargin) {
+      return "Margin Negatif - Berpotensi Rugi";
+    }
+    return "Kalkulasi Berhasil";
+  };
+
+  const getStatusColor = () => {
+    if (result.isNegativeMargin) {
+      return "text-red-600";
+    }
+    return "text-green-600";
+  };
+
+  return (
+    <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+      <div className="p-2 bg-white rounded-lg shadow-sm">
+        <Calculator className="h-6 w-6 text-blue-600" />
       </div>
       
-      {tooltip && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <HelpCircle size={16} className={cn(
-                "hover:opacity-80",
-                isNegative ? "text-red-600" : "text-blue-600"
-              )} />
-            </TooltipTrigger>
-            <TooltipContent className="bg-white text-gray-800 border shadow-lg max-w-xs">
-              <p>{tooltip}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-    </div>
-    
-    <p className={cn(
-      "text-2xl font-bold",
-      isNegative ? "text-red-800" : "text-blue-800"
-    )}>
-      {value}
-    </p>
-    
-    {subtitle && (
-      <p className={cn(
-        "text-sm mt-1",
-        isNegative ? "text-red-600" : "text-blue-600"
-      )}>
-        {subtitle}
-      </p>
-    )}
-  </div>
-);
-
-// ⚠️ Warning Alert Component
-const NegativeMarginAlert: React.FC = () => (
-  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-    <div className="flex items-center gap-3">
-      <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
-      <div>
-        <p className="text-red-800 font-medium">Peringatan: Margin Negatif!</p>
-        <p className="text-red-600 text-sm">
-          Promo ini akan mengurangi keuntungan Anda. Pertimbangkan untuk menyesuaikan nilai promo.
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          {getStatusIcon()}
+          <h3 className="text-lg font-semibold text-gray-900">
+            Hasil Kalkulasi Promo
+          </h3>
+        </div>
+        
+        <p className={`text-sm font-medium ${getStatusColor()}`}>
+          {getStatusText()}
+        </p>
+        
+        <p className="text-sm text-gray-600 mt-1">
+          Produk: <span className="font-medium">{recipe.namaResep}</span>
         </p>
       </div>
     </div>
-  </div>
-);
-
-// 📭 Empty State Component
-const EmptyState: React.FC = () => (
-  <div className="text-center py-16">
-    <div className="p-6 bg-gray-50 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-      <Calculator className="h-10 w-10 text-gray-400" />
-    </div>
-    <p className="text-gray-600 text-lg font-medium mb-2">Hasil Kalkulasi</p>
-    <p className="text-gray-500">Pilih produk dan atur promo untuk melihat hasil perhitungan</p>
-  </div>
-);
-
-const ResultsCard: React.FC<Props> = ({
-  promoResult,
-  promoName,
-  setPromoName,
-  onSave,
-  isSaving,
-  selectedRecipe
-}) => {
-  const canSave = promoName.trim() && selectedRecipe && promoResult && !isSaving;
-
-  return (
-    <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-      {/* 📈 Header */}
-      <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg p-6">
-        <CardTitle className="text-xl font-semibold flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-            <TrendingUp className="h-5 w-5" />
-          </div>
-          3. Hasil Kalkulasi
-        </CardTitle>
-        <CardDescription className="text-orange-100">
-          Lihat dampak promo terhadap keuntungan
-        </CardDescription>
-      </CardHeader>
-
-      {/* 📊 Content */}
-      <CardContent className="p-6">
-        {promoResult ? (
-          <div className="space-y-6 animate-fade-in">
-            {/* 📊 Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <MetricCard
-                title="Harga Efektif"
-                value={formatCurrency(promoResult.price)}
-                icon={<TrendingUp className="h-4 w-4" />}
-                tooltip="Harga jual rata-rata per item setelah promo diterapkan"
-              />
-
-              <MetricCard
-                title="Margin Promo"
-                value={formatPercentage(promoResult.marginPercent)}
-                subtitle={`${formatCurrency(promoResult.marginRp)} per item`}
-                isNegative={promoResult.isNegativeMargin}
-                icon={promoResult.isNegativeMargin 
-                  ? <TrendingDown className="h-4 w-4" /> 
-                  : <TrendingUp className="h-4 w-4" />
-                }
-                tooltip="Persentase keuntungan setelah promo diterapkan"
-              />
-            </div>
-
-            {/* ⚠️ Negative Margin Warning */}
-            {promoResult.isNegativeMargin && <NegativeMarginAlert />}
-
-            {/* 💾 Save Section */}
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <Input
-                  placeholder="Nama Promo (contoh: Flash Sale Weekend)"
-                  value={promoName}
-                  onChange={(e) => setPromoName(e.target.value)}
-                  className="flex-1 border-orange-200 focus:border-orange-400 h-12"
-                  maxLength={100}
-                />
-                <Button
-                  onClick={onSave}
-                  disabled={!canSave}
-                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 min-w-[120px]"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="mr-2 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} className="mr-2" />
-                      Simpan
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* 📝 Character Counter */}
-              <div className="flex justify-between items-center text-xs text-gray-500">
-                <span>
-                  {promoName.length}/100 karakter
-                </span>
-                {promoResult.isNegativeMargin && (
-                  <Badge variant="destructive" className="text-xs">
-                    Margin Negatif
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* 💡 Success Tips */}
-            {!promoResult.isNegativeMargin && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700 text-sm">
-                  <TrendingUp className="h-4 w-4 flex-shrink-0" />
-                  <span>
-                    <strong>Bagus!</strong> Promo ini masih menguntungkan dengan margin {formatPercentage(promoResult.marginPercent)}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState />
-        )}
-      </CardContent>
-    </Card>
   );
 };
 
-export default ResultsCard;
+// 💰 Price Comparison Component
+const PriceComparison: React.FC<PriceComparisonProps> = ({
+  originalPrice,
+  promoPrice,
+  discountAmount = 0,
+  discountPercent = 0
+}) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Original Price */}
+      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <DollarSign className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Harga Asli</span>
+        </div>
+        <p className="text-xl font-bold text-gray-900">
+          {formatCurrency(originalPrice)}
+        </p>
+      </div>
+
+      {/* Promo Price */}
+      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <DollarSign className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-medium text-green-700">Harga Promo</span>
+        </div>
+        <p className="text-xl font-bold text-green-600">
+          {formatCurrency(promoPrice)}
+        </p>
+      </div>
+
+      {/* Savings */}
+      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <Percent className="h-4 w-4 text-orange-600" />
+          <span className="text-sm font-medium text-orange-700">Penghematan</span>
+        </div>
+        <p className="text-xl font-bold text-orange-600">
+          {formatCurrency(discountAmount)}
+        </p>
+        <p className="text-sm text-orange-600 mt-1">
+          ({discountPercent.toFixed(1)}%)
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// 📈 Margin Analysis Component
+const MarginAnalysis: React.FC<MarginAnalysisProps> = ({
+  marginRp,
+  marginPercent,
+  isNegativeMargin,
+  hpp
+}) => {
+  const marginAnalysis = analyzeMargin(marginPercent);
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-lg font-semibold text-gray-900">Analisis Margin</h4>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Margin in Rupiah */}
+        <div className={`p-4 border rounded-lg ${marginAnalysis.bgColor}`}>
+          <div className="flex items-center gap-2 mb-2">
+            {isNegativeMargin ? (
+              <TrendingDown className="h-5 w-5 text-red-500" />
+            ) : (
+              <TrendingUp className="h-5 w-5 text-green-500" />
+            )}
+            <span className="text-sm font-medium text-gray-700">Margin (Rp)</span>
+          </div>
+          <p className={`text-2xl font-bold ${marginAnalysis.color}`}>
+            {formatCurrency(marginRp)}
+          </p>
+        </div>
+
+        {/* Margin Percentage */}
+        <div className={`p-4 border rounded-lg ${marginAnalysis.bgColor}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="h-5 w-5 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Margin (%)</span>
+          </div>
+          <p className={`text-2xl font-bold ${marginAnalysis.color}`}>
+            {formatPercentage(marginPercent)}
+          </p>
+        </div>
+      </div>
+
+      {/* Margin Status */}
+      <div className={`p-4 border rounded-lg ${marginAnalysis.bgColor}`}>
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg ${marginAnalysis.bgColor}`}>
+            {isNegativeMargin ? (
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            ) : (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            )}
+          </div>
+          
+          <div className="flex-1">
+            <h5 className={`font-semibold ${marginAnalysis.color}`}>
+              Status: {marginAnalysis.label}
+            </h5>
+            <p className="text-sm text-gray-600 mt-1">
+              {marginAnalysis.recommendation}
+            </p>
+            
+            {isNegativeMargin && (
+              <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">
+                  <strong>Peringatan:</strong> Harga promo ({formatCurrency(marginRp + hpp)}) 
+                  lebih rendah dari HPP ({formatCurrency(hpp)}). 
+                  Promo ini akan menyebabkan kerugian sebesar {formatCurrency(Math.abs(marginRp))}.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 💾 Save Section Component
+const SaveSection: React.FC<SaveSectionProps> = ({
+  promoName,
+  onPromoNameChange,
+  onSave,
+  isSaving,
+  disabled = false
+}) => {
+  return (
+    <div className="space-y-4">
+      <h4 className="text-lg font-semibold text-gray-900">Simpan Promo</h4>
+      
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nama Promo
+          </label>
+          <input
+            type="text"
+            value={promoName}
+            onChange={(e) => onPromoNameChange(e.target.value)}
+            placeholder="Masukkan nama promo..."
+            disabled={disabled || isSaving}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-500"
+          />
+        </div>
+
+        <button
+          onClick={onSave}
+          disabled={disabled || isSaving || !promoName.trim()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Menyimpan...</span>
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              <span>Simpan Promo</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// 📋 Detailed Breakdown Component
+const DetailedBreakdown: React.FC<DetailedBreakdownProps> = ({
+  isVisible,
+  onToggle,
+  result,
+  recipe
+}) => {
+  const calculationSteps = useMemo(() => {
+    const steps = [];
+    
+    steps.push({
+      label: 'Harga Jual Asli',
+      value: formatCurrency(recipe.hargaJualPorsi),
+      description: 'Harga jual produk sebelum promo'
+    });
+
+    steps.push({
+      label: 'HPP (Harga Pokok Penjualan)',
+      value: formatCurrency(recipe.hppPerPorsi),
+      description: 'Biaya produksi per porsi'
+    });
+
+    if (result.discountAmount) {
+      steps.push({
+        label: 'Diskon Diberikan',
+        value: formatCurrency(result.discountAmount),
+        description: `Potongan harga (${result.discountPercent?.toFixed(1)}%)`
+      });
+    }
+
+    steps.push({
+      label: 'Harga Jual Promo',
+      value: formatCurrency(result.price),
+      description: 'Harga final setelah promo'
+    });
+
+    steps.push({
+      label: 'Margin Keuntungan',
+      value:urrency(result.marginRp),
+      description: `${formatPercentage(result.marginPercent)} dari harga promo`,
+      isHighlight: true,
+      isNegative: result.isNegativeMargin
+    });
+
+    return steps;
+  }, [result, recipe]);
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+      >
+        {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        <span>{isVisible ? 'Sembunyikan' : 'Tampilkan'} Detail Kalkulasi</span>
+      </button>
+
+      {isVisible && (
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Info className="h-4 w-4 text-blue-600" />
+            <h5 className="font-medium text-gray-900">Langkah Kalkulasi</h5>
+          </div>
+
+          <div className="space-y-3">
+            {calculationSteps.map((step, index) => (
+              <div
+                key={index}
+                className={`p-3 rounded-lg border ${
+                  step.isHighlight
+                    ? step.isNegative
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-green-50 border-green-200'
+                    : 'bg-white border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className={`font-medium ${
+                      step.isHighlight
+                        ? step.isNegative
+                          ? 'text-red-800'
+                          : 'text-green-800'
+                        : 'text-gray-900'
+                    }`}>
+                      {step.label}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {step.description}
+                    </p>
+                  </div>
+                  <p className={`text-lg font-bold ${
+                    step.isHighlight
+                      ? step.isNegative
+                        ? 'text-red-600'
+                        : 'text-green-600'
+                      : 'text-gray-900'
+                  }`}>
+                    {step.value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                Status Margin:
+              </span>
+              <span className={`text-sm font-bold ${
+                result.isNegativeMargin ? 'text-red-600' : 'text-green-600'
+              }`}>
+                {result.isNegativeMargin ? 'RUGI' : 'UNTUNG'} {formatCurrency(Math.abs(result.marginRp))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// 🎯 Main Calculation Results Component
+const CalculationResults: CalculationResultsComponent = ({
+  result,
+  recipe,
+  promoName,
+  onPromoNameChange,
+  onSave,
+  isSaving,
+  showBreakdown = true,
+  showWarnings = true
+}) => {
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
+
+  if (!result || !recipe) {
+    return (
+      <div className="text-center py-8">
+        <Calculator className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+        <p className="text-gray-500">Belum ada hasil kalkulasi</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <Header result={result} recipe={recipe} />
+
+      {/* Price Comparison */}
+      <PriceComparison
+        originalPrice={recipe.hargaJualPorsi}
+        promoPrice={result.price}
+        discountAmount={result.discountAmount}
+        discountPercent={result.discountPercent}
+      />
+
+      {/* Margin Analysis */}
+      <MarginAnalysis
+        marginRp={result.marginRp}
+        marginPercent={result.marginPercent}
+        isNegativeMargin={result.isNegativeMargin}
+        hpp={recipe.hppPerPorsi}
+      />
+
+      {/* Detailed Breakdown */}
+      {showBreakdown && (
+        <DetailedBreakdown
+          isVisible={showDetailedBreakdown}
+          onToggle={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+          result={result}
+          recipe={recipe}
+        />
+      )}
+
+      {/* Save Section */}
+      <SaveSection
+        promoName={promoName}
+        onPromoNameChange={onPromoNameChange}
+        onSave={onSave}
+        isSaving={isSaving}
+        disabled={result.isNegativeMargin && showWarnings}
+      />
+
+      {/* Warning for negative margin */}
+      {result.isNegativeMargin && showWarnings && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-red-800 mb-1">
+                Peringatan: Margin Negatif
+              </h4>
+              <p className="text-sm text-red-700">
+                Promo ini akan menyebabkan kerugian. Pertimbangkan untuk mengurangi diskon 
+                atau meninjau kembali HPP produk sebelum menyimpan.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Attach sub-components
+CalculationResults.Header = Header;
+CalculationResults.PriceComparison = PriceComparison;
+CalculationResults.MarginAnalysis = MarginAnalysis;
+CalculationResults.SaveSection = SaveSection;
+CalculationResults.DetailedBreakdown = DetailedBreakdown;
+
+export default CalculationResults;

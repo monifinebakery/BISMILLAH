@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OrderFilters, DateRange } from '../types';
 import { orderStatusList } from '../constants/orderConstants';
-import { formatDateRange } from '../utils';
-import DateRangePicker from './DateRangePicker';
+import { formatDateRange } from '@/utils';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 interface FilterBarProps {
   filters: OrderFilters;

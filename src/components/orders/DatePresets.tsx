@@ -1,7 +1,7 @@
 // src/components/orders/components/DatePresets.tsx (FIXED VERSION)
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DateRange } from '../types';
+import { DateRange } from '@/types/orders';
 import { getDateRangePreset } from '@/utils/dateUtils';
 import { DATE_RANGE_PRESETS } from '@/constants/orderConstants';
 

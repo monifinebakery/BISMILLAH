@@ -24,7 +24,7 @@ export * from './useOrderPagination';
 // ====================================================================
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { debounce } from '@/utils'; // Asumsi debounce ada di utils
+import { debounce } from '@/utils/constants'; // Asumsi debounce ada di utils
 
 // 🔍 Search hook
 export const useSearch = <T>(

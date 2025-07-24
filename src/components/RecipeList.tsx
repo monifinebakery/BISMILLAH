@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Edit, Trash2, ChefHat, Users, DollarSign, Package, Calculator, TrendingUp } from "lucide-react";
 import { Recipe } from "@/types/recipe";
-import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 
 interface RecipeListProps {

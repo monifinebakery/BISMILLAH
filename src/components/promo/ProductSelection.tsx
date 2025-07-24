@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown, Package, DollarSign, TrendingUp } from 'lucide-react';
 import { Recipe, ProductSelectionProps } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency } from '@/utils/currencyUtils';
 import { useSearch, useToggle } from '../hooks';
 
 interface ProductSelectionComponent extends React.FC<ProductSelectionProps> {

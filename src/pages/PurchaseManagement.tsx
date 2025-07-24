@@ -14,7 +14,7 @@ import { BahanBaku } from '@/types/bahanBaku';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { generateUUID } from '@/utils/uuid';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { Purchase, PurchaseItem } from '@/types/supplier';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';

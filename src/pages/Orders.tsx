@@ -28,8 +28,8 @@ import {
 // Lazy loaded components (code split)
 const OrderForm = lazy(() => import('@/components/OrderForm'));
 const FollowUpTemplateManager = lazy(() => import('@/components/FollowUpTemplateManager'));
-const BulkDeleteDialog = lazy(() => import('./components/BulkDeleteDialog'));
-const BulkEditDialog = lazy(() => import('./components/BulkEditDialog'));
+const BulkDeleteDialog = lazy(() => import('./components/dialogs/BulkDeleteDialog'));
+const BulkEditDialog = lazy(() => import('./components/dialogs/BulkEditDialog'));
 
 // Dialog loading fallback
 const DialogLoader: React.FC = () => (

@@ -15,7 +15,7 @@ import {
   EyeOff,
   Info
 } from 'lucide-react';
-import { CalculationResultsProps, CalculationResult, Recipe } from '../types';
+import { CalculationResultsProps, CalculationResult, Recipe } from '@/types';
 import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
 import { analyzeMargin } from '../utils/calculationUtils';
 

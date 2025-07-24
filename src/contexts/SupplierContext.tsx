@@ -14,7 +14,7 @@ import { useActivity } from './ActivityContext';
 // 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/dashboardUtils';
 
 // --- INTERFACE & CONTEXT ---
 interface SupplierContextType {

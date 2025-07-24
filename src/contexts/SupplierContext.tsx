@@ -118,7 +118,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       .subscribe();
 
     return () => {
-      logger.context('[SupplierContext] Cleaning up real-time channel');
+      logger.context('SupplierContext', 'Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification]); // 🔔 ADD addNotification dependency

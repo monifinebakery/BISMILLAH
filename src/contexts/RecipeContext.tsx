@@ -296,7 +296,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .insert({ ...transformToDB(recipe), user_id: user.id });
 
       if (error) {
-        console.error('[RecipeContext] Error adding recipe:', error);
+        logger.error('RecipeContext - Error adding recipe:', error);
         throw new Error(error.message);
       }
 
@@ -326,7 +326,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in addRecipe:', error);
+      logger.error('RecipeContext - Error in addRecipe:', error);
       toast.error(`Gagal menambah resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -386,7 +386,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .eq('id', id);
 
       if (error) {
-        console.error('[RecipeContext] Error updating recipe:', error);
+        logger.error('RecipeContext - Error updating recipe:', error);
         throw new Error(error.message);
       }
       
@@ -416,7 +416,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in updateRecipe:', error);
+      logger.error('RecipeContext - Error in updateRecipe:', error);
       toast.error(`Gagal memperbarui resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -445,7 +445,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const { error } = await supabase.from('recipes').delete().eq('id', id);
 
       if (error) {
-        console.error('RecipeContext', 'Error deleting recipe:', error);
+        logger.error('RecipeContext - Error deleting recipe:', error);
         throw new Error(error.message);
       }
       
@@ -475,7 +475,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return true;
     } catch (error) {
-      console.error('[RecipeContext] Error in deleteRecipe:', error);
+      logger.error('RecipeContext - Error in deleteRecipe:', error);
       toast.error(`Gagal menghapus resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -536,7 +536,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       return success;
     } catch (error) {
-      console.error('[RecipeContext] Error duplicating recipe:', error);
+      logger.error('RecipeContext - Error duplicating recipe:', error);
       toast.error('Gagal menduplikasi resep');
       return false;
     }
@@ -554,7 +554,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       
       try {
-        logger.context('[RecipeContext] Fetching recipes for user:', user.id);
+        logger.context('RecipeContext', 'Fetching recipes for user:', user.id);
         const { data, error } = await supabase
           .from('recipes')
           .select('*')
@@ -562,7 +562,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           .order('nama_resep', { ascending: true });
 
         if (error) {
-          console.error('[RecipeContext] Error fetching recipes:', error);
+          logger.error('RecipeContext - Error fetching recipes:', error);
           toast.error(`Gagal memuat resep: ${error.message}`);
           
           // 🔔 CREATE ERROR NOTIFICATION
@@ -571,10 +571,10 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ));
         } else {
           setRecipes(data.map(transformFromDB));
-          logger.context(`RecipeContext', 'Loaded ${data.length} recipes`);
+          logger.context('RecipeContext', `Loaded ${data.length} recipes`);
         }
       } catch (error) {
-        console.error('[RecipeContext] Unexpected error:', error);
+        logger.error('RecipeContext - Unexpected error:', error);
         await addNotification(createNotificationHelper.systemError(
           `Error tidak terduga saat memuat resep: ${error instanceof Error ? error.message : 'Unknown error'}`
         ));

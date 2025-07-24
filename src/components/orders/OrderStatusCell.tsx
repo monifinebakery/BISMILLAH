@@ -1,10 +1,11 @@
+// src/components/orders/components/OrderStatusCell.tsx
 import React from 'react';
 import { MessageSquare, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/types';
-import { orderStatusList, getStatusColor, getStatusText } from '@/constants/orderConstants';
+import { orderStatusList, getStatusText, getStatusColor, getStatusBgColor } from '@/components/orders/constants/orderConstants';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { useWhatsApp } from '@/hooks/useWhatsApp';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ interface OrderStatusCellProps {
   order: Order;
   onStatusChange?: (orderId: string, newStatus: string) => void;
   onTemplateManagerOpen?: (order: Order) => void;
+  onFollowUpClick?: (order: Order) => void; // New prop for WhatsApp follow-up
   disabled?: boolean;
 }
 
@@ -29,6 +31,7 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
   order,
   onStatusChange,
   onTemplateManagerOpen,
+  onFollowUpClick,
   disabled = false,
 }) => {
   // Hooks for handling templates and WhatsApp functionality
@@ -108,9 +111,10 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
           >
             <SelectTrigger
               className={cn(
-                'w-full h-8 text-xs border-none text-white',
+                'w-full h-8 text-xs border-none',
                 'transition-all duration-200 hover:shadow-md',
-                getStatusColor(order.status)
+                getStatusBgColor(order.status),
+                getStatusTextColor(order.status)
               )}
             >
               <SelectValue />
@@ -126,7 +130,7 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
                     <div
                       className={cn(
                         'w-2 h-2 rounded-full',
-                        getStatusColor(statusOption.key, 'bg')
+                        getStatusBgColor(statusOption.key)
                       )}
                     />
                     {statusOption.label}
@@ -143,7 +147,7 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
             size="icon"
             variant="outline"
             className="h-7 w-7 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 transition-colors"
-            onClick={handleQuickWhatsApp}
+            onClick={(e) => { e.stopPropagation(); onFollowUpClick ? onFollowUpClick(order) : handleQuickWhatsApp(e); }}
             disabled={disabled}
             title={`Send WhatsApp for status: ${getStatusText(order.status)}`}
           >
@@ -167,15 +171,9 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
       {/* Status Info */}
       <div className="flex items-center gap-1">
         <div
-          className={cn('w-1.5 h-1.5 rounded-full', {
-            'bg-yellow-500': order.status === 'pending',
-            'bg-blue-500': order.status === 'confirmed',
-            'bg-orange-500': order.status === 'shipping',
-            'bg-green-500': order.status === 'delivered',
-            'bg-red-500': order.status === 'cancelled',
-          })}
+          className={cn('w-1.5 h-1.5 rounded-full', getStatusBgColor(order.status))}
         />
-        <span className="text-xs text-gray-500 font-medium">
+        <span className={cn('text-xs font-medium', getStatusTextColor(order.status))}>
           {getStatusText(order.status)}
         </span>
       </div>

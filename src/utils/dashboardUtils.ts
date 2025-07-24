@@ -42,14 +42,41 @@ export const safeParseDate = (date: any): Date | null => {
   if (!date) return null;
   
   try {
-    if (date instanceof Date && isValid(date)) {
-      return date;
+    // Handle Date objects first
+    if (date instanceof Date) {
+      return isValid(date) && !isNaN(date.getTime()) ? date : null;
     }
+    
+    // Handle string and number inputs
     if (typeof date === 'string' || typeof date === 'number') {
-      // parseISO lebih baik untuk string ISO, new Date() untuk format lain
-      const parsed = (typeof date === 'string' && date.includes('T')) ? parseISO(date) : new Date(date);
-      return isValid(parsed) ? parsed : null;
+      let parsed: Date;
+      
+      if (typeof date === 'string') {
+        // Clean the string first
+        const cleanDate = date.trim();
+        if (!cleanDate) return null;
+        
+        // Try parseISO first for ISO strings
+        if (cleanDate.includes('T') || cleanDate.includes('-')) {
+          parsed = parseISO(cleanDate);
+          if (isValid(parsed) && !isNaN(parsed.getTime())) {
+            return parsed;
+          }
+        }
+        
+        // Fallback to new Date()
+        parsed = new Date(cleanDate);
+      } else {
+        // Handle number (timestamp)
+        parsed = new Date(date);
+      }
+      
+      // Validate the parsed date
+      if (isValid(parsed) && !isNaN(parsed.getTime())) {
+        return parsed;
+      }
     }
+    
     return null;
   } catch (error) {
     console.warn('Date parsing error:', error, 'for date:', date);
@@ -66,8 +93,21 @@ export const parseDate = safeParseDate;
  * @returns `true` jika valid, `false` jika tidak.
  */
 export const isValidDate = (value: any): value is Date => {
-  const date = safeParseDate(value);
-  return date !== null && isValid(date);
+  if (!value) return false;
+  
+  try {
+    // If it's already a Date object, validate it directly
+    if (value instanceof Date) {
+      return isValid(value) && !isNaN(value.getTime());
+    }
+    
+    // Otherwise, try to parse it first
+    const date = safeParseDate(value);
+    return date !== null && isValid(date) && !isNaN(date.getTime());
+  } catch (error) {
+    console.warn('Date validation error:', error, 'for value:', value);
+    return false;
+  }
 };
 
 /**
@@ -114,18 +154,53 @@ export const formatDateToYYYYMMDD = (date: Date | string | null | undefined): st
  * @returns String rentang tanggal yang diformat.
  */
 export const formatDateRange = (dateRange: DateRange | undefined): string => {
-  if (!dateRange?.from) return "Pilih rentang tanggal";
-  
-  const fromDate = safeParseDate(dateRange.from);
-  if (!fromDate) return "Tanggal mulai tidak valid";
-  
-  const toDate = safeParseDate(dateRange.to);
-
-  if (toDate && format(fromDate, 'yyyy-MM-dd') !== format(toDate, 'yyyy-MM-dd')) {
-    return `${format(fromDate, "d MMM", { locale: id })} - ${format(toDate, "d MMM yyyy", { locale: id })}`;
+  try {
+    // Add detailed logging for debugging
+    console.log('formatDateRange input:', dateRange);
+    
+    if (!dateRange?.from) {
+      console.log('No dateRange.from, returning default');
+      return "Pilih rentang tanggal";
+    }
+    
+    const fromDate = safeParseDate(dateRange.from);
+    console.log('Parsed fromDate:', fromDate);
+    
+    if (!fromDate || !isValid(fromDate)) {
+      console.warn('Invalid fromDate:', dateRange.from);
+      return "Tanggal mulai tidak valid";
+    }
+    
+    const toDate = safeParseDate(dateRange.to);
+    console.log('Parsed toDate:', toDate);
+    
+    // Only proceed with formatting if we have valid dates
+    if (toDate && isValid(toDate)) {
+      try {
+        const fromStr = format(fromDate, 'yyyy-MM-dd');
+        const toStr = format(toDate, 'yyyy-MM-dd');
+        
+        if (fromStr !== toStr) {
+          return `${format(fromDate, "d MMM", { locale: id })} - ${format(toDate, "d MMM yyyy", { locale: id })}`;
+        }
+      } catch (formatError) {
+        console.error('Error formatting date range:', formatError);
+        return `${formatDateForDisplay(fromDate)} - ${formatDateForDisplay(toDate)}`;
+      }
+    }
+    
+    // Single date or invalid toDate
+    try {
+      return format(fromDate, "d MMMM yyyy", { locale: id });
+    } catch (formatError) {
+      console.error('Error formatting single date:', formatError);
+      return formatDateForDisplay(fromDate);
+    }
+    
+  } catch (error) {
+    console.error('Date range formatting error:', error, 'for dateRange:', dateRange);
+    return "Tanggal tidak valid";
   }
-  
-  return format(fromDate, "d MMMM yyyy", { locale: id });
 };
 
 /**
@@ -542,7 +617,7 @@ export const formatDashboardMetric = (
 // ==================== ORGANIZED EXPORTS ====================
 
 // Export utility objects for organized imports
-export const DashboardUtils = {
+export const DateUtils = {
   parseDate: safeParseDate,
   safeParseDate,
   isValidDate,

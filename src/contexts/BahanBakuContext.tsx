@@ -2,7 +2,7 @@
 // FIXED VERSION - NO RENDERING LOOPS & WORKING SELECTION
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { BahanBaku } from '@/types/bahanBaku';
+import { BahanBaku } from '@/types/warehouse';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';

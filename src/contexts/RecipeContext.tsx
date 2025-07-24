@@ -571,7 +571,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ));
         } else {
           setRecipes(data.map(transformFromDB));
-          logger.context(`[RecipeContext] Loaded ${data.length} recipes`);
+          logger.context(`RecipeContext', 'Loaded ${data.length} recipes`);
         }
       } catch (error) {
         console.error('[RecipeContext] Unexpected error:', error);

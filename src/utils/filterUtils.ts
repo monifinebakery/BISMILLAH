@@ -1,5 +1,5 @@
 // src/components/orders/utils/filterUtils.ts
-import { Order, OrderFilters, DateRange } from '../types';
+import { Order, OrderFilters, DateRange } from '@/types';
 import { parseDate } from './dashboardUtils';
 
 export const filterOrders = (

@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useBahanBaku } from "@/contexts/BahanBakuContext";
 import { useRecipe } from "@/contexts/RecipeContext";
-import { formatCurrency } from "@/utils/currencyUtils";
+import { formatCurrency } from "@/utils/formatUtils";
 
 interface EnhancedRecipeFormProps {
   initialData?: Recipe | null;

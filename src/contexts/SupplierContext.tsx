@@ -81,7 +81,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
           ));
         } else {
           setSuppliers(data.map(transformSupplierFromDB));
-          console.log(`[SupplierContext] Loaded ${data.length} suppliers`);
+          logger.context(`[SupplierContext] Loaded ${data.length} suppliers`);
         }
       } catch (error) {
         console.error('[SupplierContext] Unexpected error:', error);
@@ -102,7 +102,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         table: 'suppliers', 
         filter: `user_id=eq.${user.id}` 
       }, (payload) => {
-        console.log('[SupplierContext] Real-time event received:', payload);
+        logger.context('[SupplierContext] Real-time event received:', payload);
         const transform = transformSupplierFromDB;
         
         if (payload.eventType === 'INSERT') {
@@ -118,7 +118,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       .subscribe();
 
     return () => {
-      console.log('[SupplierContext] Cleaning up real-time channel');
+      logger.context('[SupplierContext] Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification]); // 🔔 ADD addNotification dependency
@@ -141,7 +141,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         catatan: supplier.catatan ?? null,
       };
 
-      console.log('[SupplierContext] Adding supplier:', supplierToInsert);
+      logger.context('[SupplierContext] Adding supplier:', supplierToInsert);
       const { error } = await supabase.from('suppliers').insert(supplierToInsert);
       
       if (error) {
@@ -204,7 +204,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (supplier.alamat !== undefined) supplierToUpdate.alamat = supplier.alamat;
       if (supplier.catatan !== undefined) supplierToUpdate.catatan = supplier.catatan;
 
-      console.log('[SupplierContext] Updating supplier:', id, supplierToUpdate);
+      logger.context('[SupplierContext] Updating supplier:', id, supplierToUpdate);
       const { error } = await supabase.from('suppliers').update(supplierToUpdate).eq('id', id);
       
       if (error) {
@@ -255,7 +255,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      console.log('[SupplierContext] Deleting supplier:', id);
+      logger.context('[SupplierContext] Deleting supplier:', id);
       const { error } = await supabase.from('suppliers').delete().eq('id', id);
       
       if (error) {

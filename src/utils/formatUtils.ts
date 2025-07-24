@@ -1,19 +1,17 @@
-// utils/formatUtils.ts - Pustaka Utilitas Format Terpusat
-
-// ==================================
-// 💰 Utilitas Mata Uang & Angka
-// ==================================
+/**
+ * =================================================================
+ * GENERAL FORMATTING UTILITIES
+ * =================================================================
+ * A collection of utility functions for formatting various data types
+ * such as currency, numbers, dates, and text for display purposes.
+ */
 
 /**
- * Memformat angka menjadi string mata uang Rupiah (IDR).
- * @param amount Jumlah angka yang akan diformat.
- * @returns String mata uang yang diformat (misal: "Rp 50.000").
+ * Formats a number as Indonesian Rupiah (IDR) currency.
+ * @param amount - The number to format.
+ * @returns A string representing the formatted currency (e.g., "Rp 10.000").
  */
-export const formatCurrency = (amount: number | null | undefined): string => {
-  if (typeof amount !== 'number' || isNaN(amount)) {
-    return 'Rp 0';
-  }
-
+export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -23,70 +21,96 @@ export const formatCurrency = (amount: number | null | undefined): string => {
 };
 
 /**
- * Memformat angka dengan pemisah ribuan sesuai lokal Indonesia.
- * @param num Angka yang akan diformat.
- * @param decimals Jumlah angka di belakang koma.
- * @returns String angka yang diformat.
+ * Formats a number with Indonesian locale-specific thousand separators.
+ * @param value - The number to format.
+ * @returns A string with thousand separators (e.g., "1.234.567").
  */
-export const formatNumber = (num: number | null | undefined, decimals: number = 0): string => {
-  if (typeof num !== 'number' || isNaN(num)) {
-    return '0';
-  }
+export const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('id-ID').format(value);
+};
 
+/**
+ * Formats a number into a compact representation (K, M, B).
+ * @param num The number to format.
+ * @returns A compact string representation (e.g., "1.2K", "5.M").
+ */
+export const formatCompactNumber = (num: number): string => {
+  if (num < 1000) return num.toString();
+  if (num < 1000000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  if (num < 1000000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+};
+
+/**
+ * Formats a number as a percentage.
+ * @param value - The value to format (e.g., 0.75 for 75%).
+ * @param decimals - The number of decimal places to show.
+ * @returns A formatted percentage string (e.g., "75,1%").
+ */
+export const formatPercentage = (value: number, decimals: number = 1): string => {
   return new Intl.NumberFormat('id-ID', {
+    style: 'percent',
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  }).format(num);
+  }).format(value);
 };
 
+
 /**
- * Memformat angka desimal menjadi persentase.
- * @param decimal Angka desimal (misal: 0.25).
- * @param decimals Jumlah angka di belakang koma.
- * @returns String persentase yang diformat (misal: "25.0%").
+ * =================================================================
+ * DATE & TIME UTILITIES
+ * =================================================================
  */
-export const formatPercentage = (decimal: number | null | undefined, decimals: number = 1): string => {
-  if (typeof decimal !== 'number' || isNaN(decimal)) {
-    return '0%';
+
+/**
+ * Formats a Date object or a date string into a readable format.
+ * Includes error handling for invalid date inputs.
+ * @param date - The date to format (Date object or string).
+ * @returns A formatted date string (e.g., "24 Jul 2025") or '-' if invalid.
+ */
+export const formatDate = (date: Date | string | undefined | null): string => {
+  if (!date) return '-';
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      return '-';
+    }
+    return new Intl.DateTimeFormat('id-ID', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(dateObj);
+  } catch (error) {
+    console.warn('Date formatting error:', error);
+    return '-';
   }
-  const percentage = decimal * 100;
-  return `${percentage.toFixed(decimals)}%`;
 };
 
 
-// ==================================
-// 📝 Utilitas Teks & String
-// ==================================
+/**
+ * =================================================================
+ * TEXT & STRING UTILITIES
+ * =================================================================
+ */
 
 /**
- * Memotong teks jika melebihi panjang maksimum dan menambahkan elipsis (...).
- * @param text Teks asli.
- * @param maxLength Panjang maksimum sebelum pemotongan.
- * @returns Teks yang telah dipotong atau teks asli.
+ * Truncates a string to a specified maximum length and appends '...'.
+ * @param text - The string to truncate.
+ * @param maxLength - The maximum length before truncating.
+ * @returns The truncated string or the original string if it's shorter than maxLength.
  */
-export const truncateText = (text: string | null | undefined, maxLength: number = 50): string => {
-  if (!text || text.length <= maxLength) {
-    return text || '';
-  }
-  return text.substring(0, maxLength) + '...';
-};
-
-/**
- * Mengubah huruf pertama string menjadi kapital.
- * @param text Teks asli.
- * @returns Teks dengan huruf pertama kapital.
- */
-export const capitalizeFirst = (text: string | null | undefined): string => {
+export const truncateText = (text: string, maxLength: number = 50): string => {
   if (!text) return '';
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
 };
 
 /**
- * Mengubah string menjadi format Title Case (setiap kata diawali huruf kapital).
- * @param text Teks asli.
- * @returns Teks dalam format Title Case.
+ * Capitalizes the first letter of each word in a string.
+ * @param text - The string to capitalize.
+ * @returns The capitalized string.
  */
-export const toTitleCase = (text: string | null | undefined): string => {
+export const capitalizeWords = (text: string): string => {
   if (!text) return '';
   return text
     .toLowerCase()
@@ -95,52 +119,34 @@ export const toTitleCase = (text: string | null | undefined): string => {
     .join(' ');
 };
 
+
 /**
- * Menyorot kata kunci pencarian dalam teks dengan tag <mark>.
- * @param text Teks asli.
- * @param searchTerm Kata kunci untuk disorot.
- * @returns String HTML dengan kata kunci yang disorot.
+ * =================================================================
+ * DOMAIN-SPECIFIC UTILITIES (ORDERS)
+ * =================================================================
  */
-export const highlightSearchTerm = (text: string, searchTerm: string): string => {
-  if (!searchTerm || !text) return text;
-  const regex = new RegExp(`(${searchTerm})`, 'gi');
-  return text.replace(regex, '<mark class="bg-yellow-200/70 px-0.5 rounded-sm">$1</mark>');
+
+/**
+ * Formats an order status string into a human-readable Indonesian format.
+ * @param status - The raw status string (e.g., 'pending').
+ * @returns The formatted status (e.g., "Menunggu Konfirmasi").
+ */
+export const formatOrderStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'pending': 'Menunggu Konfirmasi',
+    'confirmed': 'Dikonfirmasi',
+    'processing': 'Diproses',
+    'ready': 'Siap Diantar',
+    'delivered': 'Diantar',
+    'completed': 'Selesai',
+    'cancelled': 'Dibatalkan'
+  };
+  return statusMap[status.toLowerCase()] || capitalizeWords(status);
 };
 
-
-// ==================================
-// 📞 Utilitas Nomor Telepon
-// ==================================
-
 /**
- * Memformat nomor telepon Indonesia ke format internasional (+62).
- * @param phone Nomor telepon.
- * @returns Nomor telepon dalam format +62.
- */
-export const formatPhoneNumber = (phone: string | null | undefined): string => {
-  if (!phone) return '-';
-  
-  const cleaned = phone.replace(/\D/g, '');
-  
-  if (cleaned.startsWith('62')) {
-    return `+${cleaned}`;
-  } else if (cleaned.startsWith('08')) {
-    return `+62${cleaned.substring(1)}`;
-  } else if (cleaned.startsWith('8')) {
-    return `+62${cleaned}`;
-  }
-  
-  return phone; // Kembalikan asli jika format tidak dikenal
-};
-
-
-// ==================================
-// 📦 Utilitas Spesifik Pesanan (Order)
-// ==================================
-
-/**
- * Membuat nomor pesanan unik berdasarkan tanggal dan angka acak.
- * @returns Nomor pesanan (misal: ORD250724123).
+ * Generates a random order number with the format ORDYYMMDDXXX.
+ * @returns A unique order number string.
  */
 export const generateOrderNumber = (): string => {
   const now = new Date();
@@ -148,166 +154,125 @@ export const generateOrderNumber = (): string => {
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const day = now.getDate().toString().padStart(2, '0');
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  
   return `ORD${year}${month}${day}${random}`;
 };
 
 /**
- * Membuat nomor pesanan unik sekuensial berdasarkan nomor pesanan terakhir.
- * @param lastOrderNumber Nomor pesanan terakhir.
- * @returns Nomor pesanan baru yang sekuensial.
+ * Generates a random order number including time, ORDYYMMDDHHMMXX.
+ * @returns A unique order number string with time.
+ */
+export const generateOrderNumberWithTime = (): string => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const hour = now.getHours().toString().padStart(2, '0');
+  const minute = now.getMinutes().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  return `ORD${year}${month}${day}${hour}${minute}${random}`;
+};
+
+/**
+ * Generates a sequential order number for the current date.
+ * Resets to 1 for a new day.
+ * @param lastOrderNumber - The last order number (e.g., "ORD250724001").
+ * @returns The next sequential order number.
  */
 export const generateOrderNumberSequential = (lastOrderNumber?: string): string => {
   const now = new Date();
   const year = now.getFullYear().toString().slice(-2);
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const day = now.getDate().toString().padStart(2, '0');
-  const currentDate = `${year}${month}${day}`;
-  
+  const currentDatePrefix = `${year}${month}${day}`;
+
   let sequence = 1;
   if (lastOrderNumber) {
-    const match = lastOrderNumber.match(/ORD(\d{6})(\d{3})$/);
-    if (match) {
-      const lastDate = match[1];
-      const lastSequence = parseInt(match[2]);
-      
-      if (lastDate === currentDate) {
-        sequence = lastSequence + 1;
-      }
+    const lastDatePrefix = lastOrderNumber.substring(3, 9); // Extracts YYMMDD
+    const lastSequenceStr = lastOrderNumber.substring(9);   // Extracts sequence part
+
+    if (lastDatePrefix === currentDatePrefix && /^\d+$/.test(lastSequenceStr)) {
+      sequence = parseInt(lastSequenceStr, 10) + 1;
     }
   }
-  
+
   const sequenceStr = sequence.toString().padStart(3, '0');
-  return `ORD${currentDate}${sequenceStr}`;
+  return `ORD${currentDatePrefix}${sequenceStr}`;
 };
 
 
-// ==================================
-// 🎯 Utilitas Spesifik Promo
-// ==================================
+/**
+ * =================================================================
+ * INPUT SANITIZATION & VALIDATION
+ * =================================================================
+ */
 
 /**
- * Mengubah tipe promo teknis menjadi label yang mudah dibaca.
- * @param type Tipe promo (misal: 'discount_percent').
- * @returns Label promo (misal: "Diskon Persentase").
+ * Trims whitespace and collapses multiple spaces into one.
+ * @param input - The string to sanitize.
+ * @returns The sanitized string.
  */
-export const formatPromoType = (type: string): string => {
-  const promoTypes: Record<string, string> = {
-    'discount_percent': 'Diskon Persentase',
-    'discount_rp': 'Diskon Rupiah',
-    'bogo': 'Beli 1 Gratis 1'
-  };
-  return promoTypes[type] || toTitleCase(type.replace(/_/g, ' '));
+export const sanitizeInput = (input: string): string => {
+  if (!input) return '';
+  return input.trim().replace(/\s+/g, ' ');
 };
 
 /**
- * Membuat ringkasan detail promo yang mudah dibaca.
- * @param type Tipe promo.
- * @param details Objek yang berisi detail promo.
- * @returns String ringkasan promo.
+ * Removes non-digit characters from a phone number string, except for a leading '+'.
+ * @param phone - The phone number string to clean.
+ * @returns The sanitized phone number.
  */
-export const formatPromoDetails = (type: string, details: any): string => {
-  if (!details) return 'Detail tidak tersedia';
-  switch (type) {
-    case 'discount_percent':
-      return `${details.value}% diskon`;
-    case 'discount_rp':
-      return `Potongan ${formatCurrency(details.value)}`;
-    case 'bogo':
-      return `Beli ${details.buy} Gratis ${details.get}`;
-    default:
-      return 'Promo tidak dikenal';
+export const sanitizePhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+    // Allow digits and a leading plus sign
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    if (phone.startsWith('+')) {
+        return '+' + cleaned.replace(/\+/g, ''); // Keep only the first '+'
+    }
+    return cleaned.replace(/\+/g, '');
+};
+
+/**
+ * Formats a phone number to the international +62 standard.
+ * @param phone - The raw phone number.
+ * @returns The formatted phone number (e.g., "+6281234567890").
+ */
+export const formatPhoneNumber = (phone: string): string => {
+  if (!phone) return '-';
+  const cleaned = phone.replace(/\D/g, '');
+
+  if (cleaned.startsWith('62')) {
+    return `+${cleaned}`;
   }
-};
-
-
-// ==================================
-// 🔧 Utilitas Lain-lain
-// ==================================
-
-/**
- * Memformat ukuran file dari byte menjadi unit yang lebih besar (KB, MB, GB).
- * @param bytes Ukuran file dalam byte.
- * @returns String ukuran file yang mudah dibaca.
- */
-export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  if (cleaned.startsWith('08')) {
+    return `+62${cleaned.substring(1)}`;
+  }
+  if (cleaned.startsWith('8')) {
+    // Handle cases where '0' is omitted but '62' is not present
+    return `+62${cleaned}`;
+  }
+  return phone; // Return original if format is not recognized
 };
 
 /**
- * Mengubah durasi dalam milidetik menjadi format yang mudah dibaca (ms, s, m, h).
- * @param milliseconds Durasi dalam milidetik.
- * @returns String durasi yang diformat.
+ * Validates if a string is a valid email address.
+ * @param email - The email string to validate.
+ * @returns True if the email is valid, false otherwise.
  */
-export const formatDuration = (milliseconds: number): string => {
-  if (milliseconds < 1000) return `${Math.round(milliseconds)}ms`;
-  
-  const seconds = Math.floor(milliseconds / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-  
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
+export const isValidEmail = (email: string): boolean => {
+  if (!email) return false;
+  // A common and reasonably effective regex for email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
 };
 
 /**
- * Mendapatkan kelas warna Tailwind CSS berdasarkan persentase margin.
- * @param marginPercent Persentase margin.
- * @returns String kelas warna Tailwind.
+ * Validates if a phone number has a plausible length.
+ * @param phone - The phone number string to validate.
+ * @returns True if the phone number length is valid, false otherwise.
  */
-export const formatMarginColor = (marginPercent: number): string => {
-  if (marginPercent < 0) return 'text-red-600';
-  if (marginPercent < 0.1) return 'text-orange-600';
-  if (marginPercent < 0.2) return 'text-yellow-600';
-  return 'text-green-600';
-};
-
-/**
- * Mendapatkan kelas warna Tailwind CSS berdasarkan status.
- * @param status Status (misal: 'active', 'pending').
- * @returns String kelas warna Tailwind.
- */
-export const formatStatusColor = (status: string): string => {
-  const statusColors: Record<string, string> = {
-    'active': 'text-green-600 bg-green-100',
-    'inactive': 'text-gray-600 bg-gray-100',
-    'pending': 'text-yellow-600 bg-yellow-100',
-    'error': 'text-red-600 bg-red-100'
-  };
-  return statusColors[status.toLowerCase()] || 'text-gray-600 bg-gray-100';
-};
-
-
-// ==================================
-// 🔄 Utilitas Parsing (Kebalikan dari Formatting)
-// ==================================
-
-/**
- * Mengubah string mata uang kembali menjadi angka.
- * @param currencyString String mata uang (misal: "Rp 50.000").
- * @returns Angka hasil parsing.
- */
-export const parseCurrency = (currencyString: string): number => {
-  if (!currencyString) return 0;
-  const cleaned = currencyString.replace(/[^\d,-]/g, '').replace(',', '.');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Mengubah string persentase kembali menjadi angka desimal.
- * @param percentageString String persentase (misal: "25%").
- * @returns Angka desimal hasil parsing (misal: 0.25).
- */
-export const parsePercentage = (percentageString: string): number => {
-  if (!percentageString) return 0;
-  const cleaned = percentageString.replace(/[^\d.-]/g, '');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed / 100;
+export const isValidPhoneNumber = (phone: string): boolean => {
+  if (!phone) return false;
+  // Strips all non-digit characters for a pure length check
+  const cleanPhone = phone.replace(/\D/g, '');
+  return cleanPhone.length >= 9 && cleanPhone.length <= 15;
 };

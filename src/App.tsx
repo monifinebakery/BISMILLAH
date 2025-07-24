@@ -13,7 +13,7 @@ import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
 // Impor Komponen Aplikasi
-import ErrorBoundary from "@/components/ErrorBoundary"; // <-- Tambahan baru
+import ErrorBoundary from "@/components/dashboard/ErrorBoundary"; // <-- Tambahan baru
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { AppSidebar } from "@/components/AppSidebar";
 import AuthGuard from "@/components/AuthGuard";

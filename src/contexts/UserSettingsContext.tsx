@@ -103,10 +103,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           updatedAt: new Date().toISOString()
         };
         setSettings(mergedSettings);
-        logger.context('[UserSettingsContext] Settings loaded successfully');
+       logger.context('UserSettingsContext', 'Settings loaded successfully');
       } else {
         setSettings(defaultSettings);
-        logger.context('[UserSettingsContext] Using default settings');
+        logger.context('UserSettingsContext', 'Using default settings');
       }
     } catch (error) {
       console.error('[UserSettingsContext] Unexpected error:', error);

@@ -7,14 +7,9 @@ export const formatDateTime = (date: any): string => {
   if (!date) return 'Waktu tidak valid';
   
   try {
-    let dateObj: Date;
-    if (typeof date === 'string') {
-      dateObj = parseISO(date);
-    } else {
-      dateObj = new Date(date);
-    }
+    const dateObj = parseDate(date); // Gunakan helper parseDate yang sudah ada
     
-    if (!isValid(dateObj)) return 'Waktu tidak valid';
+    if (!dateObj) return 'Waktu tidak valid';
     
     return new Intl.DateTimeFormat('id-ID', {
       day: 'numeric', 
@@ -29,23 +24,23 @@ export const formatDateTime = (date: any): string => {
   }
 };
 
-// 🔄 Safe date conversion
+// 🔄 Safe date conversion to ISO string
 export const toISOString = (date: any): string | null => {
   try {
-    if (!date) return null;
-    if (typeof date === 'string') return date;
-    return date.toISOString();
+    const dateObj = parseDate(date);
+    return dateObj ? dateObj.toISOString() : null;
   } catch (error) {
     console.warn('Date conversion error:', error);
     return null;
   }
 };
 
-// 📝 Safe date parsing
-export const parseDate = (dateString: any): Date | null => {
+// 📝 Safe date parsing (no changes needed here, it's already good)
+export const parseDate = (dateValue: any): Date | null => {
   try {
-    if (!dateString) return null;
-    const parsed = typeof dateString === 'string' ? parseISO(dateString) : new Date(dateString);
+    if (!dateValue) return null;
+    // parseISO is robust for ISO strings, new Date() is a fallback
+    const parsed = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue);
     return isValid(parsed) ? parsed : null;
   } catch (error) {
     console.warn('Date parsing error:', error);
@@ -53,67 +48,59 @@ export const parseDate = (dateString: any): Date | null => {
   }
 };
 
-// 📊 Format date range for display
-export const formatDateRange = (from: Date | null, to: Date | null): string => {
+// 📊 Format date range for display (FIXED)
+// Dibuat lebih kuat untuk menangani input string atau objek Date yang tidak valid
+export const formatDateRange = (from: Date | string | null, to: Date | string | null): string => {
   try {
-    if (!from) return "Pilih rentang tanggal";
+    const fromDate = parseDate(from);
+    if (!fromDate) return "Pilih rentang tanggal";
+
+    const toDate = parseDate(to);
     
-    if (!to || from.toDateString() === to.toDateString()) {
-      return format(from, "dd MMM yyyy", { locale: id });
+    // Jika tidak ada tanggal 'to' atau jika 'from' dan 'to' adalah hari yang sama
+    if (!toDate || fromDate.toDateString() === toDate.toDateString()) {
+      return format(fromDate, "dd MMM yyyy", { locale: id });
     }
     
-    return `${format(from, "dd MMM", { locale: id })} - ${format(to, "dd MMM yyyy", { locale: id })}`;
+    return `${format(fromDate, "dd MMM", { locale: id })} - ${format(toDate, "dd MMM yyyy", { locale: id })}`;
   } catch (error) {
+    // Catch ini sekarang menjadi jaring pengaman sekunder
     console.warn('Date range formatting error:', error);
     return "Tanggal tidak valid";
   }
 };
 
-// 🗓️ Date presets configuration
+// 🗓️ Date presets configuration (FIXED)
+// Sekarang mengembalikan objek Date, bukan string, untuk konsistensi
 export const getDatePresets = () => {
   const today = new Date();
   
   return [
     { 
       label: "Hari Ini", 
-      range: { 
-        from: today.toISOString(), 
-        to: today.toISOString() 
-      } 
+      range: { from: today, to: today } 
     },
     { 
       label: "Kemarin", 
-      range: { 
-        from: subDays(today, 1).toISOString(), 
-        to: subDays(today, 1).toISOString() 
-      } 
+      range: { from: subDays(today, 1), to: subDays(today, 1) } 
     },
     { 
       label: "7 Hari Terakhir", 
-      range: { 
-        from: subDays(today, 6).toISOString(), 
-        to: today.toISOString() 
-      } 
+      range: { from: subDays(today, 6), to: today } 
     },
     { 
       label: "30 Hari Terakhir", 
-      range: { 
-        from: subDays(today, 29).toISOString(), 
-        to: today.toISOString() 
-      } 
+      range: { from: subDays(today, 29), to: today } 
     },
     { 
       label: "Bulan Ini", 
-      range: { 
-        from: startOfMonth(today).toISOString(), 
-        to: endOfMonth(today).toISOString() 
-      } 
+      range: { from: startOfMonth(today), to: endOfMonth(today) } 
     },
     { 
       label: "Bulan Lalu", 
       range: { 
-        from: startOfMonth(subMonths(today, 1)).toISOString(), 
-        to: endOfMonth(subMonths(today, 1)).toISOString() 
+        from: startOfMonth(subMonths(today, 1)), 
+        to: endOfMonth(subMonths(today, 1)) 
       } 
     },
   ];
@@ -142,7 +129,7 @@ export const calculatePagination = (
 
 // 🎨 Get icon and color for activity type
 export const getActivityTypeStyle = (type: string) => {
-  const styles = {
+  const styles: Record<string, { icon: string, color: string }> = {
     'keuangan': { icon: 'CircleDollarSign', color: 'text-green-600' },
     'resep': { icon: 'ChefHat', color: 'text-blue-600' },
     'stok': { icon: 'Package', color: 'text-orange-600' },

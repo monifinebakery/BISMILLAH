@@ -5,7 +5,7 @@ import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { useOrder } from '@/contexts/OrderContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
 
 interface DateRange {

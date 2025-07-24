@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { id } from 'date-fns/locale';
 import { DateRange } from '@/types/order';
 import { formatDateRange } from '@/utils/dashboardUtils';
-import { isValidDate } from '@/utils/dateUtils';
+import { isValidDate } from '@/utils/dashboardUtils';
 import { parseDate } from '@/utils/dashboardUtils';
 import DatePresets from './DatePresets';
 

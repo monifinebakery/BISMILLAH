@@ -542,7 +542,7 @@ export const formatDashboardMetric = (
 // ==================== ORGANIZED EXPORTS ====================
 
 // Export utility objects for organized imports
-export const DateUtils = {
+export const dashboardUtils = {
   parseDate: safeParseDate,
   safeParseDate,
   isValidDate,

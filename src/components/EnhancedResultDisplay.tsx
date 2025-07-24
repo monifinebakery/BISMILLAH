@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calculator, DollarSign, Package, Users, PieChart } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/utils/currencyUtils";
+import { formatCurrency, formatPercentage } from "@/utils/formatUtils";
 
 // 🧮 Updated interface to match new HPP system
 interface HPPCalculationResult {

@@ -18,7 +18,7 @@ import {
   Copy
 } from 'lucide-react';
 import { PromoHistoryTableProps, PromoEstimation, SelectionState } from '../types';
-import { formatCurrency, formatDate, formatPromoType, formatPromoDetails } from '../utils';
+import { formatCurrency, formatDate, formatPromoType, formatPromoDetails } from '@/utils/currencyUtils';
 import { useSearch, useToggle } from '../hooks';
 
 interface PromoHistoryTableComponent extends React.FC<PromoHistoryTableProps> {

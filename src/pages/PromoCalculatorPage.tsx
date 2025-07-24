@@ -14,7 +14,7 @@ import {
   LoadingSpinner,
   ErrorState,
   EmptyState
-} from './components';
+} from '@/components/promo';
 
 // Import hooks and utilities
 import {

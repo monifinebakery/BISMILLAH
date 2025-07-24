@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { safeParseDate } from '@/utils/dateUtils';
-import { logger } from '@/utils/logger';
 
 interface PromoContextType {
   promoHistory: PromoEstimation[];
@@ -78,7 +77,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // If user is not logged in, clear data
     if (!user) {
-      logger.context("[PromoContext] User logout, clearing promo data.");
+      console.log("[PromoContext] User logout, clearing promo data.");
       setPromoHistory([]);
       setIsLoading(false);
       setError(null);
@@ -88,7 +87,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // User is logged in, fetch data and setup realtime
     const fetchInitialData = async () => {
       try {
-        logger.context(`[PromoContext] User detected (${user.id}), loading promo data...`);
+        console.log(`[PromoContext] User detected (${user.id}), loading promo data...`);
         setIsLoading(true);
         setError(null);
 
@@ -108,7 +107,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             .filter((promo): promo is PromoEstimation => promo !== null);
           
           setPromoHistory(transformedPromos);
-          logger.context(`[PromoContext] Loaded ${transformedPromos.length} promo estimations`);
+          console.log(`[PromoContext] Loaded ${transformedPromos.length} promo estimations`);
         } else {
           setPromoHistory([]);
         }
@@ -137,7 +136,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         },
         (payload) => {
           try {
-            logger.context('[PromoContext] Realtime change received:', payload);
+            console.log('[PromoContext] Realtime change received:', payload);
 
             if (payload.eventType === 'INSERT' && payload.new) {
               const newPromo = transformFromDB(payload.new);
@@ -168,7 +167,7 @@ export const PromoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Cleanup function
     return () => {
-      logger.context("[PromoContext] Cleaning up realtime channel.");
+      console.log("[PromoContext] Cleaning up realtime channel.");
       supabase.removeChannel(channel);
     };
   }, [user, authContext, transformFromDB]);

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 // Import modular orders types and utils
 import { Order, NewOrder, OrderItem } from '@/types';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { generateOrderNumber } from '@/utils/formatUtils';
 import { orderStatusList } from '@/constants/orderConstants';
 

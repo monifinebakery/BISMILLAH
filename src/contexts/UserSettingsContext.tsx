@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- INTERFACES & DEFAULTS ---
 interface FinancialCategories {
@@ -76,7 +77,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     
     try {
-      console.log('[UserSettingsContext] Fetching settings for user:', user.id);
+      logger.context('UserSettingsContext', 'Fetching settings for user:', user.id);
       const { data, error } = await supabase
         .from('user_settings')
         .select('settings_data')

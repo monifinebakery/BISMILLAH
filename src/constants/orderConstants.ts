@@ -32,7 +32,7 @@ export const ORDER_STATUS_CONFIG: Record<OrderStatus, OrderStatusOption> = {
   },
   delivered: {
     key: 'delivered',
-    label: 'Bisa Diambil',
+    label: 'Bisa diambil',
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     bgColor: 'bg-indigo-50',
     textColor: 'text-indigo-700'
@@ -77,34 +77,10 @@ export const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50];
 
 // Date range presets
 export const DATE_RANGE_PRESETS = [
-  { 
-    label: "Hari Ini", 
-    days: 0,
-    key: 'today'
-  },
-  { 
-    label: "Kemarin", 
-    days: 1,
-    key: 'yesterday'
-  },
-  { 
-    label: "7 Hari Terakhir", 
-    days: 6,
-    key: 'last7days'
-  },
-  { 
-    label: "30 Hari Terakhir", 
-    days: 29,
-    key: 'last30days'
-  },
-  { 
-    label: "Bulan Ini", 
-    days: null,
-    key: 'thisMonth'
-  },
-  { 
-    label: "Bulan Lalu", 
-    days: null,
-    key: 'lastMonth'
-  }
+  { label: "Hari Ini", days: 0, key: 'today' },
+  { label: "Kemarin", days: 1, key: 'yesterday' },
+  { label: "7 Hari Terakhir", days: 6, key: 'last7days' },
+  { label: "30 Hari Terakhir", days: 29, key: 'last30days' },
+  { label: "Bulan Ini", days: null, key: 'thisMonth' },
+  { label: "Bulan Lalu", days: null, key: 'lastMonth' }
 ];

@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Asset } from '@/types/asset';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- Dependensi ---
 import { useAuth } from './AuthContext';

@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { Order, OrderFilters, DateRange } from '@/types';
-import { filterOrders } from '@/utils';
+import { filterOrders } from '@/utils/filterUtils';
 
 export interface UseOrderFiltersResult {
   filters: OrderFilters;

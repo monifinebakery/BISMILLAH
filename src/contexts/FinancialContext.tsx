@@ -64,7 +64,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const fetchInitialTransactions = async () => {
       setIsLoading(true);
-      logger.context('[FinancialContext] Memulai fetchInitialTransactions untuk user:', user.id);
+      logger.context('FinancialContext', 'Memulai fetchInitialTransactions untuk user:', user.id);
       
       try {
         const { data, error } = await supabase
@@ -74,7 +74,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
           .order('date', { ascending: false });
 
         if (error) {
-          console.error('[FinancialContext] Error memuat transaksi awal:', error);
+          logger.error('FinancialContext - Error memuat transaksi awal:', error);
           toast.error(`Gagal memuat transaksi keuangan: ${error.message}`);
           
           // 🔔 CREATE ERROR NOTIFICATION
@@ -83,17 +83,17 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
           ));
         } else if (data) {
           const transformedData = data.map(transformTransactionFromDB);
-          logger.context('[FinancialContext] Data transaksi awal berhasil dimuat (transformed):', transformedData);
+          logger.context('FinancialContext', 'Data transaksi awal berhasil dimuat (transformed):', transformedData);
           setFinancialTransactions(transformedData);
         }
       } catch (error) {
-        console.error('[FinancialContext] Unexpected error:', error);
+        logger.error('FinancialContext - Unexpected error:', error);
         await addNotification(createNotificationHelper.systemError(
           `Error tidak terduga saat memuat transaksi: ${error instanceof Error ? error.message : 'Unknown error'}`
         ));
       } finally {
         setIsLoading(false);
-        logger.context('[FinancialContext] fetchInitialTransactions selesai.');
+        logger.context('FinancialContext', 'fetchInitialTransactions selesai.');
       }
     };
 
@@ -105,7 +105,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         'postgres_changes',
         { event: '*', schema: 'public', table: 'financial_transactions', filter: `user_id=eq.${user.id}` },
         (payload) => {
-          logger.context('[FinancialContext] Perubahan realtime diterima:', payload);
+          logger.context('FinancialContext', 'Perubahan realtime diterima:', payload);
           const transform = transformTransactionFromDB;
           if (payload.eventType === 'INSERT') {
             setFinancialTransactions(current => [transform(payload.new), ...current].sort((a,b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)));
@@ -144,11 +144,11 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
           related_id: transaction.relatedId ?? null, 
       };
 
-      logger.context('[FinancialContext] Mengirim transaksi keuangan:', transactionToInsert);
+      logger.context('FinancialContext', 'Mengirim transaksi keuangan:', transactionToInsert);
       const { error } = await supabase.from('financial_transactions').insert(transactionToInsert);
       
       if (error) {
-        console.error('[FinancialContext] Error saat menambah transaksi keuangan:', error);
+        logger.error('FinancialContext - Error saat menambah transaksi keuangan:', error);
         throw new Error(error.message);
       }
       
@@ -178,7 +178,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error) {
-      console.error('[FinancialContext] Error adding transaction:', error);
+      logger.error('FinancialContext - Error adding transaction:', error);
       toast.error(`Gagal menambah transaksi: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -208,11 +208,11 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (updatedTransaction.notes !== undefined) dataToUpdate.notes = updatedTransaction.notes;
       if (updatedTransaction.relatedId !== undefined) dataToUpdate.related_id = updatedTransaction.relatedId;
       
-      logger.context('[FinancialContext] Mengirim update transaksi keuangan:', id, dataToUpdate);
+      logger.context('FinancialContext', 'Mengirim update transaksi keuangan:', id, dataToUpdate);
       const { error } = await supabase.from('financial_transactions').update(dataToUpdate).eq('id', id);
       
       if (error) {
-        console.error('[FinancialContext] Error saat memperbarui transaksi keuangan:', error);
+        logger.error('FinancialContext - Error saat memperbarui transaksi keuangan:', error);
         throw new Error(error.message);
       }
 
@@ -234,7 +234,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error) {
-      console.error('[FinancialContext] Error updating transaction:', error);
+      logger.error('FinancialContext - Error updating transaction:', error);
       toast.error(`Gagal memperbarui transaksi: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -259,11 +259,11 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         return false;
       }
 
-      logger.context('[FinancialContext] Mengirim perintah hapus transaksi keuangan:', id);
+      logger.context('FinancialContext', 'Mengirim perintah hapus transaksi keuangan:', id);
       const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
       
       if (error) {
-        console.error('[FinancialContext] Error saat menghapus transaksi keuangan:', error);
+        logger.error('FinancialContext - Error saat menghapus transaksi keuangan:', error);
         throw new Error(error.message);
       }
       
@@ -293,7 +293,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       return true;
     } catch (error) {
-      console.error('[FinancialContext] Error deleting transaction:', error);
+      logger.error('FinancialContext - Error deleting transaction:', error);
       toast.error(`Gagal menghapus transaksi: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION

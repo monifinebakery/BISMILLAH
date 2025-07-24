@@ -5,7 +5,7 @@ import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { PurchaseTableProvider } from '@/components/purchase/components/context/PurchaseTableContext';
 import PurchaseHeader from './PurchaseHeader';
 import LoadingPurchaseState from '@/components/purchase/components/states/LoadingPurchaseState';
-import ErrorPurchaseState from '../states/ErrorPurchaseState';
+import ErrorPurchaseState from '@/components/purchase/components/states/ErrorPurchaseState';
 import { calculatePurchaseStats } from '../../utils/purchaseHelpers';
 
 // Lazy load components

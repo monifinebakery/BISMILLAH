@@ -12,7 +12,7 @@ import { parseDate } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { isValidDate } from '@/utils/dateUtils';
-import { getStatusText } from '@/components/orders/constants/orderConstants';
+import { getStatusText } from '@/constants/orderConstants';
 
 // Dependencies
 import { useAuth } from './AuthContext';

@@ -40,7 +40,7 @@ import {
   CalculationResult,
   PromoType,
   LoadingState
-} from './types';
+} from '@/types';
 
 // 🎯 Main Page Component
 const PromoCalculatorPage: React.FC = () => {

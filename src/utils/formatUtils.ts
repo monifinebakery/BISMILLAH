@@ -1,543 +1,301 @@
-// src/components/orders/components/OrderForm.tsx
-// MODULAR VERSION - Integrated with Orders System
+// src/components/orders/utils/formatUtils.ts
+// COMBINED: Currency utils + Format utils + Order-specific utilities
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+// ==================== CURRENCY FORMATTING ====================
 
-// Import modular orders types and utils
-import { Order, NewOrder, OrderItem } from '../types';
-import { formatCurrency, generateOrderNumber } from '../utils/formatUtils';
-import { orderStatusList } from '../constants/orderConstants';
-
-// Context imports
-import { useRecipe } from '@/contexts/RecipeContext';
-
-interface Recipe {
-  id: string;
-  namaResep: string;
-  hargaJualPorsi: number;
-  stok?: number;
-}
-
-interface OrderFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (order: Partial<NewOrder> | Partial<Order>) => Promise<void>;
-  initialData?: Order | null;
-  isSubmitting?: boolean;
-}
-
-// Custom hook for order form state management
-const useOrderFormState = (initialData: Order | null, open: boolean) => {
-  const [orderData, setOrderData] = useState<Partial<Order | NewOrder>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const defaultData = useMemo(() => ({
-    namaPelanggan: '',
-    telefonPelanggan: '',
-    emailPelanggan: '',
-    alamatPengiriman: '',
-    status: 'pending' as const,
-    catatan: '',
-    items: [] as OrderItem[],
-    subtotal: 0,
-    pajak: 0,
-    totalPesanan: 0,
-    tanggal: new Date(),
-  }), []);
-
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        setOrderData({ ...defaultData, ...initialData });
-      } else {
-        setOrderData(defaultData);
-      }
-      setErrors({});
-    }
-  }, [open, initialData, defaultData]);
-
-  const updateField = useCallback((field: keyof (Order | NewOrder), value: any) => {
-    setOrderData(prev => ({ ...prev, [field]: value }));
-    // Clear error when field is updated
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  }, [errors]);
-
-  const setFieldError = useCallback((field: string, error: string) => {
-    setErrors(prev => ({ ...prev, [field]: error }));
-  }, []);
-
-  const validateField = useCallback((field: string, value: any): string => {
-    switch (field) {
-      case 'namaPelanggan':
-        if (!value || !value.trim()) return 'Nama pelanggan wajib diisi';
-        if (value.trim().length < 2) return 'Nama pelanggan minimal 2 karakter';
-        return '';
-      case 'telefonPelanggan':
-        if (!value || !value.trim()) return 'Nomor telepon wajib diisi';
-        if (!/^[\d\s\-\+\(\)]{10,}$/.test(value.trim())) return 'Format nomor telepon tidak valid';
-        return '';
-      case 'emailPelanggan':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
-          return 'Format email tidak valid';
-        }
-        return '';
-      case 'items':
-        if (!value || !Array.isArray(value) || value.length === 0) {
-          return 'Pesanan harus memiliki minimal satu item';
-        }
-        const validItems = value.filter(item => item.recipe_id && item.quantity > 0);
-        if (validItems.length === 0) {
-          return 'Pesanan harus memiliki minimal satu item yang valid';
-        }
-        return '';
-      default:
-        return '';
-    }
-  }, []);
-
-  return {
-    orderData,
-    errors,
-    updateField,
-    setFieldError,
-    validateField
-  };
+/**
+ * Memformat angka menjadi mata uang Rupiah (misal: 15000 -> "Rp 15.000").
+ * @param value Angka yang akan diformat.
+ * @returns String dalam format mata uang Rupiah.
+ */
+export const formatCurrency = (value: number | null | undefined): string => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return 'Rp 0'; // Menangani input yang tidak valid
+  }
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 };
 
-// Custom hook for order items management
-const useOrderItems = (
-  orderData: Partial<Order | NewOrder>,
-  updateField: (field: keyof (Order | NewOrder), value: any) => void,
-  recipes: Recipe[]
-) => {
-  const handleItemChange = useCallback((index: number, field: keyof OrderItem, value: any) => {
-    const items = orderData.items || [];
-    const newItems = [...items];
-    const currentItem = { ...newItems[index] };
-    
-    if (field === 'recipe_id') {
-      const selectedRecipe = recipes.find(r => r.id === value);
-      if (selectedRecipe) {
-        currentItem.recipe_id = selectedRecipe.id;
-        currentItem.namaBarang = selectedRecipe.namaResep;
-        currentItem.hargaSatuan = selectedRecipe.hargaJualPorsi;
-        // Auto-set quantity to 1 if not set
-        if (!currentItem.quantity) {
-          currentItem.quantity = 1;
-        }
-      }
-    } else {
-      currentItem[field] = value;
+/**
+ * Memformat angka besar menjadi string ringkas (misal: "100 rb", "1,2 jt", "5 M") dengan awalan "Rp".
+ * Berguna untuk label grafik atau tampilan ringkas.
+ * @param num Angka yang akan diformat.
+ * @param digits Jumlah desimal untuk angka ringkas. Defaultnya 1.
+ * @returns String yang diformat (misal: "Rp 100 rb", "Rp 1,2 jt").
+ */
+export const formatLargeNumber = (num: number | null | undefined, digits: number = 1): string => {
+  if (typeof num !== 'number' || isNaN(num)) {
+    return 'Rp 0'; // Menangani input yang tidak valid
+  }
+  const si = [
+    { value: 1, symbol: "" },
+    { value: 1E3, symbol: " rb" }, // Ribu
+    { value: 1E6, symbol: " jt" }, // Juta
+    { value: 1E9, symbol: " M" },  // Miliar
+    { value: 1E12, symbol: " T" }  // Triliun
+  ];
+  const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
+  let i;
+  for (i = si.length - 1; i > 0; i--) {
+    if (num >= si[i].value) {
+      break;
     }
-    
-    // Recalculate total for this item
-    currentItem.totalHarga = (currentItem.quantity || 0) * (currentItem.hargaSatuan || 0);
-    newItems[index] = currentItem;
-    updateField('items', newItems);
-  }, [orderData.items, updateField, recipes]);
-
-  const handleAddItem = useCallback(() => {
-    const newItem: OrderItem = {
-      recipe_id: '',
-      namaBarang: '',
-      quantity: 1,
-      hargaSatuan: 0,
-      totalHarga: 0
-    };
-    const items = orderData.items || [];
-    updateField('items', [...items, newItem]);
-  }, [orderData.items, updateField]);
-
-  const handleRemoveItem = useCallback((index: number) => {
-    const items = orderData.items || [];
-    const newItems = items.filter((_, i) => i !== index);
-    updateField('items', newItems);
-  }, [orderData.items, updateField]);
-
-  const calculateTotals = useMemo(() => {
-    const items = orderData.items || [];
-    const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
-    const pajak = orderData.pajak || 0;
-    const total = subtotal + pajak;
-    
-    return { subtotal, pajak, total };
-  }, [orderData.items, orderData.pajak]);
-
-  return {
-    handleItemChange,
-    handleAddItem,
-    handleRemoveItem,
-    calculateTotals
-  };
+  }
+  // Untuk angka di bawah 1000, gunakan format biasa
+  if (i === 0) {
+      return formatCurrency(num);
+  }
+  const abbreviatedNum = (num / si[i].value).toFixed(digits).replace(rx, "$1");
+  return `Rp ${abbreviatedNum}${si[i].symbol}`;
 };
 
-const OrderForm: React.FC<OrderFormProps> = ({
-  open,
-  onOpenChange,
-  onSubmit,
-  initialData = null,
-  isSubmitting = false
-}) => {
-  const { recipes = [] } = useRecipe();
-  const [internalSubmitting, setInternalSubmitting] = useState(false);
+/**
+ * Memformat angka menjadi persentase (misal: 0.25 -> "25,0%")
+ * @param value - Angka desimal (rasio) yang akan diformat.
+ * @returns String persentase yang sudah diformat.
+ */
+export const formatPercentage = (value: number | null | undefined): string => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0,0%'; // Nilai default jika input tidak valid
+  }
+  return new Intl.NumberFormat('id-ID', {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
+};
 
-  // Custom hooks
-  const formState = useOrderFormState(initialData, open);
-  const itemsManagement = useOrderItems(formState.orderData, formState.updateField, recipes);
+// ==================== GENERAL FORMATTING ====================
 
-  const { orderData, errors, updateField, validateField } = formState;
-  const { handleItemChange, handleAddItem, handleRemoveItem, calculateTotals } = itemsManagement;
+export const formatNumber = (value: number): string => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0';
+  }
+  return new Intl.NumberFormat('id-ID').format(value);
+};
 
-  // Update totals when items change
-  useEffect(() => {
-    updateField('subtotal', calculateTotals.subtotal);
-    updateField('totalPesanan', calculateTotals.total);
-  }, [calculateTotals.subtotal, calculateTotals.total, updateField]);
+export const formatPhoneNumber = (phone: string): string => {
+  if (!phone) return '-';
+  
+  // Remove all non-digits
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Format Indonesian phone number
+  if (cleaned.startsWith('62')) {
+    return `+${cleaned}`;
+  } else if (cleaned.startsWith('08')) {
+    return `+62${cleaned.substring(1)}`;
+  } else if (cleaned.startsWith('8')) {
+    return `+62${cleaned}`;
+  }
+  
+  return phone;
+};
 
-  // Form validation
-  const validateForm = useCallback((): boolean => {
-    const fieldsToValidate = ['namaPelanggan', 'telefonPelanggan', 'emailPelanggan', 'items'];
-    let isValid = true;
+export const truncateText = (text: string, maxLength: number = 50): string => {
+  if (!text) return '';
+  return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+};
 
-    fieldsToValidate.forEach(field => {
-      const value = orderData[field as keyof typeof orderData];
-      const error = validateField(field, value);
-      if (error) {
-        formState.setFieldError(field, error);
-        isValid = false;
-      }
-    });
+// Text formatting utilities
+export const capitalizeWords = (text: string): string => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
-    // Validate individual items
-    const items = orderData.items || [];
-    items.forEach((item, index) => {
-      if (!item.recipe_id) {
-        formState.setFieldError(`item_${index}`, 'Pilih resep untuk item ini');
-        isValid = false;
-      }
-      if (!item.quantity || item.quantity <= 0) {
-        formState.setFieldError(`item_quantity_${index}`, 'Quantity harus lebih dari 0');
-        isValid = false;
-      }
-    });
+// Input sanitization
+export const sanitizeInput = (input: string): string => {
+  if (!input) return '';
+  return input.trim().replace(/\s+/g, ' ');
+};
 
-    return isValid;
-  }, [orderData, validateField, formState.setFieldError]);
+export const sanitizePhoneNumber = (phone: string): string => {
+  if (!phone) return '';
+  return phone.replace(/[^\d\+\-\(\)\s]/g, '').trim();
+};
 
-  const handleSubmit = useCallback(async () => {
-    if (!validateForm()) {
-      toast.error('Harap lengkapi semua field yang wajib diisi');
-      return;
-    }
+// Validation helpers
+export const isValidEmail = (email: string): boolean => {
+  if (!email) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
 
-    const validItems = (orderData.items || []).filter(item => 
-      item.recipe_id && item.quantity && item.quantity > 0
-    );
+export const isValidPhoneNumber = (phone: string): boolean => {
+  if (!phone) return false;
+  const cleanPhone = phone.replace(/\D/g, '');
+  return cleanPhone.length >= 10 && cleanPhone.length <= 15;
+};
 
-    if (validItems.length === 0) {
-      toast.error('Pesanan harus memiliki setidaknya satu item yang valid');
-      return;
-    }
+// Formatting for display
+export const formatCompactNumber = (num: number): string => {
+  if (typeof num !== 'number' || isNaN(num)) return '0';
+  if (num < 1000) return num.toString();
+  if (num < 1000000) return (num / 1000).toFixed(1) + 'K';
+  if (num < 1000000000) return (num / 1000000).toFixed(1) + 'M';
+  return (num / 1000000000).toFixed(1) + 'B';
+};
 
-    setInternalSubmitting(true);
-    
-    try {
-      const submitData = {
-        ...orderData,
-        items: validItems,
-        // Generate order number for new orders
-        ...(initialData ? {} : { nomorPesanan: generateOrderNumber() })
-      };
+// ==================== ORDER-SPECIFIC UTILITIES ====================
 
-      await onSubmit(submitData);
+export const generateOrderNumber = (): string => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  
+  return `ORD${year}${month}${day}${random}`;
+};
+
+// Alternative order number generators
+export const generateOrderNumberWithTime = (): string => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const hour = now.getHours().toString().padStart(2, '0');
+  const minute = now.getMinutes().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  
+  return `ORD${year}${month}${day}${hour}${minute}${random}`;
+};
+
+export const generateOrderNumberSequential = (lastOrderNumber?: string): string => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  
+  // Extract sequence from last order number if available
+  let sequence = 1;
+  if (lastOrderNumber) {
+    const match = lastOrderNumber.match(/ORD\d{6}(\d{3})$/);
+    if (match) {
+      const lastSequence = parseInt(match[1]);
+      const lastDate = lastOrderNumber.substring(3, 9); // YYMMDD
+      const currentDate = `${year}${month}${day}`;
       
-      // Close dialog on successful submission
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error submitting order:', error);
-      toast.error('Gagal menyimpan pesanan');
-    } finally {
-      setInternalSubmitting(false);
+      // If same date, increment sequence, otherwise reset to 1
+      if (lastDate === currentDate) {
+        sequence = lastSequence + 1;
+      }
     }
-  }, [validateForm, orderData, initialData, onSubmit, onOpenChange]);
+  }
+  
+  const sequenceStr = sequence.toString().padStart(3, '0');
+  return `ORD${year}${month}${day}${sequenceStr}`;
+};
 
-  const isProcessing = isSubmitting || internalSubmitting;
+export const formatOrderStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'pending': 'Menunggu Konfirmasi',
+    'confirmed': 'Dikonfirmasi', 
+    'processing': 'Diproses',
+    'ready': 'Siap Diantar',
+    'shipped': 'Dikirim',
+    'delivered': 'Diantar',
+    'completed': 'Selesai',
+    'cancelled': 'Dibatalkan'
+  };
+  
+  return statusMap[status] || capitalizeWords(status);
+};
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-800">
-            {initialData ? 'Edit Pesanan' : 'Buat Pesanan Baru'}
-          </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Pastikan item yang dipilih berasal dari resep agar stok terpotong otomatis saat pesanan selesai.
-          </DialogDescription>
-        </DialogHeader>
+// Order item utilities
+export const calculateItemTotal = (quantity: number, price: number): number => {
+  if (typeof quantity !== 'number' || typeof price !== 'number') return 0;
+  return quantity * price;
+};
 
-        <div className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-6">
-          {/* Customer Information */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-800 border-b pb-2">Informasi Pelanggan</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="namaPelanggan" className="font-medium">
-                  Nama Pelanggan *
-                </Label>
-                <Input
-                  id="namaPelanggan"
-                  value={orderData.namaPelanggan || ''}
-                  onChange={e => updateField('namaPelanggan', e.target.value)}
-                  disabled={isProcessing}
-                  className={errors.namaPelanggan ? 'border-red-500' : ''}
-                  placeholder="Masukkan nama pelanggan"
-                />
-                {errors.namaPelanggan && (
-                  <p className="text-sm text-red-600 mt-1">{errors.namaPelanggan}</p>
-                )}
-              </div>
-              
-              <div>
-                <Label htmlFor="telefonPelanggan" className="font-medium">
-                  Nomor Telepon *
-                </Label>
-                <Input
-                  id="telefonPelanggan"
-                  value={orderData.telefonPelanggan || ''}
-                  onChange={e => updateField('telefonPelanggan', e.target.value)}
-                  disabled={isProcessing}
-                  className={errors.telefonPelanggan ? 'border-red-500' : ''}
-                  placeholder="Contoh: 08123456789"
-                />
-                {errors.telefonPelanggan && (
-                  <p className="text-sm text-red-600 mt-1">{errors.telefonPelanggan}</p>
-                )}
-              </div>
-            </div>
+export const calculateOrderSubtotal = (items: Array<{ quantity: number; hargaSatuan: number }>): number => {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce((total, item) => {
+    return total + calculateItemTotal(item.quantity || 0, item.hargaSatuan || 0);
+  }, 0);
+};
 
-            <div>
-              <Label htmlFor="emailPelanggan" className="font-medium">
-                Email Pelanggan (Opsional)
-              </Label>
-              <Input
-                id="emailPelanggan"
-                type="email"
-                value={orderData.emailPelanggan || ''}
-                onChange={e => updateField('emailPelanggan', e.target.value)}
-                disabled={isProcessing}
-                className={errors.emailPelanggan ? 'border-red-500' : ''}
-                placeholder="contoh@email.com"
-              />
-              {errors.emailPelanggan && (
-                <p className="text-sm text-red-600 mt-1">{errors.emailPelanggan}</p>
-              )}
-            </div>
+export const calculateOrderTotal = (subtotal: number, tax: number = 0, discount: number = 0): number => {
+  if (typeof subtotal !== 'number') return 0;
+  return Math.max(0, subtotal + (tax || 0) - (discount || 0));
+};
 
-            <div>
-              <Label htmlFor="alamatPengiriman" className="font-medium">
-                Alamat Pengiriman
-              </Label>
-              <Textarea
-                id="alamatPengiriman"
-                value={orderData.alamatPengiriman || ''}
-                onChange={e => updateField('alamatPengiriman', e.target.value)}
-                disabled={isProcessing}
-                placeholder="Masukkan alamat lengkap untuk pengiriman"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="status" className="font-medium">
-                Status Pesanan
-              </Label>
-              <Select 
-                value={orderData.status} 
-                onValueChange={(value) => updateField('status', value)}
-                disabled={isProcessing}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih status pesanan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {orderStatusList.map(status => (
-                    <SelectItem key={status.key} value={status.key}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className={`w-2 h-2 rounded-full ${status.bgColor.replace('bg-', 'bg-')}`}
-                        />
-                        {status.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Order Items */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-800 border-b pb-2 flex-1">
-                Item Pesanan
-              </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddItem}
-                disabled={isProcessing}
-                className="ml-4"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Tambah Item
-              </Button>
-            </div>
-
-            {errors.items && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{errors.items}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-3">
-              {(orderData.items || []).map((item, index) => (
-                <div 
-                  key={index} 
-                  className="grid grid-cols-[1fr,100px,120px,auto] gap-3 items-center p-3 border rounded-lg bg-gray-50"
-                >
-                  <div>
-                    <Select
-                      value={item.recipe_id}
-                      onValueChange={(value) => handleItemChange(index, 'recipe_id', value)}
-                      disabled={isProcessing}
-                    >
-                      <SelectTrigger className={errors[`item_${index}`] ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Pilih Resep..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {recipes.map(recipe => (
-                          <SelectItem key={recipe.id} value={recipe.id}>
-                            <div className="flex flex-col">
-                              <span>{recipe.namaResep}</span>
-                              <span className="text-xs text-gray-500">
-                                {formatCurrency(recipe.hargaJualPorsi)}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors[`item_${index}`] && (
-                      <p className="text-xs text-red-600 mt-1">{errors[`item_${index}`]}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Input
-                      type="number"
-                      placeholder="Qty"
-                      value={item.quantity || ''}
-                      onChange={e => handleItemChange(index, 'quantity', Number(e.target.value))}
-                      disabled={isProcessing}
-                      min="1"
-                      className={errors[`item_quantity_${index}`] ? 'border-red-500' : ''}
-                    />
-                    {errors[`item_quantity_${index}`] && (
-                      <p className="text-xs text-red-600 mt-1">{errors[`item_quantity_${index}`]}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Input
-                      type="text"
-                      value={formatCurrency(item.hargaSatuan || 0)}
-                      readOnly
-                      className="bg-gray-100 text-gray-600"
-                      title="Harga otomatis dari resep"
-                    />
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveItem(index)}
-                    disabled={isProcessing}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-
-              {(!orderData.items || orderData.items.length === 0) && (
-                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                  <p>Belum ada item pesanan</p>
-                  <p className="text-sm">Klik "Tambah Item" untuk menambah item pertama</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Additional Notes */}
-          <div>
-            <Label htmlFor="catatan" className="font-medium">
-              Catatan Pesanan (Opsional)
-            </Label>
-            <Textarea
-              id="catatan"
-              value={orderData.catatan || ''}
-              onChange={e => updateField('catatan', e.target.value)}
-              disabled={isProcessing}
-              placeholder="Tambahkan catatan khusus untuk pesanan ini..."
-              rows={3}
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="pt-4 border-t flex-col sm:flex-row sm:justify-between">
-          <div className="text-lg font-bold text-gray-800 mb-3 sm:mb-0">
-            Total: {formatCurrency(calculateTotals.total)}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isProcessing}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isProcessing}
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                initialData ? 'Update Pesanan' : 'Buat Pesanan'
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+// Order validation utilities
+export const validateOrderItems = (items: any[]): boolean => {
+  if (!Array.isArray(items) || items.length === 0) return false;
+  return items.every(item => 
+    item.recipe_id && 
+    item.quantity && 
+    item.quantity > 0 && 
+    item.hargaSatuan && 
+    item.hargaSatuan >= 0
   );
 };
 
-export default OrderForm;
+export const validateCustomerInfo = (customer: {
+  namaPelanggan?: string;
+  telefonPelanggan?: string;
+  emailPelanggan?: string;
+}): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!customer.namaPelanggan?.trim()) {
+    errors.push('Nama pelanggan wajib diisi');
+  }
+  
+  if (!customer.telefonPelanggan?.trim()) {
+    errors.push('Nomor telepon wajib diisi');
+  } else if (!isValidPhoneNumber(customer.telefonPelanggan)) {
+    errors.push('Format nomor telepon tidak valid');
+  }
+  
+  if (customer.emailPelanggan && !isValidEmail(customer.emailPelanggan)) {
+    errors.push('Format email tidak valid');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+// Export summary objects for easy importing
+export const OrderUtils = {
+  generateOrderNumber,
+  generateOrderNumberWithTime,
+  generateOrderNumberSequential,
+  formatOrderStatus,
+  calculateItemTotal,
+  calculateOrderSubtotal,
+  calculateOrderTotal,
+  validateOrderItems,
+  validateCustomerInfo
+};
+
+export const FormatUtils = {
+  formatCurrency,
+  formatLargeNumber,
+  formatPercentage,
+  formatNumber,
+  formatPhoneNumber,
+  truncateText,
+  capitalizeWords,
+  sanitizeInput,
+  sanitizePhoneNumber,
+  formatCompactNumber
+};
+
+export const ValidationUtils = {
+  isValidEmail,
+  isValidPhoneNumber,
+  validateOrderItems,
+  validateCustomerInfo
+};

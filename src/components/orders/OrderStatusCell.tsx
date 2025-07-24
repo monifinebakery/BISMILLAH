@@ -23,7 +23,7 @@ interface OrderStatusCellProps {
 /**
  * A cell component for displaying and managing order status.
  * It combines a status selector with quick actions like sending a WhatsApp follow-up
- * and managing message templates.
+ * and managing message templates, plus a status info display.
  */
 const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
   order,
@@ -89,10 +89,7 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
     return (
       <Badge
         variant="outline"
-        className={cn(
-            getStatusColor(order.status), 
-            'text-xs font-medium px-2 py-1'
-        )}
+        className={cn(getStatusColor(order.status), 'text-xs font-medium px-2 py-1')}
       >
         {getStatusText(order.status)}
       </Badge>
@@ -100,67 +97,87 @@ const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 min-w-[120px]">
-        <Select
-          value={order.status}
-          onValueChange={handleStatusChange}
-          disabled={disabled}
-        >
-          <SelectTrigger
-            className={cn(
-              "w-full h-8 text-xs border-none text-white",
-              "transition-all duration-200 hover:shadow-md",
-              getStatusColor(order.status) // Dynamic background color
-            )}
+    <div className="space-y-2">
+      {/* Status Selector */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-[120px]">
+          <Select
+            value={order.status}
+            onValueChange={handleStatusChange}
+            disabled={disabled}
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {orderStatusList.map((statusOption) => (
-              <SelectItem
-                key={statusOption.key}
-                value={statusOption.key}
-                className="text-xs"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "w-2 h-2 rounded-full",
-                      getStatusColor(statusOption.key, 'bg') // Use background variant
-                    )}
-                  />
-                  {statusOption.label}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              className={cn(
+                'w-full h-8 text-xs border-none text-white',
+                'transition-all duration-200 hover:shadow-md',
+                getStatusColor(order.status)
+              )}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {orderStatusList.map((statusOption) => (
+                <SelectItem
+                  key={statusOption.key}
+                  value={statusOption.key}
+                  className="text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full',
+                        getStatusColor(statusOption.key, 'bg')
+                      )}
+                    />
+                    {statusOption.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-shrink-0 gap-1">
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-7 w-7 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 transition-colors"
+            onClick={handleQuickWhatsApp}
+            disabled={disabled}
+            title={`Send WhatsApp for status: ${getStatusText(order.status)}`}
+          >
+            <MessageSquare className="h-3 w-3" />
+          </Button>
+          {onTemplateManagerOpen && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-7 w-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+              onClick={handleOpenTemplateManager}
+              disabled={disabled}
+              title="Manage templates"
+            >
+              <Settings className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-shrink-0 gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700"
-          onClick={handleQuickWhatsApp}
-          disabled={disabled}
-          title={`Send WhatsApp for status: ${getStatusText(order.status)}`}
-        >
-          <MessageSquare className="h-4 w-4" />
-        </Button>
-        {onTemplateManagerOpen && (
-            <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-700"
-                onClick={handleOpenTemplateManager}
-                disabled={disabled}
-                title="Manage templates"
-            >
-                <Settings className="h-4 w-4" />
-            </Button>
-        )}
+      {/* Status Info */}
+      <div className="flex items-center gap-1">
+        <div
+          className={cn('w-1.5 h-1.5 rounded-full', {
+            'bg-yellow-500': order.status === 'pending',
+            'bg-blue-500': order.status === 'confirmed',
+            'bg-orange-500': order.status === 'shipping',
+            'bg-green-500': order.status === 'delivered',
+            'bg-red-500': order.status === 'cancelled',
+          })}
+        />
+        <span className="text-xs text-gray-500 font-medium">
+          {getStatusText(order.status)}
+        </span>
       </div>
     </div>
   );

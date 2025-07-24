@@ -12,8 +12,6 @@ import { parseDate } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { isValidDate } from '@/utils/dateUtils';
-  
-} from '@/components/orders/utils';
 import { getStatusText } from '@/components/orders/constants/orderConstants';
 
 // Dependencies

@@ -1,87 +1,167 @@
-// src/components/orders/components/OrderStatusCell.tsx
 import React from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/types';
-import { orderStatusList, getStatusColor } from '@/constants/orderConstants';
+import { orderStatusList, getStatusColor, getStatusText } from '@/constants/orderConstants';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { useWhatsApp } from '@/hooks/useWhatsApp';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
+/**
+ * Interface for the props of the OrderStatusCell component.
+ */
 interface OrderStatusCellProps {
   order: Order;
   onStatusChange?: (orderId: string, newStatus: string) => void;
-  onFollowUpClick?: (order: Order) => void;
+  onTemplateManagerOpen?: (order: Order) => void;
   disabled?: boolean;
 }
 
+/**
+ * A cell component for displaying and managing order status.
+ * It combines a status selector with quick actions like sending a WhatsApp follow-up
+ * and managing message templates.
+ */
 const OrderStatusCell: React.FC<OrderStatusCellProps> = ({
   order,
   onStatusChange,
-  onFollowUpClick,
-  disabled = false
+  onTemplateManagerOpen,
+  disabled = false,
 }) => {
+  // Hooks for handling templates and WhatsApp functionality
+  const { getTemplate } = useFollowUpTemplate();
+  const { processTemplate } = useProcessTemplate();
+  const { sendWhatsAppForOrder } = useWhatsApp();
+
+  /**
+   * Handles the change of order status from the select dropdown.
+   * @param newStatus - The new status key.
+   */
   const handleStatusChange = (newStatus: string) => {
     if (onStatusChange && !disabled) {
       onStatusChange(order.id, newStatus);
     }
   };
 
-  const handleFollowUpClick = () => {
-    if (onFollowUpClick && !disabled) {
-      onFollowUpClick(order);
+  /**
+   * Handles the quick WhatsApp follow-up action.
+   * Processes a template and sends it via WhatsApp.
+   * @param e - The mouse event, used to stop propagation.
+   */
+  const handleQuickWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (disabled) return;
+
+    if (!order) {
+      toast.error('Order data is not available.');
+      return;
+    }
+
+    const template = getTemplate(order.status);
+    const processedMessage = processTemplate(template, order);
+
+    sendWhatsAppForOrder(order, processedMessage, {
+      onSuccess: () => {
+        toast.success(`WhatsApp sent for order #${order.nomorPesanan}`);
+      },
+      onError: (error) => {
+        toast.error(`Failed to send WhatsApp: ${error}`);
+      },
+    });
+  };
+
+  /**
+   * Handles opening the template manager.
+   * @param e - The mouse event, used to stop propagation.
+   */
+  const handleOpenTemplateManager = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onTemplateManagerOpen && !disabled) {
+      onTemplateManagerOpen(order);
     }
   };
 
+  // If status change is not allowed, render a simple badge
+  if (!onStatusChange) {
+    return (
+      <Badge
+        variant="outline"
+        className={cn(
+            getStatusColor(order.status), 
+            'text-xs font-medium px-2 py-1'
+        )}
+      >
+        {getStatusText(order.status)}
+      </Badge>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 min-w-0">
-        {onStatusChange && !disabled ? (
-          <Select 
-            value={order.status} 
-            onValueChange={handleStatusChange}
-            disabled={disabled}
+      <div className="flex-1 min-w-[120px]">
+        <Select
+          value={order.status}
+          onValueChange={handleStatusChange}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            className={cn(
+              "w-full h-8 text-xs border-none text-white",
+              "transition-all duration-200 hover:shadow-md",
+              getStatusColor(order.status) // Dynamic background color
+            )}
           >
-            <SelectTrigger className="w-full h-8 text-xs border-gray-300">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {orderStatusList.map((statusOption) => (
-                <SelectItem 
-                  key={statusOption.key} 
-                  value={statusOption.key}
-                  className="text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className={`w-2 h-2 rounded-full ${statusOption.bgColor.replace('bg-', 'bg-')}`}
-                    />
-                    {statusOption.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <Badge 
-            variant="outline" 
-            className={`${getStatusColor(order.status)} text-xs font-medium px-2 py-1`}
-          >
-            {orderStatusList.find(s => s.key === order.status)?.label || order.status}
-          </Badge>
-        )}
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {orderStatusList.map((statusOption) => (
+              <SelectItem
+                key={statusOption.key}
+                value={statusOption.key}
+                className="text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      getStatusColor(statusOption.key, 'bg') // Use background variant
+                    )}
+                  />
+                  {statusOption.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      
-      {onFollowUpClick && !disabled && (
+
+      <div className="flex flex-shrink-0 gap-1">
         <Button
-          variant="ghost"
           size="icon"
-          className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50 flex-shrink-0"
-          onClick={handleFollowUpClick}
-          title="Follow Up WhatsApp"
+          variant="ghost"
+          className="h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700"
+          onClick={handleQuickWhatsApp}
+          disabled={disabled}
+          title={`Send WhatsApp for status: ${getStatusText(order.status)}`}
         >
           <MessageSquare className="h-4 w-4" />
         </Button>
-      )}
+        {onTemplateManagerOpen && (
+            <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-700"
+                onClick={handleOpenTemplateManager}
+                disabled={disabled}
+                title="Manage templates"
+            >
+                <Settings className="h-4 w-4" />
+            </Button>
+        )}
+      </div>
     </div>
   );
 };

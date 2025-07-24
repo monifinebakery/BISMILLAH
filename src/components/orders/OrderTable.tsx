@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Order } from '../types';
-import { formatDateForDisplay, formatCurrency } from '@/utils';
+import { formatDateForDisplay, formatCurrency } from '@/utils/currencyUtils';
 import OrderStatusCell from './OrderStatusCell';
 import { TableLoading } from './LoadingStates';
 import EmptyState from './EmptyState';

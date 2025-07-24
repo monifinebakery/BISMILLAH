@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PromoHistoryTableProps, PromoEstimation, SelectionState } from '@/types';
 import { formatCurrency, formatDate, formatPromoType, formatPromoDetails } from '@/utils/currencyUtils';
-import { useSearch, useToggle } from '../hooks';
+import { useSearch, useToggle } from '@/hooks';
 
 interface PromoHistoryTableComponent extends React.FC<PromoHistoryTableProps> {
   TableHeader: React.FC<TableHeaderProps>;

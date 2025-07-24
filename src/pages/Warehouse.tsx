@@ -9,11 +9,11 @@ import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { toast } from 'sonner';
 
 // Static imports for core components
-import LowStockAlert from './warehouse/LowStockAlert';
-import SelectionControls from './warehouse/SelectionControls';
-import SearchAndFilters from './warehouse/SearchAndFilters';
-import WarehouseTable from './warehouse/WarehouseTable';
-import TablePagination from './warehouse/TablePagination';
+import LowStockAlert from '@/components/warehouse/LowStockAlert';
+import SelectionControls from '@/components/warehouse/SelectionControls';
+import SearchAndFilters from '@/components/warehouse/SearchAndFilters';
+import WarehouseTable from '@/components/warehouse/WarehouseTable';
+import TablePagination from '@/components/warehouse/TablePagination';
 
 // Dynamic imports for dialogs
 const AddItemDialog = React.lazy(() => import('./warehouse/AddItemDialog'));

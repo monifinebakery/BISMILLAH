@@ -10,7 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  CheckAll,
+  CheckCheck,
   X,
   Search,
   Filter,

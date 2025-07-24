@@ -6,7 +6,7 @@ import { PurchaseTableProvider } from '@/components/purchase/components/context/
 import PurchaseHeader from './PurchaseHeader';
 import LoadingPurchaseState from '@/components/purchase/components/states/LoadingPurchaseState';
 import ErrorPurchaseState from '@/components/purchase/components/states/ErrorPurchaseState';
-import { calculatePurchaseStats } from '../../utils/purchaseHelpers';
+import { calculatePurchaseStats } from '@/components/purchase/components/utils/purchaseHelpers';
 
 // Lazy load components
 const PurchaseTable = React.lazy(() => import('../table/PurchaseTable'));

@@ -4,7 +4,7 @@ import { CheckSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ITEMS_PER_PAGE_OPTIONS } from '../constants/orderConstants';
+import { ITEMS_PER_PAGE_OPTIONS } from '@/constants/orderConstants';
 
 interface TableControlsProps {
   itemsPerPage: number;

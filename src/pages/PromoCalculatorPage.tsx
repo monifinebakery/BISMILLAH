@@ -31,7 +31,7 @@ import {
   formatCurrency,
   formatDate,
   PROMO_TYPES
-} from './utils';
+} from '@/utils';
 
 // Import types
 import {

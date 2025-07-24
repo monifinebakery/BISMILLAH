@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { BahanBaku } from '../../types/warehouse';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 

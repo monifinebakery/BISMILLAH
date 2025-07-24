@@ -1,7 +1,7 @@
 import React from 'react';
 import { Order } from '@/types';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/dateUtils';
 
 interface InvoiceTemplateProps {

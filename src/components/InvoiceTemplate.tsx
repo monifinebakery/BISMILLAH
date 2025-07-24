@@ -2,7 +2,7 @@ import React from 'react';
 import { Order } from '@/types';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatDateForDisplay } from '@/utils/dashboardUtils';
 
 interface InvoiceTemplateProps {
   order: Order;

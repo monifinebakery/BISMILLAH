@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+import { logger } from '@/utils/logger';
 // 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '../utils/notificationHelpers';

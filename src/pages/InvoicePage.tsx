@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, Plus, Printer, FileText, Settings, ArrowLeft, Copy } from 'lucide-react';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 

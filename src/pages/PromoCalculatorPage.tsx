@@ -24,7 +24,7 @@ import {
   useLocalStorage,
   useToggle,
   useDebounce
-} from '@/hooks';
+} from './hooks';
 
 import {
   calculatePromoResult,

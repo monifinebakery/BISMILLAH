@@ -18,6 +18,15 @@ export interface DateRange {
 }
 
 /**
+ * Memeriksa apakah nilai yang diberikan adalah objek Date yang valid.
+ * @param value Nilai yang akan diperiksa.
+ * @returns `true` jika valid, `false` jika tidak.
+ */
+export const isValidDate = (value: any): value is Date => {
+  return value instanceof Date && !isNaN(value.getTime());
+};
+
+/**
  * Mengonversi nilai tanggal menjadi string YYYY-MM-DD yang aman untuk database.
  * Mengabaikan waktu dan zona waktu untuk konsistensi.
  * @param dateValue Nilai tanggal yang akan dikonversi.

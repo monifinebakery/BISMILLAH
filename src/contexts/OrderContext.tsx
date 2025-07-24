@@ -21,7 +21,7 @@ import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { safeParseDate, toSafeISOString } from '@/utils/dateUtils';
+import { safeParseDate, toSafeISOString } from '@/utils/dashboardUtils';
 
 // Enhanced context interface extending the modular one
 interface EnhancedOrderContextType extends OrderContextType {

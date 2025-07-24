@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
-import DateRangePicker from '@/components/ui/DateRangePicker';
+import DateRangePicker from './DateRangePicker';
 import FilterSummary, { createCommonFilters } from '@/components/ui/FilterSummary';
 import { orderStatusList } from '@/constants/orderConstants';
 

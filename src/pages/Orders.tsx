@@ -23,7 +23,7 @@ import {
   TableControls,
   OrderTable,
   PaginationControls
-} from './components';
+} from '@/components/orders';
 
 // Lazy loaded components (code split)
 const OrderForm = lazy(() => import('@/components/OrderForm'));

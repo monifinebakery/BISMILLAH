@@ -303,14 +303,6 @@ const InvoicePage: React.FC = () => {
                     variant="secondary"
                     className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    HTML
-                  </Button>
-                  <Button 
-                    onClick={handleCopyToClipboard}
-                    variant="secondary"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
-                  >
                     <Copy className="mr-2 h-4 w-4" />
                     Copy
                   </Button>

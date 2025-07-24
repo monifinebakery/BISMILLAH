@@ -85,7 +85,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Jika pengguna logout, bersihkan state.
     if (!user) {
-      console.log("[AssetContext] User logout, membersihkan data aset.");
+      logger.context("[AssetContext] User logout, membersihkan data aset.");
       setAssets([]);
       setIsLoading(false);
       setError(null);
@@ -97,7 +97,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // 1. Ambil data awal dari Supabase
     const fetchInitialAssets = async () => {
       try {
-        console.log(`[AssetContext] User terdeteksi (${user.id}), memuat data aset...`);
+        logger.context(`[AssetContext] User terdeteksi (${user.id}), memuat data aset...`);
         setIsLoading(true);
         setError(null);
         
@@ -117,7 +117,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             .filter((asset): asset is Asset => asset !== null);
           
           setAssets(transformedAssets);
-          console.log(`[AssetContext] Loaded ${transformedAssets.length} assets`);
+          logger.context(`[AssetContext] Loaded ${transformedAssets.length} assets`);
         } else {
           setAssets([]);
         }
@@ -150,7 +150,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         },
         (payload) => {
           try {
-            console.log('[AssetContext] Perubahan realtime diterima:', payload);
+            logger.context('[AssetContext] Perubahan realtime diterima:', payload);
             
             if (payload.eventType === 'INSERT' && payload.new) {
               const newAsset = transformAssetFromDB(payload.new);
@@ -181,7 +181,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // 3. Cleanup: Wajib untuk unsubscribe channel saat komponen unmount atau user berubah
     return () => {
-      console.log("[AssetContext] Membersihkan channel realtime aset.");
+      logger.context("[AssetContext] Membersihkan channel realtime aset.");
       supabase.removeChannel(channel);
     };
   }, [user, transformAssetFromDB, addNotification]); // 🔔 ADD addNotification dependency

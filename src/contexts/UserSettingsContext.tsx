@@ -135,7 +135,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         updatedAt: new Date().toISOString()
       };
 
-      logger.context('[UserSettingsContext] Saving settings:', updatedSettings);
+     logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
       
       const { error } = await supabase
         .from('user_settings')

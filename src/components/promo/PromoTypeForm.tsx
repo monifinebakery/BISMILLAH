@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Percent, DollarSign, Gift, Target, Calculator, AlertTriangle } from 'lucide-react';
 import { PromoType, PromoDetails, Recipe } from '../types';
 import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
-import { calculatePromoResult } from '../utils/calculationUtils';
+import { calculatePromoResult } from '@/utils/calculationUtils';
 
 interface PromoTypeFormProps {
   promoType: PromoType;

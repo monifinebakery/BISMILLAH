@@ -157,7 +157,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       setSettings(updatedSettings);
-      logger.context('[UserSettingsContext] Settings saved successfully');
+      logger.context('UserSettingsContext', 'Settings saved successfully');
 
       // 🔔 CREATE SUCCESS NOTIFICATION (only for significant changes)
       if (hasSignificantChanges(settings, newSettings)) {

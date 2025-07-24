@@ -32,7 +32,7 @@ export const ORDER_STATUS_CONFIG: Record<OrderStatus, OrderStatusOption> = {
   },
   delivered: {
     key: 'delivered',
-    label: 'Diantar',
+    label: 'Bisa Diambil',
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     bgColor: 'bg-indigo-50',
     textColor: 'text-indigo-700'

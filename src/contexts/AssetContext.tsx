@@ -49,7 +49,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const transformAssetFromDB = useCallback((dbAsset: any): Asset | null => {
     try {
       if (!dbAsset || !dbAsset.id) {
-        console.warn('Invalid asset data received from database:', dbAsset);
+        logger.warn('AssetContext - Invalid asset data received from database:', dbAsset);
         return null;
       }
 
@@ -69,7 +69,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         updatedAt: safeParseDate(dbAsset.updated_at),
       };
     } catch (error) {
-      console.error('Error transforming asset from DB:', error);
+      logger.error('AssetContext - Error transforming asset from DB:', error);
       return null;
     }
   }, []);
@@ -85,7 +85,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Jika pengguna logout, bersihkan state.
     if (!user) {
-      logger.context("[AssetContext] User logout, membersihkan data aset.");
+      logger.context('AssetContext', 'User logout, membersihkan data aset.');
       setAssets([]);
       setIsLoading(false);
       setError(null);
@@ -97,7 +97,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // 1. Ambil data awal dari Supabase
     const fetchInitialAssets = async () => {
       try {
-        logger.context(`[AssetContext] User terdeteksi (${user.id}), memuat data aset...`);
+        logger.context('AssetContext', `User terdeteksi (${user.id}), memuat data aset...`);
         setIsLoading(true);
         setError(null);
         
@@ -117,12 +117,12 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             .filter((asset): asset is Asset => asset !== null);
           
           setAssets(transformedAssets);
-          logger.context(`[AssetContext] Loaded ${transformedAssets.length} assets`);
+          logger.context('AssetContext', `Loaded ${transformedAssets.length} assets`);
         } else {
           setAssets([]);
         }
       } catch (error) {
-        console.error('[AssetContext] Error fetching assets:', error);
+        logger.error('AssetContext - Error fetching assets:', error);
         setError(error instanceof Error ? error.message : 'Gagal memuat aset');
         toast.error(`Gagal memuat aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
         
@@ -150,7 +150,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         },
         (payload) => {
           try {
-            logger.context('[AssetContext] Perubahan realtime diterima:', payload);
+            logger.context('AssetContext', 'Perubahan realtime diterima:', payload);
             
             if (payload.eventType === 'INSERT' && payload.new) {
               const newAsset = transformAssetFromDB(payload.new);
@@ -173,7 +173,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               setAssets(currentAssets => currentAssets.filter(a => a.id !== deletedAssetId));
             }
           } catch (error) {
-            console.error('[AssetContext] Error handling realtime event:', error);
+            logger.error('AssetContext - Error handling realtime event:', error);
           }
         }
       )
@@ -181,7 +181,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // 3. Cleanup: Wajib untuk unsubscribe channel saat komponen unmount atau user berubah
     return () => {
-      logger.context("[AssetContext] Membersihkan channel realtime aset.");
+      logger.context('AssetContext', 'Membersihkan channel realtime aset.');
       supabase.removeChannel(channel);
     };
   }, [user, transformAssetFromDB, addNotification]); // 🔔 ADD addNotification dependency
@@ -246,7 +246,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       return true;
     } catch (error) {
-      console.error('[AssetContext] Error adding asset:', error);
+      logger.error('AssetContext - Error adding asset:', error);
       toast.error(`Gagal menyimpan aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -313,7 +313,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       return true;
     } catch (error) {
-      console.error('[AssetContext] Error updating asset:', error);
+      logger.error('AssetContext - Error updating asset:', error);
       toast.error(`Gagal memperbarui aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION
@@ -377,7 +377,7 @@ export const AssetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       return true;
     } catch (error) {
-      console.error('[AssetContext] Error deleting asset:', error);
+      logger.error('AssetContext - Error deleting asset:', error);
       toast.error(`Gagal menghapus aset: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
       // 🔔 CREATE ERROR NOTIFICATION

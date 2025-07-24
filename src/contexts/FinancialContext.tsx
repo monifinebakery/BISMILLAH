@@ -64,7 +64,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const fetchInitialTransactions = async () => {
       setIsLoading(true);
-      console.log('[FinancialContext] Memulai fetchInitialTransactions untuk user:', user.id);
+      logger.context('[FinancialContext] Memulai fetchInitialTransactions untuk user:', user.id);
       
       try {
         const { data, error } = await supabase
@@ -83,7 +83,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
           ));
         } else if (data) {
           const transformedData = data.map(transformTransactionFromDB);
-          console.log('[FinancialContext] Data transaksi awal berhasil dimuat (transformed):', transformedData);
+          logger.context('[FinancialContext] Data transaksi awal berhasil dimuat (transformed):', transformedData);
           setFinancialTransactions(transformedData);
         }
       } catch (error) {
@@ -93,7 +93,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         ));
       } finally {
         setIsLoading(false);
-        console.log('[FinancialContext] fetchInitialTransactions selesai.');
+        logger.context('[FinancialContext] fetchInitialTransactions selesai.');
       }
     };
 
@@ -105,7 +105,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         'postgres_changes',
         { event: '*', schema: 'public', table: 'financial_transactions', filter: `user_id=eq.${user.id}` },
         (payload) => {
-          console.log('[FinancialContext] Perubahan realtime diterima:', payload);
+          logger.context('[FinancialContext] Perubahan realtime diterima:', payload);
           const transform = transformTransactionFromDB;
           if (payload.eventType === 'INSERT') {
             setFinancialTransactions(current => [transform(payload.new), ...current].sort((a,b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)));
@@ -144,7 +144,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
           related_id: transaction.relatedId ?? null, 
       };
 
-      console.log('[FinancialContext] Mengirim transaksi keuangan:', transactionToInsert);
+      logger.context('[FinancialContext] Mengirim transaksi keuangan:', transactionToInsert);
       const { error } = await supabase.from('financial_transactions').insert(transactionToInsert);
       
       if (error) {
@@ -208,7 +208,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (updatedTransaction.notes !== undefined) dataToUpdate.notes = updatedTransaction.notes;
       if (updatedTransaction.relatedId !== undefined) dataToUpdate.related_id = updatedTransaction.relatedId;
       
-      console.log('[FinancialContext] Mengirim update transaksi keuangan:', id, dataToUpdate);
+      logger.context('[FinancialContext] Mengirim update transaksi keuangan:', id, dataToUpdate);
       const { error } = await supabase.from('financial_transactions').update(dataToUpdate).eq('id', id);
       
       if (error) {
@@ -259,7 +259,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         return false;
       }
 
-      console.log('[FinancialContext] Mengirim perintah hapus transaksi keuangan:', id);
+      logger.context('[FinancialContext] Mengirim perintah hapus transaksi keuangan:', id);
       const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
       
       if (error) {

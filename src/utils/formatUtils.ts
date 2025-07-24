@@ -1,278 +1,543 @@
-/**
- * =================================================================
- * GENERAL FORMATTING UTILITIES
- * =================================================================
- * A collection of utility functions for formatting various data types
- * such as currency, numbers, dates, and text for display purposes.
- */
+// src/components/orders/components/OrderForm.tsx
+// MODULAR VERSION - Integrated with Orders System
 
-/**
- * Formats a number as Indonesian Rupiah (IDR) currency.
- * @param amount - The number to format.
- * @returns A string representing the formatted currency (e.g., "Rp 10.000").
- */
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
-/**
- * Formats a number with Indonesian locale-specific thousand separators.
- * @param value - The number to format.
- * @returns A string with thousand separators (e.g., "1.234.567").
- */
-export const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('id-ID').format(value);
-};
+// Import modular orders types and utils
+import { Order, NewOrder, OrderItem } from '../types';
+import { formatCurrency, generateOrderNumber } from '../utils/formatUtils';
+import { orderStatusList } from '../constants/orderConstants';
 
-/**
- * Formats a number into a compact representation (K, M, B).
- * @param num The number to format.
- * @returns A compact string representation (e.g., "1.2K", "5.M").
- */
-export const formatCompactNumber = (num: number): string => {
-  if (num < 1000) return num.toString();
-  if (num < 1000000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  if (num < 1000000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
-};
+// Context imports
+import { useRecipe } from '@/contexts/RecipeContext';
 
-/**
- * Formats a number as a percentage.
- * @param value - The value to format (e.g., 0.75 for 75%).
- * @param decimals - The number of decimal places to show.
- * @returns A formatted percentage string (e.g., "75,1%").
- */
-export const formatPercentage = (value: number, decimals: number = 1): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'percent',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value);
-};
+interface Recipe {
+  id: string;
+  namaResep: string;
+  hargaJualPorsi: number;
+  stok?: number;
+}
 
+interface OrderFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (order: Partial<NewOrder> | Partial<Order>) => Promise<void>;
+  initialData?: Order | null;
+  isSubmitting?: boolean;
+}
 
-/**
- * =================================================================
- * DATE & TIME UTILITIES
- * =================================================================
- */
+// Custom hook for order form state management
+const useOrderFormState = (initialData: Order | null, open: boolean) => {
+  const [orderData, setOrderData] = useState<Partial<Order | NewOrder>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-/**
- * Formats a Date object or a date string into a readable format.
- * Includes error handling for invalid date inputs.
- * @param date - The date to format (Date object or string).
- * @returns A formatted date string (e.g., "24 Jul 2025") or '-' if invalid.
- */
-export const formatDate = (date: Date | string | undefined | null): string => {
-  if (!date) return '-';
-  try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    // Check if the date is valid
-    if (isNaN(dateObj.getTime())) {
-      return '-';
+  const defaultData = useMemo(() => ({
+    namaPelanggan: '',
+    telefonPelanggan: '',
+    emailPelanggan: '',
+    alamatPengiriman: '',
+    status: 'pending' as const,
+    catatan: '',
+    items: [] as OrderItem[],
+    subtotal: 0,
+    pajak: 0,
+    totalPesanan: 0,
+    tanggal: new Date(),
+  }), []);
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setOrderData({ ...defaultData, ...initialData });
+      } else {
+        setOrderData(defaultData);
+      }
+      setErrors({});
     }
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(dateObj);
-  } catch (error) {
-    console.warn('Date formatting error:', error);
-    return '-';
-  }
-};
+  }, [open, initialData, defaultData]);
 
+  const updateField = useCallback((field: keyof (Order | NewOrder), value: any) => {
+    setOrderData(prev => ({ ...prev, [field]: value }));
+    // Clear error when field is updated
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  }, [errors]);
 
-/**
- * =================================================================
- * TEXT & STRING UTILITIES
- * =================================================================
- */
+  const setFieldError = useCallback((field: string, error: string) => {
+    setErrors(prev => ({ ...prev, [field]: error }));
+  }, []);
 
-/**
- * Truncates a string to a specified maximum length and appends '...'.
- * @param text - The string to truncate.
- * @param maxLength - The maximum length before truncating.
- * @returns The truncated string or the original string if it's shorter than maxLength.
- */
-export const truncateText = (text: string, maxLength: number = 50): string => {
-  if (!text) return '';
-  return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-};
+  const validateField = useCallback((field: string, value: any): string => {
+    switch (field) {
+      case 'namaPelanggan':
+        if (!value || !value.trim()) return 'Nama pelanggan wajib diisi';
+        if (value.trim().length < 2) return 'Nama pelanggan minimal 2 karakter';
+        return '';
+      case 'telefonPelanggan':
+        if (!value || !value.trim()) return 'Nomor telepon wajib diisi';
+        if (!/^[\d\s\-\+\(\)]{10,}$/.test(value.trim())) return 'Format nomor telepon tidak valid';
+        return '';
+      case 'emailPelanggan':
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+          return 'Format email tidak valid';
+        }
+        return '';
+      case 'items':
+        if (!value || !Array.isArray(value) || value.length === 0) {
+          return 'Pesanan harus memiliki minimal satu item';
+        }
+        const validItems = value.filter(item => item.recipe_id && item.quantity > 0);
+        if (validItems.length === 0) {
+          return 'Pesanan harus memiliki minimal satu item yang valid';
+        }
+        return '';
+      default:
+        return '';
+    }
+  }, []);
 
-/**
- * Capitalizes the first letter of each word in a string.
- * @param text - The string to capitalize.
- * @returns The capitalized string.
- */
-export const capitalizeWords = (text: string): string => {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-
-/**
- * =================================================================
- * DOMAIN-SPECIFIC UTILITIES (ORDERS)
- * =================================================================
- */
-
-/**
- * Formats an order status string into a human-readable Indonesian format.
- * @param status - The raw status string (e.g., 'pending').
- * @returns The formatted status (e.g., "Menunggu Konfirmasi").
- */
-export const formatOrderStatus = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'pending': 'Menunggu Konfirmasi',
-    'confirmed': 'Dikonfirmasi',
-    'processing': 'Diproses',
-    'ready': 'Siap Diantar',
-    'delivered': 'Diantar',
-    'completed': 'Selesai',
-    'cancelled': 'Dibatalkan'
+  return {
+    orderData,
+    errors,
+    updateField,
+    setFieldError,
+    validateField
   };
-  return statusMap[status.toLowerCase()] || capitalizeWords(status);
 };
 
-/**
- * Generates a random order number with the format ORDYYMMDDXXX.
- * @returns A unique order number string.
- */
-export const generateOrderNumber = (): string => {
-  const now = new Date();
-  const year = now.getFullYear().toString().slice(-2);
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `ORD${year}${month}${day}${random}`;
-};
-
-/**
- * Generates a random order number including time, ORDYYMMDDHHMMXX.
- * @returns A unique order number string with time.
- */
-export const generateOrderNumberWithTime = (): string => {
-  const now = new Date();
-  const year = now.getFullYear().toString().slice(-2);
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-  const hour = now.getHours().toString().padStart(2, '0');
-  const minute = now.getMinutes().toString().padStart(2, '0');
-  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-  return `ORD${year}${month}${day}${hour}${minute}${random}`;
-};
-
-/**
- * Generates a sequential order number for the current date.
- * Resets to 1 for a new day.
- * @param lastOrderNumber - The last order number (e.g., "ORD250724001").
- * @returns The next sequential order number.
- */
-export const generateOrderNumberSequential = (lastOrderNumber?: string): string => {
-  const now = new Date();
-  const year = now.getFullYear().toString().slice(-2);
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-  const currentDatePrefix = `${year}${month}${day}`;
-
-  let sequence = 1;
-  if (lastOrderNumber) {
-    const lastDatePrefix = lastOrderNumber.substring(3, 9); // Extracts YYMMDD
-    const lastSequenceStr = lastOrderNumber.substring(9);   // Extracts sequence part
-
-    if (lastDatePrefix === currentDatePrefix && /^\d+$/.test(lastSequenceStr)) {
-      sequence = parseInt(lastSequenceStr, 10) + 1;
+// Custom hook for order items management
+const useOrderItems = (
+  orderData: Partial<Order | NewOrder>,
+  updateField: (field: keyof (Order | NewOrder), value: any) => void,
+  recipes: Recipe[]
+) => {
+  const handleItemChange = useCallback((index: number, field: keyof OrderItem, value: any) => {
+    const items = orderData.items || [];
+    const newItems = [...items];
+    const currentItem = { ...newItems[index] };
+    
+    if (field === 'recipe_id') {
+      const selectedRecipe = recipes.find(r => r.id === value);
+      if (selectedRecipe) {
+        currentItem.recipe_id = selectedRecipe.id;
+        currentItem.namaBarang = selectedRecipe.namaResep;
+        currentItem.hargaSatuan = selectedRecipe.hargaJualPorsi;
+        // Auto-set quantity to 1 if not set
+        if (!currentItem.quantity) {
+          currentItem.quantity = 1;
+        }
+      }
+    } else {
+      currentItem[field] = value;
     }
-  }
+    
+    // Recalculate total for this item
+    currentItem.totalHarga = (currentItem.quantity || 0) * (currentItem.hargaSatuan || 0);
+    newItems[index] = currentItem;
+    updateField('items', newItems);
+  }, [orderData.items, updateField, recipes]);
 
-  const sequenceStr = sequence.toString().padStart(3, '0');
-  return `ORD${currentDatePrefix}${sequenceStr}`;
+  const handleAddItem = useCallback(() => {
+    const newItem: OrderItem = {
+      recipe_id: '',
+      namaBarang: '',
+      quantity: 1,
+      hargaSatuan: 0,
+      totalHarga: 0
+    };
+    const items = orderData.items || [];
+    updateField('items', [...items, newItem]);
+  }, [orderData.items, updateField]);
+
+  const handleRemoveItem = useCallback((index: number) => {
+    const items = orderData.items || [];
+    const newItems = items.filter((_, i) => i !== index);
+    updateField('items', newItems);
+  }, [orderData.items, updateField]);
+
+  const calculateTotals = useMemo(() => {
+    const items = orderData.items || [];
+    const subtotal = items.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
+    const pajak = orderData.pajak || 0;
+    const total = subtotal + pajak;
+    
+    return { subtotal, pajak, total };
+  }, [orderData.items, orderData.pajak]);
+
+  return {
+    handleItemChange,
+    handleAddItem,
+    handleRemoveItem,
+    calculateTotals
+  };
 };
 
+const OrderForm: React.FC<OrderFormProps> = ({
+  open,
+  onOpenChange,
+  onSubmit,
+  initialData = null,
+  isSubmitting = false
+}) => {
+  const { recipes = [] } = useRecipe();
+  const [internalSubmitting, setInternalSubmitting] = useState(false);
 
-/**
- * =================================================================
- * INPUT SANITIZATION & VALIDATION
- * =================================================================
- */
+  // Custom hooks
+  const formState = useOrderFormState(initialData, open);
+  const itemsManagement = useOrderItems(formState.orderData, formState.updateField, recipes);
 
-/**
- * Trims whitespace and collapses multiple spaces into one.
- * @param input - The string to sanitize.
- * @returns The sanitized string.
- */
-export const sanitizeInput = (input: string): string => {
-  if (!input) return '';
-  return input.trim().replace(/\s+/g, ' ');
-};
+  const { orderData, errors, updateField, validateField } = formState;
+  const { handleItemChange, handleAddItem, handleRemoveItem, calculateTotals } = itemsManagement;
 
-/**
- * Removes non-digit characters from a phone number string, except for a leading '+'.
- * @param phone - The phone number string to clean.
- * @returns The sanitized phone number.
- */
-export const sanitizePhoneNumber = (phone: string): string => {
-    if (!phone) return '';
-    // Allow digits and a leading plus sign
-    const cleaned = phone.replace(/[^\d+]/g, '');
-    if (phone.startsWith('+')) {
-        return '+' + cleaned.replace(/\+/g, ''); // Keep only the first '+'
+  // Update totals when items change
+  useEffect(() => {
+    updateField('subtotal', calculateTotals.subtotal);
+    updateField('totalPesanan', calculateTotals.total);
+  }, [calculateTotals.subtotal, calculateTotals.total, updateField]);
+
+  // Form validation
+  const validateForm = useCallback((): boolean => {
+    const fieldsToValidate = ['namaPelanggan', 'telefonPelanggan', 'emailPelanggan', 'items'];
+    let isValid = true;
+
+    fieldsToValidate.forEach(field => {
+      const value = orderData[field as keyof typeof orderData];
+      const error = validateField(field, value);
+      if (error) {
+        formState.setFieldError(field, error);
+        isValid = false;
+      }
+    });
+
+    // Validate individual items
+    const items = orderData.items || [];
+    items.forEach((item, index) => {
+      if (!item.recipe_id) {
+        formState.setFieldError(`item_${index}`, 'Pilih resep untuk item ini');
+        isValid = false;
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        formState.setFieldError(`item_quantity_${index}`, 'Quantity harus lebih dari 0');
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  }, [orderData, validateField, formState.setFieldError]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!validateForm()) {
+      toast.error('Harap lengkapi semua field yang wajib diisi');
+      return;
     }
-    return cleaned.replace(/\+/g, '');
+
+    const validItems = (orderData.items || []).filter(item => 
+      item.recipe_id && item.quantity && item.quantity > 0
+    );
+
+    if (validItems.length === 0) {
+      toast.error('Pesanan harus memiliki setidaknya satu item yang valid');
+      return;
+    }
+
+    setInternalSubmitting(true);
+    
+    try {
+      const submitData = {
+        ...orderData,
+        items: validItems,
+        // Generate order number for new orders
+        ...(initialData ? {} : { nomorPesanan: generateOrderNumber() })
+      };
+
+      await onSubmit(submitData);
+      
+      // Close dialog on successful submission
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      toast.error('Gagal menyimpan pesanan');
+    } finally {
+      setInternalSubmitting(false);
+    }
+  }, [validateForm, orderData, initialData, onSubmit, onOpenChange]);
+
+  const isProcessing = isSubmitting || internalSubmitting;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-gray-800">
+            {initialData ? 'Edit Pesanan' : 'Buat Pesanan Baru'}
+          </DialogTitle>
+          <DialogDescription className="text-gray-600">
+            Pastikan item yang dipilih berasal dari resep agar stok terpotong otomatis saat pesanan selesai.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-6">
+          {/* Customer Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-800 border-b pb-2">Informasi Pelanggan</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="namaPelanggan" className="font-medium">
+                  Nama Pelanggan *
+                </Label>
+                <Input
+                  id="namaPelanggan"
+                  value={orderData.namaPelanggan || ''}
+                  onChange={e => updateField('namaPelanggan', e.target.value)}
+                  disabled={isProcessing}
+                  className={errors.namaPelanggan ? 'border-red-500' : ''}
+                  placeholder="Masukkan nama pelanggan"
+                />
+                {errors.namaPelanggan && (
+                  <p className="text-sm text-red-600 mt-1">{errors.namaPelanggan}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="telefonPelanggan" className="font-medium">
+                  Nomor Telepon *
+                </Label>
+                <Input
+                  id="telefonPelanggan"
+                  value={orderData.telefonPelanggan || ''}
+                  onChange={e => updateField('telefonPelanggan', e.target.value)}
+                  disabled={isProcessing}
+                  className={errors.telefonPelanggan ? 'border-red-500' : ''}
+                  placeholder="Contoh: 08123456789"
+                />
+                {errors.telefonPelanggan && (
+                  <p className="text-sm text-red-600 mt-1">{errors.telefonPelanggan}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="emailPelanggan" className="font-medium">
+                Email Pelanggan (Opsional)
+              </Label>
+              <Input
+                id="emailPelanggan"
+                type="email"
+                value={orderData.emailPelanggan || ''}
+                onChange={e => updateField('emailPelanggan', e.target.value)}
+                disabled={isProcessing}
+                className={errors.emailPelanggan ? 'border-red-500' : ''}
+                placeholder="contoh@email.com"
+              />
+              {errors.emailPelanggan && (
+                <p className="text-sm text-red-600 mt-1">{errors.emailPelanggan}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="alamatPengiriman" className="font-medium">
+                Alamat Pengiriman
+              </Label>
+              <Textarea
+                id="alamatPengiriman"
+                value={orderData.alamatPengiriman || ''}
+                onChange={e => updateField('alamatPengiriman', e.target.value)}
+                disabled={isProcessing}
+                placeholder="Masukkan alamat lengkap untuk pengiriman"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="status" className="font-medium">
+                Status Pesanan
+              </Label>
+              <Select 
+                value={orderData.status} 
+                onValueChange={(value) => updateField('status', value)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status pesanan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orderStatusList.map(status => (
+                    <SelectItem key={status.key} value={status.key}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className={`w-2 h-2 rounded-full ${status.bgColor.replace('bg-', 'bg-')}`}
+                        />
+                        {status.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold text-gray-800 border-b pb-2 flex-1">
+                Item Pesanan
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddItem}
+                disabled={isProcessing}
+                className="ml-4"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Item
+              </Button>
+            </div>
+
+            {errors.items && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errors.items}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-3">
+              {(orderData.items || []).map((item, index) => (
+                <div 
+                  key={index} 
+                  className="grid grid-cols-[1fr,100px,120px,auto] gap-3 items-center p-3 border rounded-lg bg-gray-50"
+                >
+                  <div>
+                    <Select
+                      value={item.recipe_id}
+                      onValueChange={(value) => handleItemChange(index, 'recipe_id', value)}
+                      disabled={isProcessing}
+                    >
+                      <SelectTrigger className={errors[`item_${index}`] ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="Pilih Resep..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {recipes.map(recipe => (
+                          <SelectItem key={recipe.id} value={recipe.id}>
+                            <div className="flex flex-col">
+                              <span>{recipe.namaResep}</span>
+                              <span className="text-xs text-gray-500">
+                                {formatCurrency(recipe.hargaJualPorsi)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors[`item_${index}`] && (
+                      <p className="text-xs text-red-600 mt-1">{errors[`item_${index}`]}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Input
+                      type="number"
+                      placeholder="Qty"
+                      value={item.quantity || ''}
+                      onChange={e => handleItemChange(index, 'quantity', Number(e.target.value))}
+                      disabled={isProcessing}
+                      min="1"
+                      className={errors[`item_quantity_${index}`] ? 'border-red-500' : ''}
+                    />
+                    {errors[`item_quantity_${index}`] && (
+                      <p className="text-xs text-red-600 mt-1">{errors[`item_quantity_${index}`]}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Input
+                      type="text"
+                      value={formatCurrency(item.hargaSatuan || 0)}
+                      readOnly
+                      className="bg-gray-100 text-gray-600"
+                      title="Harga otomatis dari resep"
+                    />
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveItem(index)}
+                    disabled={isProcessing}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              {(!orderData.items || orderData.items.length === 0) && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <p>Belum ada item pesanan</p>
+                  <p className="text-sm">Klik "Tambah Item" untuk menambah item pertama</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Notes */}
+          <div>
+            <Label htmlFor="catatan" className="font-medium">
+              Catatan Pesanan (Opsional)
+            </Label>
+            <Textarea
+              id="catatan"
+              value={orderData.catatan || ''}
+              onChange={e => updateField('catatan', e.target.value)}
+              disabled={isProcessing}
+              placeholder="Tambahkan catatan khusus untuk pesanan ini..."
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="pt-4 border-t flex-col sm:flex-row sm:justify-between">
+          <div className="text-lg font-bold text-gray-800 mb-3 sm:mb-0">
+            Total: {formatCurrency(calculateTotals.total)}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isProcessing}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isProcessing}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                initialData ? 'Update Pesanan' : 'Buat Pesanan'
+              )}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
-/**
- * Formats a phone number to the international +62 standard.
- * @param phone - The raw phone number.
- * @returns The formatted phone number (e.g., "+6281234567890").
- */
-export const formatPhoneNumber = (phone: string): string => {
-  if (!phone) return '-';
-  const cleaned = phone.replace(/\D/g, '');
-
-  if (cleaned.startsWith('62')) {
-    return `+${cleaned}`;
-  }
-  if (cleaned.startsWith('08')) {
-    return `+62${cleaned.substring(1)}`;
-  }
-  if (cleaned.startsWith('8')) {
-    // Handle cases where '0' is omitted but '62' is not present
-    return `+62${cleaned}`;
-  }
-  return phone; // Return original if format is not recognized
-};
-
-/**
- * Validates if a string is a valid email address.
- * @param email - The email string to validate.
- * @returns True if the email is valid, false otherwise.
- */
-export const isValidEmail = (email: string): boolean => {
-  if (!email) return false;
-  // A common and reasonably effective regex for email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-};
-
-/**
- * Validates if a phone number has a plausible length.
- * @param phone - The phone number string to validate.
- * @returns True if the phone number length is valid, false otherwise.
- */
-export const isValidPhoneNumber = (phone: string): boolean => {
-  if (!phone) return false;
-  // Strips all non-digit characters for a pure length check
-  const cleanPhone = phone.replace(/\D/g, '');
-  return cleanPhone.length >= 9 && cleanPhone.length <= 15;
-};
+export default OrderForm;

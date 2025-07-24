@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 // 🔔 FIXED NOTIFICATION IMPORTS
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface PurchaseContextType {
   purchases: Purchase[];

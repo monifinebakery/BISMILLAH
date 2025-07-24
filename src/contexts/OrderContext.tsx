@@ -11,7 +11,7 @@ import { Order, NewOrder, OrderContextType } from '@/components/orders/types';
 import { parseDate } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/dashboardUtils';
-import { isValidDate } from '@/utils/dateUtils';
+import { isValidDate } from '@/utils/dashboardUtils';
 import { getStatusText } from '@/constants/orderConstants';
 
 // Dependencies

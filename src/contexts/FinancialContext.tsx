@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { FinancialTransaction } from '@/types/financial'; // Pastikan path ke tipe data Anda benar
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';

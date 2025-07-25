@@ -5,7 +5,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { useOrder } from '@/components/orders/context/OrderContext';
 import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
-import { usePurchase } from '@/components/purchase/contexts/PurchaseContext';
+import { usePurchase } from '@/components/purchase/context/PurchaseContext';
 
 /**
  * Hook to automatically create notifications based on system events

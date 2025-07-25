@@ -1,8 +1,8 @@
 // Main purchase feature exports with dynamic imports and code splitting
 
 // Contexts - immediately available
-export { PurchaseProvider, usePurchase } from './contexts/PurchaseContext';
-export { PurchaseTableProvider, usePurchaseTable } from './contexts/PurchaseTableContext';
+export { PurchaseProvider, usePurchase } from './PurchaseContext';
+export { PurchaseTableProvider, usePurchaseTable } from './PurchaseTableContext';
 
 // Services - lazy loaded
 export const PurchaseServices = {

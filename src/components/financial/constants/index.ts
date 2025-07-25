@@ -1,7 +1,7 @@
 // src/components/financial/constants/index.ts
 // Constants and configuration for financial modules
 
-import { FinancialCategories } from '@/components/financial/types/financial;
+import { FinancialCategories } from './types/financial;
 
 // ===========================================
 // CHART CONFIGURATION

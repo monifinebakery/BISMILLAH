@@ -6,7 +6,7 @@ import { usePurchaseOperations } from '../../hooks/usePurchaseOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
 import PurchaseTableControls from './PurchaseTableControls';
 import PurchaseTableRow from './PurchaseTableRow';
-import EmptyPurchaseState from '../states/EmptyPurchaseState';
+import EmptyPurchaseState from '@/components/purchase/components/states/EmptyPurchaseState';
 import LoadingPurchaseState from '@/components/purchase/components/states/LoadingPurchaseState';
 
 // Lazy load pagination component

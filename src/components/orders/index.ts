@@ -16,4 +16,4 @@ export { default as PaginationControls } from './components/PaginationControls';
 export { default as SelectionToolbar } from './components/SelectionToolbar';
 
 // Loading and error components
-export * from './LoadingStates';
+export * from './components/LoadingStates';

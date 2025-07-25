@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 // --- DEPENDENCIES ---
 import { useAuth } from './AuthContext';
-import { safeParseDate } from '@/utils/dateUtils'; // Pastikan safeParseDate diimpor
+import { safeParseDate } from '@/utils/unifiedDateUtils'; // Pastikan safeParseDate diimpor
 
 // --- INTERFACE & CONTEXT ---
 interface ActivityContextType {

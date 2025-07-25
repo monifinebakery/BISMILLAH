@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { CircleDollarSign, Package, Calculator, ListChecks } from "lucide-react";
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface Stats {
   revenue: number;

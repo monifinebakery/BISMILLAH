@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingDown } from "lucide-react";
-import { generateListKey } from '@/utils/dashboardUtils';
+import { generateListKey } from '@/utils/keyUtils';
 
 interface Product {
   id: string;

@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { 
   Plus, Package, AlertTriangle, Loader2
 } from 'lucide-react';
-import { BahanBaku, WarehouseContextType } from '../types/warehouse';
-import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { BahanBaku, WarehouseContextType } from '@/components/warehouse/types/warehouse';
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { toast } from 'sonner';
 
 // Static imports for core components
 import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import SelectionControls from '@/components/warehouse/SelectionControls';
 import SearchAndFilters from '@/components/warehouse/SearchAndFilters';
-import WarehouseTable from '@/components/warehouse/WarehouseTable';
+import WarehouseTable from '@/components/warehouse/components/WarehouseTable';
 import TablePagination from '@/components/warehouse/TablePagination';
 
 // Dynamic imports for dialogs

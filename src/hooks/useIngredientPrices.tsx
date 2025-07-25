@@ -1,7 +1,7 @@
 import { RecipeIngredient } from '@/types/recipe';
 import { useToast } from '@/components/ui/use-toast'; // Menggunakan useToast dari shadcn
 // --- PERUBAHAN ---
-import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 
 export const useIngredientPrices = () => {
   // --- MENGGUNAKAN HOOK BARU ---

@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 // 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '../utils/notificationHelpers';
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 
 // 🧮 HPP Calculation Interface
 interface HPPCalculationResult {

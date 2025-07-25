@@ -33,12 +33,17 @@ const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const RecipesPage = React.lazy(() => import("./pages/Recipes"));
 const WarehousePage = React.lazy(() => import("./pages/Warehouse"));
 const OrdersPage = React.lazy(() => import("./pages/Orders"));
-const FinancialReportPage = React.lazy(() => import("./pages/FinancialReport"));
+const FinancialReportPage = React.lazy(() => import("@/components/financial/FinancialReportPage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const AssetManagement = React.lazy(() => import("./pages/AssetManagement"));
 const Settings = React.lazy(() => import("./pages/Settings"));
 const SupplierManagement = React.lazy(() => import("./pages/SupplierManagement"));
-const PurchaseManagement = React.lazy(() => import("./pages/PurchaseManagement"));
+
+// ✅ UPDATE: Ganti dengan struktur modular baru
+const PurchaseManagement = React.lazy(() => 
+  import("./components/purchase/components/layout/PurchasePage")
+);
+
 const MenuPage = React.lazy(() => import("./pages/MenuPage"));
 const PaymentSuccessPage = React.lazy(() => import("./pages/PaymentSuccessPage"));
 const InvoicePage = React.lazy(() => import("./pages/InvoicePage"));
@@ -47,10 +52,31 @@ const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage
 // Inisialisasi Query Client
 const queryClient = new QueryClient();
 
-// Komponen Loading State
+// Komponen Loading State dengan design yang lebih baik untuk purchase
 const PageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-sm text-muted-foreground">Memuat halaman...</p>
+        </div>
+    </div>
+);
+
+// Enhanced loading khusus untuk Purchase Management
+const PurchasePageLoader = () => (
+    <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-orange-100 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+            <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Memuat Manajemen Pembelian</p>
+                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data...</p>
+            </div>
+        </div>
     </div>
 );
 
@@ -71,6 +97,42 @@ const RouteErrorFallback = () => {
             >
                 Muat Ulang
             </button>
+        </div>
+    );
+};
+
+// Specialized error boundary untuk Purchase Management
+const PurchaseErrorFallback = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="container mx-auto p-4 sm:p-8">
+            <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                <div className="bg-red-100 rounded-full p-6 mb-4">
+                    <svg className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                    Gagal Memuat Manajemen Pembelian
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-md">
+                    Terjadi kesalahan saat memuat halaman pembelian. Pastikan koneksi internet stabil dan coba lagi.
+                </p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg"
+                    >
+                        Muat Ulang
+                    </button>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg"
+                    >
+                        Kembali ke Dashboard
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
@@ -172,7 +234,19 @@ const App = () => {
                                 <Route path="resep" element={<RecipesPage />} />
                                 <Route path="gudang" element={<WarehousePage />} />
                                 <Route path="supplier" element={<SupplierManagement />} />
-                                <Route path="pembelian" element={<PurchaseManagement />} />
+                                
+                                {/* ✅ UPDATE: Purchase Management dengan enhanced loading dan error handling */}
+                                <Route 
+                                    path="pembelian" 
+                                    element={
+                                        <Suspense fallback={<PurchasePageLoader />}>
+                                            <ErrorBoundary fallback={<PurchaseErrorFallback />}>
+                                                <PurchaseManagement />
+                                            </ErrorBoundary>
+                                        </Suspense>
+                                    } 
+                                />
+                                
                                 <Route path="pesanan" element={<OrdersPage />} />
                                 <Route path="invoice" element={<InvoicePage />} />
                                 <Route path="laporan" element={<FinancialReportPage />} />

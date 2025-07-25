@@ -3,8 +3,9 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Package, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from '@/utils/currencyUtils';
-import { calculatePagination, generateListKey } from '@/utils/dashboardUtils';
+import { formatCurrency } from '@/utils/formatUtils';
+import { generateListKey } from '@/utils/keyUtils';
+import { calculatePagination } from '@/utils/promoUtils';
 
 interface Product {
   id: string;

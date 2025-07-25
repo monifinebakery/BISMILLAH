@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Warehouse } from "lucide-react";
-import { generateListKey } from '@/utils/dashboardUtils';
+import { generateListKey } from '@/utils/keyUtils';
 
 interface StockItem {
   id: string;

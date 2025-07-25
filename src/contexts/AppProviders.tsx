@@ -10,15 +10,15 @@ import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext'; // 🔧 FIXED: Local import path
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
-import { FinancialProvider } from './FinancialContext';
+import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 import { PromoProvider } from './PromoContext';
-import { BahanBakuProvider } from './BahanBakuContext';
+import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
-import { PurchaseProvider } from './PurchaseContext';
-import { OrderProvider } from './OrderContext';
+import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
+import { OrderProvider } from '@/components/orders/context/OrderContext';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 
 /**

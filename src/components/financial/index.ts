@@ -5,6 +5,8 @@
 // MAIN COMPONENTS (Lazy-loaded)
 // ===========================================
 
+import FinancialCharts from './components/FinancialCharts';
+
 export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';
 
 // Chart components

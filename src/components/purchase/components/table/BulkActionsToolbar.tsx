@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckSquare, X, Trash2, Download, RefreshCw } from 'lucide-react';
-import { usePurchaseTable } from '../../contexts/PurchaseTableContext';
+import { usePurchaseTable } from '@/components/purchase/context/PurchaseTableContext';
 import { useBulkOperations } from '../../hooks/useBulkOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { formatCurrency } from '@/utils/formatUtils';

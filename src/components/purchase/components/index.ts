@@ -4,7 +4,7 @@
 export { default as PurchaseHeader } from '../layout/PurchaseHeader';
 
 // Main page component - lazy loaded
-export const PurchasePage = () => import('./layout/PurchasePage').then(m => ({ default: m.default }));
+export const PurchasePage = () => import('../layout/PurchasePage').then(m => ({ default: m.default }));
 
 // Table components - lazy loaded
 export const PurchaseTableComponents = {

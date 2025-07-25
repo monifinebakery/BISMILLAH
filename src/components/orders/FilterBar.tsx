@@ -1,5 +1,5 @@
-// src/components/orders/components/FilterBar.tsx - FIXED VERSION
-import React, { useMemo } from 'react';
+// src/components/orders/components/FilterBar.tsx - UNIFIED VERSION
+import React, { useMemo, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,16 +28,93 @@ const FilterBar: React.FC<FilterBarProps> = ({
 }) => {
   const { searchTerm, statusFilter, dateRange } = filters;
 
-  // 🔧 FIX: Memoize date range formatting with safe error handling
+  // 🔧 FIX: Safe handlers with proper error handling
+  const handleSearchChange = useCallback((value: string) => {
+    try {
+      if (typeof onFiltersChange !== 'function') {
+        console.error('FilterBar: onFiltersChange is not a function');
+        return;
+      }
+      
+      onFiltersChange({ searchTerm: value });
+      
+      if (onPageChange && typeof onPageChange === 'function') {
+        onPageChange(1);
+      }
+    } catch (error) {
+      console.error('FilterBar: Error in search change:', error);
+    }
+  }, [onFiltersChange, onPageChange]);
+
+  const handleStatusChange = useCallback((value: string) => {
+    try {
+      if (typeof onFiltersChange !== 'function') {
+        console.error('FilterBar: onFiltersChange is not a function');
+        return;
+      }
+      
+      onFiltersChange({ statusFilter: value });
+      
+      if (onPageChange && typeof onPageChange === 'function') {
+        onPageChange(1);
+      }
+    } catch (error) {
+      console.error('FilterBar: Error in status change:', error);
+    }
+  }, [onFiltersChange, onPageChange]);
+
+  // 🔧 FIX: Enhanced date range change handler
+  const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
+    try {
+      console.log('FilterBar: Date range change:', range);
+      
+      if (typeof onFiltersChange !== 'function') {
+        console.error('FilterBar: onFiltersChange is not a function');
+        return;
+      }
+      
+      onFiltersChange({ dateRange: range });
+      
+      if (onPageChange && typeof onPageChange === 'function') {
+        onPageChange(1);
+      }
+    } catch (error) {
+      console.error('FilterBar: Error in date range change:', error);
+    }
+  }, [onFiltersChange, onPageChange]);
+
+  const handleClearAll = useCallback(() => {
+    try {
+      if (onClearFilters && typeof onClearFilters === 'function') {
+        onClearFilters();
+      } else if (onFiltersChange && typeof onFiltersChange === 'function') {
+        onFiltersChange({
+          searchTerm: '',
+          statusFilter: 'all',
+          dateRange: undefined
+        });
+      }
+      
+      if (onPageChange && typeof onPageChange === 'function') {
+        onPageChange(1);
+      }
+    } catch (error) {
+      console.error('FilterBar: Error clearing filters:', error);
+    }
+  }, [onClearFilters, onFiltersChange, onPageChange]);
+
+  // 🔧 FIX: Memoize date range formatting with enhanced safety
   const safeDateRangeText = useMemo(() => {
     if (!dateRange) return null;
     
     try {
-      // Use the fixed formatDateRange function
       const formatted = formatDateRange(dateRange);
       
-      // Additional safety check - don't show error messages in UI
-      if (formatted.includes('tidak valid') || formatted.includes('Error')) {
+      // Enhanced safety checks
+      if (!formatted || 
+          formatted.includes('tidak valid') || 
+          formatted.includes('Error') ||
+          formatted === 'Pilih rentang tanggal') {
         return 'Rentang tanggal';
       }
       
@@ -48,9 +125,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
   }, [dateRange]);
 
-  // 🔧 FIX: Safe status label lookup
+  // 🔧 FIX: Safe status label lookup with fallback
   const selectedStatusLabel = useMemo(() => {
-    if (statusFilter === 'all') return null;
+    if (!statusFilter || statusFilter === 'all') return null;
     
     try {
       const statusOption = orderStatusList.find(s => s.key === statusFilter);
@@ -60,58 +137,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
       return statusFilter;
     }
   }, [statusFilter]);
-
-  const handleSearchChange = (value: string) => {
-    try {
-      onFiltersChange({ searchTerm: value });
-      if (onPageChange) {
-        onPageChange(1);
-      }
-    } catch (error) {
-      console.error('FilterBar: Search change error:', error);
-    }
-  };
-
-  const handleStatusChange = (value: string) => {
-    try {
-      onFiltersChange({ statusFilter: value });
-      if (onPageChange) {
-        onPageChange(1);
-      }
-    } catch (error) {
-      console.error('FilterBar: Status change error:', error);
-    }
-  };
-
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    try {
-      onFiltersChange({ dateRange: range });
-      if (onPageChange) {
-        onPageChange(1);
-      }
-    } catch (error) {
-      console.error('FilterBar: Date range change error:', error);
-    }
-  };
-
-  const handleClearAll = () => {
-    try {
-      if (onClearFilters) {
-        onClearFilters();
-      } else {
-        onFiltersChange({
-          searchTerm: '',
-          statusFilter: 'all',
-          dateRange: undefined
-        });
-      }
-      if (onPageChange) {
-        onPageChange(1);
-      }
-    } catch (error) {
-      console.error('FilterBar: Clear filters error:', error);
-    }
-  };
 
   // 🔧 FIX: Safe active filters check
   const hasActiveFilters = useMemo(() => {
@@ -141,24 +166,28 @@ const FilterBar: React.FC<FilterBarProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Cari nomor pesanan atau nama pelanggan..."
-              value={searchTerm || ''} // 🔧 FIX: Handle undefined searchTerm
+              value={searchTerm || ''}
               onChange={(e) => handleSearchChange(e.target.value)}
               disabled={disabled}
               className="pl-10 h-11 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 transition-colors"
             />
           </div>
 
-          {/* Date Range Picker */}
+          {/* Date Range Picker - 🔧 FIXED: Use unified interface */}
           <DateRangePicker
             dateRange={dateRange}
             onDateRangeChange={handleDateRangeChange}
             onPageChange={onPageChange}
+            placeholder="Pilih rentang tanggal"
+            disabled={disabled}
+            showPresets={true}
+            autoClose={false}
             className={disabled ? 'opacity-50 pointer-events-none' : ''}
           />
 
           {/* Status Filter */}
           <Select
-            value={statusFilter || 'all'} // 🔧 FIX: Handle undefined statusFilter
+            value={statusFilter || 'all'}
             onValueChange={handleStatusChange}
             disabled={disabled}
           >
@@ -181,33 +210,34 @@ const FilterBar: React.FC<FilterBarProps> = ({
           </Select>
         </div>
         
-        {/* Filter Summary - 🔧 FIXED: Safe rendering */}
+        {/* Filter Summary - 🔧 FIXED: Enhanced safety */}
         {hasActiveFilters && (
           <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-medium text-orange-800">Filter aktif:</span>
               
-              {/* 🔧 FIX: Safe search term display */}
+              {/* Search Term Badge */}
               {searchTerm && searchTerm.trim() && (
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                   Pencarian: "{searchTerm.trim()}"
                 </Badge>
               )}
               
-              {/* 🔧 FIX: Safe status display */}
+              {/* Status Badge */}
               {statusFilter && statusFilter !== 'all' && selectedStatusLabel && (
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                   Status: {selectedStatusLabel}
                 </Badge>
               )}
               
-              {/* 🔧 FIX: Safe date range display - This was the main issue! */}
+              {/* Date Range Badge - 🔧 FIXED: Safe rendering */}
               {dateRange && safeDateRangeText && (
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                   Tanggal: {safeDateRangeText}
                 </Badge>
               )}
               
+              {/* Clear All Button */}
               <Button
                 variant="ghost"
                 size="sm"

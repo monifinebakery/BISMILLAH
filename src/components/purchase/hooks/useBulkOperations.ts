@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Purchase } from '@/types/supplier';
-import { PurchaseService } from './services/purchaseService';
+import { PurchaseService } from '../services/purchaseService';
 import { validateBulkDelete } from '../services/purchaseValidators';
 import { getSupplierName } from '../services/purchaseTransformers';
 import { toast } from 'sonner';

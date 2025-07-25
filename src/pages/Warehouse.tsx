@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import SelectionControls from '@/components/warehouse/SelectionControls';
 import SearchAndFilters from '@/components/warehouse/SearchAndFilters';
-import WarehouseTable from '@/components/warehouse/WarehouseTable';
+import WarehouseTable from '@/components/warehouse/components/WarehouseTable';
 import TablePagination from '@/components/warehouse/TablePagination';
 
 // Dynamic imports for dialogs

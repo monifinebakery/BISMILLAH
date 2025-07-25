@@ -80,23 +80,6 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 };
 
-// Context error component
-export const ContextError: React.FC = () => {
-  return (
-    <div className="container mx-auto p-4 sm:p-6">
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
-          <p className="text-gray-600">
-            Order Context tidak tersedia. Pastikan komponen ini dibungkus dengan OrderProvider.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Full page loading component
 export const PageLoading: React.FC<{ message?: string }> = ({ 
   message = 'Memuat data pesanan...' 

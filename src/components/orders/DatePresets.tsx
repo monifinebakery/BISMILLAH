@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DateRange } from '../types';
-import { getDateRangePreset } from '../utils';
+import { getDateRangePreset } from '@/utils/dashboardUtils';
 import { DATE_RANGE_PRESETS } from '../constants/orderConstants';
 
 interface DatePresetsProps {

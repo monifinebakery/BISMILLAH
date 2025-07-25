@@ -184,7 +184,7 @@ export type {
   CategoryChartsProps,
   CreateTransactionData,
   UpdateTransactionData
-} from '@/types/financial';
+} from '@/components/financial/types/financial';
 
 // ===========================================
 // LAZY COMPONENT LOADERS (for dynamic imports)

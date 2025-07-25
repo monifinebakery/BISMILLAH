@@ -49,7 +49,7 @@ const DashboardHeader: React.FC<Props> = ({
           >
             <DateRangePicker
               dateRange={dateRange}
-              setDateRange={setDateRange}
+              onDateRangeChange={setDateRange}
               isMobile={isMobile}
             />
           </Suspense>

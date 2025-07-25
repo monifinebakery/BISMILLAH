@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
 // --- Impor Hook Konteks ---
-import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/contexts/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";

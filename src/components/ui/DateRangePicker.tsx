@@ -19,8 +19,8 @@ import {
 } from '@/utils/unifiedDateUtils';
 
 interface DateRangePickerProps {
-  dateRange: DateRange | undefined;
-  onDateRangeChange: (range: DateRange | undefined) => void;
+  dateRange?: DateRange | undefined;
+  onDateRangeChange?: (range: DateRange | undefined) => void;
   onPageChange?: (page: number) => void;
   placeholder?: string;
   className?: string;
@@ -202,7 +202,9 @@ const convertFromCalendarRange = (calendarRange: any): DateRange | undefined => 
 // Main Component
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
   dateRange,
-  onDateRangeChange,
+  onDateRangeChange = () => {
+    console.warn('🔧 DATERANGEPICKER: onDateRangeChange not provided - using default no-op function');
+  },
   onPageChange,
   placeholder = "Pilih rentang tanggal",
   className = "",
@@ -211,23 +213,45 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // 🔧 FIX: Extra validation layer for props
+  React.useEffect(() => {
+    if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
+      console.error('🔧 DATERANGEPICKER: Critical - onDateRangeChange prop is missing or not a function!');
+      console.error('🔧 DATERANGEPICKER: Received onDateRangeChange:', onDateRangeChange);
+      console.error('🔧 DATERANGEPICKER: Type:', typeof onDateRangeChange);
+    }
+  }, [onDateRangeChange]);
+
   // 🔧 FIX: Safe Calendar range handler with comprehensive validation
   const handleCalendarRangeChange = useCallback((newRange: any) => {
     try {
       console.log('🔧 CALENDAR: Received range from Calendar component:', newRange);
       console.log('🔧 CALENDAR: onDateRangeChange type:', typeof onDateRangeChange);
+      console.log('🔧 CALENDAR: onDateRangeChange value:', onDateRangeChange);
       
-      // Layer 1: Validate callback function
-      if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
+      // Layer 1: Validate callback function exists and is callable
+      if (!onDateRangeChange) {
+        console.error('🔧 CALENDAR: onDateRangeChange is null/undefined!');
+        console.error('🔧 CALENDAR: This means the parent component did not pass onDateRangeChange prop');
+        return;
+      }
+      
+      if (typeof onDateRangeChange !== 'function') {
         console.error('🔧 CALENDAR: onDateRangeChange is not a function:', onDateRangeChange);
         console.error('🔧 CALENDAR: Received type:', typeof onDateRangeChange);
+        console.error('🔧 CALENDAR: This means the parent component passed wrong prop type');
         return;
       }
 
       // Layer 2: Handle undefined/null range
       if (!newRange) {
         console.log('🔧 CALENDAR: Clearing date range (received null/undefined)');
-        onDateRangeChange(undefined);
+        try {
+          onDateRangeChange(undefined);
+          console.log('🔧 CALENDAR: Successfully cleared range');
+        } catch (callError) {
+          console.error('🔧 CALENDAR: Error calling onDateRangeChange with undefined:', callError);
+        }
         return;
       }
 
@@ -237,20 +261,35 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       
       if (!convertedRange) {
         console.warn('🔧 CALENDAR: Could not convert Calendar range, clearing');
-        onDateRangeChange(undefined);
+        try {
+          onDateRangeChange(undefined);
+          console.log('🔧 CALENDAR: Successfully cleared range after conversion failure');
+        } catch (callError) {
+          console.error('🔧 CALENDAR: Error calling onDateRangeChange after conversion failure:', callError);
+        }
         return;
       }
 
       // Layer 4: Additional validation using your utilities
       if (!isValidDate(convertedRange.from) || !isValidDate(convertedRange.to)) {
         console.error('🔧 CALENDAR: Converted range failed validation:', convertedRange);
-        onDateRangeChange(undefined);
+        try {
+          onDateRangeChange(undefined);
+          console.log('🔧 CALENDAR: Successfully cleared range after validation failure');
+        } catch (callError) {
+          console.error('🔧 CALENDAR: Error calling onDateRangeChange after validation failure:', callError);
+        }
         return;
       }
 
       // Layer 5: Apply the range
-      onDateRangeChange(convertedRange);
-      console.log('🔧 CALENDAR: Successfully applied converted range');
+      try {
+        onDateRangeChange(convertedRange);
+        console.log('🔧 CALENDAR: Successfully applied converted range');
+      } catch (callError) {
+        console.error('🔧 CALENDAR: Error calling onDateRangeChange with converted range:', callError);
+        return;
+      }
       
       // Layer 6: Reset page if callback provided
       if (onPageChange && typeof onPageChange === 'function') {
@@ -280,6 +319,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         if (onDateRangeChange && typeof onDateRangeChange === 'function') {
           onDateRangeChange(undefined);
           console.log('🔧 CALENDAR: Emergency fallback completed');
+        } else {
+          console.error('🔧 CALENDAR: Cannot perform emergency fallback - onDateRangeChange invalid');
         }
       } catch (fallbackError) {
         console.error('🔧 CALENDAR: Emergency fallback also failed:', fallbackError);
@@ -291,8 +332,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const handlePresetDateRange = useCallback((range: DateRange | undefined) => {
     try {
       console.log('🔧 PRESET_HANDLER: Received preset range:', range);
+      console.log('🔧 PRESET_HANDLER: onDateRangeChange type:', typeof onDateRangeChange);
+      console.log('🔧 PRESET_HANDLER: onDateRangeChange value:', onDateRangeChange);
       
-      if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
+      if (!onDateRangeChange) {
+        console.error('🔧 PRESET_HANDLER: onDateRangeChange is null/undefined!');
+        return;
+      }
+      
+      if (typeof onDateRangeChange !== 'function') {
         console.error('🔧 PRESET_HANDLER: onDateRangeChange is not a function');
         return;
       }
@@ -300,15 +348,30 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       // Validate preset range using your utilities
       if (range && (!isValidDate(range.from) || !isValidDate(range.to))) {
         console.error('🔧 PRESET_HANDLER: Invalid preset range:', range);
-        onDateRangeChange(undefined);
+        try {
+          onDateRangeChange(undefined);
+          console.log('🔧 PRESET_HANDLER: Cleared invalid range');
+        } catch (callError) {
+          console.error('🔧 PRESET_HANDLER: Error clearing invalid range:', callError);
+        }
         return;
       }
 
-      onDateRangeChange(range);
-      console.log('🔧 PRESET_HANDLER: Successfully applied preset range');
+      try {
+        onDateRangeChange(range);
+        console.log('🔧 PRESET_HANDLER: Successfully applied preset range');
+      } catch (callError) {
+        console.error('🔧 PRESET_HANDLER: Error calling onDateRangeChange:', callError);
+        return;
+      }
       
       if (onPageChange && typeof onPageChange === 'function') {
-        onPageChange(1);
+        try {
+          onPageChange(1);
+          console.log('🔧 PRESET_HANDLER: Reset page to 1');
+        } catch (pageError) {
+          console.warn('🔧 PRESET_HANDLER: Could not reset page:', pageError);
+        }
       }
       
     } catch (error) {
@@ -318,18 +381,37 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const handleReset = useCallback(() => {
     try {
-      if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
+      console.log('🔧 RESET: Starting reset process');
+      console.log('🔧 RESET: onDateRangeChange type:', typeof onDateRangeChange);
+      console.log('🔧 RESET: onDateRangeChange value:', onDateRangeChange);
+      
+      if (!onDateRangeChange) {
+        console.error('🔧 RESET: onDateRangeChange is null/undefined!');
+        return;
+      }
+      
+      if (typeof onDateRangeChange !== 'function') {
         console.error('🔧 RESET: onDateRangeChange is not a function');
         return;
       }
       
-      onDateRangeChange(undefined);
-      
-      if (onPageChange && typeof onPageChange === 'function') {
-        onPageChange(1);
+      try {
+        onDateRangeChange(undefined);
+        console.log('🔧 RESET: Successfully reset date range');
+      } catch (callError) {
+        console.error('🔧 RESET: Error calling onDateRangeChange:', callError);
+        return;
       }
       
-      console.log('🔧 RESET: Successfully reset date range');
+      if (onPageChange && typeof onPageChange === 'function') {
+        try {
+          onPageChange(1);
+          console.log('🔧 RESET: Reset page to 1');
+        } catch (pageError) {
+          console.warn('🔧 RESET: Could not reset page:', pageError);
+        }
+      }
+      
     } catch (error) {
       console.error('🔧 RESET: Error resetting:', error);
     }

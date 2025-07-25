@@ -15,8 +15,8 @@ export { default as CategoryCharts } from './components/CategoryCharts';
 export { default as TransactionTable } from './components/TransactionTable';
 
 // Dialog components
-export { default as FinancialTransactionDialog } from '@/components/financial/dialogs/FinancialTransactionDialog';
-export { default as CategoryManagementDialog } from '@/components/financial/dialogs/CategoryManagementDialog';
+export { default as FinancialTransactionDialog } from '@/components/financial/components/dialogs/FinancialTransactionDialog';
+export { default as CategoryManagementDialog } from '@/components/financial/components/dialogs/CategoryManagementDialog';
 
 // ===========================================
 // HOOKS

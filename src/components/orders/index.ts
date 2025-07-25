@@ -10,7 +10,7 @@ export { default as FilterBar } from './components/FilterBar';
 export { default as DateRangePicker } from '@/components/ui/DateRangePicker';
 export { default as DatePresets } from './components/DatePresets';
 export { default as TableControls } from './components/TableControls';
-export { default as PaginationControls } from './PaginationControls';
+export { default as PaginationControls } from './components/PaginationControls';
 
 // Selection and bulk operation components
 export { default as SelectionToolbar } from './SelectionToolbar';

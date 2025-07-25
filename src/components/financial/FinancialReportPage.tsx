@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFinancial } from './contexts/FinancialContext';
-import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from '@/components/financial/utils/financialUtils';
+import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from './utils/financialUtils';
 
 // ===========================================
 // LAZY LOADED COMPONENTS - Code Splitting

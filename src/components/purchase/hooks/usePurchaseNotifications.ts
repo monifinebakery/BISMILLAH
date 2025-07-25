@@ -180,9 +180,11 @@ export const usePurchaseNotifications = (options: UsePurchaseNotificationsOption
   }, [addNotification]);
 
   /**
-   * Create low stock warning notification
+   * Create low stock warning notification (should only be called from inventory context)
    */
   const notifyLowStock = useCallback(async (itemName: string, currentStock: number, minStock: number) => {
+    // Only create low stock notifications from inventory/warehouse context
+    // This should not be called from purchase management
     await addNotification({
       title: '⚠️ Stok Menipis',
       message: `Stok ${itemName} tersisa ${currentStock} unit (minimum: ${minStock}). Pertimbangkan untuk memesan ulang.`,
@@ -190,7 +192,7 @@ export const usePurchaseNotifications = (options: UsePurchaseNotificationsOption
       icon: 'alert-triangle',
       priority: 3,
       related_type: 'inventory',
-      action_url: '/inventory',
+      action_url: '/gudang', // Updated to match your route
       is_read: false,
       is_archived: false
     });

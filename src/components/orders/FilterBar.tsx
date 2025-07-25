@@ -1,4 +1,4 @@
-// src/components/orders/components/FilterBar.tsx - FIXED VERSION
+// src/components/orders/components/FilterBar.tsx - MOBILE FRIENDLY VERSION
 import React, { useMemo, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { OrderFilters, DateRange } from '@/types/order';
 import { orderStatusList } from '@/constants/orderConstants';
 import { formatDateRange } from '@/utils/unifiedDateUtils';
+import { useIsMobile } from '@/hooks/use-mobile';  // ← Import hook yang sudah ada
 import DateRangePicker from '@/components/ui/DateRangePicker';
 
 interface FilterBarProps {
@@ -27,6 +28,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
   disabled = false
 }) => {
   const { searchTerm, statusFilter, dateRange } = filters;
+  
+  // 🔧 FIX: Add mobile detection using your existing hook
+  const isMobile = useIsMobile(); // Uses default 768px breakpoint
 
   // 🔧 FIX: Safe handlers with proper error handling
   const handleSearchChange = useCallback((value: string) => {
@@ -173,13 +177,14 @@ const FilterBar: React.FC<FilterBarProps> = ({
             />
           </div>
 
-          {/* Date Range Picker - 🔧 FIXED: Use the correct handler function */}
+          {/* Date Range Picker - 🔧 FIXED: Now mobile-friendly! */}
           <DateRangePicker
             dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}  // ← FIX: Use handleDateRangeChange instead of setDateRange
+            onDateRangeChange={handleDateRangeChange}
             onPageChange={onPageChange}
             placeholder="Pilih rentang tanggal"
             disabled={disabled}
+            isMobile={isMobile}  // ← ADD: Mobile detection prop
             className={disabled ? 'opacity-50 pointer-events-none' : ''}
           />
 

@@ -14,7 +14,7 @@ import { useAssets } from '@/contexts/AssetContext';
 import { Asset, AssetCategory, AssetCondition } from '@/types/asset';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/dashboardUtils';
+import { formatDateForDisplay, formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { getInputValue } from '@/utils/inputUtils';
 

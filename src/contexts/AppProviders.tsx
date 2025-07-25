@@ -13,7 +13,7 @@ import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/context/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 import { PromoProvider } from './PromoContext';
-import { BahanBakuProvider } from './BahanBakuContext';
+import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';

@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { Order, NewOrder, OrderItem } from '@/types';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateOrderNumber } from '@/utils/formatUtils';
-import { orderStatusList } from '@/constants/orderConstants';
+import { orderStatusList } from '@/components/orders/components/constants/orderConstants';
 
 // Context imports
 import { useRecipe } from '@/contexts/RecipeContext';

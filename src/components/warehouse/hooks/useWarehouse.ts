@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { BahanBaku } from './types/';
+import { BahanBaku } from '../types/';
 
 export interface UseWarehouseResult {
   // Filtering and search

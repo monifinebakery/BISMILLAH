@@ -30,6 +30,17 @@ export {
   default as FinancialHooks
 } from './hooks/useFinancialData';
 
+// Context hooks
+export {
+  useFilteredTransactions,
+  useTransactionOperations,
+  useCategoryData,
+  useRecentTransactions,
+  useTransactionSearch,
+  useBatchOperations,
+  FinancialContextHooks
+} from './hooks/useFinancialContext';
+
 // ===========================================
 // CONSTANTS & CONFIG
 // ===========================================

@@ -1,4 +1,4 @@
-// src/components/orders/OrdersPagination.tsx
+// src/components/orders/components/OrdersPagination.tsx
 // 📄 ORDERS PAGINATION COMPONENT - Pagination controls and info
 
 import React from 'react';
@@ -7,7 +7,52 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { generatePageNumbers } from '@/components/purchase/components/table/PaginationFooter';
+
+// Generate page numbers for pagination display (improved version with ellipsis)
+const generatePageNumbers = (
+  currentPage: number,
+  totalPages: number,
+  maxVisible: number = 5
+): (number | string)[] => {
+  const pages: (number | string)[] = [];
+
+  if (totalPages <= maxVisible) {
+    // Show all pages if total is small
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Complex pagination logic with ellipsis
+    const halfVisible = Math.floor(maxVisible / 2);
+
+    if (currentPage <= halfVisible + 1) {
+      // Show first pages + ... + last
+      for (let i = 1; i <= maxVisible - 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(totalPages);
+    } else if (currentPage >= totalPages - halfVisible) {
+      // Show first + ... + last pages
+      pages.push(1);
+      pages.push('...');
+      for (let i = totalPages - maxVisible + 2; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first + ... + middle + ... + last
+      pages.push(1);
+      pages.push('...');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(totalPages);
+    }
+  }
+
+  return pages;
+};
 
 export interface OrdersPaginationProps {
   // Pagination State
@@ -120,23 +165,41 @@ const PageNumbers: React.FC<{
   if (totalPages <= 1) return null;
   
   return (
-    <div className="flex items-center gap-1">
-      {pageNumbers.map(page => (
-        <Button
-          key={page}
-          onClick={() => onPageChange(page)}
-          disabled={loading}
-          className={cn(
-            "h-9 w-9 text-sm",
-            currentPage === page
-              ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
-              : "hover:bg-gray-100 border-gray-200"
-          )}
-          variant={currentPage === page ? "default" : "outline"}
-        >
-          {page}
-        </Button>
-      ))}
+    <div className="flex items-center gap-1 mx-2">
+      {pageNumbers.map((page, index) => {
+        if (page === '...') {
+          return (
+            <span
+              key={`ellipsis-${index}`}
+              className="px-2 py-1 text-gray-500 text-sm"
+            >
+              ...
+            </span>
+          );
+        }
+
+        const pageNumber = page as number;
+        const isCurrent = pageNumber === currentPage;
+
+        return (
+          <Button
+            key={pageNumber}
+            onClick={() => onPageChange(pageNumber)}
+            disabled={loading}
+            className={cn(
+              "h-9 w-9 text-sm",
+              isCurrent
+                ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
+                : "hover:bg-gray-100"
+            )}
+            variant={isCurrent ? "default" : "ghost"}
+            aria-label={`Go to page ${pageNumber}`}
+            aria-current={isCurrent ? "page" : undefined}
+          >
+            {pageNumber}
+          </Button>
+        );
+      })}
     </div>
   );
 };
@@ -174,7 +237,7 @@ const NavigationControls: React.FC<{
       {/* First Page */}
       {showJumpToFirst && totalPages > 5 && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           className="h-9 w-9 hover:bg-gray-100"
           onClick={onFirstPage}
@@ -187,7 +250,7 @@ const NavigationControls: React.FC<{
       
       {/* Previous Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         className="h-9 w-9 hover:bg-gray-100"
         onClick={onPreviousPage}
@@ -199,7 +262,7 @@ const NavigationControls: React.FC<{
       
       {/* Next Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         className="h-9 w-9 hover:bg-gray-100"
         onClick={onNextPage}
@@ -212,7 +275,7 @@ const NavigationControls: React.FC<{
       {/* Last Page */}
       {showJumpToFirst && totalPages > 5 && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           className="h-9 w-9 hover:bg-gray-100"
           onClick={onLastPage}

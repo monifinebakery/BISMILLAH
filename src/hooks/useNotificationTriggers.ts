@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 // 🔧 FIXED: Separate imports
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { useOrder } from '@/contexts/OrderContext';
+import { useOrder } from '@/components/orders/context/OrderContext';
 import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { usePurchase } from '@/components/purchase/contexts/PurchaseContext';
 

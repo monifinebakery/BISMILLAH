@@ -5,7 +5,7 @@
 // MAIN COMPONENTS (Lazy-loaded)
 // ===========================================
 
-export { default as FinancialReportPage } from '@/FinancialReportPage';
+export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';
 
 // Chart components
 export { default as FinancialCharts } from './components/FinancialCharts';

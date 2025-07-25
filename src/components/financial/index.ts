@@ -90,23 +90,6 @@ export { default as FinancialTransactionDialog } from './dialogs/FinancialTransa
 export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
 
 // ===========================================
-// MAIN COMPONENTS (Lazy-loaded)
-// ===========================================
-
-export { default as FinancialReportPage } from './FinancialReportPage';
-
-// Chart components
-export { default as FinancialCharts } from './components/FinancialCharts';
-export { default as CategoryCharts } from './components/CategoryCharts';
-
-// Table components  
-export { default as TransactionTable } from './components/TransactionTable';
-
-// Dialog components
-export { default as FinancialTransactionDialog } from './dialogs/FinancialTransactionDialog';
-export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
-
-// ===========================================
 // HOOKS
 // ===========================================
 
@@ -221,15 +204,15 @@ export const LazyFinancialComponents = {
 
 export const FinancialComponents = {
   Charts: {
-    FinancialCharts,
-    CategoryCharts
+    FinancialCharts: FinancialChartsComponent,
+    CategoryCharts: CategoryChartsComponent
   },
   Tables: {
-    TransactionTable
+    TransactionTable: TransactionTableComponent
   },
   Dialogs: {
-    FinancialTransactionDialog,
-    CategoryManagementDialog
+    FinancialTransactionDialog: FinancialTransactionDialogComponent,
+    CategoryManagementDialog: CategoryManagementDialogComponent
   }
 };
 

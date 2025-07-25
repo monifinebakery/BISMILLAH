@@ -19,7 +19,7 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { getStatusText } from './constants/orderConstants';
 
 // Dependencies
-import { useAuth } from '@/contextsAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from './ActivityContext';
 import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';

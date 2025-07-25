@@ -1,6 +1,4 @@
-// src/components/orders/components/ErrorBoundary.tsx
-// Error boundary and error components for orders module
-
+// src/components/orders/components/ErrorBoundary.tsx - FIXED VERSION
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -121,68 +119,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 // ===========================================
-// CONTEXT ERROR COMPONENT
-// ===========================================
-
-// export const ContextError: React.FC = () => {
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
-  const handleGoHome = () => {
-    window.location.href = '/';
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6 text-orange-600" />
-          </div>
-          <CardTitle className="text-xl text-gray-900">
-            Context Tidak Tersedia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-gray-600 text-center">
-            Tidak dapat mengakses context pesanan. Pastikan komponen ini 
-            dibungkus dengan OrderProvider yang benar.
-          </p>
-          
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <p className="text-sm text-orange-800">
-              <strong>Penyebab umum:</strong><br/>
-              • OrderProvider belum terpasang<br/>
-              • Context tidak ter-provide dengan benar<br/>
-              • Import path yang salah
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              onClick={handleRetry}
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Muat Ulang
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleGoHome}
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              <Home className="w-4 h-4" />
-              Ke Beranda
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-// ===========================================
 // PAGE LOADING COMPONENT
 // ===========================================
 
@@ -252,12 +188,11 @@ export const DialogLoader: React.FC = () => (
 );
 
 // ===========================================
-// EXPLICIT EXPORTS - Make sure all components are exported
+// EXPORTS
 // ===========================================
 
 export default {
   ErrorBoundary,
-  ContextError,
   PageLoading,
   TableSkeleton,
   CardSkeleton,

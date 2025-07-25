@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { id } from 'date-fns/locale';
 
 // 🔧 FIX: Use exact imports from your existing files
-import { DateRange } from '@/types/order';
+import { DateRange } from '@/components/orders/types/order';
 import { DATE_RANGE_PRESETS } from '@/components/orders/constants/orderConstants';
 import { 
   safeParseDate, 

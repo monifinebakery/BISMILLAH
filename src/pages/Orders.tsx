@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 // Context imports
-import { useOrder } from '@/contexts/OrderContext';
+import { useOrder } from '@/components/orders/context//OrderContext';
 
 // Types
 import { Order, NewOrder, OrderContextType } from '@/types/order';

@@ -156,7 +156,7 @@ export {
   FinancialValidation,
   FinancialFormatting,
   default as FinancialUtils
-} from '@/utils/financialUtils';
+} from '@/components/financial/utils/financialUtils';
 
 // ===========================================
 // TYPES (Re-export)

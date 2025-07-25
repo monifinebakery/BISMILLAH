@@ -1,4 +1,4 @@
-// utils/unifiedDateUtils.ts - UNIFIED DATE SOLUTION
+// utils/unifiedDateUtils.ts - UNIFIED DATE SOLUTION (Clean Version)
 // This replaces dashboardUtils, dateUtils, and all other date implementations
 
 import { 
@@ -35,10 +35,7 @@ export interface DateRangePreset {
  * Ultimate safe date parser - handles all possible inputs
  */
 export const safeParseDate = (date: any): Date | null => {
-  console.log('🔧 UNIFIED: safeParseDate input:', date, typeof date);
-  
   if (!date) {
-    console.log('🔧 UNIFIED: No date provided');
     return null;
   }
   
@@ -46,11 +43,9 @@ export const safeParseDate = (date: any): Date | null => {
     // Handle Date objects
     if (date instanceof Date) {
       if (isNaN(date.getTime())) {
-        console.warn('🔧 UNIFIED: Invalid Date object:', date);
         return null;
       }
       const isDateValid = isValid(date);
-      console.log('🔧 UNIFIED: Date object validation:', isDateValid);
       return isDateValid ? date : null;
     }
     
@@ -64,7 +59,6 @@ export const safeParseDate = (date: any): Date | null => {
           cleanDate === 'undefined' ||
           cleanDate === '0000-00-00' || 
           cleanDate === '0000-00-00T00:00:00.000Z') {
-        console.log('🔧 UNIFIED: Invalid string date:', cleanDate);
         return null;
       }
       
@@ -73,11 +67,10 @@ export const safeParseDate = (date: any): Date | null => {
         try {
           const parsed = parseISO(cleanDate);
           if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {
-            console.log('🔧 UNIFIED: Successfully parsed ISO string:', parsed);
             return parsed;
           }
         } catch (parseISOError) {
-          console.warn('🔧 UNIFIED: parseISO failed:', parseISOError);
+          // Silent fail, try next method
         }
       }
       
@@ -85,11 +78,10 @@ export const safeParseDate = (date: any): Date | null => {
       try {
         const parsed = new Date(cleanDate);
         if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {
-          console.log('🔧 UNIFIED: Successfully parsed with new Date():', parsed);
           return parsed;
         }
       } catch (newDateError) {
-        console.warn('🔧 UNIFIED: new Date() failed:', newDateError);
+        // Silent fail
       }
     }
     
@@ -98,19 +90,17 @@ export const safeParseDate = (date: any): Date | null => {
       try {
         const parsed = new Date(date);
         if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {
-          console.log('🔧 UNIFIED: Successfully parsed timestamp:', parsed);
           return parsed;
         }
       } catch (timestampError) {
-        console.warn('🔧 UNIFIED: Timestamp parsing failed:', timestampError);
+        // Silent fail
       }
     }
     
-    console.warn('🔧 UNIFIED: Unable to parse date:', date);
     return null;
     
   } catch (error) {
-    console.error('🔧 UNIFIED: Critical error in safeParseDate:', error, 'for input:', date);
+    console.error('Critical error in safeParseDate:', error);
     return null;
   }
 };
@@ -119,10 +109,7 @@ export const safeParseDate = (date: any): Date | null => {
  * Comprehensive date validation
  */
 export const isValidDate = (value: any): value is Date => {
-  console.log('🔧 UNIFIED: isValidDate input:', value, typeof value);
-  
   if (!value) {
-    console.log('🔧 UNIFIED: No value for validation');
     return false;
   }
   
@@ -130,17 +117,14 @@ export const isValidDate = (value: any): value is Date => {
     // If it's already a Date object, validate directly
     if (value instanceof Date) {
       const valid = isValid(value) && !isNaN(value.getTime()) && value.getTime() > 0;
-      console.log('🔧 UNIFIED: Date object validation result:', valid);
       return valid;
     }
     
     // Otherwise, try to parse it first
     const date = safeParseDate(value);
     const valid = date !== null && isValid(date) && !isNaN(date.getTime());
-    console.log('🔧 UNIFIED: Parsed date validation result:', valid);
     return valid;
   } catch (error) {
-    console.warn('🔧 UNIFIED: Date validation error:', error, 'for value:', value);
     return false;
   }
 };
@@ -152,15 +136,13 @@ export const toSafeISOString = (dateValue: Date | string | null | undefined): st
   try {
     const dateObj = safeParseDate(dateValue);
     if (!dateObj || !isValidDate(dateObj)) {
-      console.warn('🔧 UNIFIED: Cannot convert to ISO - invalid date:', dateValue);
       return null;
     }
     
     const isoString = format(dateObj, 'yyyy-MM-dd');
-    console.log('🔧 UNIFIED: Converted to ISO string:', isoString);
     return isoString;
   } catch (error) {
-    console.error('🔧 UNIFIED: ISO conversion error:', error, 'for date:', dateValue);
+    console.error('ISO conversion error:', error);
     return null;
   }
 };
@@ -174,15 +156,12 @@ export const formatDateForDisplay = (date: Date | string | null | undefined): st
   try {
     const dateObj = safeParseDate(date);
     if (!dateObj || !isValidDate(dateObj)) {
-      console.log('🔧 UNIFIED: Cannot format for display - invalid date:', date);
       return '-';
     }
     
     const formatted = format(dateObj, 'd MMM yyyy', { locale: id });
-    console.log('🔧 UNIFIED: Formatted for display:', formatted);
     return formatted;
   } catch (error) {
-    console.warn('🔧 UNIFIED: Display formatting error:', error, 'for date:', date);
     return '-';
   }
 };
@@ -192,7 +171,6 @@ export const formatDateForDisplay = (date: Date | string | null | undefined): st
  */
 export const formatDateTime = (date: any): string => {
   if (!date) {
-    console.log('🔧 UNIFIED: No date for DateTime formatting');
     return 'Waktu tidak valid';
   }
   
@@ -200,7 +178,6 @@ export const formatDateTime = (date: any): string => {
     const dateObj = safeParseDate(date);
     
     if (!dateObj || !isValidDate(dateObj)) {
-      console.log('🔧 UNIFIED: Invalid date for DateTime formatting:', date);
       return 'Waktu tidak valid';
     }
     
@@ -212,10 +189,8 @@ export const formatDateTime = (date: any): string => {
       minute: '2-digit',
     }).format(dateObj);
     
-    console.log('🔧 UNIFIED: DateTime formatted:', formatted);
     return formatted;
   } catch (error) {
-    console.warn('🔧 UNIFIED: DateTime formatting error:', error, 'for date:', date);
     return 'Waktu tidak valid';
   }
 };
@@ -224,22 +199,17 @@ export const formatDateTime = (date: any): string => {
  * Format date range for UI display
  */
 export const formatDateRange = (dateRange: DateRange | undefined): string => {
-  console.log('🔧 UNIFIED: formatDateRange called with:', dateRange);
-  
   try {
     if (!dateRange) {
-      console.log('🔧 UNIFIED: No dateRange provided');
       return "Pilih rentang tanggal";
     }
 
     if (!dateRange.from) {
-      console.log('🔧 UNIFIED: No from date in range');
       return "Pilih rentang tanggal";
     }
     
     const fromDate = safeParseDate(dateRange.from);
     if (!fromDate || !isValidDate(fromDate)) {
-      console.warn('🔧 UNIFIED: Invalid from date:', dateRange.from);
       return "Tanggal mulai tidak valid";
     }
     
@@ -247,17 +217,14 @@ export const formatDateRange = (dateRange: DateRange | undefined): string => {
     if (!dateRange.to) {
       try {
         const formatted = format(fromDate, "d MMMM yyyy", { locale: id });
-        console.log('🔧 UNIFIED: Single date formatted:', formatted);
         return formatted;
       } catch (formatError) {
-        console.error('🔧 UNIFIED: Single date format error:', formatError);
         return fromDate.toLocaleDateString('id-ID');
       }
     }
     
     const toDate = safeParseDate(dateRange.to);
     if (!toDate || !isValidDate(toDate)) {
-      console.warn('🔧 UNIFIED: Invalid to date, using single date format');
       try {
         return format(fromDate, "d MMMM yyyy", { locale: id });
       } catch (formatError) {
@@ -272,30 +239,25 @@ export const formatDateRange = (dateRange: DateRange | undefined): string => {
       
       if (fromStr === toStr) {
         const formatted = format(fromDate, "d MMMM yyyy", { locale: id });
-        console.log('🔧 UNIFIED: Same date formatted:', formatted);
         return formatted;
       }
       
       const rangeFormatted = `${format(fromDate, "d MMM", { locale: id })} - ${format(toDate, "d MMM yyyy", { locale: id })}`;
-      console.log('🔧 UNIFIED: Range formatted:', rangeFormatted);
       return rangeFormatted;
       
     } catch (formatError) {
-      console.error('🔧 UNIFIED: Range format error:', formatError);
-      
       // Ultra-safe fallback
       try {
         const fromNative = fromDate.toLocaleDateString('id-ID');
         const toNative = toDate.toLocaleDateString('id-ID');
         return fromNative === toNative ? fromNative : `${fromNative} - ${toNative}`;
       } catch (nativeError) {
-        console.error('🔧 UNIFIED: Native format also failed:', nativeError);
         return "Error formatting tanggal";
       }
     }
     
   } catch (error) {
-    console.error('🔧 UNIFIED: Critical error in formatDateRange:', error, 'for range:', dateRange);
+    console.error('Critical error in formatDateRange:', error);
     return "Error: Tanggal tidak valid";
   }
 };
@@ -307,15 +269,12 @@ export const formatDateToYYYYMMDD = (date: Date | string | null | undefined): st
   try {
     const dateObj = safeParseDate(date);
     if (!dateObj || !isValidDate(dateObj)) {
-      console.log('🔧 UNIFIED: Cannot format to YYYY-MM-DD - invalid date:', date);
       return '';
     }
     
     const formatted = format(dateObj, 'yyyy-MM-dd');
-    console.log('🔧 UNIFIED: Formatted to YYYY-MM-DD:', formatted);
     return formatted;
   } catch (error) {
-    console.warn('🔧 UNIFIED: YYYY-MM-DD formatting error:', error, 'for date:', date);
     return '';
   }
 };
@@ -326,12 +285,10 @@ export const formatDateToYYYYMMDD = (date: Date | string | null | undefined): st
  * Generate date range preset by key
  */
 export const getDateRangePreset = (key: string): { from: Date, to: Date } => {
-  console.log('🔧 UNIFIED: getDateRangePreset called with key:', key);
-  
   const today = new Date();
   
   if (!isValidDate(today)) {
-    console.error('🔧 UNIFIED: System date is invalid!');
+    console.error('System date is invalid!');
     const fallbackDate = new Date('2024-01-01');
     return { from: fallbackDate, to: fallbackDate };
   }
@@ -361,11 +318,10 @@ export const getDateRangePreset = (key: string): { from: Date, to: Date } => {
       }
       
       default:
-        console.warn('🔧 UNIFIED: Unknown preset key:', key, 'using last30days');
         return { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
     }
   } catch (error) {
-    console.error('🔧 UNIFIED: Error creating preset:', error, 'for key:', key);
+    console.error('Error creating preset:', error);
     return { from: startOfDay(today), to: endOfDay(today) };
   }
 };
@@ -385,7 +341,7 @@ export const getDatePresets = (): DateRangePreset[] => {
           range: getDateRangePreset(key)
         };
       } catch (error) {
-        console.error('🔧 UNIFIED: Error generating preset:', key, error);
+        console.error('Error generating preset:', key, error);
         return {
           label: `Error - ${labels[index]}`,
           range: getDateRangePreset('today')
@@ -393,7 +349,7 @@ export const getDatePresets = (): DateRangePreset[] => {
       }
     });
   } catch (error) {
-    console.error('🔧 UNIFIED: Error generating date presets:', error);
+    console.error('Error generating date presets:', error);
     return [{
       label: "Hari Ini",
       range: getDateRangePreset('today')
@@ -407,12 +363,11 @@ export const getDatePresets = (): DateRangePreset[] => {
 export const getDatePresetByKey = (key: string): { from: Date; to: Date } => {
   try {
     if (!key || typeof key !== 'string') {
-      console.warn('🔧 UNIFIED: Invalid preset key:', key, 'using today');
       return getDateRangePreset('today');
     }
     return getDateRangePreset(key);
   } catch (error) {
-    console.error('🔧 UNIFIED: Error getting preset:', error, 'for key:', key);
+    console.error('Error getting preset:', error);
     return getDateRangePreset('today');
   }
 };
@@ -433,20 +388,16 @@ export const isDateInRange = (
     const rangeEnd = safeParseDate(endDate);
     
     if (!targetDate || !rangeStart || !rangeEnd) {
-      console.log('🔧 UNIFIED: Invalid dates for range check:', { targetDate, rangeStart, rangeEnd });
       return false;
     }
     
     if (!isValidDate(targetDate) || !isValidDate(rangeStart) || !isValidDate(rangeEnd)) {
-      console.log('🔧 UNIFIED: Invalid date validation for range check');
       return false;
     }
     
     const result = targetDate >= rangeStart && targetDate <= rangeEnd;
-    console.log('🔧 UNIFIED: Date range check result:', result);
     return result;
   } catch (error) {
-    console.warn('🔧 UNIFIED: Date range check error:', error);
     return false;
   }
 };
@@ -463,16 +414,13 @@ export const getDaysBetween = (
     const end = safeParseDate(endDate);
     
     if (!start || !end || !isValidDate(start) || !isValidDate(end)) {
-      console.log('🔧 UNIFIED: Invalid dates for days calculation');
       return 0;
     }
     
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    console.log('🔧 UNIFIED: Days between calculation:', days);
     return days;
   } catch (error) {
-    console.warn('🔧 UNIFIED: Days calculation error:', error);
     return 0;
   }
 };
@@ -484,10 +432,8 @@ export const getStartOfDay = (dateObj: Date | string | null | undefined): Date |
   try {
     const parsed = safeParseDate(dateObj);
     const result = parsed && isValidDate(parsed) ? startOfDay(parsed) : null;
-    console.log('🔧 UNIFIED: Start of day:', result);
     return result;
   } catch (error) {
-    console.warn('🔧 UNIFIED: Start of day error:', error);
     return null;
   }
 };
@@ -499,10 +445,8 @@ export const getEndOfDay = (dateObj: Date | string | null | undefined): Date | n
   try {
     const parsed = safeParseDate(dateObj);
     const result = parsed && isValidDate(parsed) ? endOfDay(parsed) : null;
-    console.log('🔧 UNIFIED: End of day:', result);
     return result;
   } catch (error) {
-    console.warn('🔧 UNIFIED: End of day error:', error);
     return null;
   }
 };
@@ -514,7 +458,6 @@ export const getRelativeTimeDescription = (date: Date | string | null | undefine
   try {
     const parsedDate = safeParseDate(date);
     if (!parsedDate || !isValidDate(parsedDate)) {
-      console.log('🔧 UNIFIED: Invalid date for relative time');
       return 'Tanggal tidak valid';
     }
     
@@ -528,7 +471,6 @@ export const getRelativeTimeDescription = (date: Date | string | null | undefine
     
     return formatDateForDisplay(parsedDate);
   } catch (error) {
-    console.warn('🔧 UNIFIED: Relative time error:', error, 'for date:', date);
     return 'Tanggal tidak valid';
   }
 };
@@ -567,9 +509,9 @@ export const DatePresetUtils = {
   getDatePresetByKey
 };
 
-// ==================== GLOBAL EXPOSURE FOR DEBUGGING ====================
+// ==================== GLOBAL EXPOSURE FOR DEBUGGING (Optional) ====================
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).unifiedDateUtils = {
     safeParseDate,
     parseDate,
@@ -583,10 +525,6 @@ if (typeof window !== 'undefined') {
     DateUtils,
     DatePresetUtils
   };
-  
-  console.log('🔧 UNIFIED: Exposed unified date utils to global scope');
-  console.log('🔧 UNIFIED: Testing getDateRangePreset:', typeof getDateRangePreset);
-  console.log('🔧 UNIFIED: Testing formatDateRange:', typeof formatDateRange);
 }
 
 export default DateUtils;

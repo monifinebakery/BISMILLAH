@@ -26,10 +26,10 @@ const CategoryCharts = React.lazy(() => import('./components/CategoryCharts'));
 
 // Transaction Components
 const TransactionTable = React.lazy(() => import('./components/TransactionTable'));
-const FinancialTransactionDialog = React.lazy(() => import('@/components/financial/components/dialogs/FinancialTransactionDialog'));
+const FinancialTransactionDialog = React.lazy(() => import('./dialogs/FinancialTransactionDialog'));
 
 // Management Components
-const CategoryManagementDialog = React.lazy(() => import('@/components/financial/components/dialogs/CategoryManagementDialog'));
+const CategoryManagementDialog = React.lazy(() => import('./dialogs/CategoryManagementDialog'));
 
 // ===========================================
 // LOCAL COMPONENTS - Keep simple ones local

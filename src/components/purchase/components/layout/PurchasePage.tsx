@@ -5,8 +5,8 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { PurchaseTableProvider } from '../../context/PurchaseTableContext';
 import PurchaseHeader from './PurchaseHeader';
-import LoadingPurchaseState from './states/LoadingPurchaseState';
-import { calculatePurchaseStats } from './utils/purchaseHelpers';
+import LoadingPurchaseState from '../states/LoadingPurchaseState';
+import { calculatePurchaseStats } from '../../utils/purchaseHelpers';
 import { toast } from 'sonner';
 
 // Lazy load components

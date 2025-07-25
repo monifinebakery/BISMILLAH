@@ -5,14 +5,14 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner'; // ✅ Added missing import
-import { 
-  filterByDateRange, 
-  calculateTotalIncome, 
+import {
+  filterByDateRange,
+  calculateTotalIncome,
   calculateTotalExpense,
   groupByCategory,
   calculateCategoryTotals,
-  FinancialTransaction 
-} from './utils/financialUtils';
+  FinancialTransaction
+} from '../utils/financialUtils'; // Asumsi ada folder utils
 
 // ===========================================
 // TYPES

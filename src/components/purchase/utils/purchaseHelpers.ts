@@ -1,6 +1,6 @@
 import { Purchase, PurchaseItem } from '@/types/supplier';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 /**
  * Calculate purchase summary statistics

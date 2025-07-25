@@ -1,4 +1,4 @@
-// Fixed PurchasePage.tsx - No blocking validation
+// Fixed PurchasePage.tsx - BulkDeleteDialog moved inside PurchaseTableProvider
 import React, { Suspense, useState, useEffect } from 'react';
 import { usePurchase } from '@/components/purchase/context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
@@ -199,9 +199,14 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ className = '' }) => {
             />
           )}
         </Suspense>
+
+        {/* 🔧 FIXED: BulkDeleteDialog moved inside PurchaseTableProvider */}
+        <Suspense fallback={null}>
+          <BulkDeleteDialog />
+        </Suspense>
       </PurchaseTableProvider>
 
-      {/* Dialogs - 🔧 FIXED: Safe data passing */}
+      {/* 🔧 FIXED: PurchaseDialog stays outside - it doesn't need PurchaseTableProvider */}
       <Suspense fallback={null}>
         <PurchaseDialog
           isOpen={isDialogOpen}
@@ -211,10 +216,6 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ className = '' }) => {
           bahanBaku={bahanBaku.length ? bahanBaku : []} // Safe empty array
           onClose={handleCloseDialog}
         />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <BulkDeleteDialog />
       </Suspense>
 
       {/* 🔧 FIXED: Empty state when no purchases but app is accessible */}

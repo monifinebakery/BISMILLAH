@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from '@/lib/utils';
 import { Order } from '@/types/order';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/dashboardUtils'; 
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils'; 
 import OrderStatusCell from './OrderStatusCell';
 import { TableLoading } from './LoadingStates';
 import EmptyState from './EmptyState';

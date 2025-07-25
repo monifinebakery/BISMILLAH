@@ -1,6 +1,6 @@
 // Fixed PurchasePage.tsx - BulkDeleteDialog moved inside PurchaseTableProvider
 import React, { Suspense, useState, useEffect } from 'react';
-import { usePurchase } from './context/PurchaseContext';
+import { usePurchase } from '../../context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';

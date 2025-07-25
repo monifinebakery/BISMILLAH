@@ -11,7 +11,7 @@ import { useOrder } from '@/components/orders/context/OrderContext';
 import { Order, NewOrder, OrderContextType } from '@/components/orders/types/order';
 
 // Hooks
-import { useOrderFilters, useOrderSelection, useOrderPagination } from '@/hooks';
+import { useOrderFilters, useOrderSelection, useOrderPagination } from '@/components/orders/hooks';
 
 // Core components (always loaded)
 import {

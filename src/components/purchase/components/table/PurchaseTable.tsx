@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { usePurchaseTable } from '@/components/purchase/contexts/PurchaseTableContext';
+import { usePurchaseTable } from '@/components/purchase/context/PurchaseTableContext';
 import { usePurchaseOperations } from '@/components/purchase/hooks/usePurchaseOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
 import PurchaseTableControls from './PurchaseTableControls';

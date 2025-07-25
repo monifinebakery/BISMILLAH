@@ -7,7 +7,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import PurchaseTableControls from './PurchaseTableControls';
 import PurchaseTableRow from './PurchaseTableRow';
 import EmptyPurchaseState from '../states/EmptyPurchaseState';
-import LoadingPurchaseState from '../states/LoadingPurchaseState';
+import LoadingPurchaseState from '@/components/purchase/components/states/LoadingPurchaseState';
 
 // Lazy load pagination component
 const PaginationFooter = React.lazy(() => import('./PaginationFooter'));

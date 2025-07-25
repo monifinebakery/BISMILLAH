@@ -8,7 +8,7 @@ import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
-import { useOrder } from "@/components/orders/contexts/OrderContext";
+import { useOrder } from "@/components/orders/context/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';

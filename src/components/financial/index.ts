@@ -2,15 +2,16 @@
 // Barrel export untuk semua financial modules
 
 // ===========================================
-// MAIN COMPONENTS (Lazy-loaded)
+// IMPORTS FOR COMPONENT GROUPS & RE-EXPORTS
 // ===========================================
 
+// Component imports
 import FinancialReportPageComponent from './FinancialReportPage';
 import FinancialChartsComponent from './components/FinancialCharts';
 import CategoryChartsComponent from './components/CategoryCharts';
 import TransactionTableComponent from './components/TransactionTable';
-import FinancialTransactionDialogComponent from './components/dialogs/FinancialTransactionDialog';
-import CategoryManagementDialogComponent from './components/dialogs/CategoryManagementDialog';
+import FinancialTransactionDialogComponent from './dialogs/FinancialTransactionDialog';
+import CategoryManagementDialogComponent from './dialogs/CategoryManagementDialog';
 
 // Hook imports
 import {
@@ -71,7 +72,11 @@ import {
   default as FinancialUtilsDefault
 } from '@/utils/financialUtils';
 
-export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';
+// ===========================================
+// MAIN COMPONENTS (Individual Exports)
+// ===========================================
+
+export { default as FinancialReportPage } from './FinancialReportPage';
 
 // Chart components
 export { default as FinancialCharts } from './components/FinancialCharts';
@@ -81,8 +86,25 @@ export { default as CategoryCharts } from './components/CategoryCharts';
 export { default as TransactionTable } from './components/TransactionTable';
 
 // Dialog components
-export { default as FinancialTransactionDialog } from '@/components/financial/components/dialogs/FinancialTransactionDialog';
-export { default as CategoryManagementDialog } from '@/components/financial/components/dialogs/CategoryManagementDialog';
+export { default as FinancialTransactionDialog } from './dialogs/FinancialTransactionDialog';
+export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
+
+// ===========================================
+// MAIN COMPONENTS (Lazy-loaded)
+// ===========================================
+
+export { default as FinancialReportPage } from './FinancialReportPage';
+
+// Chart components
+export { default as FinancialCharts } from './components/FinancialCharts';
+export { default as CategoryCharts } from './components/CategoryCharts';
+
+// Table components  
+export { default as TransactionTable } from './components/TransactionTable';
+
+// Dialog components
+export { default as FinancialTransactionDialog } from './dialogs/FinancialTransactionDialog';
+export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
 
 // ===========================================
 // HOOKS
@@ -189,8 +211,8 @@ export const LazyFinancialComponents = {
   FinancialCharts: () => import('./components/FinancialCharts'),
   CategoryCharts: () => import('./components/CategoryCharts'),
   TransactionTable: () => import('./components/TransactionTable'),
-  FinancialTransactionDialog: () => import('./components/dialogs/FinancialTransactionDialog'),
-  CategoryManagementDialog: () => import('./components/dialogs/CategoryManagementDialog')
+  FinancialTransactionDialog: () => import('./dialogs/FinancialTransactionDialog'),
+  CategoryManagementDialog: () => import('./dialogs/CategoryManagementDialog')
 };
 
 // ===========================================
@@ -283,15 +305,16 @@ export const FINANCIAL_MODULE_INFO = {
 
 export default {
   // Main components
-  FinancialReportPage,
+  FinancialReportPage: FinancialReportPageComponent,
   
   // Component groups
   Components: FinancialComponents,
   
   // Utilities
-  Utils: FinancialUtils,
-  Hooks: FinancialHooks,
-  Constants: FinancialConstants,
+  Utils: FinancialUtilsDefault,
+  Hooks: FinancialHooksDefault,
+  ContextHooks: FinancialContextHooksDefault,
+  Constants: FinancialConstantsDefault,
   
   // Lazy loaders
   Lazy: LazyFinancialComponents,

@@ -33,7 +33,7 @@ const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const RecipesPage = React.lazy(() => import("./pages/Recipes"));
 const WarehousePage = React.lazy(() => import("./pages/Warehouse"));
 const OrdersPage = React.lazy(() => import("./pages/Orders"));
-const FinancialReportPage = React.lazy(() => import("./pages/FinancialReportPage"));
+const FinancialReportPage = React.lazy(() => import("@/components/financial/FinancialReportPage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const AssetManagement = React.lazy(() => import("./pages/AssetManagement"));
 const Settings = React.lazy(() => import("./pages/Settings"));

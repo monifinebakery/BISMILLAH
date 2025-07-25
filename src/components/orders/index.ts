@@ -8,8 +8,8 @@ export { default as EmptyState } from './components/EmptyState';
 // Filter and control components
 export { default as FilterBar } from './components/FilterBar';
 export { default as DateRangePicker } from '@/components/ui/DateRangePicker';
-export { default as DatePresets } from './DatePresets';
-export { default as TableControls } from './TableControls';
+export { default as DatePresets } from './components/DatePresets';
+export { default as TableControls } from './components/TableControls';
 export { default as PaginationControls } from './PaginationControls';
 
 // Selection and bulk operation components

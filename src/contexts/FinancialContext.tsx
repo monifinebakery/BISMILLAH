@@ -14,7 +14,7 @@ import { useActivity } from './ActivityContext';
 // 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { safeParseDate, toSafeISOString } from '@/utils/dashboardUtils'; 
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; 
 
 // --- INTERFACE & CONTEXT ---
 interface FinancialContextType {

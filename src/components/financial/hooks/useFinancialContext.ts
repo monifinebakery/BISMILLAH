@@ -2,7 +2,7 @@
 // Separated context hooks for better organization
 
 import { useCallback, useMemo } from 'react';
-import { useFinancial } from '@/contexts/FinancialContext';
+import { useFinancial } from './contexts/FinancialContext';
 import { 
   FinancialTransaction,
   FinancialSummary,

@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogFooter } from '@/components/ui/dialog';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Purchase } from '@/types/supplier';
-import { usePurchaseForm } from './hooks/usePurchaseForm';
-import { usePurchaseOperations } from './hooks/usePurchaseOperations';
+import { usePurchaseForm } from '../../hooks/usePurchaseForm';
+import { usePurchaseOperations } from '../../hooks/usePurchaseOperations';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Lazy load sub-components

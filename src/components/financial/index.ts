@@ -5,7 +5,7 @@
 // MAIN COMPONENTS (Lazy-loaded)
 // ===========================================
 
-export { default as FinancialReportPage } from './FinancialReportPage';
+export { default as FinancialReportPage } from '@/FinancialReportPage';
 
 // Chart components
 export { default as FinancialCharts } from './components/FinancialCharts';
@@ -15,8 +15,8 @@ export { default as CategoryCharts } from './components/CategoryCharts';
 export { default as TransactionTable } from './components/TransactionTable';
 
 // Dialog components
-export { default as FinancialTransactionDialog } from './dialogs/FinancialTransactionDialog';
-export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
+export { default as FinancialTransactionDialog } from '@/components/financial/dialogs/FinancialTransactionDialog';
+export { default as CategoryManagementDialog } from '@/components/financial/dialogs/CategoryManagementDialog';
 
 // ===========================================
 // HOOKS

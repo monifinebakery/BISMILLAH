@@ -124,7 +124,7 @@ export const LazyFinancialComponents = {
   CategoryCharts: () => import('./components/CategoryCharts'),
   TransactionTable: () => import('./components/TransactionTable'),
   FinancialTransactionDialog: () => import('@/components/financial/dialogs/FinancialTransactionDialog'),
-  CategoryManagementDialog: () => import('./dialogs/CategoryManagementDialog')
+  CategoryManagementDialog: () => import('@/components/financial/dialogs/CategoryManagementDialog')
 };
 
 // ===========================================

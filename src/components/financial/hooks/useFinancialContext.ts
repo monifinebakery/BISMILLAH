@@ -9,7 +9,7 @@ import {
   DateRange,
   CreateTransactionData,
   UpdateTransactionData
-} from '@/types/financial';
+} from '@/components/financial/types/financial';
 import { 
   filterByDateRange,
   calculateFinancialSummary,

@@ -82,7 +82,7 @@ export const usePurchaseOperations = (options: UsePurchaseOperationsOptions) => 
         icon: 'package',
         priority: 2,
         related_type: 'purchase',
-        action_url: `/purchases`,
+        action_url: '/pembelian', // Updated to match your route
         is_read: false,
         is_archived: false
       });

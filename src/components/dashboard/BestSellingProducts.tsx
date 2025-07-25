@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Trophy, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
-import { calculatePagination, generateListKey } from '@/utils/unifiedDateUtils';
+import { generateListKey } from '@/utils/unifiedDateUtils';
+import { calculatePagination } from '@/utils/promoUtils';
 
 interface Product {
   id: string;

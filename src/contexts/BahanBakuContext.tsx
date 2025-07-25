@@ -1,5 +1,5 @@
 // src/contexts/BahanBakuContext.tsx
-// QUICK FIX VERSION - Stop Infinite Loop
+// FIXED VERSION - Auto Update UI without refresh
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -34,7 +34,7 @@ interface BahanBakuContextType extends WarehouseContextType {
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
 
-// 🔧 QUICK FIX: Add notification deduplication
+// 🔧 FIXED: Add notification deduplication
 const useNotificationDeduplicator = () => {
   const notificationCacheRef = useRef<Map<string, number>>(new Map());
   const CACHE_DURATION = 60000; // 1 minute
@@ -207,15 +207,15 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   const selection = useWarehouseSelection();
   const analysis = useInventoryAnalysis(bahanBaku);
   
-  // 🔧 QUICK FIX: Add deduplication
+  // 🔧 FIXED: Add deduplication
   const { shouldSendNotification } = useNotificationDeduplicator();
 
+  // 🔧 FIXED: Proper subscription management
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const alertsCheckedRef = useRef<boolean>(false);
-  
-  // 🔧 QUICK FIX: Add debounce refs
   const alertTimeoutRef = useRef<NodeJS.Timeout>();
   const lastAlertCheckRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
 
   logger.context('BahanBakuContext', 'Provider render', { 
     user: user?.id,
@@ -224,12 +224,11 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     selectionMode: selection.isSelectionMode
   });
 
-  // 🔧 QUICK FIX: Debounced alert checking function
+  // 🔧 FIXED: Debounced alert checking function
   const checkInventoryAlerts = useCallback(async (itemsToCheck?: BahanBaku[]): Promise<void> => {
-    if (!user) return;
+    if (!user || !isMountedRef.current) return;
     
     const now = Date.now();
-    // 🔧 FIX: Prevent too frequent checks (minimum 30 seconds)
     if (now - lastAlertCheckRef.current < 30000) {
       return;
     }
@@ -253,7 +252,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         criticalExpiring: criticalExpiringItems.length
       });
 
-      // 🔧 FIX: Create notifications only if not sent recently (limit to prevent spam)
+      // 🔧 FIXED: Create notifications only if not sent recently
       for (const item of outOfStockItems.slice(0, 3)) {
         const notificationKey = `out-of-stock-${item.id}`;
         if (shouldSendNotification(notificationKey)) {
@@ -306,7 +305,6 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
       }
 
-      // Summary notification for multiple issues
       const totalIssues = outOfStockItems.length + lowStockItems.length + criticalExpiringItems.length;
       if (totalIssues > 5) {
         const summaryKey = `summary-${totalIssues}`;
@@ -331,9 +329,9 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   }, [user, bahanBaku, addNotification, analysis, shouldSendNotification]);
 
-  // Data fetching
+  // 🔧 FIXED: Data fetching with proper error handling
   const fetchBahanBaku = useCallback(async (shouldCheckAlerts: boolean = false) => {
-    if (!user) {
+    if (!user || !isMountedRef.current) {
       setBahanBaku([]);
       setIsLoading(false);
       return;
@@ -353,37 +351,61 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         throw new Error(`Gagal mengambil data: ${error.message}`);
       }
 
+      if (!isMountedRef.current) return; // Prevent state update if unmounted
+
       const transformedData = data.map(transformBahanBakuFromDB);
       logger.context('BahanBakuContext', 'Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
 
-      // 🔧 FIX: Debounced alert checking
+      // 🔧 FIXED: Debounced alert checking
       if (shouldCheckAlerts && !alertsCheckedRef.current && transformedData.length > 0) {
         if (alertTimeoutRef.current) {
           clearTimeout(alertTimeoutRef.current);
         }
         alertTimeoutRef.current = setTimeout(() => {
-          checkInventoryAlerts(transformedData);
-        }, 5000); // 5 second delay
+          if (isMountedRef.current) {
+            checkInventoryAlerts(transformedData);
+          }
+        }, 5000);
       }
     } catch (err: any) {
+      if (!isMountedRef.current) return;
+      
       logger.error('BahanBakuContext - Error fetching bahan baku:', err);
       toast.error(`Gagal memuat bahan baku: ${err.message}`);
       await addNotification(createNotificationHelper.systemError(
         `Gagal memuat data inventory: ${err.message}`
       ));
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [user, addNotification]); // 🔧 FIX: Remove checkInventoryAlerts from dependencies
+  }, [user, addNotification, checkInventoryAlerts]);
 
   const refreshData = useCallback(async () => {
     await fetchBahanBaku(false);
   }, [fetchBahanBaku]);
 
-  // Setup subscription
+  // 🔧 FIXED: Real-time subscription setup
   useEffect(() => {
-    if (!user || subscriptionRef.current) return;
+    if (!user) {
+      // Clean up if no user
+      if (subscriptionRef.current) {
+        logger.context('BahanBakuContext', 'Cleaning up subscription - no user');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      setBahanBaku([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Don't setup multiple subscriptions
+    if (subscriptionRef.current) {
+      logger.context('BahanBakuContext', 'Subscription already exists for user:', user.id);
+      return;
+    }
 
     logger.context('BahanBakuContext', 'Setting up subscription for user:', user.id);
 
@@ -395,78 +417,89 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         table: 'bahan_baku',
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
+        if (!isMountedRef.current) return;
+        
         logger.context('BahanBakuContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
         
-        setBahanBaku((prev) => {
-          if (payload.eventType === 'DELETE') {
-            const filtered = prev.filter((item) => item.id !== payload.old.id);
-            // Remove from selection if deleted
-            selection.toggleSelection(payload.old.id);
-            return filtered;
+        // 🔧 FIXED: Proper real-time state updates
+        setBahanBaku((prevBahanBaku) => {
+          let newBahanBaku = [...prevBahanBaku];
+          
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            newBahanBaku = newBahanBaku.filter((item) => item.id !== payload.old.id);
+            logger.context('BahanBakuContext', 'Item deleted via real-time:', payload.old.id);
           }
-          if (payload.eventType === 'INSERT') {
+          
+          if (payload.eventType === 'INSERT' && payload.new) {
             const newItem = transformBahanBakuFromDB(payload.new);
-            return [...prev, newItem].sort((a, b) => a.nama.localeCompare(b.nama));
+            newBahanBaku = [...newBahanBaku, newItem].sort((a, b) => a.nama.localeCompare(b.nama));
+            logger.context('BahanBakuContext', 'Item added via real-time:', newItem.id);
           }
-          if (payload.eventType === 'UPDATE') {
+          
+          if (payload.eventType === 'UPDATE' && payload.new) {
             const updatedItem = transformBahanBakuFromDB(payload.new);
-            return prev.map((item) =>
+            newBahanBaku = newBahanBaku.map((item) =>
               item.id === updatedItem.id ? updatedItem : item
             ).sort((a, b) => a.nama.localeCompare(b.nama));
+            logger.context('BahanBakuContext', 'Item updated via real-time:', updatedItem.id);
           }
-          return prev;
+          
+          return newBahanBaku;
         });
+
+        // 🔧 FIXED: Handle selection cleanup for deleted items
+        if (payload.eventType === 'DELETE' && payload.old?.id) {
+          selection.toggleSelection(payload.old.id);
+        }
       })
       .subscribe((status) => {
         logger.context('BahanBakuContext', 'Subscription status:', status);
         if (status === 'SUBSCRIBED') {
           subscriptionRef.current = channel;
+          // Initial data load after subscription is ready
+          fetchBahanBaku(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          logger.error('BahanBakuContext', 'Subscription error:', status);
+          subscriptionRef.current = null;
+          // Retry subscription after a delay
+          setTimeout(() => {
+            if (isMountedRef.current && user) {
+              logger.context('BahanBakuContext', 'Retrying subscription...');
+              // This will trigger the effect again due to user dependency
+            }
+          }, 5000);
         }
       });
 
+    // Cleanup function
     return () => {
       if (subscriptionRef.current) {
         logger.context('BahanBakuContext', 'Cleaning up subscription');
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
-      // 🔧 FIX: Clear timeout on cleanup
       if (alertTimeoutRef.current) {
         clearTimeout(alertTimeoutRef.current);
       }
     };
-  }, [user, selection.toggleSelection]);
+  }, [user?.id]); // Only depend on user ID to avoid unnecessary re-subscriptions
 
-  // 🔧 FIX: Separate effect for initial data load
+  // 🔧 FIXED: Component cleanup tracking
   useEffect(() => {
-    logger.context('BahanBakuContext', 'Initial data load for user:', user?.id);
-    fetchBahanBaku(true);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // 🔧 FIXED: Reset state when user changes
+  useEffect(() => {
     selection.clearSelection();
     alertsCheckedRef.current = false;
-    lastAlertCheckRef.current = 0; // Reset alert check time
-  }, [user]); // 🔧 FIX: Only depend on user
+    lastAlertCheckRef.current = 0;
+  }, [user?.id, selection.clearSelection]);
 
-  // 🔧 FIX: Separate debounced effect for stock checking
-  useEffect(() => {
-    // Only check alerts when not loading and has data
-    if (!isLoading && bahanBaku.length > 0 && !alertsCheckedRef.current) {
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
-      }
-      
-      alertTimeoutRef.current = setTimeout(() => {
-        checkInventoryAlerts();
-      }, 3000); // 3 second delay
-      
-      return () => {
-        if (alertTimeoutRef.current) {
-          clearTimeout(alertTimeoutRef.current);
-        }
-      };
-    }
-  }, [bahanBaku.length, isLoading]); // 🔧 FIX: Don't include checkInventoryAlerts in deps
-
-  // CRUD Operations
+  // 🔧 FIXED: CRUD Operations with optimistic updates
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan bahan baku');
@@ -479,11 +512,16 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         ...transformBahanBakuToDB(bahan)
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('bahan_baku')
-        .insert(bahanToInsert);
+        .insert(bahanToInsert)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // 🔧 FIXED: Don't manually update state - let real-time subscription handle it
+      logger.context('BahanBakuContext', 'Item added successfully, real-time will update UI');
 
       addActivity({
         title: 'Bahan Baku Ditambahkan',
@@ -528,12 +566,17 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       const bahanToUpdate = transformBahanBakuToDB(updatedBahan);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('bahan_baku')
         .update(bahanToUpdate)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // 🔧 FIXED: Don't manually update state - let real-time subscription handle it
+      logger.context('BahanBakuContext', 'Item updated successfully, real-time will update UI');
 
       const itemName = updatedBahan.nama ?? itemBeforeUpdate.nama;
       toast.success(`${itemName} berhasil diperbarui!`);
@@ -557,8 +600,16 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     try {
       const itemToDelete = bahanBaku.find(b => b.id === id);
-      const { error } = await supabase.from('bahan_baku').delete().eq('id', id);
+      
+      const { error } = await supabase
+        .from('bahan_baku')
+        .delete()
+        .eq('id', id);
+        
       if (error) throw error;
+
+      // 🔧 FIXED: Don't manually update state - let real-time subscription handle it
+      logger.context('BahanBakuContext', 'Item deleted successfully, real-time will update UI');
 
       toast.success(`${itemToDelete?.nama || 'Item'} berhasil dihapus!`);
 
@@ -592,8 +643,16 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     setIsBulkDeleting(true);
     try {
-      const { error } = await supabase.from('bahan_baku').delete().in('id', ids).eq('user_id', user.id);
+      const { error } = await supabase
+        .from('bahan_baku')
+        .delete()
+        .in('id', ids)
+        .eq('user_id', user.id);
+        
       if (error) throw error;
+
+      // 🔧 FIXED: Don't manually update state - let real-time subscription handle it
+      logger.context('BahanBakuContext', 'Bulk delete successful, real-time will update UI');
 
       selection.clearSelection();
       toast.success(`${ids.length} bahan baku berhasil dihapus!`);

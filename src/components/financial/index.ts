@@ -9,8 +9,8 @@ import FinancialReportPageComponent from './FinancialReportPage';
 import FinancialChartsComponent from './components/FinancialCharts';
 import CategoryChartsComponent from './components/CategoryCharts';
 import TransactionTableComponent from './components/TransactionTable';
-import FinancialTransactionDialogComponent from './dialogs/FinancialTransactionDialog';
-import CategoryManagementDialogComponent from './dialogs/CategoryManagementDialog';
+import FinancialTransactionDialogComponent from './components/dialogs/FinancialTransactionDialog';
+import CategoryManagementDialogComponent from './components/dialogs/CategoryManagementDialog';
 
 // Hook imports
 import {

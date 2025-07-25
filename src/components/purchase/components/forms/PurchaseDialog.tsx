@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Purchase } from '@/types/supplier';
-import LoadingPurchaseState from './states/LoadingPurchaseState';
+import LoadingPurchaseState from '../states/LoadingPurchaseState';
 
 // Lazy load the form component
 const PurchaseForm = React.lazy(() => import('./PurchaseForm'));

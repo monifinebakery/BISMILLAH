@@ -41,7 +41,7 @@ import {
 
 // --- Impor Hook Konteks ---
 import { usePaymentContext } from "@/contexts/PaymentContext";
-import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useBahanBaku } from "@/components/warehouse/context/BahanBakuContext";
 import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";

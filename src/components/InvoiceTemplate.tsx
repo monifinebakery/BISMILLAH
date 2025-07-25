@@ -1,5 +1,5 @@
 import React from 'react';
-import { Order } from '@/types';
+import { Order } from '@/components/orders/types';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';

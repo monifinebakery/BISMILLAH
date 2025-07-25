@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { Order, OrderFilters, DateRange } from '@/types';
 import { filterOrders } from '@/utils/filterUtils';
-import { safeParseDate, isValidDate } from '@/utils/dashboardUtils';
+import { safeParseDate, isValidDate } from '@/utils/unifiedDateUtils';
 
 export interface UseOrderFiltersResult {
   filters: OrderFilters;

@@ -1,7 +1,7 @@
 // Components exports with dynamic imports for code splitting
 
 // Layout components - immediately available
-export { default as PurchaseHeader } from './layout/PurchaseHeader';
+export { default as PurchaseHeader } from '../layout/PurchaseHeader';
 
 // Main page component - lazy loaded
 export const PurchasePage = () => import('./layout/PurchasePage').then(m => ({ default: m.default }));

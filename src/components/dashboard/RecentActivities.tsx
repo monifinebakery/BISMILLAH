@@ -7,7 +7,7 @@ import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
 import { calculatePagination } from '@/utils/promoUtils';
-import { formatDateTime } from '@/utils/promoUtils';
+import { formatDateTime } from '@/utils/unifiedDateUtils';
 
 interface ActivityItem {
   id: string;

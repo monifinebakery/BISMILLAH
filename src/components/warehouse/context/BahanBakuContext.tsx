@@ -16,7 +16,7 @@ import { formatCurrency } from '@//utils/formatUtils';
 
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
-import { useActivity } from './ActivityContext';
+import { useActivity } from '@/contexts/ActivityContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '../utils/notificationHelpers';
 

@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { Recipe, NewRecipe } from '@/types/recipe';
-import { formatCurrency, formatPercentage } from '@/utils/currencyUtils';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";

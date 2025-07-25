@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { validateAuthSession } from '@/lib/authUtils';
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface PaymentStatus {

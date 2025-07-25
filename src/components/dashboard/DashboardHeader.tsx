@@ -1,9 +1,9 @@
 // components/dashboard/DashboardHeader.tsx
 import React, { lazy, Suspense } from 'react';
-import { formatDateRange, parseDate } from '@/utils/dashboardUtils';
+import { formatDateRange, parseDate } from '@/utils/unifiedDateUtils';
 
 // 🚀 Lazy load DateRangePicker (heavy component)
-const DateRangePicker = lazy(() => import('./DateRangePicker'));
+const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
 
 interface Props {
   dateRange: { from: string; to: string };
@@ -49,7 +49,7 @@ const DashboardHeader: React.FC<Props> = ({
           >
             <DateRangePicker
               dateRange={dateRange}
-              setDateRange={setDateRange}
+              onDateRangeChange={setDateRange}
               isMobile={isMobile}
             />
           </Suspense>

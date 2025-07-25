@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { toast } from 'sonner';
 import { validateAuthSession } from '@/lib/authUtils';
-import { formatDateForDisplay } from '@/utils/dateUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();

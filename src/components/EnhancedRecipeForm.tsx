@@ -14,9 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useBahanBaku } from "@/contexts/BahanBakuContext";
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { useRecipe } from "@/contexts/RecipeContext";
-import { formatCurrency } from "@/utils/currencyUtils";
+import { formatCurrency } from "@/utils/formatUtils";
 
 interface EnhancedRecipeFormProps {
   initialData?: Recipe | null;

@@ -14,7 +14,7 @@ import { useActivity } from './ActivityContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
-import { safeParseDate } from '@/utils/dateUtils';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 
 // --- INTERFACE & CONTEXT ---
 interface AssetContextType {

@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from '@/utils/currencyUtils';
-import { formatDateTime, calculatePagination, generateListKey } from '@/utils/dashboardUtils';
+import { formatCurrency } from '@/utils/formatUtils';
+import { generateListKey } from '@/utils/keyUtils';
+import { calculatePagination } from '@/utils/promoUtils';
+import { formatDateTime } from '@/utils/unifiedDateUtils';
 
 interface ActivityItem {
   id: string;

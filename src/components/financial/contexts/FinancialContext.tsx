@@ -17,7 +17,7 @@ import {
   FinancialContextType,
   CreateTransactionData,
   UpdateTransactionData 
-} from '../components/financial';
+} from '../types/financial';
 
 import { 
   safeParseDate, 

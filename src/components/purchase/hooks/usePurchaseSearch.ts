@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Purchase } from '@/types/supplier';
-import { validateSearchTerm } from './services/purchaseValidators';
-import { getSupplierName } from './services/purchaseTransformers';
+import { validateSearchTerm } from '../services/purchaseValidators';
+import { getSupplierName } from '../services/purchaseTransformers';
 
 export interface SearchFilters {
   searchTerm: string;

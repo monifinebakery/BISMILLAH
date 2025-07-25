@@ -21,7 +21,7 @@ import { getStatusText } from './constants/orderConstants';
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useFinancial } from './FinancialContext';
+import { useFinancial } from '@/contexts/FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';

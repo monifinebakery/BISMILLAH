@@ -27,7 +27,7 @@ import {
 import { 
   validateTransaction,
   formatTransactionForDisplay 
-} from './utils/financialUtils';
+} from '../utils/financialUtils';
 
 // ===========================================
 // CONTEXT SETUP

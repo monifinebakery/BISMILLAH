@@ -1,5 +1,5 @@
-// utils/dashboardUtils.ts - COMPLETE VERSION
-// Combined: dateUtils + dashboardUtils in one file
+// utils/dashboardUtils.ts - FIXED VERSION
+// No more "Invalid time value" errors!
 
 import { 
   parseISO, 
@@ -33,10 +33,7 @@ export interface DateRangePreset {
 // ==================== CORE DATE UTILITIES ====================
 
 /**
- * Mem-parsing nilai tanggal (string, Date, number) menjadi objek Date yang valid atau null.
- * Ini adalah fungsi dasar yang digunakan oleh helper lain.
- * @param date Nilai tanggal yang akan di-parse.
- * @returns Objek Date atau null jika tidak valid.
+ * 🔧 FIXED: Enhanced safe date parsing with better error handling
  */
 export const safeParseDate = (date: any): Date | null => {
   if (!date) return null;
@@ -44,7 +41,12 @@ export const safeParseDate = (date: any): Date | null => {
   try {
     // Handle Date objects first
     if (date instanceof Date) {
-      return isValid(date) && !isNaN(date.getTime()) ? date : null;
+      // 🔧 FIX: Check for invalid Date objects (NaN time)
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid Date object detected:', date);
+        return null;
+      }
+      return isValid(date) ? date : null;
     }
     
     // Handle string and number inputs
@@ -54,25 +56,46 @@ export const safeParseDate = (date: any): Date | null => {
       if (typeof date === 'string') {
         // Clean the string first
         const cleanDate = date.trim();
-        if (!cleanDate) return null;
+        if (!cleanDate || cleanDate === 'null' || cleanDate === 'undefined') {
+          return null;
+        }
+        
+        // 🔧 FIX: Handle common invalid date strings
+        if (cleanDate === '0000-00-00' || cleanDate === '0000-00-00T00:00:00.000Z') {
+          return null;
+        }
         
         // Try parseISO first for ISO strings
         if (cleanDate.includes('T') || cleanDate.includes('-')) {
-          parsed = parseISO(cleanDate);
-          if (isValid(parsed) && !isNaN(parsed.getTime())) {
-            return parsed;
+          try {
+            parsed = parseISO(cleanDate);
+            if (isValid(parsed) && !isNaN(parsed.getTime())) {
+              return parsed;
+            }
+          } catch (parseISOError) {
+            console.warn('parseISO failed for:', cleanDate, parseISOError);
           }
         }
         
         // Fallback to new Date()
-        parsed = new Date(cleanDate);
+        try {
+          parsed = new Date(cleanDate);
+        } catch (newDateError) {
+          console.warn('new Date() failed for:', cleanDate, newDateError);
+          return null;
+        }
       } else {
         // Handle number (timestamp)
-        parsed = new Date(date);
+        try {
+          parsed = new Date(date);
+        } catch (timestampError) {
+          console.warn('Date from timestamp failed for:', date, timestampError);
+          return null;
+        }
       }
       
-      // Validate the parsed date
-      if (isValid(parsed) && !isNaN(parsed.getTime())) {
+      // 🔧 FIX: Enhanced validation
+      if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {
         return parsed;
       }
     }
@@ -88,9 +111,7 @@ export const safeParseDate = (date: any): Date | null => {
 export const parseDate = safeParseDate;
 
 /**
- * Memeriksa apakah nilai yang diberikan adalah objek Date yang valid.
- * @param value Nilai yang akan diperiksa.
- * @returns `true` jika valid, `false` jika tidak.
+ * 🔧 FIXED: Enhanced date validation
  */
 export const isValidDate = (value: any): value is Date => {
   if (!value) return false;
@@ -98,7 +119,7 @@ export const isValidDate = (value: any): value is Date => {
   try {
     // If it's already a Date object, validate it directly
     if (value instanceof Date) {
-      return isValid(value) && !isNaN(value.getTime());
+      return isValid(value) && !isNaN(value.getTime()) && value.getTime() > 0;
     }
     
     // Otherwise, try to parse it first
@@ -111,102 +132,126 @@ export const isValidDate = (value: any): value is Date => {
 };
 
 /**
- * Mengonversi nilai tanggal menjadi string YYYY-MM-DD yang aman untuk database.
- * @param dateValue Nilai tanggal yang akan dikonversi.
- * @returns String 'YYYY-MM-DD' atau null jika tidak valid.
+ * 🔧 FIXED: Safe ISO string conversion
  */
 export const toSafeISOString = (dateValue: Date | string | null | undefined): string | null => {
-  const dateObj = safeParseDate(dateValue);
-  return dateObj ? format(dateObj, 'yyyy-MM-dd') : null;
+  try {
+    const dateObj = safeParseDate(dateValue);
+    if (!dateObj || !isValidDate(dateObj)) return null;
+    return format(dateObj, 'yyyy-MM-dd');
+  } catch (error) {
+    console.warn('ISO string conversion error:', error, 'for date:', dateValue);
+    return null;
+  }
 };
 
 // Alias for backward compatibility
 export const toISOString = toSafeISOString;
 
 /**
- * Memformat objek Date menjadi string yang mudah dibaca untuk tampilan UI.
- * @param date Objek Date yang akan diformat.
- * @returns String tanggal yang diformat (misal: "24 Jul 2025") atau '-' jika tidak valid.
+ * 🔧 FIXED: Safe date formatting for display
  */
 export const formatDateForDisplay = (date: Date | string | null | undefined): string => {
-  const dateObj = safeParseDate(date);
-  if (!dateObj) return '-';
-  return format(dateObj, 'd MMM yyyy', { locale: id });
+  try {
+    const dateObj = safeParseDate(date);
+    if (!dateObj || !isValidDate(dateObj)) return '-';
+    return format(dateObj, 'd MMM yyyy', { locale: id });
+  } catch (error) {
+    console.warn('Display date formatting error:', error, 'for date:', date);
+    return '-';
+  }
 };
 
 // Alias for backward compatibility
 export const formatDate = formatDateForDisplay;
 
 /**
- * Memformat objek Date menjadi string "yyyy-MM-dd" untuk nilai input tanggal HTML.
- * @param date Objek Date atau string yang akan diformat.
- * @returns String format "yyyy-MM-dd" atau string kosong jika tidak valid.
+ * 🔧 FIXED: Safe YYYY-MM-DD formatting
  */
 export const formatDateToYYYYMMDD = (date: Date | string | null | undefined): string => {
-  const dateObj = safeParseDate(date);
-  if (!dateObj) return '';
-  return format(dateObj, 'yyyy-MM-dd');
-};
-
-/**
- * Memformat rentang tanggal menjadi string yang mudah dibaca.
- * @param dateRange Objek DateRange.
- * @returns String rentang tanggal yang diformat.
- */
-export const formatDateRange = (dateRange: DateRange | undefined): string => {
   try {
-    // Add detailed logging for debugging
-    console.log('formatDateRange input:', dateRange);
-    
-    if (!dateRange?.from) {
-      console.log('No dateRange.from, returning default');
-      return "Pilih rentang tanggal";
-    }
-    
-    const fromDate = safeParseDate(dateRange.from);
-    console.log('Parsed fromDate:', fromDate);
-    
-    if (!fromDate || !isValid(fromDate)) {
-      console.warn('Invalid fromDate:', dateRange.from);
-      return "Tanggal mulai tidak valid";
-    }
-    
-    const toDate = safeParseDate(dateRange.to);
-    console.log('Parsed toDate:', toDate);
-    
-    // Only proceed with formatting if we have valid dates
-    if (toDate && isValid(toDate)) {
-      try {
-        const fromStr = format(fromDate, 'yyyy-MM-dd');
-        const toStr = format(toDate, 'yyyy-MM-dd');
-        
-        if (fromStr !== toStr) {
-          return `${format(fromDate, "d MMM", { locale: id })} - ${format(toDate, "d MMM yyyy", { locale: id })}`;
-        }
-      } catch (formatError) {
-        console.error('Error formatting date range:', formatError);
-        return `${formatDateForDisplay(fromDate)} - ${formatDateForDisplay(toDate)}`;
-      }
-    }
-    
-    // Single date or invalid toDate
-    try {
-      return format(fromDate, "d MMMM yyyy", { locale: id });
-    } catch (formatError) {
-      console.error('Error formatting single date:', formatError);
-      return formatDateForDisplay(fromDate);
-    }
-    
+    const dateObj = safeParseDate(date);
+    if (!dateObj || !isValidDate(dateObj)) return '';
+    return format(dateObj, 'yyyy-MM-dd');
   } catch (error) {
-    console.error('Date range formatting error:', error, 'for dateRange:', dateRange);
-    return "Tanggal tidak valid";
+    console.warn('YYYY-MM-DD formatting error:', error, 'for date:', date);
+    return '';
   }
 };
 
 /**
- * Enhanced date formatter with time for dashboard activities
- * @param date - Date to format
- * @returns Formatted date string with time or fallback message
+ * 🔧 FIXED: Bulletproof date range formatting - This was the main culprit!
+ */
+export const formatDateRange = (dateRange: DateRange | undefined): string => {
+  try {
+    // Early return for undefined/null range
+    if (!dateRange) {
+      console.log('formatDateRange: No dateRange provided');
+      return "Pilih rentang tanggal";
+    }
+
+    // Early return if no 'from' date
+    if (!dateRange.from) {
+      console.log('formatDateRange: No from date in range');
+      return "Pilih rentang tanggal";
+    }
+    
+    // 🔧 FIX: Safe parsing with validation
+    const fromDate = safeParseDate(dateRange.from);
+    if (!fromDate || !isValidDate(fromDate)) {
+      console.warn('formatDateRange: Invalid from date:', dateRange.from);
+      return "Tanggal mulai tidak valid";
+    }
+    
+    // Handle single date case (no 'to' date or invalid 'to' date)
+    if (!dateRange.to) {
+      try {
+        return format(fromDate, "d MMMM yyyy", { locale: id });
+      } catch (formatError) {
+        console.error('formatDateRange: Single date format error:', formatError);
+        return formatDateForDisplay(fromDate);
+      }
+    }
+    
+    // Parse 'to' date safely
+    const toDate = safeParseDate(dateRange.to);
+    if (!toDate || !isValidDate(toDate)) {
+      console.warn('formatDateRange: Invalid to date, using single date format');
+      try {
+        return format(fromDate, "d MMMM yyyy", { locale: id });
+      } catch (formatError) {
+        console.error('formatDateRange: Fallback single date format error:', formatError);
+        return formatDateForDisplay(fromDate);
+      }
+    }
+    
+    // Format date range (both dates are valid)
+    try {
+      const fromStr = format(fromDate, 'yyyy-MM-dd');
+      const toStr = format(toDate, 'yyyy-MM-dd');
+      
+      // Same date
+      if (fromStr === toStr) {
+        return format(fromDate, "d MMMM yyyy", { locale: id });
+      }
+      
+      // Different dates - show range
+      return `${format(fromDate, "d MMM", { locale: id })} - ${format(toDate, "d MMM yyyy", { locale: id })}`;
+      
+    } catch (formatError) {
+      console.error('formatDateRange: Range format error:', formatError);
+      // Fallback to basic display format
+      return `${formatDateForDisplay(fromDate)} - ${formatDateForDisplay(toDate)}`;
+    }
+    
+  } catch (error) {
+    console.error('formatDateRange: Unexpected error:', error, 'for dateRange:', dateRange);
+    return "Error: Tanggal tidak valid";
+  }
+};
+
+/**
+ * 🔧 FIXED: Enhanced date-time formatter
  */
 export const formatDateTime = (date: any): string => {
   if (!date) return 'Waktu tidak valid';
@@ -226,29 +271,32 @@ export const formatDateTime = (date: any): string => {
       minute: '2-digit',
     }).format(dateObj);
   } catch (error) {
-    console.warn('Date formatting error:', error, 'for date:', date);
+    console.warn('DateTime formatting error:', error, 'for date:', date);
     return 'Waktu tidak valid';
   }
 };
 
 /**
- * Mendapatkan deskripsi waktu relatif (misal: "Hari ini", "Kemarin").
- * @param date Tanggal untuk dibandingkan.
- * @returns String deskripsi waktu relatif.
+ * 🔧 FIXED: Safe relative time description
  */
 export const getRelativeTimeDescription = (date: Date | string | null | undefined): string => {
-  const parsedDate = safeParseDate(date);
-  if (!parsedDate) return 'Tanggal tidak valid';
-  
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  if (format(now, 'yyyy-MM-dd') === format(parsedDate, 'yyyy-MM-dd')) return 'Hari ini';
-  if (format(subDays(now, 1), 'yyyy-MM-dd') === format(parsedDate, 'yyyy-MM-dd')) return 'Kemarin';
+  try {
+    const parsedDate = safeParseDate(date);
+    if (!parsedDate || !isValidDate(parsedDate)) return 'Tanggal tidak valid';
+    
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (format(now, 'yyyy-MM-dd') === format(parsedDate, 'yyyy-MM-dd')) return 'Hari ini';
+    if (format(subDays(now, 1), 'yyyy-MM-dd') === format(parsedDate, 'yyyy-MM-dd')) return 'Kemarin';
 
-  if (diffDays > 1 && diffDays <= 30) return `${diffDays} hari yang lalu`;
-  
-  return formatDateForDisplay(parsedDate);
+    if (diffDays > 1 && diffDays <= 30) return `${diffDays} hari yang lalu`;
+    
+    return formatDateForDisplay(parsedDate);
+  } catch (error) {
+    console.warn('Relative time error:', error, 'for date:', date);
+    return 'Tanggal tidak valid';
+  }
 };
 
 // Alias for backward compatibility
@@ -257,12 +305,18 @@ export const formatRelativeTime = getRelativeTimeDescription;
 // ==================== DATE RANGE UTILITIES ====================
 
 /**
- * Menghasilkan objek DateRange berdasarkan preset yang dipilih.
- * @param key Kunci preset ('today', 'yesterday', 'last7days', dll.).
- * @returns Objek DateRange yang sesuai.
+ * 🔧 FIXED: Safe date range preset generation
  */
 export const getDateRangePreset = (key: string): { from: Date, to: Date } => {
   const today = new Date();
+  
+  // 🔧 FIX: Validate that today is a valid date
+  if (!isValidDate(today)) {
+    console.error('System date is invalid!');
+    const fallbackDate = new Date('2024-01-01');
+    return { from: fallbackDate, to: fallbackDate };
+  }
+  
   try {
     switch (key) {
       case 'today':
@@ -280,64 +334,58 @@ export const getDateRangePreset = (key: string): { from: Date, to: Date } => {
         const lastMonth = subMonths(today, 1);
         return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
       default:
+        console.warn('Unknown date preset key:', key, 'using last30days');
         return { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
     }
   } catch (error) {
     console.error('Error creating date range preset:', error, 'for key:', key);
-    return { from: startOfDay(today), to: endOfDay(today) }; // Fallback
+    // Safe fallback to today
+    return { from: startOfDay(today), to: endOfDay(today) };
   }
 };
 
 /**
- * Get date presets array
- * @returns Array of date range presets
+ * 🔧 FIXED: Safe date presets array generation
  */
 export const getDatePresets = (): DateRangePreset[] => {
   try {
-    return [
-      { 
-        label: "Hari Ini", 
-        range: getDateRangePreset('today')
-      },
-      { 
-        label: "Kemarin", 
-        range: getDateRangePreset('yesterday')
-      },
-      { 
-        label: "7 Hari Terakhir", 
-        range: getDateRangePreset('last7days')
-      },
-      { 
-        label: "30 Hari Terakhir", 
-        range: getDateRangePreset('last30days')
-      },
-      { 
-        label: "Bulan Ini", 
-        range: getDateRangePreset('thisMonth')
-      },
-      { 
-        label: "Bulan Lalu", 
-        range: getDateRangePreset('lastMonth')
-      },
-    ];
+    const presetKeys = ['today', 'yesterday', 'last7days', 'last30days', 'thisMonth', 'lastMonth'];
+    const labels = ["Hari Ini", "Kemarin", "7 Hari Terakhir", "30 Hari Terakhir", "Bulan Ini", "Bulan Lalu"];
+    
+    return presetKeys.map((key, index) => {
+      try {
+        return {
+          label: labels[index],
+          range: getDateRangePreset(key)
+        };
+      } catch (error) {
+        console.error('Error generating preset:', key, error);
+        // Return safe fallback preset
+        return {
+          label: `Error - ${labels[index]}`,
+          range: getDateRangePreset('today')
+        };
+      }
+    });
   } catch (error) {
     console.error('Error generating date presets:', error);
-    // Return a safe fallback using today preset
-    const todayPreset = getDateRangePreset('today');
+    // Return minimal safe fallback
     return [{
-      label: "Error - Hari Ini",
-      range: todayPreset
+      label: "Hari Ini",
+      range: getDateRangePreset('today')
     }];
   }
 };
 
 /**
- * Get preset by key
- * @param key - Preset key (today, yesterday, last7days, etc.)
- * @returns Date range or fallback to today if invalid
+ * 🔧 FIXED: Safe preset by key getter
  */
 export const getDatePresetByKey = (key: string): { from: Date; to: Date } => {
   try {
+    if (!key || typeof key !== 'string') {
+      console.warn('Invalid preset key:', key, 'using today');
+      return getDateRangePreset('today');
+    }
     return getDateRangePreset(key);
   } catch (error) {
     console.error('Error getting date preset:', error, 'for key:', key);
@@ -346,73 +394,79 @@ export const getDatePresetByKey = (key: string): { from: Date; to: Date } => {
 };
 
 /**
- * Memeriksa apakah sebuah tanggal berada dalam rentang tertentu.
- * @param date Tanggal target.
- * @param startDate Tanggal mulai rentang.
- * @param endDate Tanggal akhir rentang.
- * @returns `true` jika tanggal berada dalam rentang.
+ * 🔧 FIXED: Safe date range checking
  */
 export const isDateInRange = (
   date: Date | string | null | undefined,
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined
 ): boolean => {
-  const targetDate = safeParseDate(date);
-  const rangeStart = safeParseDate(startDate);
-  const rangeEnd = safeParseDate(endDate);
-  
-  if (!targetDate || !rangeStart || !rangeEnd) return false;
-  
-  return targetDate >= rangeStart && targetDate <= rangeEnd;
+  try {
+    const targetDate = safeParseDate(date);
+    const rangeStart = safeParseDate(startDate);
+    const rangeEnd = safeParseDate(endDate);
+    
+    if (!targetDate || !rangeStart || !rangeEnd) return false;
+    if (!isValidDate(targetDate) || !isValidDate(rangeStart) || !isValidDate(rangeEnd)) return false;
+    
+    return targetDate >= rangeStart && targetDate <= rangeEnd;
+  } catch (error) {
+    console.warn('Date range check error:', error);
+    return false;
+  }
 };
 
 /**
- * Menghitung jumlah hari antara dua tanggal.
- * @param startDate Tanggal mulai.
- * @param endDate Tanggal akhir.
- * @returns Jumlah hari.
+ * 🔧 FIXED: Safe days calculation
  */
 export const getDaysBetween = (
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined
 ): number => {
-  const start = safeParseDate(startDate);
-  const end = safeParseDate(endDate);
-  
-  if (!start || !end) return 0;
-  
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  try {
+    const start = safeParseDate(startDate);
+    const end = safeParseDate(endDate);
+    
+    if (!start || !end || !isValidDate(start) || !isValidDate(end)) return 0;
+    
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  } catch (error) {
+    console.warn('Days calculation error:', error);
+    return 0;
+  }
 };
 
 /**
- * Mendapatkan awal hari dari objek Date.
- * @param dateObj Objek Date.
- * @returns Objek Date di awal hari (00:00:00) atau null jika tidak valid.
+ * 🔧 FIXED: Safe start of day
  */
 export const getStartOfDay = (dateObj: Date | string | null | undefined): Date | null => {
-  const parsed = safeParseDate(dateObj);
-  return parsed ? startOfDay(parsed) : null;
+  try {
+    const parsed = safeParseDate(dateObj);
+    return parsed && isValidDate(parsed) ? startOfDay(parsed) : null;
+  } catch (error) {
+    console.warn('Start of day error:', error);
+    return null;
+  }
 };
 
 /**
- * Mendapatkan akhir hari dari objek Date.
- * @param dateObj Objek Date.
- * @returns Objek Date di akhir hari (23:59:59.999) atau null jika tidak valid.
+ * 🔧 FIXED: Safe end of day
  */
 export const getEndOfDay = (dateObj: Date | string | null | undefined): Date | null => {
-  const parsed = safeParseDate(dateObj);
-  return parsed ? endOfDay(parsed) : null;
+  try {
+    const parsed = safeParseDate(dateObj);
+    return parsed && isValidDate(parsed) ? endOfDay(parsed) : null;
+  } catch (error) {
+    console.warn('End of day error:', error);
+    return null;
+  }
 };
 
 // ==================== DASHBOARD-SPECIFIC UTILITIES ====================
 
 /**
  * Safe pagination calculation
- * @param currentPage - Current page number
- * @param totalItems - Total number of items
- * @param itemsPerPage - Items per page (default: 5)
- * @returns Pagination info object
  */
 export const calculatePagination = (
   currentPage: number, 
@@ -441,7 +495,6 @@ export const calculatePagination = (
     };
   } catch (error) {
     console.error('Pagination calculation error:', error);
-    // Return safe defaults
     return {
       currentPage: 1,
       totalPages: 1,
@@ -457,8 +510,6 @@ export const calculatePagination = (
 
 /**
  * Get icon and color for activity type
- * @param type - Activity type
- * @returns Style object with icon and color
  */
 export const getActivityTypeStyle = (type: string) => {
   const styles: Record<string, { icon: string, color: string, bgColor: string }> = {
@@ -504,11 +555,6 @@ export const getActivityTypeStyle = (type: string) => {
 
 /**
  * Generate unique key for React lists
- * @param prefix - Key prefix
- * @param id - Item ID
- * @param index - Item index
- * @param suffix - Optional suffix
- * @returns Unique key string
  */
 export const generateListKey = (prefix: string, id: any, index: number, suffix?: string): string => {
   try {
@@ -526,9 +572,6 @@ export const generateListKey = (prefix: string, id: any, index: number, suffix?:
 
 /**
  * Format activity description with safe text handling
- * @param description - Activity description
- * @param maxLength - Maximum length before truncation
- * @returns Formatted description
  */
 export const formatActivityDescription = (description: string, maxLength: number = 100): string => {
   if (!description) return '-';
@@ -548,8 +591,6 @@ export const formatActivityDescription = (description: string, maxLength: number
 
 /**
  * Get priority color for dashboard items
- * @param priority - Priority level (1-5)
- * @returns CSS color classes
  */
 export const getPriorityColor = (priority: number): { color: string; bgColor: string } => {
   const priorities: Record<number, { color: string; bgColor: string }> = {
@@ -564,10 +605,7 @@ export const getPriorityColor = (priority: number): { color: string; bgColor: st
 };
 
 /**
- * Format number with safe handling for dashboard metrics
- * @param value - Number to format
- * @param type - Format type ('currency', 'percentage', 'decimal')
- * @returns Formatted string
+ * 🔧 FIXED: Safe dashboard metric formatting
  */
 export const formatDashboardMetric = (
   value: number | null | undefined, 

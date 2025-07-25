@@ -4,7 +4,7 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useBahanBaku } from '@/contexts/BahanBakuContext';
 import { useOrder } from '@/contexts/OrderContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { filterByDateRange, calculateGrossRevenue } from '@/utils/financialUtils';
+import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
 

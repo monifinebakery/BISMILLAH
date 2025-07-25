@@ -22,7 +22,7 @@ import { getStatusText } from './constants/orderConstants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/contexts/FinancialContext';
-import { useUserSettings } from './UserSettingsContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 

@@ -11,8 +11,8 @@ import { BahanBaku, WarehouseContextType } from '@/components/warehouse/types';
 import { 
   parseDate, 
   isValidDate,
-  formatCurrency 
 } from '@/components/utils/dashboardUtils';
+import { formatCurrency } from '@/components/utils/formatUtils';   
 
 // Dependencies
 import { useAuth } from './AuthContext';

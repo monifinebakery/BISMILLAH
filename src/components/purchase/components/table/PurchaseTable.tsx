@@ -1,8 +1,8 @@
 import React, { Suspense } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { usePurchaseTable } from './context/PurchaseTableContext';
-import { usePurchaseOperations } from './hooks/usePurchaseOperations';
+import { usePurchaseTable } from '../../context/PurchaseTableContext';
+import { usePurchaseOperations } from '../../hooks/usePurchaseOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
 import PurchaseTableControls from './PurchaseTableControls';
 import PurchaseTableRow from './PurchaseTableRow';

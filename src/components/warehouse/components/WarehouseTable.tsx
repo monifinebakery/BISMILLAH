@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BahanBaku } from '../../types/warehouse';
+import { BahanBaku } from '../types/warehouse';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { cn } from '@/lib/utils';

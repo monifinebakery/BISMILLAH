@@ -1,5 +1,5 @@
 // src/contexts/OrderContext.tsx - FIXED VERSION
-// Enhanced error handling & compatibility with unified components
+// Enhanced error handling & improved subscription management
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -550,11 +550,57 @@ const useOrderOperations = (
   };
 };
 
+// 🔧 FIXED: Connection state management
+const useConnectionManager = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout>();
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
+  const baseRetryDelay = 1000; // 1 second
+
+  const resetConnection = useCallback(() => {
+    setIsConnected(false);
+    retryCountRef.current = 0;
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+  }, []);
+
+  const handleConnectionError = useCallback((callback: () => void) => {
+    setIsConnected(false);
+    retryCountRef.current += 1;
+    
+    if (retryCountRef.current <= maxRetries) {
+      const delay = baseRetryDelay * Math.pow(2, retryCountRef.current - 1); // Exponential backoff
+      logger.context('OrderContext', `Retrying connection in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+      
+      connectionTimeoutRef.current = setTimeout(() => {
+        callback();
+      }, delay);
+    } else {
+      logger.error('OrderContext', 'Max connection retries reached');
+    }
+  }, []);
+
+  const cleanup = useCallback(() => {
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+  }, []);
+
+  return {
+    isConnected,
+    setIsConnected,
+    resetConnection,
+    handleConnectionError,
+    cleanup
+  };
+};
+
 // Provider Component
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
 
   const { user } = useAuth();
   const { addActivity } = useActivity();
@@ -564,6 +610,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMountedRef = useRef<boolean>(true);
+  const connectionManager = useConnectionManager();
 
   // Custom hook for operations
   const operations = useOrderOperations(
@@ -580,7 +627,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     user: user?.id,
     orderCount: orders.length,
     loading,
-    connected: isConnected
+    connected: connectionManager.isConnected
   });
 
   // 🔧 FIXED: Enhanced data fetching with better error handling
@@ -642,7 +689,97 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     await fetchOrders();
   }, [fetchOrders]);
 
-  // 🔧 FIXED: Enhanced subscription setup
+  // 🔧 FIXED: Robust subscription management
+  const setupSubscription = useCallback(() => {
+    if (!user || !isMountedRef.current) return;
+
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      logger.context('OrderContext', 'Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    logger.context('OrderContext', 'Setting up new subscription for user:', user.id);
+
+    try {
+      const channel = supabase
+        .channel(`orders_changes_${user.id}_${Date.now()}`) // Add timestamp to make unique
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          if (!isMountedRef.current) return;
+          
+          logger.context('OrderContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+          
+          // 🔧 FIXED: Safe real-time state updates
+          setOrders((prevOrders) => {
+            try {
+              let newOrders = [...prevOrders];
+              
+              if (payload.eventType === 'DELETE' && payload.old?.id) {
+                newOrders = newOrders.filter((item) => item.id !== payload.old.id);
+                logger.context('OrderContext', 'Order deleted via real-time:', payload.old.id);
+              }
+              
+              if (payload.eventType === 'INSERT' && payload.new) {
+                const newOrder = transformOrderFromDB(payload.new);
+                newOrders = [newOrder, ...newOrders].sort((a, b) => 
+                  new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+                );
+                logger.context('OrderContext', 'Order added via real-time:', newOrder.id);
+              }
+              
+              if (payload.eventType === 'UPDATE' && payload.new) {
+                const updatedOrder = transformOrderFromDB(payload.new);
+                newOrders = newOrders.map((item) =>
+                  item.id === updatedOrder.id ? updatedOrder : item
+                );
+                logger.context('OrderContext', 'Order updated via real-time:', updatedOrder.id);
+              }
+              
+              return newOrders;
+            } catch (error) {
+              console.error('OrderContext: Error processing real-time update:', error);
+              return prevOrders; // Return previous state on error
+            }
+          });
+        })
+        .subscribe((status) => {
+          if (!isMountedRef.current) return;
+          
+          logger.context('OrderContext', 'Subscription status:', status);
+          
+          switch (status) {
+            case 'SUBSCRIBED':
+              connectionManager.setIsConnected(true);
+              subscriptionRef.current = channel;
+              // Initial data load after subscription is ready
+              fetchOrders();
+              break;
+              
+            case 'CHANNEL_ERROR':
+            case 'TIMED_OUT':
+            case 'CLOSED':
+              logger.error('OrderContext', 'Subscription error:', status);
+              subscriptionRef.current = null;
+              connectionManager.handleConnectionError(setupSubscription);
+              break;
+              
+            default:
+              break;
+          }
+        });
+    } catch (error) {
+      logger.error('OrderContext', 'Error setting up subscription:', error);
+      connectionManager.handleConnectionError(setupSubscription);
+    }
+  }, [user, fetchOrders, connectionManager]);
+
+  // 🔧 FIXED: Subscription setup effect
   useEffect(() => {
     if (!user) {
       // Clean up if no user
@@ -653,84 +790,12 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
       setOrders([]);
       setLoading(false);
-      setIsConnected(false);
+      connectionManager.resetConnection();
       return;
     }
 
-    // Don't setup multiple subscriptions
-    if (subscriptionRef.current) {
-      logger.context('OrderContext', 'Subscription already exists for user:', user.id);
-      return;
-    }
-
-    logger.context('OrderContext', 'Setting up subscription for user:', user.id);
-
-    const channel = supabase
-      .channel(`orders_changes_${user.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'orders',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        if (!isMountedRef.current) return;
-        
-        logger.context('OrderContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
-        
-        // 🔧 FIXED: Safe real-time state updates
-        setOrders((prevOrders) => {
-          try {
-            let newOrders = [...prevOrders];
-            
-            if (payload.eventType === 'DELETE' && payload.old?.id) {
-              newOrders = newOrders.filter((item) => item.id !== payload.old.id);
-              logger.context('OrderContext', 'Order deleted via real-time:', payload.old.id);
-            }
-            
-            if (payload.eventType === 'INSERT' && payload.new) {
-              const newOrder = transformOrderFromDB(payload.new);
-              newOrders = [newOrder, ...newOrders].sort((a, b) => 
-                new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-              );
-              logger.context('OrderContext', 'Order added via real-time:', newOrder.id);
-            }
-            
-            if (payload.eventType === 'UPDATE' && payload.new) {
-              const updatedOrder = transformOrderFromDB(payload.new);
-              newOrders = newOrders.map((item) =>
-                item.id === updatedOrder.id ? updatedOrder : item
-              );
-              logger.context('OrderContext', 'Order updated via real-time:', updatedOrder.id);
-            }
-            
-            return newOrders;
-          } catch (error) {
-            console.error('OrderContext: Error processing real-time update:', error);
-            return prevOrders; // Return previous state on error
-          }
-        });
-      })
-      .subscribe((status) => {
-        logger.context('OrderContext', 'Subscription status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'SUBSCRIBED') {
-          subscriptionRef.current = channel;
-          // Initial data load after subscription is ready
-          fetchOrders();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          logger.error('OrderContext', 'Subscription error:', status);
-          subscriptionRef.current = null;
-          setIsConnected(false);
-          // Retry subscription after a delay
-          setTimeout(() => {
-            if (isMountedRef.current && user) {
-              logger.context('OrderContext', 'Retrying subscription...');
-              // This will trigger the effect again due to user dependency
-            }
-          }, 5000);
-        }
-      });
+    // Setup subscription
+    setupSubscription();
 
     // Cleanup function
     return () => {
@@ -739,16 +804,22 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
+      connectionManager.cleanup();
     };
-  }, [user?.id]); // Only depend on user ID to avoid unnecessary re-subscriptions
+  }, [user?.id, setupSubscription, connectionManager]);
 
   // 🔧 FIXED: Component cleanup tracking
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      connectionManager.cleanup();
     };
-  }, []);
+  }, [connectionManager]);
 
   // 🔧 FIXED: Enhanced utility methods with error handling
   const getOrderById = useCallback((id: string): Order | undefined => {
@@ -810,7 +881,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     deleteOrder: operations.deleteOrder,
     
     // Enhanced features
-    isConnected,
+    isConnected: connectionManager.isConnected,
     refreshData,
     getOrderById,
     getOrdersByStatus,
@@ -822,7 +893,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   logger.context('OrderContext', 'Providing context value:', {
     orderCount: orders.length,
     loading,
-    connected: isConnected
+    connected: connectionManager.isConnected
   });
 
   return (

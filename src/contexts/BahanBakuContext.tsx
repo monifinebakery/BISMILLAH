@@ -7,16 +7,18 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // Import modular warehouse types and utils
-import { BahanBaku, WarehouseContextType } from '@/types';
-import { parseDate } from '@/utils/dashboardUtils';
-import { isValidDate } from '@/utils/dashboardUtils';
-import { formatCurrency } from '@/utils/formatUtils';   
+import { BahanBaku, WarehouseContextType } from '@/components/warehouse/types';
+import { 
+  parseDate, 
+  isValidDate,
+  formatCurrency 
+} from '@/components/warehouse/utils';
 
 // Dependencies
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useNotification } from './NotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
+import { createNotificationHelper } from '../utils/notificationHelpers';
 
 // Enhanced context interface extending the modular one
 interface BahanBakuContextType extends WarehouseContextType {

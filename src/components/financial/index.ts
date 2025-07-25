@@ -5,11 +5,71 @@
 // MAIN COMPONENTS (Lazy-loaded)
 // ===========================================
 
-import FinancialCharts from './components/FinancialCharts';
-import CategoryCharts from './components/CategoryCharts';
-import TransactionTable from './components/TransactionTable';
-import FinancialTransactionDialog from '@/components/financial/components/dialogs/FinancialTransactionDialog';
-import CategoryManagementDialog from '@/components/financial/components/dialogs/CategoryManagementDialog';
+import FinancialReportPageComponent from './FinancialReportPage';
+import FinancialChartsComponent from './components/FinancialCharts';
+import CategoryChartsComponent from './components/CategoryCharts';
+import TransactionTableComponent from './components/TransactionTable';
+import FinancialTransactionDialogComponent from './dialogs/FinancialTransactionDialog';
+import CategoryManagementDialogComponent from './dialogs/CategoryManagementDialog';
+
+// Hook imports
+import {
+  useFinancialData as useFinancialDataHook,
+  useFinancialChartData as useFinancialChartDataHook,
+  usePagination as usePaginationHook,
+  useFinancialForm as useFinancialFormHook,
+  default as FinancialHooksDefault
+} from './hooks/useFinancialData';
+
+import {
+  useFilteredTransactions as useFilteredTransactionsHook,
+  useTransactionOperations as useTransactionOperationsHook,
+  useCategoryData as useCategoryDataHook,
+  useRecentTransactions as useRecentTransactionsHook,
+  useTransactionSearch as useTransactionSearchHook,
+  useBatchOperations as useBatchOperationsHook,
+  FinancialContextHooks as FinancialContextHooksDefault
+} from './hooks/useFinancialContext';
+
+// Constants imports
+import {
+  CHART_CONFIG as ChartConfigConst,
+  DEFAULT_CATEGORIES as DefaultCategoriesConst,
+  PAGINATION_CONFIG as PaginationConfigConst,
+  VALIDATION_RULES as ValidationRulesConst,
+  ERROR_MESSAGES as ErrorMessagesConst,
+  DATE_PRESETS as DatePresetsConst,
+  TRANSACTION_TYPES as TransactionTypesConst,
+  FORMAT_CONFIG as FormatConfigConst,
+  UI_CONFIG as UIConfigConst,
+  ChartConstants as ChartConstantsObj,
+  FormConstants as FormConstantsObj,
+  UIConstants as UIConstantsObj,
+  FormatConstants as FormatConstantsObj,
+  default as FinancialConstantsDefault
+} from './constants';
+
+// Utils imports (re-export from utils)
+import {
+  filterByDateRange as filterByDateRangeUtil,
+  filterByType as filterByTypeUtil,
+  filterByCategory as filterByCategoryUtil,
+  calculateTotalIncome as calculateTotalIncomeUtil,
+  calculateTotalExpense as calculateTotalExpenseUtil,
+  calculateGrossRevenue as calculateGrossRevenueUtil,
+  calculateFinancialSummary as calculateFinancialSummaryUtil,
+  calculateCategoryTotals as calculateCategoryTotalsUtil,
+  groupByCategory as groupByCategoryUtil,
+  groupByType as groupByTypeUtil,
+  validateTransaction as validateTransactionUtil,
+  formatTransactionForDisplay as formatTransactionForDisplayUtil,
+  FinancialFilters as FinancialFiltersObj,
+  FinancialCalculations as FinancialCalculationsObj,
+  FinancialGrouping as FinancialGroupingObj,
+  FinancialValidation as FinancialValidationObj,
+  FinancialFormatting as FinancialFormattingObj,
+  default as FinancialUtilsDefault
+} from '@/utils/financialUtils';
 
 export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';
 

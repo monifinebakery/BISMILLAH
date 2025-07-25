@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Calculator, Package, Users, Info } from 'lucide-react';
-import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { Recipe, NewRecipe, RecipeIngredient } from '@/types/recipe';
 import { formatCurrency } from '@/utils/formatUtils';

@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Purchase } from '@/types/supplier';
 import { PurchaseService } from './services/purchaseService';
-import { validateBulkDelete } from './services/purchaseValidators';
-import { getSupplierName } from './services/purchaseTransformers';
+import { validateBulkDelete } from '../services/purchaseValidators';
+import { getSupplierName } from '../services/purchaseTransformers';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';

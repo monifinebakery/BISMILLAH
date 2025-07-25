@@ -1,5 +1,5 @@
 // src/components/orders/constants/orderConstants.ts
-import { OrderStatus, OrderStatusOption } from '../types';
+import { OrderStatus, OrderStatusOption } from './types';
 
 export const ORDER_STATUS_CONFIG: Record<OrderStatus, OrderStatusOption> = {
   pending: {

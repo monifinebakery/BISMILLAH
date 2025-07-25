@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { id } from 'date-fns/locale';
 import { DateRange } from '/types/order';
-import { formatDateRange, isValidDate, parseDate } from '@/utils/dashboardUtils';
+import { formatDateRange, isValidDate, parseDate } from '@/utils/unifiedDateUtils';
 import DatePresets from './DatePresets';
 
 interface DateRangePickerProps {

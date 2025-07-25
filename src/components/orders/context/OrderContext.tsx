@@ -20,7 +20,7 @@ import { getStatusText } from './constants/orderConstants';
 
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
-import { useActivity } from './ActivityContext';
+import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from './FinancialContext';
 import { useUserSettings } from './UserSettingsContext';
 import { useNotification } from './NotificationContext';

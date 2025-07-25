@@ -7,7 +7,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // Import modular warehouse types and utils
-import { BahanBaku, WarehouseContextType } from '@/components/warehouse/types';
+import { BahanBaku, WarehouseContextType } from './types';
 import { 
   parseDate, 
   isValidDate,

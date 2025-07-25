@@ -1,7 +1,7 @@
 // src/components/orders/utils/filterUtils.ts (FIXED VERSION)
 import { Order, OrderFilters, DateRange } from '../types';
 import { isValidDate, isDateInRange } from '@/utils/unifiedDateUtils';
-import { parseDate } from './dashboardUtils';
+import { parseDate } from '@/utils/unifiedDateUtils';
 
 export const filterOrders = (
   orders: Order[], 

@@ -25,32 +25,32 @@ export const PurchaseHooks = {
 // Components - lazy loaded with React.lazy
 export const PurchaseComponents = {
   // Main page component
-  ManagementPage: () => import('./components/layout/PurchasePage').then(m => m.default),
+  ManagementPage: () => import('../layout/PurchasePage').then(m => m.default),
   
   // Layout components
-  Header: () => import('./components/layout/PurchaseHeader').then(m => m.default),
+  Header: () => import('../layout/PurchaseHeader').then(m => m.default),
   
   // Table components
-  Table: () => import('./components/table/PurchaseTable').then(m => m.default),
-  TableRow: () => import('./components/table/PurchaseTableRow').then(m => m.default),
-  TableControls: () => import('./components/table/PurchaseTableControls').then(m => m.default),
-  BulkToolbar: () => import('./components/table/BulkActionsToolbar').then(m => m.default),
-  Pagination: () => import('./components/table/PaginationFooter').then(m => m.default),
+  Table: () => import('../table/PurchaseTable').then(m => m.default),
+  TableRow: () => import('../table/PurchaseTableRow').then(m => m.default),
+  TableControls: () => import('../table/PurchaseTableControls').then(m => m.default),
+  BulkToolbar: () => import('../table/BulkActionsToolbar').then(m => m.default),
+  Pagination: () => import('../table/PaginationFooter').then(m => m.default),
   
   // Form components
-  Dialog: () => import('./components/forms/PurchaseDialog').then(m => m.default),
-  Form: () => import('./components/forms/PurchaseForm').then(m => m.default),
-  ItemForm: () => import('./components/forms/ItemForm').then(m => m.default),
-  ItemsTable: () => import('./components/forms/ItemsTable').then(m => m.default),
+  Dialog: () => import('../forms/PurchaseDialog').then(m => m.default),
+  Form: () => import('../forms/PurchaseForm').then(m => m.default),
+  ItemForm: () => import('../forms/ItemForm').then(m => m.default),
+  ItemsTable: () => import('../forms/ItemsTable').then(m => m.default),
   
   // Dialog components
-  BulkDeleteDialog: () => import('./components/dialogs/BulkDeleteDialog').then(m => m.default),
-  ConfirmationDialog: () => import('./components/dialogs/ConfirmationDialog').then(m => m.default),
+  BulkDeleteDialog: () => import('../dialogs/BulkDeleteDialog').then(m => m.default),
+  ConfirmationDialog: () => import('../dialogs/ConfirmationDialog').then(m => m.default),
   
   // State components
-  EmptyState: () => import('./components/states/EmptyPurchaseState').then(m => m.default),
-  LoadingState: () => import('./components/states/LoadingPurchaseState').then(m => m.default),
-  ErrorState: () => import('./components/states/ErrorPurchaseState').then(m => m.default),
+  EmptyState: () => import('../states/EmptyPurchaseState').then(m => m.default),
+  LoadingState: () => import('../states/LoadingPurchaseState').then(m => m.default),
+  ErrorState: () => import('../states/ErrorPurchaseState').then(m => m.default),
 };
 
 // Types - immediately available

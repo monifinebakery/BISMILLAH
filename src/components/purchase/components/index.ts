@@ -8,39 +8,39 @@ export const PurchasePage = () => import('../layout/PurchasePage').then(m => ({ 
 
 // Table components - lazy loaded
 export const PurchaseTableComponents = {
-  Table: () => import('./table/PurchaseTable').then(m => ({ default: m.default })),
-  TableRow: () => import('./table/PurchaseTableRow').then(m => ({ default: m.default })),
-  TableControls: () => import('./table/PurchaseTableControls').then(m => ({ default: m.default })),
-  BulkToolbar: () => import('./table/BulkActionsToolbar').then(m => ({ default: m.default })),
-  Pagination: () => import('./table/PaginationFooter').then(m => ({ default: m.default })),
+  Table: () => import('../table/PurchaseTable').then(m => ({ default: m.default })),
+  TableRow: () => import('../table/PurchaseTableRow').then(m => ({ default: m.default })),
+  TableControls: () => import('../table/PurchaseTableControls').then(m => ({ default: m.default })),
+  BulkToolbar: () => import('../table/BulkActionsToolbar').then(m => ({ default: m.default })),
+  Pagination: () => import('../table/PaginationFooter').then(m => ({ default: m.default })),
 };
 
 // Form components - lazy loaded
 export const PurchaseFormComponents = {
-  Dialog: () => import('./forms/PurchaseDialog').then(m => ({ default: m.default })),
-  Form: () => import('./forms/PurchaseForm').then(m => ({ default: m.default })),
-  ItemForm: () => import('./forms/ItemForm').then(m => ({ default: m.default })),
-  ItemsTable: () => import('./forms/ItemsTable').then(m => ({ default: m.default })),
+  Dialog: () => import('../forms/PurchaseDialog').then(m => ({ default: m.default })),
+  Form: () => import('../forms/PurchaseForm').then(m => ({ default: m.default })),
+  ItemForm: () => import('../forms/ItemForm').then(m => ({ default: m.default })),
+  ItemsTable: () => import('../forms/ItemsTable').then(m => ({ default: m.default })),
 };
 
 // Dialog components - lazy loaded
 export const PurchaseDialogComponents = {
-  BulkDelete: () => import('./dialogs/BulkDeleteDialog').then(m => ({ default: m.default })),
+  BulkDelete: () => import('../dialogs/BulkDeleteDialog').then(m => ({ default: m.default })),
 };
 
 // State components - immediately available for error boundaries
-export { default as LoadingPurchaseState } from './states/LoadingPurchaseState';
-export { default as EmptyPurchaseState } from './states/EmptyPurchaseState';
-export { default as ErrorPurchaseState } from './states/ErrorPurchaseState';
+export { default as LoadingPurchaseState } from '../states/LoadingPurchaseState';
+export { default as EmptyPurchaseState } from '../states/EmptyPurchaseState';
+export { default as ErrorPurchaseState } from '../states/ErrorPurchaseState';
 
 // React lazy components for routing
 export const LazyPurchaseComponents = {
-  Page: React.lazy(() => import('./layout/PurchasePage')),
-  Table: React.lazy(() => import('./table/PurchaseTable')),
-  Dialog: React.lazy(() => import('./forms/PurchaseDialog')),
-  Form: React.lazy(() => import('./forms/PurchaseForm')),
-  BulkToolbar: React.lazy(() => import('./table/BulkActionsToolbar')),
-  Pagination: React.lazy(() => import('./table/PaginationFooter')),
+  Page: React.lazy(() => import('../layout/PurchasePage')),
+  Table: React.lazy(() => import('../table/PurchaseTable')),
+  Dialog: React.lazy(() => import('../forms/PurchaseDialog')),
+  Form: React.lazy(() => import('../forms/PurchaseForm')),
+  BulkToolbar: React.lazy(() => import('../table/BulkActionsToolbar')),
+  Pagination: React.lazy(() => import('../table/PaginationFooter')),
 };
 
 // Component factory functions

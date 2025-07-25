@@ -2,13 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Purchase } from '@/types/supplier';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { useActivity } from '@/contexts/ActivityContext';
+import { useAuth } from './AuthContext';
+import { useActivity } from './ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dashboardUtils';
-import { useFinancial } from '@/contexts/FinancialContext';
-import { useSupplier } from '@/contexts/SupplierContext';
+import { useFinancial } from './FinancialContext';
+import { useSupplier } from './SupplierContext';
 import { logger } from '@/utils/logger';
-// 🔔 FIXED NOTIFICATION IMPORTS
+import { useLocation } from 'react-router-dom';
+
+// 🎯 TARGETED FIX: Import notification context with restrictions
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -30,8 +32,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { addActivity } = useActivity();
   const { addFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
+  const location = useLocation();
   
-  // 🔔 ADD NOTIFICATION HOOK
+  // 🎯 CRITICAL FIX: Restricted notification context for purchase
   const { addNotification } = useNotification();
 
   const transformPurchaseFromDB = (dbItem: any): Purchase => ({
@@ -47,7 +50,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     metodePerhitungan: dbItem.metode_perhitungan || 'FIFO',
   });
 
-  // 🔔 HELPER FUNCTION FOR STATUS TEXT
+  // 🎯 HELPER: Get supplier name safely
   const getStatusDisplayText = (status: string): string => {
     const statusMap: { [key: string]: string } = {
       'pending': 'Menunggu',
@@ -57,10 +60,33 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     return statusMap[status] || status;
   };
 
-  // 🔔 HELPER FUNCTION TO GET SUPPLIER NAME
+  // 🎯 HELPER: Get supplier name safely
   const getSupplierName = (supplierId: string): string => {
     const supplier = suppliers.find(s => s.id === supplierId);
     return supplier?.nama || 'Supplier';
+  };
+
+  // 🎯 CRITICAL FIX: Purchase-specific notification helper
+  const createPurchaseNotification = async (
+    title: string, 
+    message: string, 
+    type: 'success' | 'info' | 'warning' | 'error' = 'success',
+    priority: number = 2,
+    purchaseId?: string
+  ) => {
+    // Only create purchase-related notifications, never inventory
+    await addNotification({
+      title,
+      message,
+      type,
+      icon: 'shopping-cart',
+      priority,
+      related_type: 'purchase',
+      related_id: purchaseId,
+      action_url: '/pembelian',
+      is_read: false,
+      is_archived: false
+    });
   };
 
   useEffect(() => {
@@ -83,18 +109,25 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.error('Error fetching purchases:', error);
           toast.error(`Gagal memuat pembelian: ${error.message}`);
           
-          // 🔔 NOTIFY SYSTEM ERROR
-          await addNotification(createNotificationHelper.systemError(
-            `Gagal memuat data pembelian: ${error.message}`
-          ));
+          // 🎯 FIX: Only create purchase-related system errors
+          await createPurchaseNotification(
+            '❌ Error Sistem',
+            `Gagal memuat data pembelian: ${error.message}`,
+            'error',
+            4
+          );
         } else if (data) {
           setPurchases(data.map(transformPurchaseFromDB));
+          logger.context('PurchaseContext', 'Loaded purchases:', data.length);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Unexpected error:', error);
-        await addNotification(createNotificationHelper.systemError(
-          `Error tidak terduga saat memuat pembelian: ${error.message}`
-        ));
+        await createPurchaseNotification(
+          '❌ Error Sistem',
+          `Error tidak terduga saat memuat pembelian: ${error.message}`,
+          'error',
+          4
+        );
       } finally {
         setIsLoading(false);
       }
@@ -133,7 +166,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     return () => { 
       supabase.removeChannel(channel); 
     };
-  }, [user, addNotification]);
+  }, [user]);
 
   const addPurchase = async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
     if (!user) {
@@ -174,28 +207,26 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Success toast
       toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
 
-      // 🔔 CREATE SUCCESS NOTIFICATION
-      await addNotification({
-        title: '📦 Pembelian Baru Dibuat!',
-        message: `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)} dengan ${itemCount} item berhasil dibuat dan stok diperbarui`,
-        type: 'success',
-        icon: 'package',
-        priority: 2,
-        related_type: 'purchase',
-        action_url: `/purchases`,
-        is_read: false,
-        is_archived: false
-      });
+      // 🎯 CRITICAL FIX: Only create purchase notifications, never inventory
+      await createPurchaseNotification(
+        '📦 Pembelian Baru Dibuat!',
+        `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)} dengan ${itemCount} item berhasil dibuat dan stok diperbarui`,
+        'success',
+        2
+      );
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding purchase:', error);
       toast.error(`Gagal memproses pembelian: ${error.message}`);
 
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal memproses pembelian: ${error.message}`
-      ));
+      // 🎯 FIX: Purchase-specific error notification
+      await createPurchaseNotification(
+        '❌ Pembelian Gagal',
+        `Gagal memproses pembelian: ${error.message}`,
+        'error',
+        4
+      );
 
       return false;
     }
@@ -259,35 +290,25 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             value: oldPurchase.totalNilai.toString()
           });
 
-          // 🔔 CREATE PURCHASE COMPLETED NOTIFICATION
-          await addNotification({
-            title: '✅ Pembelian Selesai!',
-            message: `Pembelian dari ${supplierName} senilai ${formatCurrency(oldPurchase.totalNilai)} telah selesai dan pengeluaran tercatat`,
-            type: 'success',
-            icon: 'check-circle',
-            priority: 2,
-            related_type: 'purchase',
-            related_id: id,
-            action_url: `/purchases`,
-            is_read: false,
-            is_archived: false
-          });
+          // 🎯 FIX: Purchase completed notification
+          await createPurchaseNotification(
+            '✅ Pembelian Selesai!',
+            `Pembelian dari ${supplierName} senilai ${formatCurrency(oldPurchase.totalNilai)} telah selesai dan pengeluaran tercatat`,
+            'success',
+            2,
+            id
+          );
         } else {
           toast.error('Pembelian diperbarui, tapi gagal mencatat pengeluaran.');
           
-          // 🔔 NOTIFY FINANCIAL ERROR
-          await addNotification({
-            title: '⚠️ Pembelian Diperbarui, Pengeluaran Gagal',
-            message: `Status pembelian dari ${supplierName} berhasil diubah, tetapi gagal mencatat pengeluaran ${formatCurrency(oldPurchase.totalNilai)}`,
-            type: 'warning',
-            icon: 'alert-triangle',
-            priority: 3,
-            related_type: 'purchase',
-            related_id: id,
-            action_url: `/purchases`,
-            is_read: false,
-            is_archived: false
-          });
+          // 🎯 FIX: Purchase warning notification
+          await createPurchaseNotification(
+            '⚠️ Pembelian Diperbarui, Pengeluaran Gagal',
+            `Status pembelian dari ${supplierName} berhasil diubah, tetapi gagal mencatat pengeluaran ${formatCurrency(oldPurchase.totalNilai)}`,
+            'warning',
+            3,
+            id
+          );
 
           return true;
         }
@@ -299,32 +320,31 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       } else {
         toast.success('Pembelian berhasil diperbarui.');
 
-        // 🔔 CREATE STATUS CHANGE NOTIFICATION (if status changed)
+        // 🎯 FIX: Status change notification (if status changed)
         if (newStatus && oldStatus !== newStatus) {
-          await addNotification({
-            title: '📝 Status Pembelian Diubah',
-            message: `Pembelian dari ${supplierName} diubah dari "${getStatusDisplayText(oldStatus)}" menjadi "${getStatusDisplayText(newStatus)}"`,
-            type: 'info',
-            icon: 'refresh-cw',
-            priority: 2,
-            related_type: 'purchase',
-            related_id: id,
-            action_url: `/purchases`,
-            is_read: false,
-            is_archived: false
-          });
+          await createPurchaseNotification(
+            '📝 Status Pembelian Diubah',
+            `Pembelian dari ${supplierName} diubah dari "${getStatusDisplayText(oldStatus)}" menjadi "${getStatusDisplayText(newStatus)}"`,
+            'info',
+            2,
+            id
+          );
         }
       }
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating purchase:', error);
       toast.error(`Gagal memperbarui pembelian: ${error.message}`);
 
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal memperbarui pembelian dari ${getSupplierName(oldPurchase.supplier)}: ${error.message}`
-      ));
+      // 🎯 FIX: Purchase error notification
+      await createPurchaseNotification(
+        '❌ Update Gagal',
+        `Gagal memperbarui pembelian dari ${getSupplierName(oldPurchase.supplier)}: ${error.message}`,
+        'error',
+        4,
+        id
+      );
 
       return false;
     }
@@ -365,28 +385,27 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Success toast
       toast.success('Pembelian berhasil dihapus.');
 
-      // 🔔 CREATE DELETE NOTIFICATION
-      await addNotification({
-        title: '🗑️ Pembelian Dihapus',
-        message: `Pembelian dari ${supplierName} senilai ${formatCurrency(purchaseToDelete.totalNilai)} telah dihapus dari sistem`,
-        type: 'warning',
-        icon: 'trash-2',
-        priority: 2,
-        related_type: 'purchase',
-        action_url: `/purchases`,
-        is_read: false,
-        is_archived: false
-      });
+      // 🎯 FIX: Purchase delete notification
+      await createPurchaseNotification(
+        '🗑️ Pembelian Dihapus',
+        `Pembelian dari ${supplierName} senilai ${formatCurrency(purchaseToDelete.totalNilai)} telah dihapus dari sistem`,
+        'warning',
+        2
+      );
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting purchase:', error);
       toast.error(`Gagal menghapus pembelian: ${error.message}`);
 
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal menghapus pembelian dari ${getSupplierName(purchaseToDelete.supplier)}: ${error.message}`
-      ));
+      // 🎯 FIX: Purchase delete error notification
+      await createPurchaseNotification(
+        '❌ Hapus Gagal',
+        `Gagal menghapus pembelian dari ${getSupplierName(purchaseToDelete.supplier)}: ${error.message}`,
+        'error',
+        4,
+        id
+      );
 
       return false;
     }

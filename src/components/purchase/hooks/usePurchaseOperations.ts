@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Purchase } from '@/types/supplier';
-import { PurchaseService, CreatePurchaseData, UpdatePurchaseData } from './services/purchaseService';
+import { PurchaseService, CreatePurchaseData, UpdatePurchaseData } from '../services/purchaseService';
 import { transformPurchaseFromDB, getSupplierName, formatPurchaseSummary } from '../services/purchaseTransformers';
 import { validatePurchaseForm, validateStatusChange, PurchaseFormData } from '../services/purchaseValidators';
 import { toast } from 'sonner';

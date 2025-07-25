@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { useOrder } from '@/contexts/OrderContext';
-import { useBahanBaku } from '@/components/warehouse/contexts/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { usePurchase } from '@/components/purchase/contexts/PurchaseContext';
 
 /**

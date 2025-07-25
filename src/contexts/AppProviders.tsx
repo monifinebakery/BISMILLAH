@@ -10,7 +10,7 @@ import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext'; // 🔧 FIXED: Local import path
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
-import { FinancialProvider } from './FinancialContext';
+import { FinancialProvider } from '@/components/financial/context/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 import { PromoProvider } from './PromoContext';
 import { BahanBakuProvider } from './BahanBakuContext';

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Save, RotateCcw, Eye, Code, Info, ExternalLink, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
-import { orderStatusList } from '@/constants/orderConstants';
+import { orderStatusList } from '@/components/orders/constants/orderConstants';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';

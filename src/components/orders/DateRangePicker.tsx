@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { id } from 'date-fns/locale';
-import { DateRange } from '../types';
+import { DateRange } from '/types/order';
 import { formatDateRange, isValidDate, parseDate } from '@/utils/dashboardUtils';
 import DatePresets from './DatePresets';
 

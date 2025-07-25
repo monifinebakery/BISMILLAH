@@ -16,7 +16,7 @@ import {
   formatDateForDisplay 
 } from '@/utils/unifiedDateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getStatusText } from './constants/orderConstants';
+import { getStatusText } from '../constants/orderConstants';
 
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';

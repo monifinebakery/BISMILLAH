@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Order } from '@/types/order';
+import type { Order } from '../types/order';
 
 export interface BulkDeleteDialogProps {
   isOpen: boolean;

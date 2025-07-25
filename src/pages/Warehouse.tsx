@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Plus, Package, AlertTriangle, Loader2
 } from 'lucide-react';
-import { BahanBaku, WarehouseContextType } from '../types/warehouse';
+import { BahanBaku, WarehouseContextType } from '@/components/warehouse/types/warehouse';
 import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { toast } from 'sonner';
 

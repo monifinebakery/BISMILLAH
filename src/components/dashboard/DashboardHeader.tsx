@@ -1,6 +1,6 @@
 // components/dashboard/DashboardHeader.tsx
 import React, { lazy, Suspense } from 'react';
-import { formatDateRange, parseDate } from '@/utils/dashboardUtils';
+import { formatDateRange, parseDate } from '@/utils/unifiedDateUtils';
 
 // 🚀 Lazy load DateRangePicker (heavy component)
 const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));

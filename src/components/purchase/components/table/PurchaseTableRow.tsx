@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Trash2, MoreHorizontal, Eye } from 'lucide-react';
 import { Purchase } from '@/types/supplier';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { getStatusDisplayText, getStatusColorClass } from '@/components/purchase/services/purchaseTransformers';
 import { cn } from '@/lib/utils';

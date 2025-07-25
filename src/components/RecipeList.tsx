@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Edit, Trash2, ChefHat, Users, DollarSign, Package, Calculator, TrendingUp } from "lucide-react";
 import { Recipe } from "@/types/recipe";
 import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 interface RecipeListProps {
   recipes: Recipe[];

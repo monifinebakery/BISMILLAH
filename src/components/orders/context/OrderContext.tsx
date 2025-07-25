@@ -7,7 +7,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // Import modular orders types and utils
-import { Order, NewOrder, OrderContextType } from './types/order';
+import { Order, NewOrder, OrderContextType } from '../types/order';
 import { 
   parseDate, 
   safeParseDate, 

@@ -1,5 +1,5 @@
 // src/contexts/BahanBakuContext.tsx
-// MODULAR VERSION - Integrated with Warehouse Components
+// QUICK FIX VERSION - Stop Infinite Loop
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -33,6 +33,26 @@ interface BahanBakuContextType extends WarehouseContextType {
 }
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
+
+// 🔧 QUICK FIX: Add notification deduplication
+const useNotificationDeduplicator = () => {
+  const notificationCacheRef = useRef<Map<string, number>>(new Map());
+  const CACHE_DURATION = 60000; // 1 minute
+  
+  const shouldSendNotification = (key: string): boolean => {
+    const now = Date.now();
+    const lastSent = notificationCacheRef.current.get(key);
+    
+    if (!lastSent || (now - lastSent) > CACHE_DURATION) {
+      notificationCacheRef.current.set(key, now);
+      return true;
+    }
+    
+    return false;
+  };
+  
+  return { shouldSendNotification };
+};
 
 // Utility functions (can be moved to warehouse/utils if needed)
 const transformBahanBakuFromDB = (dbItem: any): BahanBaku => ({
@@ -186,9 +206,16 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   // Custom hooks
   const selection = useWarehouseSelection();
   const analysis = useInventoryAnalysis(bahanBaku);
+  
+  // 🔧 QUICK FIX: Add deduplication
+  const { shouldSendNotification } = useNotificationDeduplicator();
 
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const alertsCheckedRef = useRef<boolean>(false);
+  
+  // 🔧 QUICK FIX: Add debounce refs
+  const alertTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastAlertCheckRef = useRef<number>(0);
 
   logger.context('BahanBakuContext', 'Provider render', { 
     user: user?.id,
@@ -197,9 +224,16 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     selectionMode: selection.isSelectionMode
   });
 
-  // Alert checking function
+  // 🔧 QUICK FIX: Debounced alert checking function
   const checkInventoryAlerts = useCallback(async (itemsToCheck?: BahanBaku[]): Promise<void> => {
     if (!user) return;
+    
+    const now = Date.now();
+    // 🔧 FIX: Prevent too frequent checks (minimum 30 seconds)
+    if (now - lastAlertCheckRef.current < 30000) {
+      return;
+    }
+    lastAlertCheckRef.current = now;
     
     const items = itemsToCheck || bahanBaku;
     if (items.length === 0) return;
@@ -219,71 +253,83 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         criticalExpiring: criticalExpiringItems.length
       });
 
-      // Create notifications for critical issues (limit to prevent spam)
+      // 🔧 FIX: Create notifications only if not sent recently (limit to prevent spam)
       for (const item of outOfStockItems.slice(0, 3)) {
-        await addNotification({
-          title: '🚫 Stok Habis!',
-          message: `${item.nama} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
-          type: 'error',
-          icon: 'alert-circle',
-          priority: 4,
-          related_type: 'inventory',
-          action_url: '/gudang',
-          is_read: false,
-          is_archived: false
-        });
+        const notificationKey = `out-of-stock-${item.id}`;
+        if (shouldSendNotification(notificationKey)) {
+          await addNotification({
+            title: '🚫 Stok Habis!',
+            message: `${item.nama} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
+            type: 'error',
+            icon: 'alert-circle',
+            priority: 4,
+            related_type: 'inventory',
+            action_url: '/gudang',
+            is_read: false,
+            is_archived: false
+          });
+        }
       }
 
       for (const item of lowStockItems.slice(0, 3)) {
-        await addNotification({
-          title: '⚠️ Stok Menipis!',
-          message: `${item.nama} tersisa ${item.stok} ${item.satuan} dari minimum ${item.minimum}. Pertimbangkan untuk melakukan pembelian.`,
-          type: 'warning',
-          icon: 'alert-triangle',
-          priority: 3,
-          related_type: 'inventory',
-          action_url: '/gudang',
-          is_read: false,
-          is_archived: false
-        });
+        const notificationKey = `low-stock-${item.id}`;
+        if (shouldSendNotification(notificationKey)) {
+          await addNotification({
+            title: '⚠️ Stok Menipis!',
+            message: `${item.nama} tersisa ${item.stok} ${item.satuan} dari minimum ${item.minimum}. Pertimbangkan untuk melakukan pembelian.`,
+            type: 'warning',
+            icon: 'alert-triangle',
+            priority: 3,
+            related_type: 'inventory',
+            action_url: '/gudang',
+            is_read: false,
+            is_archived: false
+          });
+        }
       }
 
       for (const item of criticalExpiringItems.slice(0, 2)) {
-        const daysLeft = analysis.getDaysUntilExpiry(item.tanggalKadaluwarsa);
-        await addNotification({
-          title: '🔥 Segera Expired!',
-          message: `${item.nama} akan expired dalam ${daysLeft} hari! Gunakan segera atau akan mengalami kerugian ${formatCurrency(item.stok * item.hargaSatuan)}.`,
-          type: 'error',
-          icon: 'calendar',
-          priority: 4,
-          related_type: 'inventory',
-          action_url: '/gudang',
-          is_read: false,
-          is_archived: false
-        });
+        const notificationKey = `expiring-${item.id}`;
+        if (shouldSendNotification(notificationKey)) {
+          const daysLeft = analysis.getDaysUntilExpiry(item.tanggalKadaluwarsa);
+          await addNotification({
+            title: '🔥 Segera Expired!',
+            message: `${item.nama} akan expired dalam ${daysLeft} hari! Gunakan segera atau akan mengalami kerugian ${formatCurrency(item.stok * item.hargaSatuan)}.`,
+            type: 'error',
+            icon: 'calendar',
+            priority: 4,
+            related_type: 'inventory',
+            action_url: '/gudang',
+            is_read: false,
+            is_archived: false
+          });
+        }
       }
 
       // Summary notification for multiple issues
       const totalIssues = outOfStockItems.length + lowStockItems.length + criticalExpiringItems.length;
       if (totalIssues > 5) {
-        await addNotification({
-          title: '📊 Ringkasan Alert Gudang',
-          message: `${outOfStockItems.length} habis, ${lowStockItems.length} menipis, ${criticalExpiringItems.length} akan expired`,
-          type: 'warning',
-          icon: 'alert-triangle',
-          priority: 3,
-          related_type: 'inventory',
-          action_url: '/gudang',
-          is_read: false,
-          is_archived: false
-        });
+        const summaryKey = `summary-${totalIssues}`;
+        if (shouldSendNotification(summaryKey)) {
+          await addNotification({
+            title: '📊 Ringkasan Alert Gudang',
+            message: `${outOfStockItems.length} habis, ${lowStockItems.length} menipis, ${criticalExpiringItems.length} akan expired`,
+            type: 'warning',
+            icon: 'alert-triangle',
+            priority: 3,
+            related_type: 'inventory',
+            action_url: '/gudang',
+            is_read: false,
+            is_archived: false
+          });
+        }
       }
 
       alertsCheckedRef.current = true;
     } catch (error) {
       logger.error('BahanBakuContext - Error checking inventory alerts:', error);
     }
-  }, [user, bahanBaku, addNotification, analysis]);
+  }, [user, bahanBaku, addNotification, analysis, shouldSendNotification]);
 
   // Data fetching
   const fetchBahanBaku = useCallback(async (shouldCheckAlerts: boolean = false) => {
@@ -311,10 +357,14 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       logger.context('BahanBakuContext', 'Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
 
+      // 🔧 FIX: Debounced alert checking
       if (shouldCheckAlerts && !alertsCheckedRef.current && transformedData.length > 0) {
-        setTimeout(() => {
+        if (alertTimeoutRef.current) {
+          clearTimeout(alertTimeoutRef.current);
+        }
+        alertTimeoutRef.current = setTimeout(() => {
           checkInventoryAlerts(transformedData);
-        }, 2000);
+        }, 5000); // 5 second delay
       }
     } catch (err: any) {
       logger.error('BahanBakuContext - Error fetching bahan baku:', err);
@@ -325,7 +375,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [user, addNotification, checkInventoryAlerts]);
+  }, [user, addNotification]); // 🔧 FIX: Remove checkInventoryAlerts from dependencies
 
   const refreshData = useCallback(async () => {
     await fetchBahanBaku(false);
@@ -380,16 +430,41 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
+      // 🔧 FIX: Clear timeout on cleanup
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
     };
   }, [user, selection.toggleSelection]);
 
-  // Initial data load
+  // 🔧 FIX: Separate effect for initial data load
   useEffect(() => {
     logger.context('BahanBakuContext', 'Initial data load for user:', user?.id);
     fetchBahanBaku(true);
     selection.clearSelection();
     alertsCheckedRef.current = false;
-  }, [user]);
+    lastAlertCheckRef.current = 0; // Reset alert check time
+  }, [user]); // 🔧 FIX: Only depend on user
+
+  // 🔧 FIX: Separate debounced effect for stock checking
+  useEffect(() => {
+    // Only check alerts when not loading and has data
+    if (!isLoading && bahanBaku.length > 0 && !alertsCheckedRef.current) {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      
+      alertTimeoutRef.current = setTimeout(() => {
+        checkInventoryAlerts();
+      }, 3000); // 3 second delay
+      
+      return () => {
+        if (alertTimeoutRef.current) {
+          clearTimeout(alertTimeoutRef.current);
+        }
+      };
+    }
+  }, [bahanBaku.length, isLoading]); // 🔧 FIX: Don't include checkInventoryAlerts in deps
 
   // CRUD Operations
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {

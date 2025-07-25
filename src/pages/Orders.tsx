@@ -10,10 +10,9 @@ import { useOrder } from '@/components/orders/context/OrderContext';
 // Types
 import { Order, NewOrder, OrderContextType } from '@/components/orders/types/order';
 
-// Components - ✅ Fixed imports
+// Components - ✅ No ContextError
 import {
   ErrorBoundary,
-  ContextError,
   PageLoading,
   FilterBar,
   SelectionToolbar,
@@ -39,12 +38,21 @@ const DialogLoader: React.FC = () => (
 );
 
 const OrdersPage: React.FC = () => {
-  // Get context values with proper fallbacks
+  // Get context values with simple error handling
   const contextValue = useOrder() as OrderContextType | null;
 
-  // Early return for missing context
+  // Simple fallback for missing context - no ContextError component
   if (!contextValue) {
-    return <ContextError />;
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Context pesanan tidak tersedia</p>
+          <Button onClick={() => window.location.reload()}>
+            Muat Ulang
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const {

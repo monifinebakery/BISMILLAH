@@ -18,7 +18,7 @@ import { formatCurrency } from '@//utils/formatUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { createNotificationHelper } from '../utils/notificationHelpers';
+import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Enhanced context interface extending the modular one
 interface BahanBakuContextType extends WarehouseContextType {

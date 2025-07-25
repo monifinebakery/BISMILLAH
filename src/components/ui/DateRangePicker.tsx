@@ -520,21 +520,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         
         <DialogContent className="w-[95vw] max-w-md p-0 bg-white rounded-xl shadow-xl">
           <DialogHeader className="px-4 py-3 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-lg font-semibold text-gray-800">
-                Pilih Rentang Tanggal
-              </DialogTitle>
-              <DialogClose asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 hover:bg-gray-100"
-                  onClick={handleClose}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </DialogClose>
-            </div>
+            <DialogTitle className="text-lg font-semibold text-gray-800">
+              Pilih Rentang Tanggal
+            </DialogTitle>
+            {/* 🔧 FIX: Remove manual close button - DialogClose handles this automatically */}
           </DialogHeader>
           
           <div className="flex flex-col">

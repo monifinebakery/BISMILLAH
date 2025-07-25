@@ -13,7 +13,7 @@ export { default as TableControls } from './components/TableControls';
 export { default as PaginationControls } from './components/PaginationControls';
 
 // Selection and bulk operation components
-export { default as SelectionToolbar } from './SelectionToolbar';
+export { default as SelectionToolbar } from './components/SelectionToolbar';
 
 // Loading and error components
 export * from './LoadingStates';

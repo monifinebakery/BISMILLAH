@@ -141,18 +141,21 @@ export const ContextError: React.FC = () => {
             <AlertTriangle className="w-6 h-6 text-orange-600" />
           </div>
           <CardTitle className="text-xl text-gray-900">
-            Koneksi Context Bermasalah
+            Context Tidak Tersedia
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-gray-600 text-center">
-            Tidak dapat terhubung ke context pesanan. Pastikan komponen 
-            OrderProvider sudah terpasang dengan benar.
+            Tidak dapat mengakses context pesanan. Pastikan komponen ini 
+            dibungkus dengan OrderProvider yang benar.
           </p>
           
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
             <p className="text-sm text-orange-800">
-              <strong>Solusi:</strong> Pastikan halaman ini dibungkus dengan OrderProvider
+              <strong>Penyebab umum:</strong><br/>
+              • OrderProvider belum terpasang<br/>
+              • Context tidak ter-provide dengan benar<br/>
+              • Import path yang salah
             </p>
           </div>
           
@@ -249,7 +252,7 @@ export const DialogLoader: React.FC = () => (
 );
 
 // ===========================================
-// EXPORTS
+// EXPLICIT EXPORTS - Make sure all components are exported
 // ===========================================
 
 export default {

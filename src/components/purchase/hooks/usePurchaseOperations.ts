@@ -6,7 +6,7 @@ import { validatePurchaseForm, validateStatusChange, PurchaseFormData } from '..
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useFinancial } from '@/contexts/FinancialContext';
+import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { formatCurrency } from '@/utils/formatUtils';

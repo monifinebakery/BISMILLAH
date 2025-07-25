@@ -14,7 +14,7 @@ import {
   toSafeISOString, 
   isValidDate,
   formatDateForDisplay 
-} from '@/utils/dashboardUtils';
+} from '@/utils/unifiedDateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { getStatusText } from '@/constants/orderConstants';
 

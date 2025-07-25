@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { OrderFilters, DateRange } from '@/types/order';
 import { orderStatusList } from '@/constants/orderConstants';
 import { formatDateRange } from '@/utils/unifiedDateUtils';
-import DateRangePicker from './DateRangePicker';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 interface FilterBarProps {
   filters: OrderFilters;

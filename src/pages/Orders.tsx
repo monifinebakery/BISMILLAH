@@ -1,4 +1,4 @@
-// src/components/orders/OrdersPage.tsx - FIXED VERSION
+// src/pages/Orders.tsx - FIXED VERSION dengan import yang benar
 import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,7 @@ import { useOrder } from '@/components/orders/context/OrderContext';
 // Types
 import { Order, NewOrder, OrderContextType } from '@/components/orders/types/order';
 
-// Hooks
-import { useOrderFilters, useOrderSelection, useOrderPagination } from '@/components/orders/hooks';
-
-// Core components (always loaded)
+// Components - ✅ Fixed imports
 import {
   ErrorBoundary,
   ContextError,
@@ -22,7 +19,10 @@ import {
   SelectionToolbar,
   TableControls,
   OrderTable,
-  PaginationControls
+  PaginationControls,
+  useOrderFilters,
+  useOrderSelection,
+  useOrderPagination
 } from '@/components/orders/components';
 
 // Lazy loaded components (code split)
@@ -102,7 +102,7 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
-  // 🔧 FIX: Enhanced event handlers with proper error handling
+  // Enhanced event handlers with proper error handling
   const handleNewOrder = useCallback(() => {
     try {
       setEditingOrder(null);
@@ -321,7 +321,7 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
     }
   }, []);
 
-  // 🔧 FIX: Enhanced selection event handlers
+  // Enhanced selection event handlers
   const handleToggleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       selection.toggleSelectAll(pagination.currentOrders);
@@ -351,7 +351,7 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
     }
   }, [filters.filteredOrders, selection]);
 
-  // 🔧 FIX: Safe page change handler for FilterBar
+  // Safe page change handler for FilterBar
   const handlePageChange = useCallback((page: number) => {
     try {
       if (typeof page !== 'number' || page < 1) {
@@ -412,11 +412,11 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
         disabled={loading}
       />
 
-      {/* Filter Bar - 🔧 FIXED: Compatible with unified interface */}
+      {/* Filter Bar */}
       <FilterBar
         filters={filters.filters}
         onFiltersChange={filters.updateFilters}
-        onPageChange={handlePageChange}  // ← Use safe handler
+        onPageChange={handlePageChange}
         onClearFilters={filters.clearFilters}
         disabled={loading}
       />
@@ -427,7 +427,7 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
         <TableControls
           itemsPerPage={pagination.itemsPerPage}
           onItemsPerPageChange={pagination.setItemsPerPage}
-          onPageChange={handlePageChange}  // ← Use safe handler
+          onPageChange={handlePageChange}
           isSelectionMode={selection.isSelectionMode}
           onToggleSelectionMode={selection.toggleSelectionMode}
           disabled={loading}
@@ -460,12 +460,12 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
           totalItems={pagination.totalItems}
           itemsPerPage={pagination.itemsPerPage}
           selectedCount={selection.selectedOrderIds.length}
-          onPageChange={handlePageChange}  // ← Use safe handler
+          onPageChange={handlePageChange}
           disabled={loading}
         />
       </div>
 
-      {/* Lazy Loaded Dialogs - 🔧 FIXED: Enhanced error boundaries */}
+      {/* Lazy Loaded Dialogs */}
       <Suspense fallback={<DialogLoader />}>
         {showBulkDeleteDialog && (
           <BulkDeleteDialog

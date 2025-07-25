@@ -6,7 +6,7 @@ export { default as OrderStatusCell } from './components/OrderStatusCell';
 export { default as EmptyState } from './components/EmptyState';
 
 // Filter and control components
-export { default as FilterBar } from './FilterBar';
+export { default as FilterBar } from './components/FilterBar';
 export { default as DateRangePicker } from '@/components/ui/DateRangePicker';
 export { default as DatePresets } from './DatePresets';
 export { default as TableControls } from './TableControls';

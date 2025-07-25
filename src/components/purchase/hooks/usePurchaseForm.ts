@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Purchase, PurchaseItem } from '@/types/supplier';
-import { validateItemForm, ItemFormData } from './services/purchaseValidators';
+import { validateItemForm, ItemFormData } from '../services/purchaseValidators';
 import { generateUUID } from '@/utils/uuid';
 import { toast } from 'sonner';
 

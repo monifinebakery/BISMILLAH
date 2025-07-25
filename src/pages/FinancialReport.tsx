@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import FinancialTransactionDialog from '@/components/FinancialTransactionDialog';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

@@ -177,7 +177,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <DateRangePicker
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            onDateRangeChange={handleDateRangeChange}
+            // onDateRangeChange={handleDateRangeChange} --- kita hapus
             onPageChange={onPageChange}
             placeholder="Pilih rentang tanggal"
             disabled={disabled}

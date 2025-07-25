@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { safeParseDate, toSafeISOString } from '@/utils/dashboardUtils';
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { logger } from '@/utils/logger';

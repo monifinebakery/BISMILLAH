@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { generatePageNumbers } from '@/hooks/useOrdersPagination';
+import { generatePageNumbers } from './hooks/useOrdersPagination';
 
 export interface OrdersPaginationProps {
   // Pagination State

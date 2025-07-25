@@ -1,4 +1,4 @@
-// src/components/orders/components/FilterBar.tsx - UNIFIED VERSION
+// src/components/orders/components/FilterBar.tsx - FIXED VERSION
 import React, { useMemo, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -173,16 +173,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
             />
           </div>
 
-          {/* Date Range Picker - 🔧 FIXED: Use unified interface */}
+          {/* Date Range Picker - 🔧 FIXED: Use the correct handler function */}
           <DateRangePicker
             dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            // onDateRangeChange={handleDateRangeChange} --- kita hapus
+            onDateRangeChange={handleDateRangeChange}  // ← FIX: Use handleDateRangeChange instead of setDateRange
             onPageChange={onPageChange}
             placeholder="Pilih rentang tanggal"
             disabled={disabled}
-            showPresets={true}
-            autoClose={false}
             className={disabled ? 'opacity-50 pointer-events-none' : ''}
           />
 

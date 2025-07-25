@@ -1,5 +1,5 @@
-// src/components/orders/components/DateRangePicker.tsx (FIXED VERSION)
-import React, { useState } from 'react';
+// src/components/orders/components/DateRangePicker.tsx - FIXED VERSION
+import React, { useState, useCallback } from 'react';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose, DialogHeader } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,9 +33,16 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleDateRangeChange = (newRange: DateRange | undefined) => {
+  // 🔧 FIX: Create stable callback handlers
+  const handleDateRangeChange = useCallback((newRange: DateRange | undefined) => {
     try {
       console.log('DateRangePicker: Handling date range change:', newRange);
+      
+      // Validate that onDateRangeChange is a function
+      if (typeof onDateRangeChange !== 'function') {
+        console.error('onDateRangeChange is not a function:', onDateRangeChange);
+        return;
+      }
       
       // Validate the new range
       if (newRange && newRange.from) {
@@ -63,42 +70,67 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         onDateRangeChange(newRange);
       }
       
+      // Handle page change safely
       if (onPageChange && typeof onPageChange === 'function') {
         onPageChange(1);
       }
     } catch (error) {
       console.error('Error updating date range:', error);
     }
-  };
+  }, [onDateRangeChange, onPageChange]);
 
-  const handleReset = () => {
+  // 🔧 FIX: Create safe reset handler
+  const handleReset = useCallback(() => {
     try {
-      onDateRangeChange(undefined);
+      if (typeof onDateRangeChange === 'function') {
+        onDateRangeChange(undefined);
+      }
       if (onPageChange && typeof onPageChange === 'function') {
         onPageChange(1);
       }
     } catch (error) {
       console.error('Error resetting date range:', error);
     }
-  };
+  }, [onDateRangeChange, onPageChange]);
 
-  const handleClose = () => {
-    setIsOpen(false);
-  };
+  // 🔧 FIX: Create safe close handler
+  const handleClose = useCallback(() => {
+    try {
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error closing date picker:', error);
+    }
+  }, []);
 
-  const handleApply = () => {
-    setIsOpen(false);
-  };
+  // 🔧 FIX: Create safe apply handler
+  const handleApply = useCallback(() => {
+    try {
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error applying date selection:', error);
+    }
+  }, []);
+
+  // 🔧 FIX: Safe page change handler for DatePresets
+  const handlePageChange = useCallback((page: number) => {
+    try {
+      if (onPageChange && typeof onPageChange === 'function') {
+        onPageChange(page);
+      }
+    } catch (error) {
+      console.error('Error changing page:', error);
+    }
+  }, [onPageChange]);
 
   // Get display text safely
-  const getDisplayText = () => {
+  const getDisplayText = useCallback(() => {
     try {
       return formatDateRange(dateRange) || placeholder;
     } catch (error) {
       console.warn('Error formatting date range for display:', error);
       return placeholder;
     }
-  };
+  }, [dateRange, placeholder]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -141,11 +173,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </DialogHeader>
         
         <div className="flex flex-col md:flex-row">
-          {/* Date Presets */}
+          {/* Date Presets - 🔧 FIXED: Proper function passing */}
           <div className="md:w-64 flex-shrink-0">
             <DatePresets 
-              setDateRange={onDateRangeChange} 
-              setCurrentPage={onPageChange}
+              setDateRange={handleDateRangeChange}  // ← Use stable callback
+              setCurrentPage={handlePageChange}     // ← Use safe page handler
               onClose={isMobile ? undefined : handleClose}
             />
           </div>
@@ -161,7 +193,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   : new Date()
               }
               selected={dateRange}
-              onSelect={handleDateRangeChange}
+              onSelect={handleDateRangeChange}  // ← Use stable callback
               numberOfMonths={isMobile ? 1 : 2}
               locale={id}
               className="w-full"

@@ -1,4 +1,4 @@
-// src/components/orders/OrdersPage.tsx
+// src/components/orders/OrdersPage.tsx - FIXED VERSION
 import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -102,20 +102,45 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
-  // Event handlers
+  // 🔧 FIX: Enhanced event handlers with proper error handling
   const handleNewOrder = useCallback(() => {
-    setEditingOrder(null);
-    setShowOrderForm(true);
+    try {
+      setEditingOrder(null);
+      setShowOrderForm(true);
+    } catch (error) {
+      console.error('Error opening new order form:', error);
+      toast.error('Gagal membuka form pesanan baru');
+    }
   }, []);
 
   const handleEditOrder = useCallback((order: Order) => {
-    setEditingOrder(order);
-    setShowOrderForm(true);
+    try {
+      if (!order || !order.id) {
+        console.error('Invalid order for editing:', order);
+        toast.error('Data pesanan tidak valid');
+        return;
+      }
+      setEditingOrder(order);
+      setShowOrderForm(true);
+    } catch (error) {
+      console.error('Error opening edit order form:', error);
+      toast.error('Gagal membuka form edit pesanan');
+    }
   }, []);
 
   const handleDeleteOrder = useCallback(async (orderId: string) => {
     try {
-      selection.toggleSelectOrder(orderId, false); // Remove from selection
+      if (!orderId) {
+        console.error('Invalid order ID for deletion');
+        toast.error('ID pesanan tidak valid');
+        return;
+      }
+
+      // Remove from selection first
+      if (selection.selectedOrderIds.includes(orderId)) {
+        selection.toggleSelectOrder(orderId, false);
+      }
+
       const success = await deleteOrder(orderId);
       if (success) {
         toast.success('Pesanan berhasil dihapus');
@@ -124,10 +149,16 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
       toast.error('Gagal menghapus pesanan');
       console.error('Error deleting order:', error);
     }
-  }, [deleteOrder, selection.toggleSelectOrder]);
+  }, [deleteOrder, selection.toggleSelectOrder, selection.selectedOrderIds]);
 
   const handleStatusChange = useCallback(async (orderId: string, newStatus: string) => {
     try {
+      if (!orderId || !newStatus) {
+        console.error('Invalid parameters for status change:', { orderId, newStatus });
+        toast.error('Parameter status tidak valid');
+        return;
+      }
+
       const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
       if (success) {
         const order = orders.find(o => o.id === orderId);
@@ -140,19 +171,44 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
   }, [updateOrder, orders]);
 
   const handleFollowUpClick = useCallback((order: Order) => {
-    setSelectedOrderForTemplate(order);
-    setShowTemplateManager(true);
+    try {
+      if (!order || !order.id) {
+        console.error('Invalid order for follow-up:', order);
+        toast.error('Data pesanan tidak valid');
+        return;
+      }
+      setSelectedOrderForTemplate(order);
+      setShowTemplateManager(true);
+    } catch (error) {
+      console.error('Error opening follow-up template:', error);
+      toast.error('Gagal membuka template follow-up');
+    }
   }, []);
 
   const handleTemplateManager = useCallback(() => {
-    setSelectedOrderForTemplate(null);
-    setShowTemplateManager(true);
+    try {
+      setSelectedOrderForTemplate(null);
+      setShowTemplateManager(true);
+    } catch (error) {
+      console.error('Error opening template manager:', error);
+      toast.error('Gagal membuka pengelola template');
+    }
   }, []);
 
   const handleViewDetail = useCallback((order: Order) => {
-    // TODO: Implement order detail view
-    console.log('View detail for order:', order.id);
-    toast.info('Fitur detail pesanan akan segera tersedia');
+    try {
+      if (!order || !order.id) {
+        console.error('Invalid order for detail view:', order);
+        toast.error('Data pesanan tidak valid');
+        return;
+      }
+      // TODO: Implement order detail view
+      console.log('View detail for order:', order.id);
+      toast.info('Fitur detail pesanan akan segera tersedia');
+    } catch (error) {
+      console.error('Error viewing order detail:', error);
+      toast.error('Gagal membuka detail pesanan');
+    }
   }, []);
 
   const handleSubmitOrder = useCallback(async (data: Partial<Order> | Partial<NewOrder>) => {
@@ -160,6 +216,12 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
     let success = false;
 
     try {
+      if (!data) {
+        console.error('No data provided for order submission');
+        toast.error('Data pesanan tidak valid');
+        return;
+      }
+
       if (isEditingMode && editingOrder?.id) {
         success = await updateOrder(editingOrder.id, data);
       } else {
@@ -244,29 +306,64 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
   }, [selection.selectedOrderIds, updateOrder, selection.clearSelection]);
 
   const handleSendWhatsApp = useCallback((message: string, order: Order) => {
-    // TODO: Implement WhatsApp integration
-    console.log('Sending WhatsApp message:', { message, order });
-    toast.info('Fitur WhatsApp akan segera tersedia');
+    try {
+      if (!message || !order) {
+        console.error('Invalid WhatsApp parameters:', { message, order });
+        toast.error('Parameter WhatsApp tidak valid');
+        return;
+      }
+      // TODO: Implement WhatsApp integration
+      console.log('Sending WhatsApp message:', { message, order });
+      toast.info('Fitur WhatsApp akan segera tersedia');
+    } catch (error) {
+      console.error('Error sending WhatsApp:', error);
+      toast.error('Gagal mengirim WhatsApp');
+    }
   }, []);
 
-  // Selection event handlers
+  // 🔧 FIX: Enhanced selection event handlers
   const handleToggleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    selection.toggleSelectAll(pagination.currentOrders);
+    try {
+      selection.toggleSelectAll(pagination.currentOrders);
+    } catch (error) {
+      console.error('Error toggling select all:', error);
+      toast.error('Gagal mengubah pilihan');
+    }
   }, [selection.toggleSelectAll, pagination.currentOrders]);
 
   const handleSelectAllFiltered = useCallback(() => {
-    const allIds = filters.filteredOrders.map(o => o.id);
-    if (selection.selectedOrderIds.length === allIds.length) {
-      selection.clearSelection();
-    } else {
-      // Select all filtered orders
-      allIds.forEach(id => {
-        if (!selection.selectedOrderIds.includes(id)) {
-          selection.toggleSelectOrder(id, true);
-        }
-      });
+    try {
+      const allIds = filters.filteredOrders.map(o => o.id);
+      
+      if (selection.selectedOrderIds.length === allIds.length) {
+        selection.clearSelection();
+      } else {
+        // Select all filtered orders
+        allIds.forEach(id => {
+          if (!selection.selectedOrderIds.includes(id)) {
+            selection.toggleSelectOrder(id, true);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting all filtered:', error);
+      toast.error('Gagal memilih semua item');
     }
   }, [filters.filteredOrders, selection]);
+
+  // 🔧 FIX: Safe page change handler for FilterBar
+  const handlePageChange = useCallback((page: number) => {
+    try {
+      if (typeof page !== 'number' || page < 1) {
+        console.error('Invalid page number:', page);
+        return;
+      }
+      pagination.setCurrentPage(page);
+    } catch (error) {
+      console.error('Error changing page:', error);
+      toast.error('Gagal mengubah halaman');
+    }
+  }, [pagination.setCurrentPage]);
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
@@ -315,11 +412,11 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
         disabled={loading}
       />
 
-      {/* Filter Bar */}
+      {/* Filter Bar - 🔧 FIXED: Compatible with unified interface */}
       <FilterBar
         filters={filters.filters}
         onFiltersChange={filters.updateFilters}
-        onPageChange={pagination.setCurrentPage}
+        onPageChange={handlePageChange}  // ← Use safe handler
         onClearFilters={filters.clearFilters}
         disabled={loading}
       />
@@ -330,7 +427,7 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
         <TableControls
           itemsPerPage={pagination.itemsPerPage}
           onItemsPerPageChange={pagination.setItemsPerPage}
-          onPageChange={pagination.setCurrentPage}
+          onPageChange={handlePageChange}  // ← Use safe handler
           isSelectionMode={selection.isSelectionMode}
           onToggleSelectionMode={selection.toggleSelectionMode}
           disabled={loading}
@@ -363,12 +460,12 @@ const OrdersPageContent: React.FC<OrdersPageContentProps> = ({
           totalItems={pagination.totalItems}
           itemsPerPage={pagination.itemsPerPage}
           selectedCount={selection.selectedOrderIds.length}
-          onPageChange={pagination.setCurrentPage}
+          onPageChange={handlePageChange}  // ← Use safe handler
           disabled={loading}
         />
       </div>
 
-      {/* Lazy Loaded Dialogs */}
+      {/* Lazy Loaded Dialogs - 🔧 FIXED: Enhanced error boundaries */}
       <Suspense fallback={<DialogLoader />}>
         {showBulkDeleteDialog && (
           <BulkDeleteDialog

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { usePurchaseTable } from '@/components/purchase/contexts/PurchaseTableContext';
+import { usePurchaseTable } from '@/components/purchase/context/PurchaseTableContext';
 import { cn } from '@/lib/utils';
 
 interface PaginationFooterProps {

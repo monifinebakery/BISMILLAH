@@ -148,6 +148,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   // Handle date range changes with validation
   const handleDateRangeChange = useCallback((newRange: any) => {
     try {
+      console.log('DateRangePicker: Received range:', newRange);
+      console.log('onDateRangeChange type:', typeof onDateRangeChange);
+      
+      // Check if onDateRangeChange is actually a function
+      if (typeof onDateRangeChange !== 'function') {
+        console.error('onDateRangeChange is not a function:', onDateRangeChange);
+        return;
+      }
+
       if (!newRange) {
         onDateRangeChange(undefined);
         return;
@@ -183,6 +192,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       }
     } catch (error) {
       console.error('Error updating date range:', error);
+      console.error('Error stack:', error);
     }
   }, [onDateRangeChange, onPageChange, isMobile]);
 

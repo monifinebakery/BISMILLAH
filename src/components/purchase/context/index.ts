@@ -79,9 +79,9 @@ export const PurchaseUtils = {
 
 // React lazy components for use in routing
 export const LazyPurchaseComponents = {
-  ManagementPage: React.lazy(() => import('./components/layout/PurchasePage')),
-  Table: React.lazy(() => import('./components/table/PurchaseTable')),
-  Form: React.lazy(() => import('./components/forms/PurchaseForm')),
+  ManagementPage: React.lazy(() => import('../layout/PurchasePage')),
+  Table: React.lazy(() => import('../table/PurchaseTable')),
+  Form: React.lazy(() => import('../forms/PurchaseForm')),
 };
 
 // Feature configuration and initialization

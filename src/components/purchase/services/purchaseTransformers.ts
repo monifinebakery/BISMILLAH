@@ -1,5 +1,5 @@
 import { Purchase } from '@/types/supplier';
-import { safeParseDate } from '@/utils/dashboardUtils';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 
 /**
  * Transform purchase data from database format to application format

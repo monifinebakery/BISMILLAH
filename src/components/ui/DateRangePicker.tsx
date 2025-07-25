@@ -1,4 +1,4 @@
-// components/DateRangePicker.tsx - FIXED VERSION
+// components/DateRangePicker.tsx - FINAL FIXED VERSION
 import React, { useState, useCallback, useMemo } from 'react';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -8,8 +8,15 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { id } from 'date-fns/locale';
 
-// 🔧 FIX: Use the exact same DateRange type from your types/order.ts
+// 🔧 FIX: Use exact imports from your existing files
 import { DateRange } from '@/types/order';
+import { DATE_RANGE_PRESETS } from '@/constants/orderConstants';
+import { 
+  safeParseDate, 
+  isValidDate, 
+  formatDateRange, 
+  getDateRangePreset 
+} from '@/utils/unifiedDateUtils';
 
 interface DateRangePickerProps {
   dateRange: DateRange | undefined;
@@ -21,91 +28,174 @@ interface DateRangePickerProps {
   isMobile?: boolean;
 }
 
-// 🔧 FIX: Use your existing DatePresets component
-import DatePresets from '@/components/orders/DatePresets';
+// 🔧 FIX: Inline DatePresets using your existing utilities
+const DatePresets = React.memo<{
+  setDateRange: (range: DateRange | undefined) => void;
+  onClose?: () => void;
+  setCurrentPage?: (page: number) => void;
+}>(({ setDateRange, onClose, setCurrentPage }) => {
 
-// 🔧 FIX: Utility functions that match your existing utils
-const formatDateRange = (range: DateRange | undefined): string => {
-  if (!range || !range.from) return '';
-  
-  try {
-    const fromDate = parseDate(range.from);
-    const toDate = parseDate(range.to || range.from);
+  const handlePresetClick = (key: string) => {
+    console.log('🔧 PRESET: Starting preset selection for key:', key);
     
-    if (!fromDate) return '';
-    
-    const fromStr = fromDate.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-    
-    if (!toDate || fromDate.getTime() === toDate.getTime()) {
-      return fromStr;
-    }
-    
-    const toStr = toDate.toLocaleDateString('id-ID', {
-      day: '2-digit', 
-      month: 'short',
-      year: 'numeric'
-    });
-    
-    return `${fromStr} - ${toStr}`;
-  } catch (error) {
-    console.warn('Error formatting date range:', error);
-    return '';
-  }
-};
-
-const isValidDate = (date: any): date is Date => {
-  return date instanceof Date && !isNaN(date.getTime());
-};
-
-const parseDate = (date: Date | string | undefined | null): Date | null => {
-  if (!date) return null;
-  
-  if (isValidDate(date)) return date;
-  
-  if (typeof date === 'string') {
     try {
-      const parsed = new Date(date);
-      return isValidDate(parsed) ? parsed : null;
+      // Layer 1: Validate callback
+      if (!setDateRange || typeof setDateRange !== 'function') {
+        console.error('🔧 PRESET: setDateRange is not a function:', typeof setDateRange);
+        return;
+      }
+      
+      // Layer 2: Use your existing getDateRangePreset utility
+      let range: { from: Date; to: Date };
+      
+      try {
+        range = getDateRangePreset(key);
+        console.log('🔧 PRESET: Generated range using unifiedDateUtils:', range);
+      } catch (rangeError) {
+        console.error('🔧 PRESET: getDateRangePreset failed:', rangeError);
+        // Emergency fallback
+        const now = new Date();
+        range = { from: now, to: now };
+      }
+      
+      // Layer 3: Validate generated range
+      if (!range || !range.from || !range.to) {
+        console.error('🔧 PRESET: Invalid range from getDateRangePreset:', range);
+        const now = new Date();
+        range = { from: now, to: now };
+      }
+      
+      // Layer 4: Validate dates using your utility
+      if (!isValidDate(range.from) || !isValidDate(range.to)) {
+        console.error('🔧 PRESET: Range validation failed:', range);
+        const now = new Date();
+        range = { from: now, to: now };
+      }
+      
+      console.log('🔧 PRESET: Final validated range:', {
+        from: range.from.toISOString(),
+        to: range.to.toISOString()
+      });
+      
+      // Layer 5: Set the range (compatible with your DateRange type)
+      try {
+        setDateRange(range);
+        console.log('🔧 PRESET: Successfully set date range');
+      } catch (setError) {
+        console.error('🔧 PRESET: Error calling setDateRange:', setError);
+        return;
+      }
+      
+      // Layer 6: Optional page reset
+      if (setCurrentPage && typeof setCurrentPage === 'function') {
+        try {
+          setCurrentPage(1);
+          console.log('🔧 PRESET: Reset to page 1');
+        } catch (pageError) {
+          console.warn('🔧 PRESET: Could not reset page:', pageError);
+        }
+      }
+      
+      // Layer 7: Optional dialog close
+      if (onClose && typeof onClose === 'function') {
+        try {
+          onClose();
+          console.log('🔧 PRESET: Closed dialog');
+        } catch (closeError) {
+          console.warn('🔧 PRESET: Could not close dialog:', closeError);
+        }
+      }
+      
+      console.log('🔧 PRESET: Preset selection completed successfully for:', key);
+      
     } catch (error) {
-      console.warn('Error parsing date string:', date, error);
-      return null;
+      console.error('🔧 PRESET: Critical error in handlePresetClick:', error);
+      console.error('🔧 PRESET: Error stack:', error?.stack);
+      
+      // Emergency fallback
+      try {
+        const emergencyRange = { from: new Date(), to: new Date() };
+        if (setDateRange && typeof setDateRange === 'function') {
+          setDateRange(emergencyRange);
+          console.log('🔧 PRESET: Emergency fallback successful');
+        }
+      } catch (emergencyError) {
+        console.error('🔧 PRESET: Emergency fallback failed:', emergencyError);
+      }
     }
-  }
-  
-  return null;
-};
+  };
 
-// 🔧 FIX: Convert your DateRange to Calendar-compatible format
+  try {
+    return (
+      <div className="border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50/50">
+        <div className="p-3">
+          <h4 className="font-medium text-gray-700 mb-3 text-sm">Pilih Cepat</h4>
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+            {DATE_RANGE_PRESETS.map(({ label, key }) => (
+              <Button
+                key={key}
+                variant="ghost"
+                size="sm"
+                className="justify-start text-sm hover:bg-gray-100 h-9 px-3 text-gray-700 border border-transparent hover:border-gray-200 transition-colors"
+                onClick={() => {
+                  console.log('🔧 BUTTON: Clicked preset button:', key);
+                  handlePresetClick(key);
+                }}
+                type="button"
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  } catch (renderError) {
+    console.error('🔧 RENDER: Error rendering DatePresets:', renderError);
+    
+    return (
+      <div className="border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50/50">
+        <div className="p-3">
+          <h4 className="font-medium text-gray-700 mb-3 text-sm">Pilih Cepat</h4>
+          <div className="text-sm text-red-600">
+            Error loading date presets. Please refresh the page.
+          </div>
+        </div>
+      </div>
+    );
+  }
+});
+
+DatePresets.displayName = 'DatePresets';
+
+// 🔧 FIX: Convert DateRange to Calendar-compatible format
 const convertToCalendarRange = (range: DateRange | undefined) => {
   if (!range) return undefined;
   
-  const fromDate = parseDate(range.from);
-  const toDate = parseDate(range.to);
+  const fromDate = safeParseDate(range.from);
+  const toDate = safeParseDate(range.to);
   
-  if (!fromDate) return undefined;
+  if (!fromDate || !isValidDate(fromDate)) return undefined;
   
   return {
     from: fromDate,
-    to: toDate || fromDate
+    to: (toDate && isValidDate(toDate)) ? toDate : fromDate
   };
 };
 
-// 🔧 FIX: Convert Calendar range back to your DateRange format
+// 🔧 FIX: Convert Calendar range back to DateRange format
 const convertFromCalendarRange = (calendarRange: any): DateRange | undefined => {
   if (!calendarRange || !calendarRange.from) return undefined;
   
-  const fromDate = parseDate(calendarRange.from);
-  const toDate = parseDate(calendarRange.to || calendarRange.from);
+  const fromDate = safeParseDate(calendarRange.from);
+  const toDate = safeParseDate(calendarRange.to || calendarRange.from);
   
-  if (!fromDate) return undefined;
+  if (!fromDate || !isValidDate(fromDate)) return undefined;
+  if (!toDate || !isValidDate(toDate)) return undefined;
   
   return {
     from: fromDate,
-    to: toDate || fromDate
+    to: toDate
   };
 };
 
@@ -121,62 +211,78 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // 🔧 FIX: Enhanced callback with proper validation and type conversion
-  const handleDateRangeChange = useCallback((newRange: any) => {
+  // 🔧 FIX: Safe Calendar range handler with comprehensive validation
+  const handleCalendarRangeChange = useCallback((newRange: any) => {
     try {
-      console.log('🔧 DateRangePicker: Received range from Calendar:', newRange);
-      console.log('🔧 DateRangePicker: onDateRangeChange type:', typeof onDateRangeChange);
+      console.log('🔧 CALENDAR: Received range from Calendar component:', newRange);
+      console.log('🔧 CALENDAR: onDateRangeChange type:', typeof onDateRangeChange);
       
-      // Layer 1: Validate the callback function
+      // Layer 1: Validate callback function
       if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
-        console.error('🔧 DateRangePicker: onDateRangeChange is not a function:', onDateRangeChange);
+        console.error('🔧 CALENDAR: onDateRangeChange is not a function:', onDateRangeChange);
+        console.error('🔧 CALENDAR: Received type:', typeof onDateRangeChange);
         return;
       }
 
       // Layer 2: Handle undefined/null range
       if (!newRange) {
-        console.log('🔧 DateRangePicker: Setting undefined range');
+        console.log('🔧 CALENDAR: Clearing date range (received null/undefined)');
         onDateRangeChange(undefined);
         return;
       }
 
-      // Layer 3: Convert Calendar range to your DateRange format
+      // Layer 3: Convert Calendar range format to DateRange format
       const convertedRange = convertFromCalendarRange(newRange);
-      console.log('🔧 DateRangePicker: Converted range:', convertedRange);
+      console.log('🔧 CALENDAR: Converted range:', convertedRange);
       
       if (!convertedRange) {
-        console.warn('🔧 DateRangePicker: Could not convert range, setting undefined');
+        console.warn('🔧 CALENDAR: Could not convert Calendar range, clearing');
         onDateRangeChange(undefined);
         return;
       }
 
-      // Layer 4: Apply the range
+      // Layer 4: Additional validation using your utilities
+      if (!isValidDate(convertedRange.from) || !isValidDate(convertedRange.to)) {
+        console.error('🔧 CALENDAR: Converted range failed validation:', convertedRange);
+        onDateRangeChange(undefined);
+        return;
+      }
+
+      // Layer 5: Apply the range
       onDateRangeChange(convertedRange);
-      console.log('🔧 DateRangePicker: Successfully applied range');
+      console.log('🔧 CALENDAR: Successfully applied converted range');
       
-      // Layer 5: Reset page if callback provided
+      // Layer 6: Reset page if callback provided
       if (onPageChange && typeof onPageChange === 'function') {
         try {
           onPageChange(1);
+          console.log('🔧 CALENDAR: Reset page to 1');
         } catch (pageError) {
-          console.warn('🔧 DateRangePicker: Could not reset page:', pageError);
+          console.warn('🔧 CALENDAR: Could not reset page:', pageError);
         }
       }
 
-      // Layer 6: Auto-close on mobile when range is complete
+      // Layer 7: Auto-close on mobile when range is complete
       if (isMobile && newRange.from && newRange.to) {
         setIsOpen(false);
+        console.log('🔧 CALENDAR: Auto-closed mobile dialog');
       }
       
     } catch (error) {
-      console.error('🔧 DateRangePicker: Critical error in handleDateRangeChange:', error);
-      console.error('🔧 DateRangePicker: Error stack:', error?.stack);
+      console.error('🔧 CALENDAR: Critical error in handleCalendarRangeChange:', error);
+      console.error('🔧 CALENDAR: Error name:', error?.name);
+      console.error('🔧 CALENDAR: Error message:', error?.message);
+      console.error('🔧 CALENDAR: Error stack:', error?.stack);
       
       // Emergency fallback
       try {
-        onDateRangeChange(undefined);
+        console.log('🔧 CALENDAR: Attempting emergency fallback...');
+        if (onDateRangeChange && typeof onDateRangeChange === 'function') {
+          onDateRangeChange(undefined);
+          console.log('🔧 CALENDAR: Emergency fallback completed');
+        }
       } catch (fallbackError) {
-        console.error('🔧 DateRangePicker: Even fallback failed:', fallbackError);
+        console.error('🔧 CALENDAR: Emergency fallback also failed:', fallbackError);
       }
     }
   }, [onDateRangeChange, onPageChange, isMobile]);
@@ -184,28 +290,36 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   // 🔧 FIX: Safe handler for DatePresets component
   const handlePresetDateRange = useCallback((range: DateRange | undefined) => {
     try {
-      console.log('🔧 DateRangePicker: Received preset range:', range);
+      console.log('🔧 PRESET_HANDLER: Received preset range:', range);
       
       if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
-        console.error('🔧 DateRangePicker: onDateRangeChange is not a function for preset');
+        console.error('🔧 PRESET_HANDLER: onDateRangeChange is not a function');
+        return;
+      }
+
+      // Validate preset range using your utilities
+      if (range && (!isValidDate(range.from) || !isValidDate(range.to))) {
+        console.error('🔧 PRESET_HANDLER: Invalid preset range:', range);
+        onDateRangeChange(undefined);
         return;
       }
 
       onDateRangeChange(range);
+      console.log('🔧 PRESET_HANDLER: Successfully applied preset range');
       
       if (onPageChange && typeof onPageChange === 'function') {
         onPageChange(1);
       }
       
     } catch (error) {
-      console.error('🔧 DateRangePicker: Error in preset handler:', error);
+      console.error('🔧 PRESET_HANDLER: Error in preset handler:', error);
     }
   }, [onDateRangeChange, onPageChange]);
 
   const handleReset = useCallback(() => {
     try {
       if (!onDateRangeChange || typeof onDateRangeChange !== 'function') {
-        console.error('🔧 DateRangePicker: onDateRangeChange is not a function for reset');
+        console.error('🔧 RESET: onDateRangeChange is not a function');
         return;
       }
       
@@ -214,8 +328,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       if (onPageChange && typeof onPageChange === 'function') {
         onPageChange(1);
       }
+      
+      console.log('🔧 RESET: Successfully reset date range');
     } catch (error) {
-      console.error('🔧 DateRangePicker: Error resetting:', error);
+      console.error('🔧 RESET: Error resetting:', error);
     }
   }, [onDateRangeChange, onPageChange]);
 
@@ -227,17 +343,18 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setIsOpen(false);
   }, []);
 
-  // 🔧 FIX: Memoized conversions for Calendar component
+  // 🔧 FIX: Memoized conversions using your utilities
   const calendarRange = useMemo(() => {
     return convertToCalendarRange(dateRange);
   }, [dateRange]);
 
-  // Memoized display text
+  // 🔧 FIX: Memoized display text using your formatDateRange utility
   const displayText = useMemo(() => {
     try {
-      return formatDateRange(dateRange) || placeholder;
+      const formatted = formatDateRange(dateRange);
+      return formatted || placeholder;
     } catch (error) {
-      console.warn('🔧 DateRangePicker: Error formatting display text:', error);
+      console.warn('🔧 DISPLAY: Error formatting display text:', error);
       return placeholder;
     }
   }, [dateRange, placeholder]);
@@ -245,8 +362,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   // Memoized default month for calendar
   const defaultMonth = useMemo(() => {
     if (dateRange?.from) {
-      const parsed = parseDate(dateRange.from);
-      if (parsed) return parsed;
+      const parsed = safeParseDate(dateRange.from);
+      if (parsed && isValidDate(parsed)) return parsed;
     }
     return new Date();
   }, [dateRange?.from]);
@@ -278,7 +395,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       const minDate = new Date('2020-01-01');
       return date > now || date < minDate;
     } catch (error) {
-      console.warn('🔧 DateRangePicker: Date validation error:', error);
+      console.warn('🔧 VALIDATION: Date validation error:', error);
       return false;
     }
   }, []);
@@ -339,7 +456,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </DialogHeader>
           
           <div className="flex flex-col">
-            {/* Date Presets - 🔧 FIX: Use your existing component with safe handler */}
+            {/* Date Presets */}
             <DatePresets 
               setDateRange={handlePresetDateRange}
               setCurrentPage={onPageChange}
@@ -353,7 +470,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 mode="range"
                 defaultMonth={defaultMonth}
                 selected={calendarRange}
-                onSelect={handleDateRangeChange}
+                onSelect={handleCalendarRangeChange}
                 numberOfMonths={1}
                 locale={id}
                 className="w-full"
@@ -402,7 +519,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         align="end"
         sideOffset={8}
       >
-        {/* Date Presets - 🔧 FIX: Use your existing component with safe handler */}
+        {/* Date Presets */}
         <DatePresets 
           setDateRange={handlePresetDateRange}
           setCurrentPage={onPageChange}
@@ -416,7 +533,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             mode="range"
             defaultMonth={defaultMonth}
             selected={calendarRange}
-            onSelect={handleDateRangeChange}
+            onSelect={handleCalendarRangeChange}
             numberOfMonths={2}
             locale={id}
             className="w-full"

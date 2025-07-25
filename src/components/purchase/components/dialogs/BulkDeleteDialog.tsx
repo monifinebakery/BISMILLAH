@@ -6,7 +6,7 @@ import { useBulkOperations } from '@/components/purchase/hooks/useBulkOperations
 import { useSupplier } from '@/contexts/SupplierContext';
 import { formatDateForDisplay } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getSupplierName } from '../../services/purchaseTransformers';
+import { getSupplierName } from '@/components/purchase/services/purchaseTransformers';
 
 interface BulkDeleteDialogProps {
   className?: string;

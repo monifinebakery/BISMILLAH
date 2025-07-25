@@ -6,6 +6,7 @@
 // ===========================================
 
 import FinancialCharts from './components/FinancialCharts';
+import CategoryCharts from './components/FinancialCharts';
 
 export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';
 

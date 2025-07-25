@@ -3,7 +3,7 @@ import React, { lazy, Suspense } from 'react';
 import { formatDateRange, parseDate } from '@/utils/dashboardUtils';
 
 // 🚀 Lazy load DateRangePicker (heavy component)
-const DateRangePicker = lazy(() => import('./DateRangePicker'));
+const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
 
 interface Props {
   dateRange: { from: string; to: string };

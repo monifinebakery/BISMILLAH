@@ -1,12 +1,12 @@
-// contexts/NotificationContext.tsx - FIXED VERSION
-// Anti-loop protection and better real-time handling
+// contexts/NotificationContext.tsx - ENHANCED VERSION
+// Superior anti-loop protection and better real-time handling
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 
-interface Notification {
+export interface Notification {
   id: string;
   user_id: string;
   title: string;
@@ -48,9 +48,69 @@ interface NotificationContextType {
   archiveNotification: (notificationId: string) => Promise<boolean>;
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<boolean>;
   refreshNotifications: () => Promise<void>;
+  clearAllNotifications: () => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+// 🔧 ENHANCED: Advanced deduplication helper
+class NotificationDeduplicator {
+  private cache = new Map<string, number>();
+  private readonly ttl = 60000; // 1 minute TTL
+  private readonly maxSize = 1000;
+
+  private cleanup() {
+    const now = Date.now();
+    const expiredKeys: string[] = [];
+    
+    this.cache.forEach((timestamp, key) => {
+      if (now - timestamp > this.ttl) {
+        expiredKeys.push(key);
+      }
+    });
+    
+    expiredKeys.forEach(key => this.cache.delete(key));
+    
+    // If still too large, remove oldest entries
+    if (this.cache.size > this.maxSize) {
+      const entries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.cache.size - this.maxSize);
+      
+      entries.forEach(([key]) => this.cache.delete(key));
+    }
+  }
+
+  shouldAllow(key: string): boolean {
+    this.cleanup();
+    
+    const now = Date.now();
+    const lastTime = this.cache.get(key);
+    
+    if (!lastTime || (now - lastTime) > this.ttl) {
+      this.cache.set(key, now);
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Generate smart key for notification deduplication
+  generateKey(notification: Partial<Notification>): string {
+    const parts = [
+      notification.title?.toLowerCase(),
+      notification.type,
+      notification.related_type,
+      notification.related_id
+    ].filter(Boolean);
+    
+    return parts.join('|');
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -61,11 +121,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   
   const { user } = useAuth();
   
-  // Anti-loop protection
-  const recentNotificationsRef = useRef<Set<string>>(new Set());
+  // 🔧 ENHANCED: Advanced anti-loop protection
+  const deduplicatorRef = useRef(new NotificationDeduplicator());
   const lastLoadTimeRef = useRef<number>(0);
   const loadingRef = useRef<boolean>(false);
-
+  const subscriptionRef = useRef<any>(null);
+  
+  // 🔧 ENHANCED: Throttled loading with better error handling
   const loadNotifications = useCallback(async (isInitialLoad = false) => {
     if (!user) {
       setNotifications([]);
@@ -75,10 +137,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return;
     }
 
-    // Prevent rapid successive loads (throttle to max 1 per 2 seconds)
+    // 🔧 ENHANCED: More aggressive throttling
     const now = Date.now();
-    if (!isInitialLoad && now - lastLoadTimeRef.current < 2000) {
-      console.log('NotificationContext: Throttling load request');
+    if (!isInitialLoad && now - lastLoadTimeRef.current < 3000) {
+      console.log('NotificationContext: Load throttled');
       return;
     }
 
@@ -92,26 +154,37 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (isInitialLoad) setIsLoading(true);
 
     try {
+      // 🔧 ENHANCED: Better query with timestamp filtering to prevent old duplicates
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_archived', false)
+        .gte('created_at', fiveMinutesAgo) // Only recent notifications for dedup
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(50); // Reduced limit for better performance
 
       if (error) throw error;
 
       const notificationsData = data || [];
-      const unread = notificationsData.filter(n => !n.is_read).length;
-      const urgent = notificationsData.filter(n => !n.is_read && n.priority >= 3).length;
       
-      setNotifications(notificationsData);
+      // 🔧 ENHANCED: Deduplicate based on content similarity
+      const deduplicatedNotifications = notificationsData.filter((notification, index, arr) => {
+        const key = deduplicatorRef.current.generateKey(notification);
+        return arr.findIndex(n => deduplicatorRef.current.generateKey(n) === key) === index;
+      });
+
+      const unread = deduplicatedNotifications.filter(n => !n.is_read).length;
+      const urgent = deduplicatedNotifications.filter(n => !n.is_read && n.priority >= 4).length;
+      
+      setNotifications(deduplicatedNotifications);
       setUnreadCount(unread);
       setUrgentCount(urgent);
       lastLoadTimeRef.current = now;
 
-      console.log('NotificationContext: Loaded', notificationsData.length, 'notifications');
+      console.log('NotificationContext: Loaded', deduplicatedNotifications.length, 'notifications (deduplicated)');
 
       // Load settings on initial load only
       if (isInitialLoad) {
@@ -137,7 +210,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     } catch (error) {
       console.error('Error loading notifications:', error);
-      if (isInitialLoad) toast.error('Gagal memuat notifikasi');
+      if (isInitialLoad) {
+        // Only show error toast on initial load
+        toast.error('Gagal memuat notifikasi');
+      }
     } finally {
       loadingRef.current = false;
       if (isInitialLoad) setIsLoading(false);
@@ -147,144 +223,162 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   // Initial load
   useEffect(() => {
     console.log('NotificationContext: Initial load for user:', user?.id);
-    recentNotificationsRef.current.clear(); // Reset tracking
+    deduplicatorRef.current.clear(); // Reset deduplication
     loadNotifications(true);
   }, [user, loadNotifications]);
 
-  // Real-time subscription with anti-loop protection
+  // 🔧 ENHANCED: Real-time subscription with superior anti-loop protection
   useEffect(() => {
     if (!user) return;
 
-    console.log('NotificationContext: Setting up real-time subscription');
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    console.log('NotificationContext: Setting up enhanced real-time subscription');
 
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${user.id}-${Date.now()}`) // Unique channel name
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${user.id}`
       }, (payload) => {
-        console.log('NotificationContext: Real-time event:', payload.eventType, payload);
+        console.log('NotificationContext: Real-time event:', payload.eventType);
         
-        // Handle different events without triggering full reload
+        // 🔧 ENHANCED: Smart event handling
         if (payload.eventType === 'INSERT') {
           const newNotification = payload.new as Notification;
+          const notificationKey = deduplicatorRef.current.generateKey(newNotification);
           
-          // Check if we've already processed this notification recently
-          const notificationKey = `${newNotification.id}_${newNotification.created_at}`;
-          if (recentNotificationsRef.current.has(notificationKey)) {
-            console.log('NotificationContext: Duplicate notification ignored');
+          // 🔧 ENHANCED: Better deduplication check
+          if (!deduplicatorRef.current.shouldAllow(notificationKey)) {
+            console.log('NotificationContext: Duplicate real-time notification ignored:', newNotification.title);
             return;
           }
           
-          // Add to recent notifications tracking
-          recentNotificationsRef.current.add(notificationKey);
-          
-          // Update local state directly instead of full reload
+          // Update local state directly
           setNotifications(prev => {
+            // Check if notification already exists
             const exists = prev.find(n => n.id === newNotification.id);
-            if (exists) return prev; // Prevent duplicates
+            if (exists) {
+              console.log('NotificationContext: Notification already exists, skipping');
+              return prev;
+            }
             
-            const updated = [newNotification, ...prev].slice(0, 100); // Keep latest 100
+            // Add new notification and keep only latest 50
+            const updated = [newNotification, ...prev].slice(0, 50);
             return updated;
           });
           
           // Update counts
           if (!newNotification.is_read) {
             setUnreadCount(prev => prev + 1);
-            if (newNotification.priority >= 3) {
+            if (newNotification.priority >= 4) {
               setUrgentCount(prev => prev + 1);
             }
           }
           
-          // Show toast notification (with throttling)
+          // 🔧 ENHANCED: Smart toast notifications
           if (settings?.push_notifications !== false) {
-            const toastKey = `toast_${newNotification.id}`;
-            if (!recentNotificationsRef.current.has(toastKey)) {
+            const toastKey = `toast_${notificationKey}`;
+            if (deduplicatorRef.current.shouldAllow(toastKey)) {
               toast.info(newNotification.title, {
                 description: newNotification.message,
-                duration: 5000
+                duration: newNotification.priority >= 4 ? 8000 : 5000
               });
-              recentNotificationsRef.current.add(toastKey);
             }
           }
           
         } else if (payload.eventType === 'UPDATE') {
           const updatedNotification = payload.new as Notification;
           
-          setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-          );
-          
-          // Recalculate counts
-          setNotifications(current => {
-            const unread = current.filter(n => !n.is_read).length;
-            const urgent = current.filter(n => !n.is_read && n.priority >= 3).length;
+          setNotifications(prev => {
+            const updated = prev.map(n => n.id === updatedNotification.id ? updatedNotification : n);
+            
+            // Recalculate counts
+            const unread = updated.filter(n => !n.is_read).length;
+            const urgent = updated.filter(n => !n.is_read && n.priority >= 4).length;
             setUnreadCount(unread);
             setUrgentCount(urgent);
-            return current;
+            
+            return updated;
           });
           
         } else if (payload.eventType === 'DELETE') {
           setNotifications(prev => {
             const filtered = prev.filter(n => n.id !== payload.old.id);
             const unread = filtered.filter(n => !n.is_read).length;
-            const urgent = filtered.filter(n => !n.is_read && n.priority >= 3).length;
+            const urgent = filtered.filter(n => !n.is_read && n.priority >= 4).length;
             setUnreadCount(unread);
             setUrgentCount(urgent);
             return filtered;
           });
         }
-        
-        // Clean up old tracking entries periodically
-        if (recentNotificationsRef.current.size > 100) {
-          recentNotificationsRef.current.clear();
-        }
       })
       .subscribe((status) => {
-        console.log('NotificationContext: Subscription status:', status);
+        console.log('NotificationContext: Enhanced subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          subscriptionRef.current = channel;
+        }
       });
 
     return () => {
-      console.log('NotificationContext: Cleaning up subscription');
-      supabase.removeChannel(channel);
+      console.log('NotificationContext: Cleaning up enhanced subscription');
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
   }, [user, settings?.push_notifications]);
 
-  // Clean up tracking periodically
+  // 🔧 ENHANCED: Periodic cleanup
   useEffect(() => {
     const cleanup = setInterval(() => {
-      if (recentNotificationsRef.current.size > 50) {
-        console.log('NotificationContext: Cleaning up tracking cache');
-        recentNotificationsRef.current.clear();
-      }
-    }, 5 * 60 * 1000); // Every 5 minutes
+      console.log('NotificationContext: Running periodic cleanup');
+      deduplicatorRef.current.clear();
+    }, 2 * 60 * 1000); // Every 2 minutes
 
     return () => clearInterval(cleanup);
   }, []);
 
-  // Enhanced addNotification with deduplication
+  // 🔧 ENHANCED: Superior addNotification with database-level deduplication
   const addNotification = async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     if (!user) return false;
     
     try {
-      // Create a hash to check for near-duplicate notifications
-      const contentHash = `${notificationData.title}_${notificationData.message}_${notificationData.type}`;
-      const recentKey = `add_${contentHash}`;
-      
-      // Prevent adding the same notification within 30 seconds
-      if (recentNotificationsRef.current.has(recentKey)) {
-        console.log('NotificationContext: Duplicate add notification prevented');
-        return true; // Return true to avoid error handling, but don't actually add
+      // 🔧 ENHANCED: Check deduplicator first
+      const notificationKey = deduplicatorRef.current.generateKey(notificationData);
+      if (!deduplicatorRef.current.shouldAllow(notificationKey)) {
+        console.log('NotificationContext: Duplicate add notification prevented:', notificationData.title);
+        return true; // Return true to avoid error handling
       }
-      
-      recentNotificationsRef.current.add(recentKey);
-      
-      // Remove the key after 30 seconds to allow similar notifications later
-      setTimeout(() => {
-        recentNotificationsRef.current.delete(recentKey);
-      }, 30000);
+
+      // 🔧 ENHANCED: Database-level duplicate check
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: existingNotifications } = await supabase
+        .from('notifications')
+        .select('id, title, related_type, related_id')
+        .eq('user_id', user.id)
+        .eq('title', notificationData.title)
+        .gte('created_at', fiveMinutesAgo)
+        .limit(1);
+
+      if (existingNotifications && existingNotifications.length > 0) {
+        // Check if it's truly the same notification
+        const isDuplicate = existingNotifications.some(existing => 
+          existing.related_type === notificationData.related_type &&
+          existing.related_id === notificationData.related_id
+        );
+        
+        if (isDuplicate) {
+          console.log('NotificationContext: Database duplicate prevented:', notificationData.title);
+          return true;
+        }
+      }
       
       const dataToInsert = {
         ...notificationData,
@@ -296,7 +390,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const { error } = await supabase.from('notifications').insert(dataToInsert);
       if (error) throw error;
       
-      console.log('NotificationContext: Added notification:', notificationData.title);
+      console.log('NotificationContext: Successfully added notification:', notificationData.title);
       return true;
     } catch (error) {
       console.error('Error adding notification:', error);
@@ -309,7 +403,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, updated_at: new Date().toISOString() })
         .eq('id', notificationId);
       
       if (error) throw error;
@@ -325,7 +419,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, updated_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .eq('is_read', false);
       
@@ -358,13 +452,38 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_archived: true })
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
         .eq('id', notificationId);
       
       if (error) throw error;
       return true;
     } catch (error) {
       console.error('Error archiving notification:', error);
+      return false;
+    }
+  };
+
+  // 🔧 ENHANCED: New method to clear all notifications
+  const clearAllNotifications = async (): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setNotifications([]);
+      setUnreadCount(0);
+      setUrgentCount(0);
+      deduplicatorRef.current.clear();
+      
+      toast.success('Semua notifikasi telah dihapus');
+      return true;
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      toast.error('Gagal menghapus semua notifikasi');
       return false;
     }
   };
@@ -377,7 +496,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         .upsert({ 
           user_id: user.id, 
           ...settings, 
-          ...newSettings 
+          ...newSettings,
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -395,6 +515,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const refreshNotifications = useCallback(async () => {
     console.log('NotificationContext: Manual refresh requested');
+    deduplicatorRef.current.clear(); // Clear cache before refresh
     await loadNotifications(true);
   }, [loadNotifications]);
 
@@ -411,6 +532,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     archiveNotification,
     updateSettings,
     refreshNotifications,
+    clearAllNotifications,
   };
 
   return (

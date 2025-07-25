@@ -5,7 +5,7 @@ import {
   Plus, Package, AlertTriangle, Loader2
 } from 'lucide-react';
 import { BahanBaku, WarehouseContextType } from '../types/warehouse';
-import { useBahanBaku } from '@/contexts/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { toast } from 'sonner';
 
 // Static imports for core components

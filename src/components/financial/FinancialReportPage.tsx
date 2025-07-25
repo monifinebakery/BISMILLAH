@@ -14,21 +14,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFinancial } from './contexts/FinancialContext';
-import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from './utils/financialUtils';
+import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from './utils/financialUtils'; // Asumsi ada folder utils
 
-// ===========================================
-// LAZY LOADED COMPONENTS - Code Splitting
-// ===========================================
-
-// Chart Components - Heavy charts loaded lazily
+// ... lazy loaded components ...
 const FinancialCharts = React.lazy(() => import('./components/FinancialCharts'));
 const CategoryCharts = React.lazy(() => import('./components/CategoryCharts'));
-
-// Transaction Components
 const TransactionTable = React.lazy(() => import('./components/TransactionTable'));
 const FinancialTransactionDialog = React.lazy(() => import('./dialogs/FinancialTransactionDialog'));
-
-// Management Components
 const CategoryManagementDialog = React.lazy(() => import('./dialogs/CategoryManagementDialog'));
 
 // ===========================================

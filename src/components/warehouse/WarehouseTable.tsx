@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { BahanBaku } from '../../types/warehouse';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { cn } from '@/lib/utils';
 
 interface WarehouseTableProps {

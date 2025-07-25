@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isValidDate } from '@/utils/dashboardUtils';
+import { isValidDate } from '@/utils/unifiedDateUtils';
 
 interface DateTimeDisplayProps {
   className?: string;

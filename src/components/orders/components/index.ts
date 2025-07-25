@@ -512,7 +512,6 @@ export const PaginationControls: React.FC<{
 export default {
   // Error & Loading
   ErrorBoundary,
-  ContextError,
   PageLoading,
   TableSkeleton,
   CardSkeleton,

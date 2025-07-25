@@ -7,9 +7,9 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
 // Local imports
-import { useAuth } from '@/components/contexts/AuthContext';
-import { useActivity } from '@/components/contexts/ActivityContext';
-import { useNotification } from '@/components/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useActivity } from '@/contexts/ActivityContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 // Financial module imports
 import { 

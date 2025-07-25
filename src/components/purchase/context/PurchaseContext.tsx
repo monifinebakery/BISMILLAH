@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
-import { useFinancial } from '@/contexts/FinancialContext';
+import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { logger } from '@/utils/logger';
 import { useLocation } from 'react-router-dom';

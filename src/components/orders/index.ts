@@ -2,8 +2,8 @@
 
 // Core table components
 export { default as OrderTable } from './components/OrderTable';
-export { default as OrderStatusCell } from './OrderStatusCell';
-export { default as EmptyState } from './EmptyState';
+export { default as OrderStatusCell } from './components/OrderStatusCell';
+export { default as EmptyState } from './components/EmptyState';
 
 // Filter and control components
 export { default as FilterBar } from './FilterBar';

@@ -69,30 +69,30 @@ export const preloadPurchaseComponents = {
   // Preload critical components
   critical: async () => {
     return Promise.all([
-      import('./layout/PurchasePage'),
-      import('./table/PurchaseTable'),
-      import('./states/LoadingPurchaseState'),
+      import('../layout/PurchasePage'),
+      import('../table/PurchaseTable'),
+      import('../states/LoadingPurchaseState'),
     ]);
   },
 
   // Preload table components
   table: async () => {
     return Promise.all([
-      import('./table/PurchaseTable'),
-      import('./table/PurchaseTableRow'),
-      import('./table/PurchaseTableControls'),
-      import('./table/BulkActionsToolbar'),
-      import('./table/PaginationFooter'),
+      import('../table/PurchaseTable'),
+      import('../table/PurchaseTableRow'),
+      import('../table/PurchaseTableControls'),
+      import('../table/BulkActionsToolbar'),
+      import('../table/PaginationFooter'),
     ]);
   },
 
   // Preload form components
   forms: async () => {
     return Promise.all([
-      import('./forms/PurchaseDialog'),
-      import('./forms/PurchaseForm'),
-      import('./forms/ItemForm'),
-      import('./forms/ItemsTable'),
+      import('../forms/PurchaseDialog'),
+      import('../forms/PurchaseForm'),
+      import('../forms/ItemForm'),
+      import('../forms/ItemsTable'),
     ]);
   },
 
@@ -102,7 +102,7 @@ export const preloadPurchaseComponents = {
       preloadPurchaseComponents.critical(),
       preloadPurchaseComponents.table(),
       preloadPurchaseComponents.forms(),
-      import('./dialogs/BulkDeleteDialog'),
+      import('../dialogs/BulkDeleteDialog'),
     ]);
     return { critical, table, forms, dialogs };
   },

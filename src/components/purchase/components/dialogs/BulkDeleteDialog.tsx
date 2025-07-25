@@ -4,7 +4,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
 import { usePurchaseTable } from '@/components/purchase/context/PurchaseTableContext';
 import { useBulkOperations } from '@/components/purchase/hooks/useBulkOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
-import { formatDateForDisplay } from '@/utils/dashboardUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { getSupplierName } from '@/components/purchase/services/purchaseTransformers';
 

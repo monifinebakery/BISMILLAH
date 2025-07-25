@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AlertTriangle, Trash2 } from 'lucide-react';
-import { usePurchaseTable } from '@/components/purchase/contexts/PurchaseTableContext';
+import { usePurchaseTable } from '@/components/purchase/context/PurchaseTableContext';
 import { useBulkOperations } from '@/components/purchase/hooks/useBulkOperations';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { formatDateForDisplay } from '@/utils/dashboardUtils';

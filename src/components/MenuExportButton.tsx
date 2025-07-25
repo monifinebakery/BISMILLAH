@@ -5,7 +5,7 @@ import { Download } from 'lucide-react';
 // --- Impor Hook Konteks ---
 import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
 import { useSupplier } from "@/contexts/SupplierContext";
-import { usePurchase } from "@/contexts/PurchaseContext";
+import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/contexts/OrderContext";

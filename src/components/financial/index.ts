@@ -8,7 +8,7 @@
 import FinancialCharts from './components/FinancialCharts';
 import CategoryCharts from './components/CategoryCharts';
 import TransactionTable from './components/TransactionTable';
-import FinancialTransactionDialog from './dialogs/FinancialTransactionDialog';
+import FinancialTransactionDialog from '@/components/financial/components/dialogs/FinancialTransactionDialog';
 import CategoryManagementDialog from './dialogs/CategoryManagementDialog';
 
 export { default as FinancialReportPage } from '@/components/financial/FinancialReportPage';

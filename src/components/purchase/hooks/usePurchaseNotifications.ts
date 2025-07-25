@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Purchase } from '@/types/supplier';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getSupplierName, getStatusDisplayText } from './services/purchaseTransformers';
+import { getSupplierName, getStatusDisplayText } from '../services/purchaseTransformers';
 
 export interface UsePurchaseNotificationsOptions {
   suppliers: any[];

@@ -1,7 +1,7 @@
 // src/components/orders/hooks/useOrderFilters.ts - FIXED VERSION
 import { useState, useMemo, useCallback } from 'react';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
-import { Order, OrderFilters, DateRange } from '@/types';
+import { Order, OrderFilters, DateRange } from './types/order';
 import { filterOrders } from './utils/filterUtils';
 import { safeParseDate, isValidDate } from '@/utils/unifiedDateUtils';
 

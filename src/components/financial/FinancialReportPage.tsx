@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useUserSettings } from './contexts/UserSettingsContext';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { filterByDateRange, calculateTotalIncome, calculateTotalExpense } from '@/components/financial/utils/financialUtils';

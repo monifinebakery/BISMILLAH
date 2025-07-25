@@ -1,5 +1,5 @@
-// src/components/orders/components/DateRangePicker.tsx - UNIFIED VERSION
-import React, { useState, useCallback } from 'react';
+// src/components/orders/components/DateRangePicker.tsx (FIXED VERSION)
+import React, { useState } from 'react';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose, DialogHeader } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
@@ -7,104 +7,46 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { id } from 'date-fns/locale';
-import { DateRange } from '@/types/order'; // Use consistent type
-import { formatDateRange, parseDate, isValidDate } from '@/utils/dashboardUtils';
+import { DateRange } from '../types';
+import { formatDateRange, isValidDate, parseDate } from '@/utils/dashboardUtils';
 import DatePresets from './DatePresets';
 
-// 🔧 FIX: Unified interface that supports both prop patterns
 interface DateRangePickerProps {
-  // Core props - support both naming patterns
-  dateRange?: DateRange | undefined;
-  value?: DateRange | undefined;
-  
-  // Handler props - support both naming patterns  
-  onDateRangeChange?: (range: DateRange | undefined) => void;
-  onChange?: (range: DateRange | undefined) => void;
-  
-  // Optional props
+  dateRange: DateRange | undefined;
+  onDateRangeChange: (range: DateRange | undefined) => void;
   onPageChange?: (page: number) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  
-  // Additional props from OrdersFilters
-  showPresets?: boolean;
-  autoClose?: boolean;
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
-  // Support both prop patterns
-  dateRange: dateRangeProp,
-  value: valueProp,
-  onDateRangeChange: onDateRangeChangeProp,
-  onChange: onChangeProp,
-  
+  dateRange,
+  onDateRangeChange,
   onPageChange,
   placeholder = "Pilih rentang tanggal",
   className = "",
-  disabled = false,
-  showPresets = true,
-  autoClose = false
+  disabled = false
 }) => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
 
-  // 🔧 FIX: Determine actual values and handlers
-  const dateRange = dateRangeProp || valueProp;
-  const onDateRangeChange = onDateRangeChangeProp || onChangeProp;
-
-  // 🔧 FIX: Enhanced validation for the handler
-  const validateHandler = useCallback(() => {
-    if (!onDateRangeChange) {
-      console.error('DateRangePicker: No change handler provided. Please provide either onDateRangeChange or onChange prop.');
-      return false;
-    }
-    
-    if (typeof onDateRangeChange !== 'function') {
-      console.error('DateRangePicker: Change handler is not a function:', {
-        onDateRangeChange,
-        type: typeof onDateRangeChange,
-        onDateRangeChangeProp: typeof onDateRangeChangeProp,
-        onChangeProp: typeof onChangeProp
-      });
-      return false;
-    }
-    
-    return true;
-  }, [onDateRangeChange, onDateRangeChangeProp, onChangeProp]);
-
-  // 🔧 FIX: Safe date range change handler
-  const handleDateRangeChange = useCallback((newRange: DateRange | undefined) => {
+  const handleDateRangeChange = (newRange: DateRange | undefined) => {
     try {
-      console.log('DateRangePicker: Handling date range change:', {
-        newRange,
-        hasHandler: !!onDateRangeChange,
-        handlerType: typeof onDateRangeChange
-      });
+      console.log('DateRangePicker: Handling date range change:', newRange);
       
-      // Validate handler before proceeding
-      if (!validateHandler()) {
-        return;
-      }
-      
-      // Validate the new range if provided
+      // Validate the new range
       if (newRange && newRange.from) {
         const fromDate = parseDate(newRange.from);
         const toDate = newRange.to ? parseDate(newRange.to) : null;
         
         if (!fromDate || !isValidDate(fromDate)) {
-          console.error('DateRangePicker: Invalid from date:', newRange.from);
+          console.error('Invalid from date:', newRange.from);
           return;
         }
         
         if (newRange.to && (!toDate || !isValidDate(toDate))) {
-          console.error('DateRangePicker: Invalid to date:', newRange.to);
-          // Use only from date if to date is invalid
-          const validatedRange: DateRange = {
-            from: fromDate,
-            to: undefined
-          };
-          onDateRangeChange!(validatedRange);
+          console.error('Invalid to date:', newRange.to);
           return;
         }
         
@@ -114,114 +56,47 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           to: toDate || fromDate
         };
         
-        onDateRangeChange!(validatedRange);
+        onDateRangeChange(validatedRange);
       } else {
-        onDateRangeChange!(newRange);
+        onDateRangeChange(newRange);
       }
       
-      // Handle page change safely
       if (onPageChange && typeof onPageChange === 'function') {
-        try {
-          onPageChange(1);
-        } catch (pageError) {
-          console.error('DateRangePicker: Error changing page:', pageError);
-        }
-      }
-      
-      // Auto close if enabled
-      if (autoClose) {
-        setIsOpen(false);
-      }
-      
-    } catch (error) {
-      console.error('DateRangePicker: Error updating date range:', error);
-    }
-  }, [onDateRangeChange, onPageChange, autoClose, validateHandler]);
-
-  // 🔧 FIX: Safe reset handler
-  const handleReset = useCallback(() => {
-    try {
-      if (validateHandler()) {
-        onDateRangeChange!(undefined);
-        if (onPageChange && typeof onPageChange === 'function') {
-          onPageChange(1);
-        }
+        onPageChange(1);
       }
     } catch (error) {
-      console.error('DateRangePicker: Error resetting date range:', error);
+      console.error('Error updating date range:', error);
     }
-  }, [onDateRangeChange, onPageChange, validateHandler]);
+  };
 
-  // 🔧 FIX: Safe close handler
-  const handleClose = useCallback(() => {
+  const handleReset = () => {
     try {
-      setIsOpen(false);
-    } catch (error) {
-      console.error('DateRangePicker: Error closing dialog:', error);
-    }
-  }, []);
-
-  // 🔧 FIX: Safe apply handler
-  const handleApply = useCallback(() => {
-    try {
-      setIsOpen(false);
-    } catch (error) {
-      console.error('DateRangePicker: Error applying selection:', error);
-    }
-  }, []);
-
-  // 🔧 FIX: Safe page change handler for DatePresets
-  const handlePageChange = useCallback((page: number) => {
-    try {
+      onDateRangeChange(undefined);
       if (onPageChange && typeof onPageChange === 'function') {
-        onPageChange(page);
+        onPageChange(1);
       }
     } catch (error) {
-      console.error('DateRangePicker: Error in page change handler:', error);
+      console.error('Error resetting date range:', error);
     }
-  }, [onPageChange]);
+  };
 
-  // 🔧 FIX: Safe display text generation
-  const getDisplayText = useCallback(() => {
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleApply = () => {
+    setIsOpen(false);
+  };
+
+  // Get display text safely
+  const getDisplayText = () => {
     try {
-      if (!dateRange) return placeholder;
-      
-      const formatted = formatDateRange(dateRange);
-      
-      // Additional safety check for error messages
-      if (formatted && (
-        formatted.includes('tidak valid') || 
-        formatted.includes('Error') ||
-        formatted === 'Pilih rentang tanggal'
-      )) {
-        return placeholder;
-      }
-      
-      return formatted || placeholder;
+      return formatDateRange(dateRange) || placeholder;
     } catch (error) {
-      console.warn('DateRangePicker: Error formatting display text:', error);
+      console.warn('Error formatting date range for display:', error);
       return placeholder;
     }
-  }, [dateRange, placeholder]);
-
-  // 🔧 FIX: Early validation render
-  if (!onDateRangeChange && !onChangeProp && !onDateRangeChangeProp) {
-    console.error('DateRangePicker: No change handler provided');
-    return (
-      <Button
-        variant="outline"
-        disabled={true}
-        className={cn(
-          "w-full justify-start text-left font-normal h-11 px-4 border-gray-300 rounded-lg",
-          "text-red-500 border-red-300",
-          className
-        )}
-      >
-        <CalendarIcon className="mr-3 h-4 w-4" />
-        Error: No handler provided
-      </Button>
-    );
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -264,16 +139,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </DialogHeader>
         
         <div className="flex flex-col md:flex-row">
-          {/* Date Presets - Only show if enabled */}
-          {showPresets && (
-            <div className="md:w-64 flex-shrink-0">
-              <DatePresets 
-                setDateRange={handleDateRangeChange}
-                setCurrentPage={handlePageChange}
-                onClose={isMobile ? undefined : handleClose}
-              />
-            </div>
-          )}
+          {/* Date Presets */}
+          <div className="md:w-64 flex-shrink-0">
+            <DatePresets 
+              setDateRange={onDateRangeChange} 
+              setCurrentPage={onPageChange}
+              onClose={isMobile ? undefined : handleClose}
+            />
+          </div>
           
           {/* Calendar */}
           <div className="flex-1 p-6">
@@ -320,7 +193,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   const minDate = new Date('2020-01-01');
                   return date > now || date < minDate;
                 } catch (error) {
-                  console.warn('DateRangePicker: Date validation error:', error);
+                  console.warn('Date validation error:', error);
                   return false;
                 }
               }}

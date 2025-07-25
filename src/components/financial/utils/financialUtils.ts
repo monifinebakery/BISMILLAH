@@ -1,7 +1,7 @@
 // src/utils/financialUtils.ts
 // Modular Financial Utilities with proper TypeScript types
 
-import { safeParseDate } from './unifiedDateUtils';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 
 // ===========================================
 // TYPES

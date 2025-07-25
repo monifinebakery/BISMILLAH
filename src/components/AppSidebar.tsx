@@ -48,7 +48,7 @@ import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
-import { useFinancial } from "@/contexts/FinancialContext";
+import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 // --- Impor Fungsi Export Baru ---

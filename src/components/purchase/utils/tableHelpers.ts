@@ -1,5 +1,5 @@
 import { Purchase } from '@/types/supplier';
-import { TableSortConfig, PaginationConfig } from '../types';
+import { TableSortConfig, PaginationConfig } from './types';
 
 /**
  * Sort purchases based on configuration

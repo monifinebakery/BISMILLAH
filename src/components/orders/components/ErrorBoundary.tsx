@@ -124,7 +124,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 // CONTEXT ERROR COMPONENT
 // ===========================================
 
-export const ContextError: React.FC = () => {
+// export const ContextError: React.FC = () => {
   const handleRetry = () => {
     window.location.reload();
   };

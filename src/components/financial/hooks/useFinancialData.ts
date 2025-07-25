@@ -12,7 +12,7 @@ import {
   groupByCategory,
   calculateCategoryTotals,
   FinancialTransaction 
-} from '@/utils/financialUtils';
+} from '@/components/financial/utils/financialUtils';
 
 // ===========================================
 // TYPES

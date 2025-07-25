@@ -23,7 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { useNotification } from './NotificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Enhanced context interface extending the modular one

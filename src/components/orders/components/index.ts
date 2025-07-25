@@ -1,6 +1,13 @@
 // src/components/orders/components/index.ts
 // Complete barrel export for all orders components
 
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+
 // ===========================================
 // ERROR & LOADING COMPONENTS
 // ===========================================
@@ -174,15 +181,8 @@ export const useOrderPagination = (items: any[], itemsPerPage: number = 10) => {
 // PLACEHOLDER COMPONENTS (for missing files)
 // ===========================================
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
-
 // Placeholder for missing components
-const PlaceholderComponent = ({ name }: { name: string }) => (
+const PlaceholderComponent: React.FC<{ name: string }> = ({ name }) => (
   <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
     <p className="text-gray-500">Placeholder: {name}</p>
     <p className="text-xs text-gray-400 mt-1">Component akan dibuat sesuai kebutuhan</p>
@@ -190,13 +190,13 @@ const PlaceholderComponent = ({ name }: { name: string }) => (
 );
 
 // Export placeholders for missing components
-export const DatePresets = () => <PlaceholderComponent name="DatePresets" />;
-export const EmptyState = () => <PlaceholderComponent name="EmptyState" />;
-export const LoadingStates = () => <PlaceholderComponent name="LoadingStates" />;
-export const OrdersFilters = () => <PlaceholderComponent name="OrdersFilters" />;
-export const OrderStatusCell = () => <PlaceholderComponent name="OrderStatusCell" />;
-export const OrdersBulkActions = () => <PlaceholderComponent name="OrdersBulkActions" />;
-export const OrdersPagination = () => <PlaceholderComponent name="OrdersPagination" />;
+export const DatePresets: React.FC = () => <PlaceholderComponent name="DatePresets" />;
+export const EmptyState: React.FC = () => <PlaceholderComponent name="EmptyState" />;
+export const LoadingStates: React.FC = () => <PlaceholderComponent name="LoadingStates" />;
+export const OrdersFilters: React.FC = () => <PlaceholderComponent name="OrdersFilters" />;
+export const OrderStatusCell: React.FC = () => <PlaceholderComponent name="OrderStatusCell" />;
+export const OrdersBulkActions: React.FC = () => <PlaceholderComponent name="OrdersBulkActions" />;
+export const OrdersPagination: React.FC = () => <PlaceholderComponent name="OrdersPagination" />;
 
 // Working FilterBar component
 export const FilterBar: React.FC<{

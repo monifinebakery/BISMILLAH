@@ -14,7 +14,6 @@ import { CalendarIcon, Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal
 
 export { 
   ErrorBoundary, 
-  ContextError, 
   PageLoading, 
   TableSkeleton, 
   CardSkeleton, 

@@ -223,7 +223,7 @@ export const FinancialComponents = {
 export { 
   FinancialProvider, 
   useFinancial 
-} from '@/contexts/FinancialContext';
+} from './contexts/FinancialContext';
 
 // ===========================================
 // QUICK SETUP HELPERS

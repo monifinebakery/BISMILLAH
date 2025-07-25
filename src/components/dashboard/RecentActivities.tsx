@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateTime, calculatePagination, generateListKey } from '@/utils/unifiedDateUtils';
+import { formatDateTime, generateListKey } from '@/utils/unifiedDateUtils';
+import { calculatePagination } from '@/utils/promoUtils';
 
 interface ActivityItem {
   id: string;

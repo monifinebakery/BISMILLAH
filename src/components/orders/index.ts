@@ -1,7 +1,7 @@
 // src/components/orders/components/index.ts
 
 // Core table components
-export { default as OrderTable } from './OrderTable';
+export { default as OrderTable } from './components/OrderTable';
 export { default as OrderStatusCell } from './OrderStatusCell';
 export { default as EmptyState } from './EmptyState';
 

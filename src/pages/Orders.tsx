@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useOrder } from '@/contexts/OrderContext';
 
 // Types
-import { Order, NewOrder, OrderContextType } from '@/types';
+import { Order, NewOrder, OrderContextType } from '@/types/order';
 
 // Hooks
 import { useOrderFilters, useOrderSelection, useOrderPagination } from '@/hooks';

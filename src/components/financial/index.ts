@@ -135,7 +135,7 @@ export const FinancialComponents = {
 };
 
 // ===========================================
-// CONTEXT (Re-export from contexts)
+// CONTEXT 
 // ===========================================
 
 export { 

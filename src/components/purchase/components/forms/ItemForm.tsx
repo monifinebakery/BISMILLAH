@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, AlertCircle } from 'lucide-react';
-import { usePurchaseForm } from '@/components/purchase/hooks/usePurchaseForm';
+import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

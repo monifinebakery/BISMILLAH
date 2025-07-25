@@ -2,11 +2,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Purchase } from '@/types/supplier';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from './AuthContext';
-import { useActivity } from './ActivityContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useActivity } from '@/contexts/ActivityContext';
 import { safeParseDate, toSafeISOString } from '@/utils/dashboardUtils';
-import { useFinancial } from './FinancialContext';
-import { useSupplier } from './SupplierContext';
+import { useFinancial } from '@/contexts/FinancialContext';
+import { useSupplier } from '@/contexts/SupplierContext';
 import { logger } from '@/utils/logger';
 import { useLocation } from 'react-router-dom';
 

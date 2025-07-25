@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { Order } from '@/types/order';
+import type { Order } from '@/components/orders/types/order';
 
 export interface UseOrdersBulkActionsReturn {
   // Selection States

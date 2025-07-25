@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, Edit3, Save, X } from 'lucide-react';
 import { PurchaseItem } from '@/types/supplier';
-import { usePurchaseForm } from '../../hooks/usePurchaseForm';
+import { usePurchaseForm } from '@/components/purchase/hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
 

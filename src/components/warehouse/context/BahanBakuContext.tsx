@@ -1,5 +1,5 @@
 // src/contexts/BahanBakuContext.tsx
-// FIXED VERSION - Auto Update UI without refresh
+// FIXED VERSION - Enhanced connection stability & error handling
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ import {
   parseDate, 
   isValidDate,
 } from '@/utils/unifiedDateUtils';
-import { formatCurrency } from '@//utils/formatUtils';   
+import { formatCurrency } from '@/utils/formatUtils';   
 
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +30,8 @@ interface BahanBakuContextType extends WarehouseContextType {
   getExpiringItems: (days?: number) => BahanBaku[];
   getLowStockItems: () => BahanBaku[];
   getOutOfStockItems: () => BahanBaku[];
+  // Connection status
+  isConnected: boolean;
 }
 
 const BahanBakuContext = createContext<BahanBakuContextType | undefined>(undefined);
@@ -54,49 +56,135 @@ const useNotificationDeduplicator = () => {
   return { shouldSendNotification };
 };
 
+// 🔧 FIXED: Connection state management
+const useConnectionManager = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout>();
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
+  const baseRetryDelay = 1000; // 1 second
+
+  const resetConnection = useCallback(() => {
+    setIsConnected(false);
+    retryCountRef.current = 0;
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+  }, []);
+
+  const handleConnectionError = useCallback((callback: () => void) => {
+    setIsConnected(false);
+    retryCountRef.current += 1;
+    
+    if (retryCountRef.current <= maxRetries) {
+      const delay = baseRetryDelay * Math.pow(2, retryCountRef.current - 1); // Exponential backoff
+      logger.context('BahanBakuContext', `Retrying connection in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+      
+      connectionTimeoutRef.current = setTimeout(() => {
+        callback();
+      }, delay);
+    } else {
+      logger.error('BahanBakuContext', 'Max connection retries reached');
+    }
+  }, []);
+
+  const cleanup = useCallback(() => {
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+  }, []);
+
+  return {
+    isConnected,
+    setIsConnected,
+    resetConnection,
+    handleConnectionError,
+    cleanup
+  };
+};
+
 // Utility functions (can be moved to warehouse/utils if needed)
-const transformBahanBakuFromDB = (dbItem: any): BahanBaku => ({
-  id: dbItem.id,
-  nama: dbItem.nama,
-  kategori: dbItem.kategori,
-  stok: Number(dbItem.stok) || 0,
-  satuan: dbItem.satuan,
-  hargaSatuan: Number(dbItem.harga_satuan) || 0,
-  minimum: Number(dbItem.minimum) || 0,
-  supplier: dbItem.supplier,
-  tanggalKadaluwarsa: parseDate(dbItem.tanggal_kadaluwarsa),
-  userId: dbItem.user_id,
-  createdAt: parseDate(dbItem.created_at),
-  updatedAt: parseDate(dbItem.updated_at),
-  jumlahBeliKemasan: dbItem.jumlah_beli_kemasan || 0,
-  satuanKemasan: dbItem.satuan_kemasan || '',
-  hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan || 0,
-});
+const transformBahanBakuFromDB = (dbItem: any): BahanBaku => {
+  try {
+    if (!dbItem || typeof dbItem !== 'object') {
+      console.error('BahanBakuContext: Invalid DB item for transformation:', dbItem);
+      throw new Error('Invalid bahan baku data from database');
+    }
+
+    return {
+      id: dbItem.id,
+      nama: dbItem.nama || '',
+      kategori: dbItem.kategori || '',
+      stok: Number(dbItem.stok) || 0,
+      satuan: dbItem.satuan || '',
+      hargaSatuan: Number(dbItem.harga_satuan) || 0,
+      minimum: Number(dbItem.minimum) || 0,
+      supplier: dbItem.supplier || '',
+      tanggalKadaluwarsa: parseDate(dbItem.tanggal_kadaluwarsa),
+      userId: dbItem.user_id,
+      createdAt: parseDate(dbItem.created_at),
+      updatedAt: parseDate(dbItem.updated_at),
+      jumlahBeliKemasan: dbItem.jumlah_beli_kemasan || 0,
+      satuanKemasan: dbItem.satuan_kemasan || '',
+      hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan || 0,
+    };
+  } catch (error) {
+    console.error('BahanBakuContext: Error transforming bahan baku from DB:', error, dbItem);
+    // Return a safe fallback
+    return {
+      id: dbItem?.id || 'error',
+      nama: 'Error Item',
+      kategori: 'Error',
+      stok: 0,
+      satuan: '',
+      hargaSatuan: 0,
+      minimum: 0,
+      supplier: '',
+      tanggalKadaluwarsa: null,
+      userId: dbItem?.user_id || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      jumlahBeliKemasan: 0,
+      satuanKemasan: '',
+      hargaTotalBeliKemasan: 0,
+    };
+  }
+};
 
 const transformBahanBakuToDB = (bahan: Partial<BahanBaku>): { [key: string]: any } => {
-  const dbItem: { [key: string]: any } = {};
-  
-  if (bahan.nama !== undefined) dbItem.nama = bahan.nama;
-  if (bahan.kategori !== undefined) dbItem.kategori = bahan.kategori;
-  if (bahan.stok !== undefined) dbItem.stok = bahan.stok;
-  if (bahan.satuan !== undefined) dbItem.satuan = bahan.satuan;
-  if (bahan.hargaSatuan !== undefined) dbItem.harga_satuan = bahan.hargaSatuan;
-  if (bahan.minimum !== undefined) dbItem.minimum = bahan.minimum;
-  if (bahan.supplier !== undefined) dbItem.supplier = bahan.supplier;
-  if (bahan.tanggalKadaluwarsa !== undefined) {
-    dbItem.tanggal_kadaluwarsa = bahan.tanggalKadaluwarsa;
+  try {
+    const dbItem: { [key: string]: any } = {};
+    
+    if (bahan.nama !== undefined) dbItem.nama = bahan.nama;
+    if (bahan.kategori !== undefined) dbItem.kategori = bahan.kategori;
+    if (bahan.stok !== undefined) dbItem.stok = bahan.stok;
+    if (bahan.satuan !== undefined) dbItem.satuan = bahan.satuan;
+    if (bahan.hargaSatuan !== undefined) dbItem.harga_satuan = bahan.hargaSatuan;
+    if (bahan.minimum !== undefined) dbItem.minimum = bahan.minimum;
+    if (bahan.supplier !== undefined) dbItem.supplier = bahan.supplier;
+    if (bahan.tanggalKadaluwarsa !== undefined) {
+      dbItem.tanggal_kadaluwarsa = bahan.tanggalKadaluwarsa;
+    }
+    if (bahan.jumlahBeliKemasan !== undefined) {
+      dbItem.jumlah_beli_kemasan = bahan.jumlahBeliKemasan;
+    }
+    if (bahan.satuanKemasan !== undefined) {
+      dbItem.satuan_kemasan = bahan.satuanKemasan;
+    }
+    if (bahan.hargaTotalBeliKemasan !== undefined) {
+      dbItem.harga_total_beli_kemasan = bahan.hargaTotalBeliKemasan;
+    }
+    
+    return dbItem;
+  } catch (error) {
+    console.error('BahanBakuContext: Error transforming bahan baku to DB:', error, bahan);
+    // Return safe minimal data
+    return {
+      nama: bahan.nama || 'Error',
+      stok: bahan.stok || 0,
+      kategori: bahan.kategori || 'Error'
+    };
   }
-  if (bahan.jumlahBeliKemasan !== undefined) {
-    dbItem.jumlah_beli_kemasan = bahan.jumlahBeliKemasan;
-  }
-  if (bahan.satuanKemasan !== undefined) {
-    dbItem.satuan_kemasan = bahan.satuanKemasan;
-  }
-  if (bahan.hargaTotalBeliKemasan !== undefined) {
-    dbItem.harga_total_beli_kemasan = bahan.hargaTotalBeliKemasan;
-  }
-  
-  return dbItem;
 };
 
 // Custom hooks for inventory analysis
@@ -206,6 +294,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   // Custom hooks
   const selection = useWarehouseSelection();
   const analysis = useInventoryAnalysis(bahanBaku);
+  const connectionManager = useConnectionManager();
   
   // 🔧 FIXED: Add deduplication
   const { shouldSendNotification } = useNotificationDeduplicator();
@@ -221,7 +310,8 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     user: user?.id,
     itemCount: bahanBaku.length,
     selectedCount: selection.selectedItems.length,
-    selectionMode: selection.isSelectionMode
+    selectionMode: selection.isSelectionMode,
+    connected: connectionManager.isConnected
   });
 
   // 🔧 FIXED: Debounced alert checking function
@@ -353,7 +443,17 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       if (!isMountedRef.current) return; // Prevent state update if unmounted
 
-      const transformedData = data.map(transformBahanBakuFromDB);
+      const transformedData = data
+        .map(item => {
+          try {
+            return transformBahanBakuFromDB(item);
+          } catch (transformError) {
+            console.error('BahanBakuContext: Error transforming individual item:', transformError, item);
+            return null;
+          }
+        })
+        .filter(Boolean) as BahanBaku[]; // Remove null items
+
       logger.context('BahanBakuContext', 'Data loaded:', transformedData.length, 'items');
       setBahanBaku(transformedData);
 
@@ -387,7 +487,103 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     await fetchBahanBaku(false);
   }, [fetchBahanBaku]);
 
-  // 🔧 FIXED: Real-time subscription setup
+  // 🔧 FIXED: Robust subscription management
+  const setupSubscription = useCallback(() => {
+    if (!user || !isMountedRef.current) return;
+
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      logger.context('BahanBakuContext', 'Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    logger.context('BahanBakuContext', 'Setting up new subscription for user:', user.id);
+
+    try {
+      const channel = supabase
+        .channel(`bahan_baku_changes_${user.id}_${Date.now()}`) // Add timestamp to make unique
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'bahan_baku',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          if (!isMountedRef.current) return;
+          
+          logger.context('BahanBakuContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+          
+          // 🔧 FIXED: Proper real-time state updates
+          setBahanBaku((prevBahanBaku) => {
+            try {
+              let newBahanBaku = [...prevBahanBaku];
+              
+              if (payload.eventType === 'DELETE' && payload.old?.id) {
+                newBahanBaku = newBahanBaku.filter((item) => item.id !== payload.old.id);
+                logger.context('BahanBakuContext', 'Item deleted via real-time:', payload.old.id);
+              }
+              
+              if (payload.eventType === 'INSERT' && payload.new) {
+                const newItem = transformBahanBakuFromDB(payload.new);
+                newBahanBaku = [...newBahanBaku, newItem].sort((a, b) => a.nama.localeCompare(b.nama));
+                logger.context('BahanBakuContext', 'Item added via real-time:', newItem.id);
+              }
+              
+              if (payload.eventType === 'UPDATE' && payload.new) {
+                const updatedItem = transformBahanBakuFromDB(payload.new);
+                newBahanBaku = newBahanBaku.map((item) =>
+                  item.id === updatedItem.id ? updatedItem : item
+                ).sort((a, b) => a.nama.localeCompare(b.nama));
+                logger.context('BahanBakuContext', 'Item updated via real-time:', updatedItem.id);
+              }
+              
+              return newBahanBaku;
+            } catch (error) {
+              console.error('BahanBakuContext: Error processing real-time update:', error);
+              return prevBahanBaku; // Return previous state on error
+            }
+          });
+
+          // 🔧 FIXED: Handle selection cleanup for deleted items
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            const deletedId = payload.old.id;
+            if (selection.selectedItems.includes(deletedId)) {
+              selection.toggleSelection(deletedId);
+            }
+          }
+        })
+        .subscribe((status) => {
+          if (!isMountedRef.current) return;
+          
+          logger.context('BahanBakuContext', 'Subscription status:', status);
+          
+          switch (status) {
+            case 'SUBSCRIBED':
+              connectionManager.setIsConnected(true);
+              subscriptionRef.current = channel;
+              // Initial data load after subscription is ready
+              fetchBahanBaku(true);
+              break;
+              
+            case 'CHANNEL_ERROR':
+            case 'TIMED_OUT':
+            case 'CLOSED':
+              logger.error('BahanBakuContext', 'Subscription error:', status);
+              subscriptionRef.current = null;
+              connectionManager.handleConnectionError(setupSubscription);
+              break;
+              
+            default:
+              break;
+          }
+        });
+    } catch (error) {
+      logger.error('BahanBakuContext', 'Error setting up subscription:', error);
+      connectionManager.handleConnectionError(setupSubscription);
+    }
+  }, [user, fetchBahanBaku, connectionManager, selection.selectedItems, selection.toggleSelection]);
+
+  // 🔧 FIXED: Subscription setup effect
   useEffect(() => {
     if (!user) {
       // Clean up if no user
@@ -398,78 +594,12 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
       setBahanBaku([]);
       setIsLoading(false);
+      connectionManager.resetConnection();
       return;
     }
 
-    // Don't setup multiple subscriptions
-    if (subscriptionRef.current) {
-      logger.context('BahanBakuContext', 'Subscription already exists for user:', user.id);
-      return;
-    }
-
-    logger.context('BahanBakuContext', 'Setting up subscription for user:', user.id);
-
-    const channel = supabase
-      .channel(`bahan_baku_changes_${user.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bahan_baku',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        if (!isMountedRef.current) return;
-        
-        logger.context('BahanBakuContext', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
-        
-        // 🔧 FIXED: Proper real-time state updates
-        setBahanBaku((prevBahanBaku) => {
-          let newBahanBaku = [...prevBahanBaku];
-          
-          if (payload.eventType === 'DELETE' && payload.old?.id) {
-            newBahanBaku = newBahanBaku.filter((item) => item.id !== payload.old.id);
-            logger.context('BahanBakuContext', 'Item deleted via real-time:', payload.old.id);
-          }
-          
-          if (payload.eventType === 'INSERT' && payload.new) {
-            const newItem = transformBahanBakuFromDB(payload.new);
-            newBahanBaku = [...newBahanBaku, newItem].sort((a, b) => a.nama.localeCompare(b.nama));
-            logger.context('BahanBakuContext', 'Item added via real-time:', newItem.id);
-          }
-          
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            const updatedItem = transformBahanBakuFromDB(payload.new);
-            newBahanBaku = newBahanBaku.map((item) =>
-              item.id === updatedItem.id ? updatedItem : item
-            ).sort((a, b) => a.nama.localeCompare(b.nama));
-            logger.context('BahanBakuContext', 'Item updated via real-time:', updatedItem.id);
-          }
-          
-          return newBahanBaku;
-        });
-
-        // 🔧 FIXED: Handle selection cleanup for deleted items
-        if (payload.eventType === 'DELETE' && payload.old?.id) {
-          selection.toggleSelection(payload.old.id);
-        }
-      })
-      .subscribe((status) => {
-        logger.context('BahanBakuContext', 'Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          subscriptionRef.current = channel;
-          // Initial data load after subscription is ready
-          fetchBahanBaku(true);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          logger.error('BahanBakuContext', 'Subscription error:', status);
-          subscriptionRef.current = null;
-          // Retry subscription after a delay
-          setTimeout(() => {
-            if (isMountedRef.current && user) {
-              logger.context('BahanBakuContext', 'Retrying subscription...');
-              // This will trigger the effect again due to user dependency
-            }
-          }, 5000);
-        }
-      });
+    // Setup subscription
+    setupSubscription();
 
     // Cleanup function
     return () => {
@@ -481,16 +611,25 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (alertTimeoutRef.current) {
         clearTimeout(alertTimeoutRef.current);
       }
+      connectionManager.cleanup();
     };
-  }, [user?.id]); // Only depend on user ID to avoid unnecessary re-subscriptions
+  }, [user?.id, setupSubscription, connectionManager]);
 
   // 🔧 FIXED: Component cleanup tracking
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      connectionManager.cleanup();
     };
-  }, []);
+  }, [connectionManager]);
 
   // 🔧 FIXED: Reset state when user changes
   useEffect(() => {
@@ -503,6 +642,18 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan bahan baku');
+      return false;
+    }
+
+    // Enhanced input validation
+    if (!bahan || typeof bahan !== 'object') {
+      console.error('BahanBakuContext: Invalid bahan data for creation:', bahan);
+      toast.error('Data bahan baku tidak valid');
+      return false;
+    }
+
+    if (!bahan.nama || !bahan.kategori) {
+      toast.error('Nama dan kategori bahan baku harus diisi');
       return false;
     }
 
@@ -560,6 +711,19 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       return false;
     }
 
+    // Enhanced validation
+    if (!id || typeof id !== 'string') {
+      console.error('BahanBakuContext: Invalid ID for update:', id);
+      toast.error('ID bahan baku tidak valid');
+      return false;
+    }
+
+    if (!updatedBahan || typeof updatedBahan !== 'object') {
+      console.error('BahanBakuContext: Invalid update data:', updatedBahan);
+      toast.error('Data update tidak valid');
+      return false;
+    }
+
     try {
       const itemBeforeUpdate = bahanBaku.find(b => b.id === id);
       if (!itemBeforeUpdate) throw new Error("Item tidak ditemukan untuk diperbarui.");
@@ -570,6 +734,7 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
         .from('bahan_baku')
         .update(bahanToUpdate)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -598,13 +763,21 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
       return false;
     }
 
+    // Enhanced validation
+    if (!id || typeof id !== 'string') {
+      console.error('BahanBakuContext: Invalid ID for deletion:', id);
+      toast.error('ID bahan baku tidak valid');
+      return false;
+    }
+
     try {
       const itemToDelete = bahanBaku.find(b => b.id === id);
       
       const { error } = await supabase
         .from('bahan_baku')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
         
       if (error) throw error;
 
@@ -639,7 +812,10 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const bulkDeleteBahanBaku = async (ids: string[]): Promise<boolean> => {
-    if (!user || ids.length === 0) return false;
+    if (!user || !Array.isArray(ids) || ids.length === 0) {
+      toast.error('Tidak ada item yang dipilih');
+      return false;
+    }
     
     setIsBulkDeleting(true);
     try {
@@ -684,20 +860,47 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // Additional utility methods
   const getBahanBakuByName = useCallback((nama: string): BahanBaku | undefined => {
-    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
+    try {
+      if (!nama || typeof nama !== 'string') {
+        console.error('BahanBakuContext: Invalid nama for getBahanBakuByName:', nama);
+        return undefined;
+      }
+      return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
+    } catch (error) {
+      console.error('BahanBakuContext: Error in getBahanBakuByName:', error);
+      return undefined;
+    }
   }, [bahanBaku]);
 
   const reduceStok = async (nama: string, jumlah: number): Promise<boolean> => {
-    const bahan = getBahanBakuByName(nama);
-    if (!bahan) {
-      toast.error(`Bahan baku ${nama} tidak ditemukan.`);
+    try {
+      if (!nama || typeof nama !== 'string') {
+        toast.error('Nama bahan baku tidak valid');
+        return false;
+      }
+
+      if (!jumlah || jumlah <= 0) {
+        toast.error('Jumlah pengurangan tidak valid');
+        return false;
+      }
+
+      const bahan = getBahanBakuByName(nama);
+      if (!bahan) {
+        toast.error(`Bahan baku ${nama} tidak ditemukan.`);
+        return false;
+      }
+      
+      if (bahan.stok < jumlah) {
+        toast.error(`Stok ${nama} (${bahan.stok}) tidak cukup untuk dikurangi ${jumlah}.`);
+        return false;
+      }
+      
+      return await updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
+    } catch (error) {
+      console.error('BahanBakuContext: Error in reduceStok:', error);
+      toast.error('Gagal mengurangi stok');
       return false;
     }
-    if (bahan.stok < jumlah) {
-      toast.error(`Stok ${nama} (${bahan.stok}) tidak cukup untuk dikurangi ${jumlah}.`);
-      return false;
-    }
-    return await updateBahanBaku(bahan.id, { stok: bahan.stok - jumlah });
   };
 
   // Context value
@@ -729,13 +932,17 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     getExpiringItems: analysis.getExpiringItems,
     getLowStockItems: analysis.getLowStockItems,
     getOutOfStockItems: analysis.getOutOfStockItems,
+    
+    // Connection status
+    isConnected: connectionManager.isConnected,
   };
 
   logger.context('BahanBakuContext', 'Providing context value:', {
     itemCount: bahanBaku.length,
     selectedCount: selection.selectedItems.length,
     selectionMode: selection.isSelectionMode,
-    loading: isLoading
+    loading: isLoading,
+    connected: connectionManager.isConnected
   });
 
   return (

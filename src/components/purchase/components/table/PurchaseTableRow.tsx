@@ -9,7 +9,7 @@ import { Edit, Trash2, MoreHorizontal, Eye } from 'lucide-react';
 import { Purchase } from '@/types/supplier';
 import { formatDateForDisplay } from '@/utils/dashboardUtils';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getStatusDisplayText, getStatusColorClass } from '../../services/purchaseTransformers';
+import { getStatusDisplayText, getStatusColorClass } from '@/components/purchase/services/purchaseTransformers';
 import { cn } from '@/lib/utils';
 
 interface PurchaseTableRowProps {

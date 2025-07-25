@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Purchase } from '@/types/supplier';
-import { toSafeISOString } from '@/utils/dashboardUtils';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 
 export interface PurchaseServiceConfig {
   userId: string;

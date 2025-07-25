@@ -70,7 +70,7 @@ import {
   FinancialValidation as FinancialValidationObj,
   FinancialFormatting as FinancialFormattingObj,
   default as FinancialUtilsDefault
-} from '@/utils/financialUtils';
+} from '@/components/financial/utils/financialUtils';
 
 // ===========================================
 // MAIN COMPONENTS (Individual Exports)

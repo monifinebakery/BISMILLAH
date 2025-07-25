@@ -12,7 +12,7 @@ import {
   parseDate, 
   isValidDate,
   formatCurrency 
-} from '@/components/warehouse/utils';
+} from '@/components/utils/formatUtils';
 
 // Dependencies
 import { useAuth } from './AuthContext';

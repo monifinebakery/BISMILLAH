@@ -15,7 +15,7 @@ import {
   calculateFinancialSummary,
   groupByCategory,
   groupByType
-} from '@/utils/financialUtils';
+} from '@/components/financial/utils/financialUtils';
 
 // ===========================================
 // ENHANCED FINANCIAL HOOKS

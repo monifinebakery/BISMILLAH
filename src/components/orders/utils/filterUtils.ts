@@ -1,5 +1,5 @@
 // src/components/orders/utils/filterUtils.ts (FIXED VERSION)
-import { Order, OrderFilters, DateRange } from './types/order';
+import { Order, OrderFilters, DateRange } from '../types/order';
 import { isValidDate, isDateInRange } from '@/utils/unifiedDateUtils';
 import { parseDate } from '@/utils/unifiedDateUtils';
 

@@ -43,10 +43,10 @@ const MenuPage = () => {
 
   const menuItems = [
     {
-      title: 'Kalkulator HPP Cepat',
-      description: 'Hitung HPP dengan input manual',
+      title: 'Kalkulator Promo',
+      description: 'Hitung Promo dengan Mudah',
       icon: Calculator,
-      path: '/hpp',
+      path: '/promos',
       color: 'from-blue-500 to-blue-600'
     },
     {

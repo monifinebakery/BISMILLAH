@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { Filter, X, Calendar, Tag, Activity } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-const PromoFilters = ({ filters, onFilterChange, isMobile = false }) => {
+const PromoFilters = ({ filters, onFilterChange }) => {
+  const isMobile = useIsMobile(768);
   const handleFilterChange = (key, value) => {
     onFilterChange({
       ...filters,

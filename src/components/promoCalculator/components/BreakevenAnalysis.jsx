@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, Calculator } from 'lucide-react';
-import { formatters } from '../utils';
+import { formatters } from '../utils/formatters';
 
 const BreakevenAnalysis = ({ breakeven, className = '' }) => {
   if (!breakeven) return null;

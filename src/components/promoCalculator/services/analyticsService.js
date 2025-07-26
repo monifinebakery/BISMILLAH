@@ -1,5 +1,3 @@
-// 🎯 Service untuk analytics calculations
-
 import { supabase } from '@/integrations/supabase/client';
 
 export const analyticsService = {
@@ -100,4 +98,4 @@ const calculateProfitTrend = (promos) => {
     }))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-14); // Last 14 days
-};};
+};

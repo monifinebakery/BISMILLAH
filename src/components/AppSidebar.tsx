@@ -51,7 +51,7 @@ import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 // ✅ NEW: Import PromoContext
-import { usePromo } from "@/components/promoCalculator/contexts/PromoContext";
+import { usePromo } from "@/components/promoCalculator/context/PromoContext";
 
 // --- Impor Fungsi Export Baru ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";

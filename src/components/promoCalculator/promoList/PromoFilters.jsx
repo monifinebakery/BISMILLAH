@@ -1,4 +1,4 @@
-/ 🎯 Filter component untuk promo
+// 🎯 Filter component untuk promo
 
 import React from 'react';
 import { Filter, X } from 'lucide-react';

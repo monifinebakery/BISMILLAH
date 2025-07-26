@@ -1,4 +1,4 @@
-/ 🎯 Bulk actions component
+// 🎯 Bulk actions component
 
 import React from 'react';
 import { Trash2, X, CheckSquare } from 'lucide-react';

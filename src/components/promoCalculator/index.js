@@ -1,4 +1,4 @@
-/ 🎯 Main entry point dengan lazy loading
+// 🎯 Main entry point dengan lazy loading
 
 import { lazy, Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';

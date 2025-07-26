@@ -1,5 +1,5 @@
 import React from 'react';
-import PromoCalculatorIndex from '@/components/promoCalculator';
+import PromoCalculatorIndex from '@/components/promoCalculator/index';
 
 const PromoCalculatorPage = () => {
   return (

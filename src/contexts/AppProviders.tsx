@@ -1,17 +1,15 @@
-// src/contexts/AppProviders.tsx
-// 🔧 FIXED IMPORT PATHS TO MATCH YOUR PROJECT STRUCTURE
-
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Import semua context provider Anda dengan path yang konsisten
+// Import semua context provider dengan path yang konsisten
 import { AuthProvider } from './AuthContext';
-import { NotificationProvider } from './NotificationContext'; // 🔧 FIXED: Local import path
+import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
+// ✅ NEW: Import PromoProvider
 import { PromoProvider } from './PromoContext';
 import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
@@ -25,7 +23,7 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
  * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
  */
-export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProviders = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
@@ -38,9 +36,12 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
             <ActivityProvider>
               <FinancialProvider>
                 <PaymentProvider>
+                  {/* ✅ NEW: PromoProvider setelah PaymentProvider */}
                   <PromoProvider>
                     <BahanBakuProvider>
                       <SupplierProvider>
+                        {/* ✅ IMPORTANT: RecipeProvider sebelum PromoProvider 
+                            karena PromoCalculator depend on RecipeContext */}
                         <RecipeProvider>
                           <AssetProvider>
                             <PurchaseProvider>

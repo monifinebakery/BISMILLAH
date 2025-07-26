@@ -1,5 +1,5 @@
 import { formatters } from './formatters';
-import { PROMO_TYPES, STATUS_COLORS, PROMO_TYPE_COLORS } from './constants';
+import { PROMO_TYPES, STATUS_COLORS, PROMO_TYPE_COLORS } from '../constants';
 
 export const helpers = {
   // Generate unique ID

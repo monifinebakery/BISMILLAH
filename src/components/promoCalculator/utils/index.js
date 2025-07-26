@@ -145,7 +145,7 @@ export { calculations } from './calculations.js';
 export { validation } from './validation.js';
 export { helpers } from './helpers.js';
 
-// Export from the TypeScript file (assuming it gets compiled to JS)
+// Export from the JavaScript file
 export * from './promoUtils.js';
 
 // Main utility object for convenience

@@ -1,34 +1,17 @@
-// utils/promoUtils.ts
-
-interface PromoCalculationParams {
-  promoType: string;
-  discountValue: number;
-  bogoBuy: number;
-  bogoGet: number;
-  originalPrice: number;
-  originalHpp: number;
-}
-
-interface PromoResult {
-  price: number;
-  marginRp: number;
-  marginPercent: number;
-  details: any;
-  isNegativeMargin: boolean;
-}
-
-interface PaginationResult {
-  totalPages: number;
-  paginatedPromos: any[];
-  total: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
+// 🛠️ utils/promoUtils.js - Promo calculation utilities (JavaScript version)
 
 /**
  * 📊 Calculate promo result based on type and parameters
+ * @param {Object} params - Calculation parameters
+ * @param {string} params.promoType - Type of promo
+ * @param {number} params.discountValue - Discount value
+ * @param {number} params.bogoBuy - BOGO buy quantity
+ * @param {number} params.bogoGet - BOGO get quantity
+ * @param {number} params.originalPrice - Original price
+ * @param {number} params.originalHpp - Original HPP
+ * @returns {Object|null} Calculation result
  */
-export const calculatePromoResult = (params: PromoCalculationParams): PromoResult | null => {
+export const calculatePromoResult = (params) => {
   const { promoType, discountValue, bogoBuy, bogoGet, originalPrice, originalHpp } = params;
   
   if (originalPrice <= 0) return null;
@@ -79,12 +62,12 @@ export const calculatePromoResult = (params: PromoCalculationParams): PromoResul
 
 /**
  * 📄 Calculate pagination data
+ * @param {Array} items - Array of items to paginate
+ * @param {number} currentPage - Current page number
+ * @param {number} itemsPerPage - Items per page
+ * @returns {Object} Pagination result
  */
-export const calculatePagination = (
-  items: any[], 
-  currentPage: number, 
-  itemsPerPage: number
-): PaginationResult => {
+export const calculatePagination = (items, currentPage, itemsPerPage) => {
   const safeItems = Array.isArray(items) ? items : [];
   const totalPages = Math.ceil(safeItems.length / itemsPerPage);
   const start = Math.max(0, (currentPage - 1) * itemsPerPage);
@@ -101,8 +84,10 @@ export const calculatePagination = (
 
 /**
  * 🎨 Get promo type display info
+ * @param {string} promoType - Type of promo
+ * @returns {Object} Display information
  */
-export const getPromoTypeInfo = (promoType: string) => {
+export const getPromoTypeInfo = (promoType) => {
   const promoTypes = {
     'discount_percent': {
       label: 'Diskon Persentase (%)',
@@ -129,15 +114,15 @@ export const getPromoTypeInfo = (promoType: string) => {
 
 /**
  * ✅ Validate promo form data
+ * @param {string} promoName - Name of the promo
+ * @param {Object} selectedRecipe - Selected recipe object
+ * @param {Object|null} promoResult - Calculation result
+ * @returns {Object} Validation result with isValid and errors
  */
-export const validatePromoForm = (
-  promoName: string,
-  selectedRecipe: any,
-  promoResult: PromoResult | null
-): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
+export const validatePromoForm = (promoName, selectedRecipe, promoResult) => {
+  const errors = [];
 
-  if (!promoName.trim()) {
+  if (!promoName || !promoName.trim()) {
     errors.push('Nama promo wajib diisi');
   }
 
@@ -161,8 +146,11 @@ export const validatePromoForm = (
 
 /**
  * 📊 Format promo details for display
+ * @param {string} promoType - Type of promo
+ * @param {Object} details - Promo details
+ * @returns {string} Formatted string
  */
-export const formatPromoDetails = (promoType: string, details: any): string => {
+export const formatPromoDetails = (promoType, details) => {
   try {
     switch (promoType) {
       case 'discount_percent':
@@ -181,22 +169,44 @@ export const formatPromoDetails = (promoType: string, details: any): string => {
 
 /**
  * 🎯 Generate unique key for React lists
+ * @param {string} prefix - Key prefix
+ * @param {string} id - Item ID
+ * @param {number} index - Item index
+ * @returns {string} Unique key
  */
-export const generatePromoKey = (prefix: string, id: string, index: number): string => {
+export const generatePromoKey = (prefix, id, index) => {
   return `${prefix}_${id || index}_${Date.now()}`;
 };
 
 /**
  * 📈 Calculate savings amount
+ * @param {number} originalPrice - Original price
+ * @param {number} promoPrice - Promo price
+ * @returns {number} Savings amount
  */
-export const calculateSavings = (originalPrice: number, promoPrice: number): number => {
+export const calculateSavings = (originalPrice, promoPrice) => {
   return Math.max(0, originalPrice - promoPrice);
 };
 
 /**
  * 📊 Calculate savings percentage
+ * @param {number} originalPrice - Original price
+ * @param {number} promoPrice - Promo price
+ * @returns {number} Savings percentage
  */
-export const calculateSavingsPercent = (originalPrice: number, promoPrice: number): number => {
+export const calculateSavingsPercent = (originalPrice, promoPrice) => {
   if (originalPrice <= 0) return 0;
   return ((originalPrice - promoPrice) / originalPrice) * 100;
+};
+
+// Export all functions as default object for convenience
+export default {
+  calculatePromoResult,
+  calculatePagination,
+  getPromoTypeInfo,
+  validatePromoForm,
+  formatPromoDetails,
+  generatePromoKey,
+  calculateSavings,
+  calculateSavingsPercent
 };

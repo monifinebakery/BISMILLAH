@@ -12,8 +12,7 @@ import { toast } from 'sonner';
 
 const PromoList = () => {
   const isMobile = useIsMobile(768);
-
-const PromoList = () => {
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     status: '',
@@ -176,8 +175,8 @@ const PromoList = () => {
       </div>
 
       {/* Mobile Actions Menu */}
-      {showMobileActions && (
-        <div className="sm:hidden bg-white border border-gray-200 rounded-lg p-4 space-y-2 shadow-lg">
+      {showMobileActions && isMobile && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 shadow-lg">
           <button
             onClick={handleCreatePromo}
             className="w-full flex items-center space-x-3 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
@@ -231,7 +230,7 @@ const PromoList = () => {
 
         {/* Mobile Filters Panel */}
         {showFilters && isMobile && (
-          <div className="sm:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-gray-900">Filter & Urutkan</h3>
               <button
@@ -261,18 +260,20 @@ const PromoList = () => {
       )}
 
       {/* Stats Summary - Mobile */}
-      <div className="sm:hidden bg-gray-50 rounded-lg p-4">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-semibold text-gray-900">{totalCount || 0}</div>
-            <div className="text-sm text-gray-600">Total Promo</div>
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-orange-600">{selectedItems.length}</div>
-            <div className="text-sm text-gray-600">Terpilih</div>
+      {isMobile && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-semibold text-gray-900">{totalCount || 0}</div>
+              <div className="text-sm text-gray-600">Total Promo</div>
+            </div>
+            <div>
+              <div className="text-2xl font-semibold text-orange-600">{selectedItems.length}</div>
+              <div className="text-sm text-gray-600">Terpilih</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Table Container */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

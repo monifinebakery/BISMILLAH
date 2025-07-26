@@ -1,4 +1,4 @@
-/ Re-export all utilities
+// Re-export all utilities
 export { formatters } from './formatters';
 export { calculations } from './calculations';
 export { validation } from './validation';

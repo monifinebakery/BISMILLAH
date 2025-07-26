@@ -47,7 +47,7 @@ export { usePromoList } from './hooks/usePromoList';
 // === SERVICES ===
 export { analyticsService } from './services/analyticsService';
 export { calculationService } from './services/calculationService';
-export { promosService } from './services/promosService';
+export { promosService } from './services/promoService';
 
 // === CONTEXT ===
 export { PromoCalculatorContext, PromoCalculatorProvider, usePromoCalculatorContext } from './context/PromoContext';

@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useRecipe } from '@/contexts/RecipeContext';
-import PromoTypeSelector from './PromoTypeSelector';
-import PromoPreview from './PromoPreview';
+import PromoTypeSelector from './calculator/PromoTypeSelector';
+import PromoPreview from './calculator/PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';

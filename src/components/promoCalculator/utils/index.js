@@ -4,6 +4,7 @@ export { calculations } from './calculations';
 export { validation } from './validation';
 export { storage } from './storage';
 export { helpers } from './helpers';
+export { promoUtils } from './promoUtils';
 
 // Main utility object for convenience
 export const promoUtils = {

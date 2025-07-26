@@ -47,7 +47,7 @@ export { usePromoList } from './hooks/usePromoList';
 // === SERVICES ===
 export { analyticsService } from './services/analyticsService';
 export { calculationService } from './services/calculationService';
-export { promosService } from './services/promoService';
+export { promosService } from './services/promosService';
 
 // === CONTEXT ===
 export { PromoCalculatorContext, PromoCalculatorProvider, usePromoCalculatorContext } from './context/PromoContext';
@@ -58,11 +58,12 @@ export * from './constants/constants';
 // === UTILITIES ===
 export * from './utils';
 // Individual utility exports
-export * from './utils/calculations';
-export * from './utils/formatters';
-export * from './utils/helpers';
-export * from './utils/storage';
-export * from './utils/validation';
+export { calculations } from './utils/calculations';
+export { formatters } from './utils/formatters';
+export { helpers } from './utils/helpers';
+export { validation } from './utils/validation';
+export { storage } from './utils/storage';
+export { promoUtils } from './utils/promoUtils';
 
 // === DEFAULT EXPORT ===
 // Export default untuk kemudahan import

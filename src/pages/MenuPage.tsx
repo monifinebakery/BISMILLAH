@@ -46,7 +46,7 @@ const MenuPage = () => {
       title: 'Kalkulator Promo',
       description: 'Hitung Promo dengan Mudah',
       icon: Calculator,
-      path: '/promos',
+      path: '/promo',
       color: 'from-blue-500 to-blue-600'
     },
     {

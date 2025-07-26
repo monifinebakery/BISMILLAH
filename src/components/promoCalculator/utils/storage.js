@@ -1,3 +1,5 @@
+// 💾 Storage utilities untuk localStorage management
+
 export const storage = {
   // Keys for localStorage
   keys: {
@@ -26,7 +28,6 @@ export const storage = {
     try {
       const saved = localStorage.getItem(storage.keys.PROMO_FORM_DATA);
       if (!saved) return null;
-
       const data = JSON.parse(saved);
       
       // Check if data is not too old (24 hours)
@@ -38,7 +39,6 @@ export const storage = {
         storage.clearFormData();
         return null;
       }
-
       return data;
     } catch (error) {
       console.warn('Failed to load form data:', error);

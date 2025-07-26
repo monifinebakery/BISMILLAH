@@ -1,13 +1,23 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, ComponentType, ReactElement } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
+// Type definitions
+interface PromoLoadingFallbackProps {
+  size?: 'small' | 'default' | 'large';
+}
+
+interface PromoErrorFallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
+}
+
 // Lazy load main layout
-const PromoCalculatorLayout = lazy(() => import('./PromoCalculatorLayout'));
+const PromoCalculatorLayout: ComponentType = lazy(() => import('./PromoCalculatorLayout'));
 
 // Enhanced loading component
-const PromoLoadingFallback = ({ size = 'default' }) => {
-  const sizeClasses = {
+const PromoLoadingFallback = ({ size = 'default' }: PromoLoadingFallbackProps): ReactElement => {
+  const sizeClasses: Record<string, string> = {
     small: 'h-32',
     default: 'min-h-[400px]',
     large: 'min-h-screen'
@@ -32,14 +42,14 @@ const PromoLoadingFallback = ({ size = 'default' }) => {
 };
 
 // Enhanced error fallback component
-const PromoErrorFallback = ({ error, resetErrorBoundary }) => {
-  const handleRetry = () => {
+const PromoErrorFallback = ({ error, resetErrorBoundary }: PromoErrorFallbackProps): ReactElement => {
+  const handleRetry = (): void => {
     // Clear any cached data that might be causing issues
     if (typeof window !== 'undefined') {
       // Clear localStorage promo data if corrupted
       try {
-        const keys = Object.keys(localStorage).filter(key => key.startsWith('promo_'));
-        keys.forEach(key => localStorage.removeItem(key));
+        const keys: string[] = Object.keys(localStorage).filter((key: string) => key.startsWith('promo_'));
+        keys.forEach((key: string) => localStorage.removeItem(key));
       } catch (e) {
         console.warn('Could not clear localStorage:', e);
       }
@@ -48,7 +58,7 @@ const PromoErrorFallback = ({ error, resetErrorBoundary }) => {
     resetErrorBoundary();
   };
 
-  const handleReload = () => {
+  const handleReload = (): void => {
     window.location.reload();
   };
 
@@ -102,11 +112,11 @@ const PromoErrorFallback = ({ error, resetErrorBoundary }) => {
 };
 
 // Main component with enhanced error boundaries
-const PromoCalculatorIndex = () => {
+const PromoCalculatorIndex = (): ReactElement => {
   return (
     <ErrorBoundary 
       FallbackComponent={PromoErrorFallback}
-      onError={(error, errorInfo) => {
+      onError={(error: Error, errorInfo: any) => {
         // Log error untuk debugging
         console.error('PromoCalculator Error:', error);
         console.error('Error Info:', errorInfo);

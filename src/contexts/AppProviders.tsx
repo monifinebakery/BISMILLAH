@@ -10,7 +10,7 @@ import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 // ✅ NEW: Import PromoProvider
-import { PromoProvider } from './PromoContext';
+import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';

@@ -1,41 +1,93 @@
-/ 🎯 Hook untuk logic perhitungan promo
-
-import { useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRecipe } from '@/contexts/RecipeContext';
-import { calculationService } from '../services/calculationService';
-import { promoService } from '../services/promoService';
+import { calculations, validation } from '../utils';
+import { toast } from 'sonner';
 
 export const usePromoCalculation = () => {
   const { recipes } = useRecipe();
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState(null);
 
+  // Calculate promo based on type
   const calculatePromo = useCallback(async (type, data) => {
+    setIsCalculating(true);
+    setCalculationError(null);
+
     try {
+      let result;
+
       switch (type) {
-        case 'bogo':
-          return calculationService.calculateBogo(data, recipes);
-        case 'discount':
-          return calculationService.calculateDiscount(data, recipes);
-        case 'bundle':
-          return calculationService.calculateBundle(data, recipes);
+        case 'bogo': {
+          const mainRecipe = recipes.find(r => r.id === data.resepUtama);
+          const freeRecipe = recipes.find(r => r.id === data.resepGratis);
+          
+          if (!mainRecipe || !freeRecipe) {
+            throw new Error('Resep tidak ditemukan');
+          }
+
+          result = calculations.calculateBogo(mainRecipe, freeRecipe, data.minimalQty);
+          break;
+        }
+
+        case 'discount': {
+          const recipe = recipes.find(r => r.id === data.resep);
+          
+          if (!recipe) {
+            throw new Error('Resep tidak ditemukan');
+          }
+
+          result = calculations.calculateDiscount(
+            recipe,
+            data.tipeDiskon,
+            data.nilaiDiskon,
+            data.maksimalDiskon
+          );
+          break;
+        }
+
+        case 'bundle': {
+          result = calculations.calculateBundle(
+            data.resepBundle,
+            data.hargaBundle,
+            recipes
+          );
+          break;
+        }
+
         default:
           throw new Error('Tipe promo tidak valid');
       }
+
+      // Add warnings
+      result.warnings = calculations.calculateWarnings(result);
+      
+      // Add breakeven analysis
+      result.breakeven = calculations.calculateBreakeven(result);
+
+      setCalculationResult(result);
+      return result;
+
     } catch (error) {
-      throw new Error(`Gagal menghitung promo: ${error.message}`);
+      setCalculationError(error.message);
+      toast.error(`Error perhitungan: ${error.message}`);
+      throw error;
+    } finally {
+      setIsCalculating(false);
     }
   }, [recipes]);
 
-  const savePromo = useCallback(async (promoData) => {
-    try {
-      return await promoService.createPromo(promoData);
-    } catch (error) {
-      throw new Error(`Gagal menyimpan promo: ${error.message}`);
-    }
+  // Clear calculation
+  const clearCalculation = useCallback(() => {
+    setCalculationResult(null);
+    setCalculationError(null);
   }, []);
 
   return {
+    calculationResult,
+    isCalculating,
+    calculationError,
     calculatePromo,
-    savePromo,
-    isLoading: false // You can add loading state management here
+    clearCalculation
   };
 };

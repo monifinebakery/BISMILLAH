@@ -1,32 +1,40 @@
+// 📋 Constants untuk Promo Calculator
+
+// Promo Types
 export const PROMO_TYPES = {
   BOGO: 'bogo',
   DISCOUNT: 'discount',
   BUNDLE: 'bundle'
 };
 
+// Promo Status
 export const PROMO_STATUS = {
   ACTIVE: 'aktif',
   INACTIVE: 'nonaktif',
   DRAFT: 'draft'
 };
 
+// Discount Types
 export const DISCOUNT_TYPES = {
   PERCENTAGE: 'persentase',
   NOMINAL: 'nominal'
 };
 
+// Promo Labels
 export const PROMO_LABELS = {
   [PROMO_TYPES.BOGO]: 'BOGO (Buy One Get One)',
   [PROMO_TYPES.DISCOUNT]: 'Diskon',
   [PROMO_TYPES.BUNDLE]: 'Paket Bundle'
 };
 
+// Status Labels
 export const STATUS_LABELS = {
   [PROMO_STATUS.ACTIVE]: 'Aktif',
   [PROMO_STATUS.INACTIVE]: 'Non-aktif',
   [PROMO_STATUS.DRAFT]: 'Draft'
 };
 
+// Status Colors
 export const STATUS_COLORS = {
   [PROMO_STATUS.ACTIVE]: {
     bg: 'bg-green-100',
@@ -45,6 +53,7 @@ export const STATUS_COLORS = {
   }
 };
 
+// Promo Type Colors
 export const PROMO_TYPE_COLORS = {
   [PROMO_TYPES.BOGO]: {
     bg: 'bg-green-100',
@@ -66,7 +75,7 @@ export const PROMO_TYPE_COLORS = {
   }
 };
 
-// Default values
+// Default Values
 export const DEFAULT_VALUES = {
   PAGINATION: {
     PAGE_SIZE: 10,
@@ -87,7 +96,7 @@ export const DEFAULT_VALUES = {
   }
 };
 
-// Validation rules
+// Validation Rules
 export const VALIDATION_RULES = {
   PROMO_NAME: {
     MIN_LENGTH: 3,
@@ -103,9 +112,23 @@ export const VALIDATION_RULES = {
   }
 };
 
-// Animation durations (in milliseconds)
+// Animation Durations (in milliseconds)
 export const ANIMATION_DURATION = {
   FAST: 150,
   NORMAL: 300,
   SLOW: 500
+};
+
+// Export all as default object for convenience
+export default {
+  PROMO_TYPES,
+  PROMO_STATUS,
+  DISCOUNT_TYPES,
+  PROMO_LABELS,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  PROMO_TYPE_COLORS,
+  DEFAULT_VALUES,
+  VALIDATION_RULES,
+  ANIMATION_DURATION
 };

@@ -7,7 +7,11 @@ import PromoFilters from './PromoFilters';
 import BulkActions from './BulkActions';
 import PromoEditModal from './PromoEditModal';
 import { usePromoList } from '../hooks/usePromoList';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+
+const PromoList = () => {
+  const isMobile = useIsMobile(768);
 
 const PromoList = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,7 +146,7 @@ const PromoList = () => {
         </div>
         
         {/* Desktop Actions */}
-        <div className="hidden sm:flex items-center space-x-3">
+        <div className={isMobile ? 'hidden' : 'flex items-center space-x-3'}>
           <button
             onClick={handleExport}
             className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
@@ -161,7 +165,7 @@ const PromoList = () => {
         </div>
 
         {/* Mobile Actions Button */}
-        <div className="sm:hidden">
+        <div className={isMobile ? 'block' : 'hidden'}>
           <button
             onClick={() => setShowMobileActions(!showMobileActions)}
             className="flex items-center justify-center w-10 h-10 bg-orange-500 text-white rounded-lg"
@@ -207,7 +211,7 @@ const PromoList = () => {
         </div>
 
         {/* Mobile Filter Toggle */}
-        <div className="sm:hidden">
+        <div className={isMobile ? 'block' : 'hidden'}>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
@@ -218,7 +222,7 @@ const PromoList = () => {
         </div>
 
         {/* Desktop Filters */}
-        <div className="hidden sm:block">
+        <div className={isMobile ? 'hidden' : 'block'}>
           <PromoFilters
             filters={filters}
             onFilterChange={handleFilterChange}
@@ -226,7 +230,7 @@ const PromoList = () => {
         </div>
 
         {/* Mobile Filters Panel */}
-        {showFilters && (
+        {showFilters && isMobile && (
           <div className="sm:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-gray-900">Filter & Urutkan</h3>
@@ -240,7 +244,6 @@ const PromoList = () => {
             <PromoFilters
               filters={filters}
               onFilterChange={handleFilterChange}
-              isMobile={true}
             />
           </div>
         )}
@@ -274,16 +277,16 @@ const PromoList = () => {
       {/* Table Container */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Mobile: Show loading state */}
-        {isLoading && (
-          <div className="sm:hidden p-8 text-center">
+        {isLoading && isMobile && (
+          <div className="p-8 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
             <p className="mt-2 text-gray-600">Memuat data...</p>
           </div>
         )}
 
         {/* Mobile: Show empty state */}
-        {!isLoading && promos.length === 0 && (
-          <div className="sm:hidden p-8 text-center">
+        {!isLoading && promos.length === 0 && isMobile && (
+          <div className="p-8 text-center">
             <div className="text-gray-400 mb-2">
               <Search className="h-12 w-12 mx-auto" />
             </div>

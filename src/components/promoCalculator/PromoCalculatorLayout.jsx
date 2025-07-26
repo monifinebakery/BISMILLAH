@@ -2,6 +2,7 @@
 
 import React, { useState, lazy, Suspense } from 'react';
 import { Calculator, List, BarChart3, Plus } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load tab components
 const PromoCalculator = lazy(() => import('./calculator/PromoCalculator'));

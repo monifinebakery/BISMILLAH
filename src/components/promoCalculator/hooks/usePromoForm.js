@@ -1,3 +1,5 @@
+// 🎯 Custom hook untuk mengelola form promo
+
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { validation, storage } from '../utils';
@@ -45,7 +47,7 @@ export const usePromoForm = (initialData = {}) => {
   }, [formData]);
 
   // Validate form based on type
-  const validateForm = useCallback((type = PROMO_TYPES.DISCOUNT) => {
+  const validateForm = useCallback((type = PROMO_TYPES.DISCOUNT, recipes = []) => {
     let validationResult;
     
     switch (type) {
@@ -53,7 +55,7 @@ export const usePromoForm = (initialData = {}) => {
         validationResult = validation.validateBogoConfig(
           formData.resepUtama,
           formData.resepGratis,
-          [], // recipes will be passed from parent
+          recipes,
           formData.minimalQty
         );
         break;
@@ -63,7 +65,7 @@ export const usePromoForm = (initialData = {}) => {
           formData.resep,
           formData.tipeDiskon,
           formData.nilaiDiskon,
-          [], // recipes will be passed from parent
+          recipes,
           formData.maksimalDiskon
         );
         break;
@@ -72,7 +74,7 @@ export const usePromoForm = (initialData = {}) => {
         validationResult = validation.validateBundleConfig(
           formData.resepBundle,
           formData.hargaBundle,
-          [] // recipes will be passed from parent
+          recipes
         );
         break;
         
@@ -134,6 +136,16 @@ export const usePromoForm = (initialData = {}) => {
     }
   }, []);
 
+  // Show notification when form is auto-saved
+  const showSaveNotification = useCallback(() => {
+    if (isDirty) {
+      toast.success('Draft otomatis tersimpan', {
+        duration: 2000,
+        position: 'bottom-right'
+      });
+    }
+  }, [isDirty]);
+
   return {
     formData,
     errors,
@@ -141,6 +153,7 @@ export const usePromoForm = (initialData = {}) => {
     updateFormData,
     validateForm,
     resetForm,
+    showSaveNotification,
     hasErrors: Object.keys(errors).length > 0
   };
 };

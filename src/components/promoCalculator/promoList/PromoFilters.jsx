@@ -1,335 +1,258 @@
-// 🎯 Main list component dengan table, filter, dan pagination - Mobile Responsive
+// 🎯 Filter component untuk promo - Mobile Responsive
 
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Download, Trash2, Menu, X } from 'lucide-react';
-import PromoTable from './PromoTable';
-import PromoFilters from './PromoFilters';
-import BulkActions from './BulkActions';
-import PromoEditModal from './PromoEditModal';
-import { usePromoList } from '../hooks/usePromoList';
+import React from 'react';
+import { Filter, X, Calendar, Tag, Activity } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { toast } from 'sonner';
 
-const PromoList = () => {
+const PromoFilters = ({ filters, onFilterChange }) => {
   const isMobile = useIsMobile(768);
-
-const PromoList = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    status: '',
-    type: '',
-    dateRange: { start: '', end: '' }
-  });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 10,
-    sortBy: 'created_at',
-    sortOrder: 'desc'
-  });
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [editModal, setEditModal] = useState({ isOpen: false, promo: null });
-  const [showFilters, setShowFilters] = useState(false);
-  const [showMobileActions, setShowMobileActions] = useState(false);
-
-  const {
-    promos,
-    totalCount,
-    isLoading,
-    refreshPromos,
-    deletePromo,
-    bulkDelete,
-    toggleStatus
-  } = usePromoList();
-
-  // Load promos when filters or pagination change
-  useEffect(() => {
-    refreshPromos({
-      search: searchTerm,
-      filters,
-      pagination
+  const handleFilterChange = (key, value) => {
+    onFilterChange({
+      ...filters,
+      [key]: value
     });
-  }, [searchTerm, filters, pagination, refreshPromos]);
-
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
-    setShowFilters(false); // Close mobile filter panel
-  };
-
-  const handlePaginationChange = (newPagination) => {
-    setPagination(prev => ({ ...prev, ...newPagination }));
-  };
-
-  const handleSelectItem = (id, selected) => {
-    if (selected) {
-      setSelectedItems(prev => [...prev, id]);
-    } else {
-      setSelectedItems(prev => prev.filter(item => item !== id));
-    }
-  };
-
-  const handleSelectAll = (selected) => {
-    if (selected) {
-      setSelectedItems(promos.map(promo => promo.id));
-    } else {
-      setSelectedItems([]);
-    }
-  };
-
-  const handleEdit = (promo) => {
-    setEditModal({ isOpen: true, promo });
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin ingin menghapus promo ini?')) {
-      try {
-        await deletePromo(id);
-        toast.success('Promo berhasil dihapus');
-        refreshPromos();
-      } catch (error) {
-        toast.error(`Gagal menghapus promo: ${error.message}`);
+  const handleDateRangeChange = (key, value) => {
+    onFilterChange({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        [key]: value
       }
-    }
+    });
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedItems.length === 0) {
-      toast.error('Pilih promo yang ingin dihapus');
-      return;
-    }
-
-    if (window.confirm(`Yakin ingin menghapus ${selectedItems.length} promo?`)) {
-      try {
-        await bulkDelete(selectedItems);
-        toast.success(`${selectedItems.length} promo berhasil dihapus`);
-        setSelectedItems([]);
-        refreshPromos();
-      } catch (error) {
-        toast.error(`Gagal menghapus promo: ${error.message}`);
-      }
-    }
+  const clearFilters = () => {
+    onFilterChange({
+      status: '',
+      type: '',
+      dateRange: { start: '', end: '' }
+    });
   };
 
-  const handleToggleStatus = async (id, newStatus) => {
-    try {
-      await toggleStatus(id, newStatus);
-      toast.success('Status promo berhasil diubah');
-      refreshPromos();
-    } catch (error) {
-      toast.error(`Gagal mengubah status: ${error.message}`);
-    }
-  };
+  const hasActiveFilters = filters.status || filters.type || filters.dateRange.start || filters.dateRange.end;
 
-  const handleExport = () => {
-    // Implement export functionality
-    toast.info('Fitur export akan segera tersedia');
-    setShowMobileActions(false);
-  };
-
-  const handleCreatePromo = () => {
-    window.location.hash = '#calculator';
-    setShowMobileActions(false);
-  };
-
-  return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Daftar Promo</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola semua promo yang telah dibuat</p>
-        </div>
-        
-        {/* Desktop Actions */}
-        <div className={isMobile ? 'hidden' : 'flex items-center space-x-3'}>
-          <button
-            onClick={handleExport}
-            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {/* Status Filter */}
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+            <Activity className="h-4 w-4" />
+            <span>Status</span>
+          </label>
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
           >
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </button>
-          
-          <button
-            onClick={handleCreatePromo}
-            className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+            <option value="">Semua Status</option>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Non-aktif</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+
+        {/* Type Filter */}
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+            <Tag className="h-4 w-4" />
+            <span>Tipe Promo</span>
+          </label>
+          <select
+            value={filters.type}
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
           >
-            <Plus className="h-4 w-4" />
-            <span>Buat Promo</span>
-          </button>
+            <option value="">Semua Tipe</option>
+            <option value="bogo">BOGO</option>
+            <option value="discount">Diskon</option>
+            <option value="bundle">Bundle</option>
+          </select>
         </div>
 
-        {/* Mobile Actions Button */}
-        <div className={isMobile ? 'block' : 'hidden'}>
-          <button
-            onClick={() => setShowMobileActions(!showMobileActions)}
-            className="flex items-center justify-center w-10 h-10 bg-orange-500 text-white rounded-lg"
-          >
-            {showMobileActions ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Actions Menu */}
-      {showMobileActions && (
-        <div className="sm:hidden bg-white border border-gray-200 rounded-lg p-4 space-y-2 shadow-lg">
-          <button
-            onClick={handleCreatePromo}
-            className="w-full flex items-center space-x-3 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Buat Promo Baru</span>
-          </button>
-          
-          <button
-            onClick={handleExport}
-            className="w-full flex items-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download className="h-5 w-5" />
-            <span>Export Data</span>
-          </button>
-        </div>
-      )}
-
-      {/* Search and Filters */}
-      <div className="space-y-3">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari nama promo, tipe, atau deskripsi..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-          />
+        {/* Date Range Filter */}
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+            <Calendar className="h-4 w-4" />
+            <span>Rentang Tanggal</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Dari</label>
+              <input
+                type="date"
+                value={filters.dateRange.start}
+                onChange={(e) => handleDateRangeChange('start', e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Sampai</label>
+              <input
+                type="date"
+                value={filters.dateRange.end}
+                onChange={(e) => handleDateRangeChange('end', e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Mobile Filter Toggle */}
-        <div className={isMobile ? 'block' : 'hidden'}>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
-          >
-            <Filter className="h-4 w-4" />
-            <span>Filter & Urutkan</span>
-          </button>
-        </div>
-
-        {/* Desktop Filters */}
-        <div className={isMobile ? 'hidden' : 'block'}>
-          <PromoFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-
-        {/* Mobile Filters Panel */}
-        {showFilters && isMobile && (
-          <div className="sm:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Filter & Urutkan</h3>
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Filter Aktif</span>
               <button
-                onClick={() => setShowFilters(false)}
-                className="text-gray-400 hover:text-gray-600"
+                onClick={clearFilters}
+                className="flex items-center space-x-1 px-3 py-1.5 text-xs text-red-600 hover:text-red-800 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
               >
-                <X className="h-5 w-5" />
+                <X className="h-3 w-3" />
+                <span>Hapus Semua</span>
               </button>
             </div>
-            <PromoFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Bulk Actions */}
-      {selectedItems.length > 0 && (
-        <div className="px-2 sm:px-0">
-          <BulkActions
-            selectedCount={selectedItems.length}
-            onDelete={handleBulkDelete}
-            onDeselect={() => setSelectedItems([])}
-          />
-        </div>
-      )}
-
-      {/* Stats Summary - Mobile */}
-      <div className="sm:hidden bg-gray-50 rounded-lg p-4">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-semibold text-gray-900">{totalCount || 0}</div>
-            <div className="text-sm text-gray-600">Total Promo</div>
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-orange-600">{selectedItems.length}</div>
-            <div className="text-sm text-gray-600">Terpilih</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Table Container */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {/* Mobile: Show loading state */}
-        {isLoading && isMobile && (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <p className="mt-2 text-gray-600">Memuat data...</p>
-          </div>
-        )}
-
-        {/* Mobile: Show empty state */}
-        {!isLoading && promos.length === 0 && isMobile && (
-          <div className="p-8 text-center">
-            <div className="text-gray-400 mb-2">
-              <Search className="h-12 w-12 mx-auto" />
+            
+            <div className="flex flex-wrap gap-2">
+              {filters.status && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                  Status: {filters.status}
+                  <button
+                    onClick={() => handleFilterChange('status', '')}
+                    className="ml-1 hover:text-blue-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              
+              {filters.type && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                  Tipe: {filters.type}
+                  <button
+                    onClick={() => handleFilterChange('type', '')}
+                    className="ml-1 hover:text-green-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              
+              {(filters.dateRange.start || filters.dateRange.end) && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                  Tanggal: {filters.dateRange.start || '...'} - {filters.dateRange.end || '...'}
+                  <button
+                    onClick={() => handleDateRangeChange('start', '') || handleDateRangeChange('end', '')}
+                    className="ml-1 hover:text-purple-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
             </div>
-            <p className="text-gray-600 mb-4">Tidak ada promo ditemukan</p>
+          </div>
+        )}
+
+        {/* Apply Button for Mobile */}
+        <div className="pt-2 border-t border-gray-200">
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={handleCreatePromo}
-              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+              onClick={clearFilters}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              Buat Promo Pertama
+              Reset
+            </button>
+            <button
+              onClick={() => {}} // This will be handled by parent component
+              className="px-4 py-2.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors"
+            >
+              Terapkan
             </button>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Table */}
-        {(!isLoading || promos.length > 0) && (
-          <PromoTable
-            promos={promos}
-            isLoading={isLoading}
-            selectedItems={selectedItems}
-            pagination={pagination}
-            totalCount={totalCount}
-            onSelectItem={handleSelectItem}
-            onSelectAll={handleSelectAll}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleStatus={handleToggleStatus}
-            onPaginationChange={handlePaginationChange}
-          />
-        )}
+  // Desktop Layout (Original)
+  return (
+    <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
+      {/* Status Filter */}
+      <div className="min-w-0 flex-shrink-0">
+        <select
+          value={filters.status}
+          onChange={(e) => handleFilterChange('status', e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+        >
+          <option value="">Semua Status</option>
+          <option value="aktif">Aktif</option>
+          <option value="nonaktif">Non-aktif</option>
+          <option value="draft">Draft</option>
+        </select>
       </div>
 
-      {/* Edit Modal */}
-      <PromoEditModal
-        isOpen={editModal.isOpen}
-        promo={editModal.promo}
-        onClose={() => setEditModal({ isOpen: false, promo: null })}
-        onSave={() => {
-          refreshPromos();
-          setEditModal({ isOpen: false, promo: null });
-        }}
-      />
+      {/* Type Filter */}
+      <div className="min-w-0 flex-shrink-0">
+        <select
+          value={filters.type}
+          onChange={(e) => handleFilterChange('type', e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+        >
+          <option value="">Semua Tipe</option>
+          <option value="bogo">BOGO</option>
+          <option value="discount">Diskon</option>
+          <option value="bundle">Bundle</option>
+        </select>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="flex items-center space-x-2 min-w-0 flex-shrink-0">
+        <input
+          type="date"
+          value={filters.dateRange.start}
+          onChange={(e) => handleDateRangeChange('start', e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent w-auto"
+          placeholder="Dari tanggal"
+        />
+        <span className="text-gray-400 px-1">-</span>
+        <input
+          type="date"
+          value={filters.dateRange.end}
+          onChange={(e) => handleDateRangeChange('end', e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent w-auto"
+          placeholder="Sampai tanggal"
+        />
+      </div>
+
+      {/* Clear Filters */}
+      {hasActiveFilters && (
+        <button
+          onClick={clearFilters}
+          className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+        >
+          <X className="h-4 w-4" />
+          <span className="hidden sm:inline">Clear</span>
+        </button>
+      )}
+
+      {/* Filter Icon */}
+      <div className="flex items-center text-gray-400 flex-shrink-0">
+        <Filter className="h-4 w-4" />
+      </div>
+
+      {/* Active Filters Count (Desktop) */}
+      {hasActiveFilters && (
+        <div className="flex items-center space-x-2 text-sm text-gray-600 flex-shrink-0">
+          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
+            {[filters.status, filters.type, filters.dateRange.start || filters.dateRange.end]
+              .filter(Boolean).length} filter aktif
+          </span>
+        </div>
+      )}
     </div>
   );
 };
 
-export default PromoList;
+export default PromoFilters;

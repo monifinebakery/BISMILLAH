@@ -1,3 +1,5 @@
+// 🎯 Chart untuk analisis promo
+
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Percent, Calendar } from 'lucide-react';
 import HppAnalysisChart from './HppAnalysisChart';

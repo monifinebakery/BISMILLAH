@@ -1,15 +1,28 @@
-// 🎯 Preview hasil perhitungan promo
+// 🎯 Preview hasil perhitungan promo (yang belum lengkap sebelumnya)
 
 import React from 'react';
-import { Save, TrendingUp, DollarSign, Percent } from 'lucide-react';
+import { Save, TrendingUp, DollarSign, Percent, AlertCircle } from 'lucide-react';
 
 const PromoPreview = ({ type, data, onSave, isLoading }) => {
   const { calculationResult } = data;
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(value || 0);
+  };
+
+  const formatPercent = (value) => {
+    return `${(value || 0).toFixed(1)}%`;
+  };
 
   if (!type) {
     return (
       <div className="bg-gray-50 rounded-lg p-6 text-center">
         <div className="text-gray-400 text-4xl mb-4">📊</div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">Preview Promo</h3>
         <p className="text-gray-600">Pilih tipe promo untuk melihat preview</p>
       </div>
     );
@@ -19,144 +32,213 @@ const PromoPreview = ({ type, data, onSave, isLoading }) => {
     return (
       <div className="bg-gray-50 rounded-lg p-6 text-center">
         <div className="text-gray-400 text-4xl mb-4">⚡</div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">Siap Menghitung</h3>
         <p className="text-gray-600">Lengkapi form untuk melihat perhitungan</p>
       </div>
     );
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatPercent = (value) => {
-    return `${value.toFixed(1)}%`;
-  };
+  const marginDiff = calculationResult.promoMargin - calculationResult.normalMargin;
+  const isMarginDecreased = marginDiff < 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold text-gray-900">Preview Promo</h4>
-        <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-sm font-medium">
-          {type.toUpperCase()}
-        </span>
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
+        <div className="flex items-center justify-between text-white">
+          <h4 className="text-lg font-semibold">Preview Promo</h4>
+          <span className="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-medium">
+            {type.toUpperCase()}
+          </span>
+        </div>
       </div>
 
-      {/* Calculation Results */}
-      <div className="space-y-4">
-        {/* HPP Information */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <DollarSign className="h-4 w-4 text-blue-600" />
-            <span className="font-medium text-blue-900">HPP Analysis</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="p-6 space-y-6">
+        {/* Warning jika margin turun drastis */}
+        {isMarginDecreased && Math.abs(marginDiff) > 10 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-blue-700">HPP Normal</p>
-              <p className="font-semibold text-blue-900">
-                {formatCurrency(calculationResult.normalHpp)}
-              </p>
-            </div>
-            <div>
-              <p className="text-blue-700">HPP Promo</p>
-              <p className="font-semibold text-blue-900">
-                {formatCurrency(calculationResult.promoHpp)}
+              <h5 className="text-sm font-medium text-yellow-800">Perhatian Margin</h5>
+              <p className="text-sm text-yellow-700">
+                Margin turun {Math.abs(marginDiff).toFixed(1)}%. Pastikan promo ini menguntungkan.
               </p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Pricing Information */}
-        <div className="bg-green-50 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="font-medium text-green-900">Pricing</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-green-700">Harga Normal</p>
-              <p className="font-semibold text-green-900">
-                {formatCurrency(calculationResult.normalPrice)}
-              </p>
+        {/* Calculation Results */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* HPP Information */}
+          <div className="bg-red-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <DollarSign className="h-4 w-4 text-red-600" />
+              <span className="font-medium text-red-900">HPP</span>
             </div>
-            <div>
-              <p className="text-green-700">Harga Promo</p>
-              <p className="font-semibold text-green-900">
-                {formatCurrency(calculationResult.promoPrice)}
-              </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-red-700">Normal:</span>
+                <span className="font-semibold text-red-900">
+                  {formatCurrency(calculationResult.normalHpp)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-red-700">Promo:</span>
+                <span className="font-semibold text-red-900">
+                  {formatCurrency(calculationResult.promoHpp)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Information */}
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-900">Harga</span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-green-700">Normal:</span>
+                <span className="font-semibold text-green-900">
+                  {formatCurrency(calculationResult.normalPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700">Promo:</span>
+                <span className="font-semibold text-green-900">
+                  {formatCurrency(calculationResult.promoPrice)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Profit Analysis */}
-        <div className="bg-orange-50 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <Percent className="h-4 w-4 text-orange-600" />
-            <span className="font-medium text-orange-900">Profit Analysis</span>
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-3">
+            <Percent className="h-4 w-4 text-blue-600" />
+            <span className="font-medium text-blue-900">Analisis Profit</span>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-orange-700">Margin Normal</p>
-              <p className="font-semibold text-orange-900">
-                {formatPercent(calculationResult.normalMargin)}
-              </p>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-blue-700">Margin Normal:</span>
+                <span className="font-semibold text-blue-900">
+                  {formatPercent(calculationResult.normalMargin)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">Margin Promo:</span>
+                <span className="font-semibold text-blue-900">
+                  {formatPercent(calculationResult.promoMargin)}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-orange-700">Margin Promo</p>
-              <p className="font-semibold text-orange-900">
-                {formatPercent(calculationResult.promoMargin)}
-              </p>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-blue-700">Selisih:</span>
+                <span className={`font-semibold ${isMarginDecreased ? 'text-red-600' : 'text-green-600'}`}>
+                  {isMarginDecreased ? '' : '+'}{formatPercent(marginDiff)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">Profit:</span>
+                <span className="font-semibold text-blue-900">
+                  {formatCurrency(calculationResult.promoProfit || (calculationResult.promoPrice - calculationResult.promoHpp))}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Impact Summary */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h5 className="font-medium text-gray-900 mb-2">Ringkasan Dampak</h5>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-700">Pengurangan Harga:</span>
-              <span className="font-semibold text-red-600">
-                {formatCurrency(calculationResult.normalPrice - calculationResult.promoPrice)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-700">Dampak Margin:</span>
-              <span className={`font-semibold ${
-                calculationResult.promoMargin < calculationResult.normalMargin 
-                  ? 'text-red-600' 
-                  : 'text-green-600'
-              }`}>
-                {calculationResult.promoMargin < calculationResult.normalMargin ? '-' : '+'}
-                {formatPercent(Math.abs(calculationResult.promoMargin - calculationResult.normalMargin))}
-              </span>
+        {/* Type-specific Information */}
+        {type === 'bogo' && calculationResult.effectiveDiscount && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h5 className="font-medium text-purple-900 mb-2">Info BOGO</h5>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-purple-700">Resep Utama:</span>
+                <span className="font-medium text-purple-900">{calculationResult.mainRecipe}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Resep Gratis:</span>
+                <span className="font-medium text-purple-900">{calculationResult.freeRecipe}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Nilai Gratis:</span>
+                <span className="font-medium text-purple-900">{formatCurrency(calculationResult.effectiveDiscount)}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Action Button */}
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
-      >
-        {isLoading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>Menyimpan...</span>
-          </>
-        ) : (
-          <>
-            <Save className="h-4 w-4" />
-            <span>Simpan Promo</span>
-          </>
         )}
-      </button>
+
+        {type === 'discount' && calculationResult.discountAmount && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h5 className="font-medium text-purple-900 mb-2">Info Diskon</h5>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-purple-700">Tipe Diskon:</span>
+                <span className="font-medium text-purple-900">
+                  {calculationResult.discountType === 'persentase' ? 'Persentase' : 'Nominal'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Nilai Diskon:</span>
+                <span className="font-medium text-purple-900">
+                  {calculationResult.discountType === 'persentase' 
+                    ? `${calculationResult.discountValue}%` 
+                    : formatCurrency(calculationResult.discountValue)
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Potongan:</span>
+                <span className="font-medium text-purple-900">{formatCurrency(calculationResult.discountAmount)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {type === 'bundle' && calculationResult.savings && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h5 className="font-medium text-purple-900 mb-2">Info Bundle</h5>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-purple-700">Jumlah Item:</span>
+                <span className="font-medium text-purple-900">{calculationResult.itemCount} produk</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Hemat Customer:</span>
+                <span className="font-medium text-green-600">{formatCurrency(calculationResult.savings)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Persentase Hemat:</span>
+                <span className="font-medium text-green-600">{formatPercent(calculationResult.savingsPercent)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Button */}
+        <button
+          onClick={onSave}
+          disabled={isLoading}
+          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Menyimpan...</span>
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              <span>Simpan Promo</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 };

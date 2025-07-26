@@ -1,4 +1,6 @@
-// 🎯 Form untuk Bundle Produk
+// ============================================================================
+// src/components/promoCalculator/calculator/forms/BundleForm.jsx
+// 🎯 Form untuk Bundle Produk (FIXED VERSION)
 
 import React, { useState } from 'react';
 import { Package, Plus, X, Search } from 'lucide-react';
@@ -245,7 +247,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       </div>
 
-      {/* Bundle Statistics */}
+      {/* Bundle Statistics - FIXED */}
       {formData.resepBundle.length > 0 && formData.hargaBundle && (
         <div className="bg-purple-50 rounded-lg p-4">
           <h5 className="font-medium text-purple-900 mb-3">Analisis Bundle</h5>
@@ -263,7 +265,6 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
               </p>
             </div>
             <div>
-            <div>
               <p className="text-purple-700">Hemat:</p>
               <p className="font-semibold text-green-600">
                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bundleStats.savings)} ({bundleStats.savingsPercent.toFixed(1)}%)
@@ -279,8 +280,8 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       )}
 
-      {/* Date Range */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Date Range & Status */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Tanggal Mulai
@@ -304,6 +305,21 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Status
+          </label>
+          <select
+            value={formData.status}
+            onChange={(e) => handleInputChange('status', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          >
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Non-aktif</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
       </div>
 
       {/* Description */}
@@ -318,22 +334,6 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
-      </div>
-
-      {/* Status */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Status
-        </label>
-        <select
-          value={formData.status}
-          onChange={(e) => handleInputChange('status', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-        >
-          <option value="aktif">Aktif</option>
-          <option value="nonaktif">Non-aktif</option>
-          <option value="draft">Draft</option>
-        </select>
       </div>
 
       {/* Submit Button */}

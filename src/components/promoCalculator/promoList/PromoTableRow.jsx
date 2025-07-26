@@ -1,3 +1,5 @@
+// 🎯 Single row component untuk table promo
+
 import React from 'react';
 import { 
   Edit, Trash2, ToggleLeft, ToggleRight, Gift, Percent, Package 

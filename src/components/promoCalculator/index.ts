@@ -53,7 +53,7 @@ export { promosService } from './services/promoService';
 export { PromoCalculatorContext, PromoCalculatorProvider, usePromoCalculatorContext } from './context/PromoContext';
 
 // === CONSTANTS ===
-export * from './constants/constants';
+export * from './constants';
 
 // === UTILITIES ===
 export * from './utils';

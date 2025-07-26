@@ -1,4 +1,4 @@
-/ 🎯 Form untuk BOGO (Buy One Get One)
+// 🎯 Form untuk BOGO (Buy One Get One)
 
 import React, { useState } from 'react';
 import { Gift, Search, Calendar } from 'lucide-react';

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { validation, storage, PROMO_TYPES, DISCOUNT_TYPES } from '../utils';
+import { PROMO_TYPES, DISCOUNT_TYPES } from '../constants';
 
 export const usePromoForm = (initialData = {}) => {
   const [formData, setFormData] = useState({

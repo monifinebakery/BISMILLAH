@@ -1,6 +1,6 @@
 import React from 'react';
 import { Gift, Percent, Package } from 'lucide-react';
-import { helpers } from '../utils';
+import { helpers } from '../utils/helpers';
 import { PROMO_TYPES } from '@/components/promoCalculator/constants/constants';
 
 const PromoTypeBadge = ({ type, showIcon = true, className = '' }) => {

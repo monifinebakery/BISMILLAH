@@ -27,17 +27,53 @@ const SupplierManagement = () => {
   const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
 
   const [newSupplier, setNewSupplier] = useState({
     nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: '',
   });
 
+  // 🔧 FIXED: Enhanced validation with optional email
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!newSupplier.nama.trim()) {
+      errors.nama = 'Nama supplier wajib diisi';
+    }
+    
+    if (!newSupplier.kontak.trim()) {
+      errors.kontak = 'Nama kontak wajib diisi';
+    }
+    
+    // 🔧 FIXED: Email validation only if provided
+    if (newSupplier.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newSupplier.email)) {
+      errors.email = 'Format email tidak valid';
+    }
+    
+    // Validate phone number if provided
+    if (newSupplier.telepon.trim() && !/^[\d\s\-\+\(\)]+$/.test(newSupplier.telepon)) {
+      errors.telepon = 'Format nomor telepon tidak valid';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveSupplier = async () => {
-    if (!newSupplier.nama || !newSupplier.kontak) {
-      toast.error('Nama supplier dan nama kontak wajib diisi');
+    if (!validateForm()) {
+      toast.error('Mohon periksa kembali data yang diisi');
       return;
     }
-    const dataToSave = { ...newSupplier, catatan: newSupplier.catatan || null };
+
+    // 🔧 FIXED: Clean data before saving - make email optional
+    const dataToSave = { 
+      ...newSupplier, 
+      email: newSupplier.email.trim() || null, // Optional email
+      telepon: newSupplier.telepon.trim() || null,
+      alamat: newSupplier.alamat.trim() || null,
+      catatan: newSupplier.catatan.trim() || null 
+    };
+    
     const success = editingSupplier 
       ? await updateSupplier(editingSupplier.id, dataToSave)
       : await addSupplier(dataToSave);
@@ -45,16 +81,22 @@ const SupplierManagement = () => {
     if (success) {
       setIsDialogOpen(false);
       setEditingSupplier(null);
+      setFormErrors({});
       setSelectedSupplierIds(prev => prev.filter(id => id !== (editingSupplier?.id || '')));
     }
   };
 
   const openDialog = (supplier: Supplier | null = null) => {
     setEditingSupplier(supplier);
+    setFormErrors({});
     setNewSupplier(
       supplier ? {
-        nama: supplier.nama, kontak: supplier.kontak, email: supplier.email || '',
-        telepon: supplier.telepon || '', alamat: supplier.alamat || '', catatan: supplier.catatan || ''
+        nama: supplier.nama, 
+        kontak: supplier.kontak, 
+        email: supplier.email || '',
+        telepon: supplier.telepon || '', 
+        alamat: supplier.alamat || '', 
+        catatan: supplier.catatan || ''
       } : {
         nama: '', kontak: '', email: '', telepon: '', alamat: '', catatan: ''
       }
@@ -317,7 +359,15 @@ const SupplierManagement = () => {
                     </TableCell>
                     <TableCell className="font-medium text-gray-900 p-4">{supplier.nama}</TableCell>
                     <TableCell className="p-4">{supplier.kontak}</TableCell>
-                    <TableCell className="p-4">{supplier.email || '-'}</TableCell>
+                    <TableCell className="p-4">
+                      {supplier.email ? (
+                        <span className="text-blue-600 hover:text-blue-800">
+                          {supplier.email}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic">Tidak ada email</span>
+                      )}
+                    </TableCell>
                     <TableCell className="p-4">{supplier.telepon || '-'}</TableCell>
                     <TableCell className="text-center p-4">
                       {!isSelectionMode && (
@@ -450,75 +500,117 @@ const SupplierManagement = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">{editingSupplier ? 'Edit Supplier' : 'Tambah Supplier'}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              {editingSupplier ? 'Edit Supplier' : 'Tambah Supplier'}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSaveSupplier(); }} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
               <div className="md:col-span-2">
-                <Label htmlFor="nama" className="font-medium">Nama Supplier *</Label>
+                <Label htmlFor="nama" className="font-medium">
+                  Nama Supplier <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="nama"
                   value={newSupplier.nama}
                   onChange={(e) => setNewSupplier({ ...newSupplier, nama: e.target.value })}
                   placeholder="Masukkan nama supplier"
                   required
-                  className="mt-1"
+                  className={cn("mt-1", formErrors.nama && "border-red-500")}
                 />
+                {formErrors.nama && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.nama}</p>
+                )}
               </div>
+              
               <div className="md:col-span-2">
-                <Label htmlFor="kontak" className="font-medium">Nama Kontak *</Label>
+                <Label htmlFor="kontak" className="font-medium">
+                  Nama Kontak <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="kontak"
                   value={newSupplier.kontak}
                   onChange={(e) => setNewSupplier({ ...newSupplier, kontak: e.target.value })}
                   placeholder="Masukkan nama kontak"
                   required
-                  className="mt-1"
+                  className={cn("mt-1", formErrors.kontak && "border-red-500")}
                 />
+                {formErrors.kontak && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.kontak}</p>
+                )}
               </div>
+              
+              {/* 🔧 FIXED: Email field made optional */}
               <div>
-                <Label htmlFor="email" className="font-medium">Email</Label>
+                <Label htmlFor="email" className="font-medium">
+                  Email <span className="text-gray-400 text-sm">(opsional)</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={newSupplier.email}
                   onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
-                  placeholder="Masukkan email"
-                  className="mt-1"
+                  placeholder="email@contoh.com"
+                  className={cn("mt-1", formErrors.email && "border-red-500")}
                 />
+                {formErrors.email && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                )}
+                <p className="text-gray-500 text-xs mt-1">
+                  Email tidak wajib diisi, namun jika diisi harap gunakan format yang benar
+                </p>
               </div>
+              
               <div>
-                <Label htmlFor="telepon" className="font-medium">Telepon</Label>
+                <Label htmlFor="telepon" className="font-medium">
+                  Telepon <span className="text-gray-400 text-sm">(opsional)</span>
+                </Label>
                 <Input
                   id="telepon"
                   type="tel"
                   value={newSupplier.telepon}
                   onChange={(e) => setNewSupplier({ ...newSupplier, telepon: e.target.value })}
-                  placeholder="Masukkan nomor telepon"
-                  className="mt-1"
+                  placeholder="08xx-xxxx-xxxx"
+                  className={cn("mt-1", formErrors.telepon && "border-red-500")}
                 />
+                {formErrors.telepon && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.telepon}</p>
+                )}
               </div>
+              
               <div className="md:col-span-2">
-                <Label htmlFor="alamat" className="font-medium">Alamat</Label>
+                <Label htmlFor="alamat" className="font-medium">
+                  Alamat <span className="text-gray-400 text-sm">(opsional)</span>
+                </Label>
                 <Input
                   id="alamat"
                   value={newSupplier.alamat}
                   onChange={(e) => setNewSupplier({ ...newSupplier, alamat: e.target.value })}
-                  placeholder="Masukkan alamat"
+                  placeholder="Masukkan alamat lengkap"
                   className="mt-1"
                 />
               </div>
+              
               <div className="md:col-span-2">
-                <Label htmlFor="catatan" className="font-medium">Catatan</Label>
+                <Label htmlFor="catatan" className="font-medium">
+                  Catatan <span className="text-gray-400 text-sm">(opsional)</span>
+                </Label>
                 <Input
                   id="catatan"
                   value={newSupplier.catatan}
                   onChange={(e) => setNewSupplier({ ...newSupplier, catatan: e.target.value })}
-                  placeholder="Masukkan catatan"
+                  placeholder="Catatan tambahan tentang supplier"
                   className="mt-1"
                 />
               </div>
             </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg mt-4">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">Catatan:</span> Hanya Nama Supplier dan Nama Kontak yang wajib diisi. Field lainnya bersifat opsional.
+              </p>
+            </div>
+            
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Batal

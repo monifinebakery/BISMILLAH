@@ -1,12 +1,11 @@
 // components/dashboard/RecentActivities.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
-import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
 import { formatDateTime } from '@/utils/unifiedDateUtils';
 
 interface ActivityItem {
@@ -20,10 +19,26 @@ interface ActivityItem {
 
 interface Props {
   activities: ActivityItem[];
-  pagination: number;
-  onPageChange: (page: number) => void;
-  isLoading: boolean;
+  isLoading?: boolean;
+  itemsPerPage?: number;
 }
+
+// 🔧 FIXED: Simple pagination calculation
+const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  
+  return {
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    hasNext: currentPage < totalPages,
+    hasPrev: currentPage > 1,
+    totalItems
+  };
+};
 
 // 📝 Activity Row Component
 const ActivityRow: React.FC<{
@@ -59,7 +74,9 @@ const ActivityRow: React.FC<{
   }
 
   // 🎨 Determine colors based on activity type
-  const isIncome = activity.title?.toLowerCase().includes('pemasukan');
+  const isIncome = activity.title?.toLowerCase().includes('pemasukan') || 
+                   activity.title?.toLowerCase().includes('income') ||
+                   activity.title?.toLowerCase().includes('penjualan');
   const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
 
   return (
@@ -102,7 +119,12 @@ const PaginationControls: React.FC<{
   onPageChange: (direction: 'prev' | 'next') => void;
   hasNext: boolean;
   hasPrev: boolean;
-}> = ({ currentPage, totalPages, onPageChange, hasNext, hasPrev }) => {
+  totalItems: number;
+  itemsPerPage: number;
+}> = ({ currentPage, totalPages, onPageChange, hasNext, hasPrev, totalItems, itemsPerPage }) => {
+  const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
   return (
     <CardFooter className="bg-gray-50 border-t border-gray-100 p-3 flex justify-between items-center">
       <Button 
@@ -110,41 +132,56 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('prev')} 
         disabled={!hasPrev} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Sebelumnya
       </Button>
       
-      <span className="text-sm text-gray-600 font-medium">
-        {currentPage} dari {totalPages}
-      </span>
+      <div className="flex flex-col items-center">
+        <span className="text-sm text-gray-600 font-medium">
+          Halaman {currentPage} dari {totalPages}
+        </span>
+        <span className="text-xs text-gray-500">
+          Menampilkan {startItem}-{endItem} dari {totalItems} aktivitas
+        </span>
+      </div>
       
       <Button 
         variant="outline" 
         size="sm" 
         onClick={() => onPageChange('next')} 
         disabled={!hasNext} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <ChevronRight className="h-4 w-4" />
+        Selanjutnya
+        <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </CardFooter>
   );
 };
 
+// 🔧 FIXED: Main component with internal pagination state
 const RecentActivities: React.FC<Props> = ({ 
   activities, 
-  pagination, 
-  onPageChange, 
-  isLoading 
+  isLoading = false,
+  itemsPerPage = 5
 }) => {
-  const itemsPerPage = 5;
+  // 🔧 FIXED: Internal pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // 📊 Calculate pagination
   const paginationInfo = useMemo(() => 
-    calculatePagination(pagination, activities.length, itemsPerPage),
-    [pagination, activities.length]
+    calculatePagination(currentPage, activities.length, itemsPerPage),
+    [currentPage, activities.length, itemsPerPage]
   );
+
+  // 🔧 FIXED: Reset page when activities change
+  React.useEffect(() => {
+    if (currentPage > paginationInfo.totalPages && paginationInfo.totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [activities.length, currentPage, paginationInfo.totalPages]);
 
   // 📋 Current page activities
   const currentActivities = useMemo(() => {
@@ -161,16 +198,19 @@ const RecentActivities: React.FC<Props> = ({
     }
     
     return activities.slice(paginationInfo.startIndex, paginationInfo.endIndex);
-  }, [activities, paginationInfo, isLoading]);
+  }, [activities, paginationInfo, isLoading, itemsPerPage]);
 
   // 🎯 Handle pagination
   const handlePageChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev' && paginationInfo.hasPrev) {
-      onPageChange(paginationInfo.currentPage - 1);
+      setCurrentPage(prev => prev - 1);
     } else if (direction === 'next' && paginationInfo.hasNext) {
-      onPageChange(paginationInfo.currentPage + 1);
+      setCurrentPage(prev => prev + 1);
     }
   };
+
+  // 🔧 FIXED: Show pagination if there are enough items OR if we're not on page 1
+  const shouldShowPagination = !isLoading && (paginationInfo.totalPages > 1 || currentPage > 1);
 
   return (
     <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -200,7 +240,7 @@ const RecentActivities: React.FC<Props> = ({
           <TableBody>
             {currentActivities.length > 0 ? (
               currentActivities.map((activity, index) => {
-                const key = generateListKey('activity', activity.id, index, pagination.toString());
+                const key = generateListKey('activity', activity.id, index, currentPage.toString());
                 return (
                   <ActivityRow
                     key={key}
@@ -215,7 +255,7 @@ const RecentActivities: React.FC<Props> = ({
                 <TableCell colSpan={3} className="text-center text-gray-500 py-8">
                   <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="font-medium">Belum ada aktivitas</p>
-                  <p className="text-sm mt-1">pada periode yang dipilih.</p>
+                  <p className="text-sm mt-1">Aktivitas akan muncul di sini setelah ada transaksi.</p>
                 </TableCell>
               </TableRow>
             ) : null}
@@ -224,13 +264,15 @@ const RecentActivities: React.FC<Props> = ({
       </CardContent>
 
       {/* 🔄 Pagination */}
-      {paginationInfo.totalPages > 1 && !isLoading && (
+      {shouldShowPagination && (
         <PaginationControls
           currentPage={paginationInfo.currentPage}
           totalPages={paginationInfo.totalPages}
           onPageChange={handlePageChange}
           hasNext={paginationInfo.hasNext}
           hasPrev={paginationInfo.hasPrev}
+          totalItems={paginationInfo.totalItems}
+          itemsPerPage={itemsPerPage}
         />
       )}
     </Card>

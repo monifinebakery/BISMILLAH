@@ -35,7 +35,7 @@ const QuickActions: React.FC = () => {
   // ⚡ Actions configuration
   const actions = [
     {
-      to: "/orders",
+      to: "/pesanan",
       icon: <ShoppingBag className="h-6 w-6" />,
       label: "Kelola Pesanan",
       bgColor: "bg-blue-100",

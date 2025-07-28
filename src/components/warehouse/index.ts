@@ -1,15 +1,28 @@
-import React from 'react';
+// src/components/warehouse/index.ts
 
-// Regular imports for always-loaded components
-export { default as LowStockAlert } from './LowStockAlert';
-export { default as SelectionControls } from './SelectionControls';
-export { default as SearchAndFilters } from './SearchAndFilters';
-export { default as WarehouseTable } from './WarehouseTable';
-export { default as TablePagination } from './TablePagination';
+// Main exports
+export { default as WarehousePage } from './pages/WarehousePage';
+export { BahanBakuProvider, useBahanBaku } from './context/BahanBakuContext';
 
-// Lazy imports for dialogs
-export const AddItemDialog = React.lazy(() => import('./AddItemDialog'));
-export const BulkDeleteDialog = React.lazy(() => import('./BulkDeleteDialog'));
+// Types
+export type * from './types/warehouse';
 
-// Main component export
-export { default as WarehousePage } from '../WarehousePage';
+// Hooks
+export { useWarehouseSelection } from './hooks/useWarehouseSelection';
+export { useWarehousePagination } from './hooks/useWarehousePagination';
+export { useWarehouseFilters } from './hooks/useWarehouseFilters';
+export { useBulkOperations } from './hooks/useBulkOperations';
+
+// Core Components
+export { default as WarehouseTable } from './components/core/WarehouseTable';
+export { default as TablePagination } from './components/core/TablePagination';
+export { default as SearchAndFilters } from './components/core/SearchAndFilters';
+
+// Alert Components
+export { default as LowStockAlert } from './components/alerts/LowStockAlert';
+
+// Utility Functions
+export * from './utils/formatters';
+
+// Constants
+export { ITEMS_PER_PAGE_OPTIONS } from './hooks/useWarehousePagination';

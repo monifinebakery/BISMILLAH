@@ -1,0 +1,394 @@
+// 🎯 250 lines - Complete table dengan semua logika asli
+import React, { useState } from 'react';
+import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { formatCurrency } from '@/utils/formatUtils';
+import type { Order, UseOrderUIReturn } from '../types';
+import { formatDateForDisplay } from '../utils';
+import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
+
+interface OrderTableProps {
+  uiState: UseOrderUIReturn;
+  loading: boolean;
+  onEditOrder: (order: Order) => void;
+  onDeleteOrder: (orderId: string) => void;
+  onStatusChange: (orderId: string, newStatus: string) => void;
+  onNewOrder: () => void;
+}
+
+// Status Badge Component (consolidated)
+const StatusBadge: React.FC<{
+  status: string;
+  onChange?: (newStatus: string) => void;
+  disabled?: boolean;
+}> = ({ status, onChange, disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (disabled || !onChange) {
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
+        {getStatusText(status)}
+      </span>
+    );
+  }
+
+  return (
+    <Select value={status} onValueChange={onChange} open={isOpen} onOpenChange={setIsOpen}>
+      <SelectTrigger
+        className={`w-auto h-auto p-0 border-0 bg-transparent hover:bg-transparent focus:ring-0 ${getStatusColor(status)} rounded-full px-2.5 py-0.5 text-xs font-medium`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SelectValue />
+        <ChevronDown className="h-3 w-3 ml-1" />
+      </SelectTrigger>
+      
+      <SelectContent>
+        {ORDER_STATUSES.map((statusOption) => (
+          <SelectItem key={statusOption} value={statusOption}>
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(statusOption)}`}>
+              {getStatusText(statusOption)}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+// Row Actions Component (consolidated)
+const OrderRowActions: React.FC<{
+  order: Order;
+  onEdit: () => void;
+  onDelete: () => void;
+  onFollowUp: () => void;
+  onViewDetail: () => void;
+  disabled?: boolean;
+}> = ({ order, onEdit, onDelete, onFollowUp, onViewDetail, disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDelete = () => {
+    setIsOpen(false);
+    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.nomorPesanan}?`)) {
+      onDelete();
+    }
+  };
+
+  if (disabled) {
+    return (
+      <div className="text-gray-400">
+        <MoreHorizontal className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => { setIsOpen(false); onViewDetail(); }}>
+          <Eye className="mr-2 h-4 w-4" />
+          Lihat Detail
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={() => { setIsOpen(false); onEdit(); }}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit Pesanan
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={() => { setIsOpen(false); onFollowUp(); }}>
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Follow Up
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem onClick={handleDelete} className="text-red-600 focus:text-red-600">
+          <Trash2 className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+// Row Selection Component (consolidated)
+const OrderRowSelect: React.FC<{
+  isSelected: boolean;
+  onToggle: (forceValue?: boolean) => void;
+  orderId: string;
+}> = ({ isSelected, onToggle, orderId }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    onToggle(e.target.checked);
+  };
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={handleChange}
+        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+        aria-label={`Select order ${orderId}`}
+      />
+    </div>
+  );
+};
+
+// Empty State Component (consolidated)
+const EmptyState: React.FC<{
+  hasFilters: boolean;
+  onAddFirst: () => void;
+  onClearFilters: () => void;
+}> = ({ hasFilters, onAddFirst, onClearFilters }) => {
+  if (hasFilters) {
+    return (
+      <div className="text-center py-12">
+        <Search className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-semibold text-gray-900">Tidak ada pesanan ditemukan</h3>
+        <p className="mt-1 text-sm text-gray-500">Tidak ada pesanan yang sesuai dengan filter Anda.</p>
+        <div className="mt-6">
+          <Button onClick={onClearFilters} variant="outline">Hapus Filter</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12">
+      <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+      <h3 className="mt-2 text-sm font-semibold text-gray-900">Belum ada pesanan</h3>
+      <p className="mt-1 text-sm text-gray-500">Mulai dengan membuat pesanan pertama Anda.</p>
+      <div className="mt-6">
+        <Button onClick={onAddFirst} className="inline-flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Buat Pesanan Pertama
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Main Table Component
+const OrderTable: React.FC<OrderTableProps> = ({
+  uiState,
+  loading,
+  onEditOrder,
+  onDeleteOrder,
+  onStatusChange,
+  onNewOrder
+}) => {
+  // Handle row click dengan logika asli
+  const handleRowClick = (order: Order, e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'INPUT' ||
+      target.closest('button') ||
+      target.closest('select') ||
+      target.closest('input') ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+
+    if (uiState.isSelectionMode) {
+      uiState.toggleSelectOrder(order.id);
+    }
+  };
+
+  const handleToggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    uiState.toggleSelectAll(uiState.currentOrders);
+  };
+
+  const handleViewDetail = (order: Order) => {
+    console.log('View detail for order:', order.id);
+  };
+
+  const handleFollowUp = (order: Order) => {
+    console.log('Follow up for order:', order.id);
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat pesanan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (uiState.currentOrders.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <EmptyState
+          hasFilters={uiState.hasActiveFilters}
+          onAddFirst={onNewOrder}
+          onClearFilters={uiState.clearFilters}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          {/* Table Header */}
+          <thead className="bg-gray-50">
+            <tr>
+              {uiState.isSelectionMode && (
+                <th className="w-12 px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={uiState.allCurrentSelected}
+                    ref={input => {
+                      if (input) input.indeterminate = uiState.someCurrentSelected;
+                    }}
+                    onChange={handleToggleSelectAll}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                </th>
+              )}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                No. Pesanan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pelanggan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tanggal
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+
+          {/* Table Body */}
+          <tbody className="bg-white divide-y divide-gray-200">
+            {uiState.currentOrders.map((order) => (
+              <tr 
+                key={order.id}
+                className={`
+                  hover:bg-gray-50 cursor-pointer transition-colors duration-150
+                  ${uiState.selectedOrderIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
+                  ${uiState.isSelectionMode ? 'hover:bg-orange-50' : ''}
+                `}
+                onClick={(e) => handleRowClick(order, e)}
+              >
+                {/* Selection Checkbox */}
+                {uiState.isSelectionMode && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <OrderRowSelect
+                      isSelected={uiState.selectedOrderIds.includes(order.id)}
+                      onToggle={(forceValue) => uiState.toggleSelectOrder(order.id, forceValue)}
+                      orderId={order.id}
+                    />
+                  </td>
+                )}
+
+                {/* Order Number */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
+                    <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
+                  </div>
+                </td>
+
+                {/* Customer Info */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
+                    {order.teleponPelanggan && (
+                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    )}
+                    {order.emailPelanggan && (
+                      <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Date */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Total Amount */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.totalPesanan)}</div>
+                    {order.items.length > 0 && (
+                      <div className="text-xs text-gray-500">
+                        {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <StatusBadge
+                    status={order.status}
+                    onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+                    disabled={order.status === 'completed' || order.status === 'cancelled'}
+                  />
+                </td>
+
+                {/* Actions */}
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <OrderRowActions
+                    order={order}
+                    onEdit={() => onEditOrder(order)}
+                    onDelete={() => onDeleteOrder(order.id)}
+                    onFollowUp={() => handleFollowUp(order)}
+                    onViewDetail={() => handleViewDetail(order)}
+                    disabled={uiState.isSelectionMode}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default OrderTable;

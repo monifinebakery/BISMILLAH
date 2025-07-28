@@ -9,9 +9,14 @@ import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
+
 // ✅ NEW: Import PromoProvider
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
-import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
+
+// ⚡ WAREHOUSE: Import both versions for performance testing
+// import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
+import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
+
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
@@ -19,44 +24,75 @@ import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext'
 import { OrderProvider } from '@/components/orders/context/OrderContext';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 
+interface AppProvidersProps {
+  children: ReactNode;
+}
+
 /**
+ * ⚡ OPTIMIZED AppProviders - Enhanced untuk warehouse management
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
  * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
+ * 
+ * 🔧 PERFORMANCE TESTING:
+ * - Uncomment SimpleBahanBakuProvider untuk debug loading issues
+ * - Provider hierarchy dioptimalkan untuk minimal loading time
  */
-export const AppProviders = ({ children }) => {
+export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  
+  // ⚡ Performance monitoring
+  React.useEffect(() => {
+    const start = performance.now();
+    console.log('🚀 AppProviders initializing...');
+    
+    return () => {
+      const end = performance.now();
+      console.log(`⚡ AppProviders loaded in ${(end - start).toFixed(2)}ms`);
+    };
+  }, []);
   
   return (
     <>
-      {/* 1. AuthProvider paling luar */}
+      {/* 1. Foundation Layer - Core authentication & system */}
       <AuthProvider>
-        {/* 2. NotificationProvider di sini, karena provider lain di bawahnya akan menggunakannya */}
+        {/* 2. Core Services Layer - Essential app services */}
         <NotificationProvider>
           <UserSettingsProvider>
             <ActivityProvider>
+              
+              {/* 3. Business Logic Layer - Financial & payment systems */}
               <FinancialProvider>
                 <PaymentProvider>
-                  {/* ✅ NEW: PromoProvider setelah PaymentProvider */}
-                  <PromoProvider>
-                    <BahanBakuProvider>
-                      <SupplierProvider>
-                        {/* ✅ IMPORTANT: RecipeProvider sebelum PromoProvider 
-                            karena PromoCalculator depend on RecipeContext */}
-                        <RecipeProvider>
-                          <AssetProvider>
-                            <PurchaseProvider>
-                              <OrderProvider>
+                  
+                  {/* 4. Core Business Entities - Main data providers */}
+                  {/* ⚡ WAREHOUSE: Enhanced modular context */}
+                  <BahanBakuProvider>
+                    <SupplierProvider>
+                      
+                      {/* 5. Complex Business Logic - Recipe management */}
+                      <RecipeProvider>
+                        
+                        {/* 6. Asset & Operations - Business operations */}
+                        <AssetProvider>
+                          <PurchaseProvider>
+                            <OrderProvider>
+                              
+                              {/* 7. Advanced Features - Enhanced capabilities */}
+                              {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
+                              <PromoProvider>
                                 <FollowUpTemplateProvider>
-                                  {/* Di sinilah komponen utama aplikasi Anda akan dirender */}
+                                  
+                                  {/* 8. Application Layer - Final app content */}
                                   {children}
+                                  
                                 </FollowUpTemplateProvider>
-                              </OrderProvider>
-                            </PurchaseProvider>
-                          </AssetProvider>
-                        </RecipeProvider>
-                      </SupplierProvider>
-                    </BahanBakuProvider>
-                  </PromoProvider>
+                              </PromoProvider>
+                            </OrderProvider>
+                          </PurchaseProvider>
+                        </AssetProvider>
+                      </RecipeProvider>
+                    </SupplierProvider>
+                  </BahanBakuProvider>
                 </PaymentProvider>
               </FinancialProvider>
             </ActivityProvider>
@@ -64,7 +100,7 @@ export const AppProviders = ({ children }) => {
         </NotificationProvider>
       </AuthProvider>
       
-      {/* Komponen Toaster untuk notifikasi global */}
+      {/* Global UI Components - Enhanced notifications */}
       <Toaster 
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton
@@ -72,7 +108,17 @@ export const AppProviders = ({ children }) => {
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',
+            title: 'text-gray-900 font-medium',
+            description: 'text-gray-600',
+            actionButton: 'bg-orange-500 text-white hover:bg-orange-600',
+            cancelButton: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
+            closeButton: 'bg-gray-100 text-gray-400 hover:text-gray-600',
+            success: 'border-green-200 bg-green-50',
+            error: 'border-red-200 bg-red-50',
+            warning: 'border-orange-200 bg-orange-50',
+            info: 'border-blue-200 bg-blue-50',
           },
+          duration: 4000,
         }}
       />
     </>

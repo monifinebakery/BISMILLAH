@@ -14,7 +14,8 @@ import {
 import { toast } from 'sonner';
 
 // Context and Types
-import { useBahanBaku } from '../context/BahanBakuContext';
+// import { useBahanBaku } from '../context/BahanBakuContext';
+import { useSimpleBahanBaku as useBahanBaku } from '../context/SimpleBahanBakuContext'; // 🔧 Testing simple version
 import { BahanBaku, MobileViewMode } from '../types/warehouse';
 
 // Custom Hooks
@@ -23,7 +24,7 @@ import { useWarehousePagination } from '../hooks/useWarehousePagination';
 import { useWarehouseFilters } from '../hooks/useWarehouseFilters';
 import { useBulkOperations } from '../hooks/useBulkOperations';
 
-// Static Components
+// Static Components - pastikan path sesuai dengan struktur folder
 import LowStockAlert from '../components/alerts/LowStockAlert';
 import SearchAndFilters from '../components/core/SearchAndFilters';
 import WarehouseTable from '../components/core/WarehouseTable';

@@ -1,5 +1,5 @@
 // src/components/warehouse/pages/WarehousePage.tsx
-import React, { useState, useMemo, Suspense, lazy, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Plus, 
@@ -12,7 +12,6 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
 
 // Context and Types
 import { useBahanBaku } from '../context/BahanBakuContext';
@@ -111,41 +110,10 @@ class LazyComponentErrorBoundary extends React.Component<
 }
 
 const WarehousePage: React.FC = () => {
-  // 🐛 DEBUG: Performance tracking
-  const initStartTime = useRef<number>(Date.now());
-  const componentId = useRef<string>(`WarehousePage-${Math.random().toString(36).substr(2, 9)}`);
-  const renderCountRef = useRef<number>(0);
-  
-  const perfTimers = useRef<{
-    [key: string]: number;
-  }>({});
-  
-  const startTimer = useCallback((operation: string) => {
-    perfTimers.current[operation] = Date.now();
-    logger.debug(`[${componentId.current}] PERF START: ${operation}`);
-  }, []);
-  
-  const endTimer = useCallback((operation: string, extraData?: any) => {
-    const startTime = perfTimers.current[operation];
-    if (startTime) {
-      const duration = Date.now() - startTime;
-      logger.debug(`[${componentId.current}] PERF END: ${operation} took ${duration}ms`, extraData);
-      delete perfTimers.current[operation];
-      return duration;
-    }
-    return 0;
-  }, []);
-
-  renderCountRef.current += 1;
-  logger.debug(`[${componentId.current}] 🎨 WarehousePage render #${renderCountRef.current} started`);
-
   // Context
-  startTimer('context-access');
   const contextValue = useBahanBaku();
-  endTimer('context-access', { hasContext: !!contextValue });
   
   if (!contextValue) {
-    logger.error(`[${componentId.current}] ❌ BahanBaku Context tidak tersedia`);
     return (
       <div className="container mx-auto p-4 sm:p-8">
         <div className="flex items-center justify-center h-64">
@@ -169,18 +137,7 @@ const WarehousePage: React.FC = () => {
     isConnected,
   } = contextValue;
 
-  // 🐛 DEBUG: Context data tracking
-  useEffect(() => {
-    logger.debug(`[${componentId.current}] 📊 Context data changed:`, {
-      itemCount: bahanBaku.length,
-      loading: contextLoading,
-      connected: isConnected,
-      renderCount: renderCountRef.current
-    });
-  }, [bahanBaku.length, contextLoading, isConnected]);
-
   // Local State
-  startTimer('local-state-init');
   const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
   const [viewMode, setViewMode] = useState<MobileViewMode>({
     view: 'table',
@@ -196,18 +153,8 @@ const WarehousePage: React.FC = () => {
     export: false,
     import: false,
   });
-  endTimer('local-state-init');
-
-  // 🐛 DEBUG: Dialog state tracking
-  useEffect(() => {
-    const activeDialogs = Object.entries(dialogs).filter(([_, isOpen]) => isOpen).map(([name]) => name);
-    if (activeDialogs.length > 0) {
-      logger.debug(`[${componentId.current}] 📱 Active dialogs:`, activeDialogs);
-    }
-  }, [dialogs]);
 
   // Custom Hooks
-  startTimer('hooks-init');
   const selection = useWarehouseSelection();
   const filters = useWarehouseFilters({ items: bahanBaku });
   const pagination = useWarehousePagination({ 
@@ -221,211 +168,66 @@ const WarehousePage: React.FC = () => {
     selectedItems: selection.selectedItems,
     clearSelection: selection.clearSelection,
   });
-  endTimer('hooks-init', {
-    selectionReady: !!selection,
-    filtersReady: !!filters,
-    paginationReady: !!pagination,
-    bulkOpsReady: !!bulkOps
-  });
-
-  // 🐛 DEBUG: Hook state tracking
-  useEffect(() => {
-    logger.debug(`[${componentId.current}] 🔧 Hooks state:`, {
-      selectedCount: selection.selectedCount,
-      isSelectionMode: selection.isSelectionMode,
-      filteredCount: filters.filteredItems.length,
-      currentPage: pagination.page,
-      totalPages: pagination.totalPages,
-      searchTerm: filters.searchTerm,
-      activeFilters: filters.activeFiltersCount
-    });
-  }, [
-    selection.selectedCount, 
-    selection.isSelectionMode, 
-    filters.filteredItems.length, 
-    pagination.page, 
-    pagination.totalPages,
-    filters.searchTerm,
-    filters.activeFiltersCount
-  ]);
 
   // Memoized calculations
-  startTimer('memoized-calculations');
   const currentPageItems = useMemo(() => {
-    startTimer('current-page-items-calc');
     const startIndex = pagination.startIndex;
     const endIndex = pagination.endIndex;
-    const result = filters.filteredItems.slice(startIndex, endIndex);
-    endTimer('current-page-items-calc', { 
-      itemCount: result.length, 
-      startIndex, 
-      endIndex,
-      totalFiltered: filters.filteredItems.length 
-    });
-    return result;
+    return filters.filteredItems.slice(startIndex, endIndex);
   }, [filters.filteredItems, pagination.startIndex, pagination.endIndex]);
 
   const lowStockItems = useMemo(() => {
-    startTimer('low-stock-calc');
-    const result = bahanBaku.filter(item => item.stok <= item.minimum);
-    endTimer('low-stock-calc', { lowStockCount: result.length, totalItems: bahanBaku.length });
-    return result;
+    return bahanBaku.filter(item => item.stok <= item.minimum);
   }, [bahanBaku]);
 
   const selectedItemsData = useMemo(() => {
-    startTimer('selected-items-calc');
-    const result = selection.getSelectedItems(bahanBaku);
-    endTimer('selected-items-calc', { selectedCount: result.length });
-    return result;
+    return selection.getSelectedItems(bahanBaku);
   }, [selection.selectedItems, bahanBaku, selection.getSelectedItems]);
-  endTimer('memoized-calculations');
 
   // Event Handlers
-  const handleEdit = useCallback((item: BahanBaku) => {
-    logger.debug(`[${componentId.current}] ✏️ Edit triggered for item:`, item.nama);
+  const handleEdit = (item: BahanBaku) => {
     setEditingItem(item);
-  }, []);
+  };
 
-  const handleEditSave = useCallback(async (updates: Partial<BahanBaku>) => {
+  const handleEditSave = async (updates: Partial<BahanBaku>) => {
     if (!editingItem) return;
-    
-    const operationId = Math.random().toString(36).substr(2, 9);
-    startTimer(`edit-save-${operationId}`);
-    
-    logger.debug(`[${componentId.current}] 💾 Saving edit (${operationId}):`, { 
-      itemName: editingItem.nama, 
-      updates 
-    });
     
     const success = await updateBahanBaku(editingItem.id, updates);
     if (success) {
       setEditingItem(null);
       toast.success('Item berhasil diperbarui!');
-      logger.debug(`[${componentId.current}] ✅ Edit saved successfully (${operationId})`);
-    } else {
-      logger.warn(`[${componentId.current}] ❌ Edit save failed (${operationId})`);
     }
-    
-    endTimer(`edit-save-${operationId}`, { success });
-  }, [editingItem, updateBahanBaku]);
+  };
 
-  const handleDelete = useCallback(async (id: string, nama: string) => {
-    const operationId = Math.random().toString(36).substr(2, 9);
-    
-    logger.debug(`[${componentId.current}] 🗑️ Delete confirmation for (${operationId}):`, { id, nama });
-    
+  const handleDelete = async (id: string, nama: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) {
-      startTimer(`delete-${operationId}`);
-      logger.debug(`[${componentId.current}] 🗑️ Executing delete (${operationId})`);
-      
       const success = await deleteBahanBaku(id);
       if (success) {
         toast.success(`"${nama}" berhasil dihapus.`);
-        logger.debug(`[${componentId.current}] ✅ Delete successful (${operationId})`);
-      } else {
-        logger.warn(`[${componentId.current}] ❌ Delete failed (${operationId})`);
       }
-      
-      endTimer(`delete-${operationId}`, { success });
-    } else {
-      logger.debug(`[${componentId.current}] ⏭️ Delete cancelled by user (${operationId})`);
     }
-  }, [deleteBahanBaku]);
+  };
 
-  const handleSort = useCallback((key: keyof BahanBaku) => {
-    startTimer('sort-operation');
-    logger.debug(`[${componentId.current}] 🔄 Sort triggered:`, { 
-      key, 
-      currentDirection: filters.sortConfig.direction 
-    });
-    
+  const handleSort = (key: keyof BahanBaku) => {
     const newDirection = filters.sortConfig.key === key && filters.sortConfig.direction === 'asc' 
       ? 'desc' 
       : 'asc';
     filters.setSortConfig({ key, direction: newDirection });
-    
-    endTimer('sort-operation', { key, newDirection });
-  }, [filters.sortConfig, filters.setSortConfig]);
+  };
 
-  const toggleDialog = useCallback((dialog: keyof typeof dialogs, open?: boolean) => {
-    const newState = open ?? !dialogs[dialog];
-    logger.debug(`[${componentId.current}] 📱 Dialog toggle:`, { dialog, newState });
-    
+  const toggleDialog = (dialog: keyof typeof dialogs, open?: boolean) => {
     setDialogs(prev => ({
       ...prev,
-      [dialog]: newState
+      [dialog]: open ?? !prev[dialog]
     }));
-  }, [dialogs]);
+  };
 
   // Reset pagination when filters change
-  useEffect(() => {
-    startTimer('pagination-reset-effect');
-    logger.debug(`[${componentId.current}] 📄 Pagination reset triggered:`, {
-      filteredCount: filters.filteredItems.length,
-      searchTerm: filters.searchTerm,
-      activeFilters: filters.activeFiltersCount,
-      currentPage: pagination.page
-    });
-    
+  React.useEffect(() => {
     pagination.resetToFirstPage();
-    endTimer('pagination-reset-effect');
-  }, [filters.filteredItems.length, filters.searchTerm, filters.activeFiltersCount, pagination]);
+  }, [filters.filteredItems.length, filters.searchTerm, filters.activeFiltersCount]);
 
-  // 🐛 DEBUG: Loading state tracking
   const isLoading = contextLoading;
-  useEffect(() => {
-    logger.debug(`[${componentId.current}] ⏳ Loading state changed:`, { 
-      isLoading, 
-      contextLoading,
-      renderCount: renderCountRef.current 
-    });
-  }, [isLoading, contextLoading]);
-
-  // 🐛 DEBUG: Connection status tracking
-  useEffect(() => {
-    logger.debug(`[${componentId.current}] 🔌 Connection status:`, { 
-      isConnected,
-      timestamp: Date.now()
-    });
-  }, [isConnected]);
-
-  // 🐛 DEBUG: Render performance tracking
-  useEffect(() => {
-    const renderTime = Date.now() - initStartTime.current;
-    logger.debug(`[${componentId.current}] 🎨 Render completed:`, {
-      renderNumber: renderCountRef.current,
-      renderTime,
-      isLoading,
-      itemCount: bahanBaku.length,
-      filteredCount: filters.filteredItems.length,
-      selectedCount: selection.selectedCount,
-      currentPageItems: currentPageItems.length,
-      lowStockCount: lowStockItems.length
-    });
-  });
-
-  // 🐛 DEBUG: Component lifecycle
-  useEffect(() => {
-    logger.debug(`[${componentId.current}] 🚀 WarehousePage mounted`);
-    
-    return () => {
-      const totalLifetime = Date.now() - initStartTime.current;
-      logger.debug(`[${componentId.current}] 💀 WarehousePage unmounting:`, {
-        totalLifetime,
-        totalRenders: renderCountRef.current,
-        avgRenderTime: totalLifetime / renderCountRef.current
-      });
-    };
-  }, []);
-
-  logger.debug(`[${componentId.current}] 🎯 About to render JSX:`, {
-    renderNumber: renderCountRef.current,
-    isLoading,
-    hasItems: bahanBaku.length > 0,
-    hasLowStock: lowStockItems.length > 0,
-    hasSelection: selection.selectedCount > 0,
-    isConnected
-  });
 
   return (
     <div className="container mx-auto p-4 sm:p-8" aria-live="polite">
@@ -534,79 +336,70 @@ const WarehousePage: React.FC = () => {
 
       {/* Main Content */}
       {isLoading ? (
-        <>
-          {logger.debug(`[${componentId.current}] 📊 Rendering TableLoader`)}
-          <TableLoader />
-        </>
+        <TableLoader />
       ) : (
-        <>
-          {logger.debug(`[${componentId.current}] 📊 Rendering main content with ${currentPageItems.length} items`)}
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
-            {/* Search and Filters */}
-            <SearchAndFilters
-              searchTerm={filters.searchTerm}
-              onSearchChange={filters.setSearchTerm}
-              filters={filters.filters}
-              onFiltersChange={filters.setFilters}
+        <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+          {/* Search and Filters */}
+          <SearchAndFilters
+            searchTerm={filters.searchTerm}
+            onSearchChange={filters.setSearchTerm}
+            filters={filters.filters}
+            onFiltersChange={filters.setFilters}
+            itemsPerPage={pagination.itemsPerPage}
+            onItemsPerPageChange={pagination.setItemsPerPage}
+            isSelectionMode={selection.isSelectionMode}
+            onToggleSelectionMode={selection.toggleSelectionMode}
+            availableCategories={filters.availableCategories}
+            availableSuppliers={filters.availableSuppliers}
+            onResetFilters={filters.resetFilters}
+            activeFiltersCount={filters.activeFiltersCount}
+            viewMode={viewMode.view}
+            onViewModeChange={(mode) => setViewMode(prev => ({ ...prev, view: mode }))}
+          />
+
+          {/* Table */}
+          <WarehouseTable
+            items={currentPageItems}
+            isLoading={isLoading}
+            isSelectionMode={selection.isSelectionMode}
+            searchTerm={filters.searchTerm}
+            sortConfig={filters.sortConfig}
+            onSort={handleSort}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            selectedItems={selection.selectedItems}
+            onToggleSelection={selection.toggleSelection}
+            onSelectAllCurrent={() => selection.selectPage(currentPageItems)}
+            isSelected={selection.isSelected}
+            allCurrentSelected={selection.isPageSelected(currentPageItems)}
+            someCurrentSelected={selection.isPagePartiallySelected(currentPageItems)}
+            emptyStateAction={() => toggleDialog('addItem', true)}
+          />
+
+          {/* Pagination */}
+          {filters.filteredItems.length > 0 && (
+            <TablePagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
               itemsPerPage={pagination.itemsPerPage}
+              selectedCount={selection.selectedCount}
+              onPageChange={pagination.setPage}
               onItemsPerPageChange={pagination.setItemsPerPage}
-              isSelectionMode={selection.isSelectionMode}
-              onToggleSelectionMode={selection.toggleSelectionMode}
-              availableCategories={filters.availableCategories}
-              availableSuppliers={filters.availableSuppliers}
-              onResetFilters={filters.resetFilters}
-              activeFiltersCount={filters.activeFiltersCount}
-              viewMode={viewMode.view}
-              onViewModeChange={(mode) => setViewMode(prev => ({ ...prev, view: mode }))}
             />
-
-            {/* Table */}
-            <WarehouseTable
-              items={currentPageItems}
-              isLoading={isLoading}
-              isSelectionMode={selection.isSelectionMode}
-              searchTerm={filters.searchTerm}
-              sortConfig={filters.sortConfig}
-              onSort={handleSort}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              selectedItems={selection.selectedItems}
-              onToggleSelection={selection.toggleSelection}
-              onSelectAllCurrent={() => selection.selectPage(currentPageItems)}
-              isSelected={selection.isSelected}
-              allCurrentSelected={selection.isPageSelected(currentPageItems)}
-              someCurrentSelected={selection.isPagePartiallySelected(currentPageItems)}
-              emptyStateAction={() => toggleDialog('addItem', true)}
-            />
-
-            {/* Pagination */}
-            {filters.filteredItems.length > 0 && (
-              <TablePagination
-                currentPage={pagination.page}
-                totalPages={pagination.totalPages}
-                totalItems={pagination.totalItems}
-                itemsPerPage={pagination.itemsPerPage}
-                selectedCount={selection.selectedCount}
-                onPageChange={pagination.setPage}
-                onItemsPerPageChange={pagination.setItemsPerPage}
-              />
-            )}
-          </div>
-        </>
+          )}
+        </div>
       )}
 
       {/* Lazy Loaded Dialogs */}
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {dialogs.addItem && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering AddItemDialog`)}
-              <AddItemDialog
-                isOpen={dialogs.addItem}
-                onClose={() => toggleDialog('addItem', false)}
-                onAdd={addBahanBaku}
-              />
-            </>
+            <AddItemDialog
+              isOpen={dialogs.addItem}
+              onClose={() => toggleDialog('addItem', false)}
+              onAdd={addBahanBaku}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>
@@ -614,23 +407,20 @@ const WarehousePage: React.FC = () => {
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {dialogs.bulkEdit && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering BulkEditDialog`)}
-              <BulkEditDialog
-                isOpen={dialogs.bulkEdit}
-                onClose={() => toggleDialog('bulkEdit', false)}
-                onConfirm={bulkOps.handleBulkEdit}
-                selectedItems={selection.selectedItems}
-                selectedItemsData={selectedItemsData}
-                isBulkEditing={bulkOps.isBulkEditing}
-                bulkEditData={bulkOps.bulkEditData}
-                setBulkEditData={bulkOps.setBulkEditData}
-                resetBulkEditData={bulkOps.resetBulkEditData}
-                validateBulkEditData={bulkOps.validateBulkEditData}
-                availableCategories={filters.availableCategories}
-                availableSuppliers={filters.availableSuppliers}
-              />
-            </>
+            <BulkEditDialog
+              isOpen={dialogs.bulkEdit}
+              onClose={() => toggleDialog('bulkEdit', false)}
+              onConfirm={bulkOps.handleBulkEdit}
+              selectedItems={selection.selectedItems}
+              selectedItemsData={selectedItemsData}
+              isBulkEditing={bulkOps.isBulkEditing}
+              bulkEditData={bulkOps.bulkEditData}
+              setBulkEditData={bulkOps.setBulkEditData}
+              resetBulkEditData={bulkOps.resetBulkEditData}
+              validateBulkEditData={bulkOps.validateBulkEditData}
+              availableCategories={filters.availableCategories}
+              availableSuppliers={filters.availableSuppliers}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>
@@ -638,17 +428,14 @@ const WarehousePage: React.FC = () => {
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {dialogs.bulkDelete && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering BulkDeleteDialog`)}
-              <BulkDeleteDialog
-                isOpen={dialogs.bulkDelete}
-                onClose={() => toggleDialog('bulkDelete', false)}
-                onConfirm={bulkOps.handleBulkDelete}
-                selectedItems={selection.selectedItems}
-                selectedItemsData={selectedItemsData}
-                isBulkDeleting={bulkOps.isBulkDeleting}
-              />
-            </>
+            <BulkDeleteDialog
+              isOpen={dialogs.bulkDelete}
+              onClose={() => toggleDialog('bulkDelete', false)}
+              onConfirm={bulkOps.handleBulkDelete}
+              selectedItems={selection.selectedItems}
+              selectedItemsData={selectedItemsData}
+              isBulkDeleting={bulkOps.isBulkDeleting}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>
@@ -656,15 +443,12 @@ const WarehousePage: React.FC = () => {
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {editingItem && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering EditItemDialog for:`, editingItem.nama)}
-              <EditItemDialog
-                item={editingItem}
-                onSave={handleEditSave}
-                onClose={() => setEditingItem(null)}
-                isOpen={!!editingItem}
-              />
-            </>
+            <EditItemDialog
+              item={editingItem}
+              onSave={handleEditSave}
+              onClose={() => setEditingItem(null)}
+              isOpen={!!editingItem}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>
@@ -672,15 +456,12 @@ const WarehousePage: React.FC = () => {
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {dialogs.export && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering ExportDialog`)}
-              <ExportDialog
-                isOpen={dialogs.export}
-                onClose={() => toggleDialog('export', false)}
-                data={filters.filteredItems}
-                selectedData={selectedItemsData}
-              />
-            </>
+            <ExportDialog
+              isOpen={dialogs.export}
+              onClose={() => toggleDialog('export', false)}
+              data={filters.filteredItems}
+              selectedData={selectedItemsData}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>
@@ -688,14 +469,11 @@ const WarehousePage: React.FC = () => {
       <LazyComponentErrorBoundary>
         <Suspense fallback={<DialogLoader />}>
           {dialogs.import && (
-            <>
-              {logger.debug(`[${componentId.current}] 📱 Rendering ImportDialog`)}
-              <ImportDialog
-                isOpen={dialogs.import}
-                onClose={() => toggleDialog('import', false)}
-                onImport={addBahanBaku}
-              />
-            </>
+            <ImportDialog
+              isOpen={dialogs.import}
+              onClose={() => toggleDialog('import', false)}
+              onImport={addBahanBaku}
+            />
           )}
         </Suspense>
       </LazyComponentErrorBoundary>

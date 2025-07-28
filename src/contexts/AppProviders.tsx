@@ -21,7 +21,7 @@ import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
-import { OrderProvider } from '@/components/orders/context/OrderContext';
+import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 
 interface AppProvidersProps {

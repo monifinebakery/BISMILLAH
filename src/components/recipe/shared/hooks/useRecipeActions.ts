@@ -1,23 +1,25 @@
-// src/components/recipe/shared/hooks/useRecipeActions.ts
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { Recipe } from '@/types/recipe';
 
 export const useRecipeActions = () => {
   const { deleteRecipe, duplicateRecipe } = useRecipe();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
 
-  const handleDeleteRecipe = async (recipeId: string, recipeName: string) => {
+  const handleDeleteRecipe = async (recipeId: string, recipeName: string): Promise<boolean> => {
     setIsDeleting(recipeId);
     try {
       const success = await deleteRecipe(recipeId);
       if (success) {
         toast.success(`Resep "${recipeName}" berhasil dihapus`);
+        return true;
       }
+      return false;
     } catch (error) {
       toast.error('Gagal menghapus resep');
+      return false;
     } finally {
       setIsDeleting(null);
     }
@@ -27,7 +29,7 @@ export const useRecipeActions = () => {
     recipeId: string, 
     newName: string,
     originalName: string
-  ) => {
+  ): Promise<boolean> => {
     if (!newName.trim()) {
       toast.error('Nama resep duplikat harus diisi');
       return false;
@@ -37,7 +39,7 @@ export const useRecipeActions = () => {
     try {
       const success = await duplicateRecipe(recipeId, newName.trim());
       if (success) {
-        toast.success(`Resep "${originalName}" berhasil diduplikasi`);
+        toast.success(`Resep "${originalName}" berhasil diduplikasi menjadi "${newName.trim()}"`);
         return true;
       }
       return false;
@@ -49,101 +51,26 @@ export const useRecipeActions = () => {
     }
   };
 
+  const isRecipeDeleting = (recipeId: string): boolean => {
+    return isDeleting === recipeId;
+  };
+
+  const isRecipeDuplicating = (recipeId: string): boolean => {
+    return isDuplicating === recipeId;
+  };
+
+  const isAnyActionInProgress = (): boolean => {
+    return isDeleting !== null || isDuplicating !== null;
+  };
+
   return {
     handleDeleteRecipe,
     handleDuplicateRecipe,
+    isRecipeDeleting,
+    isRecipeDuplicating,
+    isAnyActionInProgress,
+    // Backwards compatibility
     isDeleting,
     isDuplicating
-  };
-};
-
-// src/components/recipe/shared/hooks/useRecipeCategories.ts
-
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { validateCategoryName } from '../utils/recipeValidators';
-
-export const useRecipeCategories = () => {
-  const { settings, saveSettings } = useUserSettings();
-  const [isManaging, setIsManaging] = useState(false);
-
-  const categories = settings?.recipeCategories || [];
-
-  const addCategory = async (categoryName: string): Promise<boolean> => {
-    const validation = validateCategoryName(categoryName, categories);
-    
-    if (!validation.isValid) {
-      toast.error(validation.message);
-      return false;
-    }
-
-    setIsManaging(true);
-    try {
-      const updatedCategories = [...categories, categoryName.trim()];
-      await saveSettings({ recipeCategories: updatedCategories });
-      toast.success(`Kategori "${categoryName.trim()}" berhasil ditambahkan`);
-      return true;
-    } catch (error) {
-      toast.error('Gagal menambahkan kategori');
-      return false;
-    } finally {
-      setIsManaging(false);
-    }
-  };
-
-  const deleteCategory = async (categoryToDelete: string): Promise<boolean> => {
-    setIsManaging(true);
-    try {
-      const updatedCategories = categories.filter(cat => cat !== categoryToDelete);
-      await saveSettings({ recipeCategories: updatedCategories });
-      toast.success(`Kategori "${categoryToDelete}" berhasil dihapus`);
-      return true;
-    } catch (error) {
-      toast.error('Gagal menghapus kategori');
-      return false;
-    } finally {
-      setIsManaging(false);
-    }
-  };
-
-  const updateCategory = async (oldName: string, newName: string): Promise<boolean> => {
-    const validation = validateCategoryName(
-      newName, 
-      categories.filter(cat => cat !== oldName)
-    );
-    
-    if (!validation.isValid) {
-      toast.error(validation.message);
-      return false;
-    }
-
-    setIsManaging(true);
-    try {
-      const updatedCategories = categories.map(cat => 
-        cat === oldName ? newName.trim() : cat
-      );
-      await saveSettings({ recipeCategories: updatedCategories });
-      toast.success(`Kategori berhasil diubah ke "${newName.trim()}"`);
-      return true;
-    } catch (error) {
-      toast.error('Gagal mengubah kategori');
-      return false;
-    } finally {
-      setIsManaging(false);
-    }
-  };
-
-  const isCategoryExists = (categoryName: string): boolean => {
-    return categories.map(c => c.toLowerCase()).includes(categoryName.toLowerCase());
-  };
-
-  return {
-    categories,
-    addCategory,
-    deleteCategory,
-    updateCategory,
-    isCategoryExists,
-    isManaging
   };
 };

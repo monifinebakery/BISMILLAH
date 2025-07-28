@@ -1,4 +1,4 @@
-/ src/components/warehouse/services/warehouseUtils.ts
+// src/components/warehouse/services/warehouseUtils.ts
 /**
  * Warehouse Utility Functions
  * Simple helper functions (~5KB)

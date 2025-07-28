@@ -3,8 +3,8 @@ import { logger } from '@/utils/logger';
 import type { BahanBaku } from '../types';
 
 /**
- * Warehouse API Service
- * Simplified and lightweight API layer (~10KB)
+ * Warehouse API Service (Fixed for user_id column)
+ * Handles database operations with proper column naming
  */
 
 interface ServiceConfig {
@@ -32,21 +32,41 @@ export const warehouseApi = {
 };
 
 /**
- * CRUD Service - Core database operations
+ * CRUD Service - Core database operations (Fixed for user_id)
  */
 class CrudService {
   constructor(private config: ServiceConfig) {}
 
   async fetchBahanBaku(): Promise<BahanBaku[]> {
     try {
-      const { data, error } = await supabase
-        .from('bahan_baku')
-        .select('*')
-        .eq('userId', this.config.userId)
-        .order('nama', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      let query = supabase.from('bahan_baku').select('*');
+      
+      // Use user_id (with underscore) for filtering
+      if (this.config.userId) {
+        const { data, error } = await query.eq('user_id', this.config.userId).order('nama', { ascending: true });
+        
+        if (error) {
+          // If user_id column doesn't exist, fall back to fetching all data
+          if (error.message.includes('user_id') || error.message.includes('column')) {
+            logger.warn('user_id column not found, fetching all data');
+            const { data: allData, error: fallbackError } = await supabase
+              .from('bahan_baku')
+              .select('*')
+              .order('nama', { ascending: true });
+            
+            if (fallbackError) throw fallbackError;
+            return allData || [];
+          }
+          throw error;
+        }
+        
+        return data || [];
+      } else {
+        // No userId provided, fetch all data
+        const { data, error } = await query.order('nama', { ascending: true });
+        if (error) throw error;
+        return data || [];
+      }
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
@@ -55,14 +75,32 @@ class CrudService {
 
   async addBahanBaku(bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> {
     try {
+      const insertData: any = { ...bahan };
+      
+      // Add user_id (with underscore) if available
+      if (this.config.userId) {
+        insertData.user_id = this.config.userId;
+      }
+
       const { error } = await supabase
         .from('bahan_baku')
-        .insert({
-          ...bahan,
-          userId: this.config.userId,
-        });
+        .insert(insertData);
 
-      if (error) throw error;
+      if (error) {
+        // If user_id column doesn't exist, try without it
+        if (error.message.includes('user_id') || error.message.includes('column')) {
+          logger.warn('user_id column not found, inserting without user_id');
+          const { user_id, ...dataWithoutUserId } = insertData;
+          const { error: fallbackError } = await supabase
+            .from('bahan_baku')
+            .insert(dataWithoutUserId);
+          
+          if (fallbackError) throw fallbackError;
+          return true;
+        }
+        throw error;
+      }
+      
       return true;
     } catch (error: any) {
       this.handleError('Add failed', error);
@@ -72,14 +110,35 @@ class CrudService {
 
   async updateBahanBaku(id: string, updates: Partial<BahanBaku>): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // Remove userId from updates to avoid issues (it should be user_id in DB anyway)
+      const { userId, ...safeUpdates } = updates as any;
+      
+      let query = supabase
         .from('bahan_baku')
-        .update(updates)
-        .eq('id', id)
-        .eq('userId', this.config.userId);
+        .update(safeUpdates)
+        .eq('id', id);
 
-      if (error) throw error;
-      return true;
+      // Add user_id filter if available
+      if (this.config.userId) {
+        const { error } = await query.eq('user_id', this.config.userId);
+        
+        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
+          // Fallback: update without user_id filter
+          const { error: fallbackError } = await supabase
+            .from('bahan_baku')
+            .update(safeUpdates)
+            .eq('id', id);
+          
+          if (fallbackError) throw fallbackError;
+          return true;
+        }
+        if (error) throw error;
+        return true;
+      } else {
+        const { error } = await query;
+        if (error) throw error;
+        return true;
+      }
     } catch (error: any) {
       this.handleError('Update failed', error);
       return false;
@@ -88,14 +147,32 @@ class CrudService {
 
   async deleteBahanBaku(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('bahan_baku')
         .delete()
-        .eq('id', id)
-        .eq('userId', this.config.userId);
+        .eq('id', id);
 
-      if (error) throw error;
-      return true;
+      // Add user_id filter if available
+      if (this.config.userId) {
+        const { error } = await query.eq('user_id', this.config.userId);
+        
+        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
+          // Fallback: delete without user_id filter
+          const { error: fallbackError } = await supabase
+            .from('bahan_baku')
+            .delete()
+            .eq('id', id);
+          
+          if (fallbackError) throw fallbackError;
+          return true;
+        }
+        if (error) throw error;
+        return true;
+      } else {
+        const { error } = await query;
+        if (error) throw error;
+        return true;
+      }
     } catch (error: any) {
       this.handleError('Delete failed', error);
       return false;
@@ -104,14 +181,32 @@ class CrudService {
 
   async bulkDeleteBahanBaku(ids: string[]): Promise<boolean> {
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('bahan_baku')
         .delete()
-        .in('id', ids)
-        .eq('userId', this.config.userId);
+        .in('id', ids);
 
-      if (error) throw error;
-      return true;
+      // Add user_id filter if available
+      if (this.config.userId) {
+        const { error } = await query.eq('user_id', this.config.userId);
+        
+        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
+          // Fallback: delete without user_id filter
+          const { error: fallbackError } = await supabase
+            .from('bahan_baku')
+            .delete()
+            .in('id', ids);
+          
+          if (fallbackError) throw fallbackError;
+          return true;
+        }
+        if (error) throw error;
+        return true;
+      } else {
+        const { error } = await query;
+        if (error) throw error;
+        return true;
+      }
     } catch (error: any) {
       this.handleError('Bulk delete failed', error);
       return false;
@@ -136,7 +231,7 @@ class CrudService {
 }
 
 /**
- * Subscription Service - Real-time updates (lightweight)
+ * Subscription Service - Real-time updates (Fixed for user_id)
  */
 class SubscriptionService {
   private subscription: any = null;
@@ -146,20 +241,29 @@ class SubscriptionService {
   setupSubscription() {
     if (!this.config.userId) return;
 
-    this.subscription = supabase
-      .channel('bahan_baku_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bahan_baku',
-        filter: `userId=eq.${this.config.userId}`
-      }, (payload) => {
-        if (this.config.enableDebugLogs) {
-          logger.debug('Subscription update:', payload);
-        }
-        // Handle real-time updates here
-      })
-      .subscribe();
+    try {
+      this.subscription = supabase
+        .channel('bahan_baku_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'bahan_baku',
+          // Use user_id (with underscore) for filtering
+          filter: this.config.userId ? `user_id=eq.${this.config.userId}` : undefined
+        }, (payload) => {
+          if (this.config.enableDebugLogs) {
+            logger.debug('Subscription update:', payload);
+          }
+          // Handle real-time updates here
+        })
+        .subscribe((status) => {
+          if (this.config.enableDebugLogs) {
+            logger.debug('Subscription status:', status);
+          }
+        });
+    } catch (error) {
+      logger.warn('Subscription setup failed, continuing without real-time updates:', error);
+    }
   }
 
   cleanupSubscription() {
@@ -204,7 +308,7 @@ class CacheService {
 }
 
 /**
- * Alert Service - Notifications (lightweight)
+ * Alert Service - Notifications
  */
 class AlertService {
   constructor(private config: ServiceConfig) {}

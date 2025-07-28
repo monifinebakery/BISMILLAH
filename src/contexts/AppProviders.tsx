@@ -14,8 +14,8 @@ import { PaymentProvider } from './PaymentContext';
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 
 // ⚡ WAREHOUSE: Import both versions for performance testing
-// import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
-import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Testing simple version
+import { BahanBakuProvider } from '@/components/warehouse/context/BahanBakuContext';
+// import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
 
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';

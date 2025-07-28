@@ -2,7 +2,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { usePurchase } from '../../context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
-import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { PurchaseTableProvider } from '../../context/PurchaseTableContext';
 import PurchaseHeader from './PurchaseHeader';
 import LoadingPurchaseState from '../states/LoadingPurchaseState';

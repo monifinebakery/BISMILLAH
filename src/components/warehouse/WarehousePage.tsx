@@ -4,8 +4,8 @@ import { logger } from '@/utils/logger';
 
 // Static Components (Always Loaded)
 import { WarehouseHeader, WarehouseTable, WarehouseFilters, BulkActions } from './components';
-import { useWarehouseCore } from './hooks';
-import { useWarehouseContext } from './WarehouseContext';
+import { useWarehouseCore } from './hooks/useWarehouseCore';
+import { useWarehouseContext } from './context/WarehouseContext';
 
 // Dynamic Components (Lazy Loaded)
 const DialogManager = lazy(() => import('./components/DialogManager'));

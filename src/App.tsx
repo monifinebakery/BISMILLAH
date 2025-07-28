@@ -36,7 +36,9 @@ const RecipesPage = React.lazy(() =>
   import("@/components/recipe/RecipesPage")
 );
 
-const WarehousePage = React.lazy(() => import("./pages/Warehouse"));
+const WarehousePage = React.lazy(() => 
+  import("@/components/warehouse/pages/WarehousePage")
+);
 const OrdersPage = React.lazy(() => import("./pages/Orders"));
 const FinancialReportPage = React.lazy(() => import("@/components/financial/FinancialReportPage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));

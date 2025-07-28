@@ -65,13 +65,6 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     connected: connectionManager.connectionState.isConnected
   });
 
-  // Initialize services lazily to improve loading
-  const servicesRef = useRef<{
-    crud: CrudService | null;
-    subscription: SubscriptionService | null;
-    alert: AlertService | null;
-  }>({ crud: null, subscription: null, alert: null });
-
   // ⚡ OPTIMIZED: Lazy service initialization
   const getServices = useCallback(() => {
     if (!user) return { crud: null, subscription: null, alert: null };

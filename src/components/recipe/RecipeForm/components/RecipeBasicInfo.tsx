@@ -67,12 +67,18 @@ export const RecipeBasicInfo: React.FC<RecipeBasicInfoProps> = ({
             <Label htmlFor="kategoriResep" className="text-sm font-medium">
               Kategori
             </Label>
-            <Select value={kategoriResep || ''} onValueChange={onKategoriResepChange}>
+            <Select value={kategoriResep || 'no-category'} onValueChange={(value) => {
+              if (value === 'no-category') {
+                onKategoriResepChange('');
+              } else {
+                onKategoriResepChange(value);
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tanpa Kategori</SelectItem>
+                <SelectItem value="no-category">Tanpa Kategori</SelectItem>
                 {categories.map(category => (
                   <SelectItem key={category} value={category}>
                     {category}

@@ -110,8 +110,30 @@ class LazyComponentErrorBoundary extends React.Component<
 }
 
 const WarehousePage: React.FC = () => {
-  // Context
-  const contextValue = useBahanBaku();
+  // Context with error handling
+  let contextValue;
+  
+  try {
+    contextValue = useBahanBaku();
+  } catch (error) {
+    console.error('❌ Context Error:', error);
+    return (
+      <div className="container mx-auto p-4 sm:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
+            <p className="text-gray-600 mb-4">
+              BahanBaku Context tidak tersedia. Error: {error.message}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (!contextValue) {
     return (
@@ -119,7 +141,7 @@ const WarehousePage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Not Available</h2>
             <p className="text-gray-600">BahanBaku Context tidak tersedia.</p>
           </div>
         </div>

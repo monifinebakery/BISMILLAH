@@ -102,32 +102,36 @@ export const RecipeTableRow: React.FC<RecipeTableRowProps> = ({
           <ActionButtons
             onEdit={() => onEdit(recipe)}
             onDuplicate={() => onDuplicate(recipe)}
-            onDelete={() => (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <span />
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Resep "{recipe.namaResep}" akan dihapus permanen dan tidak dapat dikembalikan.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => onDelete(recipe)} 
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Ya, Hapus
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
             showView={false}
           />
+          
+          {/* Separate delete action with confirmation */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 text-red-500 hover:text-red-700">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Resep "{recipe.namaResep}" akan dihapus permanen dan tidak dapat dikembalikan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => onDelete(recipe)} 
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Ya, Hapus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TableCell>
     </TableRow>

@@ -436,6 +436,29 @@ export const useOrderData = (
     return orders.filter(order => order.status === status);
   }, [orders]);
 
+  const getOrdersByDateRange = useCallback((startDate: Date, endDate: Date): Order[] => {
+    try {
+      if (!isValidDate(startDate) || !isValidDate(endDate)) {
+        console.error('OrderData: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+        return [];
+      }
+      
+      return orders.filter(order => {
+        try {
+          const orderDate = safeParseDate(order.tanggal);
+          if (!orderDate) return false;
+          return orderDate >= startDate && orderDate <= endDate;
+        } catch (error) {
+          console.error('OrderData: Error processing order date:', error, order);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('OrderData: Error in getOrdersByDateRange:', error);
+      return [];
+    }
+  }, [orders]);
+
   // Effects
   useEffect(() => {
     if (!user) {
@@ -480,6 +503,7 @@ export const useOrderData = (
     refreshData,
     getOrderById,
     getOrdersByStatus,
+    getOrdersByDateRange,
     bulkUpdateStatus,
     bulkDeleteOrders
   };

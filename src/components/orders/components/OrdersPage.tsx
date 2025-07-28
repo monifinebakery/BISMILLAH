@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
 import type { Order, NewOrder } from '../types';
-import { PageLoading } from '../shared/LoadingStates';
+import { PageLoading } from './shared/LoadingStates';
 
 // Lazy load heavy components
 const OrderTable = React.lazy(() => import('./OrderTable'));

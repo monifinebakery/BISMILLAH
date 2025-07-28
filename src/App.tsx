@@ -39,7 +39,12 @@ const RecipesPage = React.lazy(() =>
 const WarehousePage = React.lazy(() => 
   import("@/components/warehouse/pages/WarehousePage")
 );
-const OrdersPage = React.lazy(() => import("./pages/Orders"));
+
+// ✅ NEW: Order Management dengan struktur modular baru
+const OrdersPage = React.lazy(() => 
+  import("@/components/orders/components/OrdersPage")
+);
+
 const FinancialReportPage = React.lazy(() => import("@/components/financial/FinancialReportPage"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const AssetManagement = React.lazy(() => import("./pages/AssetManagement"));
@@ -82,6 +87,24 @@ const RecipePageLoader = () => (
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Manajemen Resep</p>
                 <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data resep...</p>
+            </div>
+        </div>
+    </div>
+);
+
+// ✅ NEW: Enhanced loading khusus untuk Order Management
+const OrderPageLoader = () => (
+    <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-orange-100 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+            <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Memuat Manajemen Pesanan</p>
+                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data pesanan...</p>
             </div>
         </div>
     </div>
@@ -143,6 +166,44 @@ const RecipeErrorFallback = () => {
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
                         Terjadi kesalahan saat memuat halaman resep. Pastikan koneksi internet stabil dan coba lagi.
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg"
+                        >
+                            Muat Ulang
+                        </button>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg"
+                        >
+                            Kembali ke Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ✅ NEW: Specialized error boundary untuk Order Management
+const OrderErrorFallback = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+            <div className="container mx-auto p-4 sm:p-8">
+                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                    <div className="bg-red-100 rounded-full p-6 mb-4">
+                        <svg className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                        Gagal Memuat Manajemen Pesanan
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md">
+                        Terjadi kesalahan saat memuat halaman pesanan. Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -322,7 +383,18 @@ const App = () => {
                                     } 
                                 />
                                 
-                                <Route path="pesanan" element={<OrdersPage />} />
+                                {/* ✅ NEW: Order Management dengan enhanced loading dan error handling */}
+                                <Route 
+                                    path="pesanan" 
+                                    element={
+                                        <Suspense fallback={<OrderPageLoader />}>
+                                            <ErrorBoundary fallback={<OrderErrorFallback />}>
+                                                <OrdersPage />
+                                            </ErrorBoundary>
+                                        </Suspense>
+                                    } 
+                                />
+                                
                                 <Route path="invoice" element={<InvoicePage />} />
                                 <Route path="laporan" element={<FinancialReportPage />} />
                                 <Route path="aset" element={<AssetManagement />} />

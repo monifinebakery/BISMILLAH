@@ -6,7 +6,7 @@
 
 // Main Components
 export { default as WarehousePage } from './WarehousePage';
-export { WarehouseProvider, useWarehouseContext } from './WarehouseContext';
+export { WarehouseProvider, useWarehouseContext } from './context/WarehouseContext';
 
 // Types
 export type * from './types';

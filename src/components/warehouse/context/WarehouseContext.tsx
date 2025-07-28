@@ -13,7 +13,7 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { warehouseApi } from '../services/warehouseApi';
 
 // Types
-import type { BahanBaku } from './types';
+import type { BahanBaku } from '../types';
 
 interface WarehouseContextType {
   // State

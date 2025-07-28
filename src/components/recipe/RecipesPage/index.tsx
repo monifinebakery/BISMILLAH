@@ -92,7 +92,6 @@ const RecipesPage: React.FC = () => {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [duplicatingRecipe, setDuplicatingRecipe] = useState<Recipe | null>(null);
-  const [duplicateRecipeName, setDuplicateRecipeName] = useState('');
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
@@ -150,7 +149,6 @@ const RecipesPage: React.FC = () => {
 
   const handleOpenDuplicateDialog = (recipe: Recipe) => {
     setDuplicatingRecipe(recipe);
-    setDuplicateRecipeName(`${recipe.namaResep} (Copy)`);
     setIsDuplicateDialogOpen(true);
   };
 
@@ -163,7 +161,6 @@ const RecipesPage: React.FC = () => {
       if (success) {
         setIsDuplicateDialogOpen(false);
         setDuplicatingRecipe(null);
-        setDuplicateRecipeName('');
         toast.success(`Resep "${newName}" berhasil diduplikasi`);
         return true;
       }
@@ -270,7 +267,47 @@ const RecipesPage: React.FC = () => {
           {isDuplicateDialogOpen && (
             <DuplicateRecipeDialog
               isOpen={isDuplicateDialogOpen}
-              onOpenChange={setIsDuplicateDialogOpen}
+              onOpenChange={(open) => {
+                setIsDuplicateDialogOpen(open);
+                if (!open) {
+                  setDuplicatingRecipe(null);
+                }
+              }}
+              recipe={duplicatingRecipe}
+              onConfirm={handleDuplicateRecipe}
+              isLoading={isDuplicating}
+            />
+          )}
+
+          {/* Category Manager Dialog */}
+          {isCategoryDialogOpen && (
+            <CategoryManagerDialog
+              isOpen={isCategoryDialogOpen}
+              onOpenChange={setIsCategoryDialogOpen}
+              categories={categories}
+              onAddCategory={addCategory}
+              onDeleteCategory={deleteCategory}
+            />
+          )}
+        </Suspense>
+      </div>
+    </div>
+  );
+};
+
+export default RecipesPage;
+          )}
+
+          {/* Duplicate Recipe Dialog */}
+          {isDuplicateDialogOpen && (
+            <DuplicateRecipeDialog
+              isOpen={isDuplicateDialogOpen}
+              onOpenChange={(open) => {
+                setIsDuplicateDialogOpen(open);
+                if (!open) {
+                  setDuplicatingRecipe(null);
+                }
+              }}
               recipe={duplicatingRecipe}
               onConfirm={handleDuplicateRecipe}
               isLoading={isDuplicating}

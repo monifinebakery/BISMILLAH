@@ -37,7 +37,7 @@ const RecipesPage = React.lazy(() =>
 );
 
 const WarehousePage = React.lazy(() => 
-  import("@/components/warehouse/pages/WarehousePage")
+  import("@/components/warehouse/WarehousePage")
 );
 
 // ✅ NEW: Order Management dengan struktur modular baru

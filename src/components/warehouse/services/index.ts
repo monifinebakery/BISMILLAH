@@ -1,4 +1,4 @@
-/ src/components/warehouse/services/index.ts
+// src/components/warehouse/services/index.ts
 /**
  * Warehouse Services Barrel Export
  * API services and utilities

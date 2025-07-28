@@ -8,7 +8,13 @@
 
 // Main Components (Static)
 export { default as WarehousePage } from './WarehousePage';
-export { WarehouseProvider, useWarehouseContext } from './context/WarehouseContext';
+export { 
+  WarehouseProvider, 
+  useWarehouseContext,
+  // Backward Compatibility Exports
+  BahanBakuProvider,
+  useBahanBaku
+} from './WarehouseContext';
 
 // Core Types (Re-export from types.ts)
 export type {
@@ -17,11 +23,26 @@ export type {
   SortConfig,
   DialogState,
   WarehouseContextType,
+  // Backward Compatibility Types
+  BahanBakuContextType,
   ComponentProps,
-  TableProps,
+  WarehouseHeaderProps,
+  WarehouseTableProps,
+  WarehouseFiltersProps,
+  BulkActionsProps,
+  DialogManagerProps,
   DialogProps,
   AddEditDialogProps,
-  BulkDialogProps
+  BulkOperationsDialogProps,
+  ImportExportDialogProps,
+  ServiceConfig,
+  ValidationResult,
+  ExportFormat,
+  ImportResult,
+  BulkOperationsConfig,
+  BulkEditData,
+  PerformanceMetrics,
+  WarehouseProviderOptions
 } from './types';
 
 // Core Hooks
@@ -37,8 +58,7 @@ export {
 } from './components';
 
 // Services & Utilities (for advanced usage)
-export { warehouseApi } from './services';
-export { warehouseUtils } from './services';
+export { warehouseApi, warehouseUtils, createWarehouseService } from './services';
 
 // Dynamic Imports (for manual lazy loading)
 export const lazyImports = {
@@ -50,3 +70,6 @@ export const lazyImports = {
   BulkOperationsDialog: () => import('./dialogs/BulkOperationsDialog'),
   ImportExportDialog: () => import('./dialogs/ImportExportDialog'),
 };
+
+// Dialog Preloader (for performance optimization)
+export { preloadDialogs } from './dialogs';

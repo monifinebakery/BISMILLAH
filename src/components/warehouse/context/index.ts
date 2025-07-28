@@ -13,7 +13,7 @@ export { useInventoryAnalysis } from './hooks/useInventoryAnalysis';
 
 // Services
 export { CrudService } from './services/crudService';
-export { SubscriptionService } from './services/services/subscriptionService';
+export { SubscriptionService } from './services/subscriptionService';
 export { AlertService } from './services/alertService';
 
 // Utilities

@@ -1,6 +1,6 @@
 // src/components/warehouse/hooks/index.ts
+// Core Hook
+export { useWarehouseCore } from './useWarehouseCore';
 
-export { useWarehouseSelection } from './useWarehouseSelection';
-export { useWarehousePagination, ITEMS_PER_PAGE_OPTIONS } from './useWarehousePagination';
-export { useWarehouseFilters } from './useWarehouseFilters';
-export { useBulkOperations } from './useBulkOperations';
+// Dynamic Hook (Lazy Loaded)
+export const useWarehouseBulk = () => import('./useWarehouseBulk');

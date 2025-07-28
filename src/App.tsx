@@ -13,7 +13,7 @@ import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
 // Impor Komponen Aplikasi
-import ErrorBoundary from "@/components/dashboard/ErrorBoundary"; // <-- Tambahan baru
+import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { AppSidebar } from "@/components/AppSidebar";
 import AuthGuard from "@/components/AuthGuard";
@@ -30,7 +30,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 // Lazy-loading semua halaman untuk performa
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
-const RecipesPage = React.lazy(() => import("./pages/Recipes"));
+
+// ✅ UPDATE: Recipe Management dengan struktur modular baru
+const RecipesPage = React.lazy(() => 
+  import("@/components/recipe/RecipesPage")
+);
+
 const WarehousePage = React.lazy(() => import("./pages/Warehouse"));
 const OrdersPage = React.lazy(() => import("./pages/Orders"));
 const FinancialReportPage = React.lazy(() => import("@/components/financial/FinancialReportPage"));
@@ -39,7 +44,7 @@ const AssetManagement = React.lazy(() => import("./pages/AssetManagement"));
 const Settings = React.lazy(() => import("./pages/Settings"));
 const SupplierManagement = React.lazy(() => import("./pages/SupplierManagement"));
 
-// ✅ UPDATE: Ganti dengan struktur modular baru
+// Purchase Management dengan struktur modular
 const PurchaseManagement = React.lazy(() => 
   import("./components/purchase/components/layout/PurchasePage")
 );
@@ -52,12 +57,30 @@ const PromoCalculatorPage = React.lazy(() => import("./pages/PromoCalculatorPage
 // Inisialisasi Query Client
 const queryClient = new QueryClient();
 
-// Komponen Loading State dengan design yang lebih baik untuk purchase
+// Komponen Loading State dengan design yang lebih baik
 const PageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-background">
         <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <p className="text-sm text-muted-foreground">Memuat halaman...</p>
+        </div>
+    </div>
+);
+
+// Enhanced loading khusus untuk Recipe Management
+const RecipePageLoader = () => (
+    <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-orange-100 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+            <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Memuat Manajemen Resep</p>
+                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data resep...</p>
+            </div>
         </div>
     </div>
 );
@@ -97,6 +120,44 @@ const RouteErrorFallback = () => {
             >
                 Muat Ulang
             </button>
+        </div>
+    );
+};
+
+// Specialized error boundary untuk Recipe Management
+const RecipeErrorFallback = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+            <div className="container mx-auto p-4 sm:p-8">
+                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                    <div className="bg-red-100 rounded-full p-6 mb-4">
+                        <svg className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                        Gagal Memuat Manajemen Resep
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md">
+                        Terjadi kesalahan saat memuat halaman resep. Pastikan koneksi internet stabil dan coba lagi.
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg"
+                        >
+                            Muat Ulang
+                        </button>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg"
+                        >
+                            Kembali ke Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -231,11 +292,23 @@ const App = () => {
                                 }
                             >
                                 <Route index element={<Dashboard />} />
-                                <Route path="resep" element={<RecipesPage />} />
+                                
+                                {/* ✅ UPDATE: Recipe Management dengan enhanced loading dan error handling */}
+                                <Route 
+                                    path="resep" 
+                                    element={
+                                        <Suspense fallback={<RecipePageLoader />}>
+                                            <ErrorBoundary fallback={<RecipeErrorFallback />}>
+                                                <RecipesPage />
+                                            </ErrorBoundary>
+                                        </Suspense>
+                                    } 
+                                />
+                                
                                 <Route path="gudang" element={<WarehousePage />} />
                                 <Route path="supplier" element={<SupplierManagement />} />
                                 
-                                {/* ✅ UPDATE: Purchase Management dengan enhanced loading dan error handling */}
+                                {/* Purchase Management dengan enhanced loading dan error handling */}
                                 <Route 
                                     path="pembelian" 
                                     element={

@@ -1,7 +1,7 @@
 // 🎯 200 lines - All dialogs dengan implementasi lengkap
 import React, { Suspense } from 'react';
 import type { Order, NewOrder } from '../types';
-import { DialogLoader } from '../shared/LoadingStates';
+import { DialogLoader } from './shared/LoadingStates';
 
 // Import dialog components
 import OrderForm from './dialogs/OrderForm';

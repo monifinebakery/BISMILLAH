@@ -1,5 +1,3 @@
-// src/components/recipe/RecipeForm/index.tsx
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -94,9 +92,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-[95vw] lg:max-w-7xl h-[95vh] p-0 gap-0">
+      <DialogContent className="max-w-full sm:max-w-[95vw] lg:max-w-7xl h-[90vh] sm:h-[95vh] p-0 gap-0 flex flex-col">
         {/* Header */}
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b bg-white">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b bg-white shrink-0">
           <DialogTitle className="text-lg sm:text-xl">
             {initialData ? `Edit Resep: ${initialData.namaResep}` : 'Tambah Resep Baru'}
           </DialogTitle>
@@ -105,11 +103,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
-          {/* Main Content */}
+        <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Main Content - Scrollable */}
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
-              <div className="p-4 sm:p-6">
+              <div className="p-4 sm:p-6 pb-6">
                 {/* Mobile Layout - Stack vertically */}
                 <div className="block lg:hidden space-y-6">
                   {/* Basic Information */}
@@ -252,10 +250,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             </ScrollArea>
           </div>
 
-          {/* Footer Actions - Sticky bottom */}
-          <div className="border-t bg-white px-4 sm:px-6 py-4">
+          {/* Footer Actions - Fixed at bottom */}
+          <div className="border-t bg-white px-4 sm:px-6 py-3 sm:py-4 shrink-0">
             <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 order-2 sm:order-1">
                 {isDirty && (
                   <span className="flex items-center gap-1">
                     <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
@@ -269,13 +267,14 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto order-1 sm:order-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
                   disabled={isLoading}
                   className="flex-1 sm:flex-none"
+                  size="sm"
                 >
                   <X className="h-4 w-4 mr-2" />
                   Batal
@@ -285,6 +284,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   type="submit"
                   disabled={!calculation.isValid || !isValid || isLoading}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 flex-1 sm:flex-none"
+                  size="sm"
                 >
                   {isLoading ? (
                     <ButtonLoadingState>
@@ -293,7 +293,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   ) : (
                     <>
                       <Save className="h-4 w-4 mr-2" />
-                      {initialData ? 'Perbarui Resep' : 'Simpan Resep'}
+                      {initialData ? 'Perbarui' : 'Simpan'}
                     </>
                   )}
                 </Button>

@@ -10,7 +10,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services (Dynamic Import)
-import { warehouseApi } from './services';
+import { warehouseApi } from '../services';
 
 // Types
 import type { BahanBaku } from './types';

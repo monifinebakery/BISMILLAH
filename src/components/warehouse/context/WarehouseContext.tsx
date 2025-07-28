@@ -10,10 +10,10 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services (Dynamic Import)
-import { warehouseApi } from '../services/warehouseApi';
+import { warehouseApi } from './services';
 
 // Types
-import type { BahanBaku } from '../types';
+import type { BahanBaku } from './types';
 
 interface WarehouseContextType {
   // State
@@ -314,4 +314,27 @@ export const useWarehouseContext = (): WarehouseContextType => {
   return context;
 };
 
+// === BACKWARD COMPATIBILITY EXPORTS ===
+// These allow existing code to continue working without changes
+
+/**
+ * @deprecated Use WarehouseProvider instead
+ * Kept for backward compatibility with existing AppProviders.tsx
+ */
+export const BahanBakuProvider = WarehouseProvider;
+
+/**
+ * @deprecated Use useWarehouseContext instead  
+ * Kept for backward compatibility
+ */
+export const useBahanBaku = useWarehouseContext;
+
+// === TYPE COMPATIBILITY ===
+/**
+ * @deprecated Use WarehouseContextType instead
+ * Kept for backward compatibility
+ */
+export type BahanBakuContextType = WarehouseContextType;
+
+// Default export
 export default WarehouseProvider;

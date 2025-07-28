@@ -40,17 +40,6 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
-  // ⚡ Performance monitoring
-  React.useEffect(() => {
-    const start = performance.now();
-    console.log('🚀 AppProviders initializing...');
-    
-    return () => {
-      const end = performance.now();
-      console.log(`⚡ AppProviders loaded in ${(end - start).toFixed(2)}ms`);
-    };
-  }, []);
-  
   return (
     <>
       {/* 1. Foundation Layer - Core authentication & system */}

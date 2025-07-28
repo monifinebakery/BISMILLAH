@@ -65,82 +65,101 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     connected: connectionManager.connectionState.isConnected
   });
 
-  // Initialize services
+  // Initialize services lazily to improve loading
+  const servicesRef = useRef<{
+    crud: CrudService | null;
+    subscription: SubscriptionService | null;
+    alert: AlertService | null;
+  }>({ crud: null, subscription: null, alert: null });
+
+  // ⚡ OPTIMIZED: Lazy service initialization
+  const getServices = useCallback(() => {
+    if (!user) return { crud: null, subscription: null, alert: null };
+    
+    // Initialize services only when needed
+    if (!servicesRef.current.crud) {
+      const deps: ContextDeps = { user, addActivity, addNotification };
+
+      servicesRef.current.crud = new CrudService({
+        userId: user.id,
+        onError: async (error: string) => {
+          await addNotification(createNotificationHelper.systemError(error));
+        },
+      });
+
+      servicesRef.current.alert = new AlertService({
+        addNotification,
+        shouldSendNotification,
+        getLowStockItems: analysis.getLowStockItems,
+        getOutOfStockItems: analysis.getOutOfStockItems,
+        getExpiringItems: analysis.getExpiringItems,
+        getDaysUntilExpiry: analysis.getDaysUntilExpiry,
+      });
+
+      servicesRef.current.subscription = new SubscriptionService({
+        userId: user.id,
+        onDataChange: (items) => {
+          setState(prev => ({ ...prev, bahanBaku: items }));
+        },
+        onItemAdded: (item) => {
+          setState(prev => ({
+            ...prev,
+            bahanBaku: [...prev.bahanBaku, item].sort((a, b) => a.nama.localeCompare(b.nama))
+          }));
+          servicesRef.current.alert?.processItemSpecificAlert(item, 'added');
+        },
+        onItemUpdated: (item) => {
+          setState(prev => ({
+            ...prev,
+            bahanBaku: prev.bahanBaku.map(existing => 
+              existing.id === item.id ? item : existing
+            ).sort((a, b) => a.nama.localeCompare(b.nama))
+          }));
+        },
+        onItemDeleted: (itemId) => {
+          setState(prev => ({
+            ...prev,
+            bahanBaku: prev.bahanBaku.filter(item => item.id !== itemId)
+          }));
+          if (selection.selectedItems.includes(itemId)) {
+            selection.toggleSelection(itemId);
+          }
+        },
+        onConnectionStatusChange: (status) => {
+          switch (status) {
+            case 'SUBSCRIBED':
+              connectionManager.setIsConnected(true);
+              break;
+            case 'CHANNEL_ERROR':
+            case 'TIMED_OUT':
+            case 'CLOSED':
+              connectionManager.handleConnectionError(() => {
+                servicesRef.current.subscription?.setupSubscription();
+              });
+              break;
+          }
+        },
+        isMountedRef,
+      });
+    }
+
+    return servicesRef.current;
+  }, [user, addActivity, addNotification, shouldSendNotification, analysis, selection, connectionManager]);
+
+  // Initialize services effect with delay to prevent blocking
   useEffect(() => {
     if (!user) {
       servicesRef.current = { crud: null, subscription: null, alert: null };
       return;
     }
 
-    const deps: ContextDeps = { user, addActivity, addNotification };
+    // ⚡ Use setTimeout to prevent blocking main thread
+    const timer = setTimeout(() => {
+      getServices();
+    }, 100);
 
-    // Initialize CRUD service
-    servicesRef.current.crud = new CrudService({
-      userId: user.id,
-      onError: async (error: string) => {
-        await addNotification(createNotificationHelper.systemError(error));
-      },
-    });
-
-    // Initialize Alert service
-    servicesRef.current.alert = new AlertService({
-      addNotification,
-      shouldSendNotification,
-      getLowStockItems: analysis.getLowStockItems,
-      getOutOfStockItems: analysis.getOutOfStockItems,
-      getExpiringItems: analysis.getExpiringItems,
-      getDaysUntilExpiry: analysis.getDaysUntilExpiry,
-    });
-
-    // Initialize Subscription service
-    servicesRef.current.subscription = new SubscriptionService({
-      userId: user.id,
-      onDataChange: (items) => {
-        setState(prev => ({ ...prev, bahanBaku: items }));
-      },
-      onItemAdded: (item) => {
-        setState(prev => ({
-          ...prev,
-          bahanBaku: [...prev.bahanBaku, item].sort((a, b) => a.nama.localeCompare(b.nama))
-        }));
-        servicesRef.current.alert?.processItemSpecificAlert(item, 'added');
-      },
-      onItemUpdated: (item) => {
-        setState(prev => ({
-          ...prev,
-          bahanBaku: prev.bahanBaku.map(existing => 
-            existing.id === item.id ? item : existing
-          ).sort((a, b) => a.nama.localeCompare(b.nama))
-        }));
-      },
-      onItemDeleted: (itemId) => {
-        setState(prev => ({
-          ...prev,
-          bahanBaku: prev.bahanBaku.filter(item => item.id !== itemId)
-        }));
-        // Clean up selection if item was selected
-        if (selection.selectedItems.includes(itemId)) {
-          selection.toggleSelection(itemId);
-        }
-      },
-      onConnectionStatusChange: (status) => {
-        switch (status) {
-          case 'SUBSCRIBED':
-            connectionManager.setIsConnected(true);
-            break;
-          case 'CHANNEL_ERROR':
-          case 'TIMED_OUT':
-          case 'CLOSED':
-            connectionManager.handleConnectionError(() => {
-              servicesRef.current.subscription?.setupSubscription();
-            });
-            break;
-        }
-      },
-      isMountedRef,
-    });
-
-  }, [user?.id, addActivity, addNotification, shouldSendNotification, analysis, selection, connectionManager]);
+    return () => clearTimeout(timer);
+  }, [user?.id, getServices]);
 
   // Debounced alert checking
   const checkInventoryAlerts = useCallback(async (itemsToCheck?: BahanBaku[]): Promise<void> => {
@@ -245,11 +264,12 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
     lastAlertCheckRef.current = 0;
   }, [user?.id, selection]);
 
-  // CRUD Operations
+  // ⚡ OPTIMIZED: CRUD Operations with lazy service access
   const addBahanBaku = async (bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
-    if (!servicesRef.current.crud) return false;
+    const services = getServices();
+    if (!services.crud) return false;
 
-    const success = await servicesRef.current.crud.addBahanBaku(bahan);
+    const success = await services.crud.addBahanBaku(bahan);
     
     if (success) {
       addActivity({
@@ -263,35 +283,38 @@ export const BahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const updateBahanBaku = async (id: string, updatedBahan: Partial<BahanBaku>): Promise<boolean> => {
-    if (!servicesRef.current.crud) return false;
+    const services = getServices();
+    if (!services.crud) return false;
     
-    return await servicesRef.current.crud.updateBahanBaku(id, updatedBahan);
+    return await services.crud.updateBahanBaku(id, updatedBahan);
   };
 
   const deleteBahanBaku = async (id: string): Promise<boolean> => {
-    if (!servicesRef.current.crud) return false;
+    const services = getServices();
+    if (!services.crud || !services.alert) return false;
     
     const itemToDelete = state.bahanBaku.find(b => b.id === id);
-    const success = await servicesRef.current.crud.deleteBahanBaku(id);
+    const success = await services.crud.deleteBahanBaku(id);
     
-    if (success && itemToDelete && servicesRef.current.alert) {
-      await servicesRef.current.alert.processItemSpecificAlert(itemToDelete, 'deleted');
+    if (success && itemToDelete) {
+      await services.alert.processItemSpecificAlert(itemToDelete, 'deleted');
     }
 
     return success;
   };
 
   const bulkDeleteBahanBaku = async (ids: string[]): Promise<boolean> => {
-    if (!servicesRef.current.crud || !servicesRef.current.alert) return false;
+    const services = getServices();
+    if (!services.crud || !services.alert) return false;
     
     setState(prev => ({ ...prev, isBulkDeleting: true }));
     
     try {
-      const success = await servicesRef.current.crud.bulkDeleteBahanBaku(ids);
+      const success = await services.crud.bulkDeleteBahanBaku(ids);
       
       if (success) {
         selection.clearSelection();
-        await servicesRef.current.alert.processBulkOperationAlert('bulk_delete', ids.length);
+        await services.alert.processBulkOperationAlert('bulk_delete', ids.length);
       }
 
       return success;

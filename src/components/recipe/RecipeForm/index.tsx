@@ -94,23 +94,24 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
+      <DialogContent className="max-w-full sm:max-w-[95vw] lg:max-w-7xl h-[95vh] p-0 gap-0">
+        {/* Header */}
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b bg-white">
+          <DialogTitle className="text-lg sm:text-xl">
             {initialData ? `Edit Resep: ${initialData.namaResep}` : 'Tambah Resep Baru'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Isi detail resep dan kalkulasi HPP per porsi & per pcs akan otomatis diperbarui
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col">
+        <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
           {/* Main Content */}
           <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full pr-6">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 py-4">
-                {/* Left Column - Basic Info & Ingredients */}
-                <div className="xl:col-span-2 space-y-6">
+            <ScrollArea className="h-full">
+              <div className="p-4 sm:p-6">
+                {/* Mobile Layout - Stack vertically */}
+                <div className="block lg:hidden space-y-6">
                   {/* Basic Information */}
                   <RecipeBasicInfo
                     namaResep={formData.namaResep || ''}
@@ -125,6 +126,25 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                     jumlahPcsPerPorsi={formData.jumlahPcsPerPorsi}
                     onJumlahPcsPerPorsiChange={(value) => updateField('jumlahPcsPerPorsi', value)}
                     errors={errors}
+                  />
+
+                  {/* Preview - Show early on mobile for immediate feedback */}
+                  <RecipePreview
+                    namaResep={formData.namaResep || ''}
+                    kategoriResep={formData.kategoriResep}
+                    jumlahPorsi={formData.jumlahPorsi || 1}
+                    jumlahPcsPerPorsi={formData.jumlahPcsPerPorsi}
+                    ingredients={formData.bahanResep || []}
+                    totalHpp={calculation.totalHpp || 0}
+                    hppPerPorsi={calculation.hppPerPorsi || 0}
+                    hppPerPcs={calculation.hppPerPcs}
+                    hargaJualPorsi={formData.hargaJualPorsi || 0}
+                    hargaJualPerPcs={formData.hargaJualPerPcs}
+                    profitPerPorsi={profitPerPorsi}
+                    profitPerPcs={profitPerPcs}
+                    marginPercentage={marginPercentage}
+                    isValid={calculation.isValid && isValid}
+                    errors={calculation.errors || []}
                   />
 
                   {/* Ingredients */}
@@ -156,75 +176,128 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   />
                 </div>
 
-                {/* Right Column - Preview */}
-                <div className="xl:col-span-1">
-                  <div className="sticky top-0">
-                    <RecipePreview
+                {/* Desktop Layout - Side by side */}
+                <div className="hidden lg:grid lg:grid-cols-3 gap-6">
+                  {/* Left Column - Basic Info & Ingredients */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Basic Information */}
+                    <RecipeBasicInfo
                       namaResep={formData.namaResep || ''}
+                      onNamaResepChange={(value) => updateField('namaResep', value)}
                       kategoriResep={formData.kategoriResep}
+                      onKategoriResepChange={(value) => updateField('kategoriResep', value)}
+                      categories={categories}
+                      deskripsi={formData.deskripsi}
+                      onDeskripsiChange={(value) => updateField('deskripsi', value)}
                       jumlahPorsi={formData.jumlahPorsi || 1}
+                      onJumlahPorsiChange={(value) => updateField('jumlahPorsi', value)}
                       jumlahPcsPerPorsi={formData.jumlahPcsPerPorsi}
-                      ingredients={formData.bahanResep || []}
-                      totalHpp={calculation.totalHpp || 0}
-                      hppPerPorsi={calculation.hppPerPorsi || 0}
-                      hppPerPcs={calculation.hppPerPcs}
-                      hargaJualPorsi={formData.hargaJualPorsi || 0}
-                      hargaJualPerPcs={formData.hargaJualPerPcs}
-                      profitPerPorsi={profitPerPorsi}
-                      profitPerPcs={profitPerPcs}
-                      marginPercentage={marginPercentage}
-                      isValid={calculation.isValid && isValid}
-                      errors={calculation.errors || []}
+                      onJumlahPcsPerPorsiChange={(value) => updateField('jumlahPcsPerPorsi', value)}
+                      errors={errors}
                     />
+
+                    {/* Ingredients */}
+                    <RecipeIngredients
+                      ingredients={formData.bahanResep || []}
+                      onAddIngredient={addIngredient}
+                      onUpdateIngredient={updateIngredient}
+                      onRemoveIngredient={removeIngredient}
+                      totalCost={totalIngredientCost}
+                      errors={errors}
+                    />
+
+                    {/* Pricing */}
+                    <RecipePricing
+                      biayaTenagaKerja={formData.biayaTenagaKerja || 0}
+                      onBiayaTenagaKerjaChange={(value) => updateField('biayaTenagaKerja', value)}
+                      biayaOverhead={formData.biayaOverhead || 0}
+                      onBiayaOverheadChange={(value) => updateField('biayaOverhead', value)}
+                      marginKeuntunganPersen={formData.marginKeuntunganPersen || 30}
+                      onMarginKeuntunganPersenChange={(value) => updateField('marginKeuntunganPersen', value)}
+                      hargaJualPorsi={formData.hargaJualPorsi || 0}
+                      onHargaJualPorsiChange={(value) => updateField('hargaJualPorsi', value)}
+                      hargaJualPerPcs={formData.hargaJualPerPcs}
+                      onHargaJualPerPcsChange={(value) => updateField('hargaJualPerPcs', value)}
+                      recommendedPricePerPorsi={calculation.recommendedPricePerPorsi}
+                      recommendedPricePerPcs={calculation.recommendedPricePerPcs}
+                      hasJumlahPcsPerPorsi={Boolean(formData.jumlahPcsPerPorsi && formData.jumlahPcsPerPorsi > 1)}
+                      errors={errors}
+                    />
+                  </div>
+
+                  {/* Right Column - Preview (Desktop only, sticky) */}
+                  <div className="lg:col-span-1">
+                    <div className="sticky top-0">
+                      <RecipePreview
+                        namaResep={formData.namaResep || ''}
+                        kategoriResep={formData.kategoriResep}
+                        jumlahPorsi={formData.jumlahPorsi || 1}
+                        jumlahPcsPerPorsi={formData.jumlahPcsPerPorsi}
+                        ingredients={formData.bahanResep || []}
+                        totalHpp={calculation.totalHpp || 0}
+                        hppPerPorsi={calculation.hppPerPorsi || 0}
+                        hppPerPcs={calculation.hppPerPcs}
+                        hargaJualPorsi={formData.hargaJualPorsi || 0}
+                        hargaJualPerPcs={formData.hargaJualPerPcs}
+                        profitPerPorsi={profitPerPorsi}
+                        profitPerPcs={profitPerPcs}
+                        marginPercentage={marginPercentage}
+                        isValid={calculation.isValid && isValid}
+                        errors={calculation.errors || []}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </ScrollArea>
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-6 border-t bg-white">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              {isDirty && (
-                <span className="flex items-center gap-1">
-                  <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
-                  Belum disimpan
-                </span>
-              )}
-              {!calculation.isValid && (
-                <span className="text-red-600">
-                  Lengkapi data untuk menyimpan
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isLoading}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Batal
-              </Button>
-              
-              <Button
-                type="submit"
-                disabled={!calculation.isValid || !isValid || isLoading}
-                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-              >
-                {isLoading ? (
-                  <ButtonLoadingState>
-                    {initialData ? 'Memperbarui...' : 'Menyimpan...'}
-                  </ButtonLoadingState>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {initialData ? 'Perbarui Resep' : 'Simpan Resep'}
-                  </>
+          {/* Footer Actions - Sticky bottom */}
+          <div className="border-t bg-white px-4 sm:px-6 py-4">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                {isDirty && (
+                  <span className="flex items-center gap-1">
+                    <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
+                    Belum disimpan
+                  </span>
                 )}
-              </Button>
+                {!calculation.isValid && (
+                  <span className="text-red-600">
+                    Lengkapi data untuk menyimpan
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="flex-1 sm:flex-none"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Batal
+                </Button>
+                
+                <Button
+                  type="submit"
+                  disabled={!calculation.isValid || !isValid || isLoading}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 flex-1 sm:flex-none"
+                >
+                  {isLoading ? (
+                    <ButtonLoadingState>
+                      {initialData ? 'Memperbarui...' : 'Menyimpan...'}
+                    </ButtonLoadingState>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {initialData ? 'Perbarui Resep' : 'Simpan Resep'}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </form>

@@ -8,7 +8,7 @@
 
 // Main Components (Static)
 export { default as WarehousePage } from './WarehousePage';
-export { WarehouseProvider, useWarehouseContext } from './WarehouseContext';
+export { WarehouseProvider, useWarehouseContext } from './context/WarehouseContext';
 
 // Core Types (Re-export from types.ts)
 export type {

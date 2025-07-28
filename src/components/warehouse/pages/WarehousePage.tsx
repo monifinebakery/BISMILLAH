@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 // Context and Types
 import { useBahanBaku } from '../context/BahanBakuContext';
+// import { useSimpleBahanBaku as useBahanBaku } from '../context/SimpleBahanBakuContext'; // 🔧 Testing simple version
 import { BahanBaku, MobileViewMode } from '../types/warehouse';
 
 // Custom Hooks

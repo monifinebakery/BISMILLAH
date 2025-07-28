@@ -1,86 +1,54 @@
-// src/components/orders/constants/orderConstants.ts
-import { OrderStatus, OrderStatusOption } from '../types';
+// 🎯 50 lines - Order statuses, etc.
+import { OrderStatus } from '../types/order';
 
-export const ORDER_STATUS_CONFIG: Record<OrderStatus, OrderStatusOption> = {
-  pending: {
-    key: 'pending',
-    label: 'Menunggu Konfirmasi',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    bgColor: 'bg-yellow-50',
-    textColor: 'text-yellow-700'
-  },
-  confirmed: {
-    key: 'confirmed',
-    label: 'Dikonfirmasi',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700'
-  },
-  processing: {
-    key: 'processing',
-    label: 'Diproses',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    bgColor: 'bg-orange-50',
-    textColor: 'text-orange-700'
-  },
-  ready: {
-    key: 'ready',
-    label: 'Siap Diantar',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    bgColor: 'bg-purple-50',
-    textColor: 'text-purple-700'
-  },
-  delivered: {
-    key: 'delivered',
-    label: 'Bisa diambil',
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    bgColor: 'bg-indigo-50',
-    textColor: 'text-indigo-700'
-  },
-  completed: {
-    key: 'completed',
-    label: 'Selesai',
-    color: 'bg-green-100 text-green-800 border-green-200',
-    bgColor: 'bg-green-50',
-    textColor: 'text-green-700'
-  },
-  cancelled: {
-    key: 'cancelled',
-    label: 'Dibatalkan',
-    color: 'bg-red-100 text-red-800 border-red-200',
-    bgColor: 'bg-red-50',
-    textColor: 'text-red-700'
-  }
+export const ORDER_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed', 
+  'processing',
+  'shipped',
+  'delivered',
+  'cancelled',
+  'completed'
+];
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Menunggu',
+  confirmed: 'Dikonfirmasi',
+  processing: 'Diproses',
+  shipped: 'Dikirim',
+  delivered: 'Diterima',
+  cancelled: 'Dibatalkan',
+  completed: 'Selesai'
 };
 
-export const orderStatusList: OrderStatusOption[] = Object.values(ORDER_STATUS_CONFIG);
-
-export const getStatusText = (status: string): string => {
-  return ORDER_STATUS_CONFIG[status as OrderStatus]?.label || status;
+export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  confirmed: 'bg-blue-100 text-blue-800 border-blue-200',
+  processing: 'bg-purple-100 text-purple-800 border-purple-200',
+  shipped: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  delivered: 'bg-green-100 text-green-800 border-green-200',
+  cancelled: 'bg-red-100 text-red-800 border-red-200',
+  completed: 'bg-emerald-100 text-emerald-800 border-emerald-200'
 };
 
-export const getStatusColor = (status: string): string => {
-  return ORDER_STATUS_CONFIG[status as OrderStatus]?.color || 'bg-gray-100 text-gray-800 border-gray-200';
+export const DEFAULT_ORDER_STATUS: OrderStatus = 'pending';
+
+export const getStatusText = (status: OrderStatus): string => {
+  return ORDER_STATUS_LABELS[status] || status;
 };
 
-export const getStatusBgColor = (status: string): string => {
-  return ORDER_STATUS_CONFIG[status as OrderStatus]?.bgColor || 'bg-gray-50';
+export const getStatusColor = (status: OrderStatus): string => {
+  return ORDER_STATUS_COLORS[status] || ORDER_STATUS_COLORS.pending;
 };
 
-export const getStatusTextColor = (status: string): string => {
-  return ORDER_STATUS_CONFIG[status as OrderStatus]?.textColor || 'text-gray-700';
-};
+export const EDITABLE_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed',
+  'processing'
+];
 
-// Pagination constants
-export const DEFAULT_ITEMS_PER_PAGE = 10;
-export const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50];
-
-// Date range presets
-export const DATE_RANGE_PRESETS = [
-  { label: "Hari Ini", days: 0, key: 'today' },
-  { label: "Kemarin", days: 1, key: 'yesterday' },
-  { label: "7 Hari Terakhir", days: 6, key: 'last7days' },
-  { label: "30 Hari Terakhir", days: 29, key: 'last30days' },
-  { label: "Bulan Ini", days: null, key: 'thisMonth' },
-  { label: "Bulan Lalu", days: null, key: 'lastMonth' }
+export const FINAL_STATUSES: OrderStatus[] = [
+  'delivered',
+  'cancelled', 
+  'completed'
 ];

@@ -1,83 +1,95 @@
+// src/components/warehouse/hooks/useWarehouseSelection.ts
 import { useState, useCallback, useMemo } from 'react';
-import { BahanBaku } from '../types';
+import { BahanBaku } from '../types/warehouse';
 
-export interface UseWarehouseResult {
-  // Filtering and search
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  filteredItems: BahanBaku[];
-  
-  // Pagination
-  currentPage: number;
-  setCurrentPage: (page: number) => void;
-  itemsPerPage: number;
-  setItemsPerPage: (count: number) => void;
-  totalPages: number;
-  currentItems: BahanBaku[];
-  
-  // Low stock items
-  lowStockItems: BahanBaku[];
-  
-  // Utility functions
-  resetPagination: () => void;
+interface UseWarehouseSelectionReturn {
+  selectedItems: string[];
+  isSelectionMode: boolean;
+  toggleSelection: (id: string) => void;
+  selectAll: (items: BahanBaku[]) => void;
+  clearSelection: () => void;
+  toggleSelectionMode: () => void;
+  isSelected: (id: string) => boolean;
+  getSelectedItems: (allItems: BahanBaku[]) => BahanBaku[];
+  selectPage: (pageItems: BahanBaku[]) => void;
+  isPageSelected: (pageItems: BahanBaku[]) => boolean;
+  isPagePartiallySelected: (pageItems: BahanBaku[]) => boolean;
+  selectedCount: number;
 }
 
-export const useWarehouse = (bahanBaku: BahanBaku[]): UseWarehouseResult => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+export const useWarehouseSelection = (): UseWarehouseSelectionReturn => {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  const filteredItems = useMemo(() => {
-    return Array.isArray(bahanBaku) 
-      ? bahanBaku.filter(item =>
-          item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
-      : [];
-  }, [bahanBaku, searchTerm]);
-
-  const lowStockItems = useMemo(() => {
-    return Array.isArray(bahanBaku) 
-      ? bahanBaku.filter(item => item.stok <= item.minimum)
-      : [];
-  }, [bahanBaku]);
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
-  const currentItems = useMemo(() => 
-    filteredItems.slice(Math.max(0, indexOfFirstItem), indexOfLastItem), 
-    [filteredItems, indexOfFirstItem, indexOfLastItem]
-  );
-
-  const resetPagination = useCallback(() => {
-    setCurrentPage(1);
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedItems(prev => {
+      const isCurrentlySelected = prev.includes(id);
+      if (isCurrentlySelected) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
   }, []);
 
-  const handleSetSearchTerm = useCallback((term: string) => {
-    setSearchTerm(term);
-    setCurrentPage(1);
+  const selectAll = useCallback((items: BahanBaku[]) => {
+    setSelectedItems(items.map(item => item.id));
   }, []);
 
-  const handleSetItemsPerPage = useCallback((count: number) => {
-    setItemsPerPage(count);
-    setCurrentPage(1);
+  const clearSelection = useCallback(() => {
+    setSelectedItems([]);
   }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setIsSelectionMode(prev => {
+      if (prev) {
+        setSelectedItems([]);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const isSelected = useCallback((id: string) => {
+    return selectedItems.includes(id);
+  }, [selectedItems]);
+
+  const getSelectedItems = useCallback((allItems: BahanBaku[]) => {
+    return allItems.filter(item => selectedItems.includes(item.id));
+  }, [selectedItems]);
+
+  const selectPage = useCallback((pageItems: BahanBaku[]) => {
+    const pageIds = pageItems.map(item => item.id);
+    setSelectedItems(prev => {
+      const newSelection = new Set([...prev, ...pageIds]);
+      return Array.from(newSelection);
+    });
+  }, []);
+
+  const isPageSelected = useCallback((pageItems: BahanBaku[]) => {
+    if (pageItems.length === 0) return false;
+    return pageItems.every(item => selectedItems.includes(item.id));
+  }, [selectedItems]);
+
+  const isPagePartiallySelected = useCallback((pageItems: BahanBaku[]) => {
+    if (pageItems.length === 0) return false;
+    const selectedInPage = pageItems.filter(item => selectedItems.includes(item.id));
+    return selectedInPage.length > 0 && selectedInPage.length < pageItems.length;
+  }, [selectedItems]);
+
+  const selectedCount = useMemo(() => selectedItems.length, [selectedItems]);
 
   return {
-    searchTerm,
-    setSearchTerm: handleSetSearchTerm,
-    filteredItems,
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage: handleSetItemsPerPage,
-    totalPages,
-    currentItems,
-    lowStockItems,
-    resetPagination,
+    selectedItems,
+    isSelectionMode,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    toggleSelectionMode,
+    isSelected,
+    getSelectedItems,
+    selectPage,
+    isPageSelected,
+    isPagePartiallySelected,
+    selectedCount,
   };
 };

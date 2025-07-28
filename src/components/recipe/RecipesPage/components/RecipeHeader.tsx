@@ -1,5 +1,3 @@
-// src/components/recipe/RecipesPage/components/RecipeHeader.tsx
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Plus, Settings } from 'lucide-react';

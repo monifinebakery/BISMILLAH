@@ -296,38 +296,3 @@ const RecipesPage: React.FC = () => {
 };
 
 export default RecipesPage;
-          )}
-
-          {/* Duplicate Recipe Dialog */}
-          {isDuplicateDialogOpen && (
-            <DuplicateRecipeDialog
-              isOpen={isDuplicateDialogOpen}
-              onOpenChange={(open) => {
-                setIsDuplicateDialogOpen(open);
-                if (!open) {
-                  setDuplicatingRecipe(null);
-                }
-              }}
-              recipe={duplicatingRecipe}
-              onConfirm={handleDuplicateRecipe}
-              isLoading={isDuplicating}
-            />
-          )}
-
-          {/* Category Manager Dialog */}
-          {isCategoryDialogOpen && (
-            <CategoryManagerDialog
-              isOpen={isCategoryDialogOpen}
-              onOpenChange={setIsCategoryDialogOpen}
-              categories={categories}
-              onAddCategory={addCategory}
-              onDeleteCategory={deleteCategory}
-            />
-          )}
-        </Suspense>
-      </div>
-    </div>
-  );
-};
-
-export default RecipesPage;

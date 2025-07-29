@@ -1,5 +1,5 @@
 // src/components/warehouse/components/WarehouseTable.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Edit2, 
@@ -10,7 +10,10 @@ import {
   Square,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBaku, SortConfig } from '../types';
@@ -34,16 +37,16 @@ interface WarehouseTableProps {
 }
 
 /**
- * Warehouse Table Component
+ * Mobile Responsive Warehouse Table Component
  * 
- * Optimized table with:
- * - Virtual scrolling ready
- * - Smart selection UI
- * - Responsive design
- * - Accessibility features
- * - Performance optimizations
+ * Features:
+ * - Card layout on mobile
+ * - Expandable rows on mobile
+ * - Table layout on desktop
+ * - Touch-friendly interactions
+ * - Optimized performance
  * 
- * Size: ~5KB
+ * Size: ~8KB
  */
 const WarehouseTable: React.FC<WarehouseTableProps> = ({
   items,
@@ -62,6 +65,20 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   someCurrentSelected,
   emptyStateAction,
 }) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [showMobileActions, setShowMobileActions] = useState<string | null>(null);
+
+  // Toggle expanded state for mobile cards
+  const toggleExpanded = (itemId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   // Sort icon helper
   const getSortIcon = (key: keyof BahanBaku) => {
     if (sortConfig.key !== key) {
@@ -89,12 +106,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Empty state
   if (!isLoading && items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <Package className="w-16 h-16 text-gray-300 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">
+      <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
+        <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
+        <h3 className="text-base md:text-lg font-semibold text-gray-600 mb-2">
           {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada bahan baku'}
         </h3>
-        <p className="text-gray-500 mb-6 max-w-md">
+        <p className="text-sm md:text-base text-gray-500 mb-6 max-w-md px-4">
           {searchTerm 
             ? `Coba ubah kata kunci pencarian atau filter yang digunakan.`
             : 'Mulai kelola inventori Anda dengan menambahkan bahan baku pertama.'
@@ -110,8 +127,208 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     );
   }
 
-  return (
-    <div className="overflow-x-auto">
+  // Mobile Card View
+  const MobileCardView = () => (
+    <div className="md:hidden space-y-3 p-4">
+      {/* Mobile Selection Header */}
+      {isSelectionMode && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+          <button
+            onClick={onSelectAllCurrent}
+            className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
+            aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
+          >
+            {allCurrentSelected ? (
+              <CheckSquare className="w-5 h-5 text-orange-500" />
+            ) : someCurrentSelected ? (
+              <div className="w-3 h-3 bg-orange-500 rounded-sm" />
+            ) : (
+              <Square className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+          <span className="text-sm font-medium text-gray-700">
+            {selectedItems.length > 0 
+              ? `${selectedItems.length} item dipilih`
+              : 'Pilih semua item'
+            }
+          </span>
+        </div>
+      )}
+
+      {items.map((item) => {
+        const stockLevel = warehouseUtils.formatStockLevel(item.stok, item.minimum);
+        const isExpiringSoon = item.expiry && new Date(item.expiry) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const isItemSelected = isSelected(item.id);
+        const isExpanded = expandedItems.has(item.id);
+
+        return (
+          <div 
+            key={item.id}
+            className={`
+              border rounded-lg overflow-hidden transition-all duration-200
+              ${isItemSelected ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white'}
+              ${stockLevel.level === 'out' ? 'border-red-200 bg-red-50' : ''}
+              ${stockLevel.level === 'low' ? 'border-yellow-200 bg-yellow-50' : ''}
+            `}
+          >
+            {/* Card Header - Always Visible */}
+            <div className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {/* Selection Checkbox */}
+                  {isSelectionMode && (
+                    <button
+                      onClick={() => onToggleSelection(item.id)}
+                      className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors mt-1 flex-shrink-0"
+                      aria-label={`${isItemSelected ? 'Deselect' : 'Select'} ${item.nama}`}
+                    >
+                      {isItemSelected ? (
+                        <CheckSquare className="w-5 h-5 text-orange-500" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* Stock Level Indicator */}
+                  <div className={`w-3 h-3 rounded-full mt-2 flex-shrink-0 ${
+                    stockLevel.level === 'out' ? 'bg-red-500' :
+                    stockLevel.level === 'low' ? 'bg-yellow-500' :
+                    stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
+                  }`} />
+
+                  {/* Main Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {highlightText(item.nama, searchTerm)}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {highlightText(item.kategori, searchTerm)} • {item.stok} {item.satuan}
+                        </p>
+                        {isExpiringSoon && (
+                          <div className="flex items-center gap-1 text-xs text-red-600 mt-2">
+                            <AlertTriangle className="w-3 h-3" />
+                            Akan kadaluarsa
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mobile Actions */}
+                      {!isSelectionMode && (
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => toggleExpanded(item.id)}
+                            className="p-1 rounded hover:bg-gray-100 transition-colors"
+                            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details`}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-500" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setShowMobileActions(showMobileActions === item.id ? null : item.id)}
+                            className="p-1 rounded hover:bg-gray-100 transition-colors"
+                            aria-label="Show actions"
+                          >
+                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Stock Info */}
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm">
+                          <span className={`font-medium ${
+                            stockLevel.level === 'out' ? 'text-red-600' :
+                            stockLevel.level === 'low' ? 'text-yellow-600' :
+                            'text-gray-900'
+                          }`}>
+                            {item.stok}
+                          </span>
+                          <span className="text-gray-500 ml-1">{item.satuan}</span>
+                        </div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {warehouseUtils.formatCurrency(item.harga)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Actions Dropdown */}
+              {showMobileActions === item.id && !isSelectionMode && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        onEdit(item);
+                        setShowMobileActions(null);
+                      }}
+                      className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        onDelete(item.id, item.nama);
+                        setShowMobileActions(null);
+                      }}
+                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Hapus
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Expanded Details */}
+            {isExpanded && (
+              <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Supplier:</span>
+                    <div className="font-medium text-gray-900">{item.supplier}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Stok Minimum:</span>
+                    <div className="font-medium text-gray-900">{item.minimum} {item.satuan}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Harga per {item.satuan}:</span>
+                    <div className="font-medium text-gray-900">{warehouseUtils.formatCurrency(item.harga)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Kadaluarsa:</span>
+                    <div className={`font-medium ${isExpiringSoon ? 'text-red-600' : 'text-gray-900'}`}>
+                      {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Desktop Table View
+  const DesktopTableView = () => (
+    <div className="hidden md:block overflow-x-auto">
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -146,7 +363,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             </th>
 
             {/* Category Column */}
-            <th className="px-4 py-3 text-left hidden sm:table-cell">
+            <th className="px-4 py-3 text-left">
               <button
                 onClick={() => onSort('kategori')}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
@@ -168,7 +385,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             </th>
 
             {/* Price Column */}
-            <th className="px-4 py-3 text-left hidden md:table-cell">
+            <th className="px-4 py-3 text-left">
               <button
                 onClick={() => onSort('harga')}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
@@ -179,7 +396,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             </th>
 
             {/* Expiry Column */}
-            <th className="px-4 py-3 text-left hidden lg:table-cell">
+            <th className="px-4 py-3 text-left">
               <button
                 onClick={() => onSort('expiry')}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
@@ -245,9 +462,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       <div className="font-medium text-gray-900">
                         {highlightText(item.nama, searchTerm)}
                       </div>
-                      <div className="text-sm text-gray-500 sm:hidden">
-                        {item.kategori} • {item.stok} {item.satuan}
-                      </div>
                       {isExpiringSoon && (
                         <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
                           <AlertTriangle className="w-3 h-3" />
@@ -259,7 +473,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 </td>
 
                 {/* Category Column */}
-                <td className="px-4 py-4 hidden sm:table-cell">
+                <td className="px-4 py-4">
                   <span className="text-sm text-gray-900">
                     {highlightText(item.kategori, searchTerm)}
                   </span>
@@ -288,7 +502,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 </td>
 
                 {/* Price Column */}
-                <td className="px-4 py-4 hidden md:table-cell">
+                <td className="px-4 py-4">
                   <span className="text-sm font-medium text-gray-900">
                     {warehouseUtils.formatCurrency(item.harga)}
                   </span>
@@ -298,7 +512,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 </td>
 
                 {/* Expiry Column */}
-                <td className="px-4 py-4 hidden lg:table-cell">
+                <td className="px-4 py-4">
                   {item.expiry ? (
                     <div className={`text-sm ${isExpiringSoon ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
                       {warehouseUtils.formatDate(item.expiry)}
@@ -338,6 +552,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           })}
         </tbody>
       </table>
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200">
+      <MobileCardView />
+      <DesktopTableView />
     </div>
   );
 };

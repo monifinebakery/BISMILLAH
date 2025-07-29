@@ -34,15 +34,24 @@ export const useOrderData = (
     if (subscriptionRef.current) {
       logger.context('OrderData', 'Cleaning up subscription');
       try {
-        subscriptionRef.current.unsubscribe();
-        supabase.removeChannel(subscriptionRef.current);
+        // Double check untuk memastikan subscription masih valid
+        if (subscriptionRef.current && typeof subscriptionRef.current.unsubscribe === 'function') {
+          subscriptionRef.current.unsubscribe();
+        }
+        
+        // Safe removal dari supabase
+        if (subscriptionRef.current) {
+          supabase.removeChannel(subscriptionRef.current);
+        }
       } catch (error) {
         logger.error('OrderData', 'Error during subscription cleanup:', error);
+        // Tetap lanjutkan cleanup meskipun ada error
       } finally {
         subscriptionRef.current = null;
       }
     }
 
+    // Clear retry timeout
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
@@ -123,6 +132,7 @@ export const useOrderData = (
       return;
     }
 
+    // Cleanup any existing subscription first
     cleanupSubscription();
 
     logger.context('OrderData', 'Setting up new subscription for user:', user.id);
@@ -208,6 +218,7 @@ export const useOrderData = (
             case 'CHANNEL_ERROR':
               logger.error('OrderData', 'Channel error:', err);
               setIsConnected(false);
+              // Set to null immediately to prevent unsubscribe errors
               subscriptionRef.current = null;
               retrySubscription();
               break;
@@ -215,6 +226,7 @@ export const useOrderData = (
             case 'TIMED_OUT':
               logger.error('OrderData', 'Subscription timed out');
               setIsConnected(false);
+              // Set to null immediately to prevent unsubscribe errors
               subscriptionRef.current = null;
               retrySubscription();
               break;
@@ -222,6 +234,7 @@ export const useOrderData = (
             case 'CLOSED':
               logger.context('OrderData', 'Subscription closed');
               setIsConnected(false);
+              // Set to null immediately to prevent unsubscribe errors
               subscriptionRef.current = null;
               break;
               
@@ -233,6 +246,7 @@ export const useOrderData = (
     } catch (error) {
       logger.error('OrderData', 'Error setting up subscription:', error);
       setIsConnected(false);
+      subscriptionRef.current = null;
       retrySubscription();
     }
   }, [user, fetchOrders, cleanupSubscription, retrySubscription]);

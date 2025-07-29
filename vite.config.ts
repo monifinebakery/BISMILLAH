@@ -19,7 +19,12 @@ export default defineConfig(({ mode, command }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        // Force single React instance to prevent useLayoutEffect errors
+        "react": path.resolve(__dirname, "./node_modules/react"),
+        "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
+      // Dedupe React to prevent multiple instances
+      dedupe: ["react", "react-dom"],
     },
     build: {
       // Deployment optimizations
@@ -44,8 +49,8 @@ export default defineConfig(({ mode, command }) => {
           
           manualChunks(id: string) {
             if (id.includes("node_modules")) {
-              // Keep React together to avoid version conflicts
-              if (id.includes("react") || id.includes("react-dom")) {
+              // Keep React together in one chunk to avoid hook issues
+              if (id.includes("react") || id.includes("react-dom") || id.includes("react/")) {
                 return "react";
               }
               
@@ -71,14 +76,8 @@ export default defineConfig(({ mode, command }) => {
               return "vendor";
             }
             
-            // App-specific chunks
-            if (id.includes("/pages/") || id.includes("Page.tsx")) {
-              return "pages";
-            }
-            
-            if (id.includes("/components/")) {
-              return "components";
-            }
+            // App-specific chunks - keep small to avoid React issues
+            // Don't separate pages/components that use React hooks heavily
           },
         },
         
@@ -90,8 +89,16 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     
-    // Ensure proper asset handling
-    publicDir: 'public',
+    // Optimize dependencies to prevent React issues
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime"
+      ],
+      exclude: ["xlsx"] // Keep xlsx lazy
+    },
     
     // Preview server config (for testing deployment)
     preview: {

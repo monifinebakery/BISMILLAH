@@ -11,7 +11,6 @@ import {
   Target,
   Award,
   AlertTriangle,
-  Minus,
 } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../services/recipeUtils';
 
@@ -60,40 +59,32 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       value: basicStats.totalRecipes.toString(),
       subtitle: `${basicStats.totalCategories} kategori`,
       icon: ChefHat,
-      color: 'bg-blue-500',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',
-      borderColor: 'border-blue-200',
     },
     {
       title: 'Rata-rata HPP',
       value: formatCurrency(basicStats.averageHppPerPorsi),
       subtitle: 'per porsi',
       icon: DollarSign,
-      color: 'bg-green-500',
       bgColor: 'bg-green-50',
       textColor: 'text-green-600',
-      borderColor: 'border-green-200',
     },
     {
       title: 'Profitabilitas',
       value: formatPercentage(performanceMetrics.averageMargin),
       subtitle: `${performanceMetrics.profitableRecipes} resep menguntungkan`,
       icon: TrendingUp,
-      color: 'bg-purple-500',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-600',
-      borderColor: 'border-purple-200',
     },
     {
       title: 'Potensi Revenue',
       value: formatCurrency(performanceMetrics.totalPotentialRevenue),
       subtitle: `Biaya: ${formatCurrency(performanceMetrics.totalCost)}`,
       icon: BarChart3,
-      color: 'bg-orange-500',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600',
-      borderColor: 'border-orange-200',
     },
   ];
 
@@ -104,24 +95,18 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         return {
           icon: TrendingUp,
           color: 'text-red-500',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
           text: 'Biaya meningkat',
         };
       case 'decreasing':
         return {
           icon: TrendingDown,
           color: 'text-green-500',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200',
           text: 'Biaya menurun',
         };
       default:
         return {
           icon: Target,
           color: 'text-blue-500',
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-200',
           text: 'Biaya stabil',
         };
     }
@@ -143,10 +128,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, index) => (
-          <Card 
-            key={index} 
-            className={`border-0 shadow-md hover:shadow-lg transition-shadow ${card.borderColor}`}
-          >
+          <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -245,7 +227,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Cost Trend */}
-        <Card className={`border-0 shadow-md ${trendIndicator.borderColor}`}>
+        <Card className="border-0 shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <trendIndicator.icon className={`w-5 h-5 ${trendIndicator.color}`} />

@@ -16,7 +16,7 @@ import RecipeTable from '@/components/recipe/components/RecipeList/RecipeTable';
 import RecipeFilters from '@/components/recipe/components/RecipeList/RecipeFilters';
 import RecipeStats from '@/components/recipe/components/RecipeList/RecipeStats';
 import { EmptyState } from '@/components/recipe/components/shared/EmptyState';
-import { LoadingState, EmptyState } from '@/components/recipe/components/shared/LoadingState';
+import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
 
 // Types
 import type { Recipe, NewRecipe } from '@/components/recipe/types';

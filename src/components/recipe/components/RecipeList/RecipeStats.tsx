@@ -11,17 +11,25 @@ import {
   Target,
   Award,
   AlertTriangle,
+  Minus,
 } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../services/recipeUtils';
 
+// Define the props interface based on the hook structure
 interface RecipeStatsProps {
   stats: {
     stats: {
       totalRecipes: number;
       totalCategories: number;
       averageHppPerPorsi: number;
-      mostExpensiveRecipe: any;
-      cheapestRecipe: any;
+      mostExpensiveRecipe: {
+        namaResep: string;
+        hppPerPorsi: number;
+      } | null;
+      cheapestRecipe: {
+        namaResep: string;
+        hppPerPorsi: number;
+      } | null;
       profitabilityStats: {
         high: number;
         medium: number;
@@ -45,6 +53,7 @@ interface RecipeStatsProps {
 const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
   const { stats: basicStats, performanceMetrics, costAnalysis } = stats;
 
+  // Main statistics cards configuration
   const statCards = [
     {
       title: 'Total Resep',
@@ -54,6 +63,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       color: 'bg-blue-500',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',
+      borderColor: 'border-blue-200',
     },
     {
       title: 'Rata-rata HPP',
@@ -63,6 +73,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       color: 'bg-green-500',
       bgColor: 'bg-green-50',
       textColor: 'text-green-600',
+      borderColor: 'border-green-200',
     },
     {
       title: 'Profitabilitas',
@@ -72,6 +83,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       color: 'bg-purple-500',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-600',
+      borderColor: 'border-purple-200',
     },
     {
       title: 'Potensi Revenue',
@@ -81,28 +93,35 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       color: 'bg-orange-500',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600',
+      borderColor: 'border-orange-200',
     },
   ];
 
-  // Get trend indicator
+  // Get trend indicator configuration
   const getTrendIndicator = (trend: 'increasing' | 'decreasing' | 'stable') => {
     switch (trend) {
       case 'increasing':
         return {
           icon: TrendingUp,
           color: 'text-red-500',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
           text: 'Biaya meningkat',
         };
       case 'decreasing':
         return {
           icon: TrendingDown,
           color: 'text-green-500',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
           text: 'Biaya menurun',
         };
       default:
         return {
           icon: Target,
           color: 'text-blue-500',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
           text: 'Biaya stabil',
         };
     }
@@ -110,12 +129,24 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
 
   const trendIndicator = getTrendIndicator(costAnalysis.costTrend);
 
+  // Calculate profitability percentages safely
+  const calculatePercentage = (value: number, total: number): number => {
+    return total > 0 ? Math.round((value / total) * 100) : 0;
+  };
+
+  const highPercentage = calculatePercentage(basicStats.profitabilityStats.high, basicStats.totalRecipes);
+  const mediumPercentage = calculatePercentage(basicStats.profitabilityStats.medium, basicStats.totalRecipes);
+  const lowPercentage = calculatePercentage(basicStats.profitabilityStats.low, basicStats.totalRecipes);
+
   return (
     <div className="space-y-6">
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, index) => (
-          <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+          <Card 
+            key={index} 
+            className={`border-0 shadow-md hover:shadow-lg transition-shadow ${card.borderColor}`}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -159,7 +190,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{basicStats.profitabilityStats.high}</span>
                   <span className="text-xs text-gray-500">
-                    ({basicStats.totalRecipes > 0 ? Math.round((basicStats.profitabilityStats.high / basicStats.totalRecipes) * 100) : 0}%)
+                    ({highPercentage}%)
                   </span>
                 </div>
               </div>
@@ -173,7 +204,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{basicStats.profitabilityStats.medium}</span>
                   <span className="text-xs text-gray-500">
-                    ({basicStats.totalRecipes > 0 ? Math.round((basicStats.profitabilityStats.medium / basicStats.totalRecipes) * 100) : 0}%)
+                    ({mediumPercentage}%)
                   </span>
                 </div>
               </div>
@@ -187,7 +218,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{basicStats.profitabilityStats.low}</span>
                   <span className="text-xs text-gray-500">
-                    ({basicStats.totalRecipes > 0 ? Math.round((basicStats.profitabilityStats.low / basicStats.totalRecipes) * 100) : 0}%)
+                    ({lowPercentage}%)
                   </span>
                 </div>
               </div>
@@ -198,27 +229,15 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
               <div className="flex h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="bg-green-500 transition-all duration-300"
-                  style={{ 
-                    width: basicStats.totalRecipes > 0 
-                      ? `${(basicStats.profitabilityStats.high / basicStats.totalRecipes) * 100}%` 
-                      : '0%' 
-                  }}
+                  style={{ width: `${highPercentage}%` }}
                 ></div>
                 <div 
                   className="bg-yellow-500 transition-all duration-300"
-                  style={{ 
-                    width: basicStats.totalRecipes > 0 
-                      ? `${(basicStats.profitabilityStats.medium / basicStats.totalRecipes) * 100}%` 
-                      : '0%' 
-                  }}
+                  style={{ width: `${mediumPercentage}%` }}
                 ></div>
                 <div 
                   className="bg-red-500 transition-all duration-300"
-                  style={{ 
-                    width: basicStats.totalRecipes > 0 
-                      ? `${(basicStats.profitabilityStats.low / basicStats.totalRecipes) * 100}%` 
-                      : '0%' 
-                  }}
+                  style={{ width: `${lowPercentage}%` }}
                 ></div>
               </div>
             </div>
@@ -226,7 +245,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Cost Trend */}
-        <Card className="border-0 shadow-md">
+        <Card className={`border-0 shadow-md ${trendIndicator.borderColor}`}>
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <trendIndicator.icon className={`w-5 h-5 ${trendIndicator.color}`} />
@@ -303,10 +322,77 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                   </div>
                 </div>
               )}
+
+              {/* No data states */}
+              {!basicStats.mostExpensiveRecipe && !basicStats.cheapestRecipe && basicStats.totalRecipes === 0 && (
+                <div className="text-center py-4">
+                  <ChefHat className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    Belum ada data resep
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Additional Performance Metrics */}
+      {performanceMetrics.profitableRecipes > 0 && (
+        <Card className="border-0 shadow-md bg-gradient-to-r from-green-50 to-blue-50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-green-600" />
+              <h3 className="font-semibold text-gray-900">Ringkasan Kinerja</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-green-200">
+                <p className="text-sm text-green-600 font-medium mb-1">Resep Menguntungkan</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {performanceMetrics.profitableRecipes}
+                </p>
+                <p className="text-xs text-green-700">
+                  {formatPercentage(performanceMetrics.profitablePercentage)} dari total
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-blue-200">
+                <p className="text-sm text-blue-600 font-medium mb-1">Rata-rata Margin</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {formatPercentage(performanceMetrics.averageMargin)}
+                </p>
+                <p className="text-xs text-blue-700">
+                  Margin keuntungan
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <p className="text-sm text-purple-600 font-medium mb-1">Total Potensi</p>
+                <p className="text-2xl font-bold text-purple-900">
+                  {formatCurrency(performanceMetrics.totalPotentialRevenue)}
+                </p>
+                <p className="text-xs text-purple-700">
+                  Revenue maksimal
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-orange-200">
+                <p className="text-sm text-orange-600 font-medium mb-1">Efisiensi Biaya</p>
+                <p className="text-2xl font-bold text-orange-900">
+                  {performanceMetrics.totalCost > 0 
+                    ? formatPercentage((performanceMetrics.totalCost / performanceMetrics.totalPotentialRevenue) * 100)
+                    : '0%'
+                  }
+                </p>
+                <p className="text-xs text-orange-700">
+                  Cost to revenue ratio
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

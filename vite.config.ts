@@ -16,7 +16,7 @@ export default defineConfig(({ mode, command }) => {
       open: true, 
       filename: "dist/stats.html",
       gzipSize: true,
-      brotliSize: true 
+      // brotliSize: true // Disabled karena ada issue di environment ini
     }));
   }
   

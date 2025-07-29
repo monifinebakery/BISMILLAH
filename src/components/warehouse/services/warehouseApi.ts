@@ -1,5 +1,5 @@
 // src/components/warehouse/services/warehouseApi.ts (Updated for exact Supabase schema)
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 

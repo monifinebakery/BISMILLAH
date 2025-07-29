@@ -36,6 +36,18 @@ export {
 export {
   validatePurchaseForm,
   validatePurchaseItem,
-  validateDateRange,
+  validateSupplier,
+  validatePurchaseDate,
+  validatePurchaseItems,
+  validateCalculationMethod,
   validateNumericInput,
+  validateDateRange,
+  checkDuplicateItems,
+  sanitizeInput,
+} from './purchaseValidation';
+
+// Export validation types
+export type {
+  ValidationResult,
+  FieldValidation,
 } from './purchaseValidation';

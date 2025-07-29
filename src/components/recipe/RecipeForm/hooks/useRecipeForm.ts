@@ -181,7 +181,29 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
   }, [isDirty, onCancel]);
 
   // Fixed: Return simple boolean instead of computed from errors object
-  const isFormValid = Object.keys(errors).length === 0 && Object.values(errors).every(err => !err);
+  const isFormValid = useMemo(() => {
+    // Basic required fields
+    if (!formData.namaResep || formData.namaResep.trim().length === 0) return false;
+    if (!formData.jumlahPorsi || formData.jumlahPorsi <= 0) return false;
+    if (!formData.bahanResep || formData.bahanResep.length === 0) return false;
+    
+    // Check ingredients
+    const invalidIngredients = formData.bahanResep.some(ingredient => 
+      !ingredient.nama || 
+      ingredient.nama.trim().length === 0 ||
+      ingredient.jumlah <= 0 ||
+      !ingredient.satuan ||
+      ingredient.hargaSatuan < 0
+    );
+    
+    if (invalidIngredients) return false;
+    
+    // Check for validation errors
+    const hasErrors = Object.values(errors).some(error => error && error.length > 0);
+    if (hasErrors) return false;
+    
+    return true;
+  }, [formData, errors]);
 
   return {
     formData,

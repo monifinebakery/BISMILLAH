@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
-import { RecipePageLoadingState } from '../shared/components/LoadingStates';
+// src/components/recipe/RecipesPage.lazy.tsx
+import React, { lazy, Suspense } from 'react';
+import { RecipePageLoadingState } from './shared/components/LoadingStates';
 
-const RecipesPageComponent = lazy(() => import('./index'));
+const RecipesPageComponent = lazy(() => import('./RecipesPage'));
 
 export const RecipesPageLazy: React.FC = () => {
   return (

@@ -2,12 +2,19 @@
 import React, { Suspense, lazy } from 'react';
 import { logger } from '@/utils/logger';
 
-// Static Components (Always Loaded)
-import { WarehouseHeader, WarehouseTable, WarehouseFilters, BulkActions } from './components';
+// ✅ Static Components (Always Loaded) - dari index.ts
+import { 
+  WarehouseHeader, 
+  WarehouseTable, 
+  WarehouseFilters, 
+  BulkActions 
+} from './components';
+
+// ✅ Hooks & Context (Static)
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 import { useWarehouseContext } from './context/WarehouseContext';
 
-// Dynamic Components (Lazy Loaded)
+// ✅ Dynamic Components (Lazy Loaded) - direct import, TIDAK dari index.ts
 const DialogManager = lazy(() => import('./components/DialogManager'));
 
 // Loading Components
@@ -34,21 +41,22 @@ const TableLoader = () => (
 );
 
 const DialogLoader = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 flex flex-col items-center min-w-[200px]">
+      <div className="animate-spin h-6 w-6 border-3 border-orange-500 border-t-transparent rounded-full mb-3"></div>
+      <p className="text-gray-600 text-sm">Memuat dialog...</p>
+    </div>
   </div>
 );
 
 /**
- * Warehouse Page - Lightweight Shell
+ * Warehouse Page - Optimized with Clean Import Strategy
  * 
- * This component acts as a lightweight shell that:
- * - Loads core functionality immediately (~15KB)
- * - Lazy loads dialogs only when needed (~55KB)
- * - Uses optimized context and hooks
- * - Provides smooth loading states
- * 
- * Total Size: ~15KB (vs 45KB+ in monolithic approach)
+ * Bundle Strategy:
+ * - Static components (~40KB): Loaded immediately
+ * - Dialog components (~60KB): Lazy loaded only when needed
+ * - Total initial bundle: ~40KB (vs 100KB+ monolithic)
+ * - Dialog bundle: Loaded on first dialog open
  */
 const WarehousePage: React.FC = () => {
   const pageId = React.useRef(`WarehousePage-${Date.now()}`);
@@ -66,19 +74,35 @@ const WarehousePage: React.FC = () => {
       <div className="container mx-auto p-4 sm:p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="h-12 w-12 text-red-500 mx-auto mb-4">⚠️</div>
+            <div className="h-12 w-12 text-red-500 mx-auto mb-4 text-4xl">⚠️</div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Context Error</h2>
             <p className="text-gray-600">Warehouse context tidak tersedia.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              Refresh Halaman
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
+  // Performance monitoring
+  const hasDialogsOpen = Object.values(core.dialogs.states).some(Boolean) || !!core.dialogs.editingItem;
+  
+  React.useEffect(() => {
+    if (hasDialogsOpen) {
+      logger.debug(`[${pageId.current}] 📱 Dialog system activated`);
+    }
+  }, [hasDialogsOpen, pageId]);
+
   logger.debug(`[${pageId.current}] 📊 Rendering with data:`, {
     itemCount: context.bahanBaku.length,
     loading: context.loading,
-    selectedCount: core.selection.selectedCount
+    selectedCount: core.selection.selectedCount,
+    hasDialogsOpen
   });
 
   return (
@@ -144,30 +168,30 @@ const WarehousePage: React.FC = () => {
             emptyStateAction={() => core.dialogs.open('addItem')}
           />
 
-          {/* Pagination */}
+          {/* Pagination - Static (~2KB) */}
           {core.filters.filteredItems.length > 0 && (
             <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-gray-600">
-                  Showing {core.pagination.startIndex + 1}-{Math.min(core.pagination.endIndex, core.filters.filteredItems.length)} of {core.filters.filteredItems.length} items
+                  Menampilkan {core.pagination.startIndex + 1}-{Math.min(core.pagination.endIndex, core.filters.filteredItems.length)} dari {core.filters.filteredItems.length} item
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => core.pagination.setPage(core.pagination.page - 1)}
                     disabled={core.pagination.page === 1}
-                    className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
-                    Previous
+                    Sebelumnya
                   </button>
-                  <span className="px-3 py-1 text-sm">
-                    Page {core.pagination.page} of {core.pagination.totalPages}
+                  <span className="px-3 py-1 text-sm font-medium">
+                    Halaman {core.pagination.page} dari {core.pagination.totalPages}
                   </span>
                   <button
                     onClick={() => core.pagination.setPage(core.pagination.page + 1)}
                     disabled={core.pagination.page === core.pagination.totalPages}
-                    className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
-                    Next
+                    Selanjutnya
                   </button>
                 </div>
               </div>
@@ -176,18 +200,20 @@ const WarehousePage: React.FC = () => {
         </div>
       )}
 
-      {/* Dialogs - Dynamic (~55KB total, loaded only when needed) */}
-      <Suspense fallback={<DialogLoader />}>
-        <DialogManager
-          dialogs={core.dialogs}
-          handlers={core.handlers}
-          context={context}
-          selection={core.selection}
-          filters={core.filters}
-          bulk={core.bulk}
-          pageId={pageId.current}
-        />
-      </Suspense>
+      {/* 🎯 Dialogs - Dynamic Loading (~60KB, hanya dimuat saat dibutuhkan) */}
+      {hasDialogsOpen && (
+        <Suspense fallback={<DialogLoader />}>
+          <DialogManager
+            dialogs={core.dialogs}
+            handlers={core.handlers}
+            context={context}
+            selection={core.selection}
+            filters={core.filters}
+            bulk={core.bulk}
+            pageId={pageId.current}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

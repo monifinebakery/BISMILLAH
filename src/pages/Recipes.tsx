@@ -1,4 +1,5 @@
-// src/pages/RecipePage.tsx
+// src/pages/Recipes.tsx
+// Note: Renamed from RecipePage.tsx to match App.tsx import structure
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,8 +15,7 @@ import { useRecipeStats } from '@/components/recipe/hooks/useRecipeStats';
 import RecipeTable from '@/components/recipe/components/RecipeList/RecipeTable';
 import RecipeFilters from '@/components/recipe/components/RecipeList/RecipeFilters';
 import RecipeStats from '@/components/recipe/components/RecipeList/RecipeStats';
-import { EmptyState } from '@/components/recipe/components/shared/EmptyState';
-import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
+import { LoadingState, EmptyState } from '@/components/recipe/components/shared/LoadingState';
 
 // Types
 import type { Recipe, NewRecipe } from '@/components/recipe/types';
@@ -26,7 +26,7 @@ const DeleteRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/
 const DuplicateRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('@/components/recipe/dialogs/CategoryManagerDialog'));
 
-// Custom Error Boundary component
+// Custom Error Boundary component (to avoid external dependency issues)
 class RecipeErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ComponentType<{ error: Error; resetError: () => void }> },
   { hasError: boolean; error: Error | null }
@@ -126,8 +126,8 @@ const RecipeLoadingFallback: React.FC = () => (
   </div>
 );
 
-// Main RecipePage component
-const RecipePage: React.FC = () => {
+// Main Recipes component (matches App.tsx import structure)
+const Recipes: React.FC = () => {
   // Context
   const {
     recipes,
@@ -303,29 +303,7 @@ const RecipePage: React.FC = () => {
   }
 
   return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onError={(error, errorInfo) => {
-        // Log error to monitoring service in production
-        console.error('Recipe page error:', error, errorInfo);
-        
-        // You can integrate with error monitoring services here
-        // e.g., Sentry, LogRocket, etc.
-        if (process.env.NODE_ENV === 'production') {
-          // Example: Sentry.captureException(error);
-        }
-      }}
-      onReset={() => {
-        // Clear any error state and refetch data
-        clearError();
-        setSelectedRecipe(null);
-        setEditingRecipe(null);
-        setIsFormOpen(false);
-        setIsDeleteDialogOpen(false);
-        setIsDuplicateDialogOpen(false);
-        setIsCategoryDialogOpen(false);
-      }}
-    >
+    <RecipeErrorBoundary fallback={DefaultErrorFallback}>
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="container mx-auto p-4 sm:p-6 space-y-6">
           
@@ -485,8 +463,8 @@ const RecipePage: React.FC = () => {
           )}
         </div>
       </div>
-    </ErrorBoundary>
+    </RecipeErrorBoundary>
   );
 };
 
-export default RecipePage;
+export default Recipes;

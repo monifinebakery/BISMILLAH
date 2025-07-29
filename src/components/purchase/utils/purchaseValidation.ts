@@ -445,6 +445,7 @@ export const sanitizeInput = (value: any, type: 'string' | 'number' | 'date'): a
 /**
  * Validate supplier field
  */
+
 export const validateSupplier = (supplier?: string): FieldValidation => {
   if (!supplier || typeof supplier !== 'string') {
     return {

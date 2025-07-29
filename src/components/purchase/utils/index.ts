@@ -116,10 +116,10 @@ export {
   validateDateRange,
   checkDuplicateItems,
   sanitizeInput,
-} from './purchaseValidation';
+} from './validation';
 
 // Export validation types
 export type {
   ValidationResult,
   FieldValidation,
-} from './purchaseValidation';
+} from './validation';

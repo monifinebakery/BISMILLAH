@@ -41,7 +41,7 @@ import {
 
 // --- Impor Hook Konteks ---
 import { usePaymentContext } from "@/contexts/PaymentContext";
-import { useBahanBaku } from "@/components/warehouse/context/BahanBakuContext";
+import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
 import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
@@ -50,6 +50,8 @@ import { useOrder } from "@/components/orders/context/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
+// ✅ NEW: Import PromoContext
+import { usePromo } from "@/components/promoCalculator/context/PromoContext";
 
 // --- Impor Fungsi Export Baru ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -73,12 +75,16 @@ export function AppSidebar() {
   const { orders } = useOrder();
   const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
+  // ✅ NEW: Get promo data for export
+  const { promos } = usePromo();
 
+  // ✅ UPDATED: Menu groups dengan Kalkulator Promo
   const menuGroups = [
     {
       label: "Dashboard",
       items: [
         { title: "Dashboard", url: "/", icon: DashboardIcon },
+        // ✅ NEW: Kalkulator Promo added to Dashboard group
         { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
       ]
     },
@@ -121,6 +127,7 @@ export function AppSidebar() {
     }
   };
 
+  // ✅ UPDATED: Include promo data in export
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -132,13 +139,15 @@ export function AppSidebar() {
       orders,
       assets,
       financialTransactions,
+      // ✅ NEW: Include promo data
+      promos,
     };
     
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
   // Render menu item with conditional tooltip
-  const renderMenuItem = (item: any, isActive: boolean) => {
+  const renderMenuItem = (item, isActive) => {
     const menuButton = (
       <SidebarMenuButton
         asChild
@@ -179,8 +188,8 @@ export function AppSidebar() {
 
   // Render action button with conditional tooltip
   const renderActionButton = (
-    button: React.ReactNode, 
-    tooltipText: string
+    button, 
+    tooltipText
   ) => {
     if (isCollapsed) {
       return (
@@ -239,8 +248,7 @@ export function AppSidebar() {
 
         <SidebarFooter className={cn("p-2 border-t mt-auto", isCollapsed && "px-1")}>
           <SidebarMenu className="space-y-1">
-            {/* ======================= PERUBAHAN DI SINI ======================= */}
-            {/* Export Button dibuat konsisten dengan item menu lainnya */}
+            {/* Export Button */}
             <SidebarMenuItem>
               {renderActionButton(
                 <SidebarMenuButton
@@ -261,7 +269,6 @@ export function AppSidebar() {
                 "Export Semua Data"
               )}
             </SidebarMenuItem>
-            {/* ===================== AKHIR DARI PERUBAHAN ===================== */}
             
             {/* Settings */}
             {settingsItems.map((item) => (

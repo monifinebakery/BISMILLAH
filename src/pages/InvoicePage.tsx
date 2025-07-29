@@ -76,7 +76,7 @@ const InvoicePage: React.FC = () => {
         setCustomer({
           name: orderData.namaPelanggan,
           address: orderData.alamatPelanggan,
-          phone: orderData.telefonPelanggan || '',
+          phone: orderData.teleponPelanggan || '',
           email: orderData.emailPelanggan || ''
         });
         

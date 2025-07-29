@@ -1,7 +1,20 @@
-// utils/exportUtils.js - Updated with WhatsApp Templates
+// utils/exportUtils.js - Optimized with Lazy Loading
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
+
+/**
+ * Lazy load XLSX library hanya saat dibutuhkan
+ */
+const loadXLSX = async () => {
+  try {
+    const XLSX = await import('xlsx');
+    return XLSX;
+  } catch (error) {
+    console.error('Failed to load XLSX library:', error);
+    toast.error('Gagal memuat library Excel. Silakan coba lagi.');
+    throw error;
+  }
+};
 
 /**
  * Membersihkan dan memformat array data untuk diekspor ke Excel.
@@ -60,8 +73,17 @@ const convertTemplatesToArray = (templates: { [key: string]: string }) => {
  * @param allData Objek yang berisi semua array data dari konteks (bahanBaku, suppliers, dll.).
  * @param businessName Nama bisnis pengguna untuk nama file kustom.
  */
-export const exportAllDataToExcel = (allData: any, businessName?: string) => {
+export const exportAllDataToExcel = async (allData: any, businessName?: string) => {
+  // Show loading toast
+  const loadingToast = toast.loading("Memuat library Excel...");
+  
   try {
+    // Lazy load XLSX
+    const XLSX = await loadXLSX();
+    
+    // Update loading message
+    toast.loading("Memproses data untuk ekspor...", { id: loadingToast });
+    
     const wb = XLSX.utils.book_new(); // Buat workbook Excel baru
 
     // Definisikan struktur untuk setiap sheet
@@ -251,12 +273,19 @@ export const exportAllDataToExcel = (allData: any, businessName?: string) => {
     const safeBusinessName = (businessName || 'Bisnis_Anda').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const fileName = `hpp_backup_${safeBusinessName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     
+    // Update loading message
+    toast.loading("Mengunduh file...", { id: loadingToast });
+    
     // Trigger download file
     XLSX.writeFile(wb, fileName);
+    
+    // Dismiss loading and show success
+    toast.dismiss(loadingToast);
     toast.success("Semua data berhasil diekspor ke Excel!");
 
   } catch (error) {
     console.error("Gagal mengekspor data:", error);
+    toast.dismiss(loadingToast);
     toast.error("Terjadi kesalahan saat mengekspor data.");
   }
 };
@@ -266,14 +295,22 @@ export const exportAllDataToExcel = (allData: any, businessName?: string) => {
  * @param templates Object berisi template WhatsApp per status
  * @param businessName Nama bisnis untuk filename
  */
-export const exportWhatsAppTemplates = (templates: { [key: string]: string }, businessName?: string) => {
+export const exportWhatsAppTemplates = async (templates: { [key: string]: string }, businessName?: string) => {
+  const loadingToast = toast.loading("Memuat library Excel...");
+  
   try {
+    // Lazy load XLSX
+    const XLSX = await loadXLSX();
+    
+    toast.loading("Memproses template...", { id: loadingToast });
+    
     const wb = XLSX.utils.book_new();
     
     // Convert templates to array format
     const templateData = convertTemplatesToArray(templates);
     
     if (templateData.length === 0) {
+      toast.dismiss(loadingToast);
       toast.warning("Tidak ada template untuk diekspor");
       return;
     }
@@ -349,11 +386,16 @@ export const exportWhatsAppTemplates = (templates: { [key: string]: string }, bu
     const safeBusinessName = (businessName || 'Bisnis_Anda').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const fileName = `template_whatsapp_${safeBusinessName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     
+    toast.loading("Mengunduh file...", { id: loadingToast });
+    
     XLSX.writeFile(wb, fileName);
+    
+    toast.dismiss(loadingToast);
     toast.success("Template WhatsApp berhasil diekspor ke Excel!");
 
   } catch (error) {
     console.error("Gagal mengekspor template WhatsApp:", error);
+    toast.dismiss(loadingToast);
     toast.error("Terjadi kesalahan saat mengekspor template.");
   }
 };
@@ -363,11 +405,18 @@ export const exportWhatsAppTemplates = (templates: { [key: string]: string }, bu
  * @param file Excel file yang di-upload
  * @param onSuccess Callback ketika import berhasil
  */
-export const importWhatsAppTemplates = (file: File, onSuccess: (templates: { [key: string]: string }) => void) => {
+export const importWhatsAppTemplates = async (file: File, onSuccess: (templates: { [key: string]: string }) => void) => {
+  const loadingToast = toast.loading("Memuat library Excel...");
+  
   try {
+    // Lazy load XLSX
+    const XLSX = await loadXLSX();
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
+        toast.loading("Memproses file Excel...", { id: loadingToast });
+        
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         
@@ -391,6 +440,8 @@ export const importWhatsAppTemplates = (file: File, onSuccess: (templates: { [ke
           }
         });
         
+        toast.dismiss(loadingToast);
+        
         if (importCount > 0) {
           onSuccess(templates);
           toast.success(`${importCount} template berhasil diimpor dari Excel!`);
@@ -400,11 +451,13 @@ export const importWhatsAppTemplates = (file: File, onSuccess: (templates: { [ke
         
       } catch (parseError) {
         console.error("Error parsing Excel file:", parseError);
+        toast.dismiss(loadingToast);
         toast.error("File Excel tidak dapat dibaca. Pastikan format file benar.");
       }
     };
     
     reader.onerror = () => {
+      toast.dismiss(loadingToast);
       toast.error("Gagal membaca file Excel");
     };
     
@@ -412,6 +465,7 @@ export const importWhatsAppTemplates = (file: File, onSuccess: (templates: { [ke
     
   } catch (error) {
     console.error("Error importing templates:", error);
+    toast.dismiss(loadingToast);
     toast.error("Terjadi kesalahan saat mengimpor template");
   }
 };

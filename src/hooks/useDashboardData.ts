@@ -1,7 +1,7 @@
 // hooks/useDashboardData.ts
 import { useMemo, useState, useEffect } from 'react';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useBahanBaku } from '@/components/warehouse/context/BahanBakuContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useOrder } from '@/components/orders/context/OrderContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialUtils';

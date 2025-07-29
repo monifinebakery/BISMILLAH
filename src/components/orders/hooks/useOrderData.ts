@@ -272,7 +272,7 @@ export const useOrderData = (
         tanggal: toSafeISOString(order.tanggal || new Date()),
         status: order.status || 'pending',
         nama_pelanggan: order.namaPelanggan.trim(),
-        telepon_pelanggan: order.telefonPelanggan || '',
+        telepon_pelanggan: order.teleponPelanggan || '',
         email_pelanggan: order.emailPelanggan || '',
         alamat_pengiriman: order.alamatPengiriman || '',
         items: Array.isArray(order.items) ? order.items : [],

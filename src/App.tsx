@@ -53,7 +53,7 @@ const SupplierManagement = React.lazy(() => import("./pages/SupplierManagement")
 
 // Purchase Management dengan struktur modular
 const PurchaseManagement = React.lazy(() => 
-  import("./components/purchase/components/layout/PurchasePage")
+  import("./components/purchase/PurchasePage")
 );
 
 const MenuPage = React.lazy(() => import("./pages/MenuPage"));

@@ -454,7 +454,7 @@ export const validateOrderItems = (items: any[]): boolean => {
 
 export const validateCustomerInfo = (customer: {
   namaPelanggan?: string;
-  telefonPelanggan?: string;
+  teleponPelanggan?: string;
   emailPelanggan?: string;
 }): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];

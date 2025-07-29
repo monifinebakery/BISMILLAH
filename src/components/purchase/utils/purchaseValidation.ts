@@ -440,7 +440,6 @@ export const sanitizeInput = (value: any, type: 'string' | 'number' | 'date'): a
     errors,
     warnings,
   };
-};
 
 /**
  * Validate supplier field

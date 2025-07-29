@@ -2,16 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Edit2, Save, AlertCircle } from 'lucide-react';
+import { X, Plus, Edit2, Save, AlertCircle, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { warehouseUtils } from '../services/warehouseUtils';
-import type { BahanBaku } from '../types';
+import type { BahanBakuFrontend } from '../types';
 
 interface AddEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'add' | 'edit';
-  item?: BahanBaku;
+  item?: BahanBakuFrontend;
   onSave: (data: any) => Promise<void>;
   availableCategories: string[];
   availableSuppliers: string[];
@@ -26,6 +26,10 @@ interface FormData {
   satuan: string;
   harga: number;
   expiry: string;
+  // Purchase details
+  jumlahBeliKemasan: number;
+  satuanKemasan: string;
+  hargaTotalBeliKemasan: number;
 }
 
 const initialFormData: FormData = {
@@ -37,19 +41,24 @@ const initialFormData: FormData = {
   satuan: '',
   harga: 0,
   expiry: '',
+  // Purchase details
+  jumlahBeliKemasan: 0,
+  satuanKemasan: '',
+  hargaTotalBeliKemasan: 0,
 };
 
 /**
- * Combined Add/Edit Dialog Component
+ * Combined Add/Edit Dialog Component with Purchase Details
  * 
  * Features:
  * - Single component for both add and edit modes
  * - Real-time validation
  * - Auto-complete for categories and suppliers
+ * - Purchase details with automatic calculations
  * - Responsive design
  * - Accessibility support
  * 
- * Size: ~8KB (loaded lazily)
+ * Size: ~12KB (loaded lazily)
  */
 const AddEditDialog: React.FC<AddEditDialogProps> = ({
   isOpen,
@@ -82,6 +91,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         satuan: item.satuan || '',
         harga: item.harga || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '', // Format for date input
+        // Purchase details
+        jumlahBeliKemasan: item.jumlahBeliKemasan || 0,
+        satuanKemasan: item.satuanKemasan || '',
+        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan || 0,
       });
     } else {
       setFormData(initialFormData);
@@ -91,7 +104,21 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   // Handle form field changes
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-calculate unit price when purchase details change
+      if (field === 'jumlahBeliKemasan' || field === 'hargaTotalBeliKemasan') {
+        const jumlah = field === 'jumlahBeliKemasan' ? Number(value) : updated.jumlahBeliKemasan;
+        const total = field === 'hargaTotalBeliKemasan' ? Number(value) : updated.hargaTotalBeliKemasan;
+        
+        if (jumlah > 0 && total > 0) {
+          updated.harga = Math.round(total / jumlah);
+        }
+      }
+      
+      return updated;
+    });
     
     // Clear related errors when user starts typing
     if (errors.length > 0) {
@@ -99,11 +126,36 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     }
   };
 
+  // Calculate total value from unit price and quantity
+  const handleCalculateTotal = () => {
+    if (formData.jumlahBeliKemasan > 0 && formData.harga > 0) {
+      const calculatedTotal = formData.jumlahBeliKemasan * formData.harga;
+      handleFieldChange('hargaTotalBeliKemasan', calculatedTotal);
+      toast.success(`Total harga dihitung: Rp ${calculatedTotal.toLocaleString()}`);
+    } else {
+      toast.error('Masukkan jumlah kemasan dan harga per satuan terlebih dahulu');
+    }
+  };
+
   // Validate form data
   const validateForm = (): boolean => {
     const validation = warehouseUtils.validateBahanBaku(formData);
-    setErrors(validation.errors);
-    return validation.isValid;
+    
+    // Additional validation for purchase details
+    const additionalErrors: string[] = [];
+    
+    if (formData.jumlahBeliKemasan > 0 && !formData.satuanKemasan.trim()) {
+      additionalErrors.push('Satuan kemasan harus diisi jika ada jumlah beli kemasan');
+    }
+    
+    if (formData.jumlahBeliKemasan > 0 && formData.hargaTotalBeliKemasan <= 0) {
+      additionalErrors.push('Harga total beli kemasan harus lebih dari 0 jika ada jumlah beli kemasan');
+    }
+    
+    const allErrors = [...validation.errors, ...additionalErrors];
+    setErrors(allErrors);
+    
+    return allErrors.length === 0;
   };
 
   // Handle form submission
@@ -122,6 +174,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
       const submitData = {
         ...formData,
         expiry: formData.expiry || undefined, // Convert empty string to undefined
+        // Clean up purchase details - set to null/undefined if empty
+        jumlahBeliKemasan: formData.jumlahBeliKemasan || undefined,
+        satuanKemasan: formData.satuanKemasan.trim() || undefined,
+        hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan || undefined,
       };
 
       await onSave(submitData);
@@ -161,7 +217,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -210,228 +266,353 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Basic Information */}
-            <div className="md:col-span-2">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
-            </div>
-
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Bahan Baku *
-              </label>
-              <Input
-                type="text"
-                value={formData.nama}
-                onChange={(e) => handleFieldChange('nama', e.target.value)}
-                placeholder="Masukkan nama bahan baku"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            {/* Category with Auto-complete */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
-              <Input
-                type="text"
-                value={formData.kategori}
-                onChange={(e) => {
-                  handleFieldChange('kategori', e.target.value);
-                  setShowCategoryDropdown(true);
-                }}
-                onFocus={() => setShowCategoryDropdown(true)}
-                onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
-                placeholder="Masukkan atau pilih kategori"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
+            {/* Left Column */}
+            <div className="space-y-6">
               
-              {/* Category Dropdown */}
-              {showCategoryDropdown && filteredCategories.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
-                  {filteredCategories.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => handleCategorySelect(category)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                    >
-                      {category}
-                    </button>
-                  ))}
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
+                <div className="space-y-4">
+                  
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nama Bahan Baku *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.nama}
+                      onChange={(e) => handleFieldChange('nama', e.target.value)}
+                      placeholder="Masukkan nama bahan baku"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+
+                  {/* Category with Auto-complete */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kategori *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.kategori}
+                      onChange={(e) => {
+                        handleFieldChange('kategori', e.target.value);
+                        setShowCategoryDropdown(true);
+                      }}
+                      onFocus={() => setShowCategoryDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
+                      placeholder="Masukkan atau pilih kategori"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                    
+                    {/* Category Dropdown */}
+                    {showCategoryDropdown && filteredCategories.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
+                        {filteredCategories.map((category) => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => handleCategorySelect(category)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Supplier with Auto-complete */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Supplier *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.supplier}
+                      onChange={(e) => {
+                        handleFieldChange('supplier', e.target.value);
+                        setShowSupplierDropdown(true);
+                      }}
+                      onFocus={() => setShowSupplierDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowSupplierDropdown(false), 200)}
+                      placeholder="Masukkan atau pilih supplier"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                    
+                    {/* Supplier Dropdown */}
+                    {showSupplierDropdown && filteredSuppliers.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
+                        {filteredSuppliers.map((supplier) => (
+                          <button
+                            key={supplier}
+                            type="button"
+                            onClick={() => handleSupplierSelect(supplier)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                          >
+                            {supplier}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Unit */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Satuan *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.satuan}
+                      onChange={(e) => handleFieldChange('satuan', e.target.value)}
+                      placeholder="kg, pcs, liter, dll"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+
+                  {/* Expiry Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tanggal Kadaluarsa
+                    </label>
+                    <Input
+                      type="date"
+                      value={formData.expiry}
+                      onChange={(e) => handleFieldChange('expiry', e.target.value)}
+                      className="w-full"
+                      disabled={isSubmitting}
+                      min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Opsional - untuk bahan yang memiliki tanggal kadaluarsa
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Supplier with Auto-complete */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Supplier *
-              </label>
-              <Input
-                type="text"
-                value={formData.supplier}
-                onChange={(e) => {
-                  handleFieldChange('supplier', e.target.value);
-                  setShowSupplierDropdown(true);
-                }}
-                onFocus={() => setShowSupplierDropdown(true)}
-                onBlur={() => setTimeout(() => setShowSupplierDropdown(false), 200)}
-                placeholder="Masukkan atau pilih supplier"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-              
-              {/* Supplier Dropdown */}
-              {showSupplierDropdown && filteredSuppliers.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
-                  {filteredSuppliers.map((supplier) => (
-                    <button
-                      key={supplier}
-                      type="button"
-                      onClick={() => handleSupplierSelect(supplier)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                    >
-                      {supplier}
-                    </button>
-                  ))}
+              {/* Stock Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Stok</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  
+                  {/* Current Stock */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stok Saat Ini *
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.stok}
+                      onChange={(e) => handleFieldChange('stok', Number(e.target.value))}
+                      placeholder="0"
+                      min="0"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+
+                  {/* Minimum Stock */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Minimum Stok *
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.minimum}
+                      onChange={(e) => handleFieldChange('minimum', Number(e.target.value))}
+                      placeholder="0"
+                      min="0"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Unit */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Satuan *
-              </label>
-              <Input
-                type="text"
-                value={formData.satuan}
-                onChange={(e) => handleFieldChange('satuan', e.target.value)}
-                placeholder="kg, pcs, liter, dll"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            {/* Stock Information */}
-            <div className="md:col-span-2 mt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Stok</h3>
-            </div>
-
-            {/* Current Stock */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stok Saat Ini *
-              </label>
-              <Input
-                type="number"
-                value={formData.stok}
-                onChange={(e) => handleFieldChange('stok', Number(e.target.value))}
-                placeholder="0"
-                min="0"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            {/* Minimum Stock */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Stok *
-              </label>
-              <Input
-                type="number"
-                value={formData.minimum}
-                onChange={(e) => handleFieldChange('minimum', Number(e.target.value))}
-                placeholder="0"
-                min="0"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Alert akan muncul ketika stok mencapai batas minimum
-              </p>
-            </div>
-
-            {/* Price Information */}
-            <div className="md:col-span-2 mt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Harga</h3>
-            </div>
-
-            {/* Price */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Harga per Satuan *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  Rp
-                </span>
-                <Input
-                  type="number"
-                  value={formData.harga}
-                  onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
-                  placeholder="0"
-                  min="0"
-                  className="w-full pl-12"
-                  disabled={isSubmitting}
-                  required
-                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Alert akan muncul ketika stok mencapai batas minimum
+                </p>
               </div>
             </div>
 
-            {/* Expiry Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Kadaluarsa
-              </label>
-              <Input
-                type="date"
-                value={formData.expiry}
-                onChange={(e) => handleFieldChange('expiry', e.target.value)}
-                className="w-full"
-                disabled={isSubmitting}
-                min={new Date().toISOString().split('T')[0]} // Prevent past dates
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Opsional - untuk bahan yang memiliki tanggal kadaluarsa
-              </p>
+            {/* Right Column */}
+            <div className="space-y-6">
+              
+              {/* Purchase Details */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Detail Pembelian</h3>
+                <div className="space-y-4">
+                  
+                  {/* Package Quantity */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Jumlah Beli Kemasan
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.jumlahBeliKemasan}
+                      onChange={(e) => handleFieldChange('jumlahBeliKemasan', Number(e.target.value))}
+                      placeholder="0"
+                      min="0"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Jumlah kemasan yang dibeli
+                    </p>
+                  </div>
+
+                  {/* Package Unit */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Satuan Kemasan
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.satuanKemasan}
+                      onChange={(e) => handleFieldChange('satuanKemasan', e.target.value)}
+                      placeholder="dus, karton, sak, dll"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Jenis kemasan yang dibeli
+                    </p>
+                  </div>
+
+                  {/* Total Purchase Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga Total Beli Kemasan
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        Rp
+                      </span>
+                      <Input
+                        type="number"
+                        value={formData.hargaTotalBeliKemasan}
+                        onChange={(e) => handleFieldChange('hargaTotalBeliKemasan', Number(e.target.value))}
+                        placeholder="0"
+                        min="0"
+                        className="w-full pl-12"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Total harga untuk semua kemasan yang dibeli
+                    </p>
+                  </div>
+
+                  {/* Unit Price (Auto-calculated) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga per Satuan *
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                          Rp
+                        </span>
+                        <Input
+                          type="number"
+                          value={formData.harga}
+                          onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
+                          placeholder="0"
+                          min="0"
+                          className="w-full pl-12"
+                          disabled={isSubmitting}
+                          required
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCalculateTotal}
+                        disabled={isSubmitting}
+                        className="flex-shrink-0"
+                        title="Hitung total dari harga per satuan"
+                      >
+                        <Calculator className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Harga akan otomatis terhitung dari total beli ÷ jumlah kemasan
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase Summary */}
+              {formData.jumlahBeliKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-3">Ringkasan Pembelian</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Jumlah Kemasan:</span>
+                      <span className="font-medium text-blue-900">
+                        {formData.jumlahBeliKemasan} {formData.satuanKemasan}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Total Harga:</span>
+                      <span className="font-medium text-blue-900">
+                        Rp {formData.hargaTotalBeliKemasan.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Harga per Satuan:</span>
+                      <span className="font-medium text-blue-900">
+                        Rp {formData.harga.toLocaleString()} / {formData.satuan}
+                      </span>
+                    </div>
+                    {formData.jumlahBeliKemasan > 0 && formData.harga > 0 && (
+                      <div className="flex justify-between pt-2 border-t border-blue-200">
+                        <span className="text-blue-700">Harga per Kemasan:</span>
+                        <span className="font-medium text-blue-900">
+                          Rp {Math.round(formData.hargaTotalBeliKemasan / formData.jumlahBeliKemasan).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Stock Level Indicator */}
+              {formData.stok > 0 && formData.minimum > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-3 h-3 rounded-full ${
+                      formData.stok === 0 ? 'bg-red-500' :
+                      formData.stok <= formData.minimum ? 'bg-yellow-500' :
+                      formData.stok <= formData.minimum * 1.5 ? 'bg-blue-500' : 'bg-green-500'
+                    }`} />
+                    <span className="text-sm text-gray-600">
+                      {formData.stok === 0 ? 'Stok Habis' :
+                       formData.stok <= formData.minimum ? 'Stok Rendah' :
+                       formData.stok <= formData.minimum * 1.5 ? 'Stok Sedang' : 'Stok Aman'}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      ({formData.stok} / min: {formData.minimum})
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Stock Level Indicator */}
-          {formData.stok > 0 && formData.minimum > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
-              <div className="flex items-center gap-4">
-                <div className={`w-3 h-3 rounded-full ${
-                  formData.stok === 0 ? 'bg-red-500' :
-                  formData.stok <= formData.minimum ? 'bg-yellow-500' :
-                  formData.stok <= formData.minimum * 1.5 ? 'bg-blue-500' : 'bg-green-500'
-                }`} />
-                <span className="text-sm text-gray-600">
-                  {formData.stok === 0 ? 'Stok Habis' :
-                   formData.stok <= formData.minimum ? 'Stok Rendah' :
-                   formData.stok <= formData.minimum * 1.5 ? 'Stok Sedang' : 'Stok Aman'}
-                </span>
-                <span className="text-sm text-gray-500">
-                  ({formData.stok} / min: {formData.minimum})
-                </span>
-              </div>
-            </div>
-          )}
         </form>
 
         {/* Footer */}

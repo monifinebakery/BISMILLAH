@@ -465,7 +465,7 @@ export const validateCustomerInfo = (customer: {
   
   if (!customer.teleponPelanggan?.trim()) {
     errors.push('Nomor telepon wajib diisi');
-  } else if (!isValidPhoneNumber(customer.telefonPelanggan)) {
+  } else if (!isValidPhoneNumber(customer.teleponPelanggan)) {
     errors.push('Format nomor telepon tidak valid');
   }
   

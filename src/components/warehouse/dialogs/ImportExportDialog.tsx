@@ -343,65 +343,13 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
 
   // Generate and download template
   const downloadTemplate = () => {
-    const headers = [
-      'nama_bahan_baku',
-      'kategori',
-      'supplier', 
-      'satuan',
-      'tanggal_kadaluarsa',
-      'stok_saat_ini',
-      'minimum_stok',
-      'jumlah_beli_kemasan',
-      'satuan_kemasan',
-      'harga_total_beli_kemasan'
-    ];
-
-    const sampleRows = [
-      [
-        'Tepung Terigu',
-        'Bahan Dasar',
-        'PT Supplier A',
-        'gram',
-        '2024-12-31',
-        '5000',
-        '1000', 
-        '2',
-        'kg',
-        '150000'
-      ],
-      [
-        'Gula Pasir',
-        'Pemanis',
-        'PT Supplier B',
-        'gram',
-        '2024-11-30',
-        '3000',
-        '500',
-        '1',
-        'kg',
-        '18000'
-      ],
-      [
-        'Minyak Goreng',
-        'Minyak',
-        'PT Supplier C',
-        'ml',
-        '2025-01-15',
-        '2000',
-        '300',
-        '4',
-        'liter',
-        '120000'
-      ]
-    ];
-
-    // Create CSV with proper formatting - each value in separate column
-    const csvLines = [
-      headers.join(','), // Header row
-      ...sampleRows.map(row => row.map(value => `"${value}"`).join(',')) // Data rows
-    ];
-    
-    const csvContent = csvLines.join('\n');
+    // Create CSV with header row and multiple sample data rows
+    const csvContent = `nama_bahan_baku,kategori,supplier,satuan,tanggal_kadaluarsa,stok_saat_ini,minimum_stok,jumlah_beli_kemasan,satuan_kemasan,harga_total_beli_kemasan
+"Tepung Terigu","Bahan Dasar","PT Supplier A","gram","2024-12-31","5000","1000","2","kg","150000"
+"Gula Pasir","Pemanis","PT Supplier B","gram","2024-11-30","3000","500","1","kg","18000"
+"Minyak Goreng","Minyak","PT Supplier C","ml","2025-01-15","2000","300","4","liter","120000"
+"Bawang Merah","Bumbu","PT Supplier D","gram","2024-10-31","1500","200","3","kg","75000"
+"Cabai Merah","Bumbu","PT Supplier E","gram","2024-09-30","800","100","2","kg","50000"`;
 
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

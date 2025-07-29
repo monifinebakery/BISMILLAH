@@ -463,7 +463,7 @@ export const validateCustomerInfo = (customer: {
     errors.push('Nama pelanggan wajib diisi');
   }
   
-  if (!customer.telefonPelanggan?.trim()) {
+  if (!customer.teleponPelanggan?.trim()) {
     errors.push('Nomor telepon wajib diisi');
   } else if (!isValidPhoneNumber(customer.telefonPelanggan)) {
     errors.push('Format nomor telepon tidak valid');

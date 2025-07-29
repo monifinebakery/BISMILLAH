@@ -41,7 +41,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
   // Form state dengan semua field dari kode asli
   const [formData, setFormData] = useState({
     namaPelanggan: '',
-    telefonPelanggan: '',
+    teleponPelanggan: '',
     emailPelanggan: '',
     alamatPengiriman: '',
     status: 'pending' as Order['status'],
@@ -59,7 +59,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     if (initialData) {
       setFormData({
         namaPelanggan: initialData.namaPelanggan || '',
-        telefonPelanggan: initialData.telefonPelanggan || '',
+        teleponPelanggan: initialData.teleponPelanggan || '',
         emailPelanggan: initialData.emailPelanggan || '',
         alamatPengiriman: initialData.alamatPengiriman || '',
         status: initialData.status || 'pending',
@@ -73,7 +73,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
       // Reset form untuk mode baru
       setFormData({
         namaPelanggan: '',
-        telefonPelanggan: '',
+        teleponPelanggan: '',
         emailPelanggan: '',
         alamatPengiriman: '',
         status: 'pending',
@@ -201,11 +201,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
               </div>
               
               <div>
-                <Label htmlFor="telefonPelanggan">Telepon</Label>
+                <Label htmlFor="teleponPelanggan">Telepon</Label>
                 <Input
-                  id="telefonPelanggan"
-                  value={formData.telefonPelanggan}
-                  onChange={(e) => updateField('telefonPelanggan', e.target.value)}
+                  id="teleponPelanggan"
+                  value={formData.teleponPelanggan}
+                  onChange={(e) => updateField('teleponPelanggan', e.target.value)}
                   placeholder="Masukkan nomor telepon"
                 />
               </div>

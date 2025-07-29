@@ -137,7 +137,7 @@ const OrdersPage: React.FC = () => {
   const handleFollowUp = useCallback((order: Order) => {
     console.log('✅ Follow up initiated from OrdersPage for:', order.nomorPesanan);
     
-    if (!order.telefonPelanggan) {
+    if (!order.teleponPelanggan) {
       toast.error('Tidak ada nomor WhatsApp untuk follow up');
       return;
     }
@@ -155,7 +155,7 @@ const OrdersPage: React.FC = () => {
       const processedMessage = processTemplate(template, order);
       
       // Format nomor telepon
-      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
       // Buat WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
@@ -174,7 +174,7 @@ const OrdersPage: React.FC = () => {
       
       // Fallback ke pesan sederhana
       const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }

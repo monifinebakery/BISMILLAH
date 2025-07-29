@@ -1,47 +1,29 @@
 // src/contexts/RecipeContext.tsx
-// 🔔 FIXED FUNCTION ORDER - NO REFERENCE ERRORS
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Recipe, NewRecipe } from '@/types/recipe';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
-import { useActivity } from './ActivityContext';
 import { logger } from '@/utils/logger';
-// 🔔 ADD NOTIFICATION IMPORTS
-import { useNotification } from './NotificationContext';
-import { createNotificationHelper } from '../utils/notificationHelpers';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
 
-// 🧮 HPP Calculation Interface
-interface HPPCalculationResult {
-  totalBahanBaku: number;          // Total cost bahan baku
-  biayaTenagaKerja: number;        // Labor cost
-  biayaOverhead: number;           // Overhead cost
-  totalHPP: number;                // Total HPP
-  hppPerPorsi: number;             // HPP per serving
-  hppPerPcs: number;               // HPP per piece (if applicable)
-  marginKeuntungan: number;        // Profit margin amount
-  hargaJualPorsi: number;       // Selling price per serving
-  hargaJualPerPcs: number;         // Selling price per piece (if applicable)
-  profitabilitas: number;          // Profitability percentage
-}
-
-interface BahanResep {
-  nama: string;
-  jumlah: number;
-  satuan: string;
-  hargaSatuan: number;
-  totalHarga: number;
-}
+// Import recipe services and types
+import { recipeApi } from '@/components/recipe/services/recipeApi';
+import { calculateHPP, validateRecipeData } from '@/components/recipe/services/recipeUtils';
+import type { Recipe, NewRecipe, HPPCalculationResult, BahanResep } from '@/components/recipe/types';
 
 interface RecipeContextType {
+  // State
   recipes: Recipe[];
   isLoading: boolean;
+  error: string | null;
+
+  // CRUD Operations
   addRecipe: (recipe: NewRecipe) => Promise<boolean>;
   updateRecipe: (id: string, recipe: Partial<NewRecipe>) => Promise<boolean>;
   deleteRecipe: (id: string) => Promise<boolean>;
-  // 🧮 NEW: HPP Calculation functions
+  duplicateRecipe: (id: string, newName: string) => Promise<boolean>;
+  bulkDeleteRecipes: (ids: string[]) => Promise<boolean>;
+
+  // Business Logic
   calculateHPP: (
     bahanResep: BahanResep[],
     jumlahPorsi: number,
@@ -51,455 +33,266 @@ interface RecipeContextType {
     jumlahPcsPerPorsi?: number
   ) => HPPCalculationResult;
   validateRecipeData: (recipe: Partial<NewRecipe>) => { isValid: boolean; errors: string[] };
-  duplicateRecipe: (id: string, newName: string) => Promise<boolean>;
+
+  // Search & Filter
   searchRecipes: (query: string) => Recipe[];
   getRecipesByCategory: (category: string) => Recipe[];
-  calculateIngredientCost: (bahanResep: BahanResep[]) => number;
+  getUniqueCategories: () => string[];
+
+  // Statistics
+  getRecipeStats: () => {
+    totalRecipes: number;
+    totalCategories: number;
+    averageHppPerPorsi: number;
+    mostExpensiveRecipe: Recipe | null;
+    cheapestRecipe: Recipe | null;
+    profitabilityStats: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+  };
+
+  // Utilities
+  refreshRecipes: () => Promise<void>;
+  clearError: () => void;
 }
 
 const RecipeContext = createContext<RecipeContextType | undefined>(undefined);
 
 export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  // State
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  const { addActivity } = useActivity();
-  // 🔔 ADD NOTIFICATION CONTEXT
-  const { addNotification } = useNotification();
+  const [error, setError] = useState<string | null>(null);
 
-  // Mengubah data dari format database (snake_case) ke format aplikasi (camelCase)
-  const transformFromDB = useCallback((dbItem: any): Recipe => ({
-    id: dbItem.id,
-    userId: dbItem.user_id,
-    createdAt: safeParseDate(dbItem.created_at),
-    updatedAt: safeParseDate(dbItem.updated_at),
-    namaResep: dbItem.nama_resep,
-    jumlahPorsi: Number(dbItem.jumlah_porsi),
-    kategoriResep: dbItem.kategori_resep,
-    deskripsi: dbItem.deskripsi,
-    fotoUrl: dbItem.foto_url,
-    bahanResep: dbItem.bahan_resep || [],
-    biayaTenagaKerja: Number(dbItem.biaya_tenaga_kerja) || 0,
-    biayaOverhead: Number(dbItem.biaya_overhead) || 0,
-    marginKeuntunganPersen: Number(dbItem.margin_keuntungan_persen) || 0,
-    totalHpp: Number(dbItem.total_hpp) || 0,
-    hppPerPorsi: Number(dbItem.hpp_per_porsi) || 0,
-    hargaJualPorsi: Number(dbItem.harga_jual_porsi) || 0, // 🔧 FIX: Ensure fallback value
-    // 🧮 NEW: HPP per PCS fields
-    jumlahPcsPerPorsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
-    hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,
-    hargaJualPerPcs: Number(dbItem.harga_jual_per_pcs) || 0,
-  }), []);
-  
-  // Mengubah data dari format aplikasi (camelCase) ke format database (snake_case)
-  const transformToDB = useCallback((recipe: Partial<NewRecipe>) => ({
-    nama_resep: recipe.namaResep,
-    jumlah_porsi: recipe.jumlahPorsi,
-    kategori_resep: recipe.kategoriResep,
-    deskripsi: recipe.deskripsi,
-    foto_url: recipe.fotoUrl,
-    bahan_resep: recipe.bahanResep,
-    biaya_tenaga_kerja: recipe.biayaTenagaKerja,
-    biaya_overhead: recipe.biayaOverhead,
-    margin_keuntungan_persen: recipe.marginKeuntunganPersen,
-    total_hpp: recipe.totalHpp,
-    hpp_per_porsi: recipe.hppPerPorsi,
-    harga_jual_porsi: recipe.hargaJualPorsi,
-    // 🧮 NEW: HPP per PCS fields
-    jumlah_pcs_per_porsi: recipe.jumlahPcsPerPorsi || 1,
-    hpp_per_pcs: recipe.hppPerPcs || 0,
-    harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
-  }), []);
-
-  // 🧮 NEW: Calculate ingredient cost
-  const calculateIngredientCost = useCallback((bahanResep: BahanResep[]): number => {
-    return bahanResep.reduce((total, bahan) => {
-      return total + (bahan.jumlah * bahan.hargaSatuan);
-    }, 0);
+  // Clear error
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
-  // 🧮 NEW: Main HPP calculation function
-  const calculateHPP = useCallback((
-    bahanResep: BahanResep[],
-    jumlahPorsi: number,
-    biayaTenagaKerja: number,
-    biayaOverhead: number,
-    marginKeuntunganPersen: number,
-    jumlahPcsPerPorsi: number = 1
-  ): HPPCalculationResult => {
-    logger.context('RecipeContext', 'Calculating HPP with params:', {
-      bahanCount: bahanResep.length,
-      jumlahPorsi,
-      biayaTenagaKerja,
-      biayaOverhead,
-      marginKeuntunganPersen,
-      jumlahPcsPerPorsi
-    });
-
-    // Validate inputs
-    if (jumlahPorsi <= 0) {
-      throw new Error('Jumlah porsi harus lebih dari 0');
-    }
-    if (jumlahPcsPerPorsi <= 0) {
-      throw new Error('Jumlah pcs per porsi harus lebih dari 0');
-    }
-    if (marginKeuntunganPersen < 0) {
-      throw new Error('Margin keuntungan tidak boleh negatif');
+  // Load recipes from API
+  const loadRecipes = useCallback(async () => {
+    if (!user?.id) {
+      setRecipes([]);
+      setIsLoading(false);
+      return;
     }
 
-    // 1. Calculate total bahan baku cost
-    const totalBahanBaku = calculateIngredientCost(bahanResep);
-
-    // 2. Calculate total HPP
-    const totalHPP = totalBahanBaku + biayaTenagaKerja + biayaOverhead;
-
-    // 3. Calculate HPP per porsi
-    const hppPerPorsi = totalHPP / jumlahPorsi;
-
-    // 4. Calculate HPP per pcs
-    const hppPerPcs = hppPerPorsi / jumlahPcsPerPorsi;
-
-    // 5. Calculate margin amount
-    const marginKeuntungan = (totalHPP * marginKeuntunganPersen) / 100;
-
-    // 6. Calculate selling prices
-    const hargaJualPorsi = hppPerPorsi + (marginKeuntungan / jumlahPorsi);
-    const hargaJualPerPcs = hppPerPcs + (marginKeuntungan / jumlahPorsi / jumlahPcsPerPorsi);
-
-    // 7. Calculate profitability
-    const profitabilitas = totalHPP > 0 ? (marginKeuntungan / totalHPP) * 100 : 0;
-
-    const result: HPPCalculationResult = {
-      totalBahanBaku,
-      biayaTenagaKerja,
-      biayaOverhead,
-      totalHPP,
-      hppPerPorsi,
-      hppPerPcs,
-      marginKeuntungan,
-      hargaJualPorsi,
-      hargaJualPerPcs,
-      profitabilitas
-    };
-
-    logger.context('RecipeContext', 'HPP calculation result:', result);
-    return result;
-  }, [calculateIngredientCost]);
-
-  // 🧮 NEW: Validate recipe data
-  const validateRecipeData = useCallback((recipe: Partial<NewRecipe>): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-
-    if (!recipe.namaResep || recipe.namaResep.trim().length === 0) {
-      errors.push('Nama resep wajib diisi');
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      logger.debug('RecipeContext: Loading recipes for user:', user.id);
+      const result = await recipeApi.fetchRecipes(user.id);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setRecipes(result.data);
+      logger.debug(`RecipeContext: Loaded ${result.data.length} recipes`);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load recipes';
+      setError(errorMessage);
+      logger.error('RecipeContext: Error loading recipes:', error);
+      toast.error(`Gagal memuat resep: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
+  }, [user?.id]);
 
-    if (!recipe.jumlahPorsi || recipe.jumlahPorsi <= 0) {
-      errors.push('Jumlah porsi harus lebih dari 0');
-    }
+  // Refresh recipes
+  const refreshRecipes = useCallback(async () => {
+    await loadRecipes();
+  }, [loadRecipes]);
 
-    if (!recipe.bahanResep || recipe.bahanResep.length === 0) {
-      errors.push('Minimal harus ada 1 bahan resep');
-    }
-
-    if (recipe.bahanResep) {
-      recipe.bahanResep.forEach((bahan, index) => {
-        if (!bahan.nama || bahan.nama.trim().length === 0) {
-          errors.push(`Bahan resep ke-${index + 1}: Nama bahan wajib diisi`);
-        }
-        if (!bahan.jumlah || bahan.jumlah <= 0) {
-          errors.push(`Bahan resep ke-${index + 1}: Jumlah harus lebih dari 0`);
-        }
-        if (!bahan.hargaSatuan || bahan.hargaSatuan <= 0) {
-          errors.push(`Bahan resep ke-${index + 1}: Harga satuan harus lebih dari 0`);
-        }
-      });
-    }
-
-    if (recipe.biayaTenagaKerja && recipe.biayaTenagaKerja < 0) {
-      errors.push('Biaya tenaga kerja tidak boleh negatif');
-    }
-
-    if (recipe.biayaOverhead && recipe.biayaOverhead < 0) {
-      errors.push('Biaya overhead tidak boleh negatif');
-    }
-
-    if (recipe.marginKeuntunganPersen && recipe.marginKeuntunganPersen < 0) {
-      errors.push('Margin keuntungan tidak boleh negatif');
-    }
-
-    if (recipe.jumlahPcsPerPorsi && recipe.jumlahPcsPerPorsi <= 0) {
-      errors.push('Jumlah pcs per porsi harus lebih dari 0');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }, []);
-
-  // 🧮 NEW: Search recipes
-  const searchRecipes = useCallback((query: string): Recipe[] => {
-    if (!query.trim()) return recipes;
-    
-    const lowercaseQuery = query.toLowerCase();
-    return recipes.filter(recipe => 
-      recipe.namaResep.toLowerCase().includes(lowercaseQuery) ||
-      recipe.kategoriResep?.toLowerCase().includes(lowercaseQuery) ||
-      recipe.deskripsi?.toLowerCase().includes(lowercaseQuery)
-    );
-  }, [recipes]);
-
-  // 🧮 NEW: Get recipes by category
-  const getRecipesByCategory = useCallback((category: string): Recipe[] => {
-    if (!category.trim()) return recipes;
-    return recipes.filter(recipe => recipe.kategoriResep === category);
-  }, [recipes]);
-
-  // 🔧 MOVED: All CRUD functions defined before duplicateRecipe
-  const addRecipe = useCallback(async (recipe: NewRecipe): Promise<boolean> => {
-    if (!user) { 
-      toast.error('Anda harus login untuk menambahkan resep.');
+  // Add new recipe
+  const addRecipe = useCallback(async (recipeData: NewRecipe): Promise<boolean> => {
+    if (!user?.id) {
+      toast.error('User tidak ditemukan');
       return false;
     }
-    
-    // 🧮 Validate recipe data
-    const validation = validateRecipeData(recipe);
+
+    // Validate recipe data
+    const validation = validateRecipeData(recipeData);
     if (!validation.isValid) {
-      toast.error(`Data resep tidak valid: ${validation.errors.join(', ')}`);
+      const errorMessage = `Data resep tidak valid: ${validation.errors.join(', ')}`;
+      setError(errorMessage);
+      toast.error(errorMessage);
       return false;
     }
-    
+
     try {
-      logger.context('RecipeContext', 'Adding recipe:', recipe);
-      
-      // 🧮 Calculate HPP if not provided
-      if (!recipe.totalHpp || !recipe.hppPerPorsi) {
+      setError(null);
+      logger.debug('RecipeContext: Adding recipe:', recipeData.namaResep);
+
+      // Calculate HPP if not provided
+      let finalRecipeData = { ...recipeData };
+      if (!finalRecipeData.totalHpp || !finalRecipeData.hppPerPorsi) {
         const calculation = calculateHPP(
-          recipe.bahanResep || [],
-          recipe.jumlahPorsi || 1,
-          recipe.biayaTenagaKerja || 0,
-          recipe.biayaOverhead || 0,
-          recipe.marginKeuntunganPersen || 0,
-          recipe.jumlahPcsPerPorsi || 1
+          finalRecipeData.bahanResep || [],
+          finalRecipeData.jumlahPorsi || 1,
+          finalRecipeData.biayaTenagaKerja || 0,
+          finalRecipeData.biayaOverhead || 0,
+          finalRecipeData.marginKeuntunganPersen || 0,
+          finalRecipeData.jumlahPcsPerPorsi || 1
         );
-        
-        recipe.totalHpp = calculation.totalHPP;
-        recipe.hppPerPorsi = calculation.hppPerPorsi;
-        recipe.hargaJualPorsi = calculation.hargaJualPorsi;
-        recipe.hppPerPcs = calculation.hppPerPcs;
-        recipe.hargaJualPerPcs = calculation.hargaJualPerPcs;
+
+        finalRecipeData = {
+          ...finalRecipeData,
+          totalHpp: calculation.totalHPP,
+          hppPerPorsi: calculation.hppPerPorsi,
+          hargaJualPorsi: calculation.hargaJualPorsi,
+          hppPerPcs: calculation.hppPerPcs,
+          hargaJualPerPcs: calculation.hargaJualPerPcs,
+        };
       }
 
-      const { error } = await supabase
-        .from('recipes')
-        .insert({ ...transformToDB(recipe), user_id: user.id });
+      const result = await recipeApi.addRecipe(finalRecipeData, user.id);
 
-      if (error) {
-        logger.error('RecipeContext - Error adding recipe:', error);
-        throw new Error(error.message);
+      if (result.success && result.data) {
+        // Add to local state
+        setRecipes(prev => [result.data!, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
+        toast.success('Resep berhasil ditambahkan!');
+        logger.debug('RecipeContext: Successfully added recipe:', result.data.id);
+        return true;
+      } else {
+        throw new Error(result.error || 'Gagal menambahkan resep');
       }
-
-      // Activity log
-      addActivity({ 
-        title: 'Resep Baru Dibuat', 
-        description: `Resep "${recipe.namaResep}" telah ditambahkan.`,
-        type: 'resep',
-        value: null
-      });
-
-      // Success toast
-      toast.success('Resep baru berhasil ditambahkan!');
-
-      // 🔔 CREATE SUCCESS NOTIFICATION
-      await addNotification({
-        title: '👨‍🍳 Resep Baru Dibuat!',
-        message: `Resep "${recipe.namaResep}" berhasil ditambahkan dengan HPP Rp ${recipe.hppPerPorsi?.toLocaleString()}/porsi${recipe.hppPerPcs ? ` (Rp ${recipe.hppPerPcs.toLocaleString()}/pcs)` : ''}`,
-        type: 'success',
-        icon: 'chef-hat',
-        priority: 2,
-        related_type: 'system',
-        action_url: '/resep',
-        is_read: false,
-        is_archived: false
-      });
-
-      return true;
     } catch (error) {
-      logger.error('RecipeContext - Error in addRecipe:', error);
-      toast.error(`Gagal menambah resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal menambahkan resep "${recipe.namaResep}": ${error instanceof Error ? error.message : 'Unknown error'}`
-      ));
-      
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menambahkan resep';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      logger.error('RecipeContext: Error adding recipe:', error);
       return false;
     }
-  }, [user, validateRecipeData, calculateHPP, transformToDB, addActivity, addNotification]);
+  }, [user?.id]);
 
-  const updateRecipe = useCallback(async (id: string, recipe: Partial<NewRecipe>): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk memperbarui resep.');
+  // Update existing recipe
+  const updateRecipe = useCallback(async (id: string, updates: Partial<NewRecipe>): Promise<boolean> => {
+    if (!user?.id) {
+      toast.error('User tidak ditemukan');
       return false;
     }
-    
+
     try {
-      logger.context('RecipeContext', 'Updating recipe:', id, recipe);
-      
-      // 🧮 Recalculate HPP if relevant data changed
+      setError(null);
+      logger.debug('RecipeContext: Updating recipe:', id);
+
+      // Recalculate HPP if relevant data changed
+      let finalUpdates = { ...updates };
       const existingRecipe = recipes.find(r => r.id === id);
+      
       if (existingRecipe && (
-        recipe.bahanResep || 
-        recipe.jumlahPorsi !== undefined || 
-        recipe.biayaTenagaKerja !== undefined || 
-        recipe.biayaOverhead !== undefined || 
-        recipe.marginKeuntunganPersen !== undefined ||
-        recipe.jumlahPcsPerPorsi !== undefined
+        updates.bahanResep !== undefined ||
+        updates.jumlahPorsi !== undefined ||
+        updates.biayaTenagaKerja !== undefined ||
+        updates.biayaOverhead !== undefined ||
+        updates.marginKeuntunganPersen !== undefined ||
+        updates.jumlahPcsPerPorsi !== undefined
       )) {
-        const updatedBahanResep = recipe.bahanResep || existingRecipe.bahanResep;
-        const updatedJumlahPorsi = recipe.jumlahPorsi !== undefined ? recipe.jumlahPorsi : existingRecipe.jumlahPorsi;
-        const updatedBiayaTenagaKerja = recipe.biayaTenagaKerja !== undefined ? recipe.biayaTenagaKerja : existingRecipe.biayaTenagaKerja;
-        const updatedBiayaOverhead = recipe.biayaOverhead !== undefined ? recipe.biayaOverhead : existingRecipe.biayaOverhead;
-        const updatedMarginKeuntunganPersen = recipe.marginKeuntunganPersen !== undefined ? recipe.marginKeuntunganPersen : existingRecipe.marginKeuntunganPersen;
-        const updatedJumlahPcsPerPorsi = recipe.jumlahPcsPerPorsi !== undefined ? recipe.jumlahPcsPerPorsi : (existingRecipe.jumlahPcsPerPorsi || 1);
-        
+        const bahanResep = updates.bahanResep ?? existingRecipe.bahanResep;
+        const jumlahPorsi = updates.jumlahPorsi ?? existingRecipe.jumlahPorsi;
+        const biayaTenagaKerja = updates.biayaTenagaKerja ?? existingRecipe.biayaTenagaKerja;
+        const biayaOverhead = updates.biayaOverhead ?? existingRecipe.biayaOverhead;
+        const marginKeuntunganPersen = updates.marginKeuntunganPersen ?? existingRecipe.marginKeuntunganPersen;
+        const jumlahPcsPerPorsi = updates.jumlahPcsPerPorsi ?? existingRecipe.jumlahPcsPerPorsi;
+
         const calculation = calculateHPP(
-          updatedBahanResep,
-          updatedJumlahPorsi,
-          updatedBiayaTenagaKerja,
-          updatedBiayaOverhead,
-          updatedMarginKeuntunganPersen,
-          updatedJumlahPcsPerPorsi
+          bahanResep,
+          jumlahPorsi,
+          biayaTenagaKerja,
+          biayaOverhead,
+          marginKeuntunganPersen,
+          jumlahPcsPerPorsi
         );
-        
-        recipe.totalHpp = calculation.totalHPP;
-        recipe.hppPerPorsi = calculation.hppPerPorsi;
-        recipe.hargaJualPorsi = calculation.hargaJualPorsi;
-        recipe.hppPerPcs = calculation.hppPerPcs;
-        recipe.hargaJualPerPcs = calculation.hargaJualPerPcs;
+
+        finalUpdates = {
+          ...finalUpdates,
+          totalHpp: calculation.totalHPP,
+          hppPerPorsi: calculation.hppPerPorsi,
+          hargaJualPorsi: calculation.hargaJualPorsi,
+          hppPerPcs: calculation.hppPerPcs,
+          hargaJualPerPcs: calculation.hargaJualPerPcs,
+        };
       }
 
-      const { error } = await supabase
-        .from('recipes')
-        .update(transformToDB(recipe))
-        .eq('id', id);
+      const result = await recipeApi.updateRecipe(id, finalUpdates, user.id);
 
-      if (error) {
-        logger.error('RecipeContext - Error updating recipe:', error);
-        throw new Error(error.message);
+      if (result.success && result.data) {
+        // Update local state
+        setRecipes(prev => prev.map(r => r.id === id ? result.data! : r));
+        toast.success('Resep berhasil diperbarui!');
+        logger.debug('RecipeContext: Successfully updated recipe:', result.data.id);
+        return true;
+      } else {
+        throw new Error(result.error || 'Gagal memperbarui resep');
       }
-      
-      // Activity log
-      addActivity({ 
-        title: 'Resep Diperbarui', 
-        description: `Resep "${recipe.namaResep || '...'}" telah diperbarui.`,
-        type: 'resep',
-        value: null
-      });
-
-      // Success toast
-      toast.success('Resep berhasil diperbarui!');
-
-      // 🔔 CREATE UPDATE NOTIFICATION
-      await addNotification({
-        title: '📝 Resep Diperbarui',
-        message: `Resep "${recipe.namaResep || 'resep'}" telah diperbarui${recipe.hppPerPorsi ? ` dengan HPP Rp ${recipe.hppPerPorsi.toLocaleString()}/porsi` : ''}`,
-        type: 'info',
-        icon: 'edit',
-        priority: 1,
-        related_type: 'system',
-        action_url: '/resep',
-        is_read: false,
-        is_archived: false
-      });
-
-      return true;
     } catch (error) {
-      logger.error('RecipeContext - Error in updateRecipe:', error);
-      toast.error(`Gagal memperbarui resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal memperbarui resep: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ));
-      
+      const errorMessage = error instanceof Error ? error.message : 'Gagal memperbarui resep';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      logger.error('RecipeContext: Error updating recipe:', error);
       return false;
     }
-  }, [user, recipes, calculateHPP, transformToDB, addActivity, addNotification]);
+  }, [user?.id, recipes]);
 
+  // Delete recipe
   const deleteRecipe = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menghapus resep.');
+    if (!user?.id) {
+      toast.error('User tidak ditemukan');
       return false;
     }
-    
+
     try {
+      setError(null);
       const recipeToDelete = recipes.find(r => r.id === id);
       if (!recipeToDelete) {
         toast.error('Resep tidak ditemukan');
         return false;
       }
 
-      logger.context('RecipeContext', 'Deleting recipe:', id);
-      const { error } = await supabase.from('recipes').delete().eq('id', id);
+      logger.debug('RecipeContext: Deleting recipe:', id);
+      const result = await recipeApi.deleteRecipe(id, user.id);
 
-      if (error) {
-        logger.error('RecipeContext - Error deleting recipe:', error);
-        throw new Error(error.message);
+      if (result.success) {
+        // Remove from local state
+        setRecipes(prev => prev.filter(r => r.id !== id));
+        toast.success(`Resep "${recipeToDelete.namaResep}" berhasil dihapus`);
+        logger.debug('RecipeContext: Successfully deleted recipe:', id);
+        return true;
+      } else {
+        throw new Error(result.error || 'Gagal menghapus resep');
       }
-      
-      // Activity log
-      addActivity({ 
-        title: 'Resep Dihapus', 
-        description: `Resep "${recipeToDelete.namaResep}" telah dihapus.`,
-        type: 'resep',
-        value: null
-      });
-
-      // Success toast
-      toast.success('Resep berhasil dihapus.');
-
-      // 🔔 CREATE DELETE NOTIFICATION
-      await addNotification({
-        title: '🗑️ Resep Dihapus',
-        message: `Resep "${recipeToDelete.namaResep}" telah dihapus dari koleksi`,
-        type: 'warning',
-        icon: 'trash-2',
-        priority: 2,
-        related_type: 'system',
-        action_url: '/resep',
-        is_read: false,
-        is_archived: false
-      });
-
-      return true;
     } catch (error) {
-      logger.error('RecipeContext - Error in deleteRecipe:', error);
-      toast.error(`Gagal menghapus resep: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // 🔔 CREATE ERROR NOTIFICATION
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal menghapus resep: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ));
-      
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      logger.error('RecipeContext: Error deleting recipe:', error);
       return false;
     }
-  }, [user, recipes, addActivity, addNotification]);
+  }, [user?.id, recipes]);
 
-  // 🧮 NEW: Duplicate recipe (NOW PROPERLY PLACED AFTER addRecipe)
+  // Duplicate recipe
   const duplicateRecipe = useCallback(async (id: string, newName: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menduplikasi resep.');
+    if (!user?.id) {
+      toast.error('User tidak ditemukan');
       return false;
     }
 
     try {
+      setError(null);
       const originalRecipe = recipes.find(r => r.id === id);
       if (!originalRecipe) {
         toast.error('Resep tidak ditemukan');
         return false;
       }
+
+      logger.debug('RecipeContext: Duplicating recipe:', id, 'with name:', newName);
 
       const duplicatedRecipe: NewRecipe = {
         namaResep: newName,
@@ -513,118 +306,200 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         marginKeuntunganPersen: originalRecipe.marginKeuntunganPersen,
         totalHpp: originalRecipe.totalHpp,
         hppPerPorsi: originalRecipe.hppPerPorsi,
-        hargaJualPorsi: originalRecipe.hargaJualPorsi || 0, // 🔧 FIX: Ensure fallback value
-        jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi || 1,
-        hppPerPcs: originalRecipe.hppPerPcs || 0,
-        hargaJualPerPcs: originalRecipe.hargaJualPerPcs || 0,
+        hargaJualPorsi: originalRecipe.hargaJualPorsi,
+        jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi,
+        hppPerPcs: originalRecipe.hppPerPcs,
+        hargaJualPerPcs: originalRecipe.hargaJualPerPcs,
       };
 
       const success = await addRecipe(duplicatedRecipe);
       if (success) {
-        await addNotification({
-          title: '📋 Resep Diduplikasi',
-          message: `Resep "${newName}" berhasil diduplikasi dari "${originalRecipe.namaResep}"`,
-          type: 'success',
-          icon: 'copy',
-          priority: 2,
-          related_type: 'system',
-          action_url: '/resep',
-          is_read: false,
-          is_archived: false
-        });
+        toast.success(`Resep "${newName}" berhasil diduplikasi`);
       }
-
       return success;
     } catch (error) {
-      logger.error('RecipeContext - Error duplicating recipe:', error);
-      toast.error('Gagal menduplikasi resep');
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menduplikasi resep';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      logger.error('RecipeContext: Error duplicating recipe:', error);
       return false;
     }
-  }, [user, recipes, addRecipe, addNotification]);
+  }, [user?.id, recipes, addRecipe]);
 
-  // Data fetching and real-time setup
-  useEffect(() => {
-    if (!user) {
-      setRecipes([]);
-      setIsLoading(false);
-      return;
+  // Bulk delete recipes
+  const bulkDeleteRecipes = useCallback(async (ids: string[]): Promise<boolean> => {
+    if (!user?.id) {
+      toast.error('User tidak ditemukan');
+      return false;
     }
 
-    const fetchRecipes = async () => {
-      setIsLoading(true);
-      
-      try {
-        logger.context('RecipeContext', 'Fetching recipes for user:', user.id);
-        const { data, error } = await supabase
-          .from('recipes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('nama_resep', { ascending: true });
+    if (ids.length === 0) {
+      toast.error('Tidak ada resep yang dipilih');
+      return false;
+    }
 
-        if (error) {
-          logger.error('RecipeContext - Error fetching recipes:', error);
-          toast.error(`Gagal memuat resep: ${error.message}`);
-          
-          // 🔔 CREATE ERROR NOTIFICATION
-          await addNotification(createNotificationHelper.systemError(
-            `Gagal memuat data resep: ${error.message}`
-          ));
-        } else {
-          setRecipes(data.map(transformFromDB));
-          logger.context('RecipeContext', `Loaded ${data.length} recipes`);
-        }
-      } catch (error) {
-        logger.error('RecipeContext - Unexpected error:', error);
-        await addNotification(createNotificationHelper.systemError(
-          `Error tidak terduga saat memuat resep: ${error instanceof Error ? error.message : 'Unknown error'}`
-        ));
-      } finally {
-        setIsLoading(false);
+    try {
+      setError(null);
+      logger.debug('RecipeContext: Bulk deleting recipes:', ids);
+
+      const result = await recipeApi.bulkDeleteRecipes(ids, user.id);
+
+      if (result.success) {
+        // Remove from local state
+        setRecipes(prev => prev.filter(r => !ids.includes(r.id)));
+        toast.success(`${ids.length} resep berhasil dihapus`);
+        logger.debug('RecipeContext: Successfully bulk deleted recipes:', ids.length);
+        return true;
+      } else {
+        throw new Error(result.error || 'Gagal menghapus resep');
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      logger.error('RecipeContext: Error bulk deleting recipes:', error);
+      return false;
+    }
+  }, [user?.id]);
+
+  // Search recipes
+  const searchRecipes = useCallback((query: string): Recipe[] => {
+    if (!query.trim()) return recipes;
+    
+    const lowercaseQuery = query.toLowerCase();
+    return recipes.filter(recipe => 
+      recipe.namaResep.toLowerCase().includes(lowercaseQuery) ||
+      recipe.kategoriResep?.toLowerCase().includes(lowercaseQuery) ||
+      recipe.deskripsi?.toLowerCase().includes(lowercaseQuery) ||
+      recipe.bahanResep.some(bahan => 
+        bahan.nama.toLowerCase().includes(lowercaseQuery)
+      )
+    );
+  }, [recipes]);
+
+  // Get recipes by category
+  const getRecipesByCategory = useCallback((category: string): Recipe[] => {
+    if (!category.trim()) return recipes;
+    return recipes.filter(recipe => recipe.kategoriResep === category);
+  }, [recipes]);
+
+  // Get unique categories
+  const getUniqueCategories = useCallback((): string[] => {
+    const categories = new Set(
+      recipes
+        .map(recipe => recipe.kategoriResep)
+        .filter((category): category is string => Boolean(category))
+    );
+    return Array.from(categories).sort();
+  }, [recipes]);
+
+  // Get recipe statistics
+  const getRecipeStats = useCallback(() => {
+    const totalRecipes = recipes.length;
+    const categories = getUniqueCategories();
+    const totalCategories = categories.length;
+
+    // Calculate average HPP
+    const hppValues = recipes.map(r => r.hppPerPorsi).filter(hpp => hpp > 0);
+    const averageHppPerPorsi = hppValues.length > 0 
+      ? hppValues.reduce((sum, hpp) => sum + hpp, 0) / hppValues.length 
+      : 0;
+
+    // Find most/least expensive recipes
+    const recipesWithHpp = recipes.filter(r => r.hppPerPorsi > 0);
+    const mostExpensiveRecipe = recipesWithHpp.length > 0
+      ? recipesWithHpp.reduce((max, recipe) => recipe.hppPerPorsi > max.hppPerPorsi ? recipe : max)
+      : null;
+    
+    const cheapestRecipe = recipesWithHpp.length > 0
+      ? recipesWithHpp.reduce((min, recipe) => recipe.hppPerPorsi < min.hppPerPorsi ? recipe : min)
+      : null;
+
+    // Calculate profitability stats
+    const profitabilityStats = { high: 0, medium: 0, low: 0 };
+    recipes.forEach(recipe => {
+      const profitability = recipe.marginKeuntunganPersen || 0;
+      if (profitability >= 30) {
+        profitabilityStats.high++;
+      } else if (profitability >= 15) {
+        profitabilityStats.medium++;
+      } else {
+        profitabilityStats.low++;
+      }
+    });
+
+    return {
+      totalRecipes,
+      totalCategories,
+      averageHppPerPorsi,
+      mostExpensiveRecipe,
+      cheapestRecipe,
+      profitabilityStats,
     };
+  }, [recipes, getUniqueCategories]);
+
+  // Load recipes on mount and user change
+  useEffect(() => {
+    loadRecipes();
+  }, [loadRecipes]);
+
+  // Setup real-time subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    logger.debug('RecipeContext: Setting up real-time subscription for user:', user.id);
     
-    fetchRecipes();
-    
-    const channel = supabase.channel(`realtime-recipes-${user.id}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'recipes', 
-        filter: `user_id=eq.${user.id}` 
-      }, (payload) => {
-        logger.context('RecipeContext', 'Real-time event received:', payload);
-        
-        if (payload.eventType === 'INSERT') {
-          setRecipes(current => [transformFromDB(payload.new), ...current].sort((a,b) => a.namaResep.localeCompare(b.namaResep)));
-        }
-        if (payload.eventType === 'UPDATE') {
-          setRecipes(current => current.map(r => r.id === payload.new.id ? transformFromDB(payload.new) : r));
-        }
-        if (payload.eventType === 'DELETE') {
-          setRecipes(current => current.filter(r => r.id !== payload.old.id));
-        }
-      })
-      .subscribe();
-      
+    const unsubscribe = recipeApi.setupRealtimeSubscription(
+      user.id,
+      (newRecipe) => {
+        setRecipes(prev => {
+          const exists = prev.find(r => r.id === newRecipe.id);
+          if (exists) return prev;
+          return [newRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep));
+        });
+      },
+      (updatedRecipe) => {
+        setRecipes(prev => prev.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
+      },
+      (deletedId) => {
+        setRecipes(prev => prev.filter(r => r.id !== deletedId));
+      }
+    );
+
     return () => {
-      logger.context('RecipeContext', 'Cleaning up real-time channel');
-      supabase.removeChannel(channel);
+      logger.debug('RecipeContext: Cleaning up real-time subscription');
+      unsubscribe();
     };
-  }, [user, addNotification, transformFromDB]);
+  }, [user?.id]);
 
   const value: RecipeContextType = {
+    // State
     recipes,
     isLoading,
+    error,
+
+    // CRUD Operations
     addRecipe,
     updateRecipe,
     deleteRecipe,
-    // 🧮 NEW HPP calculation functions
+    duplicateRecipe,
+    bulkDeleteRecipes,
+
+    // Business Logic
     calculateHPP,
     validateRecipeData,
-    duplicateRecipe,
+
+    // Search & Filter
     searchRecipes,
     getRecipesByCategory,
-    calculateIngredientCost,
+    getUniqueCategories,
+
+    // Statistics
+    getRecipeStats,
+
+    // Utilities
+    refreshRecipes,
+    clearError,
   };
 
   return (

@@ -40,7 +40,7 @@ export interface Order {
 
 export interface NewOrder {
   namaPelanggan: string;
-  telefonPelanggan?: string;
+  teleponPelanggan?: string;
   emailPelanggan?: string;
   alamatPengiriman?: string;
   tanggal?: Date;

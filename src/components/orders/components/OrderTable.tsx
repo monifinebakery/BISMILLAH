@@ -1,4 +1,4 @@
-// 🎯 250 lines - Complete table dengan semua logika asli
+// 🎯 Fixed OrderTable dengan Follow Up yang bekerja
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,9 +28,11 @@ interface OrderTableProps {
   onDeleteOrder: (orderId: string) => void;
   onStatusChange: (orderId: string, newStatus: string) => void;
   onNewOrder: () => void;
+  onFollowUp?: (order: Order) => void; // ✅ TAMBAHKAN: Optional follow up handler
+  onViewDetail?: (order: Order) => void; // ✅ TAMBAHKAN: Optional view detail handler
 }
 
-// Status Badge Component (consolidated)
+// Status Badge Component (sama seperti sebelumnya)
 const StatusBadge: React.FC<{
   status: string;
   onChange?: (newStatus: string) => void;
@@ -69,13 +71,13 @@ const StatusBadge: React.FC<{
   );
 };
 
-// Row Actions Component (consolidated)
+// ✅ FIXED: Row Actions Component dengan implementasi yang benar
 const OrderRowActions: React.FC<{
   order: Order;
   onEdit: () => void;
   onDelete: () => void;
-  onFollowUp: () => void;
-  onViewDetail: () => void;
+  onFollowUp?: () => void; // ✅ FIXED: Optional
+  onViewDetail?: () => void; // ✅ FIXED: Optional
   disabled?: boolean;
 }> = ({ order, onEdit, onDelete, onFollowUp, onViewDetail, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,6 +86,36 @@ const OrderRowActions: React.FC<{
     setIsOpen(false);
     if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.nomorPesanan}?`)) {
       onDelete();
+    }
+  };
+
+  const handleFollowUp = () => {
+    setIsOpen(false);
+    if (onFollowUp) {
+      onFollowUp();
+    } else {
+      // ✅ FALLBACK: Jika tidak ada handler, buka WhatsApp atau email
+      const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      if (order.teleponPelanggan) {
+        const whatsappUrl = `https://wa.me/${order.telefonPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+      } else if (order.emailPelanggan) {
+        const emailUrl = `mailto:${order.emailPelanggan}?subject=Follow Up Pesanan #${order.nomorPesanan}&body=${encodeURIComponent(message)}`;
+        window.location.href = emailUrl;
+      } else {
+        alert('Tidak ada kontak yang tersedia untuk follow up');
+      }
+    }
+  };
+
+  const handleViewDetail = () => {
+    setIsOpen(false);
+    if (onViewDetail) {
+      onViewDetail();
+    } else {
+      // ✅ FALLBACK: Show alert atau navigate ke detail page
+      console.log('View detail for order:', order.id);
+      alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
     }
   };
 
@@ -98,30 +130,54 @@ const OrderRowActions: React.FC<{
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+        <Button 
+          variant="ghost" 
+          className="h-8 w-8 p-0" 
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('✅ Dropdown menu clicked for order:', order.nomorPesanan); // Debug log
+          }}
+        >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => { setIsOpen(false); onViewDetail(); }}>
+        <DropdownMenuItem 
+          onClick={handleViewDetail}
+          className="cursor-pointer"
+        >
           <Eye className="mr-2 h-4 w-4" />
           Lihat Detail
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => { setIsOpen(false); onEdit(); }}>
+        <DropdownMenuItem 
+          onClick={() => { setIsOpen(false); onEdit(); }}
+          className="cursor-pointer"
+        >
           <Edit className="mr-2 h-4 w-4" />
           Edit Pesanan
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => { setIsOpen(false); onFollowUp(); }}>
+        {/* ✅ FIXED: Follow Up Menu Item */}
+        <DropdownMenuItem 
+          onClick={handleFollowUp}
+          className="cursor-pointer"
+          disabled={!order.telefonPelanggan && !order.emailPelanggan && !onFollowUp}
+        >
           <MessageSquare className="mr-2 h-4 w-4" />
           Follow Up
+          {(!order.telefonPelanggan && !order.emailPelanggan && !onFollowUp) && (
+            <span className="text-xs text-gray-400 ml-2">(No contact)</span>
+          )}
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem onClick={handleDelete} className="text-red-600 focus:text-red-600">
+        <DropdownMenuItem 
+          onClick={handleDelete} 
+          className="text-red-600 focus:text-red-600 cursor-pointer"
+        >
           <Trash2 className="mr-2 h-4 w-4" />
           Hapus
         </DropdownMenuItem>
@@ -130,7 +186,7 @@ const OrderRowActions: React.FC<{
   );
 };
 
-// Row Selection Component (consolidated)
+// Row Selection Component (sama seperti sebelumnya)
 const OrderRowSelect: React.FC<{
   isSelected: boolean;
   onToggle: (forceValue?: boolean) => void;
@@ -154,7 +210,7 @@ const OrderRowSelect: React.FC<{
   );
 };
 
-// Empty State Component (consolidated)
+// Empty State Component (sama seperti sebelumnya)
 const EmptyState: React.FC<{
   hasFilters: boolean;
   onAddFirst: () => void;
@@ -188,15 +244,18 @@ const EmptyState: React.FC<{
   );
 };
 
-// Main Table Component
+// ✅ FIXED: Main Table Component
 const OrderTable: React.FC<OrderTableProps> = ({
   uiState,
   loading,
   onEditOrder,
   onDeleteOrder,
   onStatusChange,
-  onNewOrder
+  onNewOrder,
+  onFollowUp, // ✅ TAMBAHKAN: Destructure prop
+  onViewDetail // ✅ TAMBAHKAN: Destructure prop
 }) => {
+  
   // Handle row click dengan logika asli
   const handleRowClick = (order: Order, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -221,12 +280,34 @@ const OrderTable: React.FC<OrderTableProps> = ({
     uiState.toggleSelectAll(uiState.currentOrders);
   };
 
+  // ✅ FIXED: Implementasi yang proper
   const handleViewDetail = (order: Order) => {
-    console.log('View detail for order:', order.id);
+    console.log('✅ View detail clicked for order:', order.nomorPesanan);
+    if (onViewDetail) {
+      onViewDetail(order);
+    } else {
+      // Default behavior
+      alert(`Detail pesanan #${order.nomorPesanan}`);
+    }
   };
 
   const handleFollowUp = (order: Order) => {
-    console.log('Follow up for order:', order.id);
+    console.log('✅ Follow up clicked for order:', order.nomorPesanan);
+    if (onFollowUp) {
+      onFollowUp(order);
+    } else {
+      // Default behavior - open WhatsApp or email
+      const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      if (order.telefonPelanggan) {
+        const whatsappUrl = `https://wa.me/${order.telefonPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+      } else if (order.emailPelanggan) {
+        const emailUrl = `mailto:${order.emailPelanggan}?subject=Follow Up Pesanan #${order.nomorPesanan}&body=${encodeURIComponent(message)}`;
+        window.location.href = emailUrl;
+      } else {
+        alert('Tidak ada kontak yang tersedia untuk follow up');
+      }
+    }
   };
 
   if (loading) {
@@ -328,8 +409,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
-                    {order.teleponPelanggan && (
-                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    {order.telefonPelanggan && (
+                      <div className="text-xs text-gray-500">{order.telefonPelanggan}</div>
                     )}
                     {order.emailPelanggan && (
                       <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
@@ -377,8 +458,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     order={order}
                     onEdit={() => onEditOrder(order)}
                     onDelete={() => onDeleteOrder(order.id)}
-                    onFollowUp={() => handleFollowUp(order)}
-                    onViewDetail={() => handleViewDetail(order)}
+                    onFollowUp={() => handleFollowUp(order)} // ✅ FIXED: Pass handler
+                    onViewDetail={() => handleViewDetail(order)} // ✅ FIXED: Pass handler
                     disabled={uiState.isSelectionMode}
                   />
                 </td>

@@ -19,7 +19,7 @@ export default defineConfig(({ mode, command }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // Force React to single instance
+        // Force single React instance
         "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
@@ -29,28 +29,21 @@ export default defineConfig(({ mode, command }) => {
       target: 'es2015',
       rollupOptions: {
         output: {
-          // SIMPLIFIED: Minimal chunking to avoid React issues
-          manualChunks: {
-            // Keep ALL React stuff together
-            'react-vendor': ['react', 'react-dom'],
-            
-            // Only separate truly heavy libraries
-            'heavy-vendor': ['xlsx'],
-            
-            // Everything else in vendor
-            'vendor': ['lucide-react', 'date-fns', '@supabase/supabase-js', 'sonner']
-          }
+          // COMPLETELY DISABLE manual chunking for now
+          manualChunks: undefined,
         },
       },
     },
     
-    // Force React optimization
+    // Force React pre-bundling
     optimizeDeps: {
-      include: ["react", "react-dom", "react/jsx-runtime"],
-      force: true // Force re-optimization
+      include: [
+        "react", 
+        "react-dom", 
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime"
+      ],
+      force: true
     },
-    
-    // Clear cache on build
-    cacheDir: mode === 'production' ? false : '.vite'
   };
 });

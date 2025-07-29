@@ -343,37 +343,20 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
 
   // Generate and download template
   const downloadTemplate = () => {
-    // Create proper CSV format with tab separators for Excel compatibility
-    const csvContent = `nama_bahan_baku\tkategori\tsupplier\tsatuan\ttanggal_kadaluarsa\tstok_saat_ini\tminimum_stok\tjumlah_beli_kemasan\tsatuan_kemasan\tharga_total_beli_kemasan
-Tepung Terigu\tBahan Dasar\tPT Supplier A\tgram\t2024-12-31\t5000\t1000\t2\tkg\t150000
-Gula Pasir\tPemanis\tPT Supplier B\tgram\t2024-11-30\t3000\t500\t1\tkg\t18000
-Minyak Goreng\tMinyak\tPT Supplier C\tml\t2025-01-15\t2000\t300\t4\tliter\t120000
-Bawang Merah\tBumbu\tPT Supplier D\tgram\t2024-10-31\t1500\t200\t3\tkg\t75000
-Cabai Merah\tBumbu\tPT Supplier E\tgram\t2024-09-30\t800\t100\t2\tkg\t50000`;
+    // Create proper CSV format with comma separators but without quotes for cleaner Excel display
+    const csvContent = `nama_bahan_baku,kategori,supplier,satuan,tanggal_kadaluarsa,stok_saat_ini,minimum_stok,jumlah_beli_kemasan,satuan_kemasan,harga_total_beli_kemasan
+Tepung Terigu,Bahan Dasar,PT Supplier A,gram,2024-12-31,5000,1000,2,kg,150000
+Gula Pasir,Pemanis,PT Supplier B,gram,2024-11-30,3000,500,1,kg,18000
+Minyak Goreng,Minyak,PT Supplier C,ml,2025-01-15,2000,300,4,liter,120000
+Bawang Merah,Bumbu,PT Supplier D,gram,2024-10-31,1500,200,3,kg,75000
+Cabai Merah,Bumbu,PT Supplier E,gram,2024-09-30,800,100,2,kg,50000`;
 
-    // Save as TSV (Tab Separated Values) for better Excel compatibility
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'template_import_bahan_baku.tsv';
+    a.download = 'template_import_bahan_baku.csv';
     a.click();
-    URL.revokeObjectURL(url);
-    
-    // Also create CSV version
-    const csvVersion = csvContent.replace(/\t/g, ',');
-    const csvBlob = new Blob(['\ufeff' + csvVersion], { type: 'text/csv;charset=utf-8;' });
-    const csvUrl = URL.createObjectURL(csvBlob);
-    const csvLink = document.createElement('a');
-    csvLink.href = csvUrl;
-    csvLink.download = 'template_import_bahan_baku.csv';
-    
-    // Download both files
-    setTimeout(() => {
-      csvLink.click();
-      URL.revokeObjectURL(csvUrl);
-    }, 100);
-    
     URL.revokeObjectURL(url);
   };
 
@@ -492,7 +475,7 @@ Cabai Merah\tBumbu\tPT Supplier E\tgram\t2024-09-30\t800\t100\t2\tkg\t50000`;
                       className="text-blue-600 border-blue-300 hover:bg-blue-50"
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      Download Template Excel
+                      Download Template CSV
                     </Button>
                   </div>
                 </div>

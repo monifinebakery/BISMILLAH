@@ -47,11 +47,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           <Upload className="h-4 w-4" />
           <span className="hidden sm:inline">Import</span>
         </Button>
-        
-        <Button onClick={() => onOpenDialog('export')} variant="secondary" className="flex items-center gap-2 px-4 py-2">
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
       </div>
     </header>
   </>

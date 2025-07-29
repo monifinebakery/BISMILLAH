@@ -1,10 +1,11 @@
-// 🎯 100 lines - Main page dengan semua event handlers asli
+// 🎯 Enhanced OrdersPage dengan FollowUp Template Integration
 import React, { useState, useCallback, Suspense } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order, NewOrder } from '../types';
 import { PageLoading } from './shared/LoadingStates';
 
@@ -18,6 +19,10 @@ const OrdersPage: React.FC = () => {
   // Get context data
   const contextValue = useOrder();
   const { orders, loading, addOrder, updateOrder, deleteOrder } = contextValue;
+
+  // ✅ ENHANCED: Template hooks integration
+  const { getTemplate } = useFollowUpTemplate();
+  const { processTemplate } = useProcessTemplate();
 
   // UI state management dengan logika asli
   const uiState = useOrderUI(orders, 10);
@@ -128,13 +133,92 @@ const OrdersPage: React.FC = () => {
     }
   }, [editingOrder, updateOrder, addOrder]);
 
+  // ✅ ENHANCED: Follow Up Handler dengan Template Integration
+  const handleFollowUp = useCallback((order: Order) => {
+    console.log('✅ Follow up initiated from OrdersPage for:', order.nomorPesanan);
+    
+    if (!order.telefonPelanggan) {
+      toast.error('Tidak ada nomor WhatsApp untuk follow up');
+      return;
+    }
+
+    try {
+      // Get template berdasarkan status order
+      const template = getTemplate(order.status);
+      
+      if (!template) {
+        toast.error('Template untuk status ini belum tersedia');
+        return;
+      }
+
+      // Process template dengan data order
+      const processedMessage = processTemplate(template, order);
+      
+      // Format nomor telepon
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      
+      // Buat WhatsApp URL
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
+      
+      // Buka WhatsApp
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      
+      // Optional: Set selected order for template manager
+      setSelectedOrderForTemplate(order);
+      
+    } catch (error) {
+      console.error('Error processing follow up template:', error);
+      toast.error('Gagal memproses template follow up');
+      
+      // Fallback ke pesan sederhana
+      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  }, [getTemplate, processTemplate]);
+
+  // ✅ ENHANCED: View Detail Handler
+  const handleViewDetail = useCallback((order: Order) => {
+    console.log('✅ View detail initiated for:', order.nomorPesanan);
+    
+    // Set order for template manager (bisa digunakan untuk preview template)
+    setSelectedOrderForTemplate(order);
+    
+    // Placeholder untuk detail view - bisa dikembangkan lebih lanjut
+    toast.info(`Detail pesanan #${order.nomorPesanan} - Coming soon!`);
+    
+    // TODO: Implementasi modal detail atau navigate ke detail page
+  }, []);
+
+  // ✅ ENHANCED: Template Manager dengan Context Integration
+  const handleOpenTemplateManager = useCallback(() => {
+    try {
+      setShowTemplateManager(true);
+      
+      // Optional: Reset selected order ketika buka template manager
+      setSelectedOrderForTemplate(null);
+      
+    } catch (error) {
+      console.error('Error opening template manager:', error);
+      toast.error('Gagal membuka template manager');
+    }
+  }, []);
+
+  const handleCloseTemplateManager = useCallback(() => {
+    setShowTemplateManager(false);
+    setSelectedOrderForTemplate(null);
+  }, []);
+
   if (loading) {
     return <PageLoading />;
   }
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
-      {/* Header dengan design asli */}
+      {/* ✅ ENHANCED: Header dengan template integration info */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
@@ -143,19 +227,19 @@ const OrdersPage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
             <p className="text-sm opacity-90 mt-1">
-              Kelola semua pesanan dari pelanggan Anda dengan mudah.
+              Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
             </p>
           </div>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Button
-            onClick={() => setShowTemplateManager(true)}
+            onClick={handleOpenTemplateManager}
             variant="outline"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-blue-50 transition-all duration-200 hover:shadow-lg border-blue-300"
           >
             <MessageSquare className="h-5 w-5" />
-            Kelola Template
+            Kelola Template WhatsApp
           </Button>
           
           <Button
@@ -168,7 +252,7 @@ const OrdersPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Main content dengan lazy loading */}
+      {/* ✅ ENHANCED: Main content dengan template integration */}
       <Suspense fallback={<div className="animate-pulse bg-gray-200 h-48 rounded"></div>}>
         <OrderControls uiState={uiState} loading={loading} />
         <OrderFilters uiState={uiState} loading={loading} />
@@ -179,15 +263,17 @@ const OrdersPage: React.FC = () => {
           onDeleteOrder={handleDeleteOrder}
           onStatusChange={handleStatusChange}
           onNewOrder={handleNewOrder}
+          onFollowUp={handleFollowUp} // ✅ ENHANCED: Pass follow up handler
+          onViewDetail={handleViewDetail} // ✅ ENHANCED: Pass view detail handler
         />
         <OrderDialogs
           showOrderForm={showOrderForm}
           editingOrder={editingOrder}
           showTemplateManager={showTemplateManager}
-          selectedOrderForTemplate={selectedOrderForTemplate}
+          selectedOrderForTemplate={selectedOrderForTemplate} // ✅ ENHANCED: Pass selected order
           onSubmitOrder={handleSubmitOrder}
           onCloseOrderForm={() => setShowOrderForm(false)}
-          onCloseTemplateManager={() => setShowTemplateManager(false)}
+          onCloseTemplateManager={handleCloseTemplateManager} // ✅ ENHANCED: Use enhanced handler
         />
       </Suspense>
     </div>

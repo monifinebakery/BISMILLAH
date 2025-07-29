@@ -1,6 +1,6 @@
 // src/components/recipe/components/RecipeForm/IngredientsStep.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,17 @@ import {
   Calculator,
   Info,
   AlertCircle,
-  ChefHat
+  ChefHat,
+  Package
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RECIPE_UNITS } from '../../types';
 import { formatCurrency } from '../../services/recipeUtils';
 import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
+
+// Import warehouse related hooks/services
+import { useWarehouseContext } from '../../../warehouse/WarehouseContext';
+import type { BahanBaku } from '../../../warehouse/types';
 
 interface IngredientsStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -43,6 +48,9 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   onUpdate,
   isLoading = false,
 }) => {
+  // Get warehouse items using existing warehouse context
+  const { bahanBaku: warehouseItems, loading: loadingWarehouse } = useWarehouseContext();
+  
   // New ingredient form
   const [newIngredient, setNewIngredient] = useState<Partial<BahanResep>>({
     nama: '',
@@ -55,10 +63,26 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   // Calculate total ingredient cost
   const totalIngredientCost = data.bahanResep.reduce((sum, ingredient) => sum + ingredient.totalHarga, 0);
 
+  // Handle warehouse item selection
+  const handleWarehouseItemSelect = (warehouseItemId: string) => {
+    const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
+    if (selectedItem) {
+      setNewIngredient(prev => ({
+        ...prev,
+        nama: selectedItem.nama,
+        satuan: selectedItem.satuan || prev.satuan,
+        hargaSatuan: selectedItem.harga_satuan || prev.hargaSatuan, // Using database field
+        warehouseId: selectedItem.id, // Store reference to warehouse item
+        // Auto-calculate total if quantity exists
+        totalHarga: (prev.jumlah || 0) * (selectedItem.harga_satuan || 0)
+      }));
+    }
+  };
+
   // Add new ingredient
   const handleAddIngredient = () => {
     if (!newIngredient.nama?.trim()) {
-      toast.error('Nama bahan harus diisi');
+      toast.error('Nama bahan harus dipilih');
       return;
     }
     if (!newIngredient.satuan?.trim()) {
@@ -81,6 +105,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       satuan: newIngredient.satuan!,
       hargaSatuan: newIngredient.hargaSatuan!,
       totalHarga: newIngredient.jumlah! * newIngredient.hargaSatuan!,
+      warehouseId: newIngredient.warehouseId, // Store warehouse reference
     };
 
     onUpdate('bahanResep', [...data.bahanResep, ingredient]);
@@ -120,6 +145,26 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
     onUpdate('bahanResep', newIngredients);
   };
 
+  // Update existing ingredient with warehouse data
+  const handleUpdateIngredientFromWarehouse = (index: number, warehouseItemId: string) => {
+    const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
+    if (selectedItem) {
+      const newIngredients = [...data.bahanResep];
+      const currentQuantity = newIngredients[index].jumlah;
+      
+      newIngredients[index] = {
+        ...newIngredients[index],
+        nama: selectedItem.nama,
+        satuan: selectedItem.satuan || newIngredients[index].satuan,
+        hargaSatuan: selectedItem.harga_satuan || newIngredients[index].hargaSatuan, // Using database field
+        totalHarga: currentQuantity * (selectedItem.harga_satuan || newIngredients[index].hargaSatuan),
+        warehouseId: selectedItem.id,
+      };
+
+      onUpdate('bahanResep', newIngredients);
+    }
+  };
+
   // Update new ingredient form
   const handleNewIngredientChange = (field: keyof BahanResep, value: any) => {
     const updated = { ...newIngredient, [field]: value };
@@ -134,6 +179,13 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
     setNewIngredient(updated);
   };
 
+  // Filter available warehouse items (exclude already used ones if needed)
+  const availableWarehouseItems = warehouseItems.filter(item => {
+    // You can add logic here to filter out items that are already used
+    // or show all items regardless
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       
@@ -146,7 +198,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
           Daftar Bahan-bahan
         </h2>
         <p className="text-gray-600">
-          Tambahkan semua bahan yang dibutuhkan beserta takaran dan harganya
+          Pilih bahan dari warehouse atau tambahkan manual beserta takaran dan harganya
         </p>
       </div>
 
@@ -161,16 +213,53 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             
-            {/* Ingredient Name */}
+            {/* Ingredient Name - Now a dropdown */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Nama Bahan *</Label>
-              <Input
-                type="text"
-                value={newIngredient.nama || ''}
-                onChange={(e) => handleNewIngredientChange('nama', e.target.value)}
-                placeholder="Tepung terigu"
-                disabled={isLoading}
-              />
+              <Select 
+                value={newIngredient.warehouseId || ''} 
+                onValueChange={handleWarehouseItemSelect}
+                disabled={isLoading || loadingWarehouse}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingWarehouse ? "Loading..." : "Pilih dari warehouse"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="px-2 py-1 text-xs text-gray-500 border-b mb-1">
+                    <div className="flex items-center gap-1">
+                      <Package className="h-3 w-3" />
+                      Dari Warehouse
+                    </div>
+                  </div>
+                  {availableWarehouseItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{item.nama}</span>
+                        <div className="text-xs text-gray-500 ml-2">
+                          {item.satuan} - {formatCurrency(item.harga_satuan || 0)}
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {availableWarehouseItems.length === 0 && !loadingWarehouse && (
+                    <div className="px-2 py-4 text-center text-gray-500 text-sm">
+                      Belum ada bahan di warehouse
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {/* Manual input option */}
+              <div className="mt-2">
+                <Input
+                  type="text"
+                  value={newIngredient.nama || ''}
+                  onChange={(e) => handleNewIngredientChange('nama', e.target.value)}
+                  placeholder="Atau ketik manual"
+                  disabled={isLoading}
+                  className="text-sm"
+                />
+              </div>
             </div>
 
             {/* Quantity */}
@@ -296,15 +385,38 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                   {data.bahanResep.map((ingredient, index) => (
                     <TableRow key={ingredient.id || index}>
                       
-                      {/* Name */}
+                      {/* Name - Now editable with dropdown */}
                       <TableCell>
-                        <Input
-                          type="text"
-                          value={ingredient.nama}
-                          onChange={(e) => handleUpdateIngredient(index, 'nama', e.target.value)}
-                          className="border-none focus:border-orange-300 bg-transparent"
-                          disabled={isLoading}
-                        />
+                        <div className="space-y-1">
+                          <Select 
+                            value={ingredient.warehouseId || ''} 
+                            onValueChange={(value) => handleUpdateIngredientFromWarehouse(index, value)}
+                          >
+                            <SelectTrigger className="border-none focus:border-orange-300 bg-transparent">
+                              <SelectValue placeholder="Pilih dari warehouse" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableWarehouseItems.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>{item.nama}</span>
+                                    <div className="text-xs text-gray-500 ml-2">
+                                      {formatCurrency(item.harga_satuan || 0)}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="text"
+                            value={ingredient.nama}
+                            onChange={(e) => handleUpdateIngredient(index, 'nama', e.target.value)}
+                            className="border-none focus:border-orange-300 bg-transparent text-sm"
+                            placeholder="Atau edit manual"
+                            disabled={isLoading}
+                          />
+                        </div>
                       </TableCell>
 
                       {/* Quantity */}
@@ -438,10 +550,10 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                   Tips Menambah Bahan
                 </h4>
                 <ul className="text-sm text-orange-800 space-y-1">
-                  <li>• Gunakan nama bahan yang spesifik (misal: "Tepung terigu protein sedang")</li>
-                  <li>• Sesuaikan satuan dengan kebutuhan (gram untuk bahan kering, ml untuk cairan)</li>
-                  <li>• Update harga secara berkala untuk akurasi HPP</li>
-                  <li>• Bahan akan otomatis dihitung total harganya</li>
+                  <li>• Pilih bahan dari warehouse untuk sinkronisasi harga otomatis</li>
+                  <li>• Atau ketik manual jika bahan belum ada di warehouse</li>
+                  <li>• Harga akan otomatis terisi dari data warehouse</li>
+                  <li>• Update data warehouse untuk akurasi harga terbaru</li>
                 </ul>
               </div>
             </div>

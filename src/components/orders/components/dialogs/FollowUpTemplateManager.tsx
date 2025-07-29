@@ -47,7 +47,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     {
       id: '1',
       name: 'Konfirmasi Pesanan',
-      message: 'Halo {nama_pelanggan}, terima kasih atas pesanan #{nomor_pesanan} senilai {total_pesanan}. Pesanan Anda sedang diproses.',
+      message: 'Hai kak {nama_pelanggan}, terima kasih ya udah order dengan nomor #{nomor_pesanan} senilai {total_pesanan}. Pesanan kakak lagi kami proses nih 😊',
       createdAt: new Date()
     },
     {

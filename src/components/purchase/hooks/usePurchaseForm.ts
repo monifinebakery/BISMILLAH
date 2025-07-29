@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
-import { validatePurchaseForm, ValidationResult } from '../utils/purchaseValidation';
+import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from '../context/PurchaseContext';
 

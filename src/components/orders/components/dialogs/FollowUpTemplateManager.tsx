@@ -303,7 +303,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                   <h4 className="font-semibold text-blue-800 mb-2">Preview Pesan</h4>
                   <div className="text-sm space-y-1 text-blue-700">
                     <div><strong>Template:</strong> {selectedTemplate.name}</div>
-                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.telefonPelanggan})</div>
+                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.teleponPelanggan})</div>
                     <div><strong>Pesanan:</strong> #{order.nomorPesanan}</div>
                   </div>
                 </div>

@@ -1,65 +1,182 @@
-// src/components/warehouse/dialogs/ImportExportDialog.tsx
+// 🎯 Bahan Baku Import Dialog - Sesuai dengan Screenshot
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Upload, Download, FileText, AlertCircle, CheckCircle, FileSpreadsheet } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
-import { warehouseUtils } from '../services/warehouseUtils';
-import type { BahanBaku } from '../types';
 
-interface ImportExportDialogProps {
+interface BahanBaku {
+  id?: string;
+  nama_bahan_baku: string;
+  kategori: string;
+  supplier: string;
+  satuan: string;
+  tanggal_kadaluarsa?: string;
+  stok_saat_ini: number;
+  minimum_stok: number;
+  jumlah_beli_kemasan: number;
+  satuan_kemasan: string;
+  harga_total_beli_kemasan: number;
+  harga_per_satuan: number;
+  harga_per_kemasan: number;
+}
+
+interface ImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'import' | 'export';
-  data: BahanBaku[];
-  selectedData: BahanBaku[];
-  onImport: (data: any) => Promise<boolean>;
-  onExport: (data: BahanBaku[], format: string) => void;
+  onImport: (data: BahanBaku[]) => Promise<boolean>;
 }
 
 interface ImportPreview {
-  valid: any[];
+  valid: BahanBaku[];
   invalid: any[];
   errors: string[];
 }
 
-/**
- * Combined Import/Export Dialog Component
- * 
- * Features:
- * - Import: CSV/Excel file upload with validation
- * - Export: Multiple formats (CSV, Excel, PDF)
- * - Data preview and validation
- * - Progress indication
- * - Error handling
- * 
- * Size: ~8KB (loaded lazily)
- */
-const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
+const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
   isOpen,
   onClose,
-  type,
-  data,
-  selectedData,
-  onImport,
-  onExport,
+  onImport
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('csv');
-  const [exportScope, setExportScope] = useState<'all' | 'selected'>('all');
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isImportMode = type === 'import';
-  const title = isImportMode ? 'Import Data' : 'Export Data';
-  const icon = isImportMode ? Upload : Download;
-
-  // Export formats
-  const exportFormats = [
-    { value: 'csv', label: 'CSV', description: 'Comma-separated values (.csv)' },
-    { value: 'excel', label: 'Excel', description: 'Microsoft Excel (.xlsx)' },
-    { value: 'pdf', label: 'PDF', description: 'Portable Document Format (.pdf)' },
+  // Required columns sesuai screenshot
+  const requiredColumns = [
+    'nama_bahan_baku',
+    'kategori', 
+    'supplier',
+    'satuan',
+    'tanggal_kadaluarsa',
+    'stok_saat_ini',
+    'minimum_stok',
+    'jumlah_beli_kemasan',
+    'satuan_kemasan',
+    'harga_total_beli_kemasan'
   ];
+
+  // Column mapping untuk berbagai format header
+  const columnMapping: Record<string, string> = {
+    'nama bahan baku': 'nama_bahan_baku',
+    'nama_bahan_baku': 'nama_bahan_baku',
+    'nama': 'nama_bahan_baku',
+    'bahan': 'nama_bahan_baku',
+    
+    'kategori': 'kategori',
+    'category': 'kategori',
+    
+    'supplier': 'supplier',
+    'pemasok': 'supplier',
+    
+    'satuan': 'satuan',
+    'unit': 'satuan',
+    'satuan_dasar': 'satuan',
+    
+    'tanggal kadaluarsa': 'tanggal_kadaluarsa',
+    'tanggal_kadaluarsa': 'tanggal_kadaluarsa',
+    'expiry': 'tanggal_kadaluarsa',
+    'exp_date': 'tanggal_kadaluarsa',
+    
+    'stok saat ini': 'stok_saat_ini',
+    'stok_saat_ini': 'stok_saat_ini',
+    'stok': 'stok_saat_ini',
+    'current_stock': 'stok_saat_ini',
+    
+    'minimum stok': 'minimum_stok',
+    'minimum_stok': 'minimum_stok',
+    'min_stock': 'minimum_stok',
+    
+    'jumlah beli kemasan': 'jumlah_beli_kemasan',
+    'jumlah_beli_kemasan': 'jumlah_beli_kemasan',
+    'qty_kemasan': 'jumlah_beli_kemasan',
+    'jumlah_kemasan': 'jumlah_beli_kemasan',
+    
+    'satuan kemasan': 'satuan_kemasan',
+    'satuan_kemasan': 'satuan_kemasan',
+    'unit_kemasan': 'satuan_kemasan',
+    
+    'harga total beli kemasan': 'harga_total_beli_kemasan',
+    'harga_total_beli_kemasan': 'harga_total_beli_kemasan',
+    'total_harga': 'harga_total_beli_kemasan',
+    'harga_total': 'harga_total_beli_kemasan'
+  };
+
+  // Validate bahan baku data
+  const validateBahanBaku = (data: any): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (!data.nama_bahan_baku?.trim()) {
+      errors.push('Nama bahan baku harus diisi');
+    }
+
+    if (!data.kategori?.trim()) {
+      errors.push('Kategori harus diisi');
+    }
+
+    if (!data.supplier?.trim()) {
+      errors.push('Supplier harus diisi');
+    }
+
+    if (!data.satuan?.trim()) {
+      errors.push('Satuan harus diisi');
+    }
+
+    if (isNaN(data.stok_saat_ini) || data.stok_saat_ini < 0) {
+      errors.push('Stok saat ini harus berupa angka >= 0');
+    }
+
+    if (isNaN(data.minimum_stok) || data.minimum_stok < 0) {
+      errors.push('Minimum stok harus berupa angka >= 0');
+    }
+
+    if (isNaN(data.jumlah_beli_kemasan) || data.jumlah_beli_kemasan <= 0) {
+      errors.push('Jumlah beli kemasan harus berupa angka > 0');
+    }
+
+    if (!data.satuan_kemasan?.trim()) {
+      errors.push('Satuan kemasan harus diisi');
+    }
+
+    if (isNaN(data.harga_total_beli_kemasan) || data.harga_total_beli_kemasan <= 0) {
+      errors.push('Harga total beli kemasan harus berupa angka > 0');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
+  // Parse CSV content
+  const parseCSV = (text: string): string[][] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const result: string[][] = [];
+
+    for (const line of lines) {
+      const columns: string[] = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          columns.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      columns.push(current.trim());
+      result.push(columns);
+    }
+
+    return result;
+  };
 
   // Handle file selection
   const handleFileSelect = (file: File) => {
@@ -78,7 +195,7 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
-        parseImportData(text, file.type);
+        parseImportData(text);
       } catch (error) {
         console.error('Error reading file:', error);
         toast.error('Gagal membaca file');
@@ -86,64 +203,80 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
       }
     };
     
-    reader.readAsText(file);
+    reader.readAsText(file, 'UTF-8');
   };
 
   // Parse import data
-  const parseImportData = (text: string, fileType: string) => {
+  const parseImportData = (text: string) => {
     try {
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length < 2) {
+      const rows = parseCSV(text);
+      
+      if (rows.length < 2) {
         toast.error('File harus memiliki header dan minimal 1 baris data');
         setIsProcessing(false);
         return;
       }
 
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const requiredHeaders = ['nama', 'kategori', 'supplier', 'stok', 'minimum', 'satuan', 'harga'];
-      
-      // Check required headers
-      const missingHeaders = requiredHeaders.filter(h => 
-        !headers.some(header => header.toLowerCase().includes(h))
-      );
-      
-      if (missingHeaders.length > 0) {
-        toast.error(`Header yang diperlukan tidak ditemukan: ${missingHeaders.join(', ')}`);
+      // Map headers
+      const rawHeaders = rows[0].map(h => h.toLowerCase().trim());
+      const mappedHeaders = rawHeaders.map(header => {
+        const mapped = columnMapping[header];
+        return mapped || header;
+      });
+
+      // Check required columns
+      const missingColumns: string[] = [];
+      for (const required of requiredColumns) {
+        if (!mappedHeaders.includes(required)) {
+          missingColumns.push(required);
+        }
+      }
+
+      if (missingColumns.length > 0) {
+        toast.error(`Kolom yang diperlukan tidak ditemukan: ${missingColumns.join(', ')}`);
         setIsProcessing(false);
         return;
       }
 
-      const valid: any[] = [];
+      const valid: BahanBaku[] = [];
       const invalid: any[] = [];
       const errors: string[] = [];
 
       // Parse data rows
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      for (let i = 1; i < rows.length; i++) {
+        const values = rows[i];
         
-        if (values.length !== headers.length) {
-          errors.push(`Baris ${i + 1}: Jumlah kolom tidak sesuai`);
+        if (values.length !== rawHeaders.length) {
+          errors.push(`Baris ${i + 1}: Jumlah kolom tidak sesuai dengan header`);
           continue;
         }
 
         const rowData: any = {};
-        headers.forEach((header, index) => {
-          const key = header.toLowerCase();
-          let value = values[index];
+        
+        // Map values to proper columns
+        for (let j = 0; j < mappedHeaders.length; j++) {
+          const column = mappedHeaders[j];
+          let value = values[j]?.replace(/"/g, '').trim();
           
           // Convert numeric fields
-          if (['stok', 'minimum', 'harga'].includes(key)) {
-            const numValue = parseFloat(value);
-            rowData[key] = isNaN(numValue) ? 0 : numValue;
+          if (['stok_saat_ini', 'minimum_stok', 'jumlah_beli_kemasan', 'harga_total_beli_kemasan'].includes(column)) {
+            const numValue = parseFloat(value?.replace(/[,]/g, '') || '0');
+            rowData[column] = isNaN(numValue) ? 0 : numValue;
           } else {
-            rowData[key] = value;
+            rowData[column] = value || '';
           }
-        });
+        }
+
+        // Calculate derived fields
+        if (rowData.harga_total_beli_kemasan > 0 && rowData.jumlah_beli_kemasan > 0) {
+          rowData.harga_per_kemasan = rowData.harga_total_beli_kemasan / rowData.jumlah_beli_kemasan;
+          rowData.harga_per_satuan = rowData.harga_per_kemasan; // Simplified calculation
+        }
 
         // Validate row data
-        const validation = warehouseUtils.validateBahanBaku(rowData);
+        const validation = validateBahanBaku(rowData);
         if (validation.isValid) {
-          valid.push(rowData);
+          valid.push(rowData as BahanBaku);
         } else {
           invalid.push({ ...rowData, errors: validation.errors });
           errors.push(`Baris ${i + 1}: ${validation.errors.join(', ')}`);
@@ -191,16 +324,11 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
     setIsProcessing(true);
     
     try {
-      let successCount = 0;
+      const success = await onImport(importPreview.valid);
       
-      for (const item of importPreview.valid) {
-        const success = await onImport(item);
-        if (success) successCount++;
-      }
-
-      if (successCount > 0) {
-        toast.success(`${successCount} item berhasil diimpor`);
-        onClose();
+      if (success) {
+        toast.success(`${importPreview.valid.length} bahan baku berhasil diimpor`);
+        handleClose();
       } else {
         toast.error('Gagal mengimpor data');
       }
@@ -213,35 +341,52 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
     }
   };
 
-  // Execute export
-  const executeExport = () => {
-    const exportData = exportScope === 'selected' ? selectedData : data;
-    
-    if (exportData.length === 0) {
-      toast.error('Tidak ada data untuk diekspor');
-      return;
-    }
+  // Generate and download template
+  const downloadTemplate = () => {
+    const headers = [
+      'nama_bahan_baku',
+      'kategori',
+      'supplier', 
+      'satuan',
+      'tanggal_kadaluarsa',
+      'stok_saat_ini',
+      'minimum_stok',
+      'jumlah_beli_kemasan',
+      'satuan_kemasan',
+      'harga_total_beli_kemasan'
+    ];
 
-    setIsProcessing(true);
-    
-    try {
-      onExport(exportData, selectedFormat);
-      toast.success(`Data berhasil diekspor dalam format ${selectedFormat.toUpperCase()}`);
-      onClose();
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Gagal mengekspor data');
-    } finally {
-      setIsProcessing(false);
-    }
+    const sampleData = [
+      'Tepung Terigu',
+      'Bahan Dasar',
+      'PT Supplier A',
+      'gram',
+      '2024-12-31',
+      '5000',
+      '1000', 
+      '2',
+      'kg',
+      '150000'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      sampleData.map(value => `"${value}"`).join(',')
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_import_bahan_baku.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Reset state when dialog closes
   const handleClose = () => {
     setImportPreview(null);
     setIsProcessing(false);
-    setSelectedFormat('csv');
-    setExportScope('all');
     onClose();
   };
 
@@ -249,25 +394,18 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isImportMode ? 'bg-green-100' : 'bg-blue-100'
-            }`}>
-              <icon className={`w-5 h-5 ${
-                isImportMode ? 'text-green-600' : 'text-blue-600'
-              }`} />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-green-100">
+              <Upload className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Import Bahan Baku</h2>
               <p className="text-sm text-gray-600">
-                {isImportMode 
-                  ? 'Import data dari file CSV atau Excel' 
-                  : 'Export data ke berbagai format file'
-                }
+                Import data bahan baku dari file CSV atau Excel
               </p>
             </div>
           </div>
@@ -283,53 +421,49 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           
-          {isImportMode ? (
-            /* Import Section */
+          {/* File Upload Area */}
+          {!importPreview && (
             <div className="space-y-6">
-              
-              {/* File Upload Area */}
-              {!importPreview && (
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    dragOver 
-                      ? 'border-green-400 bg-green-50' 
-                      : 'border-gray-300 hover:border-green-400'
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <div className="flex flex-col items-center">
-                    <Upload className={`w-12 h-12 mb-4 ${
-                      dragOver ? 'text-green-500' : 'text-gray-400'
-                    }`} />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {dragOver ? 'Lepaskan file di sini' : 'Upload File'}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Drag & drop file CSV atau Excel, atau klik untuk browse
-                    </p>
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isProcessing}
-                      className="flex items-center gap-2"
-                    >
-                      <FileSpreadsheet className="w-4 h-4" />
-                      Pilih File
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv,.xlsx,.xls"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file);
-                      }}
-                      className="hidden"
-                    />
-                  </div>
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  dragOver 
+                    ? 'border-green-400 bg-green-50' 
+                    : 'border-gray-300 hover:border-green-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center">
+                  <Upload className={`w-12 h-12 mb-4 ${
+                    dragOver ? 'text-green-500' : 'text-gray-400'
+                  }`} />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {dragOver ? 'Lepaskan file di sini' : 'Upload File Bahan Baku'}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Drag & drop file CSV atau Excel, atau klik untuk browse
+                  </p>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Pilih File
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileSelect(file);
+                    }}
+                    className="hidden"
+                  />
                 </div>
-              )}
+              </div>
 
               {/* Template Download */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -342,235 +476,130 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     <p className="text-sm text-blue-700 mb-3">
                       Download template CSV untuk memastikan format data yang benar.
                     </p>
+                    <div className="text-xs text-blue-600 mb-3 space-y-1">
+                      <div><strong>Kolom yang diperlukan:</strong></div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>• nama_bahan_baku</div>
+                        <div>• kategori</div>
+                        <div>• supplier</div>
+                        <div>• satuan</div>
+                        <div>• tanggal_kadaluarsa</div>
+                        <div>• stok_saat_ini</div>
+                        <div>• minimum_stok</div>
+                        <div>• jumlah_beli_kemasan</div>
+                        <div>• satuan_kemasan</div>
+                        <div>• harga_total_beli_kemasan</div>
+                      </div>
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        // Create and download template
-                        const template = 'nama,kategori,supplier,stok,minimum,satuan,harga,expiry\n"Contoh Bahan","Kategori A","Supplier 1",100,10,"kg",5000,"2024-12-31"';
-                        const blob = new Blob([template], { type: 'text/csv' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'template_import_bahan_baku.csv';
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}
+                      onClick={downloadTemplate}
                       className="text-blue-600 border-blue-300 hover:bg-blue-50"
                     >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Template
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download Template CSV
                     </Button>
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Import Preview */}
-              {importPreview && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">Preview Data</h3>
-                  
-                  {/* Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <div>
-                          <p className="text-sm text-green-600">Data Valid</p>
-                          <p className="text-2xl font-bold text-green-900">
-                            {importPreview.valid.length}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 text-red-600" />
-                        <div>
-                          <p className="text-sm text-red-600">Data Error</p>
-                          <p className="text-2xl font-bold text-red-900">
-                            {importPreview.invalid.length}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div>
-                        <p className="text-sm text-blue-600">Total Baris</p>
-                        <p className="text-2xl font-bold text-blue-900">
-                          {importPreview.valid.length + importPreview.invalid.length}
-                        </p>
-                      </div>
+          {/* Import Preview */}
+          {importPreview && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Preview Data Import</h3>
+              
+              {/* Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="text-sm text-green-600">Data Valid</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {importPreview.valid.length}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Error List */}
-                  {importPreview.errors.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <h4 className="font-medium text-red-900 mb-2">
-                        Error yang Ditemukan:
-                      </h4>
-                      <div className="max-h-40 overflow-y-auto">
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {importPreview.errors.slice(0, 10).map((error, index) => (
-                            <li key={index}>• {error}</li>
-                          ))}
-                          {importPreview.errors.length > 10 && (
-                            <li className="italic">... dan {importPreview.errors.length - 10} error lainnya</li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Valid Data Preview */}
-                  {importPreview.valid.length > 0 && (
+                </div>
+                
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-3">
-                        Preview Data Valid (5 pertama):
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full border border-gray-200 rounded-lg">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Nama</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Kategori</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Stok</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Harga</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {importPreview.valid.slice(0, 5).map((item, index) => (
-                              <tr key={index}>
-                                <td className="px-3 py-2 text-sm text-gray-900">{item.nama}</td>
-                                <td className="px-3 py-2 text-sm text-gray-600">{item.kategori}</td>
-                                <td className="px-3 py-2 text-sm text-gray-600">{item.stok} {item.satuan}</td>
-                                <td className="px-3 py-2 text-sm text-gray-600">{warehouseUtils.formatCurrency(item.harga)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <p className="text-sm text-red-600">Data Error</p>
+                      <p className="text-2xl font-bold text-red-900">
+                        {importPreview.invalid.length}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div>
+                    <p className="text-sm text-blue-600">Total Baris</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {importPreview.valid.length + importPreview.invalid.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error List */}
+              {importPreview.errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-medium text-red-900 mb-2">
+                    Error yang Ditemukan:
+                  </h4>
+                  <div className="max-h-40 overflow-y-auto">
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {importPreview.errors.slice(0, 10).map((error, index) => (
+                        <li key={index}>• {error}</li>
+                      ))}
+                      {importPreview.errors.length > 10 && (
+                        <li className="italic">... dan {importPreview.errors.length - 10} error lainnya</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               )}
-            </div>
-          ) : (
-            /* Export Section */
-            <div className="space-y-6">
-              
-              {/* Export Options */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Opsi Export</h3>
-                
-                {/* Data Scope */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Data yang akan diekspor:
-                  </label>
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="all"
-                        checked={exportScope === 'all'}
-                        onChange={(e) => setExportScope(e.target.value as 'all' | 'selected')}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                      />
-                      <span className="ml-3 text-sm text-gray-700">
-                        Semua data ({data.length} item)
-                      </span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="selected"
-                        checked={exportScope === 'selected'}
-                        onChange={(e) => setExportScope(e.target.value as 'all' | 'selected')}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                        disabled={selectedData.length === 0}
-                      />
-                      <span className={`ml-3 text-sm ${
-                        selectedData.length === 0 ? 'text-gray-400' : 'text-gray-700'
-                      }`}>
-                        Hanya data yang dipilih ({selectedData.length} item)
-                      </span>
-                    </label>
-                  </div>
-                </div>
 
-                {/* Format Selection */}
+              {/* Valid Data Preview */}
+              {importPreview.valid.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Format file:
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {exportFormats.map((format) => (
-                      <label
-                        key={format.value}
-                        className={`relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                          selectedFormat === format.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          value={format.value}
-                          checked={selectedFormat === format.value}
-                          onChange={(e) => setSelectedFormat(e.target.value)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                        />
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {format.label}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {format.description}
-                          </div>
-                        </div>
-                      </label>
-                    ))}
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Preview Data Valid (5 pertama):
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border border-gray-200 rounded-lg text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Nama Bahan</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Kategori</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Supplier</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Stok</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Min Stock</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Harga Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {importPreview.valid.slice(0, 5).map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-3 py-2 text-gray-900">{item.nama_bahan_baku}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.kategori}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.supplier}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.stok_saat_ini} {item.satuan}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.minimum_stok} {item.satuan}</td>
+                            <td className="px-3 py-2 text-gray-600">Rp {item.harga_total_beli_kemasan?.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </div>
-
-              {/* Export Preview */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">
-                  Preview Export
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Jumlah Item:</span>
-                    <span className="font-medium ml-2">
-                      {exportScope === 'selected' ? selectedData.length : data.length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Format:</span>
-                    <span className="font-medium ml-2">{selectedFormat.toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Total Nilai:</span>
-                    <span className="font-medium ml-2">
-                      {warehouseUtils.formatCurrency(
-                        (exportScope === 'selected' ? selectedData : data)
-                          .reduce((sum, item) => sum + (item.stok * item.harga), 0)
-                      )}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Ukuran Estimasi:</span>
-                    <span className="font-medium ml-2">
-                      ~{Math.round((exportScope === 'selected' ? selectedData.length : data.length) * 0.5)}KB
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -586,58 +615,37 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             Batal
           </Button>
           
-          {isImportMode ? (
-            <>
-              {importPreview && (
-                <Button
-                  onClick={() => setImportPreview(null)}
-                  variant="outline"
-                  disabled={isProcessing}
-                >
-                  Pilih File Lain
-                </Button>
-              )}
-              <Button
-                onClick={executeImport}
-                disabled={!importPreview || importPreview.valid.length === 0 || isProcessing}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    Mengimpor...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Import {importPreview?.valid.length || 0} Item
-                  </>
-                )}
-              </Button>
-            </>
-          ) : (
+          {importPreview && (
             <Button
-              onClick={executeExport}
-              disabled={isProcessing || (exportScope === 'selected' && selectedData.length === 0)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setImportPreview(null)}
+              variant="outline"
+              disabled={isProcessing}
             >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Mengekspor...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Export Data
-                </>
-              )}
+              Pilih File Lain
             </Button>
           )}
+          
+          <Button
+            onClick={executeImport}
+            disabled={!importPreview || importPreview.valid.length === 0 || isProcessing}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+          >
+            {isProcessing ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                Mengimpor...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Import {importPreview?.valid.length || 0} Bahan Baku
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ImportExportDialog;
+export default BahanBakuImportDialog;

@@ -1,4 +1,4 @@
-// 🎯 Fixed useOrderData - Mengatasi subscription errors
+// 🎯 200 lines - CRUD + Real-time dengan semua logika asli
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,60 +21,15 @@ export const useOrderData = (
   
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMountedRef = useRef<boolean>(true);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const retryCountRef = useRef<number>(0);
-  const maxRetries = 3;
 
-  // ===== PERBAIKAN SUBSCRIPTION LOGIC =====
-
-  // Clean up subscription dengan lebih robust
-  const cleanupSubscription = useCallback(() => {
-    if (subscriptionRef.current) {
-      logger.context('OrderData', 'Cleaning up subscription');
-      try {
-        // Unsubscribe first, then remove channel
-        subscriptionRef.current.unsubscribe();
-        supabase.removeChannel(subscriptionRef.current);
-      } catch (error) {
-        logger.error('OrderData', 'Error during subscription cleanup:', error);
-      } finally {
-        subscriptionRef.current = null;
-      }
-    }
-
-    // Clear retry timeout
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-  }, []);
-
-  // Retry logic untuk connection failures
-  const retrySubscription = useCallback(() => {
-    if (retryCountRef.current < maxRetries && isMountedRef.current && user) {
-      retryCountRef.current++;
-      const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 10000); // Exponential backoff
-      
-      logger.context('OrderData', `Retrying subscription in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
-      
-      retryTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          setupSubscription();
-        }
-      }, delay);
-    } else {
-      logger.context('OrderData', 'Max retries reached or component unmounted');
-      setIsConnected(false);
-    }
-  }, [user]);
-
-  // CRUD Operations tetap sama seperti sebelumnya...
+  // CRUD Operations dengan logika asli lengkap
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk membuat pesanan');
       return false;
     }
 
+    // Validation dengan logika asli
     const validation = validateOrderData(order);
     if (!validation.isValid) {
       validation.errors.forEach(error => toast.error(error));
@@ -84,6 +39,7 @@ export const useOrderData = (
     try {
       logger.context('OrderData', 'Adding new order:', order.namaPelanggan);
 
+      // Safe data preparation seperti kode asli
       const orderData = {
         user_id: user.id,
         tanggal: toSafeISOString(order.tanggal || new Date()),
@@ -107,6 +63,7 @@ export const useOrderData = (
 
       const createdOrder = Array.isArray(data) ? data[0] : data;
       if (createdOrder) {
+        // Activity log seperti kode asli
         if (addActivity && typeof addActivity === 'function') {
           addActivity({ 
             title: 'Pesanan Baru Dibuat', 
@@ -117,6 +74,7 @@ export const useOrderData = (
 
         toast.success(`Pesanan #${createdOrder.nomor_pesanan} baru berhasil ditambahkan!`);
 
+        // Notification seperti kode asli
         if (addNotification && typeof addNotification === 'function') {
           await addNotification({
             title: '🛍️ Pesanan Baru Dibuat!',
@@ -141,9 +99,156 @@ export const useOrderData = (
     }
   }, [user, addActivity, addNotification]);
 
-  // ... (updateOrder dan deleteOrder methods sama seperti sebelumnya)
+  const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login.');
+      return false;
+    }
 
-  // Fetch orders dengan error handling yang lebih baik
+    const oldOrder = orders.find(o => o.id === id);
+    if (!oldOrder) {
+      toast.error('Pesanan tidak ditemukan.');
+      return false;
+    }
+
+    try {
+      logger.context('OrderData', 'Updating order:', id, updatedData);
+
+      const oldStatus = oldOrder.status;
+      const newStatus = updatedData.status;
+      const isCompletingOrder = oldStatus !== 'completed' && newStatus === 'completed';
+
+      if (isCompletingOrder) {
+        // Complete order dengan stock deduction seperti kode asli
+        const { error: rpcError } = await supabase.rpc('complete_order_and_deduct_stock', { 
+          order_id: id 
+        });
+        if (rpcError) throw new Error(rpcError.message);
+
+        // Add financial transaction seperti kode asli
+        try {
+          const incomeCategory = settings?.financialCategories?.income?.[0] || 'Penjualan Produk';
+          if (addFinancialTransaction && typeof addFinancialTransaction === 'function') {
+            await addFinancialTransaction({
+              type: 'income',
+              category: incomeCategory,
+              description: `Penjualan dari pesanan #${oldOrder.nomorPesanan}`,
+              amount: oldOrder.totalPesanan,
+              date: new Date(),
+              relatedId: oldOrder.id,
+            });
+          }
+        } catch (financialError) {
+          console.error('OrderData: Error adding financial transaction:', financialError);
+        }
+
+        // Activity log dan notifications seperti kode asli
+        if (addActivity && typeof addActivity === 'function') {
+          addActivity({
+            title: 'Pesanan Selesai',
+            description: `Pesanan #${oldOrder.nomorPesanan} lunas, stok diperbarui.`,
+            type: 'order',
+          });
+        }
+
+        toast.success(`Pesanan #${oldOrder.nomorPesanan} selesai, stok dikurangi, & pemasukan dicatat!`);
+
+        if (addNotification && typeof addNotification === 'function') {
+          await addNotification({
+            title: '🎉 Pesanan Selesai!',
+            message: `Pesanan #${oldOrder.nomorPesanan} telah selesai. Revenue ${formatCurrency(oldOrder.totalPesanan)} tercatat dan stok diperbarui.`,
+            type: 'success',
+            icon: 'check-circle',
+            priority: 2,
+            related_type: 'order',
+            related_id: id,
+            action_url: '/orders',
+            is_read: false,
+            is_archived: false
+          });
+        }
+
+      } else {
+        // Regular update seperti kode asli
+        const dbData = transformOrderToDB(updatedData);
+        const { error } = await supabase
+          .from('orders')
+          .update(dbData)
+          .eq('id', id)
+          .eq('user_id', user.id);
+        
+        if (error) throw new Error(error.message);
+
+        toast.success(`Pesanan #${oldOrder.nomorPesanan} berhasil diperbarui.`);
+
+        // Status change notification seperti kode asli
+        if (newStatus && oldStatus !== newStatus && addNotification && typeof addNotification === 'function') {
+          await addNotification({
+            title: '📝 Status Pesanan Diubah',
+            message: `Pesanan #${oldOrder.nomorPesanan} dari "${getStatusText(oldStatus)}" menjadi "${getStatusText(newStatus)}"`,
+            type: 'info',
+            icon: 'refresh-cw',
+            priority: 2,
+            related_type: 'order',
+            related_id: id,
+            action_url: '/orders',
+            is_read: false,
+            is_archived: false
+          });
+        }
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData - Error updating order:', error);
+      toast.error(`Gagal memperbarui pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification]);
+
+  const deleteOrder = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk menghapus pesanan');
+      return false;
+    }
+
+    const orderToDelete = orders.find(o => o.id === id);
+    if (!orderToDelete) {
+      toast.error('Pesanan tidak ditemukan.');
+      return false;
+    }
+
+    try {
+      logger.context('OrderData', 'Deleting order:', id);
+
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw new Error(error.message);
+
+      // Activity log seperti kode asli
+      if (addActivity && typeof addActivity === 'function') {
+        addActivity({ 
+          title: 'Pesanan Dihapus', 
+          description: `Pesanan #${orderToDelete.nomorPesanan} telah dihapus`, 
+          type: 'order' 
+        });
+      }
+
+      toast.success('Pesanan berhasil dihapus.');
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData - Error deleting order:', error);
+      toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  }, [user, orders, addActivity]);
+
+  // Fetch orders dengan logika asli
   const fetchOrders = useCallback(async () => {
     if (!user || !isMountedRef.current) {
       setOrders([]);
@@ -165,6 +270,7 @@ export const useOrderData = (
 
       if (!isMountedRef.current) return;
 
+      // Safe transformation dengan error handling seperti kode asli
       const transformedData = data
         .map(item => {
           try {
@@ -191,146 +297,90 @@ export const useOrderData = (
     }
   }, [user]);
 
-  // ===== IMPROVED SUBSCRIPTION SETUP =====
+  // Real-time subscription dengan logika asli
   const setupSubscription = useCallback(() => {
-    if (!user || !isMountedRef.current) {
-      logger.context('OrderData', 'Cannot setup subscription: no user or component unmounted');
-      return;
-    }
+    if (!user || !isMountedRef.current) return;
 
-    // Clean up any existing subscription first
-    cleanupSubscription();
+    // Clean up existing subscription seperti kode asli
+    if (subscriptionRef.current) {
+      logger.context('OrderData', 'Cleaning up existing subscription');
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
 
     logger.context('OrderData', 'Setting up new subscription for user:', user.id);
 
     try {
-      // Create unique channel name to avoid conflicts
-      const channelName = `orders_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
       const channel = supabase
-        .channel(channelName, {
-          config: {
-            presence: {
-              key: user.id,
-            },
-          },
-        })
+        .channel(`orders_changes_${user.id}_${Date.now()}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'orders',
           filter: `user_id=eq.${user.id}`,
         }, (payload) => {
-          if (!isMountedRef.current) {
-            logger.context('OrderData', 'Ignoring real-time event: component unmounted');
-            return;
-          }
+          if (!isMountedRef.current) return;
           
           logger.context('OrderData', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
           
-          // Reset retry count on successful message
-          retryCountRef.current = 0;
-          
+          // Safe real-time state updates seperti kode asli
           setOrders((prevOrders) => {
             try {
               let newOrders = [...prevOrders];
               
               if (payload.eventType === 'DELETE' && payload.old?.id) {
                 newOrders = newOrders.filter((item) => item.id !== payload.old.id);
-                logger.context('OrderData', 'Order deleted from real-time:', payload.old.id);
               }
               
               if (payload.eventType === 'INSERT' && payload.new) {
-                try {
-                  const newOrder = transformOrderFromDB(payload.new);
-                  newOrders = [newOrder, ...newOrders].sort((a, b) => 
-                    new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-                  );
-                  logger.context('OrderData', 'Order added from real-time:', newOrder.id);
-                } catch (transformError) {
-                  logger.error('OrderData', 'Error transforming new order:', transformError);
-                }
+                const newOrder = transformOrderFromDB(payload.new);
+                newOrders = [newOrder, ...newOrders].sort((a, b) => 
+                  new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+                );
               }
               
               if (payload.eventType === 'UPDATE' && payload.new) {
-                try {
-                  const updatedOrder = transformOrderFromDB(payload.new);
-                  newOrders = newOrders.map((item) =>
-                    item.id === updatedOrder.id ? updatedOrder : item
-                  );
-                  logger.context('OrderData', 'Order updated from real-time:', updatedOrder.id);
-                } catch (transformError) {
-                  logger.error('OrderData', 'Error transforming updated order:', transformError);
-                }
+                const updatedOrder = transformOrderFromDB(payload.new);
+                newOrders = newOrders.map((item) =>
+                  item.id === updatedOrder.id ? updatedOrder : item
+                );
               }
               
               return newOrders;
             } catch (error) {
-              logger.error('OrderData', 'Error processing real-time update:', error);
+              console.error('OrderData: Error processing real-time update:', error);
               return prevOrders;
             }
           });
         })
-        .subscribe((status, err) => {
+        .subscribe((status) => {
           if (!isMountedRef.current) return;
           
-          logger.context('OrderData', 'Subscription status:', status, err ? { error: err } : '');
+          logger.context('OrderData', 'Subscription status:', status);
           
           switch (status) {
             case 'SUBSCRIBED':
               setIsConnected(true);
               subscriptionRef.current = channel;
-              retryCountRef.current = 0; // Reset retry count on success
-              // Fetch initial data after successful subscription
               fetchOrders();
-              logger.context('OrderData', 'Successfully subscribed to real-time updates');
               break;
               
             case 'CHANNEL_ERROR':
-              logger.error('OrderData', 'Channel error:', err);
-              setIsConnected(false);
-              subscriptionRef.current = null;
-              retrySubscription();
-              break;
-              
             case 'TIMED_OUT':
-              logger.error('OrderData', 'Subscription timed out');
-              setIsConnected(false);
-              subscriptionRef.current = null;
-              retrySubscription();
-              break;
-              
             case 'CLOSED':
-              logger.context('OrderData', 'Subscription closed');
-              setIsConnected(false);
+              logger.error('OrderData', 'Subscription error:', status);
               subscriptionRef.current = null;
-              // Don't retry on intentional close
+              setIsConnected(false);
               break;
-              
-            default:
-              logger.context('OrderData', 'Unknown subscription status:', status);
           }
         });
-
     } catch (error) {
       logger.error('OrderData', 'Error setting up subscription:', error);
       setIsConnected(false);
-      retrySubscription();
     }
-  }, [user, fetchOrders, cleanupSubscription, retrySubscription]);
+  }, [user, fetchOrders]);
 
-  // Connection health check
-  const checkConnectionHealth = useCallback(() => {
-    if (!user || !isMountedRef.current) return;
-
-    // If not connected and no active subscription, try to reconnect
-    if (!isConnected && !subscriptionRef.current) {
-      logger.context('OrderData', 'Connection health check: attempting reconnect');
-      setupSubscription();
-    }
-  }, [user, isConnected, setupSubscription]);
-
-  // Bulk operations dan utility functions tetap sama...
+  // Bulk operations
   const bulkUpdateStatus = useCallback(async (orderIds: string[], newStatus: string): Promise<boolean> => {
     if (!user || !Array.isArray(orderIds) || orderIds.length === 0) {
       toast.error('Tidak ada pesanan yang dipilih');
@@ -354,61 +404,30 @@ export const useOrderData = (
     }
   }, [user]);
 
-  // ===== EFFECTS WITH IMPROVED ERROR HANDLING =====
-  
-  // Main effect for user changes
-  useEffect(() => {
-    if (!user) {
-      logger.context('OrderData', 'User logged out, cleaning up');
-      cleanupSubscription();
-      setOrders([]);
-      setLoading(false);
-      setIsConnected(false);
-      retryCountRef.current = 0;
-      return;
+  const bulkDeleteOrders = useCallback(async (orderIds: string[]): Promise<boolean> => {
+    if (!user || !Array.isArray(orderIds) || orderIds.length === 0) {
+      toast.error('Tidak ada pesanan yang dipilih');
+      return false;
     }
 
-    logger.context('OrderData', 'User changed, setting up subscription');
-    setupSubscription();
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', orderIds)
+        .eq('user_id', user.id);
 
-    return () => {
-      cleanupSubscription();
-    };
-  }, [user?.id, setupSubscription, cleanupSubscription]);
+      if (error) throw new Error(error.message);
 
-  // Component mount/unmount tracking
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-      cleanupSubscription();
-    };
-  }, [cleanupSubscription]);
-
-  // Periodic connection health check
-  useEffect(() => {
-    if (!user) return;
-
-    const healthCheckInterval = setInterval(checkConnectionHealth, 30000); // Check every 30 seconds
-
-    return () => {
-      clearInterval(healthCheckInterval);
-    };
-  }, [user, checkConnectionHealth]);
-
-  // Manual refresh function
-  const refreshData = useCallback(async () => {
-    logger.context('OrderData', 'Manual refresh requested');
-    await fetchOrders();
-    
-    // If not connected, try to reconnect
-    if (!isConnected && user) {
-      setupSubscription();
+      toast.success(`${orderIds.length} pesanan berhasil dihapus`);
+      return true;
+    } catch (error: any) {
+      toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
+      return false;
     }
-  }, [fetchOrders, isConnected, user, setupSubscription]);
+  }, [user]);
 
-  // Utility functions tetap sama...
+  // Utility functions
   const getOrderById = useCallback((id: string): Order | undefined => {
     return orders.find(order => order.id === id);
   }, [orders]);
@@ -440,18 +459,52 @@ export const useOrderData = (
     }
   }, [orders]);
 
+  // Effects
+  useEffect(() => {
+    if (!user) {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      setOrders([]);
+      setLoading(false);
+      setIsConnected(false);
+      return;
+    }
+
+    setupSubscription();
+
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, [user?.id, setupSubscription]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshData = useCallback(async () => {
+    await fetchOrders();
+  }, [fetchOrders]);
+
   return {
     orders,
     loading,
     isConnected,
     addOrder,
-    updateOrder: async () => false, // Implement sesuai kebutuhan
-    deleteOrder: async () => false, // Implement sesuai kebutuhan
+    updateOrder,
+    deleteOrder,
     refreshData,
     getOrderById,
     getOrdersByStatus,
     getOrdersByDateRange,
     bulkUpdateStatus,
-    bulkDeleteOrders: async () => false, // Implement sesuai kebutuhan
+    bulkDeleteOrders
   };
 };

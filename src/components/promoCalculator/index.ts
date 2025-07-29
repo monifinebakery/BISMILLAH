@@ -10,9 +10,10 @@ export { default as PromoPreview } from './calculator/PromoPreview';
 export { default as PromoTypeSelector } from './calculator/PromoTypeSelector';
 
 // === CALCULATOR FORMS ===
-export { default as BogoForm } from './calculator/forms/BogoForm';
-export { default as BundleForm } from './calculator/forms/BundleForm';
-export { default as DiscountForm } from './calculator/forms/DiscountForm';
+// ❌ REMOVED: Static imports yang konflik dengan lazy loading
+// export { default as BogoForm } from './calculator/forms/BogoForm';
+// export { default as BundleForm } from './calculator/forms/BundleForm';
+// export { default as DiscountForm } from './calculator/forms/DiscountForm';
 
 // === PROMO LIST COMPONENTS ===
 export { default as PromoList } from './promoList/PromoList';
@@ -27,6 +28,7 @@ export { default as PromoAnalytics } from './analytics/PromoAnalytics';
 
 // === REUSABLE UI COMPONENTS ===
 export * from './components';
+
 // Individual component exports
 export { default as BreakevenAnalysis } from './components/BreakevenAnalysis';
 export { default as ConfirmDialog } from './components/ConfirmDialog';
@@ -57,6 +59,7 @@ export * from './constants';
 
 // === UTILITIES ===
 export * from './utils';
+
 // Individual utility exports
 export { calculations } from './utils/calculations';
 export { formatters } from './utils/formatters';
@@ -77,3 +80,10 @@ export {
   PromoList as List,
   PromoAnalytics as Analytics 
 };
+
+// === FORMS - LAZY ONLY ===
+// Forms hanya tersedia melalui lazy loading di PromoTypeSelector
+// Untuk mengakses forms secara langsung (jika diperlukan), gunakan:
+// const BogoForm = lazy(() => import('./calculator/forms/BogoForm'));
+// const BundleForm = lazy(() => import('./calculator/forms/BundleForm'));
+// const DiscountForm = lazy(() => import('./calculator/forms/DiscountForm'));

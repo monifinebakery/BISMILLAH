@@ -4,7 +4,6 @@ import React, { useState, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ErrorBoundary } from 'react-error-boundary';
 
 // Context and hooks
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -26,10 +25,47 @@ const DeleteRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/
 const DuplicateRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('@/components/recipe/dialogs/CategoryManagerDialog'));
 
-// Error fallback component
-const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> = ({ 
+// Custom Error Boundary component
+class RecipeErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ComponentType<{ error: Error; resetError: () => void }> },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Recipe page error:', error, errorInfo);
+    
+    // You can integrate with error monitoring services here
+    if (process.env.NODE_ENV === 'production') {
+      // Example: Sentry.captureException(error);
+    }
+  }
+
+  resetError = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      const FallbackComponent = this.props.fallback || DefaultErrorFallback;
+      return <FallbackComponent error={this.state.error!} resetError={this.resetError} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+// Default Error fallback component
+const DefaultErrorFallback: React.FC<{ error: Error; resetError: () => void }> = ({ 
   error, 
-  resetErrorBoundary 
+  resetError 
 }) => (
   <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
     <Card className="max-w-md w-full shadow-xl">
@@ -50,7 +86,7 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
         
         <div className="space-y-3">
           <Button
-            onClick={resetErrorBoundary}
+            onClick={resetError}
             className="w-full bg-orange-500 hover:bg-orange-600"
           >
             Coba Lagi

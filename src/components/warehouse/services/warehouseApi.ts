@@ -1,10 +1,11 @@
-import { supabase } from '@/integrations/supabase/client';
+// src/components/warehouse/services/warehouseApi.ts (Updated for exact Supabase schema)
+import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
-import type { BahanBaku } from '../types';
+import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 /**
- * Warehouse API Service (Fixed for user_id column)
- * Handles database operations with proper column naming
+ * Warehouse API Service (Updated for exact Supabase column names)
+ * Handles transformation between database snake_case and frontend camelCase
  */
 
 interface ServiceConfig {
@@ -12,6 +13,51 @@ interface ServiceConfig {
   onError?: (error: string) => void;
   enableDebugLogs?: boolean;
 }
+
+// Data transformation helpers
+const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => ({
+  id: dbItem.id,
+  userId: dbItem.user_id,
+  nama: dbItem.nama,
+  kategori: dbItem.kategori,
+  stok: dbItem.stok,
+  minimum: dbItem.minimum,
+  satuan: dbItem.satuan,
+  harga: dbItem.harga_satuan,
+  supplier: dbItem.supplier,
+  expiry: dbItem.tanggal_kadaluwarsa,
+  createdAt: dbItem.created_at,
+  updatedAt: dbItem.updated_at,
+  jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
+  satuanKemasan: dbItem.satuan_kemasan,
+  hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
+});
+
+const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): Partial<BahanBaku> => {
+  const dbItem: Partial<BahanBaku> = {
+    nama: frontendItem.nama,
+    kategori: frontendItem.kategori,
+    stok: frontendItem.stok,
+    minimum: frontendItem.minimum,
+    satuan: frontendItem.satuan,
+    harga_satuan: frontendItem.harga,
+    supplier: frontendItem.supplier,
+    tanggal_kadaluwarsa: frontendItem.expiry,
+    jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan,
+    satuan_kemasan: frontendItem.satuanKemasan,
+    harga_total_beli_kemasan: frontendItem.hargaTotalBeliKemasan,
+  };
+
+  // Add user_id if provided
+  if (userId) {
+    dbItem.user_id = userId;
+  }
+
+  // Remove undefined values
+  return Object.fromEntries(
+    Object.entries(dbItem).filter(([_, value]) => value !== undefined)
+  ) as Partial<BahanBaku>;
+};
 
 // Service Factory
 export const warehouseApi = {
@@ -32,75 +78,42 @@ export const warehouseApi = {
 };
 
 /**
- * CRUD Service - Core database operations (Fixed for user_id)
+ * CRUD Service - Core database operations (Updated for exact schema)
  */
 class CrudService {
   constructor(private config: ServiceConfig) {}
 
-  async fetchBahanBaku(): Promise<BahanBaku[]> {
+  async fetchBahanBaku(): Promise<BahanBakuFrontend[]> {
     try {
       let query = supabase.from('bahan_baku').select('*');
       
-      // Use user_id (with underscore) for filtering
+      // Filter by user_id if provided
       if (this.config.userId) {
-        const { data, error } = await query.eq('user_id', this.config.userId).order('nama', { ascending: true });
-        
-        if (error) {
-          // If user_id column doesn't exist, fall back to fetching all data
-          if (error.message.includes('user_id') || error.message.includes('column')) {
-            logger.warn('user_id column not found, fetching all data');
-            const { data: allData, error: fallbackError } = await supabase
-              .from('bahan_baku')
-              .select('*')
-              .order('nama', { ascending: true });
-            
-            if (fallbackError) throw fallbackError;
-            return allData || [];
-          }
-          throw error;
-        }
-        
-        return data || [];
-      } else {
-        // No userId provided, fetch all data
-        const { data, error } = await query.order('nama', { ascending: true });
-        if (error) throw error;
-        return data || [];
+        query = query.eq('user_id', this.config.userId);
       }
+
+      const { data, error } = await query.order('nama', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Transform database format to frontend format
+      return (data || []).map(transformToFrontend);
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
     }
   }
 
-  async addBahanBaku(bahan: Omit<BahanBaku, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> {
+  async addBahanBaku(bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> {
     try {
-      const insertData: any = { ...bahan };
-      
-      // Add user_id (with underscore) if available
-      if (this.config.userId) {
-        insertData.user_id = this.config.userId;
-      }
+      // Transform frontend data to database format
+      const dbData = transformToDatabase(bahan, this.config.userId);
 
       const { error } = await supabase
         .from('bahan_baku')
-        .insert(insertData);
+        .insert(dbData);
 
-      if (error) {
-        // If user_id column doesn't exist, try without it
-        if (error.message.includes('user_id') || error.message.includes('column')) {
-          logger.warn('user_id column not found, inserting without user_id');
-          const { user_id, ...dataWithoutUserId } = insertData;
-          const { error: fallbackError } = await supabase
-            .from('bahan_baku')
-            .insert(dataWithoutUserId);
-          
-          if (fallbackError) throw fallbackError;
-          return true;
-        }
-        throw error;
-      }
-      
+      if (error) throw error;
       return true;
     } catch (error: any) {
       this.handleError('Add failed', error);
@@ -108,37 +121,27 @@ class CrudService {
     }
   }
 
-  async updateBahanBaku(id: string, updates: Partial<BahanBaku>): Promise<boolean> {
+  async updateBahanBaku(id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> {
     try {
-      // Remove userId from updates to avoid issues (it should be user_id in DB anyway)
-      const { userId, ...safeUpdates } = updates as any;
+      // Transform frontend updates to database format
+      const dbUpdates = transformToDatabase(updates);
       
+      // Remove user_id from updates to avoid changing ownership
+      delete dbUpdates.user_id;
+
       let query = supabase
         .from('bahan_baku')
-        .update(safeUpdates)
+        .update(dbUpdates)
         .eq('id', id);
 
       // Add user_id filter if available
       if (this.config.userId) {
-        const { error } = await query.eq('user_id', this.config.userId);
-        
-        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
-          // Fallback: update without user_id filter
-          const { error: fallbackError } = await supabase
-            .from('bahan_baku')
-            .update(safeUpdates)
-            .eq('id', id);
-          
-          if (fallbackError) throw fallbackError;
-          return true;
-        }
-        if (error) throw error;
-        return true;
-      } else {
-        const { error } = await query;
-        if (error) throw error;
-        return true;
+        query = query.eq('user_id', this.config.userId);
       }
+
+      const { error } = await query;
+      if (error) throw error;
+      return true;
     } catch (error: any) {
       this.handleError('Update failed', error);
       return false;
@@ -154,25 +157,12 @@ class CrudService {
 
       // Add user_id filter if available
       if (this.config.userId) {
-        const { error } = await query.eq('user_id', this.config.userId);
-        
-        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
-          // Fallback: delete without user_id filter
-          const { error: fallbackError } = await supabase
-            .from('bahan_baku')
-            .delete()
-            .eq('id', id);
-          
-          if (fallbackError) throw fallbackError;
-          return true;
-        }
-        if (error) throw error;
-        return true;
-      } else {
-        const { error } = await query;
-        if (error) throw error;
-        return true;
+        query = query.eq('user_id', this.config.userId);
       }
+
+      const { error } = await query;
+      if (error) throw error;
+      return true;
     } catch (error: any) {
       this.handleError('Delete failed', error);
       return false;
@@ -188,32 +178,19 @@ class CrudService {
 
       // Add user_id filter if available
       if (this.config.userId) {
-        const { error } = await query.eq('user_id', this.config.userId);
-        
-        if (error && (error.message.includes('user_id') || error.message.includes('column'))) {
-          // Fallback: delete without user_id filter
-          const { error: fallbackError } = await supabase
-            .from('bahan_baku')
-            .delete()
-            .in('id', ids);
-          
-          if (fallbackError) throw fallbackError;
-          return true;
-        }
-        if (error) throw error;
-        return true;
-      } else {
-        const { error } = await query;
-        if (error) throw error;
-        return true;
+        query = query.eq('user_id', this.config.userId);
       }
+
+      const { error } = await query;
+      if (error) throw error;
+      return true;
     } catch (error: any) {
       this.handleError('Bulk delete failed', error);
       return false;
     }
   }
 
-  async reduceStok(nama: string, jumlah: number, currentItems: BahanBaku[]): Promise<boolean> {
+  async reduceStok(nama: string, jumlah: number, currentItems: BahanBakuFrontend[]): Promise<boolean> {
     const item = currentItems.find(b => b.nama.toLowerCase() === nama.toLowerCase());
     if (!item) return false;
 
@@ -231,7 +208,7 @@ class CrudService {
 }
 
 /**
- * Subscription Service - Real-time updates (Fixed for user_id)
+ * Subscription Service - Real-time updates (Updated for exact schema)
  */
 class SubscriptionService {
   private subscription: any = null;
@@ -248,13 +225,16 @@ class SubscriptionService {
           event: '*',
           schema: 'public',
           table: 'bahan_baku',
-          // Use user_id (with underscore) for filtering
           filter: this.config.userId ? `user_id=eq.${this.config.userId}` : undefined
         }, (payload) => {
           if (this.config.enableDebugLogs) {
             logger.debug('Subscription update:', payload);
           }
-          // Handle real-time updates here
+          // Transform and handle real-time updates here
+          if (payload.new) {
+            const transformedData = transformToFrontend(payload.new as BahanBaku);
+            // Handle the transformed data
+          }
         })
         .subscribe((status) => {
           if (this.config.enableDebugLogs) {
@@ -263,6 +243,80 @@ class SubscriptionService {
         });
     } catch (error) {
       logger.warn('Subscription setup failed, continuing without real-time updates:', error);
+    }
+  }
+
+  cleanupSubscription() {
+    if (this.subscription) {
+      supabase.removeChannel(this.subscription);
+      this.subscription = null;
+    }
+  }
+}
+
+/**
+ * Cache Service - Simple in-memory caching
+ */
+class CacheService {
+  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+  constructor(private config: ServiceConfig) {}
+
+  set(key: string, data: any, ttlMinutes: number = 5) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: ttlMinutes * 60 * 1000
+    });
+  }
+
+  get(key: string) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+
+    if (Date.now() - item.timestamp > item.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.data;
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
+
+/**
+ * Alert Service - Notifications (Updated for frontend types)
+ */
+class AlertService {
+  constructor(private config: ServiceConfig) {}
+
+  processLowStockAlert(items: BahanBakuFrontend[]) {
+    const lowStockItems = items.filter(item => item.stok <= item.minimum);
+    if (lowStockItems.length > 0 && this.config.enableDebugLogs) {
+      logger.warn(`Low stock alert: ${lowStockItems.length} items`);
+    }
+  }
+
+  processExpiryAlert(items: BahanBakuFrontend[]) {
+    const expiringItems = items.filter(item => {
+      if (!item.expiry) return false;
+      const expiryDate = new Date(item.expiry);
+      const threshold = new Date();
+      threshold.setDate(threshold.getDate() + 7); // 7 days warning
+      return expiryDate <= threshold && expiryDate > new Date();
+    });
+
+    if (expiringItems.length > 0 && this.config.enableDebugLogs) {
+      logger.warn(`Expiry alert: ${expiringItems.length} items expiring soon`);
+    }
+  }
+}
+
+// Export transformation helpers for use in other parts of the app
+export { transformToFrontend, transformToDatabase }; without real-time updates:', error);
     }
   }
 

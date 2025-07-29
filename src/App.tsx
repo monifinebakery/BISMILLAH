@@ -33,7 +33,7 @@ const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 
 // ✅ UPDATE: Recipe Management dengan struktur modular baru
 const RecipesPage = React.lazy(() => 
-  import("@/pages/recipes")
+  import("@/pages/Recipes")
 );
 
 const WarehousePage = React.lazy(() => 

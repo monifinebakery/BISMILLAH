@@ -509,7 +509,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialog>
+        </AlertDialogContent>
       </AlertDialog>
     </>
   );

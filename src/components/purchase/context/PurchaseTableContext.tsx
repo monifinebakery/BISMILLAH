@@ -1,128 +1,184 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
-import { Purchase } from '@/types/supplier';
+// src/components/purchase/context/PurchaseTableContext.tsx
 
-interface PurchaseTableState {
-  // Search & Filter
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  
-  // Pagination
-  currentPage: number;
-  setCurrentPage: (page: number) => void;
-  itemsPerPage: number;
-  setItemsPerPage: (count: number) => void;
-  
-  // Selection
-  selectedPurchaseIds: string[];
-  setSelectedPurchaseIds: React.Dispatch<React.SetStateAction<string[]>>;
-  isSelectionMode: boolean;
-  setIsSelectionMode: (mode: boolean) => void;
-  
-  // Bulk Actions
-  showBulkDeleteDialog: boolean;
-  setShowBulkDeleteDialog: (show: boolean) => void;
-  
-  // Computed values
-  filteredPurchases: Purchase[];
-  currentItems: Purchase[];
-  totalPages: number;
-  allCurrentSelected: boolean;
-  someCurrentSelected: boolean;
-  
-  // Helper functions
-  toggleSelectAllCurrent: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  resetSelection: () => void;
-  resetPagination: () => void;
-}
-
-const PurchaseTableContext = createContext<PurchaseTableState | undefined>(undefined);
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import { Purchase, PurchaseStatus, PurchaseTableContextType } from '../types/purchase.types';
+import { toast } from 'sonner';
+import { usePurchase } from './PurchaseContext';
+import {
+  searchPurchases,
+  filterPurchasesByStatus,
+  sortPurchases,
+} from '../utils/purchaseHelpers';
 
 interface PurchaseTableProviderProps {
   children: ReactNode;
   purchases: Purchase[];
-  suppliers: any[];
+  suppliers?: Array<{ id: string; nama: string }>;
 }
 
+// Create context
+const PurchaseTableContext = createContext<PurchaseTableContextType | undefined>(undefined);
+
+// Provider component
 export const PurchaseTableProvider: React.FC<PurchaseTableProviderProps> = ({
   children,
   purchases,
-  suppliers
+  suppliers = [],
 }) => {
-  // State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [selectedPurchaseIds, setSelectedPurchaseIds] = useState<string[]>([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  // Local state for table functionality  
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PurchaseStatus | 'all'>('all');
+  const [sortField, setSortField] = useState<'tanggal' | 'totalNilai' | 'supplier' | 'status'>('tanggal');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
-  // Computed values
+  // Access purchase context for delete operations
+  const { deletePurchase } = usePurchase();
+
+  // Computed filtered and sorted purchases
   const filteredPurchases = useMemo(() => {
-    return purchases.filter(p => {
-      const supplierData = suppliers.find(s => s.id === p.supplier);
-      return supplierData?.nama.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
-    });
-  }, [purchases, suppliers, searchTerm]);
-
-  const currentItems = useMemo(() => {
-    const firstItem = (currentPage - 1) * itemsPerPage;
-    return filteredPurchases.slice(firstItem, firstItem + itemsPerPage);
-  }, [filteredPurchases, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
-  const allCurrentSelected = currentItems.length > 0 && currentItems.every(p => selectedPurchaseIds.includes(p.id));
-  const someCurrentSelected = currentItems.some(p => selectedPurchaseIds.includes(p.id)) && !allCurrentSelected;
-
-  // Helper functions
-  const toggleSelectAllCurrent = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedPurchaseIds(prev => [...new Set([...prev, ...currentItems.map(p => p.id)])]);
-    } else {
-      setSelectedPurchaseIds(prev => prev.filter(id => !currentItems.some(p => p.id === id)));
+    let result = purchases;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      result = searchPurchases(result, searchQuery);
     }
-  };
+    
+    // Apply status filter
+    result = filterPurchasesByStatus(result, statusFilter);
+    
+    // Apply sorting
+    result = sortPurchases(result, sortField, sortOrder);
+    
+    return result;
+  }, [purchases, searchQuery, statusFilter, sortField, sortOrder]);
 
-  const resetSelection = () => {
-    setSelectedPurchaseIds([]);
-    setIsSelectionMode(false);
-    setShowBulkDeleteDialog(false);
-  };
+  // Selection helpers
+  const isAllSelected = useMemo(() => {
+    return filteredPurchases.length > 0 && selectedItems.length === filteredPurchases.length;
+  }, [filteredPurchases.length, selectedItems.length]);
 
-  const resetPagination = () => {
-    setCurrentPage(1);
-  };
+  const selectAll = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(filteredPurchases.map(p => p.id));
+    }
+  }, [isAllSelected, filteredPurchases]);
 
-  // Auto-reset pagination when search changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, itemsPerPage]);
+  const clearSelection = useCallback(() => {
+    setSelectedItems([]);
+  }, []);
 
-  const value: PurchaseTableState = {
-    // State
-    searchTerm,
-    setSearchTerm,
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    selectedPurchaseIds,
-    setSelectedPurchaseIds,
-    isSelectionMode,
-    setIsSelectionMode,
+  const toggleSelectItem = useCallback((id: string) => {
+    setSelectedItems(current => {
+      if (current.includes(id)) {
+        return current.filter(item => item !== id);
+      } else {
+        return [...current, id];
+      }
+    });
+  }, []);
+
+  // Bulk operations
+  const bulkDelete = useCallback(async () => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang akan dihapus');
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    
+    try {
+      const deletePromises = selectedItems.map(id => deletePurchase(id));
+      const results = await Promise.allSettled(deletePromises);
+      
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      const failed = results.length - successful;
+      
+      if (successful > 0) {
+        toast.success(`${successful} pembelian berhasil dihapus`);
+        setSelectedItems([]);
+        setShowBulkDeleteDialog(false);
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} pembelian gagal dihapus`);
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast.error('Terjadi kesalahan saat menghapus pembelian');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }, [selectedItems, deletePurchase]);
+
+  const bulkUpdateStatus = useCallback(async (newStatus: PurchaseStatus) => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang akan diubah statusnya');
+      return;
+    }
+
+    // TODO: Implement bulk status update
+    toast.info('Fitur bulk update status akan segera tersedia');
+  }, [selectedItems]);
+
+  // Sorting helpers
+  const handleSort = useCallback((field: typeof sortField) => {
+    if (field === sortField) {
+      setSortOrder(current => current === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  }, [sortField]);
+
+  // Get supplier name helper
+  const getSupplierName = useCallback((supplierId: string): string => {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier?.nama || supplierId;
+  }, [suppliers]);
+
+  // Context value
+  const value: PurchaseTableContextType & {
+    // Extended properties for table functionality
+    filteredPurchases: Purchase[];
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    statusFilter: PurchaseStatus | 'all';
+    setStatusFilter: (status: PurchaseStatus | 'all') => void;
+    sortField: typeof sortField;
+    sortOrder: typeof sortOrder;
+    handleSort: (field: typeof sortField) => void;
+    toggleSelectItem: (id: string) => void;
+    bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
+    getSupplierName: (id: string) => string;
+  } = {
+    // Basic selection functionality
+    selectedItems,
+    setSelectedItems,
+    selectAll,
+    clearSelection,
+    isAllSelected,
+    bulkDelete,
+    isBulkDeleting,
     showBulkDeleteDialog,
     setShowBulkDeleteDialog,
     
-    // Computed
+    // Extended functionality
     filteredPurchases,
-    currentItems,
-    totalPages,
-    allCurrentSelected,
-    someCurrentSelected,
-    
-    // Helpers
-    toggleSelectAllCurrent,
-    resetSelection,
-    resetPagination,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    sortField,
+    sortOrder,
+    handleSort,
+    toggleSelectItem,
+    bulkUpdateStatus,
+    getSupplierName,
   };
 
   return (
@@ -132,6 +188,7 @@ export const PurchaseTableProvider: React.FC<PurchaseTableProviderProps> = ({
   );
 };
 
+// Custom hook
 export const usePurchaseTable = () => {
   const context = useContext(PurchaseTableContext);
   if (context === undefined) {

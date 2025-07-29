@@ -1,14 +1,14 @@
-// src/components/warehouse/services/warehouseUtils.ts
+// src/components/warehouse/services/warehouseUtils.ts (Updated for new schema)
 /**
- * Warehouse Utility Functions
- * Simple helper functions (~5KB)
+ * Warehouse Utility Functions (Updated for exact Supabase schema)
+ * Simple helper functions with database field mapping
  */
 
-import type { BahanBaku, FilterState, SortConfig } from '../types';
+import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
 export const warehouseUtils = {
-  // Data filtering
-  filterItems: (items: BahanBaku[], searchTerm: string, filters: FilterState): BahanBaku[] => {
+  // Data filtering (updated for new field names)
+  filterItems: (items: BahanBakuFrontend[], searchTerm: string, filters: FilterState): BahanBakuFrontend[] => {
     let filtered = [...items];
 
     // Search filter
@@ -38,7 +38,7 @@ export const warehouseUtils = {
       filtered = filtered.filter(item => item.stok === 0);
     }
 
-    // Expiry filter
+    // Expiry filter (using tanggal_kadaluwarsa -> expiry)
     if (filters.expiry === 'expiring') {
       const threshold = new Date();
       threshold.setDate(threshold.getDate() + 30);
@@ -57,8 +57,8 @@ export const warehouseUtils = {
     return filtered;
   },
 
-  // Data sorting
-  sortItems: (items: BahanBaku[], sortConfig: SortConfig): BahanBaku[] => {
+  // Data sorting (updated for new field names)
+  sortItems: (items: BahanBakuFrontend[], sortConfig: SortConfig): BahanBakuFrontend[] => {
     return [...items].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
@@ -70,26 +70,26 @@ export const warehouseUtils = {
   },
 
   // Extract unique values for filters
-  getUniqueCategories: (items: BahanBaku[]): string[] => {
+  getUniqueCategories: (items: BahanBakuFrontend[]): string[] => {
     const categories = new Set(items.map(item => item.kategori).filter(Boolean));
     return Array.from(categories).sort();
   },
 
-  getUniqueSuppliers: (items: BahanBaku[]): string[] => {
+  getUniqueSuppliers: (items: BahanBakuFrontend[]): string[] => {
     const suppliers = new Set(items.map(item => item.supplier).filter(Boolean));
     return Array.from(suppliers).sort();
   },
 
-  // Analysis functions
-  getLowStockItems: (items: BahanBaku[]): BahanBaku[] => {
+  // Analysis functions (updated for new field names)
+  getLowStockItems: (items: BahanBakuFrontend[]): BahanBakuFrontend[] => {
     return items.filter(item => item.stok <= item.minimum);
   },
 
-  getOutOfStockItems: (items: BahanBaku[]): BahanBaku[] => {
+  getOutOfStockItems: (items: BahanBakuFrontend[]): BahanBakuFrontend[] => {
     return items.filter(item => item.stok === 0);
   },
 
-  getExpiringItems: (items: BahanBaku[], days: number = 30): BahanBaku[] => {
+  getExpiringItems: (items: BahanBakuFrontend[], days: number = 30): BahanBakuFrontend[] => {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() + days);
     
@@ -100,8 +100,8 @@ export const warehouseUtils = {
     });
   },
 
-  // Validation
-  validateBahanBaku: (data: Partial<BahanBaku>): { isValid: boolean; errors: string[] } => {
+  // Validation (updated for new field names)
+  validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
     const errors: string[] = [];
 
     if (!data.nama?.trim()) {
@@ -129,7 +129,24 @@ export const warehouseUtils = {
     }
 
     if (typeof data.harga !== 'number' || data.harga < 0) {
-      errors.push('Harga harus berupa angka positif');
+      errors.push('Harga satuan harus berupa angka positif');
+    }
+
+    // Validate expiry date if provided
+    if (data.expiry && data.expiry.trim()) {
+      const expiryDate = new Date(data.expiry);
+      if (isNaN(expiryDate.getTime())) {
+        errors.push('Format tanggal kadaluarsa tidak valid');
+      }
+    }
+
+    // Validate packaging fields if provided
+    if (data.jumlahBeliKemasan !== undefined && data.jumlahBeliKemasan < 0) {
+      errors.push('Jumlah beli kemasan harus berupa angka positif');
+    }
+
+    if (data.hargaTotalBeliKemasan !== undefined && data.hargaTotalBeliKemasan < 0) {
+      errors.push('Harga total beli kemasan harus berupa angka positif');
     }
 
     return {
@@ -138,7 +155,7 @@ export const warehouseUtils = {
     };
   },
 
-  // Formatting helpers
+  // Formatting helpers (updated for new field names)
   formatCurrency: (amount: number): string => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -176,8 +193,8 @@ export const warehouseUtils = {
     }
   },
 
-  // Export helpers
-  prepareExportData: (items: BahanBaku[]) => {
+  // Export helpers (updated for new field names)
+  prepareExportData: (items: BahanBakuFrontend[]) => {
     return items.map(item => ({
       'Nama': item.nama,
       'Kategori': item.kategori,
@@ -185,8 +202,11 @@ export const warehouseUtils = {
       'Stok': item.stok,
       'Minimum': item.minimum,
       'Satuan': item.satuan,
-      'Harga': warehouseUtils.formatCurrency(item.harga),
-      'Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
+      'Harga Satuan': warehouseUtils.formatCurrency(item.harga),
+      'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
+      'Jumlah Beli Kemasan': item.jumlahBeliKemasan || '-',
+      'Satuan Kemasan': item.satuanKemasan || '-',
+      'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
       'Dibuat': warehouseUtils.formatDate(item.createdAt),
       'Diupdate': warehouseUtils.formatDate(item.updatedAt),
     }));
@@ -232,6 +252,70 @@ export const warehouseUtils = {
       if (currentTime - lastExecTime >= delay) {
         func(...args);
         lastExecTime = currentTime;
+      }
+    };
+  },
+
+  // Calculate packaging metrics
+  calculatePackagingMetrics: (item: BahanBakuFrontend) => {
+    const metrics = {
+      unitCostFromPackage: 0,
+      packagingEfficiency: 0,
+      totalValue: item.stok * item.harga,
+    };
+
+    // Calculate unit cost from packaging if data is available
+    if (item.jumlahBeliKemasan && item.hargaTotalBeliKemasan && item.jumlahBeliKemasan > 0) {
+      metrics.unitCostFromPackage = item.hargaTotalBeliKemasan / item.jumlahBeliKemasan;
+      
+      // Calculate efficiency (lower is better)
+      if (item.harga > 0) {
+        metrics.packagingEfficiency = (metrics.unitCostFromPackage / item.harga) * 100;
+      }
+    }
+
+    return metrics;
+  },
+
+  // Stock management helpers
+  suggestReorderQuantity: (item: BahanBakuFrontend, avgUsagePerDay: number = 1): number => {
+    // Simple reorder calculation: enough for 30 days + safety stock
+    const safetyStock = item.minimum;
+    const thirtyDaysStock = avgUsagePerDay * 30;
+    const currentShortfall = Math.max(0, item.minimum - item.stok);
+    
+    return Math.ceil(thirtyDaysStock + safetyStock + currentShortfall);
+  },
+
+  // Generate stock report data
+  generateStockReport: (items: BahanBakuFrontend[]) => {
+    const totalItems = items.length;
+    const lowStockItems = warehouseUtils.getLowStockItems(items);
+    const outOfStockItems = warehouseUtils.getOutOfStockItems(items);
+    const expiringItems = warehouseUtils.getExpiringItems(items, 30);
+    
+    const totalValue = items.reduce((sum, item) => sum + (item.stok * item.harga), 0);
+    const averageStockLevel = items.reduce((sum, item) => sum + item.stok, 0) / totalItems;
+    
+    const categoryBreakdown = items.reduce((acc, item) => {
+      acc[item.kategori] = (acc[item.kategori] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      summary: {
+        totalItems,
+        lowStockCount: lowStockItems.length,
+        outOfStockCount: outOfStockItems.length,
+        expiringCount: expiringItems.length,
+        totalValue,
+        averageStockLevel: Math.round(averageStockLevel),
+      },
+      categories: categoryBreakdown,
+      alerts: {
+        lowStock: lowStockItems,
+        outOfStock: outOfStockItems,
+        expiring: expiringItems,
       }
     };
   },

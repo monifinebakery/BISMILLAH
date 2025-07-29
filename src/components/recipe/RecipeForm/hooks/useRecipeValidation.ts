@@ -12,7 +12,7 @@ export const useRecipeValidation = () => {
 
   const validateField = useCallback((field: string, value: any, additionalData?: any) => {
     let validation: { isValid: boolean; message?: string } = { isValid: true };
-
+    
     switch (field) {
       case 'namaResep':
         validation = validateRecipeName(value);
@@ -49,34 +49,37 @@ export const useRecipeValidation = () => {
         // Handle ingredient validation
         if (field.startsWith('ingredient-')) {
           const [, index, subField] = field.split('-');
-          validation = validateIngredient(value)[subField] || { isValid: true };
+          const ingredientValidation = validateIngredient(value);
+          validation = ingredientValidation[subField] || { isValid: true };
         }
         break;
     }
 
+    // Fixed: Store only the error message string, not the validation object
     setFieldErrors(prev => ({
       ...prev,
-      [field]: validation.isValid ? undefined : validation.message
+      [field]: validation.isValid ? '' : (validation.message || 'Invalid field')
     }));
 
     return validation.isValid;
   }, []);
 
   const clearFieldError = useCallback((field: string) => {
-    setFieldErrors(prev => ({ ...prev, [field]: undefined }));
+    setFieldErrors(prev => ({ ...prev, [field]: '' }));
   }, []);
 
   const clearAllErrors = useCallback(() => {
     setFieldErrors({});
   }, []);
 
-  const hasErrors = Object.values(fieldErrors).some(error => error !== undefined);
+  // Fixed: Simple boolean check
+  const hasErrors = Object.values(fieldErrors).some(error => error && error.length > 0);
 
   return {
-    fieldErrors,
+    fieldErrors, // Now contains only string messages
     validateField,
     clearFieldError,
     clearAllErrors,
-    hasErrors
+    hasErrors // Simple boolean
   };
 };

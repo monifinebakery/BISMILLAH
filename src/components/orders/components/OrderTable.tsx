@@ -1,235 +1,508 @@
-// src/components/orders/components/OrderTable.tsx
-import React from 'react';
-import { Edit, MessageSquare, Eye, Trash2, MoreHorizontal } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+// 🎯 Fixed OrderTable dengan Follow Up Template Integration
+import React, { useState } from 'react';
+import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import { Order } from '../types/order';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/unifiedDateUtils'; 
-import OrderStatusCell from './OrderStatusCell';
-import { TableLoading } from './LoadingStates';
-import EmptyState from './EmptyState';
+import type { Order, UseOrderUIReturn } from '../types';
+import { formatDateForDisplay } from '../utils';
+import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { toast } from 'sonner';
 
 interface OrderTableProps {
-  orders: Order[];
-  isLoading: boolean;
-  isSelectionMode: boolean;
-  selectedOrderIds: string[];
-  allCurrentSelected: boolean;
-  someCurrentSelected: boolean;
-  hasFilters: boolean;
-  onToggleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onToggleSelectOrder: (orderId: string, checked: boolean) => void;
-  onStatusChange?: (orderId: string, newStatus: OrderStatus) => void; // Updated to use OrderStatus type
-  onEdit?: (order: Order) => void;
-  onDelete?: (orderId: string) => void;
-  onFollowUp?: (order: Order) => void;
-  onViewDetail?: (order: Order) => void;
-  onAddFirst?: () => void;
-  onClearFilters?: () => void;
-  className?: string;
+  uiState: UseOrderUIReturn;
+  loading: boolean;
+  onEditOrder: (order: Order) => void;
+  onDeleteOrder: (orderId: string) => void;
+  onStatusChange: (orderId: string, newStatus: string) => void;
+  onNewOrder: () => void;
+  onFollowUp?: (order: Order) => void; // ✅ TAMBAHKAN: Optional follow up handler
+  onViewDetail?: (order: Order) => void; // ✅ TAMBAHKAN: Optional view detail handler
 }
 
-const OrderTable: React.FC<OrderTableProps> = ({
-  orders,
-  isLoading,
-  isSelectionMode,
-  selectedOrderIds,
-  allCurrentSelected,
-  someCurrentSelected,
-  hasFilters,
-  onToggleSelectAll,
-  onToggleSelectOrder,
-  onStatusChange,
-  onEdit,
-  onDelete,
-  onFollowUp,
-  onViewDetail,
-  onAddFirst,
-  onClearFilters,
-  className = ""
-}) => {
+// Status Badge Component (sama seperti sebelumnya)
+const StatusBadge: React.FC<{
+  status: string;
+  onChange?: (newStatus: string) => void;
+  disabled?: boolean;
+}> = ({ status, onChange, disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (disabled || !onChange) {
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
+        {getStatusText(status)}
+      </span>
+    );
+  }
+
   return (
-    <div className={`overflow-x-auto ${className}`}>
-      <Table className="min-w-full text-sm text-left text-gray-700">
-        <TableHeader>
-          <TableRow className="bg-gray-50 border-b border-gray-200">
-            <TableHead className="w-12 p-4">
-              {isSelectionMode && (
-                <Checkbox
-                  checked={allCurrentSelected}
-                  ref={(el) => { 
-                    if (el) el.indeterminate = someCurrentSelected; 
-                  }}
-                  onCheckedChange={onToggleSelectAll}
-                  className="border-gray-400"
-                  aria-label="Select all orders"
-                />
-              )}
-            </TableHead>
-            <TableHead className="font-semibold text-gray-700">
-              Nomor Pesanan
-            </TableHead>
-            <TableHead className="font-semibold text-gray-700">
-              Pelanggan
-            </TableHead>
-            <TableHead className="font-semibold text-gray-700">
-              Tanggal
-            </TableHead>
-            <TableHead className="font-semibold text-gray-700 w-[180px]">
-              Status
-            </TableHead>
-            <TableHead className="font-semibold text-gray-700">
-              Total
-            </TableHead>
-            <TableHead className="text-center font-semibold text-gray-700 w-20">
-              Aksi
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={7} className="p-0">
-                <TableLoading />
-              </TableCell>
-            </TableRow>
-          ) : orders.length > 0 ? (
-            orders.map((order, index) => (
-              <TableRow
-                key={order.id}
-                className={cn(
-                  "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
-                  selectedOrderIds.includes(order.id) && "bg-blue-50 border-l-4 border-l-blue-500",
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                )}
-              >
-                <TableCell className="p-4">
-                  {isSelectionMode && (
-                    <Checkbox
-                      checked={selectedOrderIds.includes(order.id)}
-                      onCheckedChange={(checked) => 
-                        onToggleSelectOrder(order.id, checked as boolean)
-                      }
-                      className="border-gray-400"
-                      aria-label={`Select order ${order.nomorPesanan}`}
-                    />
-                  )}
-                </TableCell>
-                
-                <TableCell className="font-medium text-gray-900 p-4">
-                  <Badge 
-                    variant="outline" 
-                    className="bg-orange-50 text-orange-700 border-orange-200 font-medium"
-                  >
-                    {order.nomorPesanan || '-'}
-                  </Badge>
-                </TableCell>
-                
-                <TableCell className="p-4">
-                  <div className="font-medium">{order.namaPelanggan || '-'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {order.teleponPelanggan || '-'}
-                  </div>
-                </TableCell>
-                
-                <TableCell className="p-4">
-                  {formatDateForDisplay(order.tanggal)}
-                </TableCell>
-                
-                <TableCell className="p-4">
-                  <OrderStatusCell
-                    order={order}
-                    onStatusChange={onStatusChange}
-                    onTemplateManagerOpen={onFollowUp} // Corrected to match OrderStatusCell prop
-                    disabled={isSelectionMode}
-                  />
-                </TableCell>
-                
-                <TableCell className="text-right p-4">
-                  <span className="font-semibold text-green-600 text-base">
-                    {formatCurrency(order.totalPesanan || 0)}
-                  </span>
-                </TableCell>
-                
-                <TableCell className="text-center p-4">
-                  {!isSelectionMode && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 hover:bg-gray-100"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {onEdit && (
-                          <DropdownMenuItem 
-                            onClick={() => onEdit(order)} 
-                            className="cursor-pointer"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onFollowUp && (
-                          <DropdownMenuItem 
-                            onClick={() => onFollowUp(order)} 
-                            className="cursor-pointer"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Follow Up WhatsApp
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onViewDetail && (
-                          <DropdownMenuItem 
-                            onClick={() => onViewDetail(order)} 
-                            className="cursor-pointer"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Lihat Detail
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onDelete && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDelete(order.id)}
-                              className="cursor-pointer text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="p-0">
-                <EmptyState
-                  hasFilters={hasFilters}
-                  onAddFirst={onAddFirst}
-                  onClearFilters={onClearFilters}
-                />
-              </TableCell>
-            </TableRow>
+    <Select value={status} onValueChange={onChange} open={isOpen} onOpenChange={setIsOpen}>
+      <SelectTrigger
+        className={`w-auto h-auto p-0 border-0 bg-transparent hover:bg-transparent focus:ring-0 ${getStatusColor(status)} rounded-full px-2.5 py-0.5 text-xs font-medium`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SelectValue />
+        <ChevronDown className="h-3 w-3 ml-1" />
+      </SelectTrigger>
+      
+      <SelectContent>
+        {ORDER_STATUSES.map((statusOption) => (
+          <SelectItem key={statusOption} value={statusOption}>
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(statusOption)}`}>
+              {getStatusText(statusOption)}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+// ✅ FIXED: Row Actions Component dengan implementasi yang benar
+const OrderRowActions: React.FC<{
+  order: Order;
+  onEdit: () => void;
+  onDelete: () => void;
+  onFollowUp?: () => void; // ✅ FIXED: Optional
+  onViewDetail?: () => void; // ✅ FIXED: Optional
+  disabled?: boolean;
+}> = ({ order, onEdit, onDelete, onFollowUp, onViewDetail, disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDelete = () => {
+    setIsOpen(false);
+    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.nomorPesanan}?`)) {
+      onDelete();
+    }
+  };
+
+  const handleFollowUp = () => {
+    setIsOpen(false);
+    if (onFollowUp) {
+      onFollowUp();
+    } else {
+      // ✅ FALLBACK: Jika tidak ada handler, buka WhatsApp atau email
+      const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      if (order.teleponPelanggan) {
+        const whatsappUrl = `https://wa.me/${order.teleponPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+      } else if (order.emailPelanggan) {
+        const emailUrl = `mailto:${order.emailPelanggan}?subject=Follow Up Pesanan #${order.nomorPesanan}&body=${encodeURIComponent(message)}`;
+        window.location.href = emailUrl;
+      } else {
+        alert('Tidak ada kontak yang tersedia untuk follow up');
+      }
+    }
+  };
+
+  const handleViewDetail = () => {
+    setIsOpen(false);
+    if (onViewDetail) {
+      onViewDetail();
+    } else {
+      // ✅ FALLBACK: Show alert atau navigate ke detail page
+      console.log('View detail for order:', order.id);
+      alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
+    }
+  };
+
+  if (disabled) {
+    return (
+      <div className="text-gray-400">
+        <MoreHorizontal className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className="h-8 w-8 p-0" 
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('✅ Dropdown menu clicked for order:', order.nomorPesanan); // Debug log
+          }}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem 
+          onClick={handleViewDetail}
+          className="cursor-pointer"
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          Lihat Detail
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem 
+          onClick={() => { setIsOpen(false); onEdit(); }}
+          className="cursor-pointer"
+        >
+          <Edit className="mr-2 h-4 w-4" />
+          Edit Pesanan
+        </DropdownMenuItem>
+        
+        {/* ✅ FIXED: Follow Up Menu Item */}
+        <DropdownMenuItem 
+          onClick={handleFollowUp}
+          className="cursor-pointer"
+          disabled={!order.teleponPelanggan && !onFollowUp}
+        >
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Follow Up WhatsApp
+          {(!order.teleponPelanggan && !onFollowUp) && (
+            <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
           )}
-        </TableBody>
-      </Table>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem 
+          onClick={handleDelete} 
+          className="text-red-600 focus:text-red-600 cursor-pointer"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+// Row Selection Component (sama seperti sebelumnya)
+const OrderRowSelect: React.FC<{
+  isSelected: boolean;
+  onToggle: (forceValue?: boolean) => void;
+  orderId: string;
+}> = ({ isSelected, onToggle, orderId }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    onToggle(e.target.checked);
+  };
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={handleChange}
+        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+        aria-label={`Select order ${orderId}`}
+      />
+    </div>
+  );
+};
+
+// Empty State Component (sama seperti sebelumnya)
+const EmptyState: React.FC<{
+  hasFilters: boolean;
+  onAddFirst: () => void;
+  onClearFilters: () => void;
+}> = ({ hasFilters, onAddFirst, onClearFilters }) => {
+  if (hasFilters) {
+    return (
+      <div className="text-center py-12">
+        <Search className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-semibold text-gray-900">Tidak ada pesanan ditemukan</h3>
+        <p className="mt-1 text-sm text-gray-500">Tidak ada pesanan yang sesuai dengan filter Anda.</p>
+        <div className="mt-6">
+          <Button onClick={onClearFilters} variant="outline">Hapus Filter</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12">
+      <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+      <h3 className="mt-2 text-sm font-semibold text-gray-900">Belum ada pesanan</h3>
+      <p className="mt-1 text-sm text-gray-500">Mulai dengan membuat pesanan pertama Anda.</p>
+      <div className="mt-6">
+        <Button onClick={onAddFirst} className="inline-flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Buat Pesanan Pertama
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ✅ FIXED: Main Table Component
+const OrderTable: React.FC<OrderTableProps> = ({
+  uiState,
+  loading,
+  onEditOrder,
+  onDeleteOrder,
+  onStatusChange,
+  onNewOrder,
+  onFollowUp, // ✅ TAMBAHKAN: Destructure prop
+  onViewDetail // ✅ TAMBAHKAN: Destructure prop
+}) => {
+  
+  // Handle row click dengan logika asli
+  const handleRowClick = (order: Order, e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'INPUT' ||
+      target.closest('button') ||
+      target.closest('select') ||
+      target.closest('input') ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+
+    if (uiState.isSelectionMode) {
+      uiState.toggleSelectOrder(order.id);
+    }
+  };
+
+  const handleToggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    uiState.toggleSelectAll(uiState.currentOrders);
+  };
+
+  // ✅ FIXED: Implementasi yang proper
+  const handleViewDetail = (order: Order) => {
+    console.log('✅ View detail clicked for order:', order.nomorPesanan);
+    if (onViewDetail) {
+      onViewDetail(order);
+    } else {
+      // Default behavior
+      alert(`Detail pesanan #${order.nomorPesanan}`);
+    }
+  };
+
+  // ✅ ENHANCED: Follow Up dengan Template Integration
+  const handleFollowUp = (order: Order) => {
+    console.log('✅ Follow up clicked for order:', order.nomorPesanan);
+    
+    if (onFollowUp) {
+      onFollowUp(order);
+      return;
+    }
+    
+    if (!order.teleponPelanggan) {
+      toast.error('Tidak ada nomor WhatsApp untuk follow up');
+      return;
+    }
+
+    try {
+      // Get template berdasarkan status order
+      const { getTemplate } = useFollowUpTemplate();
+      const { processTemplate } = useProcessTemplate();
+      
+      const template = getTemplate(order.status);
+      
+      if (!template) {
+        toast.error('Template untuk status ini belum tersedia');
+        return;
+      }
+
+      // Process template dengan data order
+      const processedMessage = processTemplate(template, order);
+      
+      // Format nomor telepon
+      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      
+      // Buat WhatsApp URL
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
+      
+      // Buka WhatsApp
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      
+    } catch (error) {
+      console.error('Error processing follow up template:', error);
+      toast.error('Gagal memproses template follow up');
+      
+      // Fallback ke pesan sederhana
+      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat pesanan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (uiState.currentOrders.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <EmptyState
+          hasFilters={uiState.hasActiveFilters}
+          onAddFirst={onNewOrder}
+          onClearFilters={uiState.clearFilters}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          {/* Table Header */}
+          <thead className="bg-gray-50">
+            <tr>
+              {uiState.isSelectionMode && (
+                <th className="w-12 px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={uiState.allCurrentSelected}
+                    ref={input => {
+                      if (input) input.indeterminate = uiState.someCurrentSelected;
+                    }}
+                    onChange={handleToggleSelectAll}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                </th>
+              )}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                No. Pesanan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pelanggan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tanggal
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+
+          {/* Table Body */}
+          <tbody className="bg-white divide-y divide-gray-200">
+            {uiState.currentOrders.map((order) => (
+              <tr 
+                key={order.id}
+                className={`
+                  hover:bg-gray-50 cursor-pointer transition-colors duration-150
+                  ${uiState.selectedOrderIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
+                  ${uiState.isSelectionMode ? 'hover:bg-orange-50' : ''}
+                `}
+                onClick={(e) => handleRowClick(order, e)}
+              >
+                {/* Selection Checkbox */}
+                {uiState.isSelectionMode && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <OrderRowSelect
+                      isSelected={uiState.selectedOrderIds.includes(order.id)}
+                      onToggle={(forceValue) => uiState.toggleSelectOrder(order.id, forceValue)}
+                      orderId={order.id}
+                    />
+                  </td>
+                )}
+
+                {/* Order Number */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
+                    <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
+                  </div>
+                </td>
+
+                {/* Customer Info */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
+                    {order.teleponPelanggan && (
+                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    )}
+                    {order.emailPelanggan && (
+                      <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Date */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Total Amount */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.totalPesanan)}</div>
+                    {order.items.length > 0 && (
+                      <div className="text-xs text-gray-500">
+                        {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <StatusBadge
+                    status={order.status}
+                    onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+                    disabled={order.status === 'completed' || order.status === 'cancelled'}
+                  />
+                </td>
+
+                {/* Actions */}
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <OrderRowActions
+                    order={order}
+                    onEdit={() => onEditOrder(order)}
+                    onDelete={() => onDeleteOrder(order.id)}
+                    onFollowUp={() => handleFollowUp(order)} // ✅ FIXED: Pass handler
+                    onViewDetail={() => handleViewDetail(order)} // ✅ FIXED: Pass handler
+                    disabled={uiState.isSelectionMode}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

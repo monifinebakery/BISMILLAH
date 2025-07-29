@@ -1,97 +1,49 @@
-// Fixed PurchaseContext.tsx - Enhanced safety and error handling
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Purchase } from '@/types/supplier';
+// src/components/purchase/context/PurchaseContext.tsx
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { Purchase, PurchaseContextType } from '../types/purchase.types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
-import { logger } from '@/utils/logger';
-import { useLocation } from 'react-router-dom';
-
-// 🔧 FIXED: Import notification context with safe handling
 import { useNotification } from '@/contexts/NotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { formatCurrency } from '@/utils/formatUtils';
+import { logger } from '@/utils/logger';
 
-interface PurchaseContextType {
-  purchases: Purchase[];
-  isLoading: boolean;
-  addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<boolean>;
-  deletePurchase: (id: string) => Promise<boolean>;
-}
+import {
+  transformPurchaseFromDB,
+  transformPurchaseForDB,
+  transformPurchaseUpdateForDB,
+  transformPurchasesFromDB,
+  transformRealtimePayload,
+} from '../utils/purchaseTransformers';
 
+import {
+  validatePurchaseData,
+  getStatusDisplayText,
+} from '../utils/purchaseHelpers';
+
+// Create context
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
+// Provider component
 export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // State
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Dependencies
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
-  const location = useLocation();
-  
-  // 🔧 FIXED: Safe notification context usage
   const { addNotification } = useNotification();
 
-  // 🔧 FIXED: Enhanced data transformation with error handling
-  const transformPurchaseFromDB = (dbItem: any): Purchase => {
-    try {
-      if (!dbItem || typeof dbItem !== 'object') {
-        console.error('Invalid purchase data from DB:', dbItem);
-        throw new Error('Invalid purchase data format');
-      }
-
-      return {
-        id: dbItem.id || '',
-        supplier: dbItem.supplier || '',
-        totalNilai: Number(dbItem.total_nilai) || 0,
-        tanggal: safeParseDate(dbItem.tanggal) || new Date(),
-        items: Array.isArray(dbItem.items) ? dbItem.items : [],
-        userId: dbItem.user_id || '',
-        createdAt: safeParseDate(dbItem.created_at) || new Date(),
-        updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
-        status: dbItem.status || 'pending',
-        metodePerhitungan: dbItem.metode_perhitungan || 'FIFO',
-      };
-    } catch (error) {
-      console.error('Error transforming purchase from DB:', error, dbItem);
-      // Return safe fallback
-      return {
-        id: dbItem?.id || 'error',
-        supplier: 'Error',
-        totalNilai: 0,
-        tanggal: new Date(),
-        items: [],
-        userId: dbItem?.user_id || '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: 'pending',
-        metodePerhitungan: 'FIFO',
-      };
-    }
-  };
-
-  // 🔧 FIXED: Safe helper functions
-  const getStatusDisplayText = (status: string): string => {
-    try {
-      const statusMap: { [key: string]: string } = {
-        'pending': 'Menunggu',
-        'completed': 'Selesai',
-        'cancelled': 'Dibatalkan'
-      };
-      return statusMap[status] || status;
-    } catch (error) {
-      console.error('Error getting status display text:', error);
-      return status || 'Unknown';
-    }
-  };
-
-  const getSupplierName = (supplierId: string): string => {
+  // Helper functions
+  const getSupplierName = useCallback((supplierId: string): string => {
     try {
       if (!supplierId || !Array.isArray(suppliers)) return 'Supplier';
       const supplier = suppliers.find(s => s.id === supplierId);
@@ -100,12 +52,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.error('Error getting supplier name:', error);
       return 'Supplier';
     }
-  };
+  }, [suppliers]);
 
-  // 🔧 FIXED: Safe notification helper
-  const createPurchaseNotification = async (
-    title: string, 
-    message: string, 
+  const createPurchaseNotification = useCallback(async (
+    title: string,
+    message: string,
     type: 'success' | 'info' | 'warning' | 'error' = 'success',
     priority: number = 2,
     purchaseId?: string
@@ -126,150 +77,84 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         related_id: purchaseId,
         action_url: '/pembelian',
         is_read: false,
-        is_archived: false
+        is_archived: false,
       });
     } catch (error) {
       console.error('Error creating purchase notification:', error);
-      // Don't throw - notification failure shouldn't break main functionality
     }
-  };
+  }, [addNotification]);
 
-  // 🔧 FIXED: Enhanced data fetching with better error handling
-  useEffect(() => {
+  // Fetch purchases
+  const fetchPurchases = useCallback(async () => {
     if (!user) {
       setPurchases([]);
       setIsLoading(false);
+      setError(null);
       return;
     }
 
-    const fetchInitialPurchases = async () => {
+    try {
       setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('purchases')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('tanggal', { ascending: false });
+      setError(null);
 
-        if (error) {
-          console.error('Error fetching purchases:', error);
-          toast.error(`Gagal memuat pembelian: ${error.message}`);
-          
-          await createPurchaseNotification(
-            '❌ Error Sistem',
-            `Gagal memuat data pembelian: ${error.message}`,
-            'error',
-            4
-          );
-        } else if (data) {
-          // 🔧 FIXED: Safe transformation of array data
-          const transformedPurchases = data
-            .map(item => {
-              try {
-                return transformPurchaseFromDB(item);
-              } catch (transformError) {
-                console.error('Error transforming individual purchase:', transformError, item);
-                return null;
-              }
-            })
-            .filter(Boolean) as Purchase[]; // Remove null items
+      const { data, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('tanggal', { ascending: false });
 
-          setPurchases(transformedPurchases);
-          logger.context('PurchaseContext', 'Loaded purchases:', transformedPurchases.length);
-        }
-      } catch (error: any) {
-        console.error('Unexpected error:', error);
-        toast.error('Terjadi kesalahan saat memuat data pembelian');
-        
-        await createPurchaseNotification(
-          '❌ Error Sistem',
-          `Error tidak terduga saat memuat pembelian: ${error.message}`,
-          'error',
-          4
-        );
-      } finally {
-        setIsLoading(false);
+      if (fetchError) {
+        throw new Error(fetchError.message);
       }
-    };
 
-    fetchInitialPurchases();
+      if (data) {
+        const transformedPurchases = transformPurchasesFromDB(data);
+        setPurchases(transformedPurchases);
+        logger.context('PurchaseContext', 'Loaded purchases:', transformedPurchases.length);
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Gagal memuat data pembelian';
+      console.error('Error fetching purchases:', err);
+      setError(errorMessage);
+      toast.error(`Gagal memuat pembelian: ${errorMessage}`);
+      
+      await createPurchaseNotification(
+        '❌ Error Sistem',
+        `Gagal memuat data pembelian: ${errorMessage}`,
+        'error',
+        4
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, createPurchaseNotification]);
 
-    // 🔧 FIXED: Enhanced real-time subscription with error handling
-    const channel = supabase
-      .channel(`realtime-purchases-${user.id}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'purchases', 
-        filter: `user_id=eq.${user.id}` 
-      }, (payload) => {
-        try {
-          if (payload.eventType === 'INSERT' && payload.new) {
-            const newPurchase = transformPurchaseFromDB(payload.new);
-            setPurchases(current => [newPurchase, ...current].sort((a, b) => 
-              new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()
-            ));
-          } else if (payload.eventType === 'UPDATE' && payload.new) {
-            const updatedPurchase = transformPurchaseFromDB(payload.new);
-            setPurchases(current => current.map(item => 
-              item.id === updatedPurchase.id ? updatedPurchase : item
-            ));
-          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setPurchases(current => current.filter(item => item.id !== payload.old.id));
-          }
-        } catch (error) {
-          console.error('Real-time update error:', error);
-          toast.error('Error dalam pembaruan real-time data pembelian');
-        }
-      })
-      .subscribe();
+  // Refresh purchases (public method)
+  const refreshPurchases = useCallback(async () => {
+    await fetchPurchases();
+  }, [fetchPurchases]);
 
-    return () => { 
-      supabase.removeChannel(channel); 
-    };
-  }, [user]);
-
-  // 🔧 FIXED: Enhanced addPurchase with comprehensive validation
-  const addPurchase = async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
+  // Add purchase
+  const addPurchase = useCallback(async (
+    purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  ): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan pembelian');
       return false;
     }
 
-    // 🔧 FIXED: Enhanced input validation
-    if (!purchase || typeof purchase !== 'object') {
-      toast.error('Data pembelian tidak valid');
-      return false;
-    }
-
-    if (!purchase.supplier) {
-      toast.error('Supplier harus dipilih');
-      return false;
-    }
-
-    if (!purchase.totalNilai || purchase.totalNilai <= 0) {
-      toast.error('Total nilai pembelian harus lebih dari 0');
-      return false;
-    }
-
-    if (!Array.isArray(purchase.items) || purchase.items.length === 0) {
-      toast.error('Minimal satu item harus ditambahkan');
+    // Validate input
+    const validationErrors = validatePurchaseData(purchase);
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0]);
       return false;
     }
 
     try {
-      const purchaseDataForRPC = {
-        user_id: user.id,
-        supplier: purchase.supplier,
-        total_nilai: purchase.totalNilai,
-        tanggal: toSafeISOString(purchase.tanggal) || toSafeISOString(new Date()),
-        items: purchase.items,
-        status: purchase.status || 'pending',
-        metode_perhitungan: purchase.metodePerhitungan || 'FIFO',
-      };
+      const purchaseDataForRPC = transformPurchaseForDB(purchase, user.id);
 
-      const { error } = await supabase.rpc('add_purchase_and_update_stock', { 
-        purchase_data: purchaseDataForRPC 
+      const { error } = await supabase.rpc('add_purchase_and_update_stock', {
+        purchase_data: purchaseDataForRPC,
       });
 
       if (error) {
@@ -281,43 +166,46 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       // Activity log
       if (addActivity && typeof addActivity === 'function') {
-        addActivity({ 
-          title: 'Pembelian Ditambahkan', 
-          description: `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)}`, 
-          type: 'purchase', 
-          value: null 
+        addActivity({
+          title: 'Pembelian Ditambahkan',
+          description: `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)}`,
+          type: 'purchase',
+          value: null,
         });
       }
 
-      // Success toast
+      // Success feedback
       toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
 
-      // Success notification
       await createPurchaseNotification(
         '📦 Pembelian Baru Dibuat!',
-        `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)} dengan ${itemCount} item berhasil dibuat dan stok diperbarui`,
+        `Pembelian dari ${supplierName} senilai ${formatCurrency(purchase.totalNilai)} dengan ${itemCount} item berhasil dibuat`,
         'success',
         2
       );
 
       return true;
     } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
       console.error('Error adding purchase:', error);
-      toast.error(`Gagal memproses pembelian: ${error.message || 'Unknown error'}`);
+      toast.error(`Gagal memproses pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
         '❌ Pembelian Gagal',
-        `Gagal memproses pembelian: ${error.message || 'Unknown error'}`,
+        `Gagal memproses pembelian: ${errorMessage}`,
         'error',
         4
       );
 
       return false;
     }
-  };
+  }, [user, getSupplierName, addActivity, createPurchaseNotification]);
 
-  // 🔧 FIXED: Enhanced updatePurchase with validation
-  const updatePurchase = async (id: string, updatedData: Partial<Purchase>): Promise<boolean> => {
+  // Update purchase
+  const updatePurchase = useCallback(async (
+    id: string,
+    updatedData: Partial<Purchase>
+  ): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login.');
       return false;
@@ -335,17 +223,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     try {
-      const purchaseToUpdate: { [key: string]: any } = { 
-        updated_at: new Date().toISOString() 
-      };
-
-      // Safe property updates
-      if (updatedData.supplier !== undefined) purchaseToUpdate.supplier = updatedData.supplier;
-      if (updatedData.totalNilai !== undefined) purchaseToUpdate.total_nilai = updatedData.totalNilai;
-      if (updatedData.tanggal !== undefined) purchaseToUpdate.tanggal = toSafeISOString(updatedData.tanggal);
-      if (updatedData.items !== undefined) purchaseToUpdate.items = updatedData.items;
-      if (updatedData.status !== undefined) purchaseToUpdate.status = updatedData.status;
-      if (updatedData.metodePerhitungan !== undefined) purchaseToUpdate.metode_perhitungan = updatedData.metodePerhitungan;
+      const purchaseToUpdate = transformPurchaseUpdateForDB(updatedData);
 
       const { error } = await supabase
         .from('purchases')
@@ -376,13 +254,13 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
             if (successFinancial) {
               wasExpenseRecorded = true;
-              
+
               if (addActivity && typeof addActivity === 'function') {
                 addActivity({
                   title: 'Pengeluaran Dicatat',
                   description: `Pengeluaran ${formatCurrency(oldPurchase.totalNilai)} untuk pembelian dari ${supplierName}.`,
                   type: 'keuangan',
-                  value: oldPurchase.totalNilai.toString()
+                  value: oldPurchase.totalNilai.toString(),
                 });
               }
 
@@ -395,7 +273,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               );
             } else {
               toast.error('Pembelian diperbarui, tapi gagal mencatat pengeluaran.');
-              
+
               await createPurchaseNotification(
                 '⚠️ Pembelian Diperbarui, Pengeluaran Gagal',
                 `Status pembelian dari ${supplierName} berhasil diubah, tetapi gagal mencatat pengeluaran ${formatCurrency(oldPurchase.totalNilai)}`,
@@ -433,12 +311,13 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
       console.error('Error updating purchase:', error);
-      toast.error(`Gagal memperbarui pembelian: ${error.message || 'Unknown error'}`);
+      toast.error(`Gagal memperbarui pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
         '❌ Update Gagal',
-        `Gagal memperbarui pembelian dari ${getSupplierName(oldPurchase.supplier)}: ${error.message || 'Unknown error'}`,
+        `Gagal memperbarui pembelian dari ${getSupplierName(oldPurchase.supplier)}: ${errorMessage}`,
         'error',
         4,
         id
@@ -446,10 +325,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return false;
     }
-  };
+  }, [user, purchases, getSupplierName, addFinancialTransaction, addActivity, createPurchaseNotification]);
 
-  // 🔧 FIXED: Enhanced deletePurchase with validation
-  const deletePurchase = async (id: string): Promise<boolean> => {
+  // Delete purchase
+  const deletePurchase = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
       toast.error('Anda harus login.');
       return false;
@@ -480,18 +359,17 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       // Activity log
       if (addActivity && typeof addActivity === 'function') {
-        addActivity({ 
-          title: 'Pembelian Dihapus', 
-          description: `Pembelian dari ${supplierName} telah dihapus.`, 
-          type: 'purchase', 
-          value: null 
+        addActivity({
+          title: 'Pembelian Dihapus',
+          description: `Pembelian dari ${supplierName} telah dihapus.`,
+          type: 'purchase',
+          value: null,
         });
       }
 
-      // Success toast
+      // Success feedback
       toast.success('Pembelian berhasil dihapus.');
 
-      // Delete notification
       await createPurchaseNotification(
         '🗑️ Pembelian Dihapus',
         `Pembelian dari ${supplierName} senilai ${formatCurrency(purchaseToDelete.totalNilai)} telah dihapus dari sistem`,
@@ -501,12 +379,13 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return true;
     } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
       console.error('Error deleting purchase:', error);
-      toast.error(`Gagal menghapus pembelian: ${error.message || 'Unknown error'}`);
+      toast.error(`Gagal menghapus pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
         '❌ Hapus Gagal',
-        `Gagal menghapus pembelian dari ${getSupplierName(purchaseToDelete.supplier)}: ${error.message || 'Unknown error'}`,
+        `Gagal menghapus pembelian dari ${getSupplierName(purchaseToDelete.supplier)}: ${errorMessage}`,
         'error',
         4,
         id
@@ -514,14 +393,64 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return false;
     }
-  };
+  }, [user, purchases, getSupplierName, addActivity, createPurchaseNotification]);
 
-  const value: PurchaseContextType = { 
-    purchases, 
-    isLoading, 
-    addPurchase, 
-    updatePurchase, 
-    deletePurchase 
+  // Initial data fetch
+  useEffect(() => {
+    fetchPurchases();
+  }, [fetchPurchases]);
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`realtime-purchases-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchases',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        try {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newPurchase = transformRealtimePayload(payload);
+            if (newPurchase) {
+              setPurchases(current => [newPurchase, ...current].sort((a, b) =>
+                new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()
+              ));
+            }
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const updatedPurchase = transformRealtimePayload(payload);
+            if (updatedPurchase) {
+              setPurchases(current => current.map(item =>
+                item.id === updatedPurchase.id ? updatedPurchase : item
+              ));
+            }
+          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setPurchases(current => current.filter(item => item.id !== payload.old.id));
+          }
+        } catch (error) {
+          console.error('Real-time update error:', error);
+          toast.error('Error dalam pembaruan real-time data pembelian');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Context value
+  const value: PurchaseContextType = {
+    purchases,
+    isLoading,
+    error,
+    addPurchase,
+    updatePurchase,
+    deletePurchase,
+    refreshPurchases,
   };
 
   return (
@@ -531,6 +460,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
+// Custom hook
 export const usePurchase = () => {
   const context = useContext(PurchaseContext);
   if (context === undefined) {

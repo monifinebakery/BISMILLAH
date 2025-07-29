@@ -1,6 +1,6 @@
 // src/components/recipe/services/recipeApi.ts
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { Recipe, RecipeDB, NewRecipe, RecipeApiResponse } from '../types';
 

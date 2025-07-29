@@ -11,13 +11,13 @@ interface UseRecipeFilteringProps {
 export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState<RecipeSortField>('namaResep');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return searchTerm.trim() !== '' || categoryFilter !== '';
+    return searchTerm.trim() !== '' || categoryFilter !== 'all';
   }, [searchTerm, categoryFilter]);
 
   // Apply all filters and sorting
@@ -30,7 +30,7 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
     }
 
     // Apply category filter
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== 'all') {
       result = filterRecipesByCategory(result, categoryFilter);
     }
 
@@ -55,7 +55,7 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   // Clear all filters
   const clearFilters = useCallback(() => {
     setSearchTerm('');
-    setCategoryFilter('');
+    setCategoryFilter('all');
     setSortBy('namaResep');
     setSortOrder('asc');
   }, []);
@@ -67,7 +67,7 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
 
   // Filter by specific category
   const filterByCategory = useCallback((category: string) => {
-    setCategoryFilter(category);
+    setCategoryFilter(category === '' ? 'all' : category);
   }, []);
 
   // Get unique categories from current recipes

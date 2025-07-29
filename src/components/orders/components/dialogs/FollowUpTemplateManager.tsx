@@ -239,6 +239,8 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="templates">Template</TabsTrigger>
             <TabsTrigger value="variables">Variabel</TabsTrigger>
+            <TabsTrigger value="preview" disabled={!selectedTemplate}>
+              Preview & Kirim
             </TabsTrigger>
           </TabsList>
 

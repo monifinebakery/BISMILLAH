@@ -1,9 +1,8 @@
 // 🎯 Selector dan form loader untuk tipe promo
-
 import React, { lazy, Suspense } from 'react';
 import { Gift, Percent, Package } from 'lucide-react';
 
-// Lazy load form components
+// ✅ Pure lazy loading - tidak konflik dengan static imports
 const BogoForm = lazy(() => import('./forms/BogoForm'));
 const DiscountForm = lazy(() => import('./forms/DiscountForm'));
 const BundleForm = lazy(() => import('./forms/BundleForm'));
@@ -39,7 +38,8 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
     }
   ];
 
-  const ActiveForm = promoTypes.find(type => type.id === selectedType)?.component;
+  const selectedPromoType = promoTypes.find(type => type.id === selectedType);
+  const ActiveFormComponent = selectedPromoType?.component;
 
   return (
     <div className="space-y-6">
@@ -74,25 +74,24 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
         </div>
       </div>
 
-      {/* Dynamic Form */}
-      {selectedType && (
+      {/* Dynamic Form - Pure Lazy Loading */}
+      {selectedType && ActiveFormComponent && (
         <div className="bg-gray-50 rounded-lg p-6">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">
-            Konfigurasi {promoTypes.find(t => t.id === selectedType)?.title}
+            Konfigurasi {selectedPromoType.title}
           </h4>
           
           <Suspense fallback={
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mr-2"></div>
+              <span className="text-gray-600">Memuat form {selectedPromoType.name}...</span>
             </div>
           }>
-            {ActiveForm && (
-              <ActiveForm 
-                onSubmit={onFormSubmit}
-                isLoading={isCalculating}
-                recipes={recipes}
-              />
-            )}
+            <ActiveFormComponent 
+              onSubmit={onFormSubmit}
+              isLoading={isCalculating}
+              recipes={recipes}
+            />
           </Suspense>
         </div>
       )}

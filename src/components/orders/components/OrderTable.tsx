@@ -1,4 +1,4 @@
-// 🎯 Fixed OrderTable dengan Follow Up yang bekerja
+// 🎯 Fixed OrderTable dengan Follow Up Template Integration
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ import { formatCurrency } from '@/utils/formatUtils';
 import type { Order, UseOrderUIReturn } from '../types';
 import { formatDateForDisplay } from '../utils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { toast } from 'sonner';
 
 interface OrderTableProps {
   uiState: UseOrderUIReturn;
@@ -291,19 +293,55 @@ const OrderTable: React.FC<OrderTableProps> = ({
     }
   };
 
+  // ✅ ENHANCED: Follow Up dengan Template Integration
   const handleFollowUp = (order: Order) => {
     console.log('✅ Follow up clicked for order:', order.nomorPesanan);
+    
     if (onFollowUp) {
       onFollowUp(order);
-    } else {
-      // Default behavior - hanya WhatsApp saja
-      const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      if (order.telefonPelanggan) {
-        const whatsappUrl = `https://wa.me/${order.telefonPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-      } else {
-        alert('Tidak ada nomor WhatsApp untuk follow up');
+      return;
+    }
+    
+    if (!order.telefonPelanggan) {
+      toast.error('Tidak ada nomor WhatsApp untuk follow up');
+      return;
+    }
+
+    try {
+      // Get template berdasarkan status order
+      const { getTemplate } = useFollowUpTemplate();
+      const { processTemplate } = useProcessTemplate();
+      
+      const template = getTemplate(order.status);
+      
+      if (!template) {
+        toast.error('Template untuk status ini belum tersedia');
+        return;
       }
+
+      // Process template dengan data order
+      const processedMessage = processTemplate(template, order);
+      
+      // Format nomor telepon
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      
+      // Buat WhatsApp URL
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
+      
+      // Buka WhatsApp
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      
+    } catch (error) {
+      console.error('Error processing follow up template:', error);
+      toast.error('Gagal memproses template follow up');
+      
+      // Fallback ke pesan sederhana
+      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 

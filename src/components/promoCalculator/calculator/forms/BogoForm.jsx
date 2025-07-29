@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Gift, Search, Calendar } from 'lucide-react';
+import { toast } from 'sonner'; // ← ADD THIS MISSING IMPORT
 
 const BogoForm = ({ onSubmit, isLoading, recipes }) => {
   const [formData, setFormData] = useState({
@@ -55,6 +56,35 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Nama Promo */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Nama Promo *
+        </label>
+        <input
+          type="text"
+          value={formData.namaPromo}
+          onChange={(e) => handleInputChange('namaPromo', e.target.value)}
+          placeholder="Misal: BOGO Bakso Special"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          required
+        />
+      </div>
+
+      {/* Minimal Quantity */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Minimal Pembelian
+        </label>
+        <input
+          type="number"
+          min="1"
+          value={formData.minimalQty}
+          onChange={(e) => handleInputChange('minimalQty', parseInt(e.target.value))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+      </div>
+
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

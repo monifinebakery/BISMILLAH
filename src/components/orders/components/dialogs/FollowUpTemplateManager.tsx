@@ -1,6 +1,6 @@
-// 🎯 180 lines - Follow-up template manager dengan logika asli
+// 🎯 Enhanced FollowUpTemplateManager dengan FollowUpTemplateContext Integration
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Edit, Trash2, Send, Eye, X, Copy } from 'lucide-react';
+import { MessageSquare, Plus, Edit, Trash2, Send, Eye, X, Copy, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,14 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  Alert,
+  AlertDescription,
+} from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '../../utils';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../../types';
 
 interface Template {
@@ -42,27 +47,35 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   order,
   onSendWhatsApp
 }) => {
-  // Template state
-  const [templates, setTemplates] = useState<Template[]>([
-    {
-      id: '1',
-      name: 'Konfirmasi Pesanan',
-      message: 'Hai kak {nama_pelanggan}, terima kasih ya udah order dengan nomor #{nomor_pesanan} senilai {total_pesanan}. Pesanan kakak lagi kami proses nih 😊',
+  // ✅ INTEGRATED: Use FollowUpTemplateContext
+  const { templates: contextTemplates, getTemplate, saveTemplate, isLoading } = useFollowUpTemplate();
+  const { processTemplate } = useProcessTemplate();
+
+  // Convert context templates to Template array format
+  const [templates, setTemplates] = useState<Template[]>([]);
+  
+  // Update templates when context changes
+  useEffect(() => {
+    const templateArray = Object.entries(contextTemplates).map(([status, message], index) => ({
+      id: status,
+      name: getStatusDisplayName(status),
+      message: message,
       createdAt: new Date()
-    },
-    {
-      id: '2', 
-      name: 'Update Pengiriman',
-      message: 'Halo kak {nama_pelanggan}, pesanan kakak dengan nomor #{nomor_pesanan} sudah kami kirim dan sedang dalam perjalanan ya 🚚✨',
-      createdAt: new Date()
-    },
-    {
-      id: '3',
-      name: 'Pesanan Selesai',
-      message: 'Hai kak {nama_pelanggan}, pesanan #{nomor_pesanan} udah selesai nih! Makasih banyak udah belanja di tempat kami, ditunggu order selanjutnya ya! 💖',
-      createdAt: new Date()
-    }
-  ]);
+    }));
+    setTemplates(templateArray);
+  }, [contextTemplates]);
+
+  // Helper function to get display name for status
+  const getStatusDisplayName = (status: string): string => {
+    const statusNames: Record<string, string> = {
+      pending: 'Konfirmasi Pesanan',
+      confirmed: 'Pesanan Dikonfirmasi',
+      shipping: 'Update Pengiriman', 
+      delivered: 'Pesanan Selesai',
+      cancelled: 'Pesanan Dibatalkan'
+    };
+    return statusNames[status] || status;
+  };
 
   // Form state untuk template baru/edit
   const [isCreating, setIsCreating] = useState(false);
@@ -76,23 +89,38 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [previewMessage, setPreviewMessage] = useState('');
 
-  // Generate preview message dengan data order
+  // ✅ ENHANCED: Generate items list dalam berbagai format
+  const generateItemsList = (orderData: Order | null, format: 'simple' | 'detailed' = 'simple') => {
+    if (!orderData?.items || orderData.items.length === 0) {
+      return 'Tidak ada item';
+    }
+
+    if (format === 'simple') {
+      return orderData.items
+        .map((item: any) => `- ${item.namaBarang || item.name || 'Item'} (${item.quantity}x)`)
+        .join('\n');
+    }
+
+    // Format detailed dengan harga
+    return orderData.items
+      .map((item: any) => {
+        const name = item.namaBarang || item.name || 'Item';
+        const quantity = item.quantity || 1;
+        const price = item.harga || item.price || 0;
+        const subtotal = quantity * price;
+        
+        return `- ${name}\n  Qty: ${quantity}x @ ${formatCurrency(price)} = ${formatCurrency(subtotal)}`;
+      })
+      .join('\n\n');
+  };
+
+  // ✅ UPDATED: Generate preview message - sesuai dengan FollowUpTemplateContext
   const generatePreview = (template: Template, orderData: Order | null) => {
     if (!orderData || !template) return template?.message || '';
 
-    let message = template.message;
-    
-    // Replace placeholders
-    message = message.replace(/\{nama_pelanggan\}/g, orderData.namaPelanggan);
-    message = message.replace(/\{nomor_pesanan\}/g, orderData.nomorPesanan);
-    message = message.replace(/\{total_pesanan\}/g, formatCurrency(orderData.totalPesanan));
-    message = message.replace(/\{tanggal_pesanan\}/g, formatDateForDisplay(orderData.tanggal));
-    message = message.replace(/\{status_pesanan\}/g, orderData.status);
-    message = message.replace(/\{telepon_pelanggan\}/g, orderData.teleponPelanggan);
-    message = message.replace(/\{email_pelanggan\}/g, orderData.emailPelanggan);
-    message = message.replace(/\{alamat_pengiriman\}/g, orderData.alamatPengiriman);
-
-    return message;
+    // Gunakan processTemplate dari context untuk konsistensi
+    const { processTemplate } = useProcessTemplate();
+    return processTemplate(template.message, orderData);
   };
 
   // Update preview when template or order changes
@@ -172,13 +200,33 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     toast.success('Pesan berhasil disalin ke clipboard');
   };
 
+  // ✅ UPDATED: Available variables list - sesuai dengan FollowUpTemplateContext
+  const availableVariables = [
+    { key: '{nama_pelanggan}', desc: 'Nama pelanggan (legacy - gunakan {{namaPelanggan}})' },
+    { key: '{{namaPelanggan}}', desc: 'Nama pelanggan' },
+    { key: '{{nomorPesanan}}', desc: 'Nomor pesanan' },
+    { key: '{{totalPesanan}}', desc: 'Total harga pesanan' },
+    { key: '{{tanggal}}', desc: 'Tanggal pesanan' },
+    { key: '{{status}}', desc: 'Status pesanan' },
+    { key: '{{telefonPelanggan}}', desc: 'Nomor telepon pelanggan' },
+    { key: '{{emailPelanggan}}', desc: 'Email pelanggan' },
+    { key: '{{alamatPengiriman}}', desc: 'Alamat pengiriman' },
+    { key: '{{catatan}}', desc: 'Catatan pesanan' },
+    { key: '{{subtotal}}', desc: 'Subtotal pesanan' },
+    { key: '{{pajak}}', desc: 'Pajak pesanan' },
+    { key: '{{items}}', desc: 'Daftar item sederhana (nama + qty)' },
+    { key: '{{itemsDetail}}', desc: 'Daftar item detail (nama + qty + harga)' },
+    { key: '{{jumlahItems}}', desc: 'Jumlah jenis item' },
+    { key: '{{totalQuantity}}', desc: 'Total kuantitas semua item' },
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Kelola Template Follow-Up
+            Kelola Template Follow-Up WhatsApp
             {order && (
               <span className="text-sm font-normal text-gray-600">
                 - Pesanan #{order.nomorPesanan}
@@ -188,8 +236,9 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="templates" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="templates">Template</TabsTrigger>
+            <TabsTrigger value="variables">Variabel</TabsTrigger>
             <TabsTrigger value="preview" disabled={!selectedTemplate}>
               Preview & Kirim
             </TabsTrigger>
@@ -227,11 +276,12 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                       id="templateMessage"
                       value={templateForm.message}
                       onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
-                      placeholder="Masukkan pesan template... Gunakan {nama_pelanggan}, {nomor_pesanan}, {total_pesanan}, dll."
-                      rows={4}
+                      placeholder="Masukkan pesan template... Gunakan variabel seperti {nama_pelanggan}, {daftar_items}, dll."
+                      rows={6}
+                      className="font-mono text-sm"
                     />
                     <div className="text-xs text-gray-500 mt-1">
-                      Variabel yang tersedia: {'{nama_pelanggan}'}, {'{nomor_pesanan}'}, {'{total_pesanan}'}, {'{tanggal_pesanan}'}, {'{status_pesanan}'}
+                      💡 Tip: Lihat tab "Variabel" untuk melihat semua variabel yang tersedia
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -289,9 +339,70 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                       </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">{template.message}</p>
+                  <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-line">{template.message}</p>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* ✅ NEW: Variables Tab */}
+          <TabsContent value="variables" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Variabel yang Tersedia</h3>
+              
+              <Alert className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Gunakan variabel ini dalam template Anda. Variabel akan otomatis diganti dengan data pesanan saat mengirim pesan.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {availableVariables.map((variable) => (
+                  <div key={variable.key} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <code className="text-sm font-mono bg-white px-2 py-1 rounded border">
+                        {variable.key}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(variable.key);
+                          toast.success(`Variabel ${variable.key} disalin`);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">{variable.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* ✅ Example with current order data */}
+              {order && (
+                <div className="mt-6 border rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-semibold text-blue-800 mb-3">Contoh Data Pesanan Saat Ini:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div><strong>Nama:</strong> {order.namaPelanggan}</div>
+                    <div><strong>No. Pesanan:</strong> #{order.nomorPesanan}</div>
+                    <div><strong>Total:</strong> {formatCurrency(order.totalPesanan)}</div>
+                    <div><strong>Status:</strong> {order.status}</div>
+                    <div><strong>Jumlah Item:</strong> {order.items?.length || 0} jenis</div>
+                    <div><strong>Total Qty:</strong> {order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0} unit</div>
+                  </div>
+                  
+                  {order.items && order.items.length > 0 && (
+                    <div className="mt-3">
+                      <strong>Daftar Items:</strong>
+                      <div className="text-xs bg-white p-2 rounded border mt-1 max-h-20 overflow-y-auto">
+                        {generateItemsList(order, 'simple')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -303,14 +414,15 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                   <h4 className="font-semibold text-blue-800 mb-2">Preview Pesan</h4>
                   <div className="text-sm space-y-1 text-blue-700">
                     <div><strong>Template:</strong> {selectedTemplate.name}</div>
-                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.teleponPelanggan})</div>
+                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.telefonPelanggan})</div>
                     <div><strong>Pesanan:</strong> #{order.nomorPesanan}</div>
+                    <div><strong>Items:</strong> {order.items?.length || 0} jenis item</div>
                   </div>
                 </div>
 
                 <div className="border rounded-lg p-4">
                   <Label className="text-sm font-medium">Pesan yang akan dikirim:</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded border min-h-[100px] whitespace-pre-wrap">
+                  <div className="mt-2 p-3 bg-gray-50 rounded border min-h-[150px] whitespace-pre-wrap text-sm">
                     {previewMessage}
                   </div>
                 </div>

@@ -1,12 +1,13 @@
 // src/components/purchase/hooks/index.ts
 
-// Hook exports
+// Primary hooks exports
 export { usePurchaseStats } from './usePurchaseStats';
 export { usePurchaseForm } from './usePurchaseForm';
+export { usePurchaseTable } from './usePurchaseTable';
+export { usePurchase } from './usePurchase';
 
-// Re-export context hooks for convenience
-export { usePurchase } from '../context/PurchaseContext';
-export { usePurchaseTable } from '../context/PurchaseTableContext';
+// Re-export table context hook for convenience
+export { usePurchaseTable as usePurchaseTableContext } from '../context/PurchaseTableContext';
 
 // Type exports
 export type {

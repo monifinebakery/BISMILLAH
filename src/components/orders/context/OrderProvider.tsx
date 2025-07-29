@@ -1,4 +1,4 @@
-// 🎯 180 lines - Provider + connection dengan semua logika asli
+// 🎯 Enhanced OrderProvider dengan FollowUpTemplate Integration
 import React, { ReactNode } from 'react';
 import { logger } from '@/utils/logger';
 import OrderContext from './OrderContext';
@@ -7,7 +7,7 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
+import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 import { useOrderData } from '../hooks/useOrderData';
 import type { Order } from '../types';
 import { safeParseDate, isValidDate } from '../utils';
@@ -96,46 +96,50 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   if (!user) {
     logger.context('OrderProvider', 'No user found, providing limited context');
     return (
-      <OrderContext.Provider value={{
-        ...value,
-        orders: [],
-        loading: false,
-        isConnected: false,
-        addOrder: async () => {
-          console.warn('OrderProvider: addOrder called without user');
-          return false;
-        },
-        updateOrder: async () => {
-          console.warn('OrderProvider: updateOrder called without user');
-          return false;
-        },
-        deleteOrder: async () => {
-          console.warn('OrderProvider: deleteOrder called without user');
-          return false;
-        },
-        bulkUpdateStatus: async () => {
-          console.warn('OrderProvider: bulkUpdateStatus called without user');
-          return false;
-        },
-        bulkDeleteOrders: async () => {
-          console.warn('OrderProvider: bulkDeleteOrders called without user');
-          return false;
-        },
-        refreshData: async () => {
-          console.warn('OrderProvider: refreshData called without user');
-        },
-        getOrderById: () => undefined,
-        getOrdersByStatus: () => [],
-        getOrdersByDateRange: () => [],
-      }}>
-        {children}
-      </OrderContext.Provider>
+      <FollowUpTemplateProvider>
+        <OrderContext.Provider value={{
+          ...value,
+          orders: [],
+          loading: false,
+          isConnected: false,
+          addOrder: async () => {
+            console.warn('OrderProvider: addOrder called without user');
+            return false;
+          },
+          updateOrder: async () => {
+            console.warn('OrderProvider: updateOrder called without user');
+            return false;
+          },
+          deleteOrder: async () => {
+            console.warn('OrderProvider: deleteOrder called without user');
+            return false;
+          },
+          bulkUpdateStatus: async () => {
+            console.warn('OrderProvider: bulkUpdateStatus called without user');
+            return false;
+          },
+          bulkDeleteOrders: async () => {
+            console.warn('OrderProvider: bulkDeleteOrders called without user');
+            return false;
+          },
+          refreshData: async () => {
+            console.warn('OrderProvider: refreshData called without user');
+          },
+          getOrderById: () => undefined,
+          getOrdersByStatus: () => [],
+          getOrdersByDateRange: () => [],
+        }}>
+          {children}
+        </OrderContext.Provider>
+      </FollowUpTemplateProvider>
     );
   }
 
   return (
-    <OrderContext.Provider value={value}>
-      {children}
-    </OrderContext.Provider>
+    <FollowUpTemplateProvider>
+      <OrderContext.Provider value={value}>
+        {children}
+      </OrderContext.Provider>
+    </FollowUpTemplateProvider>
   );
 };

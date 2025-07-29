@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import type { RecipeSortField } from '../../types';
 
+// Updated props to include advanced filters
 interface RecipeFiltersProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
@@ -40,6 +41,14 @@ interface RecipeFiltersProps {
   onSortByChange: (field: RecipeSortField) => void;
   sortOrder: 'asc' | 'desc';
   onSortOrderChange: (order: 'asc' | 'desc') => void;
+  profitabilityFilter: string;
+  onProfitabilityFilterChange: (value: string) => void;
+  minHpp: string;
+  onMinHppChange: (value: string) => void;
+  maxHpp: string;
+  onMaxHppChange: (value: string) => void;
+  dateRangeFilter: string;
+  onDateRangeFilterChange: (value: string) => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
   totalResults: number;
@@ -56,6 +65,14 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
   onSortByChange,
   sortOrder,
   onSortOrderChange,
+  profitabilityFilter,
+  onProfitabilityFilterChange,
+  minHpp,
+  onMinHppChange,
+  maxHpp,
+  onMaxHppChange,
+  dateRangeFilter,
+  onDateRangeFilterChange,
   hasActiveFilters,
   onClearFilters,
   totalResults,
@@ -76,6 +93,17 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
   const getSortLabel = (field: RecipeSortField) => {
     return sortOptions.find(opt => opt.value === field)?.label || field;
   };
+  
+  // Helper to get label for date range filter badge
+  const getDateRangeLabel = (value: string) => {
+    const options: { [key: string]: string } = {
+        'today': 'Hari Ini',
+        'week': 'Minggu Ini',
+        'month': 'Bulan Ini',
+        'quarter': '3 Bulan Terakhir'
+    };
+    return options[value] || '';
+  }
 
   return (
     <div className="space-y-4">
@@ -105,7 +133,7 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
 
         {/* Category Filter */}
         <div className="w-full sm:w-48">
-          <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
+          <Select value={categoryFilter || 'all'} onValueChange={onCategoryFilterChange}>
             <SelectTrigger>
               <SelectValue placeholder="Semua Kategori" />
             </SelectTrigger>
@@ -192,7 +220,7 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tingkat Profitabilitas
               </label>
-              <Select defaultValue="">
+              <Select value={profitabilityFilter} onValueChange={onProfitabilityFilterChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Semua Level" />
                 </SelectTrigger>
@@ -200,7 +228,8 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
                   <SelectItem value="">Semua Level</SelectItem>
                   <SelectItem value="high">Tinggi (≥30%)</SelectItem>
                   <SelectItem value="medium">Sedang (15-29%)</SelectItem>
-                  <SelectItem value="low">Rendah (<15%)</SelectItem>
+                  {/* FIX: Escaped the '<' character */}
+                  <SelectItem value="low">Rendah (&lt;15%)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -214,11 +243,15 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
                 <Input
                   type="number"
                   placeholder="Min"
+                  value={minHpp}
+                  onChange={(e) => onMinHppChange(e.target.value)}
                   className="w-full"
                 />
                 <Input
                   type="number"
                   placeholder="Max"
+                  value={maxHpp}
+                  onChange={(e) => onMaxHppChange(e.target.value)}
                   className="w-full"
                 />
               </div>
@@ -229,12 +262,12 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tanggal Dibuat
               </label>
-              <Select defaultValue="">
+              <Select value={dateRangeFilter} onValueChange={onDateRangeFilterChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Semua Waktu" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Semua Waktu</SelectItem>
+                  <SelectItem value="">Semua Waktu</SelectItem>
                   <SelectItem value="today">Hari Ini</SelectItem>
                   <SelectItem value="week">Minggu Ini</SelectItem>
                   <SelectItem value="month">Bulan Ini</SelectItem>
@@ -265,17 +298,41 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
             </Badge>
           )}
           
-          {categoryFilter && (
+          {categoryFilter && categoryFilter !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Kategori: {categoryFilter}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onCategoryFilterChange('')}
+                onClick={() => onCategoryFilterChange('all')}
                 className="h-4 w-4 p-0 hover:bg-transparent"
               >
                 <X className="h-3 w-3" />
               </Button>
+            </Badge>
+          )}
+          
+          {profitabilityFilter && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Profit: {profitabilityFilter}
+              <Button
+                variant="ghost" size="sm" onClick={() => onProfitabilityFilterChange('')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
+            </Badge>
+          )}
+
+          {(minHpp || maxHpp) && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              HPP: {minHpp || '...'} - {maxHpp || '...'}
+              <Button
+                variant="ghost" size="sm" onClick={() => { onMinHppChange(''); onMaxHppChange(''); }} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
+            </Badge>
+          )}
+
+          {dateRangeFilter && (
+             <Badge variant="secondary" className="flex items-center gap-1">
+              Tanggal: {getDateRangeLabel(dateRangeFilter)}
+              <Button
+                variant="ghost" size="sm" onClick={() => onDateRangeFilterChange('')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
             </Badge>
           )}
 

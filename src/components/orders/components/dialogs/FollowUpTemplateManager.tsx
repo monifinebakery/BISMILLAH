@@ -88,7 +88,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     message = message.replace(/\{total_pesanan\}/g, formatCurrency(orderData.totalPesanan));
     message = message.replace(/\{tanggal_pesanan\}/g, formatDateForDisplay(orderData.tanggal));
     message = message.replace(/\{status_pesanan\}/g, orderData.status);
-    message = message.replace(/\{telepon_pelanggan\}/g, orderData.telefonPelanggan);
+    message = message.replace(/\{telepon_pelanggan\}/g, orderData.teleponPelanggan);
     message = message.replace(/\{email_pelanggan\}/g, orderData.emailPelanggan);
     message = message.replace(/\{alamat_pengiriman\}/g, orderData.alamatPengiriman);
 

@@ -37,8 +37,8 @@ import { formatCurrency } from '../../services/recipeUtils';
 import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
 
 // Import warehouse related hooks/services
-import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
-import type { BahanBaku } from '@/components/warehouse/types';
+import { useWarehouseContext } from '../../../warehouse/WarehouseContext';
+import type { BahanBakuFrontend } from '../../../warehouse/types'; // Use BahanBakuFrontend type
 
 interface IngredientsStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -50,6 +50,37 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
 }) => {
   // Get warehouse items using existing warehouse context
   const { bahanBaku: warehouseItems, loading: loadingWarehouse } = useWarehouseContext();
+
+  // DEBUG: Log raw warehouse data
+  useEffect(() => {
+    console.log('=== WAREHOUSE DEBUG ===');
+    console.log('Loading:', loadingWarehouse);
+    console.log('Total items:', warehouseItems.length);
+    
+    if (warehouseItems.length > 0) {
+      console.log('First item raw data:', warehouseItems[0]);
+      console.log('All field names:', Object.keys(warehouseItems[0]));
+      
+      // Check specific price fields
+      warehouseItems.slice(0, 3).forEach((item, index) => {
+        console.log(`Item ${index + 1} - ${item.nama}:`, {
+          harga_satuan: item.harga_satuan,
+          typeof_harga_satuan: typeof item.harga_satuan,
+          all_price_related_fields: {
+            harga_satuan: item.harga_satuan,
+            harga_total_beli_kemasan: item.harga_total_beli_kemasan,
+            // Check if there are other price fields
+            ...Object.fromEntries(
+              Object.entries(item).filter(([key]) => 
+                key.toLowerCase().includes('harga') || 
+                key.toLowerCase().includes('price')
+              )
+            )
+          }
+        });
+      });
+    }
+  }, [warehouseItems, loadingWarehouse]);
   
   // New ingredient form
   const [newIngredient, setNewIngredient] = useState<Partial<BahanResep>>({
@@ -67,14 +98,22 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   const handleWarehouseItemSelect = (warehouseItemId: string) => {
     const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
     if (selectedItem) {
+      // Cast to BahanBakuFrontend since that's what the API actually returns
+      const frontendItem = selectedItem as any as BahanBakuFrontend;
+      
+      console.log('Selected item (corrected):', {
+        nama: frontendItem.nama,
+        harga: frontendItem.harga, // This should be the correct field
+        rawItem: selectedItem
+      });
+      
       setNewIngredient(prev => ({
         ...prev,
-        nama: selectedItem.nama,
-        satuan: selectedItem.satuan || prev.satuan,
-        hargaSatuan: selectedItem.harga_satuan || prev.hargaSatuan, // Using database field
-        warehouseId: selectedItem.id, // Store reference to warehouse item
-        // Auto-calculate total if quantity exists
-        totalHarga: (prev.jumlah || 0) * (selectedItem.harga_satuan || 0)
+        nama: frontendItem.nama,
+        satuan: frontendItem.satuan || prev.satuan,
+        hargaSatuan: frontendItem.harga || 0, // Use 'harga' field from BahanBakuFrontend
+        warehouseId: frontendItem.id,
+        totalHarga: (prev.jumlah || 0) * (frontendItem.harga || 0)
       }));
     }
   };
@@ -149,16 +188,17 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   const handleUpdateIngredientFromWarehouse = (index: number, warehouseItemId: string) => {
     const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
     if (selectedItem) {
+      const frontendItem = selectedItem as any as BahanBakuFrontend;
       const newIngredients = [...data.bahanResep];
       const currentQuantity = newIngredients[index].jumlah;
       
       newIngredients[index] = {
         ...newIngredients[index],
-        nama: selectedItem.nama,
-        satuan: selectedItem.satuan || newIngredients[index].satuan,
-        hargaSatuan: selectedItem.harga_satuan || newIngredients[index].hargaSatuan, // Using database field
-        totalHarga: currentQuantity * (selectedItem.harga_satuan || newIngredients[index].hargaSatuan),
-        warehouseId: selectedItem.id,
+        nama: frontendItem.nama,
+        satuan: frontendItem.satuan || newIngredients[index].satuan,
+        hargaSatuan: frontendItem.harga || newIngredients[index].hargaSatuan,
+        totalHarga: currentQuantity * (frontendItem.harga || newIngredients[index].hargaSatuan),
+        warehouseId: frontendItem.id,
       };
 
       onUpdate('bahanResep', newIngredients);
@@ -236,7 +276,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                       <div className="flex items-center justify-between w-full">
                         <span>{item.nama}</span>
                         <div className="text-xs text-gray-500 ml-2">
-                          {item.satuan} - {formatCurrency(item.harga_satuan || 0)}
+                          {item.satuan} - {formatCurrency((item as any).harga || 0)}
                         </div>
                       </div>
                     </SelectItem>
@@ -401,7 +441,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                                   <div className="flex items-center justify-between w-full">
                                     <span>{item.nama}</span>
                                     <div className="text-xs text-gray-500 ml-2">
-                                      {formatCurrency(item.harga_satuan || 0)}
+                                      {formatCurrency((item as any).harga || 0)}
                                     </div>
                                   </div>
                                 </SelectItem>

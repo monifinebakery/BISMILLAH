@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
-import { RecipeFormSkeleton } from '../shared/components/LoadingStates';
+// src/components/recipe/RecipeForm.lazy.tsx
+import React, { lazy, Suspense } from 'react';
+import { RecipeFormSkeleton } from './shared/components/LoadingStates';
 
-const RecipeFormComponent = lazy(() => import('./index'));
+const RecipeFormComponent = lazy(() => import('./RecipeForm'));
 
 export const RecipeFormLazy: React.FC<any> = (props) => {
   return (
@@ -11,4 +12,4 @@ export const RecipeFormLazy: React.FC<any> = (props) => {
   );
 };
 
-export default RecipeFormLazy
+export default RecipeFormLazy;

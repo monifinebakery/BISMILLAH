@@ -7,6 +7,7 @@ export interface BahanResep {
   satuan: string;
   hargaSatuan: number;
   totalHarga: number;
+  warehouseId?: string; // Tambahkan ini
 }
 
 // Database format (snake_case)

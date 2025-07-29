@@ -38,7 +38,7 @@ import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
 
 // Import warehouse related hooks/services
 import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
-import type { BahanBakuFrontend } from '../../../warehouse/types'; // Use BahanBakuFrontend type
+import type { BahanBakuFrontend } from '@/components/warehouse/types'; // Use BahanBakuFrontend type
 
 interface IngredientsStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 

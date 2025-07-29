@@ -37,7 +37,7 @@ import { formatCurrency } from '../../services/recipeUtils';
 import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
 
 // Import warehouse related hooks/services
-import { useWarehouseContext } from '../../../warehouse/WarehouseContext';
+import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
 import type { BahanBaku } from '../../../warehouse/types';
 
 interface IngredientsStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}

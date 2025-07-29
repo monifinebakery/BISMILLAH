@@ -1,4 +1,4 @@
-/ src/components/recipe/components/shared/LoadingState.tsx
+// src/components/recipe/components/shared/LoadingState.tsx
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';

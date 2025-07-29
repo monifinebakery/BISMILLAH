@@ -37,7 +37,8 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
     hargaJualPerPcs: 0
   });
 
-  const [errors, setErrors] = useState<any>({});
+  // Fixed: errors should be just error messages, not validation objects
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
   // Initialize form with existing data
@@ -93,7 +94,7 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
     
     // Clear field error when user starts typing
     if (errors[field]) {
-      setErrors((prev: any) => ({ ...prev, [field]: undefined }));
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   }, [errors]);
 
@@ -141,9 +142,20 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
   }, []);
 
   const validateForm = useCallback(() => {
-    const validation = validateRecipe(formData as NewRecipe);
-    setErrors(validation);
-    return !hasValidationErrors(validation);
+    const validationResult = validateRecipe(formData as NewRecipe);
+    
+    // Fixed: Convert validation objects to simple error messages
+    const errorMessages: Record<string, string> = {};
+    Object.entries(validationResult).forEach(([field, validation]) => {
+      if (validation && typeof validation === 'object' && 'isValid' in validation) {
+        if (!validation.isValid && validation.message) {
+          errorMessages[field] = validation.message;
+        }
+      }
+    });
+    
+    setErrors(errorMessages);
+    return Object.keys(errorMessages).length === 0;
   }, [formData]);
 
   const handleSubmit = useCallback(async () => {
@@ -168,9 +180,12 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
     onCancel();
   }, [isDirty, onCancel]);
 
+  // Fixed: Return simple boolean instead of computed from errors object
+  const isFormValid = Object.keys(errors).length === 0 && Object.values(errors).every(err => !err);
+
   return {
     formData,
-    errors,
+    errors, // Now just string messages, not objects
     isDirty,
     updateField,
     addIngredient,
@@ -179,6 +194,6 @@ export const useRecipeForm = ({ initialData, onSave, onCancel }: UseRecipeFormPr
     validateForm,
     handleSubmit,
     handleCancel,
-    isValid: !hasValidationErrors(errors)
+    isValid: isFormValid // Fixed: simple boolean value
   };
 };

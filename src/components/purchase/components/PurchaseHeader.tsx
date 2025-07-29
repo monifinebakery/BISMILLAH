@@ -7,6 +7,15 @@ import { ShoppingCart, Plus, Download, Settings, TrendingUp, Clock, CheckCircle 
 import { formatCurrency } from '@/utils/formatUtils';
 import { PurchaseHeaderProps } from '../types/purchase.types';
 
+// src/components/purchase/components/PurchaseHeader.tsx
+
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ShoppingCart, Plus, Download, Settings, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatUtils';
+import { PurchaseHeaderProps } from '../types/purchase.types';
+
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   totalPurchases,
   totalValue,
@@ -134,3 +143,5 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
     </Card>
   );
 };
+
+export default PurchaseHeader;

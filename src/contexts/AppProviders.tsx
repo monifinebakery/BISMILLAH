@@ -17,9 +17,6 @@ import { PromoProvider } from '@/components/promoCalculator/context/PromoContext
 import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseContext';
 // import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
 
-// ✅ NEW: Import OperationalCostProvider
-import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
-
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';
@@ -27,12 +24,15 @@ import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext'
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 
+// ✅ NEW: Import OperationalCostProvider
+import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
+
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 /**
- * ⚡ OPTIMIZED AppProviders - Enhanced untuk warehouse management
+ * ⚡ OPTIMIZED AppProviders - Enhanced untuk warehouse management dan operational costs
  * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
  * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
  * 
@@ -68,21 +68,22 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                         <AssetProvider>
                           <PurchaseProvider>
                             <OrderProvider>
-
+                              
                               {/* 7. Cost Management - Operational costs for HPP calculation */}
                               {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
                               <OperationalCostProvider>
-                              
-                              {/* 7. Advanced Features - Enhanced capabilities */}
-                              {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
-                              <PromoProvider>
-                                <FollowUpTemplateProvider>
-                                  
-                                  {/* 8. Application Layer - Final app content */}
-                                  {children}
-                                  
-                                </FollowUpTemplateProvider>
-                              </PromoProvider>
+                                
+                                {/* 8. Advanced Features - Enhanced capabilities */}
+                                {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
+                                <PromoProvider>
+                                  <FollowUpTemplateProvider>
+                                    
+                                    {/* 9. Application Layer - Final app content */}
+                                    {children}
+                                    
+                                  </FollowUpTemplateProvider>
+                                </PromoProvider>
+                              </OperationalCostProvider>
                             </OrderProvider>
                           </PurchaseProvider>
                         </AssetProvider>

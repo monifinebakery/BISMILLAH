@@ -1,7 +1,7 @@
 // src/components/operational-costs/components/EmptyState.tsx
 
 import React from 'react';
-import { PlusIcon, DocumentTextIcon, CogIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { Plus, FileText, Settings, BarChart3 } from 'lucide-react';
 
 interface EmptyStateProps {
   type?: 'no-costs' | 'no-results' | 'no-settings' | 'no-data';

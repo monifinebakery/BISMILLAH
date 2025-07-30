@@ -10,6 +10,7 @@ import {
   ArrowUp,
   ArrowDown,
   Funnel,
+  Pencil,
 } from 'lucide-react';
 import { OperationalCost, CostFilters } from '../types';
 import { 

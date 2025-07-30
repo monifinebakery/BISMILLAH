@@ -1,7 +1,7 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, Suspense, lazy } from 'react';
-import { Plus, Settings, Calculator, Cog } from 'lucide-react';
+import { Plus, Settings, Calculator } from 'lucide-react'; // ✅ Fixed: Removed 'Cog', use 'Settings'
 import { OperationalCostProvider, useOperationalCost } from './context';
 import CostSummaryCard from './components/CostSummaryCard';
 import CostList from './components/CostList';
@@ -93,7 +93,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                 onClick={handleOpenAllocationSettings}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <Cog className="h-4 w-4 mr-2" />
+                <Settings className="h-4 w-4 mr-2" /> {/* ✅ Fixed: Changed from Cog to Settings */}
                 Pengaturan
               </button>
               

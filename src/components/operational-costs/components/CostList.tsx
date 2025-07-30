@@ -348,7 +348,7 @@ const CostList: React.FC<CostListProps> = ({
                         className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                         title="Edit biaya"
                       >
-                        <PencilIcon className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </button>
                     )}
                     {onDelete && (

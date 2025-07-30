@@ -357,7 +357,7 @@ const CostList: React.FC<CostListProps> = ({
                         className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                         title="Hapus biaya"
                       >
-                        <TrashIcon className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                       </button>
                     )}
                   </div>

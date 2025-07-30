@@ -1,7 +1,15 @@
 // src/components/operational-costs/dialogs/DeleteConfirmDialog.tsx
 
 import React, { Fragment, useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { AlertTriangle } from 'lucide-react';
 import { OperationalCost } from '../types';
 import { formatCurrency } from '../utils/costHelpers';

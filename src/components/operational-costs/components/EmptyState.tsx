@@ -54,7 +54,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       
       case 'no-data':
         return {
-          icon: ChartBarIcon,
+          icon: ChartBar,
           title: title || 'Belum Ada Data',
           description: description || 'Data akan ditampilkan setelah Anda menambahkan biaya operasional.',
           actionLabel: actionLabel || 'Mulai',

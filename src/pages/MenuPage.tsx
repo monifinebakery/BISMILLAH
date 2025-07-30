@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt } from 'lucide-react';
+import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { performSignOut } from '@/lib/authUtils';
@@ -62,6 +62,14 @@ const MenuPage = () => {
       icon: Package,
       path: '/gudang',
       color: 'from-green-500 to-green-600'
+    },
+    // ✅ NEW: Biaya Operasional menu item
+    {
+      title: 'Biaya Operasional',
+      description: 'Kelola biaya operasional untuk perhitungan overhead HPP',
+      icon: DollarSign,
+      path: '/biaya-operasional',
+      color: 'from-blue-500 to-indigo-600'
     },
     {
       title: 'Supplier',

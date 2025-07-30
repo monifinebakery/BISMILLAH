@@ -1,7 +1,7 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, Suspense, lazy } from 'react';
-import { PlusIcon, CogIcon, CalculatorIcon } from '@heroicons/react/24/outline';
+import { Plus, Settings, Calculator } from 'lucide-react';
 import { OperationalCostProvider, useOperationalCost } from './context';
 import CostSummaryCard from './components/CostSummaryCard';
 import CostList from './components/CostList';

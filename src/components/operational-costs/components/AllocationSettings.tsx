@@ -119,7 +119,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="p-2 bg-orange-50 rounded-full mr-3">
-              <Cog className="h-6 w-6 text-orange-600" />
+              <Settings className="h-6 w-6 text-orange-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Pengaturan Alokasi Biaya</h3>

@@ -13,6 +13,16 @@ import {
   CostListResponse 
 } from '../types';
 
+// Helper function to get current user ID
+const getCurrentUserId = async (): Promise<string | null> => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+  return user.id;
+};
+
 // ================================
 // OPERATIONAL COSTS API
 // ================================
@@ -21,9 +31,15 @@ export const operationalCostApi = {
   // Get all costs with filters
   async getCosts(filters?: CostFilters): Promise<ApiResponse<OperationalCost[]>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       let query = supabase
         .from('operational_costs')
         .select('*')
+        .eq('user_id', userId) // ✅ Add user filter
         .order('created_at', { ascending: false });
 
       if (filters?.jenis) {
@@ -50,10 +66,16 @@ export const operationalCostApi = {
   // Get cost by ID
   async getCostById(id: string): Promise<ApiResponse<OperationalCost | null>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: null, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       const { data, error } = await supabase
         .from('operational_costs')
         .select('*')
         .eq('id', id)
+        .eq('user_id', userId) // ✅ Add user filter
         .single();
 
       if (error) throw error;
@@ -68,9 +90,19 @@ export const operationalCostApi = {
   // Create new cost
   async createCost(costData: CostFormData): Promise<ApiResponse<OperationalCost>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: {} as OperationalCost, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       const { data, error } = await supabase
         .from('operational_costs')
-        .insert(costData)
+        .insert({
+          ...costData,
+          user_id: userId, // ✅ Add user_id
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
@@ -86,10 +118,19 @@ export const operationalCostApi = {
   // Update cost
   async updateCost(id: string, costData: Partial<CostFormData>): Promise<ApiResponse<OperationalCost>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: {} as OperationalCost, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       const { data, error } = await supabase
         .from('operational_costs')
-        .update(costData)
+        .update({
+          ...costData,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
+        .eq('user_id', userId) // ✅ Add user filter
         .select()
         .single();
 
@@ -105,10 +146,16 @@ export const operationalCostApi = {
   // Delete cost
   async deleteCost(id: string): Promise<ApiResponse<boolean>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: false, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       const { error } = await supabase
         .from('operational_costs')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
 
@@ -122,9 +169,24 @@ export const operationalCostApi = {
   // Get cost summary
   async getCostSummary(): Promise<ApiResponse<CostSummary>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { 
+          data: {
+            total_biaya_aktif: 0,
+            total_biaya_tetap: 0,
+            total_biaya_variabel: 0,
+            jumlah_biaya_aktif: 0,
+            jumlah_biaya_nonaktif: 0,
+          }, 
+          error: 'User tidak ditemukan. Silakan login kembali.'
+        };
+      }
+
       const { data, error } = await supabase
         .from('operational_costs')
-        .select('jumlah_per_bulan, jenis, status');
+        .select('jumlah_per_bulan, jenis, status')
+        .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
 
@@ -169,12 +231,18 @@ export const allocationApi = {
   // Get allocation settings
   async getSettings(): Promise<ApiResponse<AllocationSettings | null>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: null, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
       const { data, error } = await supabase
         .from('allocation_settings')
         .select('*')
-        .single();
+        .eq('user_id', userId) // ✅ Add user filter
+        .maybeSingle(); // Use maybeSingle instead of single to handle no data case
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
 
       return { data: data || null };
     } catch (error) {
@@ -186,9 +254,24 @@ export const allocationApi = {
   // Create or update allocation settings
   async upsertSettings(settingsData: AllocationFormData): Promise<ApiResponse<AllocationSettings>> {
     try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: {} as AllocationSettings, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
+      // ✅ FIXED: Add user_id and timestamps
+      const dataWithUserId = {
+        ...settingsData,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('allocation_settings')
-        .upsert(settingsData)
+        .upsert(dataWithUserId, {
+          onConflict: 'user_id', // Upsert based on user_id
+        })
         .select()
         .single();
 
@@ -197,7 +280,39 @@ export const allocationApi = {
       return { data, message: 'Pengaturan alokasi berhasil disimpan' };
     } catch (error) {
       console.error('Error upserting allocation settings:', error);
-      return { data: {} as AllocationSettings, error: 'Gagal menyimpan pengaturan alokasi' };
+      
+      // ✅ Better error handling
+      let errorMessage = 'Gagal menyimpan pengaturan alokasi';
+      
+      if (error.code === '42501') {
+        errorMessage = 'Tidak memiliki izin untuk menyimpan pengaturan. Silakan login kembali.';
+      } else if (error.code === '23505') {
+        errorMessage = 'Pengaturan sudah ada. Mencoba update...';
+      }
+
+      return { data: {} as AllocationSettings, error: errorMessage };
+    }
+  },
+
+  // Delete allocation settings
+  async deleteSettings(): Promise<ApiResponse<boolean>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { data: false, error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
+      const { error } = await supabase
+        .from('allocation_settings')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      return { data: true, message: 'Pengaturan alokasi berhasil dihapus' };
+    } catch (error) {
+      console.error('Error deleting allocation settings:', error);
+      return { data: false, error: 'Gagal menghapus pengaturan alokasi' };
     }
   },
 };
@@ -210,13 +325,26 @@ export const calculationApi = {
   // Calculate overhead
   async calculateOverhead(materialCost: number = 0): Promise<ApiResponse<OverheadCalculation>> {
     try {
-      // Get total costs using database function
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: {
+            total_costs: 0,
+            overhead_per_unit: 0,
+            metode: 'per_unit',
+            nilai_basis: 1000,
+          },
+          error: 'User tidak ditemukan. Silakan login kembali.'
+        };
+      }
+
+      // Get total costs for current user
       const { data: totalCosts, error: costsError } = await supabase
-        .rpc('get_total_costs');
+        .rpc('get_total_costs', { p_user_id: userId }); // ✅ Pass user_id to function
 
       if (costsError) throw costsError;
 
-      // Get allocation settings
+      // Get allocation settings for current user
       const { data: settings } = await allocationApi.getSettings();
 
       if (!settings) {
@@ -233,7 +361,10 @@ export const calculationApi = {
 
       // Calculate overhead using database function
       const { data: overhead, error: calcError } = await supabase
-        .rpc('calculate_overhead', { p_material_cost: materialCost });
+        .rpc('calculate_overhead', { 
+          p_material_cost: materialCost,
+          p_user_id: userId // ✅ Pass user_id to function
+        });
 
       if (calcError) throw calcError;
 

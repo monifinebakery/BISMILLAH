@@ -1,7 +1,7 @@
 // src/components/operational-costs/components/EmptyState.tsx
 
 import React from 'react';
-import { Plus, FileText, Settings, BarChart3 } from 'lucide-react';
+import { Plus, FileText, Settings, BarChart3, ChartBar } from 'lucide-react';
 
 interface EmptyStateProps {
   type?: 'no-costs' | 'no-results' | 'no-settings' | 'no-data';

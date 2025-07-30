@@ -1,7 +1,15 @@
 // src/components/operational-costs/dialogs/CostDialog.tsx
 
 import React, { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { X } from 'lucide-react';
 import { OperationalCost, CostFormData } from '../types';
 import CostForm from '../components/CostForm';

@@ -46,7 +46,7 @@ const DialogManager = lazy(() => {
               
               // Strategy 4: Load from different path (if available)
               // This assumes you might have a backup build
-              const backupImport = () => import('./components/DialogManager/index.js')
+              const backupImport = () => import('./components/DialogManager)
                 .catch(() => import('./components/DialogManager.tsx'))
                 .catch(() => {
                   // Strategy 5: Return mock component

@@ -170,7 +170,7 @@ const CostList: React.FC<CostListProps> = ({
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <FunnelIcon className="h-4 w-4 mr-2" />
+            <Funnel className="h-4 w-4 mr-2" />
             Filter
             {hasActiveFilters && (
               <span className="ml-1 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">

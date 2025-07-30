@@ -204,6 +204,22 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       
       if (response.error) {
         dispatch({ type: 'SET_ERROR', payload: response.error });
+      } else {
+        dispatch({ type: 'SET_COSTS', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data biaya operasional' });
+    } finally {
+      setLoading('costs', false);
+    }
+  }, [setLoading]);
+
+  const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
+    try {
+      const response = await operationalCostApi.createCost(data);
+      
+      if (response.error) {
+        dispatch({ type: 'SET_ERROR', payload: response.error });
         return false;
       } else {
         dispatch({ type: 'ADD_COST', payload: response.data });
@@ -372,20 +388,4 @@ export const useOperationalCost = () => {
 };
 
 // Export context for testing
-export { OperationalCostContext };error });
-      } else {
-        dispatch({ type: 'SET_COSTS', payload: response.data });
-      }
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data biaya operasional' });
-    } finally {
-      setLoading('costs', false);
-    }
-  }, [setLoading]);
-
-  const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
-    try {
-      const response = await operationalCostApi.createCost(data);
-      
-      if (response.error) {
-        dispatch({ type: 'SET_ERROR', payload: response
+export { OperationalCostContext };

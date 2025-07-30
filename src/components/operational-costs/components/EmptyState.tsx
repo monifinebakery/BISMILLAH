@@ -24,7 +24,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     switch (type) {
       case 'no-costs':
         return {
-          icon: DocumentTextIcon,
+          icon: FileText,
           title: title || 'Belum Ada Biaya Operasional',
           description: description || 'Mulai tambahkan biaya operasional untuk menghitung overhead produksi Anda.',
           actionLabel: actionLabel || 'Tambah Biaya Pertama',
@@ -34,7 +34,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       
       case 'no-results':
         return {
-          icon: DocumentTextIcon,
+          icon: FileText,
           title: title || 'Tidak Ada Hasil',
           description: description || 'Tidak ada biaya yang sesuai dengan kriteria pencarian Anda.',
           actionLabel: actionLabel || 'Reset Filter',
@@ -64,7 +64,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       
       default:
         return {
-          icon: DocumentTextIcon,
+          icon: FileText,
           title: title || 'Tidak Ada Data',
           description: description || 'Belum ada data untuk ditampilkan.',
           actionLabel: actionLabel || 'Tambah Data',

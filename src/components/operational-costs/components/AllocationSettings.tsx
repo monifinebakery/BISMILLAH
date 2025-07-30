@@ -209,7 +209,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
             {formData.metode === 'persentase' && (
               <div className="p-4 bg-blue-50 rounded-md">
                 <div className="flex items-start">
-                  <InformationCircleIcon className="h-5 w-5 text-blue-400 mt-0.5 mr-2 flex-shrink-0" />
+                  <Info className="h-5 w-5 text-blue-400 mt-0.5 mr-2 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-blue-800 mb-2">
                       Contoh perhitungan dengan biaya material:

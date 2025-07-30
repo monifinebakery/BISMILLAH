@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { 
-  CurrencyDollarIcon, 
-  ChartBarIcon, 
-  TrendingUpIcon,
-  TrendingDownIcon,
-  MinusIcon 
-} from '@heroicons/react/24/outline';
+  DollarSign, 
+  BarChart3, 
+  TrendingUp,
+  TrendingDown,
+  Minus 
+} from 'lucide-react';
 import { CostSummary } from '../types';
 import { formatCurrency, calculatePercentage } from '../utils/costHelpers';
 

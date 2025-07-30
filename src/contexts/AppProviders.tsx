@@ -68,6 +68,10 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                         <AssetProvider>
                           <PurchaseProvider>
                             <OrderProvider>
+
+                              {/* 7. Cost Management - Operational costs for HPP calculation */}
+                              {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
+                              <OperationalCostProvider>
                               
                               {/* 7. Advanced Features - Enhanced capabilities */}
                               {/* ✅ UPDATED: PromoProvider after RecipeProvider */}

@@ -17,6 +17,9 @@ import { PromoProvider } from '@/components/promoCalculator/context/PromoContext
 import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseContext';
 // import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
 
+// ✅ NEW: Import OperationalCostProvider
+import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
+
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { AssetProvider } from './AssetContext';

@@ -1,7 +1,15 @@
 // src/components/operational-costs/dialogs/AllocationDialog.tsx
 
 import React, { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { X } from 'lucide-react';
 import { AllocationSettings, AllocationFormData, CostSummary } from '../types';
 import AllocationSettingsComponent from '../components/AllocationSettings';

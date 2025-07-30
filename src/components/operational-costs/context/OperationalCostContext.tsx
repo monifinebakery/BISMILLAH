@@ -248,10 +248,10 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
               console.log('🔐 Loading initial data (first time)...'); // ✅ ADD DEBUG
               initialLoadDone = true; // ✅ MARK as loaded
               
-              // Small delay to ensure auth state is fully set
+              // ✅ PASS auth state directly to avoid stale closure
               setTimeout(() => {
                 if (mounted) {
-                  loadInitialData();
+                  loadInitialData(isAuthenticated);
                 }
               }, 100);
             }
@@ -288,10 +288,10 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
             console.log('🔐 User signed in, loading data...'); // ✅ ADD DEBUG
             initialLoadDone = true; // ✅ MARK as loaded
             
-            // Load data when user signs in
+            // ✅ PASS auth state directly
             setTimeout(() => {
               if (mounted) {
-                loadInitialData();
+                loadInitialData(isAuthenticated);
               }
             }, 100);
           } else if (event === 'SIGNED_OUT') {
@@ -310,11 +310,11 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     };
   }, []);
 
-  // ✅ Load initial data only when authenticated
-  const loadInitialData = useCallback(async () => {
-    console.log('📊 loadInitialData called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+  // ✅ Load initial data - FIXED to receive auth state as parameter
+  const loadInitialData = useCallback(async (isAuthenticated: boolean) => {
+    console.log('📊 loadInitialData called, authenticated:', isAuthenticated); // ✅ USE PARAMETER
     
-    if (!state.isAuthenticated) {
+    if (!isAuthenticated) {
       console.log('📊 Not authenticated, skipping data load'); // ✅ ADD DEBUG
       return;
     }
@@ -322,7 +322,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     try {
       console.log('📊 Loading costs and allocation settings...'); // ✅ ADD DEBUG
       await Promise.all([
-        loadCosts(state.filters),
+        loadCosts(),
         loadAllocationSettings(),
       ]);
       console.log('📊 Data loaded successfully'); // ✅ ADD DEBUG
@@ -330,13 +330,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       console.error('📊 Error loading initial data:', error); // ✅ ADD DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data awal' });
     }
-  }, [state.isAuthenticated, state.filters]);
+  }, []); // ✅ REMOVE dependencies that cause stale closure
 
   // Cost actions
   const loadCosts = useCallback(async (filters?: CostFilters) => {
-    console.log('💰 loadCosts called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    console.log('💰 loadCosts called'); // ✅ SIMPLIFIED DEBUG
     
-    if (!state.isAuthenticated) {
+    // ✅ GET FRESH AUTH STATE from Supabase directly
+    const { data: { session } } = await supabase.auth.getSession();
+    const isAuthenticated = !!session?.user;
+    
+    console.log('💰 Fresh auth check:', isAuthenticated); // ✅ ADD DEBUG
+    
+    if (!isAuthenticated) {
       console.log('💰 Not authenticated, cannot load costs'); // ✅ ADD DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return;
@@ -365,7 +371,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       console.log('💰 Setting loading to false'); // ✅ ADD DEBUG
       setLoading('costs', false);
     }
-  }, [setLoading, state.isAuthenticated]);
+  }, [setLoading]); // ✅ REMOVED state dependency
 
   const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
     if (!state.isAuthenticated) {

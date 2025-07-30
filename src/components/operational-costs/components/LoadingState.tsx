@@ -122,5 +122,4 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   }
 };
 
-export default LoadingState;10 bg-gray-200 rounded w-20"></div>
-        <div className="animate-pulse h-
+export default LoadingState

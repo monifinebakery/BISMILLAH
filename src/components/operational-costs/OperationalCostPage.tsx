@@ -85,7 +85,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                 className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Hitung overhead berdasarkan pengaturan alokasi"
               >
-                <CalculatorIcon className="h-4 w-4 mr-2" />
+                <Calculator className="h-4 w-4 mr-2" />
                 Hitung Overhead
               </button>
               
@@ -154,7 +154,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
             {state.overheadCalculation && (
               <div className="bg-white rounded-lg border p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <CalculatorIcon className="h-5 w-5 mr-2 text-blue-600" />
+                  <Calculator className="h-5 w-5 mr-2 text-blue-600" />
                   Hasil Perhitungan Overhead
                 </h3>
                 

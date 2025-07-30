@@ -93,7 +93,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                 onClick={handleOpenAllocationSettings}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <Settings className="h-4 w-4 mr-2" /> {/* ✅ Fixed: Changed from Cog to Settings */}
+                <Settings className="h-4 w-4 mr-2" />
                 Pengaturan
               </button>
               

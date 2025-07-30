@@ -1,3 +1,4 @@
+// src/components/operational-costs/dialogs/AllocationDialog.tsx
 import React from 'react';
 import {
   Dialog,
@@ -5,8 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { X } from 'lucide-react';
 import { AllocationSettings, AllocationFormData, CostSummary } from '../types';
 import AllocationSettingsComponent from '../components/AllocationSettings';
 
@@ -34,16 +33,7 @@ const AllocationDialog: React.FC<AllocationDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Pengaturan Alokasi Biaya</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
-            </Button>
-          </div>
+          <DialogTitle>Pengaturan Alokasi Biaya</DialogTitle>
         </DialogHeader>
         
         <div className="mt-4">

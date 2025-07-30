@@ -1,7 +1,7 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, Suspense, lazy } from 'react';
-import { Plus, Settings, Calculator } from 'lucide-react';
+import { Plus, Settings, Calculator } from 'lucide-react'; // ✅ Only import icons that exist
 import { OperationalCostProvider, useOperationalCost } from './context';
 import CostSummaryCard from './components/CostSummaryCard';
 import CostList from './components/CostList';
@@ -65,12 +65,45 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
   const hasCosts = state.costs.length > 0;
   const hasActiveSettings = !!state.allocationSettings;
 
+  // ✅ Show loading state while auth is being checked
+  if (state.loading.auth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-3 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Show auth error if not authenticated
+  if (!state.isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="h-12 w-12 text-red-500 mx-auto mb-4 text-4xl">🔒</div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Akses Terbatas</h2>
+          <p className="text-gray-600 mb-4">
+            Anda perlu login untuk mengakses halaman ini.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Refresh Halaman
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Page Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Biaya Operasional</h1>
               <p className="text-gray-600 mt-1">
@@ -78,20 +111,20 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
               </p>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
               <button
                 onClick={handleCalculateOverhead}
                 disabled={state.loading.overhead || !hasCosts || !hasActiveSettings}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Hitung overhead berdasarkan pengaturan alokasi"
               >
                 <Calculator className="h-4 w-4 mr-2" />
-                Hitung Overhead
+                {state.loading.overhead ? 'Menghitung...' : 'Hitung Overhead'}
               </button>
               
               <button
                 onClick={handleOpenAllocationSettings}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Pengaturan
@@ -99,7 +132,8 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
               
               <button
                 onClick={handleAddCost}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={state.loading.costs}
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Biaya
@@ -112,10 +146,10 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
         <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex space-x-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab('costs')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'costs'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -125,7 +159,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
             </button>
             <button
               onClick={() => setActiveTab('allocation')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'allocation'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -147,7 +181,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
             {/* Summary Card */}
             <CostSummaryCard 
               summary={state.summary}
-              loading={state.loading.summary}
+              loading={state.loading.summary || state.loading.costs}
             />
 
             {/* Overhead Calculation Result */}
@@ -160,7 +194,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-xl md:text-2xl font-bold text-blue-600 break-all">
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',
@@ -171,7 +205,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                   </div>
                   
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-xl md:text-2xl font-bold text-gray-900 break-all">
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',

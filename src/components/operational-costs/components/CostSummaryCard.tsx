@@ -6,7 +6,8 @@ import {
   BarChart3, 
   TrendingUp,
   TrendingDown,
-  Minus 
+  Minus
+  ChartBar
 } from 'lucide-react';
 import { CostSummary } from '../types';
 import { formatCurrency, calculatePercentage } from '../utils/costHelpers';

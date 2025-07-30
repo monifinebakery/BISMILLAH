@@ -122,4 +122,4 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   }
 };
 
-export default LoadingState
+export default LoadingState;

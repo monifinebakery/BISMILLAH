@@ -1,7 +1,7 @@
 // src/components/operational-costs/components/AllocationSettings.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Calculator, Info } from 'lucide-react';
+import { Settings, Calculator, Info, CalculatorIcon } from 'lucide-react';
 import { AllocationSettings, AllocationFormData, CostSummary } from '../types';
 import { validateAllocationForm } from '../utils/costValidation';
 import { transformAllocationToForm } from '../utils/costTransformers';

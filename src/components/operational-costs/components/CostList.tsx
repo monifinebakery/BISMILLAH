@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react';
 import {
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-} from '@heroicons/react/24/outline';
+  Edit,
+  Trash2,
+  Eye,
+  Search,
+  Filter,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 import { OperationalCost, CostFilters } from '../types';
 import { 
   formatCurrency, 

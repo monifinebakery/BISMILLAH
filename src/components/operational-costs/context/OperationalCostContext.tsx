@@ -223,8 +223,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     let mounted = true;
 
     const checkAuthState = async () => {
+      console.log('🔐 Checking auth state...'); // ✅ ADD DEBUG
+      
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        console.log('🔐 Session:', session); // ✅ ADD DEBUG
+        console.log('🔐 Error:', error); // ✅ ADD DEBUG
         
         if (mounted) {
           if (error) {
@@ -233,10 +238,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
             dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
           } else {
             const isAuthenticated = !!session?.user;
+            console.log('🔐 Is authenticated:', isAuthenticated); // ✅ ADD DEBUG
+            
             dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
             
             // Only load data if authenticated
             if (isAuthenticated) {
+              console.log('🔐 Loading initial data...'); // ✅ ADD DEBUG
               // Small delay to ensure auth state is fully set
               setTimeout(() => {
                 if (mounted) {
@@ -247,7 +255,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
           }
         }
       } catch (error) {
-        console.error('Error checking auth state:', error);
+        console.error('🔐 Error checking auth state:', error); // ✅ ENHANCED DEBUG
         if (mounted) {
           dispatch({ type: 'SET_AUTH_STATE', payload: false });
           dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
@@ -260,11 +268,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔐 Auth state changed:', event, !!session?.user); // ✅ ADD DEBUG
+        
         if (mounted) {
           const isAuthenticated = !!session?.user;
           dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
           
           if (event === 'SIGNED_IN' && isAuthenticated) {
+            console.log('🔐 User signed in, loading data...'); // ✅ ADD DEBUG
             // Load data when user signs in
             setTimeout(() => {
               if (mounted) {
@@ -272,6 +283,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
               }
             }, 100);
           } else if (event === 'SIGNED_OUT') {
+            console.log('🔐 User signed out, clearing data...'); // ✅ ADD DEBUG
             // Clear data when user signs out
             dispatch({ type: 'RESET_STATE' });
           }
@@ -287,41 +299,57 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // ✅ Load initial data only when authenticated
   const loadInitialData = useCallback(async () => {
+    console.log('📊 loadInitialData called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    
     if (!state.isAuthenticated) {
+      console.log('📊 Not authenticated, skipping data load'); // ✅ ADD DEBUG
       return;
     }
 
     try {
+      console.log('📊 Loading costs and allocation settings...'); // ✅ ADD DEBUG
       await Promise.all([
         loadCosts(state.filters),
         loadAllocationSettings(),
       ]);
+      console.log('📊 Data loaded successfully'); // ✅ ADD DEBUG
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.error('📊 Error loading initial data:', error); // ✅ ADD DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data awal' });
     }
   }, [state.isAuthenticated, state.filters]);
 
   // Cost actions
   const loadCosts = useCallback(async (filters?: CostFilters) => {
+    console.log('💰 loadCosts called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    
     if (!state.isAuthenticated) {
+      console.log('💰 Not authenticated, cannot load costs'); // ✅ ADD DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return;
     }
 
     try {
+      console.log('💰 Setting loading to true'); // ✅ ADD DEBUG
       setLoading('costs', true);
+      
+      console.log('💰 Calling API with filters:', filters); // ✅ ADD DEBUG
       const response = await operationalCostApi.getCosts(filters);
       
+      console.log('💰 API response:', response); // ✅ ADD DEBUG
+      
       if (response.error) {
+        console.log('💰 API returned error:', response.error); // ✅ ADD DEBUG
         dispatch({ type: 'SET_ERROR', payload: response.error });
       } else {
+        console.log('💰 Setting costs data:', response.data.length, 'items'); // ✅ ADD DEBUG
         dispatch({ type: 'SET_COSTS', payload: response.data });
       }
     } catch (error) {
-      console.error('Error loading costs:', error);
+      console.error('💰 Error loading costs:', error); // ✅ ENHANCED DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data biaya operasional' });
     } finally {
+      console.log('💰 Setting loading to false'); // ✅ ADD DEBUG
       setLoading('costs', false);
     }
   }, [setLoading, state.isAuthenticated]);
@@ -397,27 +425,38 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Allocation actions
   const loadAllocationSettings = useCallback(async () => {
+    console.log('⚙️ loadAllocationSettings called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    
     if (!state.isAuthenticated) {
+      console.log('⚙️ Not authenticated, cannot load allocation settings'); // ✅ ADD DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return;
     }
 
     try {
+      console.log('⚙️ Setting loading to true'); // ✅ ADD DEBUG
       setLoading('allocation', true);
+      
+      console.log('⚙️ Calling allocation API'); // ✅ ADD DEBUG
       const response = await allocationApi.getSettings();
       
+      console.log('⚙️ Allocation API response:', response); // ✅ ADD DEBUG
+      
       if (response.error) {
+        console.log('⚙️ Allocation API error:', response.error); // ✅ ADD DEBUG
         // Don't show error for "no settings found" case
         if (!response.error.includes('tidak ditemukan')) {
           dispatch({ type: 'SET_ERROR', payload: response.error });
         }
       } else {
+        console.log('⚙️ Setting allocation settings:', response.data); // ✅ ADD DEBUG
         dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: response.data });
       }
     } catch (error) {
-      console.error('Error loading allocation settings:', error);
+      console.error('⚙️ Error loading allocation settings:', error); // ✅ ENHANCED DEBUG
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat pengaturan alokasi' });
     } finally {
+      console.log('⚙️ Setting loading to false'); // ✅ ADD DEBUG
       setLoading('allocation', false);
     }
   }, [setLoading, state.isAuthenticated]);
@@ -480,14 +519,24 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Utility actions
   const refreshData = useCallback(async () => {
+    console.log('🔄 refreshData called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    
     if (!state.isAuthenticated) {
+      console.log('🔄 Not authenticated, skipping refresh'); // ✅ ADD DEBUG
       return;
     }
 
-    await Promise.all([
-      loadCosts(state.filters),
-      loadAllocationSettings(),
-    ]);
+    console.log('🔄 Refreshing all data...'); // ✅ ADD DEBUG
+    
+    try {
+      await Promise.all([
+        loadCosts(state.filters),
+        loadAllocationSettings(),
+      ]);
+      console.log('🔄 Data refresh completed successfully'); // ✅ ADD DEBUG
+    } catch (error) {
+      console.error('🔄 Error during data refresh:', error); // ✅ ADD DEBUG
+    }
   }, [loadCosts, loadAllocationSettings, state.filters, state.isAuthenticated]);
 
   const setError = useCallback((error: string | null) => {

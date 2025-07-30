@@ -114,7 +114,7 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
         <div className="space-y-4">
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-              <ChartBa className="h-4 w-4 mr-2" />
+              <ChartBar className="h-4 w-4 mr-2" />
               Rincian Biaya
             </h4>
             

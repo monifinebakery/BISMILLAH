@@ -304,7 +304,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
                 {costSummary.total_biaya_aktif > 0 && (
                   <div className="p-4 bg-gray-50 rounded-md">
                     <div className="flex items-center mb-3">
-                      <CalculatorIcon className="h-5 w-5 text-gray-600 mr-2" />
+                      <Calculator className="h-5 w-5 text-gray-600 mr-2" />
                       <h4 className="text-sm font-medium text-gray-700">Perhitungan Overhead</h4>
                     </div>
                     
@@ -359,7 +359,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
         {isEditing && costSummary.total_biaya_aktif > 0 && formData.nilai > 0 && (
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center mb-2">
-              <CalculatorIcon className="h-5 w-5 text-green-600 mr-2" />
+              <Calculator className="h-5 w-5 text-green-600 mr-2" />
               <h4 className="text-sm font-medium text-green-800">Preview Perhitungan</h4>
             </div>
             <div className="text-sm text-green-700">

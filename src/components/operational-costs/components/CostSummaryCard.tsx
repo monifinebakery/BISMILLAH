@@ -114,7 +114,7 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
         <div className="space-y-4">
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-              <ChartBarIcon className="h-4 w-4 mr-2" />
+              <ChartBa className="h-4 w-4 mr-2" />
               Rincian Biaya
             </h4>
             
@@ -190,7 +190,7 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
       {/* Empty state */}
       {summary.total_biaya_aktif === 0 && (
         <div className="text-center py-4">
-          <MinusIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+          <Minus className="h-8 w-8 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-500">Belum ada biaya operasional aktif</p>
         </div>
       )}

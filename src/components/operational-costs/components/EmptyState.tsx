@@ -44,7 +44,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       
       case 'no-settings':
         return {
-          icon: CogIcon,
+          icon: Cog,
           title: title || 'Pengaturan Alokasi Belum Dikonfigurasi',
           description: description || 'Atur metode alokasi biaya untuk menghitung overhead per unit produksi.',
           actionLabel: actionLabel || 'Atur Sekarang',

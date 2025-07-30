@@ -338,7 +338,7 @@ const CostList: React.FC<CostListProps> = ({
                         className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                         title="Lihat detail"
                       >
-                        <EyeIcon className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
                     )}
                     {onEdit && (

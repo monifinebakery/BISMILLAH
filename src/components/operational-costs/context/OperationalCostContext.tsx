@@ -221,6 +221,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // ✅ Auth state management
   useEffect(() => {
     let mounted = true;
+    let initialLoadDone = false; // ✅ ADD FLAG to prevent duplicate loads
 
     const checkAuthState = async () => {
       console.log('🔐 Checking auth state...'); // ✅ ADD DEBUG
@@ -242,9 +243,11 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
             
             dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
             
-            // Only load data if authenticated
-            if (isAuthenticated) {
-              console.log('🔐 Loading initial data...'); // ✅ ADD DEBUG
+            // Only load data if authenticated and not already loaded
+            if (isAuthenticated && !initialLoadDone) {
+              console.log('🔐 Loading initial data (first time)...'); // ✅ ADD DEBUG
+              initialLoadDone = true; // ✅ MARK as loaded
+              
               // Small delay to ensure auth state is fully set
               setTimeout(() => {
                 if (mounted) {
@@ -272,10 +275,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         
         if (mounted) {
           const isAuthenticated = !!session?.user;
+          
+          // ✅ SKIP INITIAL_SESSION to prevent race condition
+          if (event === 'INITIAL_SESSION') {
+            console.log('🔐 Skipping INITIAL_SESSION event to prevent race condition'); // ✅ ADD DEBUG
+            return;
+          }
+          
           dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
           
           if (event === 'SIGNED_IN' && isAuthenticated) {
             console.log('🔐 User signed in, loading data...'); // ✅ ADD DEBUG
+            initialLoadDone = true; // ✅ MARK as loaded
+            
             // Load data when user signs in
             setTimeout(() => {
               if (mounted) {
@@ -284,6 +296,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
             }, 100);
           } else if (event === 'SIGNED_OUT') {
             console.log('🔐 User signed out, clearing data...'); // ✅ ADD DEBUG
+            initialLoadDone = false; // ✅ RESET flag
             // Clear data when user signs out
             dispatch({ type: 'RESET_STATE' });
           }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
   Edit,
-  Trash2,
+  Trash2, // ✅ Import Trash2 (correct)
   Eye,
   Search,
   Filter,
@@ -357,7 +357,7 @@ const CostList: React.FC<CostListProps> = ({
                         className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                         title="Hapus biaya"
                       >
-                        <Trash className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" /> {/* ✅ FIXED: Use Trash2 (imported) instead of Trash */}
                       </button>
                     )}
                   </div>

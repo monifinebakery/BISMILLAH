@@ -372,7 +372,7 @@ export const useOperationalCost = () => {
 };
 
 // Export context for testing
-export { OperationalCostContext };.error });
+export { OperationalCostContext };error });
       } else {
         dispatch({ type: 'SET_COSTS', payload: response.data });
       }

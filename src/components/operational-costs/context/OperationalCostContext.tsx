@@ -1,6 +1,6 @@
 // src/components/operational-costs/context/OperationalCostContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { operationalCostApi, allocationApi, calculationApi } from '../services';
 import { transformCostsToSummary } from '../utils/costTransformers';
+import { supabase } from "@/integrations/supabase/client";
 
 // State interface
 interface OperationalCostState {
@@ -25,8 +26,10 @@ interface OperationalCostState {
     allocation: boolean;
     summary: boolean;
     overhead: boolean;
+    auth: boolean; // ✅ Add auth loading state
   };
   error: string | null;
+  isAuthenticated: boolean; // ✅ Add auth state
 }
 
 // Action types
@@ -41,6 +44,7 @@ type OperationalCostAction =
   | { type: 'SET_SUMMARY'; payload: CostSummary }
   | { type: 'SET_OVERHEAD_CALCULATION'; payload: OverheadCalculation }
   | { type: 'SET_FILTERS'; payload: CostFilters }
+  | { type: 'SET_AUTH_STATE'; payload: boolean } // ✅ Add auth action
   | { type: 'RESET_STATE' };
 
 // Initial state
@@ -61,8 +65,10 @@ const initialState: OperationalCostState = {
     allocation: false,
     summary: false,
     overhead: false,
+    auth: true, // ✅ Start with auth loading
   },
   error: null,
+  isAuthenticated: false, // ✅ Start as not authenticated
 };
 
 // Reducer
@@ -145,8 +151,24 @@ const operationalCostReducer = (
         filters: action.payload,
       };
 
+    case 'SET_AUTH_STATE': // ✅ Handle auth state change
+      return {
+        ...state,
+        isAuthenticated: action.payload,
+        loading: {
+          ...state.loading,
+          auth: false,
+        },
+      };
+
     case 'RESET_STATE':
-      return initialState;
+      return {
+        ...initialState,
+        loading: {
+          ...initialState.loading,
+          auth: false,
+        },
+      };
 
     default:
       return state;
@@ -196,8 +218,97 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     dispatch({ type: 'SET_LOADING', payload: { key, value } });
   }, []);
 
+  // ✅ Auth state management
+  useEffect(() => {
+    let mounted = true;
+
+    const checkAuthState = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (mounted) {
+          if (error) {
+            console.error('Auth error:', error);
+            dispatch({ type: 'SET_AUTH_STATE', payload: false });
+            dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
+          } else {
+            const isAuthenticated = !!session?.user;
+            dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
+            
+            // Only load data if authenticated
+            if (isAuthenticated) {
+              // Small delay to ensure auth state is fully set
+              setTimeout(() => {
+                if (mounted) {
+                  loadInitialData();
+                }
+              }, 100);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+        if (mounted) {
+          dispatch({ type: 'SET_AUTH_STATE', payload: false });
+          dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
+        }
+      }
+    };
+
+    checkAuthState();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (mounted) {
+          const isAuthenticated = !!session?.user;
+          dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
+          
+          if (event === 'SIGNED_IN' && isAuthenticated) {
+            // Load data when user signs in
+            setTimeout(() => {
+              if (mounted) {
+                loadInitialData();
+              }
+            }, 100);
+          } else if (event === 'SIGNED_OUT') {
+            // Clear data when user signs out
+            dispatch({ type: 'RESET_STATE' });
+          }
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // ✅ Load initial data only when authenticated
+  const loadInitialData = useCallback(async () => {
+    if (!state.isAuthenticated) {
+      return;
+    }
+
+    try {
+      await Promise.all([
+        loadCosts(state.filters),
+        loadAllocationSettings(),
+      ]);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data awal' });
+    }
+  }, [state.isAuthenticated, state.filters]);
+
   // Cost actions
   const loadCosts = useCallback(async (filters?: CostFilters) => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return;
+    }
+
     try {
       setLoading('costs', true);
       const response = await operationalCostApi.getCosts(filters);
@@ -208,13 +319,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         dispatch({ type: 'SET_COSTS', payload: response.data });
       }
     } catch (error) {
+      console.error('Error loading costs:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data biaya operasional' });
     } finally {
       setLoading('costs', false);
     }
-  }, [setLoading]);
+  }, [setLoading, state.isAuthenticated]);
 
   const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return false;
+    }
+
     try {
       const response = await operationalCostApi.createCost(data);
       
@@ -226,12 +343,18 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         return true;
       }
     } catch (error) {
+      console.error('Error creating cost:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal menambahkan biaya operasional' });
       return false;
     }
-  }, []);
+  }, [state.isAuthenticated]);
 
   const updateCost = useCallback(async (id: string, data: Partial<CostFormData>): Promise<boolean> => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return false;
+    }
+
     try {
       const response = await operationalCostApi.updateCost(id, data);
       
@@ -243,12 +366,18 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         return true;
       }
     } catch (error) {
+      console.error('Error updating cost:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memperbarui biaya operasional' });
       return false;
     }
-  }, []);
+  }, [state.isAuthenticated]);
 
   const deleteCost = useCallback(async (id: string): Promise<boolean> => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return false;
+    }
+
     try {
       const response = await operationalCostApi.deleteCost(id);
       
@@ -260,30 +389,45 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         return true;
       }
     } catch (error) {
+      console.error('Error deleting cost:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal menghapus biaya operasional' });
       return false;
     }
-  }, []);
+  }, [state.isAuthenticated]);
 
   // Allocation actions
   const loadAllocationSettings = useCallback(async () => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return;
+    }
+
     try {
       setLoading('allocation', true);
       const response = await allocationApi.getSettings();
       
       if (response.error) {
-        dispatch({ type: 'SET_ERROR', payload: response.error });
+        // Don't show error for "no settings found" case
+        if (!response.error.includes('tidak ditemukan')) {
+          dispatch({ type: 'SET_ERROR', payload: response.error });
+        }
       } else {
         dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: response.data });
       }
     } catch (error) {
+      console.error('Error loading allocation settings:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat pengaturan alokasi' });
     } finally {
       setLoading('allocation', false);
     }
-  }, [setLoading]);
+  }, [setLoading, state.isAuthenticated]);
 
   const saveAllocationSettings = useCallback(async (data: AllocationFormData): Promise<boolean> => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return false;
+    }
+
     try {
       const response = await allocationApi.upsertSettings(data);
       
@@ -295,13 +439,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         return true;
       }
     } catch (error) {
+      console.error('Error saving allocation settings:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal menyimpan pengaturan alokasi' });
       return false;
     }
-  }, []);
+  }, [state.isAuthenticated]);
 
   // Calculation actions
   const calculateOverhead = useCallback(async (materialCost: number = 0) => {
+    if (!state.isAuthenticated) {
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return;
+    }
+
     try {
       setLoading('overhead', true);
       const response = await calculationApi.calculateOverhead(materialCost);
@@ -312,11 +462,12 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         dispatch({ type: 'SET_OVERHEAD_CALCULATION', payload: response.data });
       }
     } catch (error) {
+      console.error('Error calculating overhead:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal menghitung overhead' });
     } finally {
       setLoading('overhead', false);
     }
-  }, [setLoading]);
+  }, [setLoading, state.isAuthenticated]);
 
   // Filter actions
   const setFilters = useCallback((filters: CostFilters) => {
@@ -329,20 +480,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Utility actions
   const refreshData = useCallback(async () => {
+    if (!state.isAuthenticated) {
+      return;
+    }
+
     await Promise.all([
       loadCosts(state.filters),
       loadAllocationSettings(),
     ]);
-  }, [loadCosts, loadAllocationSettings, state.filters]);
+  }, [loadCosts, loadAllocationSettings, state.filters, state.isAuthenticated]);
 
   const setError = useCallback((error: string | null) => {
     dispatch({ type: 'SET_ERROR', payload: error });
   }, []);
-
-  // Load initial data
-  useEffect(() => {
-    refreshData();
-  }, []); // Only run once on mount
 
   // Context value
   const contextValue: OperationalCostContextType = {

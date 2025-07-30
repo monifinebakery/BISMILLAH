@@ -1,7 +1,7 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, Suspense, lazy } from 'react';
-import { Plus, Settings, Calculator } from 'lucide-react'; // ✅ Fixed: Removed 'Cog', use 'Settings'
+import { Plus, Settings, Calculator } from 'lucide-react';
 import { OperationalCostProvider, useOperationalCost } from './context';
 import CostSummaryCard from './components/CostSummaryCard';
 import CostList from './components/CostList';

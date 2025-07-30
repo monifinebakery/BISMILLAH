@@ -98,7 +98,6 @@ const MenuPage = () => {
       path: '/aset',
       color: 'from-indigo-500 to-indigo-600'
     },
-    // Menambahkan kembali item Invoice
     {
       title: 'Buat Invoice',
       description: 'Buat faktur manual untuk pelanggan',
@@ -117,27 +116,44 @@ const MenuPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-20">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-lg mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Menu Utama</h1>
           <p className="text-gray-600">Akses semua fitur aplikasi HPP</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* Menu Items - Stacked Layout */}
+        <div className="space-y-3 mb-6">
           {menuItems.map((item) => (
             <Card 
               key={item.path}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 bg-white/80 backdrop-blur-sm rounded-lg"
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 bg-white/80 backdrop-blur-sm rounded-lg hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
             >
-              <CardHeader className="pb-3">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center mb-3`}>
-                  <item.icon className="h-6 w-6 text-white" />
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  {/* Icon */}
+                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center flex-shrink-0`}>
+                    <item.icon className="h-6 w-6 text-white" />
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-800 text-base mb-1 leading-tight">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                  
+                  {/* Arrow indicator */}
+                  <div className="text-gray-400 flex-shrink-0">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
-                <CardTitle className="text-base leading-tight">{item.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
               </CardContent>
             </Card>
           ))}

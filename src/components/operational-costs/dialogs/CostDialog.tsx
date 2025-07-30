@@ -43,7 +43,6 @@ const CostDialog: React.FC<CostDialogProps> = ({
               onClick={onClose}
               className="h-8 w-8"
             >
-              <X className="h-4 w-4 mr-2" />
             </Button>
           </div>
         </DialogHeader>

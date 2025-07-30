@@ -337,7 +337,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
             ) : (
               /* No Settings */
               <div className="text-center py-8">
-                <Cog className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">
                   Belum Ada Pengaturan Alokasi
                 </h4>

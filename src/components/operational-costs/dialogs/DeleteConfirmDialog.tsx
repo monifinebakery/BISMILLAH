@@ -2,7 +2,7 @@
 
 import React, { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { AlertTriangle } from 'lucide-react';
 import { OperationalCost } from '../types';
 import { formatCurrency } from '../utils/costHelpers';
 

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { 
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
-  TrendingUp, Settings, Building2, LogOut, Download, Receipt 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -52,6 +52,8 @@ import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 // ✅ NEW: Import PromoContext
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
+// ✅ NEW: Import OperationalCostContext
+import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
 
 // --- Impor Fungsi Export Baru ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -77,8 +79,10 @@ export function AppSidebar() {
   const { financialTransactions } = useFinancial();
   // ✅ NEW: Get promo data for export
   const { promos } = usePromo();
+  // ✅ NEW: Get operational costs data for export
+  const { state: operationalCostState } = useOperationalCost();
 
-  // ✅ UPDATED: Menu groups dengan Kalkulator Promo
+  // ✅ UPDATED: Menu groups dengan Biaya Operasional
   const menuGroups = [
     {
       label: "Dashboard",
@@ -93,6 +97,8 @@ export function AppSidebar() {
       items: [
         { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
         { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
+        // ✅ NEW: Biaya Operasional untuk overhead calculation
+        { title: "Biaya Operasional", url: "/biaya-operasional", icon: DollarSign },
       ]
     },
     {
@@ -127,7 +133,7 @@ export function AppSidebar() {
     }
   };
 
-  // ✅ UPDATED: Include promo data in export
+  // ✅ UPDATED: Include operational costs data in export
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -141,6 +147,10 @@ export function AppSidebar() {
       financialTransactions,
       // ✅ NEW: Include promo data
       promos,
+      // ✅ NEW: Include operational costs data
+      operationalCosts: operationalCostState.costs,
+      allocationSettings: operationalCostState.allocationSettings,
+      costSummary: operationalCostState.summary,
     };
     
     exportAllDataToExcel(allAppData, settings.businessName);

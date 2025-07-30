@@ -111,9 +111,9 @@ const CostList: React.FC<CostListProps> = ({
     if (sortField !== field) return null;
     
     return sortOrder === 'asc' ? (
-      <ArrowUpIcon className="h-4 w-4" />
+      <ArrowUp className="h-4 w-4" />
     ) : (
-      <ArrowDownIcon className="h-4 w-4" />
+      <ArrowDown className="h-4 w-4" />
     );
   };
 

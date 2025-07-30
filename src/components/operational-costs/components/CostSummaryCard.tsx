@@ -73,7 +73,7 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Total Biaya Operasional</h3>
         <div className="p-2 bg-blue-50 rounded-full">
-          <CurrencyDollarIcon className="h-6 w-6 text-blue-600" />
+          <DollarSign className="h-6 w-6 text-blue-600" />
         </div>
       </div>
 
@@ -89,9 +89,9 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
             trend.type === 'increase' ? 'text-red-600' : 'text-green-600'
           }`}>
             {trend.type === 'increase' ? (
-              <TrendingUpIcon className="h-4 w-4 mr-1" />
+              <TrendingUp className="h-4 w-4 mr-1" />
             ) : (
-              <TrendingDownIcon className="h-4 w-4 mr-1" />
+              <TrendingDown className="h-4 w-4 mr-1" />
             )}
             <span>
               {trend.type === 'increase' ? '+' : '-'}{trend.percentage}% 

@@ -1,5 +1,5 @@
 // src/pages/Recipes.tsx
-// Note: Renamed from RecipePage.tsx to match App.tsx import structure
+// FIXED: Added proper CategoryManagerDialog integration
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -140,6 +140,8 @@ const Recipes: React.FC = () => {
     duplicateRecipe,
     getUniqueCategories,
     clearError,
+    // ✅ ADD: We need a refresh function from context
+    refreshRecipes, // Assuming this exists in your RecipeContext
   } = useRecipe();
 
   // Local state for dialogs
@@ -164,6 +166,57 @@ const Recipes: React.FC = () => {
       toast.error(error);
     }
   }, [error]);
+
+  // ✅ NEW: Category management handlers
+  const handleUpdateRecipeCategory = async (recipeId: string, oldCategory: string, newCategory: string) => {
+    try {
+      console.log(`Updating recipe ${recipeId} category from "${oldCategory}" to "${newCategory}"`);
+      
+      // Find the recipe
+      const recipe = recipes.find(r => r.id === recipeId);
+      if (!recipe) {
+        throw new Error(`Recipe with ID ${recipeId} not found`);
+      }
+
+      // Update the recipe with new category
+      const updatedRecipeData = {
+        ...recipe,
+        kategoriResep: newCategory
+      };
+
+      // Remove fields that shouldn't be in the update
+      const { id, createdAt, updatedAt, userId, ...updateData } = updatedRecipeData;
+
+      const success = await updateRecipe(recipeId, updateData);
+      if (!success) {
+        throw new Error('Failed to update recipe category');
+      }
+
+      console.log(`Successfully updated recipe ${recipeId} category to "${newCategory}"`);
+    } catch (error) {
+      console.error('Error updating recipe category:', error);
+      throw error; // Re-throw so CategoryManagerDialog can handle it
+    }
+  };
+
+  const handleRefreshRecipes = async () => {
+    try {
+      console.log('Refreshing recipes data...');
+      
+      // If your context has a refresh method, use it
+      if (refreshRecipes) {
+        await refreshRecipes();
+      } else {
+        // Fallback: reload the page
+        window.location.reload();
+      }
+      
+      console.log('Recipes data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing recipes:', error);
+      throw error;
+    }
+  };
 
   // Handlers
   const handleAddRecipe = () => {
@@ -254,6 +307,20 @@ const Recipes: React.FC = () => {
   const handleRefresh = () => {
     clearError();
     window.location.reload();
+  };
+
+  // ✅ NEW: Handle category dialog close with potential refresh
+  const handleCategoryDialogClose = (open: boolean) => {
+    setIsCategoryDialogOpen(open);
+    
+    // If dialog is being closed, optionally refresh the data
+    // This ensures any category changes are reflected in the UI
+    if (!open) {
+      // Small delay to let the dialog close animation complete
+      setTimeout(() => {
+        handleRefreshRecipes().catch(console.error);
+      }, 300);
+    }
   };
 
   // Show loading state while initial data is being fetched
@@ -429,12 +496,14 @@ const Recipes: React.FC = () => {
               />
             )}
 
-            {/* Category Manager Dialog */}
+            {/* ✅ FIXED: Category Manager Dialog with proper callbacks */}
             {isCategoryDialogOpen && (
               <CategoryManagerDialog
                 isOpen={isCategoryDialogOpen}
-                onOpenChange={setIsCategoryDialogOpen}
+                onOpenChange={handleCategoryDialogClose}
                 recipes={recipes}
+                onUpdateRecipeCategory={handleUpdateRecipeCategory}
+                onRefreshData={handleRefreshRecipes}
               />
             )}
           </Suspense>
@@ -461,6 +530,27 @@ const Recipes: React.FC = () => {
                 {availableCategories.length > 0 && ` • ${availableCategories.length} kategori`}
               </p>
             </div>
+          )}
+
+          {/* ✅ NEW: Debug info for development */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="border-gray-200 bg-gray-50">
+              <CardContent className="p-4">
+                <details className="text-sm">
+                  <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                    Debug Info (Development Only)
+                  </summary>
+                  <div className="mt-2 space-y-1 text-xs text-gray-600">
+                    <p>Total recipes: {recipes.length}</p>
+                    <p>Available categories: {availableCategories.length}</p>
+                    <p>Has updateRecipe function: {typeof updateRecipe === 'function' ? 'Yes' : 'No'}</p>
+                    <p>Has refreshRecipes function: {typeof refreshRecipes === 'function' ? 'Yes' : 'No'}</p>
+                    <p>Context error: {error || 'None'}</p>
+                    <p>Processing: {isProcessing ? 'Yes' : 'No'}</p>
+                  </div>
+                </details>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>

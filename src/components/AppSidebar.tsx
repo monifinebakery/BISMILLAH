@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// --- Impor Hook Konteks ---
+// --- Import Hook Konteks ---
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
 import { useSupplier } from "@/contexts/SupplierContext";
@@ -50,12 +50,10 @@ import { useOrder } from "@/components/orders/context/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-// ✅ NEW: Import PromoContext
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
-// ✅ NEW: Import OperationalCostContext
 import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
 
-// --- Impor Fungsi Export Baru ---
+// --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
@@ -63,10 +61,7 @@ export function AppSidebar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { state } = useSidebar();
   
-  // ✅ FIXED: Check if sidebar is collapsed using correct state
   const isCollapsed = state === "collapsed";
-  
-  console.log('Sidebar state:', state, 'isCollapsed:', isCollapsed); // Debug log
   
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
@@ -79,18 +74,14 @@ export function AppSidebar() {
   const { orders } = useOrder();
   const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
-  // ✅ NEW: Get promo data for export
   const { promos } = usePromo();
-  // ✅ NEW: Get operational costs data for export
   const { state: operationalCostState } = useOperationalCost();
 
-  // ✅ UPDATED: Menu groups dengan Biaya Operasional
   const menuGroups = [
     {
       label: "Dashboard",
       items: [
         { title: "Dashboard", url: "/", icon: DashboardIcon },
-        // ✅ NEW: Kalkulator Promo added to Dashboard group
         { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
       ]
     },
@@ -99,7 +90,6 @@ export function AppSidebar() {
       items: [
         { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
         { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
-        // ✅ NEW: Biaya Operasional untuk overhead calculation
         { title: "Biaya Operasional", url: "/biaya-operasional", icon: DollarSign },
       ]
     },
@@ -135,7 +125,6 @@ export function AppSidebar() {
     }
   };
 
-  // ✅ UPDATED: Include operational costs data in export
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -147,9 +136,7 @@ export function AppSidebar() {
       orders,
       assets,
       financialTransactions,
-      // ✅ NEW: Include promo data
       promos,
-      // ✅ NEW: Include operational costs data
       operationalCosts: operationalCostState.costs,
       allocationSettings: operationalCostState.allocationSettings,
       costSummary: operationalCostState.summary,
@@ -158,65 +145,82 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FIXED: Proper menu item rendering with tooltip integration
+  // ✅ FIXED: Simplified menu item rendering with proper tooltip
   const renderMenuItem = (item, isActive) => {
-    const menuButton = (
+    const menuContent = (
+      <Link to={item.url} className="flex items-center w-full">
+        <item.icon className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && <span className="ml-3">{item.title}</span>}
+      </Link>
+    );
+
+    if (isCollapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive}
+                className="w-full justify-center px-2"
+              >
+                {menuContent}
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{item.title}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return (
       <SidebarMenuButton
         asChild
         isActive={isActive}
-        tooltip={isCollapsed ? item.title : undefined} // Use built-in tooltip from SidebarMenuButton
-        className={cn(
-          "flex items-center transition-all duration-300 ease-in-out",
-          "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2",
-          "justify-start px-3"
-        )}
+        className="w-full justify-start px-3"
       >
-        <Link 
-          to={item.url} 
-          className="flex items-center w-full"
-        >
-          {/* ✅ ALWAYS VISIBLE ICON */}
-          <item.icon className="h-5 w-5 flex-shrink-0" />
-          
-          {/* ✅ TEXT WITH FADE ANIMATION - Using span for proper hiding */}
-          <span className={cn(
-            "ml-3 transition-all duration-300 ease-in-out",
-            "group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:overflow-hidden"
-          )}>
-            {item.title}
-          </span>
-        </Link>
+        {menuContent}
       </SidebarMenuButton>
     );
-
-    return menuButton;
   };
 
-  // ✅ FIXED: Action button with proper tooltip
+  // ✅ FIXED: Simplified action button rendering
   const renderActionButton = (onClick, icon: React.ElementType, text: string, className = "") => {
+    const buttonContent = (
+      <div className="flex items-center w-full">
+        <icon className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && <span className="ml-3">{text}</span>}
+      </div>
+    );
+
+    if (isCollapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton
+                onClick={onClick}
+                className={cn("w-full justify-center px-2", className)}
+              >
+                {buttonContent}
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{text}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
     return (
       <SidebarMenuButton
         onClick={onClick}
-        tooltip={isCollapsed ? text : undefined}
-        className={cn(
-          "flex items-center transition-all duration-300 ease-in-out",
-          "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2",
-          "justify-start px-3 w-full",
-          className
-        )}
+        className={cn("w-full justify-start px-3", className)}
       >
-        <div className="flex items-center w-full">
-          {/* ✅ ALWAYS VISIBLE ICON */}
-          <icon className="h-5 w-5 flex-shrink-0" />
-          
-          {/* ✅ TEXT WITH FADE ANIMATION */}
-          <span className={cn(
-            "ml-3 transition-all duration-300 ease-in-out",
-            "group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:overflow-hidden"
-          )}>
-            {text}
-          </span>
-        </div>
+        {buttonContent}
       </SidebarMenuButton>
     );
   };
@@ -224,37 +228,31 @@ export function AppSidebar() {
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r transition-all duration-300 ease-in-out"
+      className="border-r"
     >
-      {/* ✅ HEADER WITH ANIMATION */}
+      {/* ✅ FIXED: Simplified header */}
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center">
-          {/* ✅ LOGO - Always visible */}
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
           </div>
-          
-          {/* ✅ TITLE with fade animation */}
-          <div className={cn(
-            "ml-3 transition-all duration-300 ease-in-out",
-            "group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:overflow-hidden"
-          )}>
-            <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
-          </div>
+          {!isCollapsed && (
+            <div className="ml-3">
+              <h2 className="text-lg font-bold">HPP by Monifine</h2>
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
-      {/* ✅ CONTENT */}
+      {/* ✅ FIXED: Simplified content */}
       <SidebarContent className="flex-grow px-2 py-4">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="mb-4">
-            {/* ✅ GROUP LABEL with fade animation */}
-            <SidebarGroupLabel className={cn(
-              "text-sm font-semibold text-muted-foreground mb-1 px-3 transition-all duration-300 ease-in-out",
-              "group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:mb-0 group-data-[collapsible=icon]:overflow-hidden"
-            )}>
-              {group.label}
-            </SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
             
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
@@ -269,7 +267,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* ✅ FOOTER */}
+      {/* ✅ FIXED: Simplified footer */}
       <SidebarFooter className="p-2 border-t mt-auto">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}
@@ -301,7 +299,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* ✅ LOGOUT DIALOG */}
+      {/* Logout Dialog */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

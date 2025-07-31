@@ -185,6 +185,26 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Users className="h-4 w-4 text-gray-500" />
                   Biaya Tenaga Kerja
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                    <div className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-10">
+                      <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap max-w-xs shadow-lg">
+                        <div className="space-y-2">
+                          <p className="font-semibold">Biaya Tenaga Kerja:</p>
+                          <p>Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk.</p>
+                          <p className="text-gray-300">❌ Bukan: gaji admin, kasir, marketing</p>
+                          <p className="text-gray-300">✅ Hanya: staf yang ikut proses produksi</p>
+                          <div className="border-t border-gray-700 pt-2 mt-2">
+                            <p className="font-medium text-yellow-300">Formula:</p>
+                            <p className="text-xs">(Total Gaji Bulanan Staf Produksi) ÷ (Total Porsi Diproduksi per Bulan)</p>
+                          </div>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+                          <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">

@@ -1,6 +1,6 @@
 // src/components/recipe/dialogs/CategoryManagerDialog.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,9 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  Tag, 
-  X, 
+import {
+  Tag,
+  X,
   Plus,
   Trash2,
   Edit,
@@ -36,26 +36,35 @@ import {
   BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { RECIPE_CATEGORIES } from '../types';
 import type { Recipe } from '../types';
 
-interface CategoryManagerDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  recipes: Recipe[];
-}
-
-interface CategoryStats {
+// Interface untuk statistik kategori, akan diterima dari props
+export interface CategoryStats {
   name: string;
   count: number;
   isDefault: boolean;
   canDelete: boolean;
 }
 
+// Props telah diperbarui untuk menerima data dan fungsi dari luar
+interface CategoryManagerDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  recipes: Recipe[];
+  categories: CategoryStats[]; // Data kategori sekarang dari props
+  onAddCategory: (name: string) => Promise<void>; // Fungsi untuk menambah
+  onEditCategory: (oldName: string, newName: string) => Promise<void>; // Fungsi untuk mengubah
+  onDeleteCategory: (name: string) => Promise<void>; // Fungsi untuk menghapus
+}
+
 const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   isOpen,
   onOpenChange,
-  recipes,
+  recipes = [], // FIX: Default value to prevent error
+  categories = [], // FIX: Default value to prevent error
+  onAddCategory,
+  onEditCategory,
+  onDeleteCategory,
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -63,56 +72,18 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Get category statistics
-  const categoryStats: CategoryStats[] = React.useMemo(() => {
-    // Get all categories from recipes
-    const usedCategories = new Set(
-      recipes
-        .map(recipe => recipe.kategoriResep)
-        .filter((category): category is string => Boolean(category))
-    );
-
-    // Count recipes per category
-    const categoryCounts = new Map<string, number>();
-    recipes.forEach(recipe => {
-      if (recipe.kategoriResep) {
-        const count = categoryCounts.get(recipe.kategoriResep) || 0;
-        categoryCounts.set(recipe.kategoriResep, count + 1);
-      }
-    });
-
-    // Combine default and custom categories
-    const allCategories = new Set([
-      ...RECIPE_CATEGORIES,
-      ...usedCategories
-    ]);
-
-    return Array.from(allCategories).map(category => ({
-      name: category,
-      count: categoryCounts.get(category) || 0,
-      isDefault: RECIPE_CATEGORIES.includes(category as any),
-      // Allow deletion of all categories that have no recipes
-      canDelete: (categoryCounts.get(category) || 0) === 0,
-    })).sort((a, b) => {
-      // Sort: default categories first, then by usage count, then alphabetically
-      if (a.isDefault && !b.isDefault) return -1;
-      if (!a.isDefault && b.isDefault) return 1;
-      if (a.count !== b.count) return b.count - a.count;
-      return a.name.localeCompare(b.name);
-    });
-  }, [recipes]);
+  // ❌ Logika untuk menghitung statistik kategori telah dihapus dari sini.
+  // Komponen ini sekarang menerima 'categories' sebagai sumber data utama.
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       toast.error('Nama kategori tidak boleh kosong');
       return;
     }
-
-    if (categoryStats.some(cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+    if (categories.some(cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
       toast.error('Kategori sudah ada');
       return;
     }
-
     if (newCategoryName.trim().length > 50) {
       toast.error('Nama kategori maksimal 50 karakter');
       return;
@@ -120,8 +91,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
     setIsLoading(true);
     try {
-      // In real implementation, you would save to database
-      // For now, we'll just show success and clear the input
+      // ✅ Memanggil fungsi dari props untuk menyimpan data
+      await onAddCategory(newCategoryName.trim());
       toast.success(`Kategori "${newCategoryName.trim()}" berhasil ditambahkan`);
       setNewCategoryName('');
     } catch (error) {
@@ -136,17 +107,14 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       toast.error('Nama kategori tidak boleh kosong');
       return;
     }
-
-    if (oldName === newName.trim()) {
+    if (oldName.toLowerCase() === newName.trim().toLowerCase()) {
       setEditingCategory(null);
       return;
     }
-
-    if (categoryStats.some(cat => cat.name !== oldName && cat.name.toLowerCase() === newName.trim().toLowerCase())) {
+    if (categories.some(cat => cat.name.toLowerCase() === newName.trim().toLowerCase())) {
       toast.error('Kategori sudah ada');
       return;
     }
-
     if (newName.trim().length > 50) {
       toast.error('Nama kategori maksimal 50 karakter');
       return;
@@ -154,7 +122,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
     setIsLoading(true);
     try {
-      // In real implementation, you would update all recipes with this category
+      // ✅ Memanggil fungsi dari props untuk mengubah data
+      await onEditCategory(oldName, newName.trim());
       toast.success(`Kategori "${oldName}" berhasil diubah menjadi "${newName.trim()}"`);
       setEditingCategory(null);
       setEditName('');
@@ -168,7 +137,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   const handleDeleteCategory = async (categoryName: string) => {
     setIsLoading(true);
     try {
-      // In real implementation, you would remove category from database
+      // ✅ Memanggil fungsi dari props untuk menghapus data
+      await onDeleteCategory(categoryName);
       toast.success(`Kategori "${categoryName}" berhasil dihapus`);
       setCategoryToDelete(null);
     } catch (error) {
@@ -197,7 +167,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           
           {/* Header */}
           <CardHeader className="border-b">
@@ -226,8 +196,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             </div>
           </CardHeader>
 
-          <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
-            <div className="p-6 space-y-6">
+          <div className="flex-grow overflow-y-auto">
+            <CardContent className="p-6 space-y-6">
 
               {/* Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -267,7 +237,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 font-medium">Total Kategori</p>
-                        <p className="text-2xl font-semibold text-gray-900">{categoryStats.length}</p>
+                        <p className="text-2xl font-semibold text-gray-900">{categories.length}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -305,7 +275,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                       disabled={!newCategoryName.trim() || isLoading}
                       className="bg-gray-900 hover:bg-gray-800"
                     >
-                      {isLoading ? (
+                      {isLoading && newCategoryName ? (
                         <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                       ) : (
                         <Plus className="h-4 w-4" />
@@ -327,7 +297,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </p>
                 </CardHeader>
                 <CardContent>
-                  {categoryStats.length === 0 ? (
+                  {categories.length === 0 ? (
                     <div className="text-center py-12">
                       <Tag className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500 mb-2 font-medium">Belum ada kategori</p>
@@ -347,7 +317,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {categoryStats.map((category) => (
+                          {categories.map((category) => (
                             <TableRow key={category.name} className="border-gray-100">
                               
                               {/* Category Name */}
@@ -417,8 +387,9 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => startEdit(category.name)}
-                                      disabled={isLoading}
-                                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                      disabled={isLoading || category.isDefault}
+                                      title={category.isDefault ? "Kategori default tidak bisa diubah" : "Ubah Kategori"}
+                                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Edit className="h-3 w-3" />
                                     </Button>
@@ -430,6 +401,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       variant="ghost"
                                       onClick={() => setCategoryToDelete(category.name)}
                                       disabled={isLoading}
+                                      title="Hapus Kategori"
                                       className="h-8 w-8 p-0 text-gray-600 hover:text-red-600 hover:bg-red-50"
                                     >
                                       <Trash2 className="h-3 w-3" />
@@ -437,9 +409,11 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                   )}
                                   
                                   {!category.canDelete && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-400 px-2">
+                                    <div 
+                                      className="flex items-center gap-1 text-xs text-gray-400 px-2"
+                                      title={category.isDefault ? "Kategori default tidak bisa dihapus" : "Kategori sedang digunakan oleh resep"}
+                                    >
                                       <AlertTriangle className="h-3 w-3" />
-                                      <span>Digunakan</span>
                                     </div>
                                   )}
                                 </div>
@@ -455,15 +429,15 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
               {/* Uncategorized Warning */}
               {uncategorizedRecipes > 0 && (
-                <Card className="border-gray-300 bg-gray-50">
+                <Card className="border-orange-200 bg-orange-50">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-1">
+                        <h4 className="font-medium text-orange-900 mb-1">
                           Resep Tanpa Kategori
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-orange-800">
                           Ada <strong>{uncategorizedRecipes} resep</strong> yang belum dikategorikan. 
                           Pertimbangkan untuk menambahkan kategori agar lebih terorganisir.
                         </p>
@@ -472,8 +446,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </CardContent>
                 </Card>
               )}
-            </div>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
       </div>
 

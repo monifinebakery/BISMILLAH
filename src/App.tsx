@@ -12,11 +12,14 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
-// ✅ NEW: Import Recipe Provider untuk Order Integration
+// ✅ ENHANCED: Import Recipe Provider untuk Order Integration
 import { RecipeProvider } from "@/contexts/RecipeContext";
 
 // ✅ NEW: Import Supplier Provider untuk modular structure
 import { SupplierProvider } from "@/contexts/SupplierContext";
+
+// ✅ NEW: Import OperationalCost Provider untuk Recipe Overhead Integration
+import { OperationalCostProvider } from "@/components/operational-costs/context/OperationalCostContext";
 
 // Impor Komponen Aplikasi
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
@@ -37,7 +40,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Lazy-loading semua halaman untuk performa
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 
-// ✅ UPDATE: Recipe Management dengan struktur modular baru
+// ✅ ENHANCED: Recipe Management dengan Overhead Integration
 const RecipesPage = React.lazy(() => 
   import("@/pages/Recipes")
 );
@@ -46,12 +49,12 @@ const WarehousePage = React.lazy(() =>
   import("@/components/warehouse/WarehousePage")
 );
 
-// ✅ UPDATE: Order Management dengan Recipe Integration
+// ✅ ENHANCED: Order Management dengan Recipe Integration
 const OrdersPage = React.lazy(() => 
   import("@/components/orders/components/OrdersPage")
 );
 
-// ✅ NEW: Operational Costs dengan struktur modular baru
+// ✅ ENHANCED: Operational Costs dengan struktur modular baru
 const OperationalCostPage = React.lazy(() => 
   import("@/components/operational-costs/OperationalCostPage")
 );
@@ -91,7 +94,7 @@ const PageLoader = () => (
     </div>
 );
 
-// Enhanced loading khusus untuk Recipe Management
+// ✅ ENHANCED: Recipe Page Loader dengan Overhead Integration
 const RecipePageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="flex flex-col items-center gap-4">
@@ -103,7 +106,7 @@ const RecipePageLoader = () => (
             </div>
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Manajemen Resep</p>
-                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data resep...</p>
+                <p className="text-xs text-gray-500 mt-1">🍳 Menghubungkan dengan overhead costs...</p>
             </div>
         </div>
     </div>
@@ -127,7 +130,7 @@ const SupplierPageLoader = () => (
     </div>
 );
 
-// ✅ ENHANCED: Order Page Loader dengan Recipe Integration indicator
+// ✅ ENHANCED: Order Page Loader dengan Recipe + Overhead Integration
 const OrderPageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="flex flex-col items-center gap-4">
@@ -139,13 +142,13 @@ const OrderPageLoader = () => (
             </div>
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Manajemen Pesanan</p>
-                <p className="text-xs text-gray-500 mt-1">🍳 Menghubungkan dengan data resep...</p>
+                <p className="text-xs text-gray-500 mt-1">🍳 Menghubungkan dengan resep & overhead...</p>
             </div>
         </div>
     </div>
 );
 
-// ✅ NEW: Enhanced loading khusus untuk Operational Costs
+// ✅ ENHANCED: Operational Cost Page Loader
 const OperationalCostPageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="flex flex-col items-center gap-4">
@@ -157,7 +160,7 @@ const OperationalCostPageLoader = () => (
             </div>
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Biaya Operasional</p>
-                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data biaya...</p>
+                <p className="text-xs text-gray-500 mt-1">⚙️ Menyiapkan kalkulasi overhead...</p>
             </div>
         </div>
     </div>
@@ -202,7 +205,7 @@ const RouteErrorFallback = () => {
     );
 };
 
-// Specialized error boundary untuk Recipe Management
+// ✅ ENHANCED: Recipe Error Fallback dengan Overhead Integration
 const RecipeErrorFallback = () => {
     const navigate = useNavigate();
     return (
@@ -218,7 +221,8 @@ const RecipeErrorFallback = () => {
                         Gagal Memuat Manajemen Resep
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        Terjadi kesalahan saat memuat halaman resep. Pastikan koneksi internet stabil dan coba lagi.
+                        Terjadi kesalahan saat memuat halaman resep dengan integrasi overhead. 
+                        Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -279,7 +283,7 @@ const SupplierErrorFallback = () => {
     );
 };
 
-// ✅ ENHANCED: Order Error Fallback dengan Recipe context info
+// ✅ ENHANCED: Order Error Fallback dengan Recipe + Overhead context info
 const OrderErrorFallback = () => {
     const navigate = useNavigate();
     return (
@@ -295,7 +299,7 @@ const OrderErrorFallback = () => {
                         Gagal Memuat Manajemen Pesanan
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        Terjadi kesalahan saat memuat halaman pesanan dengan integrasi resep. 
+                        Terjadi kesalahan saat memuat halaman pesanan dengan integrasi resep & overhead. 
                         Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
@@ -318,7 +322,7 @@ const OrderErrorFallback = () => {
     );
 };
 
-// ✅ NEW: Specialized error boundary untuk Operational Costs
+// ✅ ENHANCED: Operational Cost Error Fallback
 const OperationalCostErrorFallback = () => {
     const navigate = useNavigate();
     return (
@@ -334,7 +338,8 @@ const OperationalCostErrorFallback = () => {
                         Gagal Memuat Biaya Operasional
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        Terjadi kesalahan saat memuat halaman biaya operasional. Pastikan koneksi internet stabil dan coba lagi.
+                        Terjadi kesalahan saat memuat halaman biaya operasional. 
+                        Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -392,7 +397,7 @@ const PurchaseErrorFallback = () => {
     );
 };
 
-// ✅ ENHANCED: Layout dengan Recipe Provider Integration dan Supplier Provider
+// ✅ ENHANCED: Layout dengan Complete Provider Integration (OperationalCost > Recipe > Supplier)
 const AppLayout = () => {
     const isMobile = useIsMobile();
     const { isPaid } = usePaymentContext();
@@ -400,63 +405,67 @@ const AppLayout = () => {
     // Layout untuk Mobile
     if (isMobile) {
         return (
-            <RecipeProvider>
-                <SupplierProvider> {/* 🎯 Supplier Provider untuk mobile layout */}
-                    <div className="min-h-screen flex flex-col bg-background">
-                        <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-                            <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
-                            <div className="flex items-center space-x-2">
-                                {isPaid && <PaymentStatusIndicator />}
-                                <NotificationBell />
-                                <MobileExportButton />
-                            </div>
-                        </header>
-                        <main className="flex-1 overflow-auto pb-16">
-                            {/* Melindungi setiap halaman dari error rendering */}
-                            <ErrorBoundary fallback={<RouteErrorFallback />}>
-                                <Outlet />
-                            </ErrorBoundary>
-                        </main>
-                        <BottomTabBar />
-                        {!isPaid && (
-                            <div className="fixed bottom-20 right-4 z-50">
-                                <PaymentStatusIndicator size="lg" />
-                            </div>
-                        )}
-                    </div>
-                </SupplierProvider>
-            </RecipeProvider>
-        );
-    }
-
-    // Layout untuk Desktop
-    return (
-        <RecipeProvider>
-            <SupplierProvider> {/* 🎯 Supplier Provider untuk desktop layout */}
-                <SidebarProvider>
-                    <div className="min-h-screen flex w-full bg-background">
-                        <AppSidebar />
-                        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
-                            <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
-                                <SidebarTrigger className="-ml-1" />
-                                <div className="flex-1" />
-                                <div className="flex items-center space-x-4">
-                                    <PaymentStatusIndicator />
-                                    <DateTimeDisplay />
+            <OperationalCostProvider> {/* 🎯 Operational Cost Provider untuk overhead calculation */}
+                <RecipeProvider> {/* 🎯 Recipe Provider untuk recipe integration */}
+                    <SupplierProvider> {/* 🎯 Supplier Provider untuk mobile layout */}
+                        <div className="min-h-screen flex flex-col bg-background">
+                            <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+                                <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
+                                <div className="flex items-center space-x-2">
+                                    {isPaid && <PaymentStatusIndicator />}
                                     <NotificationBell />
+                                    <MobileExportButton />
                                 </div>
                             </header>
-                            <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+                            <main className="flex-1 overflow-auto pb-16">
                                 {/* Melindungi setiap halaman dari error rendering */}
                                 <ErrorBoundary fallback={<RouteErrorFallback />}>
                                     <Outlet />
                                 </ErrorBoundary>
                             </main>
-                        </SidebarInset>
-                    </div>
-                </SidebarProvider>
-            </SupplierProvider>
-        </RecipeProvider>
+                            <BottomTabBar />
+                            {!isPaid && (
+                                <div className="fixed bottom-20 right-4 z-50">
+                                    <PaymentStatusIndicator size="lg" />
+                                </div>
+                            )}
+                        </div>
+                    </SupplierProvider>
+                </RecipeProvider>
+            </OperationalCostProvider>
+        );
+    }
+
+    // Layout untuk Desktop
+    return (
+        <OperationalCostProvider> {/* 🎯 Operational Cost Provider untuk overhead calculation */}
+            <RecipeProvider> {/* 🎯 Recipe Provider untuk recipe integration */}
+                <SupplierProvider> {/* 🎯 Supplier Provider untuk desktop layout */}
+                    <SidebarProvider>
+                        <div className="min-h-screen flex w-full bg-background">
+                            <AppSidebar />
+                            <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
+                                <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
+                                    <SidebarTrigger className="-ml-1" />
+                                    <div className="flex-1" />
+                                    <div className="flex items-center space-x-4">
+                                        <PaymentStatusIndicator />
+                                        <DateTimeDisplay />
+                                        <NotificationBell />
+                                    </div>
+                                </header>
+                                <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+                                    {/* Melindungi setiap halaman dari error rendering */}
+                                    <ErrorBoundary fallback={<RouteErrorFallback />}>
+                                        <Outlet />
+                                    </ErrorBoundary>
+                                </main>
+                            </SidebarInset>
+                        </div>
+                    </SidebarProvider>
+                </SupplierProvider>
+            </RecipeProvider>
+        </OperationalCostProvider>
     );
 };
 
@@ -483,7 +492,7 @@ const App = () => {
                             {/* Rute Publik */}
                             <Route path="/auth" element={<EmailAuthPage />} />
 
-                            {/* Rute Terproteksi dengan Layout + Recipe Provider + Supplier Provider */}
+                            {/* Rute Terproteksi dengan Complete Provider Integration */}
                             <Route
                                 element={
                                     <AuthGuard>
@@ -495,7 +504,7 @@ const App = () => {
                             >
                                 <Route index element={<Dashboard />} />
                                 
-                                {/* ✅ UPDATE: Recipe Management dengan enhanced loading dan error handling */}
+                                {/* ✅ ENHANCED: Recipe Management dengan Overhead Integration */}
                                 <Route 
                                     path="resep" 
                                     element={
@@ -533,7 +542,7 @@ const App = () => {
                                     } 
                                 />
                                 
-                                {/* ✅ ENHANCED: Order Management dengan Recipe Integration */}
+                                {/* ✅ ENHANCED: Order Management dengan Recipe + Overhead Integration */}
                                 <Route 
                                     path="pesanan" 
                                     element={
@@ -545,7 +554,7 @@ const App = () => {
                                     } 
                                 />
                                 
-                                {/* ✅ NEW: Operational Costs dengan enhanced loading dan error handling */}
+                                {/* ✅ ENHANCED: Operational Costs dengan enhanced loading dan error handling */}
                                 <Route 
                                     path="biaya-operasional" 
                                     element={

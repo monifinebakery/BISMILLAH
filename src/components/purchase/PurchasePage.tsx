@@ -65,8 +65,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // Calculate stats
   const { stats } = usePurchaseStats(purchases);
 
-  // Status management hook
-  const { updateStatus, isUpdatingPurchase } = usePurchaseStatus({
+  // Status management hook with warehouse integration
+  const { updateStatus, isUpdatingPurchase, validateStatusChange } = usePurchaseStatus({
+    purchases,
     onStatusUpdate: async (purchaseId: string, newStatus: PurchaseStatus) => {
       try {
         // Find the purchase to update
@@ -90,7 +91,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     },
     onError: (error) => {
       toast.error(error);
-    }
+    },
+    enableWarehouseIntegration: true,
+    enableDebugLogs: process.env.NODE_ENV === 'development'
   });
 
   // Check for missing data
@@ -306,6 +309,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
               onStatusChange={updateStatus}
               onDelete={handleDeletePurchase}
               onViewDetails={handleViewDetails}
+              validateStatusChange={validateStatusChange}
             />
           </Suspense>
 

@@ -341,13 +341,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
         {/* Content with Mobile-Safe Padding */}
         <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="p-6 pb-24 sm:pb-6"> {/* ✅ Extra bottom padding for mobile */}
+          <div className="p-6 pb-32 sm:pb-6"> {/* ✅ Extra bottom padding for mobile - increased to pb-32 */}
             {renderStepContent()}
           </div>
         </CardContent>
 
-        {/* Footer - Fixed Position for Mobile */}
-        <div className="border-t bg-gray-50 p-4 relative sm:static fixed bottom-0 left-0 right-0 z-60">
+        {/* Footer - Fixed Position for Mobile with Safe Area */}
+        <div className="border-t bg-gray-50 p-4 relative sm:static fixed bottom-16 sm:bottom-0 left-0 right-0 z-60 shadow-lg sm:shadow-none">
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             
             {/* Left side - HPP Preview (on cost step) */}

@@ -1,6 +1,6 @@
 // src/components/operational-costs/context/OperationalCostContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -26,10 +26,10 @@ interface OperationalCostState {
     allocation: boolean;
     summary: boolean;
     overhead: boolean;
-    auth: boolean; // ✅ Add auth loading state
+    auth: boolean;
   };
   error: string | null;
-  isAuthenticated: boolean; // ✅ Add auth state
+  isAuthenticated: boolean;
 }
 
 // Action types
@@ -44,7 +44,7 @@ type OperationalCostAction =
   | { type: 'SET_SUMMARY'; payload: CostSummary }
   | { type: 'SET_OVERHEAD_CALCULATION'; payload: OverheadCalculation }
   | { type: 'SET_FILTERS'; payload: CostFilters }
-  | { type: 'SET_AUTH_STATE'; payload: boolean } // ✅ Add auth action
+  | { type: 'SET_AUTH_STATE'; payload: boolean }
   | { type: 'RESET_STATE' };
 
 // Initial state
@@ -65,10 +65,10 @@ const initialState: OperationalCostState = {
     allocation: false,
     summary: false,
     overhead: false,
-    auth: true, // ✅ Start with auth loading
+    auth: true,
   },
   error: null,
-  isAuthenticated: false, // ✅ Start as not authenticated
+  isAuthenticated: false,
 };
 
 // Reducer
@@ -151,7 +151,7 @@ const operationalCostReducer = (
         filters: action.payload,
       };
 
-    case 'SET_AUTH_STATE': // ✅ Handle auth state change
+    case 'SET_AUTH_STATE':
       return {
         ...state,
         isAuthenticated: action.payload,
@@ -179,24 +179,15 @@ const operationalCostReducer = (
 interface OperationalCostContextType {
   state: OperationalCostState;
   actions: {
-    // Cost actions
     loadCosts: (filters?: CostFilters) => Promise<void>;
     createCost: (data: CostFormData) => Promise<boolean>;
     updateCost: (id: string, data: Partial<CostFormData>) => Promise<boolean>;
     deleteCost: (id: string) => Promise<boolean>;
-    
-    // Allocation actions
     loadAllocationSettings: () => Promise<void>;
     saveAllocationSettings: (data: AllocationFormData) => Promise<boolean>;
-    
-    // Calculation actions
     calculateOverhead: (materialCost?: number) => Promise<void>;
-    
-    // Filter actions
     setFilters: (filters: CostFilters) => void;
     clearFilters: () => void;
-    
-    // Utility actions
     refreshData: () => Promise<void>;
     setError: (error: string | null) => void;
   };
@@ -218,88 +209,87 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     dispatch({ type: 'SET_LOADING', payload: { key, value } });
   }, []);
 
-  // ✅ Auth state management
+  // ✅ SIMPLIFIED: Load initial data when authenticated
+  const loadInitialData = useCallback(async () => {
+    console.log('📊 Loading initial data...');
+    
+    try {
+      await Promise.all([
+        loadCosts(),
+        loadAllocationSettings(),
+      ]);
+      console.log('📊 Initial data loaded successfully');
+    } catch (error) {
+      console.error('📊 Error loading initial data:', error);
+    }
+  }, []);
+
+  // ✅ SIMPLIFIED: Auth state management
   useEffect(() => {
     let mounted = true;
-    let initialLoadDone = false; // ✅ ADD FLAG to prevent duplicate loads
 
-    const checkAuthState = async () => {
-      console.log('🔐 Checking auth state...'); // ✅ ADD DEBUG
+    const initializeAuth = async () => {
+      console.log('🔐 Initializing auth...');
       
       try {
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        console.log('🔐 Session:', session); // ✅ ADD DEBUG
-        console.log('🔐 Error:', error); // ✅ ADD DEBUG
-        
-        if (mounted) {
-          if (error) {
-            console.error('Auth error:', error);
+        if (error) {
+          console.error('🔐 Auth error:', error);
+          if (mounted) {
             dispatch({ type: 'SET_AUTH_STATE', payload: false });
             dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
-          } else {
-            const isAuthenticated = !!session?.user;
-            console.log('🔐 Is authenticated:', isAuthenticated); // ✅ ADD DEBUG
-            
-            dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
-            
-            // Only load data if authenticated and not already loaded
-            if (isAuthenticated && !initialLoadDone) {
-              console.log('🔐 Loading initial data (first time)...'); // ✅ ADD DEBUG
-              initialLoadDone = true; // ✅ MARK as loaded
-              
-              // ✅ PASS auth state directly to avoid stale closure
-              setTimeout(() => {
-                if (mounted) {
-                  loadInitialData(isAuthenticated);
-                }
-              }, 100);
-            }
+          }
+          return;
+        }
+
+        const isAuthenticated = !!session?.user;
+        console.log('🔐 Initial auth state:', isAuthenticated);
+        
+        if (mounted) {
+          dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
+          
+          // Load data if authenticated
+          if (isAuthenticated) {
+            console.log('🔐 User authenticated, loading data...');
+            setTimeout(() => {
+              if (mounted) {
+                loadInitialData();
+              }
+            }, 100);
           }
         }
       } catch (error) {
-        console.error('🔐 Error checking auth state:', error); // ✅ ENHANCED DEBUG
+        console.error('🔐 Error initializing auth:', error);
         if (mounted) {
           dispatch({ type: 'SET_AUTH_STATE', payload: false });
-          dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
         }
       }
     };
 
-    checkAuthState();
+    initializeAuth();
 
-    // Listen for auth changes
+    // ✅ SIMPLIFIED: Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event, !!session?.user); // ✅ ADD DEBUG
+        console.log('🔐 Auth state changed:', event, !!session?.user);
         
-        if (mounted) {
-          const isAuthenticated = !!session?.user;
-          
-          // ✅ SKIP INITIAL_SESSION to prevent race condition
-          if (event === 'INITIAL_SESSION') {
-            console.log('🔐 Skipping INITIAL_SESSION event to prevent race condition'); // ✅ ADD DEBUG
-            return;
-          }
-          
-          dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
-          
-          if (event === 'SIGNED_IN' && isAuthenticated) {
-            console.log('🔐 User signed in, loading data...'); // ✅ ADD DEBUG
-            initialLoadDone = true; // ✅ MARK as loaded
-            
-            // ✅ PASS auth state directly
-            setTimeout(() => {
-              if (mounted) {
-                loadInitialData(isAuthenticated);
-              }
-            }, 100);
-          } else if (event === 'SIGNED_OUT') {
-            console.log('🔐 User signed out, clearing data...'); // ✅ ADD DEBUG
-            initialLoadDone = false; // ✅ RESET flag
-            // Clear data when user signs out
-            dispatch({ type: 'RESET_STATE' });
-          }
+        if (!mounted) return;
+
+        const isAuthenticated = !!session?.user;
+        dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
+        
+        if (event === 'SIGNED_IN' && isAuthenticated) {
+          console.log('🔐 User signed in, loading data...');
+          setTimeout(() => {
+            if (mounted) {
+              loadInitialData();
+            }
+          }, 100);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('🔐 User signed out, clearing data...');
+          dispatch({ type: 'RESET_STATE' });
         }
       }
     );
@@ -308,70 +298,29 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
-
-  // ✅ Load initial data - FIXED to receive auth state as parameter
-  const loadInitialData = useCallback(async (isAuthenticated: boolean) => {
-    console.log('📊 loadInitialData called, authenticated:', isAuthenticated); // ✅ USE PARAMETER
-    
-    if (!isAuthenticated) {
-      console.log('📊 Not authenticated, skipping data load'); // ✅ ADD DEBUG
-      return;
-    }
-
-    try {
-      console.log('📊 Loading costs and allocation settings...'); // ✅ ADD DEBUG
-      await Promise.all([
-        loadCosts(),
-        loadAllocationSettings(),
-      ]);
-      console.log('📊 Data loaded successfully'); // ✅ ADD DEBUG
-    } catch (error) {
-      console.error('📊 Error loading initial data:', error); // ✅ ADD DEBUG
-      dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data awal' });
-    }
-  }, []); // ✅ REMOVE dependencies that cause stale closure
+  }, [loadInitialData]);
 
   // Cost actions
   const loadCosts = useCallback(async (filters?: CostFilters) => {
-    console.log('💰 loadCosts called'); // ✅ SIMPLIFIED DEBUG
+    console.log('💰 Loading costs...');
     
-    // ✅ GET FRESH AUTH STATE from Supabase directly
-    const { data: { session } } = await supabase.auth.getSession();
-    const isAuthenticated = !!session?.user;
-    
-    console.log('💰 Fresh auth check:', isAuthenticated); // ✅ ADD DEBUG
-    
-    if (!isAuthenticated) {
-      console.log('💰 Not authenticated, cannot load costs'); // ✅ ADD DEBUG
-      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
-      return;
-    }
-
     try {
-      console.log('💰 Setting loading to true'); // ✅ ADD DEBUG
       setLoading('costs', true);
-      
-      console.log('💰 Calling API with filters:', filters); // ✅ ADD DEBUG
       const response = await operationalCostApi.getCosts(filters);
       
-      console.log('💰 API response:', response); // ✅ ADD DEBUG
-      
       if (response.error) {
-        console.log('💰 API returned error:', response.error); // ✅ ADD DEBUG
         dispatch({ type: 'SET_ERROR', payload: response.error });
       } else {
-        console.log('💰 Setting costs data:', response.data.length, 'items'); // ✅ ADD DEBUG
+        console.log('💰 Costs loaded:', response.data.length, 'items');
         dispatch({ type: 'SET_COSTS', payload: response.data });
       }
     } catch (error) {
-      console.error('💰 Error loading costs:', error); // ✅ ENHANCED DEBUG
+      console.error('💰 Error loading costs:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat data biaya operasional' });
     } finally {
-      console.log('💰 Setting loading to false'); // ✅ ADD DEBUG
       setLoading('costs', false);
     }
-  }, [setLoading]); // ✅ REMOVED state dependency
+  }, [setLoading]);
 
   const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
     if (!state.isAuthenticated) {
@@ -444,41 +393,25 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Allocation actions
   const loadAllocationSettings = useCallback(async () => {
-    console.log('⚙️ loadAllocationSettings called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
+    console.log('⚙️ Loading allocation settings...');
     
-    if (!state.isAuthenticated) {
-      console.log('⚙️ Not authenticated, cannot load allocation settings'); // ✅ ADD DEBUG
-      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
-      return;
-    }
-
     try {
-      console.log('⚙️ Setting loading to true'); // ✅ ADD DEBUG
       setLoading('allocation', true);
-      
-      console.log('⚙️ Calling allocation API'); // ✅ ADD DEBUG
       const response = await allocationApi.getSettings();
       
-      console.log('⚙️ Allocation API response:', response); // ✅ ADD DEBUG
-      
-      if (response.error) {
-        console.log('⚙️ Allocation API error:', response.error); // ✅ ADD DEBUG
-        // Don't show error for "no settings found" case
-        if (!response.error.includes('tidak ditemukan')) {
-          dispatch({ type: 'SET_ERROR', payload: response.error });
-        }
+      if (response.error && !response.error.includes('tidak ditemukan')) {
+        dispatch({ type: 'SET_ERROR', payload: response.error });
       } else {
-        console.log('⚙️ Setting allocation settings:', response.data); // ✅ ADD DEBUG
+        console.log('⚙️ Allocation settings loaded:', response.data);
         dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: response.data });
       }
     } catch (error) {
-      console.error('⚙️ Error loading allocation settings:', error); // ✅ ENHANCED DEBUG
+      console.error('⚙️ Error loading allocation settings:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat pengaturan alokasi' });
     } finally {
-      console.log('⚙️ Setting loading to false'); // ✅ ADD DEBUG
       setLoading('allocation', false);
     }
-  }, [setLoading, state.isAuthenticated]);
+  }, [setLoading]);
 
   const saveAllocationSettings = useCallback(async (data: AllocationFormData): Promise<boolean> => {
     if (!state.isAuthenticated) {
@@ -538,24 +471,16 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Utility actions
   const refreshData = useCallback(async () => {
-    console.log('🔄 refreshData called, authenticated:', state.isAuthenticated); // ✅ ADD DEBUG
-    
     if (!state.isAuthenticated) {
-      console.log('🔄 Not authenticated, skipping refresh'); // ✅ ADD DEBUG
+      console.log('🔄 Not authenticated, skipping refresh');
       return;
     }
 
-    console.log('🔄 Refreshing all data...'); // ✅ ADD DEBUG
-    
-    try {
-      await Promise.all([
-        loadCosts(state.filters),
-        loadAllocationSettings(),
-      ]);
-      console.log('🔄 Data refresh completed successfully'); // ✅ ADD DEBUG
-    } catch (error) {
-      console.error('🔄 Error during data refresh:', error); // ✅ ADD DEBUG
-    }
+    console.log('🔄 Refreshing data...');
+    await Promise.all([
+      loadCosts(state.filters),
+      loadAllocationSettings(),
+    ]);
   }, [loadCosts, loadAllocationSettings, state.filters, state.isAuthenticated]);
 
   const setError = useCallback((error: string | null) => {
@@ -566,24 +491,15 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   const contextValue: OperationalCostContextType = {
     state,
     actions: {
-      // Cost actions
       loadCosts,
       createCost,
       updateCost,
       deleteCost,
-      
-      // Allocation actions
       loadAllocationSettings,
       saveAllocationSettings,
-      
-      // Calculation actions
       calculateOverhead,
-      
-      // Filter actions
       setFilters,
       clearFilters,
-      
-      // Utility actions
       refreshData,
       setError,
     },

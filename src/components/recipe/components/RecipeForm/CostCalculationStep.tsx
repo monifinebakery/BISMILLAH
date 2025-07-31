@@ -852,6 +852,9 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* ✅ Mobile Bottom Navigation Spacer */}
+      <div className="h-20 sm:h-0" aria-hidden="true"></div>
     </div>
   );
 };

@@ -164,18 +164,16 @@ export default defineConfig(({ mode, command }) => {
       // ✅ Chunk size settings
       chunkSizeWarningLimit: 600, // Increased limit for vendor chunks
       
-      // ✅ Better minification
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: mode === 'production', // Remove console.log in production
-          drop_debugger: true,
-          pure_funcs: mode === 'production' ? ['console.log', 'console.info'] : []
-        },
-        mangle: {
-          safari10: true
+      // ✅ Use esbuild minification (built-in, faster)
+      minify: 'esbuild', // Changed from 'terser' to 'esbuild'
+      
+      // ✅ ESBuild minification options
+      ...(mode === 'production' && {
+        esbuild: {
+          drop: ['console', 'debugger'], // Remove console.log in production
+          legalComments: 'none'
         }
-      },
+      }),
       
       // ✅ Source maps only in development
       sourcemap: mode === 'development'

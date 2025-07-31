@@ -2,7 +2,7 @@
 import React, { Suspense, lazy } from 'react';
 import { logger } from '@/utils/logger';
 
-// ✅ Static Components (Always Loaded) - dari index.ts
+// ✅ Static Components (Always Loaded)
 import { 
   WarehouseHeader, 
   WarehouseTable, 
@@ -10,12 +10,36 @@ import {
   BulkActions 
 } from './components';
 
-// ✅ Hooks & Context (Static)
+// Hooks & Context (Static)
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 import { useWarehouseContext } from './context/WarehouseContext';
 
-// ✅ Dynamic Components (Lazy Loaded) - direct import, TIDAK dari index.ts
-const DialogManager = lazy(() => import('./components/DialogManager'));
+// 🔧 TEMPORARY FIX: Use static import instead of lazy loading
+// Change this back to lazy loading once deployment issue is resolved
+import DialogManager from './components/DialogManager';
+
+// Alternative lazy loading with error boundary
+const DialogManagerLazy = lazy(() => 
+  import('./components/DialogManager').catch(error => {
+    logger.error('Failed to load DialogManager:', error);
+    // Fallback to a simple component
+    return { 
+      default: () => (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 text-center">
+            <p className="text-red-600 mb-4">❌ Dialog gagal dimuat</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            >
+              Refresh Halaman
+            </button>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 
 // Loading Components
 const TableLoader = () => (
@@ -49,15 +73,6 @@ const DialogLoader = () => (
   </div>
 );
 
-/**
- * Warehouse Page - Optimized with Clean Import Strategy
- * 
- * Bundle Strategy:
- * - Static components (~40KB): Loaded immediately
- * - Dialog components (~60KB): Lazy loaded only when needed
- * - Total initial bundle: ~40KB (vs 100KB+ monolithic)
- * - Dialog bundle: Loaded on first dialog open
- */
 const WarehousePage: React.FC = () => {
   const pageId = React.useRef(`WarehousePage-${Date.now()}`);
   
@@ -200,9 +215,10 @@ const WarehousePage: React.FC = () => {
         </div>
       )}
 
-      {/* 🎯 Dialogs - Dynamic Loading (~60KB, hanya dimuat saat dibutuhkan) */}
+      {/* 🎯 Dialog System with Error Handling */}
       {hasDialogsOpen && (
-        <Suspense fallback={<DialogLoader />}>
+        <React.Suspense fallback={<DialogLoader />}>
+          {/* Use static import for now, switch back to DialogManagerLazy after fixing deployment */}
           <DialogManager
             dialogs={core.dialogs}
             handlers={core.handlers}
@@ -212,7 +228,7 @@ const WarehousePage: React.FC = () => {
             bulk={core.bulk}
             pageId={pageId.current}
           />
-        </Suspense>
+        </React.Suspense>
       )}
 
     </div>

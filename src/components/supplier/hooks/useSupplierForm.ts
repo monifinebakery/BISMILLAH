@@ -1,4 +1,4 @@
-/ Custom hook for form state management and validation
+// Custom hook for form state management and validation
 
 import { useState } from 'react';
 import { toast } from 'sonner';

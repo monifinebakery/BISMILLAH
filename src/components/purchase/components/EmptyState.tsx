@@ -103,22 +103,6 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             </div>
           </>
         )}
-
-        {/* Additional helpful links */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-400 mb-3">Butuh bantuan?</p>
-          <div className="flex justify-center gap-4 text-xs">
-            <button className="text-blue-600 hover:text-blue-700">
-              Panduan Pembelian
-            </button>
-            <button className="text-blue-600 hover:text-blue-700">
-              Tutorial Video
-            </button>
-            <button className="text-blue-600 hover:text-blue-700">
-              FAQ
-            </button>
-          </div>
-        </div>
       </div>
     </Card>
   );

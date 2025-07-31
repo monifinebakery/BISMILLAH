@@ -36,14 +36,36 @@ export default defineConfig(({ mode, command }) => {
           // (This goes in rollupOptions level, not output level - my mistake)
         },
         
-        // ✅ Simple file logging seperti yang kamu mau
+        // ✅ Enhanced file logging dengan filtering
         onwarn(warning, warn) {
-          const logEntry = `${new Date().toISOString()} - ${warning.code}: ${warning.message}\n`;
-          fs.appendFileSync('build-warnings.log', logEntry);
+          const timestamp = new Date().toISOString();
           
-          console.log('⚠️ Rollup Warning:', warning.code, warning.message);
-          if (warning.code === 'CIRCULAR_DEPENDENCY') return;
-          warn(warning);
+          // ✅ Filter warnings - hanya log yang relevant
+          const shouldLog = !warning.id?.includes('node_modules') || 
+                           ['MISSING_EXPORT', 'UNRESOLVED_IMPORT', 'EMPTY_BUNDLE'].includes(warning.code);
+          
+          if (shouldLog) {
+            const logEntry = `${timestamp} - ${warning.code}: ${warning.message}\n`;
+            fs.appendFileSync('build-warnings.log', logEntry);
+          }
+          
+          // ✅ Console output - show only relevant warnings
+          if (warning.id && !warning.id.includes('node_modules')) {
+            // Warning dari app code - IMPORTANT
+            console.log('🚨 APP WARNING:', warning.code, warning.message);
+            console.log('   📁 File:', warning.id);
+            warn(warning); // Show in build output
+          } else {
+            // Warning dari node_modules - just log quietly
+            console.log('⚠️  Library Warning:', warning.code, 
+                       warning.id?.replace(/.*node_modules\//, '') || 'unknown');
+          }
+          
+          // Skip circular dependencies dan THIS_IS_UNDEFINED dari libraries
+          if (warning.code === 'CIRCULAR_DEPENDENCY' || 
+              warning.code === 'THIS_IS_UNDEFINED') {
+            return; // Don't show in build output
+          }
         }
       },
       

@@ -1,262 +1,353 @@
-// hooks/useNotificationTriggers.js
-import { useEffect } from 'react';
-// 🔧 FIXED: Separate imports
+// hooks/useNotificationTriggers.ts - PRODUCTION READY
+import { useEffect, useCallback, useRef } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
-import { useOrder } from '@/components/orders/context/OrderContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
-import { usePurchase } from '@/components/purchase/context/PurchaseContext';
+
+// Safe context imports with fallbacks
+let useOrderContext: any;
+let useBahanBakuContext: any;
+let usePurchaseContext: any;
+
+try {
+  const orderModule = require('@/components/orders/context/OrderContext');
+  useOrderContext = orderModule.useOrder || (() => ({ orders: [] }));
+} catch {
+  useOrderContext = () => ({ orders: [] });
+}
+
+try {
+  const warehouseModule = require('@/components/warehouse/context/WarehouseContext');
+  useBahanBakuContext = warehouseModule.useBahanBaku || (() => ({ bahanBaku: [] }));
+} catch {
+  useBahanBakuContext = () => ({ bahanBaku: [] });
+}
+
+try {
+  const purchaseModule = require('@/components/purchase/context/PurchaseContext');
+  usePurchaseContext = purchaseModule.usePurchase || (() => ({ purchases: [] }));
+} catch {
+  usePurchaseContext = () => ({ purchases: [] });
+}
 
 /**
  * Hook to automatically create notifications based on system events
+ * Enhanced with proper error handling and deduplication
  */
 export const useNotificationTriggers = () => {
   const { addNotification } = useNotification();
-  const { orders } = useOrder();
-  const { bahanBaku } = useBahanBaku();
-  const { purchases } = usePurchase();
+  const lastCheckRef = useRef<Record<string, number>>({});
+  const processedItemsRef = useRef<Set<string>>(new Set());
 
-  // Monitor order changes
+  // Safe context usage with error handling
+  let orders: any[] = [];
+  let bahanBaku: any[] = [];
+  let purchases: any[] = [];
+
+  try {
+    const orderData = useOrderContext();
+    orders = Array.isArray(orderData?.orders) ? orderData.orders : [];
+  } catch (error) {
+    console.warn('Orders context not available');
+  }
+
+  try {
+    const warehouseData = useBahanBakuContext();
+    bahanBaku = Array.isArray(warehouseData?.bahanBaku) ? warehouseData.bahanBaku : [];
+  } catch (error) {
+    console.warn('Warehouse context not available');
+  }
+
+  try {
+    const purchaseData = usePurchaseContext();
+    purchases = Array.isArray(purchaseData?.purchases) ? purchaseData.purchases : [];
+  } catch (error) {
+    console.warn('Purchase context not available');
+  }
+
+  // Enhanced inventory monitoring with throttling
   useEffect(() => {
-    // This would typically be triggered by order context events
-    // For now, we'll set up listeners for common scenarios
-  }, [orders, addNotification]);
+    if (!bahanBaku.length) return;
 
-  // Monitor inventory changes
-  useEffect(() => {
-    if (!bahanBaku || !Array.isArray(bahanBaku)) return;
+    const now = Date.now();
+    const lastInventoryCheck = lastCheckRef.current.inventory || 0;
 
-    // Check for low stock items
-    bahanBaku.forEach(item => {
-      if (item.stok <= item.minimum) {
-        // Only create notification if it doesn't already exist for this item
-        const notificationData = createNotificationHelper.lowStock(
-          item.nama,
-          item.stok,
-          item.minimum
-        );
-        
-        // We might want to debounce this or check if notification already exists
-        addNotification(notificationData);
+    // Throttle inventory checks to every 30 seconds
+    if (now - lastInventoryCheck < 30000) return;
+
+    lastCheckRef.current.inventory = now;
+
+    // Process each item safely
+    bahanBaku.forEach((item) => {
+      if (!item || typeof item !== 'object') return;
+
+      const itemId = item.id || item.nama || 'unknown';
+      const itemKey = `inventory_${itemId}`;
+
+      // Skip if already processed recently
+      if (processedItemsRef.current.has(itemKey)) return;
+
+      try {
+        const stok = Number(item.stok) || 0;
+        const minimum = Number(item.minimum) || 0;
+        const nama = String(item.nama || 'Item Tidak Dikenal');
+
+        // Check for low stock
+        if (stok <= minimum && stok > 0) {
+          addNotification(createNotificationHelper.lowStock(nama, stok, minimum))
+            .then(() => {
+              processedItemsRef.current.add(itemKey);
+              // Remove from processed after 5 minutes
+              setTimeout(() => {
+                processedItemsRef.current.delete(itemKey);
+              }, 300000);
+            })
+            .catch(error => {
+              console.warn('Failed to create low stock notification:', error);
+            });
+        }
+
+        // Check for out of stock
+        if (stok === 0) {
+          addNotification(createNotificationHelper.outOfStock(nama))
+            .then(() => {
+              processedItemsRef.current.add(`${itemKey}_out`);
+              setTimeout(() => {
+                processedItemsRef.current.delete(`${itemKey}_out`);
+              }, 300000);
+            })
+            .catch(error => {
+              console.warn('Failed to create out of stock notification:', error);
+            });
+        }
+
+        // Check for expiring items
+        if (item.expiry) {
+          try {
+            const expiryDate = new Date(item.expiry);
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+              addNotification(createNotificationHelper.expiringSoon(nama, daysUntilExpiry))
+                .catch(error => {
+                  console.warn('Failed to create expiring notification:', error);
+                });
+            }
+          } catch (dateError) {
+            // Invalid date format, skip
+          }
+        }
+      } catch (itemError) {
+        console.warn('Error processing inventory item:', itemError);
       }
     });
   }, [bahanBaku, addNotification]);
 
-  // Return functions to manually trigger notifications
-  return {
-    triggerOrderCreated: (orderId: string, orderNumber: string, customerName: string) => {
-      const notificationData = createNotificationHelper.orderCreated(orderId, orderNumber, customerName);
-      return addNotification(notificationData);
-    },
+  // Cleanup processed items periodically
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      processedItemsRef.current.clear();
+    }, 600000); // Every 10 minutes
 
-    triggerOrderStatusChanged: (orderId: string, orderNumber: string, newStatus: string) => {
-      const notificationData = createNotificationHelper.orderStatusChanged(orderId, orderNumber, '', newStatus);
-      return addNotification(notificationData);
-    },
+    return () => clearInterval(cleanup);
+  }, []);
 
-    triggerLowStock: (itemName: string, currentStock: number, minStock: number) => {
-      const notificationData = createNotificationHelper.lowStock(itemName, currentStock, minStock);
-      return addNotification(notificationData);
-    },
+  // Manual trigger functions with error handling
+  const triggerOrderCreated = useCallback(async (orderId: string, orderNumber: string, customerName: string) => {
+    try {
+      if (!orderId || !orderNumber) {
+        throw new Error('Missing required order information');
+      }
+      
+      const notificationData = createNotificationHelper.orderCreated(
+        orderId, 
+        orderNumber, 
+        customerName || 'Pelanggan'
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger order created notification:', error);
+      return false;
+    }
+  }, [addNotification]);
 
-    triggerSystemError: (errorMessage: string) => {
+  const triggerOrderStatusChanged = useCallback(async (orderId: string, orderNumber: string, oldStatus: string, newStatus: string) => {
+    try {
+      if (!orderId || !orderNumber) {
+        throw new Error('Missing required order information');
+      }
+      
+      const notificationData = createNotificationHelper.orderStatusChanged(
+        orderId, 
+        orderNumber, 
+        oldStatus || '', 
+        newStatus || ''
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger order status notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerLowStock = useCallback(async (itemName: string, currentStock: number, minStock: number) => {
+    try {
+      if (!itemName) {
+        throw new Error('Item name is required');
+      }
+      
+      const notificationData = createNotificationHelper.lowStock(
+        itemName, 
+        Number(currentStock) || 0, 
+        Number(minStock) || 0
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger low stock notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerSystemError = useCallback(async (errorMessage: string) => {
+    try {
+      if (!errorMessage) {
+        throw new Error('Error message is required');
+      }
+      
       const notificationData = createNotificationHelper.systemError(errorMessage);
-      return addNotification(notificationData);
-    },
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger system error notification:', error);
+      return false;
+    }
+  }, [addNotification]);
 
-    triggerCustomNotification: (title: string, message: string, type = 'info', priority = 2) => {
-      return addNotification({
+  const triggerCustomNotification = useCallback(async (
+    title: string, 
+    message: string, 
+    type: 'info' | 'success' | 'warning' | 'error' = 'info', 
+    priority: 1 | 2 | 3 | 4 = 2
+  ) => {
+    try {
+      if (!title || !message) {
+        throw new Error('Title and message are required');
+      }
+
+      const notificationData = createNotificationHelper.custom(
         title,
         message,
-        type: type as any,
-        icon: 'bell',
-        priority: priority as any,
-        is_read: false,
-        is_archived: false
-      });
+        type,
+        priority
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger custom notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // Purchase notification triggers
+  const triggerPurchaseCreated = useCallback(async (purchaseId: string, supplierName: string, totalValue: number, itemCount: number) => {
+    try {
+      if (!purchaseId || !supplierName) {
+        throw new Error('Missing required purchase information');
+      }
+      
+      const notificationData = createNotificationHelper.purchaseCreated(
+        purchaseId,
+        supplierName,
+        Number(totalValue) || 0,
+        Number(itemCount) || 0
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger purchase created notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerPurchaseCompleted = useCallback(async (purchaseId: string, supplierName: string, totalValue: number) => {
+    try {
+      if (!purchaseId || !supplierName) {
+        throw new Error('Missing required purchase information');
+      }
+      
+      const notificationData = createNotificationHelper.purchaseCompleted(
+        purchaseId,
+        supplierName,
+        Number(totalValue) || 0
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error('Failed to trigger purchase completed notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  return {
+    // Manual triggers
+    triggerOrderCreated,
+    triggerOrderStatusChanged,
+    triggerLowStock,
+    triggerSystemError,
+    triggerCustomNotification,
+    triggerPurchaseCreated,
+    triggerPurchaseCompleted,
+    
+    // Stats
+    stats: {
+      ordersCount: orders.length,
+      inventoryCount: bahanBaku.length,
+      purchasesCount: purchases.length,
+      lowStockCount: bahanBaku.filter(item => {
+        try {
+          return Number(item?.stok) <= Number(item?.minimum);
+        } catch {
+          return false;
+        }
+      }).length
     }
   };
 };
 
-// Hook for creating notification templates
+// Simplified notification templates hook
 export const useNotificationTemplates = () => {
   const { addNotification } = useNotification();
 
-  const templates = {
-    // Order templates
-    newOrder: (customerName: string, orderNumber: string) => ({
-      title: '🛍️ Pesanan Baru!',
-      message: `${customerName} baru saja membuat pesanan #${orderNumber}`,
-      type: 'success' as const,
-      icon: 'shopping-cart',
-      priority: 2 as const,
-      related_type: 'order' as const,
-      is_read: false,
-      is_archived: false
-    }),
+  const createFromTemplate = useCallback(async (templateName: string, ...args: any[]) => {
+    try {
+      let notificationData;
 
-    orderConfirmed: (orderNumber: string) => ({
-      title: '✅ Pesanan Dikonfirmasi',
-      message: `Pesanan #${orderNumber} telah dikonfirmasi dan siap diproses`,
-      type: 'success' as const,
-      icon: 'check-circle',
-      priority: 2 as const,
-      related_type: 'order' as const,
-      is_read: false,
-      is_archived: false
-    }),
+      switch (templateName) {
+        case 'welcome':
+          notificationData = createNotificationHelper.welcome(args[0]);
+          break;
+        case 'dailySummary':
+          notificationData = createNotificationHelper.dailySummary(args[0] || 0, args[1] || 0);
+          break;
+        case 'backupSuccess':
+          notificationData = createNotificationHelper.backupSuccess();
+          break;
+        case 'backupFailed':
+          notificationData = createNotificationHelper.backupFailed(args[0] || 'Unknown error');
+          break;
+        default:
+          throw new Error(`Template '${templateName}' not found`);
+      }
 
-    orderShipped: (orderNumber: string, customerName: string) => ({
-      title: '🚚 Pesanan Dikirim',
-      message: `Pesanan #${orderNumber} untuk ${customerName} sedang dalam perjalanan`,
-      type: 'info' as const,
-      icon: 'package',
-      priority: 2 as const,
-      related_type: 'order' as const,
-      is_read: false,
-      is_archived: false
-    }),
-
-    orderDelivered: (orderNumber: string) => ({
-      title: '🎉 Pesanan Sampai',
-      message: `Pesanan #${orderNumber} telah berhasil diterima pelanggan`,
-      type: 'success' as const,
-      icon: 'check-circle',
-      priority: 1 as const,
-      related_type: 'order' as const,
-      is_read: false,
-      is_archived: false
-    }),
-
-    // Inventory templates
-    stockAlert: (itemName: string, currentStock: number) => ({
-      title: '⚠️ Stok Menipis',
-      message: `${itemName} tersisa ${currentStock} unit. Segera lakukan pembelian!`,
-      type: 'warning' as const,
-      icon: 'alert-triangle',
-      priority: 3 as const,
-      related_type: 'inventory' as const,
-      action_url: '/gudang',
-      is_read: false,
-      is_archived: false
-    }),
-
-    stockOut: (itemName: string) => ({
-      title: '🚫 Stok Habis',
-      message: `${itemName} sudah habis! Segera lakukan pembelian bahan baku.`,
-      type: 'error' as const,
-      icon: 'alert-circle',
-      priority: 4 as const,
-      related_type: 'inventory' as const,
-      action_url: '/gudang',
-      is_read: false,
-      is_archived: false
-    }),
-
-    expiringStock: (itemName: string, daysLeft: number) => ({
-      title: '⏰ Bahan Akan Expired',
-      message: `${itemName} akan expired dalam ${daysLeft} hari`,
-      type: 'warning' as const,
-      icon: 'calendar',
-      priority: 3 as const,
-      related_type: 'inventory' as const,
-      is_read: false,
-      is_archived: false
-    }),
-
-    // Purchase templates
-    purchaseReceived: (supplierName: string, totalItems: number) => ({
-      title: '📦 Pembelian Diterima',
-      message: `Pembelian dari ${supplierName} (${totalItems} item) telah diterima`,
-      type: 'success' as const,
-      icon: 'package',
-      priority: 2 as const,
-      related_type: 'purchase' as const,
-      action_url: '/pembelian',
-      is_read: false,
-      is_archived: false
-    }),
-
-    // System templates
-    backupSuccess: () => ({
-      title: '✅ Backup Berhasil',
-      message: 'Data aplikasi berhasil di-backup ke cloud',
-      type: 'success' as const,
-      icon: 'check-circle',
-      priority: 1 as const,
-      related_type: 'system' as const,
-      is_read: false,
-      is_archived: false
-    }),
-
-    backupFailed: (reason: string) => ({
-      title: '❌ Backup Gagal',
-      message: `Backup gagal: ${reason}. Silakan coba lagi.`,
-      type: 'error' as const,
-      icon: 'alert-circle',
-      priority: 3 as const,
-      related_type: 'system' as const,
-      is_read: false,
-      is_archived: false
-    }),
-
-    maintenanceMode: (duration: string) => ({
-      title: '🔧 Mode Maintenance',
-      message: `Sistem akan maintenance selama ${duration}. Harap simpan pekerjaan Anda.`,
-      type: 'warning' as const,
-      icon: 'alert-triangle',
-      priority: 4 as const,
-      related_type: 'system' as const,
-      expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
-      is_read: false,
-      is_archived: false
-    }),
-
-    // Business templates
-    dailySummary: (orders: number, revenue: number) => ({
-      title: '📊 Ringkasan Harian',
-      message: `Hari ini: ${orders} pesanan dengan total revenue Rp ${revenue.toLocaleString()}`,
-      type: 'info' as const,
-      icon: 'calendar',
-      priority: 1 as const,
-      related_type: 'system' as const,
-      action_url: '/',
-      is_read: false,
-      is_archived: false
-    }),
-
-    monthlyReport: (month: string) => ({
-      title: '📈 Laporan Bulanan Siap',
-      message: `Laporan bulan ${month} telah selesai dibuat dan siap untuk ditinjau`,
-      type: 'info' as const,
-      icon: 'calendar',
-      priority: 2 as const,
-      related_type: 'system' as const,
-      action_url: '/laporan',
-      is_read: false,
-      is_archived: false
-    })
-  };
-
-  const createFromTemplate = async (templateName: keyof typeof templates, ...args: any[]) => {
-    const template = templates[templateName];
-    if (!template) {
-      console.error(`Template '${templateName}' not found`);
+      return await addNotification(notificationData);
+    } catch (error) {
+      console.error(`Failed to create notification from template '${templateName}':`, error);
       return false;
     }
-
-    const notificationData = template(...args);
-    return addNotification(notificationData);
-  };
+  }, [addNotification]);
 
   return {
-    templates,
     createFromTemplate,
     addNotification
   };
 };
 
-// Hook for notification statistics
+// Simple notification statistics
 export const useNotificationStats = () => {
   const { notifications, unreadCount, urgentCount } = useNotification();
 
@@ -278,9 +369,13 @@ export const useNotificationStats = () => {
       urgent: notifications.filter(n => n.priority === 4).length
     },
     recent: notifications.filter(n => {
-      const notificationTime = new Date(n.created_at).getTime();
-      const hourAgo = Date.now() - (60 * 60 * 1000);
-      return notificationTime > hourAgo;
+      try {
+        const notificationTime = new Date(n.created_at).getTime();
+        const hourAgo = Date.now() - (60 * 60 * 1000);
+        return notificationTime > hourAgo;
+      } catch {
+        return false;
+      }
     }).length
   };
 

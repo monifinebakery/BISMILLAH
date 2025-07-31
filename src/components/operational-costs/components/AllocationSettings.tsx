@@ -128,7 +128,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
                 value={formData.nilai || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, nilai: Number(e.target.value) }))}
                 placeholder={selectedMethod?.inputPlaceholder}
-                min="0.01"
+                min={formData.metode === 'per_unit' ? '1' : '0.01'}
                 step={formData.metode === 'per_unit' ? '1' : '0.01'}
                 className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
                   errors.nilai ? 'border-red-300' : 'border-gray-300'

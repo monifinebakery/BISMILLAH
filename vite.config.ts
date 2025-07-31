@@ -27,54 +27,15 @@ export default defineConfig(({ mode, command }) => {
     build: {
       target: 'es2020',
       rollupOptions: {
+        // ✅ EMERGENCY: NO CHUNKING AT ALL
         output: {
-          // ✅ ULTRA SAFE: Keep React dengan semua UI dependencies
-          manualChunks: (id) => {
-            // ✅ CRITICAL FIX: Group React dengan semua yang membutuhkannya
-            if (id.includes('node_modules/react') || 
-                id.includes('node_modules/@radix-ui') ||
-                id.includes('node_modules/lucide-react') ||
-                id.includes('node_modules/class-variance-authority') ||
-                id.includes('node_modules/clsx') ||
-                id.includes('node_modules/tailwind-merge')) {
-              return 'react-ui-vendor'; // Semua UI components dengan React
-            }
-            
-            // ✅ API libraries - safe to separate karena tidak depend React
-            if (id.includes('node_modules/@supabase') ||
-                id.includes('node_modules/supabase')) {
-              return 'supabase-vendor';
-            }
-            
-            // ✅ Utilities yang tidak depend React
-            if (id.includes('node_modules/lodash') ||
-                id.includes('node_modules/date-fns') ||
-                id.includes('node_modules/uuid')) {
-              return 'utils-vendor';
-            }
-            
-            // ✅ Chart libraries - KEEP IN MAIN BUNDLE untuk sekarang
-            if (id.includes('node_modules/recharts') ||
-                id.includes('node_modules/chart.js') ||
-                id.includes('node_modules/d3')) {
-              return undefined; // Main bundle - tidak dipisah
-            }
-            
-            // ✅ Router - depends on React, keep with main atau React
-            if (id.includes('node_modules/react-router')) {
-              return 'react-ui-vendor'; // Gabung dengan React
-            }
-            
-            // ✅ Other safe vendor code
-            if (id.includes('node_modules')) {
-              return 'other-vendor';
-            }
-            
-            return undefined;
-          }
+          manualChunks: undefined, // Disable all manual chunking
+          
+          // ✅ Still keep detailed warnings
+          // (This goes in rollupOptions level, not output level - my mistake)
         },
         
-        // ✅ SUPER DETAILED debug warnings
+        // ✅ SUPER DETAILED debug warnings (fixed placement)
         onwarn(warning, warn) {
           console.log('⚠️ DETAILED Rollup Warning:', {
             code: warning.code,
@@ -113,44 +74,49 @@ export default defineConfig(({ mode, command }) => {
         }
       },
       
-      chunkSizeWarningLimit: 1000,
+      // ✅ Increase chunk size limit - single bundle will be larger
+      chunkSizeWarningLimit: 3000,
+      
       minify: 'esbuild',
-      sourcemap: mode === 'development'
+      sourcemap: mode === 'development',
+      
+      // ✅ Production optimizations
+      ...(mode === 'production' && {
+        esbuild: {
+          drop: ['console', 'debugger'],
+          legalComments: 'none'
+        }
+      })
     },
     
+    // ✅ Enhanced dependency optimization - force React bundling
     optimizeDeps: {
       include: [
-        // ✅ CRITICAL: Pastikan React ecosystem ter-bundle dengan benar
+        // Core React
         "react", 
         "react-dom", 
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
+        
+        // Router
         "react-router-dom",
         
-        // ✅ UI components yang depend React
+        // UI
         "lucide-react",
-        "@radix-ui/react-slot",
-        "class-variance-authority",
-        "clsx",
-        "tailwind-merge",
         
-        // ✅ State management
+        // State
         "@tanstack/react-query",
-        "zustand",
         
-        // ✅ Toast yang depend React
-        "sonner"
+        // Utils yang sering bermasalah
+        "clsx",
+        "tailwind-merge"
       ],
       
-      // ✅ Force single React instance
+      // ✅ Force dedupe
       dedupe: ["react", "react-dom"],
       
-      // ✅ ESBuild options
-      esbuildOptions: {
-        // Preserve React names untuk debugging
-        keepNames: mode === 'development',
-        target: 'es2020'
-      }
+      // ✅ Force pre-bundling
+      force: true
     }
   };
 });

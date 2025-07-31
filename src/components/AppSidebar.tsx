@@ -145,16 +145,10 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FIXED: Layout logic moved to the direct parent of the icon
+  // ✅ FIXED: Layout logic is now correctly applied to the button itself
   const renderMenuItem = (item, isActive) => {
     const menuContent = (
-      <Link
-        to={item.url}
-        className={cn(
-          "flex items-center w-full h-full",
-          isCollapsed && "justify-center" // Center icon when collapsed
-        )}
-      >
+      <Link to={item.url} className="flex items-center w-full h-full">
         <item.icon className="h-5 w-5 flex-shrink-0" />
         {!isCollapsed && <span className="ml-3">{item.title}</span>}
       </Link>
@@ -168,7 +162,7 @@ export function AppSidebar() {
               <SidebarMenuButton
                 asChild
                 isActive={isActive}
-                className="w-full justify-start p-0" // Remove padding from button
+                className="w-full justify-center px-2" // Center content when collapsed
               >
                 {menuContent}
               </SidebarMenuButton>
@@ -185,25 +179,20 @@ export function AppSidebar() {
       <SidebarMenuButton
         asChild
         isActive={isActive}
-        className="w-full justify-start px-3"
+        className="w-full justify-start px-3" // Start content from left when expanded
       >
         {menuContent}
       </SidebarMenuButton>
     );
   };
 
-  // ✅ FIXED: Layout logic moved to the direct parent of the icon
+  // ✅ FIXED: Layout logic is now correctly applied to the button itself
   const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
     const buttonContent = (
-      <div
-        className={cn(
-          "flex items-center w-full h-full",
-          isCollapsed && "justify-center" // Center icon when collapsed
-        )}
-      >
+      <>
         <IconComponent className="h-5 w-5 flex-shrink-0" />
         {!isCollapsed && <span className="ml-3">{text}</span>}
-      </div>
+      </>
     );
 
     if (isCollapsed) {
@@ -213,7 +202,7 @@ export function AppSidebar() {
             <TooltipTrigger asChild>
               <SidebarMenuButton
                 onClick={onClick}
-                className={cn("w-full justify-start p-0", className)} // Remove padding
+                className={cn("w-full justify-center px-2", className)} // Center content when collapsed
               >
                 {buttonContent}
               </SidebarMenuButton>
@@ -229,7 +218,7 @@ export function AppSidebar() {
     return (
       <SidebarMenuButton
         onClick={onClick}
-        className={cn("w-full justify-start px-3", className)}
+        className={cn("w-full justify-start px-3", className)} // Start content from left when expanded
       >
         {buttonContent}
       </SidebarMenuButton>
@@ -282,7 +271,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {renderActionButton(
               handleExportAllData,
-              Download, // Icon for Export
+              Download,
               "Export Semua Data",
               "hover:bg-gray-100"
             )}
@@ -299,7 +288,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {renderActionButton(
               () => setShowLogoutConfirm(true),
-              LogOut, // Icon for Logout
+              LogOut,
               "Keluar",
               "text-red-500 hover:bg-red-50 hover:text-red-600"
             )}

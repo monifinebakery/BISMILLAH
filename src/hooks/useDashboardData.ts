@@ -70,7 +70,7 @@ export const useDashboardData = (dateRange: DateRange) => {
     try {
       const { filteredOrders } = filteredData;
       
-      const revenue = calculateGrossRevenue(filteredOrders);
+      const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
       const profit = revenue * 0.3; // 30% profit estimate
       const outstandingInvoices = filteredOrders.filter(

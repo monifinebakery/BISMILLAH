@@ -145,10 +145,16 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FIXED: Simplified menu item rendering with proper tooltip
+  // ✅ FIXED: Layout logic moved to the direct parent of the icon
   const renderMenuItem = (item, isActive) => {
     const menuContent = (
-      <Link to={item.url} className="flex items-center w-full">
+      <Link
+        to={item.url}
+        className={cn(
+          "flex items-center w-full h-full",
+          isCollapsed && "justify-center" // Center icon when collapsed
+        )}
+      >
         <item.icon className="h-5 w-5 flex-shrink-0" />
         {!isCollapsed && <span className="ml-3">{item.title}</span>}
       </Link>
@@ -162,7 +168,7 @@ export function AppSidebar() {
               <SidebarMenuButton
                 asChild
                 isActive={isActive}
-                className="w-full justify-center px-2"
+                className="w-full justify-start p-0" // Remove padding from button
               >
                 {menuContent}
               </SidebarMenuButton>
@@ -186,11 +192,16 @@ export function AppSidebar() {
     );
   };
 
-  // ✅ FIXED: Simplified action button rendering
-  const renderActionButton = (onClick, icon: React.ElementType, text: string, className = "") => {
+  // ✅ FIXED: Layout logic moved to the direct parent of the icon
+  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
     const buttonContent = (
-      <div className="flex items-center w-full">
-        <icon className="h-5 w-5 flex-shrink-0" />
+      <div
+        className={cn(
+          "flex items-center w-full h-full",
+          isCollapsed && "justify-center" // Center icon when collapsed
+        )}
+      >
+        <IconComponent className="h-5 w-5 flex-shrink-0" />
         {!isCollapsed && <span className="ml-3">{text}</span>}
       </div>
     );
@@ -202,7 +213,7 @@ export function AppSidebar() {
             <TooltipTrigger asChild>
               <SidebarMenuButton
                 onClick={onClick}
-                className={cn("w-full justify-center px-2", className)}
+                className={cn("w-full justify-start p-0", className)} // Remove padding
               >
                 {buttonContent}
               </SidebarMenuButton>
@@ -230,7 +241,6 @@ export function AppSidebar() {
       collapsible="icon" 
       className="border-r"
     >
-      {/* ✅ FIXED: Simplified header */}
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
@@ -244,7 +254,6 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* ✅ FIXED: Simplified content */}
       <SidebarContent className="flex-grow px-2 py-4">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="mb-4">
@@ -267,14 +276,13 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* ✅ FIXED: Simplified footer */}
       <SidebarFooter className="p-2 border-t mt-auto">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}
           <SidebarMenuItem>
             {renderActionButton(
               handleExportAllData,
-              Download,
+              Download, // Icon for Export
               "Export Semua Data",
               "hover:bg-gray-100"
             )}
@@ -291,7 +299,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {renderActionButton(
               () => setShowLogoutConfirm(true),
-              LogOut,
+              LogOut, // Icon for Logout
               "Keluar",
               "text-red-500 hover:bg-red-50 hover:text-red-600"
             )}

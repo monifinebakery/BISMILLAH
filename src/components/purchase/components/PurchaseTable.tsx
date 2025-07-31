@@ -39,7 +39,8 @@ import {
   Package,
   Calendar,
   User,
-  Receipt
+  Receipt,
+  ChevronDown
 } from 'lucide-react';
 
 import { PurchaseTableProps, PurchaseStatus } from '../types/purchase.types';
@@ -48,7 +49,26 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { getStatusColor, getStatusDisplayText, generatePurchaseSummary } from '../utils/purchaseHelpers';
 import { EmptyState } from './index';
 
-const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
+// Status options untuk dropdown
+const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
+  { value: 'pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  { value: 'completed', label: 'Selesai', color: 'bg-green-100 text-green-800 border-green-200' },
+  { value: 'cancelled', label: 'Dibatalkan', color: 'bg-red-100 text-red-800 border-red-200' },
+];
+
+interface PurchaseTablePropsExtended extends PurchaseTableProps {
+  onEdit: (purchase: any) => void;
+  onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => void;
+  onDelete?: (purchaseId: string) => void;
+  onViewDetails?: (purchase: any) => void;
+}
+
+const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({ 
+  onEdit, 
+  onStatusChange,
+  onDelete,
+  onViewDetails 
+}) => {
   const {
     filteredPurchases,
     selectedItems,
@@ -66,9 +86,10 @@ const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
     getSupplierName,
   } = usePurchaseTable();
 
-  // Local state for pagination
+  // Local state for pagination and status editing
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
@@ -84,16 +105,90 @@ const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
   // Handle delete purchase (individual)
   const handleDelete = (purchaseId: string) => {
     if (confirm('Yakin ingin menghapus pembelian ini?')) {
-      // Will be handled by bulk delete with single item
-      setSelectedItems([purchaseId]);
-      // Trigger bulk delete dialog or direct delete
+      if (onDelete) {
+        onDelete(purchaseId);
+      } else {
+        // Fallback: use bulk delete with single item
+        setSelectedItems([purchaseId]);
+      }
     }
   };
 
   // Handle view details
   const handleViewDetails = (purchase: any) => {
-    // TODO: Implement detail view modal
-    console.log('View details:', purchase);
+    if (onViewDetails) {
+      onViewDetails(purchase);
+    } else {
+      // TODO: Implement detail view modal
+      console.log('View details:', purchase);
+    }
+  };
+
+  // Handle status change
+  const handleStatusChange = async (purchaseId: string, newStatus: PurchaseStatus) => {
+    if (onStatusChange) {
+      try {
+        await onStatusChange(purchaseId, newStatus);
+        setEditingStatusId(null);
+      } catch (error) {
+        console.error('Failed to update status:', error);
+        // You might want to show a toast notification here
+      }
+    }
+  };
+
+  // Status dropdown component
+  const StatusDropdown: React.FC<{ 
+    purchase: any; 
+    isEditing: boolean; 
+    onStartEdit: () => void;
+    onCancelEdit: () => void;
+  }> = ({ purchase, isEditing, onStartEdit, onCancelEdit }) => {
+    if (!isEditing) {
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onStartEdit}
+          className="h-auto p-1 justify-start hover:bg-gray-50"
+        >
+          <Badge 
+            variant="outline" 
+            className={`${getStatusColor(purchase.status)} cursor-pointer hover:opacity-80`}
+          >
+            {getStatusDisplayText(purchase.status)}
+            <ChevronDown className="h-3 w-3 ml-1" />
+          </Badge>
+        </Button>
+      );
+    }
+
+    return (
+      <Select
+        value={purchase.status}
+        onValueChange={(value: PurchaseStatus) => handleStatusChange(purchase.id, value)}
+        onOpenChange={(open) => {
+          if (!open) {
+            onCancelEdit();
+          }
+        }}
+        defaultOpen={true}
+      >
+        <SelectTrigger className="w-[120px] h-8">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${option.color.split(' ')[0]}`} />
+                {option.label}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   };
 
   // Render sort icon
@@ -142,9 +237,14 @@ const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Selesai</SelectItem>
-                <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${option.color.split(' ')[0]}`} />
+                      {option.label}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -169,6 +269,25 @@ const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
             Menampilkan {filteredPurchases.length} hasil
             {searchQuery && ` untuk "${searchQuery}"`}
             {statusFilter !== 'all' && ` dengan status "${getStatusDisplayText(statusFilter)}"`}
+          </div>
+        )}
+
+        {/* Bulk Actions */}
+        {selectedItems.length > 0 && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedItems.length} item dipilih
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelectedItems([])}>
+                  Batal Pilih
+                </Button>
+                <Button size="sm" variant="destructive">
+                  Hapus Terpilih
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </Card>
@@ -335,14 +454,14 @@ const PurchaseTable: React.FC<PurchaseTableProps> = ({ onEdit }) => {
                       </div>
                     </TableCell>
 
-                    {/* Status */}
+                    {/* Status with Dropdown */}
                     <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={getStatusColor(purchase.status)}
-                      >
-                        {getStatusDisplayText(purchase.status)}
-                      </Badge>
+                      <StatusDropdown
+                        purchase={purchase}
+                        isEditing={editingStatusId === purchase.id}
+                        onStartEdit={() => setEditingStatusId(purchase.id)}
+                        onCancelEdit={() => setEditingStatusId(null)}
+                      />
                     </TableCell>
 
                     {/* Actions */}

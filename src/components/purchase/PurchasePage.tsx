@@ -9,10 +9,14 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // Hooks
 import { usePurchaseStats } from './hooks/usePurchaseStats';
+import { usePurchaseStatus } from './hooks/usePurchaseStatus';
 
 // External contexts
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+
+// Types
+import { PurchaseStatus } from './types/purchase.types';
 
 // Components - Immediate load (critical)
 import {
@@ -38,7 +42,13 @@ interface PurchasePageProps {
 // Inner component that uses purchase context
 const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) => {
   // Purchase data from context
-  const { purchases, isLoading, error } = usePurchase();
+  const { 
+    purchases, 
+    isLoading, 
+    error, 
+    updatePurchase, 
+    deletePurchase 
+  } = usePurchase();
   
   // External data
   const { suppliers } = useSupplier();
@@ -49,9 +59,39 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [showDataWarning, setShowDataWarning] = useState(false);
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [detailPurchase, setDetailPurchase] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   // Calculate stats
   const { stats } = usePurchaseStats(purchases);
+
+  // Status management hook
+  const { updateStatus, isUpdatingPurchase } = usePurchaseStatus({
+    onStatusUpdate: async (purchaseId: string, newStatus: PurchaseStatus) => {
+      try {
+        // Find the purchase to update
+        const purchase = purchases.find(p => p.id === purchaseId);
+        if (!purchase) {
+          throw new Error('Purchase not found');
+        }
+
+        // Update the purchase with new status
+        const updatedPurchase = { ...purchase, status: newStatus };
+        const success = await updatePurchase(purchaseId, updatedPurchase);
+        
+        return success;
+      } catch (error) {
+        console.error('Error updating purchase status:', error);
+        throw error;
+      }
+    },
+    onSuccess: (message) => {
+      toast.success(message);
+    },
+    onError: (error) => {
+      toast.error(error);
+    }
+  });
 
   // Check for missing data
   const missingSuppliers = !suppliers.length;
@@ -101,13 +141,55 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   };
 
   const handleEditPurchase = (purchase: any) => {
+    // Check if purchase can be edited based on status
+    if (purchase.status === 'completed') {
+      toast.error('Pembelian yang sudah selesai tidak dapat diedit');
+      return;
+    }
+
     setEditingPurchase(purchase);
     setIsDialogOpen(true);
+  };
+
+  const handleDeletePurchase = async (purchaseId: string) => {
+    try {
+      // Find the purchase to check if it can be deleted
+      const purchase = purchases.find(p => p.id === purchaseId);
+      if (!purchase) {
+        toast.error('Pembelian tidak ditemukan');
+        return;
+      }
+
+      if (purchase.status === 'completed') {
+        toast.error('Pembelian yang sudah selesai tidak dapat dihapus');
+        return;
+      }
+
+      const success = await deletePurchase(purchaseId);
+      if (success) {
+        toast.success('Pembelian berhasil dihapus');
+      } else {
+        toast.error('Gagal menghapus pembelian');
+      }
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+      toast.error('Terjadi kesalahan saat menghapus pembelian');
+    }
+  };
+
+  const handleViewDetails = (purchase: any) => {
+    setDetailPurchase(purchase);
+    setIsDetailDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingPurchase(null);
+  };
+
+  const handleCloseDetailDialog = () => {
+    setIsDetailDialogOpen(false);
+    setDetailPurchase(null);
   };
 
   const handleExport = () => {
@@ -217,9 +299,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             <BulkActionsToolbar />
           </Suspense>
 
-          {/* Main Table */}
+          {/* Main Table with Status Dropdown */}
           <Suspense fallback={<LoadingState />}>
-            <PurchaseTable onEdit={handleEditPurchase} />
+            <PurchaseTable 
+              onEdit={handleEditPurchase}
+              onStatusChange={updateStatus}
+              onDelete={handleDeletePurchase}
+              onViewDetails={handleViewDetails}
+            />
           </Suspense>
 
           {/* Bulk Delete Dialog */}
@@ -240,6 +327,29 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           onClose={handleCloseDialog}
         />
       </Suspense>
+
+      {/* Purchase Detail Dialog - Optional, if you want to implement detail view */}
+      {detailPurchase && (
+        <Suspense fallback={null}>
+          <PurchaseDetailDialog
+            isOpen={isDetailDialogOpen}
+            purchase={detailPurchase}
+            suppliers={suppliers}
+            bahanBaku={bahanBaku}
+            onClose={handleCloseDetailDialog}
+          />
+        </Suspense>
+      )}
+
+      {/* Loading overlay for status updates */}
+      {Object.keys(purchases).some(id => isUpdatingPurchase(id)) && (
+        <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
+          <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
+            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <span className="text-sm text-gray-700">Mengupdate status...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,19 +13,13 @@ import {
   SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { 
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import {
@@ -58,10 +52,9 @@ import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { state } = useSidebar();
-  
-  const isCollapsed = state === "collapsed";
+  const { state, open, setOpen } = useSidebar();
   
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
@@ -145,119 +138,76 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FIXED: Simplified menu item rendering with proper tooltip
-  const renderMenuItem = (item, isActive) => {
-    const menuContent = (
-      <Link to={item.url} className="flex items-center w-full">
-        <item.icon className="h-5 w-5 flex-shrink-0" />
-        {!isCollapsed && <span className="ml-3">{item.title}</span>}
-      </Link>
-    );
+  // ✅ Simple menu item rendering - no complex logic needed
+  const renderMenuItem = (item, isActive) => (
+    <SidebarMenuButton
+      onClick={() => navigate(item.url)}
+      isActive={isActive}
+      className="w-full justify-start px-3"
+    >
+      <item.icon className="h-5 w-5 flex-shrink-0" />
+      <span className="ml-3">{item.title}</span>
+    </SidebarMenuButton>
+  );
 
-    if (isCollapsed) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive}
-                className="w-full justify-center px-2"
-              >
-                {menuContent}
-              </SidebarMenuButton>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{item.title}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    return (
-      <SidebarMenuButton
-        asChild
-        isActive={isActive}
-        className="w-full justify-start px-3"
-      >
-        {menuContent}
-      </SidebarMenuButton>
-    );
-  };
-
-  // ✅ FIXED: Simplified action button rendering
-  const renderActionButton = (onClick, icon: React.ElementType, text: string, className = "") => {
-    const buttonContent = (
-      <div className="flex items-center w-full">
-        <icon className="h-5 w-5 flex-shrink-0" />
-        {!isCollapsed && <span className="ml-3">{text}</span>}
-      </div>
-    );
-
-    if (isCollapsed) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <SidebarMenuButton
-                onClick={onClick}
-                className={cn("w-full justify-center px-2", className)}
-              >
-                {buttonContent}
-              </SidebarMenuButton>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{text}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    return (
-      <SidebarMenuButton
-        onClick={onClick}
-        className={cn("w-full justify-start px-3", className)}
-      >
-        {buttonContent}
-      </SidebarMenuButton>
-    );
-  };
+  // ✅ Simple action button rendering
+  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => (
+    <SidebarMenuButton
+      onClick={onClick}
+      className={cn("w-full justify-start px-3", className)}
+    >
+      <IconComponent className="h-5 w-5 flex-shrink-0" />
+      <span className="ml-3">{text}</span>
+    </SidebarMenuButton>
+  );
 
   return (
     <Sidebar 
-      collapsible="icon" 
-      className="border-r"
+      collapsible="offcanvas"
+      className={cn(
+        "border-r transition-all duration-300 ease-in-out",
+        "data-[state=open]:animate-in data-[state=open]:slide-in-from-left-0",
+        "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-0"
+      )}
     >
-      {/* ✅ FIXED: Simplified header */}
+      {/* ✅ Header with smooth transitions */}
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
           </div>
-          {!isCollapsed && (
-            <div className="ml-3">
-              <h2 className="text-lg font-bold">HPP by Monifine</h2>
-            </div>
-          )}
+          <div className="ml-3 opacity-100 transition-opacity duration-300">
+            <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+          </div>
         </div>
       </SidebarHeader>
 
-      {/* ✅ FIXED: Simplified content */}
+      {/* ✅ Content with staggered animations */}
       <SidebarContent className="flex-grow px-2 py-4">
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label} className="mb-4">
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
-                {group.label}
-              </SidebarGroupLabel>
+        {menuGroups.map((group, groupIndex) => (
+          <SidebarGroup 
+            key={group.label} 
+            className={cn(
+              "mb-4 opacity-100 transition-all duration-300 ease-in-out",
+              // Staggered animation delay for each group
+              `delay-[${groupIndex * 50}ms]`
             )}
+          >
+            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300">
+              {group.label}
+            </SidebarGroupLabel>
             
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                {group.items.map((item, itemIndex) => (
+                  <SidebarMenuItem 
+                    key={item.title}
+                    className={cn(
+                      "opacity-100 transition-all duration-300 ease-in-out",
+                      // Staggered animation for menu items
+                      `delay-[${(groupIndex * 100) + (itemIndex * 25)}ms]`
+                    )}
+                  >
                     {renderMenuItem(item, location.pathname === item.url)}
                   </SidebarMenuItem>
                 ))}
@@ -267,33 +217,36 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* ✅ FIXED: Simplified footer */}
-      <SidebarFooter className="p-2 border-t mt-auto">
+      {/* ✅ Footer with delayed animation */}
+      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}
-          <SidebarMenuItem>
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
             {renderActionButton(
               handleExportAllData,
               Download,
               "Export Semua Data",
-              "hover:bg-gray-100"
+              "hover:bg-gray-100 hover:scale-[1.02]"
             )}
           </SidebarMenuItem>
           
           {/* Settings */}
           {settingsItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem 
+              key={item.title}
+              className="transition-all duration-200 ease-in-out"
+            >
               {renderMenuItem(item, location.pathname === item.url)}
             </SidebarMenuItem>
           ))}
 
           {/* Logout */}
-          <SidebarMenuItem>
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
             {renderActionButton(
               () => setShowLogoutConfirm(true),
               LogOut,
               "Keluar",
-              "text-red-500 hover:bg-red-50 hover:text-red-600"
+              "text-red-500 hover:bg-red-50 hover:text-red-600 hover:scale-[1.02]"
             )}
           </SidebarMenuItem>
         </SidebarMenu>
@@ -301,7 +254,7 @@ export function AppSidebar() {
 
       {/* Logout Dialog */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="animate-in fade-in-0 zoom-in-95 duration-200">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
             <AlertDialogDescription>
@@ -309,8 +262,15 @@ export function AppSidebar() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+            <AlertDialogCancel className="transition-all duration-200 hover:scale-[1.02]">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmLogout}
+              className="transition-all duration-200 hover:scale-[1.02]"
+            >
+              Keluar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

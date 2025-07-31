@@ -77,7 +77,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
     {
       key: 'revenue',
       icon: <CircleDollarSign className="h-6 w-6" />,
-      label: 'Omzet',
+      label: 'Omzet (Pendapatan Kotor)',
       value: formatCurrency(stats.revenue),
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600'
@@ -93,7 +93,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
     {
       key: 'profit',
       icon: <Calculator className="h-6 w-6" />,
-      label: 'Laba Bersih',
+      label: 'Estimasi Laba Bersih',
       value: formatCurrency(stats.profit),
       description: '(Estimasi 30%)',
       bgColor: 'bg-purple-100',

@@ -156,37 +156,60 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // Render menu item with conditional tooltip
+  // ✅ ENHANCED: Render menu item with smooth fade animation
   const renderMenuItem = (item, isActive) => {
     const menuButton = (
       <SidebarMenuButton
         asChild
         isActive={isActive}
         className={cn(
-          "flex items-center",
-          isCollapsed ? "justify-center px-2" : "justify-start space-x-3"
+          "flex items-center transition-all duration-300 ease-in-out overflow-hidden",
+          isCollapsed ? "justify-center px-2 w-12" : "justify-start space-x-3 px-3"
         )}
       >
         <Link 
           to={item.url} 
           className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "space-x-3"
+            "flex items-center transition-all duration-300 ease-in-out",
+            isCollapsed ? "justify-center w-8" : "space-x-3 w-full"
           )}
         >
-          <item.icon className="h-5 w-5 flex-shrink-0" />
-          {!isCollapsed && <span>{item.title}</span>}
+          {/* ✅ ENHANCED: Icon with consistent size and fade animation */}
+          <div className={cn(
+            "flex items-center justify-center transition-all duration-300 ease-in-out",
+            "w-5 h-5 flex-shrink-0"
+          )}>
+            <item.icon className={cn(
+              "transition-all duration-300 ease-in-out",
+              isCollapsed ? "w-5 h-5 opacity-100" : "w-5 h-5 opacity-100"
+            )} />
+          </div>
+          
+          {/* ✅ ENHANCED: Text with smooth fade animation */}
+          <span className={cn(
+            "transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden",
+            isCollapsed 
+              ? "w-0 opacity-0 translate-x-2" 
+              : "w-auto opacity-100 translate-x-0"
+          )}>
+            {item.title}
+          </span>
         </Link>
       </SidebarMenuButton>
     );
 
+    // ✅ ENHANCED: Tooltip with better positioning
     if (isCollapsed) {
       return (
-        <Tooltip>
+        <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             {menuButton}
           </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">
+          <TooltipContent 
+            side="right" 
+            className="font-medium ml-2 bg-gray-900 text-white border-gray-700"
+            sideOffset={5}
+          >
             {item.title}
           </TooltipContent>
         </Tooltip>
@@ -196,18 +219,22 @@ export function AppSidebar() {
     return menuButton;
   };
 
-  // Render action button with conditional tooltip
+  // ✅ ENHANCED: Render action button with smooth animation
   const renderActionButton = (
     button, 
     tooltipText
   ) => {
     if (isCollapsed) {
       return (
-        <Tooltip>
+        <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             {button}
           </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">
+          <TooltipContent 
+            side="right" 
+            className="font-medium ml-2 bg-gray-900 text-white border-gray-700"
+            sideOffset={5}
+          >
             {tooltipText}
           </TooltipContent>
         </Tooltip>
@@ -218,31 +245,61 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider>
-      <Sidebar className="border-r">
-        <SidebarHeader className={cn("p-4", isCollapsed && "px-2")}>
+      <Sidebar className={cn(
+        "border-r transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-16" : "w-64"
+      )}>
+        {/* ✅ ENHANCED: Header with smooth animation */}
+        <SidebarHeader className={cn(
+          "p-4 transition-all duration-300 ease-in-out border-b",
+          isCollapsed && "px-2"
+        )}>
           <div className={cn(
-            "flex items-center",
+            "flex items-center transition-all duration-300 ease-in-out",
             isCollapsed ? "justify-center" : "space-x-3"
           )}>
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-              <TrendingUp className="h-6 w-6" />
+            {/* ✅ ENHANCED: Logo with consistent animation */}
+            <div className={cn(
+              "bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0 transition-all duration-300 ease-in-out",
+              isCollapsed ? "w-8 h-8" : "w-10 h-10"
+            )}>
+              <TrendingUp className={cn(
+                "transition-all duration-300 ease-in-out",
+                isCollapsed ? "h-4 w-4" : "h-6 w-6"
+              )} />
             </div>
-            {!isCollapsed && (
-              <div>
-                <h2 className="text-lg font-bold">HPP by Monifine</h2>
-              </div>
-            )}
+            
+            {/* ✅ ENHANCED: Title with fade animation */}
+            <div className={cn(
+              "transition-all duration-300 ease-in-out overflow-hidden",
+              isCollapsed 
+                ? "w-0 opacity-0 translate-x-2" 
+                : "w-auto opacity-100 translate-x-0"
+            )}>
+              <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+            </div>
           </div>
         </SidebarHeader>
 
-        <SidebarContent className={cn("px-2 py-4 flex-grow", isCollapsed && "px-1")}>
+        {/* ✅ ENHANCED: Content with smooth transitions */}
+        <SidebarContent className={cn(
+          "flex-grow transition-all duration-300 ease-in-out",
+          isCollapsed ? "px-1 py-4" : "px-2 py-4"
+        )}>
           {menuGroups.map((group) => (
             <SidebarGroup key={group.label} className="mb-4">
-              {!isCollapsed && (
-                <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
+              {/* ✅ ENHANCED: Group label with fade animation */}
+              <div className={cn(
+                "transition-all duration-300 ease-in-out overflow-hidden mb-1",
+                isCollapsed 
+                  ? "h-0 opacity-0" 
+                  : "h-auto opacity-100"
+              )}>
+                <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground px-3">
                   {group.label}
                 </SidebarGroupLabel>
-              )}
+              </div>
+              
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-1">
                   {group.items.map((item) => (
@@ -256,53 +313,72 @@ export function AppSidebar() {
           ))}
         </SidebarContent>
 
-        <SidebarFooter className={cn("p-2 border-t mt-auto", isCollapsed && "px-1")}>
+        {/* ✅ ENHANCED: Footer with smooth transitions */}
+        <SidebarFooter className={cn(
+          "border-t mt-auto transition-all duration-300 ease-in-out",
+          isCollapsed ? "p-1" : "p-2"
+        )}>
           <SidebarMenu className="space-y-1">
-            {/* Export Button */}
+            {/* ✅ ENHANCED: Export Button with animation */}
             <SidebarMenuItem>
               {renderActionButton(
                 <SidebarMenuButton
                   onClick={handleExportAllData}
                   variant="outline"
                   className={cn(
-                    isCollapsed ? "justify-center px-2" : "w-full"
+                    "transition-all duration-300 ease-in-out",
+                    isCollapsed ? "justify-center px-2 w-12" : "w-full px-3"
                   )}
                 >
                   <div className={cn(
-                    "flex items-center",
-                    isCollapsed ? "justify-center" : "space-x-3"
+                    "flex items-center transition-all duration-300 ease-in-out",
+                    isCollapsed ? "justify-center w-8" : "space-x-3 w-full"
                   )}>
                     <Download className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>Export Semua Data</span>}
+                    <span className={cn(
+                      "transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden",
+                      isCollapsed 
+                        ? "w-0 opacity-0 translate-x-2" 
+                        : "w-auto opacity-100 translate-x-0"
+                    )}>
+                      Export Semua Data
+                    </span>
                   </div>
                 </SidebarMenuButton>,
                 "Export Semua Data"
               )}
             </SidebarMenuItem>
             
-            {/* Settings */}
+            {/* ✅ ENHANCED: Settings with animation */}
             {settingsItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 {renderMenuItem(item, location.pathname === item.url)}
               </SidebarMenuItem>
             ))}
 
-            {/* Logout */}
+            {/* ✅ ENHANCED: Logout with animation */}
             <SidebarMenuItem>
               {renderActionButton(
                 <SidebarMenuButton 
                   onClick={() => setShowLogoutConfirm(true)} 
                   className={cn(
-                    "text-red-500 hover:bg-red-50 hover:text-red-600",
-                    isCollapsed ? "justify-center px-2" : "w-full"
+                    "text-red-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 ease-in-out",
+                    isCollapsed ? "justify-center px-2 w-12" : "w-full px-3"
                   )}
                 >
                   <div className={cn(
-                    "flex items-center",
-                    isCollapsed ? "justify-center" : "space-x-3"
+                    "flex items-center transition-all duration-300 ease-in-out",
+                    isCollapsed ? "justify-center w-8" : "space-x-3 w-full"
                   )}>
                     <LogOut className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>Keluar</span>}
+                    <span className={cn(
+                      "transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden",
+                      isCollapsed 
+                        ? "w-0 opacity-0 translate-x-2" 
+                        : "w-auto opacity-100 translate-x-0"
+                    )}>
+                      Keluar
+                    </span>
                   </div>
                 </SidebarMenuButton>,
                 "Keluar"
@@ -311,6 +387,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarFooter>
 
+        {/* ✅ ENHANCED: Alert Dialog (unchanged but for completeness) */}
         <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>

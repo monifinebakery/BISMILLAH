@@ -31,41 +31,29 @@ export default defineConfig(({ mode, command }) => {
         // ✅ EMERGENCY: NO CHUNKING AT ALL
         output: {
           manualChunks: undefined, // Disable all manual chunking
-          
-          // ✅ Still keep detailed warnings
-          // (This goes in rollupOptions level, not output level - my mistake)
         },
         
-        // ✅ Enhanced file logging dengan filtering
+        // ✅ ULTRA CLEAN: Only show YOUR code warnings
         onwarn(warning, warn) {
           const timestamp = new Date().toISOString();
           
-          // ✅ Filter warnings - hanya log yang relevant
-          const shouldLog = !warning.id?.includes('node_modules') || 
-                           ['MISSING_EXPORT', 'UNRESOLVED_IMPORT', 'EMPTY_BUNDLE'].includes(warning.code);
+          // ✅ Only care about app code warnings
+          const isAppCode = warning.id && !warning.id.includes('node_modules');
+          const criticalWarnings = ['MISSING_EXPORT', 'UNRESOLVED_IMPORT', 'EMPTY_BUNDLE', 'PLUGIN_ERROR'];
+          const isCritical = criticalWarnings.includes(warning.code);
           
-          if (shouldLog) {
+          // ✅ Only log and show warnings from YOUR code
+          if (isAppCode || isCritical) {
             const logEntry = `${timestamp} - ${warning.code}: ${warning.message}\n`;
             fs.appendFileSync('build-warnings.log', logEntry);
+            
+            console.log('🚨 CODE WARNING:', warning.code, warning.message);
+            if (warning.id) console.log('   📁', warning.id);
+            warn(warning);
           }
           
-          // ✅ Console output - show only relevant warnings
-          if (warning.id && !warning.id.includes('node_modules')) {
-            // Warning dari app code - IMPORTANT
-            console.log('🚨 APP WARNING:', warning.code, warning.message);
-            console.log('   📁 File:', warning.id);
-            warn(warning); // Show in build output
-          } else {
-            // Warning dari node_modules - just log quietly
-            console.log('⚠️  Library Warning:', warning.code, 
-                       warning.id?.replace(/.*node_modules\//, '') || 'unknown');
-          }
-          
-          // Skip circular dependencies dan THIS_IS_UNDEFINED dari libraries
-          if (warning.code === 'CIRCULAR_DEPENDENCY' || 
-              warning.code === 'THIS_IS_UNDEFINED') {
-            return; // Don't show in build output
-          }
+          // ✅ All library warnings are completely ignored
+          // No console spam, no build output spam
         }
       },
       
@@ -87,30 +75,17 @@ export default defineConfig(({ mode, command }) => {
     // ✅ Enhanced dependency optimization - force React bundling
     optimizeDeps: {
       include: [
-        // Core React
         "react", 
         "react-dom", 
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        
-        // Router
         "react-router-dom",
-        
-        // UI
         "lucide-react",
-        
-        // State
         "@tanstack/react-query",
-        
-        // Utils yang sering bermasalah
         "clsx",
         "tailwind-merge"
       ],
-      
-      // ✅ Force dedupe
       dedupe: ["react", "react-dom"],
-      
-      // ✅ Force pre-bundling
       force: true
     }
   };

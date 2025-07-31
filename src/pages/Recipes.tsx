@@ -1,5 +1,5 @@
 // src/pages/Recipes.tsx
-// Note: Renamed from RecipePage.tsx to match App.tsx import structure
+// FINAL VERSION: Proper CategoryManagerDialog integration
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +27,7 @@ const DeleteRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/
 const DuplicateRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('@/components/recipe/dialogs/CategoryManagerDialog'));
 
-// Custom Error Boundary component (to avoid external dependency issues)
+// Custom Error Boundary component (same as before)
 class RecipeErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ComponentType<{ error: Error; resetError: () => void }> },
   { hasError: boolean; error: Error | null }
@@ -44,7 +44,6 @@ class RecipeErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Recipe page error:', error, errorInfo);
     
-    // You can integrate with error monitoring services here
     if (process.env.NODE_ENV === 'production') {
       // Example: Sentry.captureException(error);
     }
@@ -127,7 +126,7 @@ const RecipeLoadingFallback: React.FC = () => (
   </div>
 );
 
-// Main Recipes component (matches App.tsx import structure)
+// Main Recipes component
 const Recipes: React.FC = () => {
   // Context
   const {
@@ -140,6 +139,7 @@ const Recipes: React.FC = () => {
     duplicateRecipe,
     getUniqueCategories,
     clearError,
+    refreshRecipes,
   } = useRecipe();
 
   // Local state for dialogs
@@ -429,12 +429,14 @@ const Recipes: React.FC = () => {
               />
             )}
 
-            {/* Category Manager Dialog */}
+            {/* ✅ FIXED: Category Manager Dialog with direct RecipeContext integration */}
             {isCategoryDialogOpen && (
               <CategoryManagerDialog
                 isOpen={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
                 recipes={recipes}
+                updateRecipe={updateRecipe}
+                refreshRecipes={refreshRecipes}
               />
             )}
           </Suspense>

@@ -1,14 +1,23 @@
 // components/dashboard/StatsGrid.tsx
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { CircleDollarSign, Package, Calculator, ListChecks } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { CircleDollarSign, Package, Calculator, ChefHat, Info } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 
 interface Stats {
   revenue: number;
   orders: number;
   profit: number;
-  outstandingInvoices: number;
+  mostUsedIngredient: {
+    name: string;
+    usageCount: number;
+  };
 }
 
 interface Props {
@@ -26,6 +35,7 @@ const StatCard: React.FC<{
   iconColor: string;
   valueColor?: string;
   isLoading?: boolean;
+  tooltip?: string;
 }> = ({ 
   icon, 
   label, 
@@ -34,9 +44,10 @@ const StatCard: React.FC<{
   bgColor, 
   iconColor, 
   valueColor = "text-gray-900",
-  isLoading = false 
+  isLoading = false,
+  tooltip
 }) => {
-  return (
+  const cardContent = (
     <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
       <CardContent className="p-6 flex items-center">
         {/* 🎨 Icon */}
@@ -48,9 +59,14 @@ const StatCard: React.FC<{
         
         {/* 📈 Content */}
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium truncate">
-            {label}
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-medium truncate">
+              {label}
+            </p>
+            {tooltip && (
+              <Info className="h-3 w-3 text-gray-400" />
+            )}
+          </div>
           
           {isLoading ? (
             <div className="h-6 bg-gray-200 animate-pulse rounded mt-1"></div>
@@ -69,6 +85,23 @@ const StatCard: React.FC<{
       </CardContent>
     </Card>
   );
+
+  if (tooltip) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {cardContent}
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-sm">{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 };
 
 const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
@@ -77,10 +110,11 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
     {
       key: 'revenue',
       icon: <CircleDollarSign className="h-6 w-6" />,
-      label: 'Omzet',
+      label: 'Omzet (Pendapatan Kotor)',
       value: formatCurrency(stats.revenue),
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).'
     },
     {
       key: 'orders',
@@ -88,26 +122,31 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       label: 'Total Pesanan',
       value: stats.orders.toLocaleString('id-ID'),
       bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
+      tooltip: 'Jumlah total pesanan yang telah dibuat dalam periode yang dipilih. Setiap pesanan dihitung sebagai satu transaksi terlepas dari jumlah item di dalamnya.'
     },
     {
       key: 'profit',
       icon: <Calculator className="h-6 w-6" />,
-      label: 'Laba Bersih',
+      label: 'Estimasi Laba Bersih',
       value: formatCurrency(stats.profit),
       description: '(Estimasi 30%)',
       bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      tooltip: 'Perkiraan laba bersih berdasarkan asumsi margin keuntungan 30% dari omzet. Angka ini adalah estimasi dan dapat berbeda dengan laba aktual setelah dikurangi semua biaya operasional.'
     },
     {
-      key: 'invoices',
-      icon: <ListChecks className="h-6 w-6" />,
-      label: 'Piutang',
-      value: stats.outstandingInvoices.toLocaleString('id-ID'),
-      description: 'Invoice belum lunas',
-      bgColor: 'bg-orange-100',
-      iconColor: 'text-orange-600',
-      valueColor: stats.outstandingInvoices > 0 ? 'text-orange-600' : 'text-gray-900'
+      key: 'mostUsedIngredient',
+      icon: <ChefHat className="h-6 w-6" />,
+      label: 'Bahan Paling Sering Dipakai',
+      value: stats.mostUsedIngredient?.name || 'Belum ada data',
+      description: stats.mostUsedIngredient?.usageCount 
+        ? `Dipakai ${stats.mostUsedIngredient.usageCount}x` 
+        : '',
+      bgColor: 'bg-amber-100',
+      iconColor: 'text-amber-600',
+      valueColor: stats.mostUsedIngredient?.name ? 'text-gray-900' : 'text-gray-500',
+      tooltip: 'Bahan baku yang paling sering digunakan dalam resep berdasarkan jumlah pesanan yang telah dibuat. Data ini membantu untuk perencanaan stok dan identifikasi bahan baku kritis.'
     }
   ];
 
@@ -124,6 +163,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
           iconColor={stat.iconColor}
           valueColor={stat.valueColor}
           isLoading={isLoading}
+          tooltip={stat.tooltip}
         />
       ))}
     </div>

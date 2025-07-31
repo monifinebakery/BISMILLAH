@@ -1,4 +1,4 @@
-// src/components/recipe/components/RecipeForm/index.tsx
+// src/components/recipe/components/RecipeForm/index.tsx - Mobile-Friendly Version
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -339,23 +339,23 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           </div>
         </CardHeader>
 
-        {/* Content */}
+        {/* Content with Mobile-Safe Padding */}
         <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="p-6">
+          <div className="p-6 pb-32 sm:pb-6"> {/* ✅ Extra bottom padding for mobile - increased to pb-32 */}
             {renderStepContent()}
           </div>
         </CardContent>
 
-        {/* Footer */}
-        <div className="border-t bg-gray-50 p-4">
-          <div className="flex items-center justify-between">
+        {/* Footer - Fixed Position for Mobile with Safe Area */}
+        <div className="border-t bg-gray-50 p-4 relative sm:static fixed bottom-16 sm:bottom-0 left-0 right-0 z-60 shadow-lg sm:shadow-none">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
             
             {/* Left side - HPP Preview (on cost step) */}
             <div className="flex-1">
               {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
                 <div className="flex items-center gap-2 text-sm">
                   <Calculator className="h-4 w-4 text-orange-600" />
-                  <span className="text-gray-600">HPP per porsi:</span>
+                  <span className="text-gray-600 hidden sm:inline">HPP per porsi:</span>
                   <Badge variant="outline" className="text-orange-700 border-orange-300">
                     Rp {formData.hppPerPorsi.toLocaleString()}
                   </Badge>
@@ -367,31 +367,34 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             </div>
 
             {/* Navigation buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={isFirstStep || isLoading}
+                className="px-3 sm:px-4"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Sebelumnya
+                <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Sebelumnya</span>
               </Button>
 
               {isLastStep ? (
                 <Button
                   onClick={handleSubmit}
                   disabled={isLoading || isCalculating}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-orange-500 hover:bg-orange-600 px-3 sm:px-4"
                 >
                   {isLoading ? (
                     <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                      Menyimpan...
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full sm:mr-2" />
+                      <span className="hidden sm:inline">Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Save className="h-4 w-4 mr-2" />
-                      {isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}
+                      <Save className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">
+                        {isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}
+                      </span>
                     </>
                   )}
                 </Button>
@@ -399,28 +402,31 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                 <Button
                   onClick={handleNext}
                   disabled={isLoading}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-orange-500 hover:bg-orange-600 px-3 sm:px-4"
                 >
-                  Selanjutnya
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Selanjutnya</span>
+                  <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Form errors summary */}
+          {/* Form errors summary - Mobile Optimized */}
           {Object.keys(errors).length > 0 && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg max-w-4xl mx-auto">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-red-800">
                     Terdapat kesalahan pada form:
                   </p>
                   <ul className="text-sm text-red-700 mt-1 space-y-1">
-                    {Object.values(errors).filter(Boolean).map((error, index) => (
-                      <li key={index}>• {error}</li>
+                    {Object.values(errors).filter(Boolean).slice(0, 3).map((error, index) => (
+                      <li key={index} className="truncate">• {error}</li>
                     ))}
+                    {Object.values(errors).filter(Boolean).length > 3 && (
+                      <li className="text-xs">... dan {Object.values(errors).filter(Boolean).length - 3} kesalahan lainnya</li>
+                    )}
                   </ul>
                 </div>
               </div>

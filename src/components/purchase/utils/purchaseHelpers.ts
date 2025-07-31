@@ -1,331 +1,294 @@
-import { Purchase, PurchaseItem } from '@/types/supplier';
-import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+// src/components/purchase/utils/purchaseHelpers.ts
+
+import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
+
+// src/components/purchase/utils/purchaseHelpers.ts
+
+import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
 
 /**
- * Calculate purchase summary statistics
+ * Calculate purchase statistics from array of purchases
  */
-export const calculatePurchaseStats = (purchases: Purchase[]) => {
-  const stats = {
-    total: purchases.length,
-    totalValue: 0,
-    averageValue: 0,
-    byStatus: {
-      pending: 0,
-      completed: 0,
-      cancelled: 0,
+export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => {
+  if (!purchases || purchases.length === 0) {
+    return {
+      total: 0,
+      totalValue: 0,
+      byStatus: {
+        pending: 0,
+        completed: 0,
+        cancelled: 0,
+      },
+    };
+  }
+
+  const stats = purchases.reduce(
+    (acc, purchase) => {
+      acc.total += 1;
+      acc.totalValue += purchase.totalNilai || 0;
+      acc.byStatus[purchase.status] += 1;
+      return acc;
     },
-    byMonth: {} as Record<string, number>,
-    topSuppliers: [] as Array<{ id: string; count: number; value: number }>,
-  };
-
-  purchases.forEach(purchase => {
-    // Total value
-    stats.totalValue += purchase.totalNilai;
-
-    // Status counts
-    if (purchase.status in stats.byStatus) {
-      stats.byStatus[purchase.status as keyof typeof stats.byStatus]++;
+    {
+      total: 0,
+      totalValue: 0,
+      byStatus: {
+        pending: 0,
+        completed: 0,
+        cancelled: 0,
+      },
     }
-
-    // Monthly breakdown
-    const monthKey = new Date(purchase.tanggal).toISOString().substring(0, 7); // YYYY-MM
-    stats.byMonth[monthKey] = (stats.byMonth[monthKey] || 0) + purchase.totalNilai;
-  });
-
-  // Calculate average
-  stats.averageValue = stats.total > 0 ? stats.totalValue / stats.total : 0;
+  );
 
   return stats;
 };
 
 /**
- * Group purchases by supplier
+ * Filter purchases by status
  */
-export const groupPurchasesBySupplier = (purchases: Purchase[], suppliers: any[]) => {
-  const groups: Record<string, {
-    supplier: any;
-    purchases: Purchase[];
-    totalValue: number;
-    count: number;
-  }> = {};
-
-  purchases.forEach(purchase => {
-    const supplier = suppliers.find(s => s.id === purchase.supplier);
-    if (!groups[purchase.supplier]) {
-      groups[purchase.supplier] = {
-        supplier,
-        purchases: [],
-        totalValue: 0,
-        count: 0,
-      };
-    }
-
-    groups[purchase.supplier].purchases.push(purchase);
-    groups[purchase.supplier].totalValue += purchase.totalNilai;
-    groups[purchase.supplier].count++;
-  });
-
-  return Object.values(groups).sort((a, b) => b.totalValue - a.totalValue);
-};
-
-/**
- * Filter purchases by date range
- */
-export const filterPurchasesByDateRange = (
+export const filterPurchasesByStatus = (
   purchases: Purchase[],
-  startDate: Date,
-  endDate: Date
-) => {
+  status: PurchaseStatus | 'all'
+): Purchase[] => {
+  if (status === 'all') return purchases;
+  return purchases.filter(purchase => purchase.status === status);
+};
+
+/**
+ * Search purchases by supplier name or items
+ */
+export const searchPurchases = (purchases: Purchase[], query: string): Purchase[] => {
+  if (!query.trim()) return purchases;
+
+  const searchTerm = query.toLowerCase().trim();
+  
   return purchases.filter(purchase => {
-    const purchaseDate = new Date(purchase.tanggal);
-    return purchaseDate >= startDate && purchaseDate <= endDate;
+    // Search in supplier name
+    if (purchase.supplier.toLowerCase().includes(searchTerm)) {
+      return true;
+    }
+
+    // Search in items
+    return purchase.items.some(item =>
+      item.nama.toLowerCase().includes(searchTerm) ||
+      item.keterangan?.toLowerCase().includes(searchTerm)
+    );
   });
 };
 
 /**
- * Get purchases for current month
+ * Sort purchases by different criteria
  */
-export const getCurrentMonthPurchases = (purchases: Purchase[]) => {
+export const sortPurchases = (
+  purchases: Purchase[],
+  sortBy: 'tanggal' | 'totalNilai' | 'supplier' | 'status',
+  sortOrder: 'asc' | 'desc' = 'desc'
+): Purchase[] => {
+  const sortedPurchases = [...purchases].sort((a, b) => {
+    let comparison = 0;
+
+    switch (sortBy) {
+      case 'tanggal':
+        comparison = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
+        break;
+      case 'totalNilai':
+        comparison = a.totalNilai - b.totalNilai;
+        break;
+      case 'supplier':
+        comparison = a.supplier.localeCompare(b.supplier);
+        break;
+      case 'status':
+        comparison = a.status.localeCompare(b.status);
+        break;
+      default:
+        return 0;
+    }
+
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  return sortedPurchases;
+};
+
+/**
+ * Get status display text in Indonesian
+ */
+export const getStatusDisplayText = (status: PurchaseStatus): string => {
+  const statusMap: Record<PurchaseStatus, string> = {
+    pending: 'Menunggu',
+    completed: 'Selesai',
+    cancelled: 'Dibatalkan',
+  };
+
+  return statusMap[status] || status;
+};
+
+/**
+ * Get status color variant for UI components
+ */
+export const getStatusColor = (status: PurchaseStatus): string => {
+  const colorMap: Record<PurchaseStatus, string> = {
+    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    completed: 'bg-green-100 text-green-800 border-green-200',
+    cancelled: 'bg-red-100 text-red-800 border-red-200',
+  };
+
+  return colorMap[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+};
+
+/**
+ * Calculate total items quantity in a purchase
+ */
+export const calculateTotalItems = (purchase: Purchase): number => {
+  return purchase.items.reduce((total, item) => total + item.kuantitas, 0);
+};
+
+/**
+ * Calculate total unique item types in a purchase
+ */
+export const calculateUniqueItemTypes = (purchase: Purchase): number => {
+  return purchase.items.length;
+};
+
+/**
+ * Group purchases by date range
+ */
+export const groupPurchasesByDateRange = (
+  purchases: Purchase[],
+  range: 'today' | 'week' | 'month' | 'year'
+): Purchase[] => {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  
-  return filterPurchasesByDateRange(purchases, startOfMonth, endOfMonth);
-};
+  const startDate = new Date();
 
-/**
- * Get recent purchases (last 7 days)
- */
-export const getRecentPurchases = (purchases: Purchase[], days: number = 7) => {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
-  
-  return purchases.filter(purchase => new Date(purchase.tanggal) >= cutoffDate);
-};
-
-/**
- * Find duplicate purchases (same supplier, similar date, similar amount)
- */
-export const findDuplicatePurchases = (purchases: Purchase[]) => {
-  const duplicates: Purchase[][] = [];
-  const tolerance = 0.01; // 1% tolerance for amount comparison
-  const dayTolerance = 1; // 1 day tolerance for date comparison
-
-  for (let i = 0; i < purchases.length; i++) {
-    const group: Purchase[] = [purchases[i]];
-    
-    for (let j = i + 1; j < purchases.length; j++) {
-      const p1 = purchases[i];
-      const p2 = purchases[j];
-      
-      // Same supplier
-      if (p1.supplier !== p2.supplier) continue;
-      
-      // Similar date (within day tolerance)
-      const dateDiff = Math.abs(new Date(p1.tanggal).getTime() - new Date(p2.tanggal).getTime());
-      const daysDiff = dateDiff / (1000 * 60 * 60 * 24);
-      if (daysDiff > dayTolerance) continue;
-      
-      // Similar amount (within tolerance)
-      const amountDiff = Math.abs(p1.totalNilai - p2.totalNilai) / Math.max(p1.totalNilai, p2.totalNilai);
-      if (amountDiff > tolerance) continue;
-      
-      group.push(p2);
-    }
-    
-    if (group.length > 1) {
-      duplicates.push(group);
-    }
+  switch (range) {
+    case 'today':
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case 'month':
+      startDate.setMonth(now.getMonth() - 1);
+      break;
+    case 'year':
+      startDate.setFullYear(now.getFullYear() - 1);
+      break;
   }
 
-  return duplicates;
+  return purchases.filter(purchase => 
+    new Date(purchase.tanggal) >= startDate
+  );
 };
 
 /**
- * Calculate total items across all purchases
+ * Check if purchase can be edited
  */
-export const calculateTotalItems = (purchases: Purchase[]) => {
-  return purchases.reduce((total, purchase) => {
-    return total + (purchase.items?.reduce((itemTotal, item) => itemTotal + item.jumlah, 0) || 0);
-  }, 0);
+export const canEditPurchase = (purchase: Purchase): boolean => {
+  return purchase.status === 'pending';
 };
 
 /**
- * Get most purchased items
+ * Check if purchase can be deleted
  */
-export const getMostPurchasedItems = (purchases: Purchase[], limit: number = 10) => {
-  const itemCounts: Record<string, { 
-    name: string; 
-    totalQuantity: number; 
-    totalValue: number; 
-    purchaseCount: number;
-  }> = {};
+export const canDeletePurchase = (purchase: Purchase): boolean => {
+  return purchase.status !== 'completed';
+};
 
-  purchases.forEach(purchase => {
-    purchase.items?.forEach(item => {
-      if (!itemCounts[item.namaBarang]) {
-        itemCounts[item.namaBarang] = {
-          name: item.namaBarang,
-          totalQuantity: 0,
-          totalValue: 0,
-          purchaseCount: 0,
-        };
-      }
+/**
+ * Generate purchase summary text
+ */
+export const generatePurchaseSummary = (purchase: Purchase): string => {
+  const itemCount = purchase.items.length;
+  const totalItems = calculateTotalItems(purchase);
+  
+  return `${itemCount} jenis item, total ${totalItems} unit`;
+};
 
-      itemCounts[item.namaBarang].totalQuantity += item.jumlah;
-      itemCounts[item.namaBarang].totalValue += item.totalHarga;
-      itemCounts[item.namaBarang].purchaseCount++;
-    });
+/**
+ * Validate purchase data before submission
+ */
+export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
+  const errors: string[] = [];
+
+  if (!purchase.supplier?.trim()) {
+    errors.push('Supplier harus dipilih');
+  }
+
+  if (!purchase.tanggal) {
+    errors.push('Tanggal pembelian harus diisi');
+  }
+
+  if (!purchase.items || purchase.items.length === 0) {
+    errors.push('Minimal satu item harus ditambahkan');
+  }
+
+  if (purchase.totalNilai === undefined || purchase.totalNilai <= 0) {
+    errors.push('Total nilai harus lebih dari 0');
+  }
+
+  // Validate each item
+  purchase.items?.forEach((item, index) => {
+    if (!item.nama?.trim()) {
+      errors.push(`Item ${index + 1}: Nama item harus diisi`);
+    }
+    if (!item.kuantitas || item.kuantitas <= 0) {
+      errors.push(`Item ${index + 1}: Kuantitas harus lebih dari 0`);
+    }
+    if (!item.hargaSatuan || item.hargaSatuan < 0) {
+      errors.push(`Item ${index + 1}: Harga satuan tidak valid`);
+    }
+    if (!item.satuan?.trim()) {
+      errors.push(`Item ${index + 1}: Satuan harus diisi`);
+    }
   });
 
-  return Object.values(itemCounts)
-    .sort((a, b) => b.totalQuantity - a.totalQuantity)
-    .slice(0, limit);
+  return errors;
 };
 
 /**
- * Generate purchase report data
+ * Export purchases data to CSV format
  */
-export const generatePurchaseReport = (purchases: Purchase[], suppliers: any[]) => {
-  const stats = calculatePurchaseStats(purchases);
-  const supplierGroups = groupPurchasesBySupplier(purchases, suppliers);
-  const mostPurchased = getMostPurchasedItems(purchases);
-  const duplicates = findDuplicatePurchases(purchases);
-
-  return {
-    summary: {
-      totalPurchases: stats.total,
-      totalValue: formatCurrency(stats.totalValue),
-      averageValue: formatCurrency(stats.averageValue),
-      statusBreakdown: stats.byStatus,
-    },
-    suppliers: supplierGroups.map(group => ({
-      name: group.supplier?.nama || 'Unknown',
-      purchaseCount: group.count,
-      totalValue: formatCurrency(group.totalValue),
-      averageValue: formatCurrency(group.totalValue / group.count),
-    })),
-    topItems: mostPurchased.map(item => ({
-      name: item.name,
-      quantity: item.totalQuantity,
-      value: formatCurrency(item.totalValue),
-      purchaseCount: item.purchaseCount,
-    })),
-    monthlyTrend: Object.entries(stats.byMonth).map(([month, value]) => ({
-      month,
-      value: formatCurrency(value),
-      numericValue: value,
-    })),
-    insights: {
-      duplicatesFound: duplicates.length,
-      mostActiveMonth: Object.entries(stats.byMonth).reduce((a, b) => 
-        stats.byMonth[a[0]] > stats.byMonth[b[0]] ? a : b
-      )?.[0],
-      topSupplier: supplierGroups[0]?.supplier?.nama || 'None',
-    }
-  };
-};
-
-/**
- * Export purchases to CSV format
- */
-export const exportPurchasesToCSV = (purchases: Purchase[], suppliers: any[]) => {
+export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
   const headers = [
     'Tanggal',
     'Supplier',
     'Total Nilai',
     'Status',
     'Jumlah Item',
-    'Metode Perhitungan'
+    'Total Kuantitas',
+    'Metode Perhitungan',
+    'Dibuat'
   ];
 
-  const rows = purchases.map(purchase => {
-    const supplier = suppliers.find(s => s.id === purchase.supplier);
-    return [
-      formatDateForDisplay(purchase.tanggal),
-      supplier?.nama || 'Unknown',
-      purchase.totalNilai.toString(),
-      purchase.status,
-      purchase.items?.length.toString() || '0',
-      purchase.metodePerhitungan || 'FIFO'
-    ];
-  });
+  const rows = purchases.map(purchase => [
+    new Date(purchase.tanggal).toLocaleDateString('id-ID'),
+    purchase.supplier,
+    purchase.totalNilai.toString(),
+    getStatusDisplayText(purchase.status),
+    purchase.items.length.toString(),
+    calculateTotalItems(purchase).toString(),
+    purchase.metodePerhitungan,
+    new Date(purchase.createdAt).toLocaleDateString('id-ID')
+  ]);
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell}"`).join(','))
+    .join('\n');
 
   return csvContent;
 };
 
 /**
- * Create purchase comparison
+ * Debounce function for search
  */
-export const comparePurchases = (purchase1: Purchase, purchase2: Purchase) => {
-  const differences: Array<{
-    field: string;
-    oldValue: any;
-    newValue: any;
-    type: 'added' | 'removed' | 'changed';
-  }> = [];
-
-  // Compare basic fields
-  const fields: (keyof Purchase)[] = ['supplier', 'totalNilai', 'tanggal', 'status'];
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout;
   
-  fields.forEach(field => {
-    if (purchase1[field] !== purchase2[field]) {
-      differences.push({
-        field: field as string,
-        oldValue: purchase1[field],
-        newValue: purchase2[field],
-        type: 'changed',
-      });
-    }
-  });
-
-  // Compare items
-  const items1 = purchase1.items || [];
-  const items2 = purchase2.items || [];
-
-  if (items1.length !== items2.length) {
-    differences.push({
-      field: 'items',
-      oldValue: `${items1.length} items`,
-      newValue: `${items2.length} items`,
-      type: 'changed',
-    });
-  }
-
-  return differences;
-};
-
-/**
- * Validate purchase consistency
- */
-export const validatePurchaseConsistency = (purchase: Purchase): string[] => {
-  const errors: string[] = [];
-
-  // Check if total value matches sum of items
-  const calculatedTotal = purchase.items?.reduce((sum, item) => sum + item.totalHarga, 0) || 0;
-  if (Math.abs(calculatedTotal - purchase.totalNilai) > 0.01) {
-    errors.push(`Total nilai tidak sesuai: ${formatCurrency(purchase.totalNilai)} vs ${formatCurrency(calculatedTotal)}`);
-  }
-
-  // Check if items have valid calculations
-  purchase.items?.forEach((item, index) => {
-    const expectedTotal = item.jumlah * item.hargaSatuan;
-    if (Math.abs(expectedTotal - item.totalHarga) > 0.01) {
-      errors.push(`Item ${index + 1} (${item.namaBarang}): total harga tidak sesuai`);
-    }
-  });
-
-  // Check date validity
-  const purchaseDate = new Date(purchase.tanggal);
-  if (purchaseDate > new Date()) {
-    errors.push('Tanggal pembelian tidak boleh di masa depan');
-  }
-
-  return errors;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
 };

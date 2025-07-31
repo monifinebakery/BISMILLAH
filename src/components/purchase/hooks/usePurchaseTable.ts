@@ -1,0 +1,234 @@
+// src/components/purchase/hooks/usePurchaseTable.ts
+
+import { useState, useCallback, useMemo } from 'react';
+import { Purchase, PurchaseStatus } from '../types/purchase.types';
+import { 
+  searchPurchases, 
+  filterPurchasesByStatus, 
+  sortPurchases 
+} from '../utils/purchaseHelpers';
+import { usePurchase } from '../context/PurchaseContext';
+import { toast } from 'sonner';
+
+interface UsePurchaseTableProps {
+  purchases: Purchase[];
+  suppliers?: Array<{ id: string; nama: string }>;
+}
+
+interface UsePurchaseTableReturn {
+  // Filtered and processed data
+  filteredPurchases: Purchase[];
+  
+  // Selection state
+  selectedItems: string[];
+  setSelectedItems: (items: string[]) => void;
+  selectAll: () => void;
+  clearSelection: () => void;
+  isAllSelected: boolean;
+  toggleSelectItem: (id: string) => void;
+  
+  // Filter and search state
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  statusFilter: PurchaseStatus | 'all';
+  setStatusFilter: (status: PurchaseStatus | 'all') => void;
+  
+  // Sorting state
+  sortField: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
+  sortOrder: 'asc' | 'desc';
+  handleSort: (field: 'tanggal' | 'totalNilai' | 'supplier' | 'status') => void;
+  
+  // Bulk operations
+  bulkDelete: () => Promise<void>;
+  bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
+  isBulkDeleting: boolean;
+  
+  // Modal state
+  showBulkDeleteDialog: boolean;
+  setShowBulkDeleteDialog: (show: boolean) => void;
+  
+  // Helper functions
+  getSupplierName: (supplierId: string) => string;
+}
+
+export const usePurchaseTable = ({ 
+  purchases, 
+  suppliers = [] 
+}: UsePurchaseTableProps): UsePurchaseTableReturn => {
+  // Get delete function from purchase context
+  const { deletePurchase, updatePurchase } = usePurchase();
+
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  
+  // Filter and search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PurchaseStatus | 'all'>('all');
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<'tanggal' | 'totalNilai' | 'supplier' | 'status'>('tanggal');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Bulk operations state
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
+  // Filtered and sorted purchases
+  const filteredPurchases = useMemo(() => {
+    let result = purchases;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      result = searchPurchases(result, searchQuery);
+    }
+    
+    // Apply status filter
+    result = filterPurchasesByStatus(result, statusFilter);
+    
+    // Apply sorting
+    result = sortPurchases(result, sortField, sortOrder);
+    
+    return result;
+  }, [purchases, searchQuery, statusFilter, sortField, sortOrder]);
+
+  // Selection helpers
+  const isAllSelected = useMemo(() => {
+    return filteredPurchases.length > 0 && selectedItems.length === filteredPurchases.length;
+  }, [filteredPurchases.length, selectedItems.length]);
+
+  const selectAll = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(filteredPurchases.map(p => p.id));
+    }
+  }, [isAllSelected, filteredPurchases]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedItems([]);
+  }, []);
+
+  const toggleSelectItem = useCallback((id: string) => {
+    setSelectedItems(current => {
+      if (current.includes(id)) {
+        return current.filter(item => item !== id);
+      } else {
+        return [...current, id];
+      }
+    });
+  }, []);
+
+  // Sorting handler
+  const handleSort = useCallback((field: typeof sortField) => {
+    if (field === sortField) {
+      setSortOrder(current => current === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  }, [sortField]);
+
+  // Bulk operations
+  const bulkDelete = useCallback(async () => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang akan dihapus');
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    
+    try {
+      const deletePromises = selectedItems.map(id => deletePurchase(id));
+      const results = await Promise.allSettled(deletePromises);
+      
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      const failed = results.length - successful;
+      
+      if (successful > 0) {
+        toast.success(`${successful} pembelian berhasil dihapus`);
+        setSelectedItems([]);
+        setShowBulkDeleteDialog(false);
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} pembelian gagal dihapus`);
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast.error('Terjadi kesalahan saat menghapus pembelian');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }, [selectedItems, deletePurchase]);
+
+  const bulkUpdateStatus = useCallback(async (newStatus: PurchaseStatus) => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang akan diubah statusnya');
+      return;
+    }
+
+    try {
+      const updatePromises = selectedItems.map(id => 
+        updatePurchase(id, { status: newStatus })
+      );
+      
+      const results = await Promise.allSettled(updatePromises);
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      const failed = results.length - successful;
+
+      if (successful > 0) {
+        toast.success(`${successful} pembelian berhasil diubah statusnya`);
+        setSelectedItems([]);
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} pembelian gagal diubah statusnya`);
+      }
+    } catch (error) {
+      console.error('Bulk status update error:', error);
+      toast.error('Terjadi kesalahan saat mengubah status');
+    }
+  }, [selectedItems, updatePurchase]);
+
+  // Helper function to get supplier name
+  const getSupplierName = useCallback((supplierId: string): string => {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier?.nama || supplierId;
+  }, [suppliers]);
+
+  return {
+    // Filtered data
+    filteredPurchases,
+    
+    // Selection state
+    selectedItems,
+    setSelectedItems,
+    selectAll,
+    clearSelection,
+    isAllSelected,
+    toggleSelectItem,
+    
+    // Filter and search state
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    
+    // Sorting state
+    sortField,
+    sortOrder,
+    handleSort,
+    
+    // Bulk operations
+    bulkDelete,
+    bulkUpdateStatus,
+    isBulkDeleting,
+    
+    // Modal state
+    showBulkDeleteDialog,
+    setShowBulkDeleteDialog,
+    
+    // Helper functions
+    getSupplierName,
+  };
+};

@@ -3,26 +3,15 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-// Types
-import type { BahanBaku } from '../types';
+// Types - Updated to use BahanBakuFrontend consistently
+import type { BahanBakuFrontend, FilterState, SortConfig } from '../types';
 
 interface WarehouseContextType {
-  bahanBaku: BahanBaku[];
+  bahanBaku: BahanBakuFrontend[];  // ✅ Updated
   loading: boolean;
-  updateBahanBaku: (id: string, updates: Partial<BahanBaku>) => Promise<boolean>;
+  updateBahanBaku: (id: string, updates: Partial<BahanBakuFrontend>) => Promise<boolean>;  // ✅ Updated
   deleteBahanBaku: (id: string) => Promise<boolean>;
-}
-
-interface FilterState {
-  category: string;
-  supplier: string;
-  stockLevel: 'all' | 'low' | 'out';
-  expiry: 'all' | 'expiring' | 'expired';
-}
-
-interface SortConfig {
-  key: keyof BahanBaku;
-  direction: 'asc' | 'desc';
+  bulkDeleteBahanBaku?: (ids: string[]) => Promise<boolean>;
 }
 
 /**
@@ -36,6 +25,7 @@ interface SortConfig {
  * - Event handlers
  * - Bulk operations (lazy loaded)
  * 
+ * Updated to use BahanBakuFrontend consistently
  * Total Size: ~8KB (lightweight but comprehensive)
  */
 export const useWarehouseCore = (context: WarehouseContextType) => {
@@ -72,7 +62,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     import: false,
     export: false,
   });
-  const [editingItem, setEditingItem] = useState<BahanBaku | null>(null);
+  const [editingItem, setEditingItem] = useState<BahanBakuFrontend | null>(null);  // ✅ Updated
 
   // === LAZY LOAD BULK OPERATIONS ===
   useEffect(() => {
@@ -131,11 +121,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       items = items.filter(item => item.supplier === filters.supplier);
     }
 
-    // Stock level filter
+    // Stock level filter - Fixed with proper number conversion
     if (filters.stockLevel === 'low') {
-      items = items.filter(item => item.stok <= item.minimum);
+      items = items.filter(item => Number(item.stok) <= Number(item.minimum));
     } else if (filters.stockLevel === 'out') {
-      items = items.filter(item => item.stok === 0);
+      items = items.filter(item => Number(item.stok) === 0);
     }
 
     // Expiry filter
@@ -154,10 +144,16 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       });
     }
 
-    // Sort items
+    // Sort items - Updated for BahanBakuFrontend
     items.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+      
+      // Convert to numbers for numeric fields
+      if (sortConfig.key === 'stok' || sortConfig.key === 'minimum' || sortConfig.key === 'harga') {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+      }
       
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -240,13 +236,13 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, []);
 
   // === EVENT HANDLERS ===
-  const handleEdit = useCallback((item: BahanBaku) => {
+  const handleEdit = useCallback((item: BahanBakuFrontend) => {  // ✅ Updated
     logger.debug(`[${hookId.current}] ✏️ Edit triggered: ${item.nama}`);
     setEditingItem(item);
     openDialog('editItem');
   }, [openDialog]);
 
-  const handleEditSave = useCallback(async (updates: Partial<BahanBaku>) => {
+  const handleEditSave = useCallback(async (updates: Partial<BahanBakuFrontend>) => {  // ✅ Updated
     if (!editingItem) return;
     
     const success = await context.updateBahanBaku(editingItem.id, updates);
@@ -269,7 +265,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     }
   }, [context.deleteBahanBaku]);
 
-  const handleSort = useCallback((key: keyof BahanBaku) => {
+  const handleSort = useCallback((key: keyof BahanBakuFrontend) => {  // ✅ Updated
     setSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'

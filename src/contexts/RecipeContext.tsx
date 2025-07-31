@@ -1,4 +1,5 @@
 // src/contexts/RecipeContext.tsx
+// UPDATED: Uses new category helper functions, no default categories
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import { logger } from '@/utils/logger';
 // Import recipe services and types
 import { recipeApi } from '@/components/recipe/services/recipeApi';
 import { calculateHPP, validateRecipeData } from '@/components/recipe/services/recipeUtils';
+import { getAllAvailableCategories } from '@/components/recipe/types';
 import type { Recipe, NewRecipe, HPPCalculationResult, BahanResep } from '@/components/recipe/types';
 
 interface RecipeContextType {
@@ -383,14 +385,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return recipes.filter(recipe => recipe.kategoriResep === category);
   }, [recipes]);
 
-  // Get unique categories
+  // ✅ UPDATED: Get unique categories using helper function
   const getUniqueCategories = useCallback((): string[] => {
-    const categories = new Set(
-      recipes
-        .map(recipe => recipe.kategoriResep)
-        .filter((category): category is string => Boolean(category))
-    );
-    return Array.from(categories).sort();
+    return getAllAvailableCategories(recipes);
   }, [recipes]);
 
   // Get recipe statistics

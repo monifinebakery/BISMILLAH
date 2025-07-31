@@ -13,19 +13,13 @@ import {
   SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { 
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
-  TrendingUp, Settings, Building2, LogOut, Download, Receipt 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import {
@@ -39,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// --- Impor Hook Konteks ---
+// --- Import Hook Konteks ---
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
 import { useSupplier } from "@/contexts/SupplierContext";
@@ -50,19 +44,17 @@ import { useOrder } from "@/components/orders/context/OrderContext";
 import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-// ✅ NEW: Import PromoContext
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
+import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
 
-// --- Impor Fungsi Export Baru ---
+// --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { state } = useSidebar();
-  
-  // Check if sidebar is collapsed
-  const isCollapsed = state === "collapsed";
+  const { state, open, setOpen } = useSidebar();
   
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
@@ -75,16 +67,14 @@ export function AppSidebar() {
   const { orders } = useOrder();
   const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
-  // ✅ NEW: Get promo data for export
   const { promos } = usePromo();
+  const { state: operationalCostState } = useOperationalCost();
 
-  // ✅ UPDATED: Menu groups dengan Kalkulator Promo
   const menuGroups = [
     {
       label: "Dashboard",
       items: [
         { title: "Dashboard", url: "/", icon: DashboardIcon },
-        // ✅ NEW: Kalkulator Promo added to Dashboard group
         { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
       ]
     },
@@ -93,6 +83,7 @@ export function AppSidebar() {
       items: [
         { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
         { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
+        { title: "Biaya Operasional", url: "/biaya-operasional", icon: DollarSign },
       ]
     },
     {
@@ -127,7 +118,6 @@ export function AppSidebar() {
     }
   };
 
-  // ✅ UPDATED: Include promo data in export
   const handleExportAllData = () => {
     const allAppData = {
       bahanBaku,
@@ -139,183 +129,151 @@ export function AppSidebar() {
       orders,
       assets,
       financialTransactions,
-      // ✅ NEW: Include promo data
       promos,
+      operationalCosts: operationalCostState.costs,
+      allocationSettings: operationalCostState.allocationSettings,
+      costSummary: operationalCostState.summary,
     };
     
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // Render menu item with conditional tooltip
-  const renderMenuItem = (item, isActive) => {
-    const menuButton = (
-      <SidebarMenuButton
-        asChild
-        isActive={isActive}
-        className={cn(
-          "flex items-center",
-          isCollapsed ? "justify-center px-2" : "justify-start space-x-3"
-        )}
-      >
-        <Link 
-          to={item.url} 
-          className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "space-x-3"
-          )}
-        >
-          <item.icon className="h-5 w-5 flex-shrink-0" />
-          {!isCollapsed && <span>{item.title}</span>}
-        </Link>
-      </SidebarMenuButton>
-    );
+  // ✅ Simple menu item rendering - no complex logic needed
+  const renderMenuItem = (item, isActive) => (
+    <SidebarMenuButton
+      onClick={() => navigate(item.url)}
+      isActive={isActive}
+      className="w-full justify-start px-3"
+    >
+      <item.icon className="h-5 w-5 flex-shrink-0" />
+      <span className="ml-3">{item.title}</span>
+    </SidebarMenuButton>
+  );
 
-    if (isCollapsed) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {menuButton}
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">
-            {item.title}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return menuButton;
-  };
-
-  // Render action button with conditional tooltip
-  const renderActionButton = (
-    button, 
-    tooltipText
-  ) => {
-    if (isCollapsed) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">
-            {tooltipText}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-    return button;
-  };
+  // ✅ Simple action button rendering
+  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => (
+    <SidebarMenuButton
+      onClick={onClick}
+      className={cn("w-full justify-start px-3", className)}
+    >
+      <IconComponent className="h-5 w-5 flex-shrink-0" />
+      <span className="ml-3">{text}</span>
+    </SidebarMenuButton>
+  );
 
   return (
-    <TooltipProvider>
-      <Sidebar className="border-r">
-        <SidebarHeader className={cn("p-4", isCollapsed && "px-2")}>
-          <div className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "space-x-3"
-          )}>
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-              <TrendingUp className="h-6 w-6" />
-            </div>
-            {!isCollapsed && (
-              <div>
-                <h2 className="text-lg font-bold">HPP by Monifine</h2>
-              </div>
-            )}
+    <Sidebar 
+      collapsible="offcanvas"
+      className={cn(
+        "border-r transition-all duration-300 ease-in-out",
+        "data-[state=open]:animate-in data-[state=open]:slide-in-from-left-0",
+        "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-0"
+      )}
+    >
+      {/* ✅ Header with smooth transitions */}
+      <SidebarHeader className="p-4 border-b">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+            <TrendingUp className="h-6 w-6" />
           </div>
-        </SidebarHeader>
+          <div className="ml-3 opacity-100 transition-opacity duration-300">
+            <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+          </div>
+        </div>
+      </SidebarHeader>
 
-        <SidebarContent className={cn("px-2 py-4 flex-grow", isCollapsed && "px-1")}>
-          {menuGroups.map((group) => (
-            <SidebarGroup key={group.label} className="mb-4">
-              {!isCollapsed && (
-                <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3">
-                  {group.label}
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      {renderMenuItem(item, location.pathname === item.url)}
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
-
-        <SidebarFooter className={cn("p-2 border-t mt-auto", isCollapsed && "px-1")}>
-          <SidebarMenu className="space-y-1">
-            {/* Export Button */}
-            <SidebarMenuItem>
-              {renderActionButton(
-                <SidebarMenuButton
-                  onClick={handleExportAllData}
-                  variant="outline"
-                  className={cn(
-                    isCollapsed ? "justify-center px-2" : "w-full"
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center",
-                    isCollapsed ? "justify-center" : "space-x-3"
-                  )}>
-                    <Download className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>Export Semua Data</span>}
-                  </div>
-                </SidebarMenuButton>,
-                "Export Semua Data"
-              )}
-            </SidebarMenuItem>
+      {/* ✅ Content with staggered animations */}
+      <SidebarContent className="flex-grow px-2 py-4">
+        {menuGroups.map((group, groupIndex) => (
+          <SidebarGroup 
+            key={group.label} 
+            className={cn(
+              "mb-4 opacity-100 transition-all duration-300 ease-in-out",
+              // Staggered animation delay for each group
+              `delay-[${groupIndex * 50}ms]`
+            )}
+          >
+            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300">
+              {group.label}
+            </SidebarGroupLabel>
             
-            {/* Settings */}
-            {settingsItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                {renderMenuItem(item, location.pathname === item.url)}
-              </SidebarMenuItem>
-            ))}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {group.items.map((item, itemIndex) => (
+                  <SidebarMenuItem 
+                    key={item.title}
+                    className={cn(
+                      "opacity-100 transition-all duration-300 ease-in-out",
+                      // Staggered animation for menu items
+                      `delay-[${(groupIndex * 100) + (itemIndex * 25)}ms]`
+                    )}
+                  >
+                    {renderMenuItem(item, location.pathname === item.url)}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
 
-            {/* Logout */}
-            <SidebarMenuItem>
-              {renderActionButton(
-                <SidebarMenuButton 
-                  onClick={() => setShowLogoutConfirm(true)} 
-                  className={cn(
-                    "text-red-500 hover:bg-red-50 hover:text-red-600",
-                    isCollapsed ? "justify-center px-2" : "w-full"
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center",
-                    isCollapsed ? "justify-center" : "space-x-3"
-                  )}>
-                    <LogOut className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>Keluar</span>}
-                  </div>
-                </SidebarMenuButton>,
-                "Keluar"
-              )}
+      {/* ✅ Footer with delayed animation */}
+      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200">
+        <SidebarMenu className="space-y-1">
+          {/* Export Button */}
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
+            {renderActionButton(
+              handleExportAllData,
+              Download,
+              "Export Semua Data",
+              "hover:bg-gray-100 hover:scale-[1.02]"
+            )}
+          </SidebarMenuItem>
+          
+          {/* Settings */}
+          {settingsItems.map((item) => (
+            <SidebarMenuItem 
+              key={item.title}
+              className="transition-all duration-200 ease-in-out"
+            >
+              {renderMenuItem(item, location.pathname === item.url)}
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+          ))}
 
-        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
-              <AlertDialogDescription>
-                Apakah Anda yakin ingin keluar?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </Sidebar>
-    </TooltipProvider>
+          {/* Logout */}
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
+            {renderActionButton(
+              () => setShowLogoutConfirm(true),
+              LogOut,
+              "Keluar",
+              "text-red-500 hover:bg-red-50 hover:text-red-600 hover:scale-[1.02]"
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      {/* Logout Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent className="animate-in fade-in-0 zoom-in-95 duration-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin keluar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="transition-all duration-200 hover:scale-[1.02]">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmLogout}
+              className="transition-all duration-200 hover:scale-[1.02]"
+            >
+              Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Sidebar>
   );
 }

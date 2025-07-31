@@ -25,8 +25,7 @@ import {
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
 } from "lucide-react";
-// ✅ FIXED: Import useNavigate
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import {
@@ -59,8 +58,6 @@ import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();
-  // ✅ FIXED: Initialize useNavigate
-  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { state } = useSidebar();
   
@@ -148,20 +145,26 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FINAL FIX: Use programmatic navigation for collapsed view to ensure centering
+  // ✅ FIXED: Simplified menu item rendering with proper tooltip
   const renderMenuItem = (item, isActive) => {
+    const menuContent = (
+      <Link to={item.url} className="flex items-center w-full">
+        <item.icon className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && <span className="ml-3">{item.title}</span>}
+      </Link>
+    );
+
     if (isCollapsed) {
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              {/* Render a standard button that navigates on click */}
               <SidebarMenuButton
-                onClick={() => navigate(item.url)}
+                asChild
                 isActive={isActive}
                 className="w-full justify-center px-2"
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {menuContent}
               </SidebarMenuButton>
             </TooltipTrigger>
             <TooltipContent side="right">
@@ -172,28 +175,24 @@ export function AppSidebar() {
       );
     }
 
-    // For expanded view, use Link for better accessibility and SEO
     return (
       <SidebarMenuButton
         asChild
         isActive={isActive}
         className="w-full justify-start px-3"
       >
-        <Link to={item.url} className="flex items-center w-full h-full">
-          <item.icon className="h-5 w-5 flex-shrink-0" />
-          <span className="ml-3">{item.title}</span>
-        </Link>
+        {menuContent}
       </SidebarMenuButton>
     );
   };
 
-  // This function already works correctly
-  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
+  // ✅ FIXED: Simplified action button rendering
+  const renderActionButton = (onClick, icon: React.ElementType, text: string, className = "") => {
     const buttonContent = (
-      <>
-        <IconComponent className="h-5 w-5 flex-shrink-0" />
+      <div className="flex items-center w-full">
+        <icon className="h-5 w-5 flex-shrink-0" />
         {!isCollapsed && <span className="ml-3">{text}</span>}
-      </>
+      </div>
     );
 
     if (isCollapsed) {
@@ -231,6 +230,7 @@ export function AppSidebar() {
       collapsible="icon" 
       className="border-r"
     >
+      {/* ✅ FIXED: Simplified header */}
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
@@ -244,6 +244,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
+      {/* ✅ FIXED: Simplified content */}
       <SidebarContent className="flex-grow px-2 py-4">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="mb-4">
@@ -266,6 +267,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
+      {/* ✅ FIXED: Simplified footer */}
       <SidebarFooter className="p-2 border-t mt-auto">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}

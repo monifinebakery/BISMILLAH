@@ -25,7 +25,7 @@ interface Props {
   isLoading: boolean;
 }
 
-// 📊 Individual Stat Card Component
+// 📊 Individual Stat Card Component  
 const StatCard: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -47,12 +47,24 @@ const StatCard: React.FC<{
   isLoading = false,
   tooltip
 }) => {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const cardContent = (
-    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-      <CardContent className="p-6 flex items-center">
+    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer relative group">
+      <CardContent className="p-4 sm:p-6 flex items-center">
         {/* 🎨 Icon */}
-        <div className={`${bgColor} p-3 rounded-full mr-4 flex-shrink-0`}>
-          <div className={`h-6 w-6 ${iconColor}`}>
+        <div className={`${bgColor} p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0`}>
+          <div className={`h-5 w-5 sm:h-6 sm:w-6 ${iconColor}`}>
             {icon}
           </div>
         </div>
@@ -64,14 +76,14 @@ const StatCard: React.FC<{
               {label}
             </p>
             {tooltip && (
-              <Info className="h-3 w-3 text-gray-400" />
+              <Info className="h-3 w-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
             )}
           </div>
           
           {isLoading ? (
-            <div className="h-6 bg-gray-200 animate-pulse rounded mt-1"></div>
+            <div className="h-5 sm:h-6 bg-gray-200 animate-pulse rounded mt-1"></div>
           ) : (
-            <p className={`text-xl font-semibold ${valueColor} truncate`}>
+            <p className={`text-lg sm:text-xl font-semibold ${valueColor} truncate`}>
               {value}
             </p>
           )}
@@ -82,7 +94,22 @@ const StatCard: React.FC<{
             </p>
           )}
         </div>
+
+        {/* Mobile Tooltip Indicator */}
+        {tooltip && isMobile && (
+          <div className="absolute top-2 right-2 bg-gray-100 rounded-full p-1 opacity-60 group-hover:opacity-100 transition-opacity">
+            <Info className="h-3 w-3 text-gray-500" />
+          </div>
+        )}
       </CardContent>
+
+      {/* Mobile Tooltip - Show on tap/hover */}
+      {tooltip && isMobile && (
+        <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-900 rotate-45"></div>
+          <p className="leading-relaxed">{tooltip}</p>
+        </div>
+      )}
     </Card>
   );
 
@@ -93,8 +120,15 @@ const StatCard: React.FC<{
           <TooltipTrigger asChild>
             {cardContent}
           </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
-            <p className="text-sm">{tooltip}</p>
+          <TooltipContent 
+            side="top" 
+            align="center"
+            className="max-w-xs sm:max-w-sm md:max-w-md z-50 px-3 py-2 text-sm bg-gray-900 text-white rounded-md shadow-lg border-0"
+            sideOffset={8}
+            avoidCollisions={true}
+            collisionPadding={16}
+          >
+            <p className="text-sm leading-relaxed">{tooltip}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

@@ -16,16 +16,16 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
-import type { BahanBaku, SortConfig } from '../types';
+import type { BahanBakuFrontend, SortConfig } from '../types';
 
 interface WarehouseTableProps {
-  items: BahanBaku[];
+  items: BahanBakuFrontend[];  // ✅ Updated to BahanBakuFrontend
   isLoading: boolean;
   isSelectionMode: boolean;
   searchTerm: string;
   sortConfig: SortConfig;
-  onSort: (key: keyof BahanBaku) => void;
-  onEdit: (item: BahanBaku) => void;
+  onSort: (key: keyof BahanBakuFrontend) => void;  // ✅ Updated type
+  onEdit: (item: BahanBakuFrontend) => void;  // ✅ Updated type
   onDelete: (id: string, nama: string) => void;
   selectedItems: string[];
   onToggleSelection: (id: string) => void;
@@ -45,6 +45,7 @@ interface WarehouseTableProps {
  * - Table layout on desktop
  * - Touch-friendly interactions
  * - Optimized performance
+ * - Fixed BahanBakuFrontend type consistency
  * 
  * Size: ~8KB
  */
@@ -79,8 +80,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     setExpandedItems(newExpanded);
   };
 
-  // Sort icon helper
-  const getSortIcon = (key: keyof BahanBaku) => {
+  // Sort icon helper - Updated for BahanBakuFrontend
+  const getSortIcon = (key: keyof BahanBakuFrontend) => {
     if (sortConfig.key !== key) {
       return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     }
@@ -101,6 +102,37 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         </mark>
       ) : part
     );
+  };
+
+  // Enhanced stock level calculation with number conversion
+  const getStockLevel = (item: BahanBakuFrontend) => {
+    const stok = Number(item.stok) || 0;
+    const minimum = Number(item.minimum) || 0;
+    
+    return warehouseUtils.formatStockLevel(stok, minimum);
+  };
+
+  // Check if item is expiring soon
+  const isExpiringItem = (item: BahanBakuFrontend): boolean => {
+    if (!item.expiry) return false;
+    const expiryDate = new Date(item.expiry);
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() + 7); // 7 days warning
+    return expiryDate <= threshold && expiryDate > new Date();
+  };
+
+  // Debug helper for development
+  const debugItem = (item: BahanBakuFrontend) => {
+    if (process.env.NODE_ENV === 'development' && item.nama.includes('Daging')) {
+      console.log('=== WAREHOUSE TABLE DEBUG ===');
+      console.log('Item:', item.nama);
+      console.log('Stok:', item.stok, typeof item.stok);
+      console.log('Minimum:', item.minimum, typeof item.minimum);
+      console.log('Harga:', item.harga, typeof item.harga);
+      console.log('Stock Level:', getStockLevel(item));
+      console.log('Condition stok <= minimum:', Number(item.stok) <= Number(item.minimum));
+      console.log('============================');
+    }
   };
 
   // Empty state
@@ -156,8 +188,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       )}
 
       {items.map((item) => {
-        const stockLevel = warehouseUtils.formatStockLevel(item.stok, item.minimum);
-        const isExpiringSoon = item.expiry && new Date(item.expiry) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        // Debug in development
+        debugItem(item);
+
+        const stockLevel = getStockLevel(item);
+        const isExpiringSoon = isExpiringItem(item);
         const isItemSelected = isSelected(item.id);
         const isExpanded = expandedItems.has(item.id);
 
@@ -190,12 +225,14 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                     </button>
                   )}
 
-                  {/* Stock Level Indicator */}
+                  {/* Stock Level Indicator - Fixed with proper level detection */}
                   <div className={`w-3 h-3 rounded-full mt-2 flex-shrink-0 ${
                     stockLevel.level === 'out' ? 'bg-red-500' :
                     stockLevel.level === 'low' ? 'bg-yellow-500' :
                     stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
-                  }`} />
+                  }`} 
+                  title={`Stock Level: ${stockLevel.level}`}
+                  />
 
                   {/* Main Content */}
                   <div className="flex-1 min-w-0">
@@ -254,7 +291,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           <span className="text-gray-500 ml-1">{item.satuan}</span>
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {warehouseUtils.formatCurrency(item.harga)}
+                          {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
                         </div>
                       </div>
                     </div>
@@ -309,7 +346,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   </div>
                   <div>
                     <span className="text-gray-500">Harga per {item.satuan}:</span>
-                    <div className="font-medium text-gray-900">{warehouseUtils.formatCurrency(item.harga)}</div>
+                    <div className="font-medium text-gray-900">
+                      {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
+                    </div>
                   </div>
                   <div>
                     <span className="text-gray-500">Kadaluarsa:</span>
@@ -317,6 +356,23 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
                     </div>
                   </div>
+                  {/* Additional packaging info if available */}
+                  {item.jumlahBeliKemasan && (
+                    <>
+                      <div>
+                        <span className="text-gray-500">Jumlah Kemasan:</span>
+                        <div className="font-medium text-gray-900">
+                          {item.jumlahBeliKemasan} {item.satuanKemasan || 'unit'}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Harga Kemasan:</span>
+                        <div className="font-medium text-gray-900">
+                          {item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-'}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -417,8 +473,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
         <tbody className="divide-y divide-gray-200">
           {items.map((item) => {
-            const stockLevel = warehouseUtils.formatStockLevel(item.stok, item.minimum);
-            const isExpiringSoon = item.expiry && new Date(item.expiry) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            // Debug in development
+            debugItem(item);
+
+            const stockLevel = getStockLevel(item);
+            const isExpiringSoon = isExpiringItem(item);
             const isItemSelected = isSelected(item.id);
 
             return (
@@ -452,11 +511,14 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
-                      <div className={`w-3 h-3 rounded-full ${
-                        stockLevel.level === 'out' ? 'bg-red-500' :
-                        stockLevel.level === 'low' ? 'bg-yellow-500' :
-                        stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
-                      }`} />
+                      <div 
+                        className={`w-3 h-3 rounded-full ${
+                          stockLevel.level === 'out' ? 'bg-red-500' :
+                          stockLevel.level === 'low' ? 'bg-yellow-500' :
+                          stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
+                        }`} 
+                        title={`Stock Level: ${stockLevel.level}`}
+                      />
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">
@@ -504,7 +566,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 {/* Price Column */}
                 <td className="px-4 py-4">
                   <span className="text-sm font-medium text-gray-900">
-                    {warehouseUtils.formatCurrency(item.harga)}
+                    {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
                   </span>
                   <div className="text-xs text-gray-500">
                     per {item.satuan}

@@ -3,6 +3,24 @@
 import { lazy } from 'react';
 
 // All dialogs are lazy loaded by default for better performance
-export const CostDialog = lazy(() => import('./CostDialog'));
-export const DeleteConfirmDialog = lazy(() => import('./DeleteConfirmDialog'));
-export const AllocationDialog = lazy(() => import('./AllocationDialog'));
+// ✅ Add error boundary fallback for failed imports
+export const CostDialog = lazy(() => 
+  import('./CostDialog').catch(() => {
+    console.error('Failed to load CostDialog, using fallback');
+    return { default: () => <div>Error loading dialog</div> };
+  })
+);
+
+export const DeleteConfirmDialog = lazy(() => 
+  import('./DeleteConfirmDialog').catch(() => {
+    console.error('Failed to load DeleteConfirmDialog, using fallback');
+    return { default: () => <div>Error loading dialog</div> };
+  })
+);
+
+export const AllocationDialog = lazy(() => 
+  import('./AllocationDialog').catch(() => {
+    console.error('Failed to load AllocationDialog, using fallback');
+    return { default: () => <div>Error loading dialog</div> };
+  })
+);

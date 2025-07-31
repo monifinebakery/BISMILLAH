@@ -1,7 +1,7 @@
 // src/components/warehouse/WarehousePage.tsx - Fixed Import Strategy
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 
 // ✅ Static Components (Always Loaded)
 import { 

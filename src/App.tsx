@@ -15,6 +15,9 @@ import { usePaymentContext } from "./contexts/PaymentContext";
 // ✅ NEW: Import Recipe Provider untuk Order Integration
 import { RecipeProvider } from "@/contexts/RecipeContext";
 
+// ✅ NEW: Import Supplier Provider untuk modular structure
+import { SupplierProvider } from "@/contexts/SupplierContext";
+
 // Impor Komponen Aplikasi
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import EmailAuthPage from "@/components/EmailAuthPage";
@@ -57,7 +60,13 @@ const FinancialReportPage = React.lazy(() => import("@/components/financial/Fina
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const AssetManagement = React.lazy(() => import("./pages/AssetManagement"));
 const Settings = React.lazy(() => import("./pages/Settings"));
-const SupplierManagement = React.lazy(() => import("./pages/SupplierManagement"));
+
+// ✅ UPDATED: Supplier Management dengan struktur modular baru
+const SupplierManagementPage = React.lazy(() => 
+  import("@/components/supplier").then(module => ({
+    default: module.SupplierManagement
+  }))
+);
 
 // Purchase Management dengan struktur modular
 const PurchaseManagement = React.lazy(() => 
@@ -95,6 +104,24 @@ const RecipePageLoader = () => (
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Manajemen Resep</p>
                 <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data resep...</p>
+            </div>
+        </div>
+    </div>
+);
+
+// ✅ NEW: Enhanced loading khusus untuk Supplier Management
+const SupplierPageLoader = () => (
+    <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-orange-100 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+            <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Memuat Manajemen Supplier</p>
+                <p className="text-xs text-gray-500 mt-1">🏢 Sedang menyiapkan data supplier...</p>
             </div>
         </div>
     </div>
@@ -192,6 +219,45 @@ const RecipeErrorFallback = () => {
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
                         Terjadi kesalahan saat memuat halaman resep. Pastikan koneksi internet stabil dan coba lagi.
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg"
+                        >
+                            Muat Ulang
+                        </button>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg"
+                        >
+                            Kembali ke Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ✅ NEW: Specialized error boundary untuk Supplier Management
+const SupplierErrorFallback = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+            <div className="container mx-auto p-4 sm:p-8">
+                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                    <div className="bg-red-100 rounded-full p-6 mb-4">
+                        <svg className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                        Gagal Memuat Manajemen Supplier
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md">
+                        Terjadi kesalahan saat memuat halaman supplier dengan struktur modular baru. 
+                        Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -326,7 +392,7 @@ const PurchaseErrorFallback = () => {
     );
 };
 
-// ✅ ENHANCED: Layout dengan Recipe Provider Integration
+// ✅ ENHANCED: Layout dengan Recipe Provider Integration dan Supplier Provider
 const AppLayout = () => {
     const isMobile = useIsMobile();
     const { isPaid } = usePaymentContext();
@@ -334,58 +400,62 @@ const AppLayout = () => {
     // Layout untuk Mobile
     if (isMobile) {
         return (
-            <RecipeProvider> {/* 🎯 Recipe Provider untuk mobile layout */}
-                <div className="min-h-screen flex flex-col bg-background">
-                    <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-                        <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
-                        <div className="flex items-center space-x-2">
-                            {isPaid && <PaymentStatusIndicator />}
-                            <NotificationBell />
-                            <MobileExportButton />
-                        </div>
-                    </header>
-                    <main className="flex-1 overflow-auto pb-16">
-                        {/* Melindungi setiap halaman dari error rendering */}
-                        <ErrorBoundary fallback={<RouteErrorFallback />}>
-                            <Outlet />
-                        </ErrorBoundary>
-                    </main>
-                    <BottomTabBar />
-                    {!isPaid && (
-                        <div className="fixed bottom-20 right-4 z-50">
-                            <PaymentStatusIndicator size="lg" />
-                        </div>
-                    )}
-                </div>
+            <RecipeProvider>
+                <SupplierProvider> {/* 🎯 Supplier Provider untuk mobile layout */}
+                    <div className="min-h-screen flex flex-col bg-background">
+                        <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+                            <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
+                            <div className="flex items-center space-x-2">
+                                {isPaid && <PaymentStatusIndicator />}
+                                <NotificationBell />
+                                <MobileExportButton />
+                            </div>
+                        </header>
+                        <main className="flex-1 overflow-auto pb-16">
+                            {/* Melindungi setiap halaman dari error rendering */}
+                            <ErrorBoundary fallback={<RouteErrorFallback />}>
+                                <Outlet />
+                            </ErrorBoundary>
+                        </main>
+                        <BottomTabBar />
+                        {!isPaid && (
+                            <div className="fixed bottom-20 right-4 z-50">
+                                <PaymentStatusIndicator size="lg" />
+                            </div>
+                        )}
+                    </div>
+                </SupplierProvider>
             </RecipeProvider>
         );
     }
 
     // Layout untuk Desktop
     return (
-        <RecipeProvider> {/* 🎯 Recipe Provider untuk desktop layout */}
-            <SidebarProvider>
-                <div className="min-h-screen flex w-full bg-background">
-                    <AppSidebar />
-                    <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
-                        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
-                            <SidebarTrigger className="-ml-1" />
-                            <div className="flex-1" />
-                            <div className="flex items-center space-x-4">
-                                <PaymentStatusIndicator />
-                                <DateTimeDisplay />
-                                <NotificationBell />
-                            </div>
-                        </header>
-                        <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
-                            {/* Melindungi setiap halaman dari error rendering */}
-                            <ErrorBoundary fallback={<RouteErrorFallback />}>
-                                <Outlet />
-                            </ErrorBoundary>
-                        </main>
-                    </SidebarInset>
-                </div>
-            </SidebarProvider>
+        <RecipeProvider>
+            <SupplierProvider> {/* 🎯 Supplier Provider untuk desktop layout */}
+                <SidebarProvider>
+                    <div className="min-h-screen flex w-full bg-background">
+                        <AppSidebar />
+                        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
+                            <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
+                                <SidebarTrigger className="-ml-1" />
+                                <div className="flex-1" />
+                                <div className="flex items-center space-x-4">
+                                    <PaymentStatusIndicator />
+                                    <DateTimeDisplay />
+                                    <NotificationBell />
+                                </div>
+                            </header>
+                            <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+                                {/* Melindungi setiap halaman dari error rendering */}
+                                <ErrorBoundary fallback={<RouteErrorFallback />}>
+                                    <Outlet />
+                                </ErrorBoundary>
+                            </main>
+                        </SidebarInset>
+                    </div>
+                </SidebarProvider>
+            </SupplierProvider>
         </RecipeProvider>
     );
 };
@@ -413,7 +483,7 @@ const App = () => {
                             {/* Rute Publik */}
                             <Route path="/auth" element={<EmailAuthPage />} />
 
-                            {/* Rute Terproteksi dengan Layout + Recipe Provider */}
+                            {/* Rute Terproteksi dengan Layout + Recipe Provider + Supplier Provider */}
                             <Route
                                 element={
                                     <AuthGuard>
@@ -438,7 +508,18 @@ const App = () => {
                                 />
                                 
                                 <Route path="gudang" element={<WarehousePage />} />
-                                <Route path="supplier" element={<SupplierManagement />} />
+                                
+                                {/* ✅ UPDATED: Supplier Management dengan struktur modular baru */}
+                                <Route 
+                                    path="supplier" 
+                                    element={
+                                        <Suspense fallback={<SupplierPageLoader />}>
+                                            <ErrorBoundary fallback={<SupplierErrorFallback />}>
+                                                <SupplierManagementPage />
+                                            </ErrorBoundary>
+                                        </Suspense>
+                                    } 
+                                />
                                 
                                 {/* Purchase Management dengan enhanced loading dan error handling */}
                                 <Route 

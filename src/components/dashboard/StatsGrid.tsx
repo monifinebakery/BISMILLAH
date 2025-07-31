@@ -113,7 +113,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       label: 'Omzet (Pendapatan Kotor)',
       value: formatCurrency(stats.revenue),
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).'
     },
     {
       key: 'orders',
@@ -121,7 +122,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       label: 'Total Pesanan',
       value: stats.orders.toLocaleString('id-ID'),
       bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
+      tooltip: 'Jumlah total pesanan yang telah dibuat dalam periode yang dipilih. Setiap pesanan dihitung sebagai satu transaksi terlepas dari jumlah item di dalamnya.'
     },
     {
       key: 'profit',
@@ -130,7 +132,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       value: formatCurrency(stats.profit),
       description: '(Estimasi 30%)',
       bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      tooltip: 'Perkiraan laba bersih berdasarkan asumsi margin keuntungan 30% dari omzet. Angka ini adalah estimasi dan dapat berbeda dengan laba aktual setelah dikurangi semua biaya operasional.'
     },
     {
       key: 'mostUsedIngredient',

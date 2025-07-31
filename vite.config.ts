@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode, command }) => {
@@ -35,42 +36,14 @@ export default defineConfig(({ mode, command }) => {
           // (This goes in rollupOptions level, not output level - my mistake)
         },
         
-        // ✅ SUPER DETAILED debug warnings (fixed placement)
+        // ✅ Simple file logging seperti yang kamu mau
         onwarn(warning, warn) {
-          console.log('⚠️ DETAILED Rollup Warning:', {
-            code: warning.code,
-            message: warning.message,
-            file: warning.loc?.file || warning.id,
-            line: warning.loc?.line,
-            column: warning.loc?.column,
-            source: warning.source,
-            names: warning.names,
-            timestamp: new Date().toISOString()
-          });
+          const logEntry = `${new Date().toISOString()} - ${warning.code}: ${warning.message}\n`;
+          fs.appendFileSync('build-warnings.log', logEntry);
           
-          // Extra details untuk specific warning types
-          if (warning.code === 'CIRCULAR_DEPENDENCY') {
-            console.log('  🔄 Cycle info:', warning.cycle);
-            console.log('  📁 Files involved:', warning.loc?.file);
-            return;
-          }
-          
-          if (warning.code === 'UNRESOLVED_IMPORT') {
-            console.log('  🚫 Cannot resolve:', warning.source);
-            console.log('  📁 In file:', warning.importer);
-            console.log('  🎯 External:', warning.isExternal);
-          }
-          
-          if (warning.code === 'MISSING_EXPORT') {
-            console.log('  ❌ Missing:', warning.binding);
-            console.log('  📦 From:', warning.exporter);
-            if (warning.frame) console.log('  📋 Code:\n', warning.frame);
-          }
-          
-          // Show critical warnings in build output
-          if (['MISSING_EXPORT', 'UNRESOLVED_IMPORT', 'EMPTY_BUNDLE'].includes(warning.code)) {
-            warn(warning);
-          }
+          console.log('⚠️ Rollup Warning:', warning.code, warning.message);
+          if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+          warn(warning);
         }
       },
       

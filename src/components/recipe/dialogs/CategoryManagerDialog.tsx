@@ -1,6 +1,6 @@
 // src/components/recipe/dialogs/CategoryManagerDialog.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +33,8 @@ import {
   Check,
   AlertTriangle,
   ChefHat,
-  BarChart3
+  BarChart3,
+  RefreshCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RECIPE_CATEGORIES } from '../types';
@@ -43,6 +44,9 @@ interface CategoryManagerDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   recipes: Recipe[];
+  // ✅ REQUIRED: Functions to actually modify recipe data
+  onUpdateRecipeCategory?: (recipeId: string, oldCategory: string, newCategory: string) => Promise<void>;
+  onRefreshData?: () => Promise<void>;
 }
 
 interface CategoryStats {
@@ -50,57 +54,80 @@ interface CategoryStats {
   count: number;
   isDefault: boolean;
   canDelete: boolean;
+  canEdit: boolean;
+  recipes: Recipe[]; // Store actual recipes using this category
 }
 
 const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   isOpen,
   onOpenChange,
   recipes,
+  onUpdateRecipeCategory,
+  onRefreshData,
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [localCategories, setLocalCategories] = useState<string[]>([]);
 
-  // Get category statistics
-  const categoryStats: CategoryStats[] = React.useMemo(() => {
-    // Get all categories from recipes
+  // Load available categories from actual recipe data + defaults
+  useEffect(() => {
+    if (recipes.length === 0) return;
+    
+    // Get all unique categories from recipes
     const usedCategories = new Set(
       recipes
         .map(recipe => recipe.kategoriResep)
         .filter((category): category is string => Boolean(category))
     );
+    
+    // Combine with defaults
+    const allCategories = Array.from(new Set([
+      ...RECIPE_CATEGORIES,
+      ...Array.from(usedCategories)
+    ]));
+    
+    setLocalCategories(allCategories);
+  }, [recipes]);
 
-    // Count recipes per category
-    const categoryCounts = new Map<string, number>();
+  // Get category statistics with real data
+  const categoryStats: CategoryStats[] = React.useMemo(() => {
+    if (recipes.length === 0) return [];
+
+    // Group recipes by category
+    const categoryGroups = new Map<string, Recipe[]>();
+    
+    // Add recipes to their categories
     recipes.forEach(recipe => {
       if (recipe.kategoriResep) {
-        const count = categoryCounts.get(recipe.kategoriResep) || 0;
-        categoryCounts.set(recipe.kategoriResep, count + 1);
+        const existing = categoryGroups.get(recipe.kategoriResep) || [];
+        categoryGroups.set(recipe.kategoriResep, [...existing, recipe]);
       }
     });
 
-    // Combine default and custom categories
-    const allCategories = new Set([
-      ...RECIPE_CATEGORIES,
-      ...usedCategories
-    ]);
-
-    return Array.from(allCategories).map(category => ({
-      name: category,
-      count: categoryCounts.get(category) || 0,
-      isDefault: RECIPE_CATEGORIES.includes(category as any),
-      // Allow deletion of all categories that have no recipes
-      canDelete: (categoryCounts.get(category) || 0) === 0,
-    })).sort((a, b) => {
+    // Create stats for all known categories
+    return localCategories.map(categoryName => {
+      const recipesInCategory = categoryGroups.get(categoryName) || [];
+      const isDefault = RECIPE_CATEGORIES.includes(categoryName as any);
+      
+      return {
+        name: categoryName,
+        count: recipesInCategory.length,
+        isDefault,
+        canDelete: !isDefault && recipesInCategory.length === 0,
+        canEdit: !isDefault,
+        recipes: recipesInCategory,
+      };
+    }).sort((a, b) => {
       // Sort: default categories first, then by usage count, then alphabetically
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
       if (a.count !== b.count) return b.count - a.count;
       return a.name.localeCompare(b.name);
     });
-  }, [recipes]);
+  }, [recipes, localCategories]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -108,24 +135,41 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       return;
     }
 
-    if (categoryStats.some(cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+    const trimmedName = newCategoryName.trim();
+
+    // Check if category already exists (case insensitive)
+    const existingCategory = categoryStats.find(
+      cat => cat.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (existingCategory) {
       toast.error('Kategori sudah ada');
       return;
     }
 
-    if (newCategoryName.trim().length > 50) {
+    if (trimmedName.length > 50) {
       toast.error('Nama kategori maksimal 50 karakter');
       return;
     }
 
     setIsLoading(true);
     try {
-      // In real implementation, you would save to database
-      // For now, we'll just show success and clear the input
-      toast.success(`Kategori "${newCategoryName.trim()}" berhasil ditambahkan`);
+      // Add to local categories list
+      setLocalCategories(prev => [...prev, trimmedName]);
+      
+      toast.success(`Kategori "${trimmedName}" berhasil ditambahkan`);
       setNewCategoryName('');
+      
+      // Refresh parent data if available
+      if (onRefreshData) {
+        await onRefreshData();
+      }
     } catch (error) {
+      console.error('Error adding category:', error);
       toast.error('Gagal menambahkan kategori');
+      
+      // Revert on error
+      setLocalCategories(prev => prev.filter(cat => cat !== trimmedName));
     } finally {
       setIsLoading(false);
     }
@@ -137,48 +181,132 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       return;
     }
 
-    if (oldName === newName.trim()) {
+    const trimmedNewName = newName.trim();
+
+    if (oldName === trimmedNewName) {
       setEditingCategory(null);
       return;
     }
 
-    if (categoryStats.some(cat => cat.name !== oldName && cat.name.toLowerCase() === newName.trim().toLowerCase())) {
+    // Check if new name already exists (case insensitive)
+    const existingCategory = categoryStats.find(
+      cat => cat.name !== oldName && cat.name.toLowerCase() === trimmedNewName.toLowerCase()
+    );
+    
+    if (existingCategory) {
       toast.error('Kategori sudah ada');
       return;
     }
 
-    if (newName.trim().length > 50) {
+    if (trimmedNewName.length > 50) {
       toast.error('Nama kategori maksimal 50 karakter');
+      return;
+    }
+
+    // Don't allow editing default categories
+    if (RECIPE_CATEGORIES.includes(oldName as any)) {
+      toast.error('Kategori default tidak dapat diubah');
       return;
     }
 
     setIsLoading(true);
     try {
-      // In real implementation, you would update all recipes with this category
-      toast.success(`Kategori "${oldName}" berhasil diubah menjadi "${newName.trim()}"`);
+      // Find recipes using this category
+      const affectedRecipes = recipes.filter(recipe => recipe.kategoriResep === oldName);
+      
+      if (affectedRecipes.length > 0 && onUpdateRecipeCategory) {
+        // Update all recipes using this category
+        await Promise.all(
+          affectedRecipes.map(recipe => 
+            onUpdateRecipeCategory(recipe.id, oldName, trimmedNewName)
+          )
+        );
+      }
+      
+      // Update local categories
+      setLocalCategories(prev => 
+        prev.map(cat => cat === oldName ? trimmedNewName : cat)
+      );
+
+      toast.success(`Kategori "${oldName}" berhasil diubah menjadi "${trimmedNewName}"`);
       setEditingCategory(null);
       setEditName('');
+      
+      // Refresh parent data
+      if (onRefreshData) {
+        await onRefreshData();
+      }
     } catch (error) {
+      console.error('Error editing category:', error);
       toast.error('Gagal mengubah kategori');
+      
+      // Revert changes on error
+      setLocalCategories(prev => 
+        prev.map(cat => cat === trimmedNewName ? oldName : cat)
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteCategory = async (categoryName: string) => {
+    // Don't allow deleting default categories
+    if (RECIPE_CATEGORIES.includes(categoryName as any)) {
+      toast.error('Kategori default tidak dapat dihapus');
+      return;
+    }
+
+    // Check if category is still being used
+    const categoryInUse = recipes.some(recipe => recipe.kategoriResep === categoryName);
+    if (categoryInUse) {
+      toast.error('Kategori tidak dapat dihapus karena masih digunakan oleh resep');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // In real implementation, you would remove category from database
+      // Remove from local categories
+      setLocalCategories(prev => prev.filter(cat => cat !== categoryName));
+
       toast.success(`Kategori "${categoryName}" berhasil dihapus`);
       setCategoryToDelete(null);
+      
+      // Refresh parent data
+      if (onRefreshData) {
+        await onRefreshData();
+      }
     } catch (error) {
+      console.error('Error deleting category:', error);
       toast.error('Gagal menghapus kategori');
+      
+      // Revert on error
+      setLocalCategories(prev => [...prev, categoryName]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForceRefresh = async () => {
+    if (!onRefreshData) return;
+    
+    setIsLoading(true);
+    try {
+      await onRefreshData();
+      toast.success('Data berhasil dimuat ulang');
+    } catch (error) {
+      toast.error('Gagal memuat ulang data');
     } finally {
       setIsLoading(false);
     }
   };
 
   const startEdit = (categoryName: string) => {
+    // Don't allow editing default categories
+    if (RECIPE_CATEGORIES.includes(categoryName as any)) {
+      toast.warning('Kategori default tidak dapat diubah');
+      return;
+    }
+    
     setEditingCategory(categoryName);
     setEditName(categoryName);
   };
@@ -187,6 +315,22 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     setEditingCategory(null);
     setEditName('');
   };
+
+  // Handle escape key to close dialog
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        if (editingCategory) {
+          cancelEdit();
+        } else if (!categoryToDelete) {
+          onOpenChange(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, editingCategory, categoryToDelete, onOpenChange]);
 
   if (!isOpen) return null;
 
@@ -215,14 +359,29 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Refresh Button */}
+                {onRefreshData && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleForceRefresh}
+                    disabled={isLoading}
+                    className="h-8 w-8 p-0"
+                    title="Muat ulang data"
+                  >
+                    <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -274,6 +433,26 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                 </Card>
               </div>
 
+              {/* Integration Warning */}
+              {!onUpdateRecipeCategory && (
+                <Card className="border-yellow-300 bg-yellow-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-yellow-900 mb-1">
+                          Mode Terbatas
+                        </h4>
+                        <p className="text-sm text-yellow-800">
+                          Beberapa fitur tidak tersedia karena tidak terhubung dengan sistem resep. 
+                          Pastikan callback functions sudah diimplementasi.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Add New Category */}
               <Card className="border-gray-200">
                 <CardHeader className="pb-4">
@@ -321,9 +500,11 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
               {/* Categories List */}
               <Card className="border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-lg">Daftar Kategori</CardTitle>
+                  <CardTitle className="text-lg">
+                    Daftar Kategori ({categoryStats.length})
+                  </CardTitle>
                   <p className="text-sm text-gray-500">
-                    Kelola kategori yang sudah ada
+                    Kelola kategori yang sudah ada. Kategori default tidak dapat diubah atau dihapus.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -397,14 +578,28 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
                               {/* Recipe Count */}
                               <TableCell className="text-center">
-                                <Badge variant={category.count > 0 ? "default" : "secondary"} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                <Badge 
+                                  variant={category.count > 0 ? "default" : "secondary"} 
+                                  className={
+                                    category.count > 0 
+                                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200" 
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }
+                                >
                                   {category.count} resep
                                 </Badge>
                               </TableCell>
 
                               {/* Category Type */}
                               <TableCell className="text-center">
-                                <Badge variant="outline" className="border-gray-300 text-gray-600">
+                                <Badge 
+                                  variant="outline" 
+                                  className={
+                                    category.isDefault 
+                                      ? "border-blue-300 text-blue-600 bg-blue-50" 
+                                      : "border-green-300 text-green-600 bg-green-50"
+                                  }
+                                >
                                   {category.isDefault ? 'Default' : 'Custom'}
                                 </Badge>
                               </TableCell>
@@ -412,18 +607,21 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                               {/* Actions */}
                               <TableCell className="text-center">
                                 <div className="flex justify-center gap-1">
-                                  {editingCategory !== category.name && (
+                                  {/* Edit Button */}
+                                  {editingCategory !== category.name && category.canEdit && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => startEdit(category.name)}
                                       disabled={isLoading}
                                       className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                      title="Edit kategori"
                                     >
                                       <Edit className="h-3 w-3" />
                                     </Button>
                                   )}
                                   
+                                  {/* Delete Button */}
                                   {category.canDelete && editingCategory !== category.name && (
                                     <Button
                                       size="sm"
@@ -431,15 +629,19 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       onClick={() => setCategoryToDelete(category.name)}
                                       disabled={isLoading}
                                       className="h-8 w-8 p-0 text-gray-600 hover:text-red-600 hover:bg-red-50"
+                                      title="Hapus kategori"
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                   )}
                                   
-                                  {!category.canDelete && (
+                                  {/* Cannot Delete/Edit Indicator */}
+                                  {(!category.canEdit || (!category.canDelete && category.count > 0)) && editingCategory !== category.name && (
                                     <div className="flex items-center gap-1 text-xs text-gray-400 px-2">
                                       <AlertTriangle className="h-3 w-3" />
-                                      <span>Digunakan</span>
+                                      <span>
+                                        {!category.canEdit ? 'Default' : 'Digunakan'}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -455,20 +657,35 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
               {/* Uncategorized Warning */}
               {uncategorizedRecipes > 0 && (
-                <Card className="border-gray-300 bg-gray-50">
+                <Card className="border-yellow-300 bg-yellow-50">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-1">
+                        <h4 className="font-medium text-yellow-900 mb-1">
                           Resep Tanpa Kategori
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-yellow-800">
                           Ada <strong>{uncategorizedRecipes} resep</strong> yang belum dikategorikan. 
                           Pertimbangkan untuk menambahkan kategori agar lebih terorganisir.
                         </p>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Debug Info */}
+              {process.env.NODE_ENV === 'development' && (
+                <Card className="border-gray-200 bg-gray-50">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Debug Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-gray-600 space-y-1">
+                    <p>Total recipes: {recipes.length}</p>
+                    <p>Categories in data: {categoryStats.length}</p>
+                    <p>Has update callback: {onUpdateRecipeCategory ? 'Yes' : 'No'}</p>
+                    <p>Has refresh callback: {onRefreshData ? 'Yes' : 'No'}</p>
                   </CardContent>
                 </Card>
               )}
@@ -488,6 +705,11 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             <AlertDialogDescription>
               Anda yakin ingin menghapus kategori "<strong>{categoryToDelete}</strong>"? 
               Tindakan ini tidak dapat dibatalkan.
+              {categoryToDelete && categoryStats.find(c => c.name === categoryToDelete)?.count === 0 && (
+                <div className="mt-2 text-green-600 text-sm">
+                  ✓ Kategori ini tidak digunakan oleh resep manapun, aman untuk dihapus.
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -178,20 +178,10 @@ export interface RecipeFormStepProps {
   isLoading?: boolean;
 }
 
-// Constants
-export const RECIPE_CATEGORIES = [
-  'Makanan Utama',
-  'Makanan Ringan',
-  'Minuman',
-  'Dessert',
-  'Appetizer',
-  'Sup',
-  'Salad',
-  'Kue',
-  'Roti',
-  'Lainnya'
-] as const;
+// ✅ UPDATED: No default categories - empty array
+export const RECIPE_CATEGORIES: readonly string[] = [] as const;
 
+// Units remain the same as they're more universal
 export const RECIPE_UNITS = [
   'kg', 'gram', 'liter', 'ml', 'pcs', 'buah', 
   'bungkus', 'sachet', 'sendok', 'gelas', 'cup'
@@ -199,5 +189,59 @@ export const RECIPE_UNITS = [
 
 export const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50] as const;
 
-export type RecipeCategory = typeof RECIPE_CATEGORIES[number];
+// ✅ UPDATED: Custom type for user-defined categories
+export type RecipeCategory = string; // Changed from union type to plain string
 export type RecipeUnit = typeof RECIPE_UNITS[number];
+
+// ✅ NEW: Helper functions for category management
+export const getCategoriesFromRecipes = (recipes: Recipe[]): string[] => {
+  const categories = new Set(
+    recipes
+      .map(recipe => recipe.kategoriResep)
+      .filter((category): category is string => Boolean(category?.trim()))
+  );
+  return Array.from(categories).sort();
+};
+
+export const getCustomCategories = (): string[] => {
+  try {
+    const saved = localStorage.getItem('recipe_custom_categories');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error loading custom categories:', error);
+    return [];
+  }
+};
+
+export const saveCustomCategories = (categories: string[]): void => {
+  try {
+    localStorage.setItem('recipe_custom_categories', JSON.stringify(categories));
+  } catch (error) {
+    console.error('Error saving custom categories:', error);
+  }
+};
+
+export const getAllAvailableCategories = (recipes: Recipe[]): string[] => {
+  const customCategories = getCustomCategories();
+  const usedCategories = getCategoriesFromRecipes(recipes);
+  
+  // Combine custom and used categories, remove duplicates
+  const combined = new Set([...customCategories, ...usedCategories]);
+  return Array.from(combined).filter(cat => cat?.trim()).sort();
+};
+
+// ✅ NEW: Category validation helpers
+export const isValidCategoryName = (name: string): boolean => {
+  const trimmed = name.trim();
+  return trimmed.length > 0 && trimmed.length <= 50;
+};
+
+export const categoryExists = (name: string, existingCategories: string[]): boolean => {
+  return existingCategories.some(cat => 
+    cat.toLowerCase() === name.trim().toLowerCase()
+  );
+};

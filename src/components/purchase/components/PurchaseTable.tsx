@@ -43,11 +43,12 @@ import {
   ChevronDown
 } from 'lucide-react';
 
-import { PurchaseTableProps, PurchaseStatus } from '../types/purchase.types';
+import { PurchaseTablePropsExtended, PurchaseStatus } from '../types/purchase.types';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
 import { formatCurrency } from '@/utils/formatUtils';
 import { getStatusColor, getStatusDisplayText, generatePurchaseSummary } from '../utils/purchaseHelpers';
 import { EmptyState } from './index';
+import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 
 // Status options untuk dropdown
 const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
@@ -56,18 +57,12 @@ const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] 
   { value: 'cancelled', label: 'Dibatalkan', color: 'bg-red-100 text-red-800 border-red-200' },
 ];
 
-interface PurchaseTablePropsExtended extends PurchaseTableProps {
-  onEdit: (purchase: any) => void;
-  onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => void;
-  onDelete?: (purchaseId: string) => void;
-  onViewDetails?: (purchase: any) => void;
-}
-
 const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({ 
   onEdit, 
   onStatusChange,
   onDelete,
-  onViewDetails 
+  onViewDetails,
+  validateStatusChange
 }) => {
   const {
     filteredPurchases,
@@ -90,6 +85,19 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
+  
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    purchase: any | null;
+    newStatus: PurchaseStatus | null;
+    validation: any | null;
+  }>({
+    isOpen: false,
+    purchase: null,
+    newStatus: null,
+    validation: null
+  });
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
@@ -119,22 +127,66 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     if (onViewDetails) {
       onViewDetails(purchase);
     } else {
-      // TODO: Implement detail view modal
       console.log('View details:', purchase);
     }
   };
 
-  // Handle status change
+  // Handle status change with validation
   const handleStatusChange = async (purchaseId: string, newStatus: PurchaseStatus) => {
-    if (onStatusChange) {
-      try {
-        await onStatusChange(purchaseId, newStatus);
-        setEditingStatusId(null);
-      } catch (error) {
-        console.error('Failed to update status:', error);
-        // You might want to show a toast notification here
-      }
+    const purchase = filteredPurchases.find(p => p.id === purchaseId);
+    if (!purchase) return;
+
+    // If status is the same, do nothing
+    if (purchase.status === newStatus) {
+      setEditingStatusId(null);
+      return;
     }
+
+    try {
+      // Validate status change if validation function is provided
+      let validation = { canChange: true, warnings: [], errors: [] };
+      if (validateStatusChange) {
+        validation = await validateStatusChange(purchaseId, newStatus);
+      }
+
+      // If validation passes and no warnings, directly update
+      if (validation.canChange && validation.warnings.length === 0) {
+        if (onStatusChange) {
+          await onStatusChange(purchaseId, newStatus);
+        }
+        setEditingStatusId(null);
+      } else {
+        // Show confirmation dialog with warnings/errors
+        setConfirmationDialog({
+          isOpen: true,
+          purchase,
+          newStatus,
+          validation
+        });
+      }
+    } catch (error) {
+      console.error('Status change validation failed:', error);
+      setEditingStatusId(null);
+    }
+  };
+
+  // Handle confirmation dialog
+  const handleConfirmStatusChange = async () => {
+    const { purchase, newStatus } = confirmationDialog;
+    if (!purchase || !newStatus || !onStatusChange) return;
+
+    try {
+      await onStatusChange(purchase.id, newStatus);
+      setConfirmationDialog({ isOpen: false, purchase: null, newStatus: null, validation: null });
+      setEditingStatusId(null);
+    } catch (error) {
+      console.error('Status change failed:', error);
+    }
+  };
+
+  const handleCancelStatusChange = () => {
+    setConfirmationDialog({ isOpen: false, purchase: null, newStatus: null, validation: null });
+    setEditingStatusId(null);
   };
 
   // Status dropdown component
@@ -190,6 +242,8 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       </Select>
     );
   };
+
+  // Rest of the component remains the same...
 
   // Render sort icon
   const renderSortIcon = (field: string) => {
@@ -562,6 +616,17 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
           </div>
         )}
       </Card>
+
+      {/* Status Change Confirmation Dialog */}
+      <StatusChangeConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        purchase={confirmationDialog.purchase}
+        newStatus={confirmationDialog.newStatus!}
+        validation={confirmationDialog.validation}
+        isUpdating={false} // You can connect this to actual loading state
+        onConfirm={handleConfirmStatusChange}
+        onCancel={handleCancelStatusChange}
+      />
     </div>
   );
 };

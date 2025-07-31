@@ -28,17 +28,48 @@ export default defineConfig(({ mode, command }) => {
       target: 'es2020',
       rollupOptions: {
         output: {
-          // Simplified chunking
+          // ✅ ULTRA SAFE: Keep React dengan semua UI dependencies
           manualChunks: (id) => {
-            if (id.includes('node_modules/react')) {
-              return 'react-vendor';
+            // ✅ CRITICAL FIX: Group React dengan semua yang membutuhkannya
+            if (id.includes('node_modules/react') || 
+                id.includes('node_modules/@radix-ui') ||
+                id.includes('node_modules/lucide-react') ||
+                id.includes('node_modules/class-variance-authority') ||
+                id.includes('node_modules/clsx') ||
+                id.includes('node_modules/tailwind-merge')) {
+              return 'react-ui-vendor'; // Semua UI components dengan React
             }
-            if (id.includes('node_modules/@supabase')) {
+            
+            // ✅ API libraries - safe to separate karena tidak depend React
+            if (id.includes('node_modules/@supabase') ||
+                id.includes('node_modules/supabase')) {
               return 'supabase-vendor';
             }
-            if (id.includes('node_modules')) {
-              return 'vendor';
+            
+            // ✅ Utilities yang tidak depend React
+            if (id.includes('node_modules/lodash') ||
+                id.includes('node_modules/date-fns') ||
+                id.includes('node_modules/uuid')) {
+              return 'utils-vendor';
             }
+            
+            // ✅ Chart libraries - KEEP IN MAIN BUNDLE untuk sekarang
+            if (id.includes('node_modules/recharts') ||
+                id.includes('node_modules/chart.js') ||
+                id.includes('node_modules/d3')) {
+              return undefined; // Main bundle - tidak dipisah
+            }
+            
+            // ✅ Router - depends on React, keep with main atau React
+            if (id.includes('node_modules/react-router')) {
+              return 'react-ui-vendor'; // Gabung dengan React
+            }
+            
+            // ✅ Other safe vendor code
+            if (id.includes('node_modules')) {
+              return 'other-vendor';
+            }
+            
             return undefined;
           }
         },
@@ -89,11 +120,37 @@ export default defineConfig(({ mode, command }) => {
     
     optimizeDeps: {
       include: [
+        // ✅ CRITICAL: Pastikan React ecosystem ter-bundle dengan benar
         "react", 
         "react-dom", 
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
         "react-router-dom",
-        "lucide-react"
-      ]
+        
+        // ✅ UI components yang depend React
+        "lucide-react",
+        "@radix-ui/react-slot",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge",
+        
+        // ✅ State management
+        "@tanstack/react-query",
+        "zustand",
+        
+        // ✅ Toast yang depend React
+        "sonner"
+      ],
+      
+      // ✅ Force single React instance
+      dedupe: ["react", "react-dom"],
+      
+      // ✅ ESBuild options
+      esbuildOptions: {
+        // Preserve React names untuk debugging
+        keepNames: mode === 'development',
+        target: 'es2020'
+      }
     }
   };
 });

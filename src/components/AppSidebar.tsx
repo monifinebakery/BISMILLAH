@@ -145,85 +145,99 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ FIXED: Layout logic is now correctly applied to the button itself
-  const renderMenuItem = (item, isActive) => {
-    const menuContent = (
-      <Link to={item.url} className="flex items-center w-full h-full">
-        <item.icon className="h-5 w-5 flex-shrink-0" />
-        {!isCollapsed && <span className="ml-3">{item.title}</span>}
-      </Link>
-    );
+  // ✅ UPDATED: Centered icons with consistent padding and height
+const renderMenuItem = (item, isActive) => {
+  const menuContent = (
+    <Link to={item.url} className="flex items-center w-full h-full">
+      <item.icon className="h-5 w-5 flex-shrink-0" />
+      {!isCollapsed && <span className="ml-3">{item.title}</span>}
+    </Link>
+  );
 
-    if (isCollapsed) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive}
-                className="w-full justify-center px-2" // Center content when collapsed
-              >
-                {menuContent}
-              </SidebarMenuButton>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{item.title}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
+  if (isCollapsed) {
     return (
-      <SidebarMenuButton
-        asChild
-        isActive={isActive}
-        className="w-full justify-start px-3" // Start content from left when expanded
-      >
-        {menuContent}
-      </SidebarMenuButton>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              className={cn(
+                "w-full h-10 flex items-center justify-center px-2", // Fixed height and centered
+                isActive ? "bg-accent text-accent-foreground" : "hover:bg-gray-100"
+              )}
+            >
+              {menuContent}
+            </SidebarMenuButton>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{item.title}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
-  };
+  }
 
-  // ✅ FIXED: Layout logic is now correctly applied to the button itself
-  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
-    const buttonContent = (
-      <>
-        <IconComponent className="h-5 w-5 flex-shrink-0" />
-        {!isCollapsed && <span className="ml-3">{text}</span>}
-      </>
-    );
+  return (
+    <SidebarMenuButton
+      asChild
+      isActive={isActive}
+      className={cn(
+        "w-full h-10 flex items-center justify-start px-3", // Fixed height and left-aligned
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-gray-100"
+      )}
+    >
+      {menuContent}
+    </SidebarMenuButton>
+  );
+};
 
-    if (isCollapsed) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <SidebarMenuButton
-                onClick={onClick}
-                className={cn("w-full justify-center px-2", className)} // Center content when collapsed
-              >
-                {buttonContent}
-              </SidebarMenuButton>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{text}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
+// ✅ UPDATED: Centered icons with consistent padding and height
+const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
+  const buttonContent = (
+    <>
+      <IconComponent className="h-5 w-5 flex-shrink-0" />
+      {!isCollapsed && <span className="ml-3">{text}</span>}
+    </>
+  );
 
+  if (isCollapsed) {
     return (
-      <SidebarMenuButton
-        onClick={onClick}
-        className={cn("w-full justify-start px-3", className)} // Start content from left when expanded
-      >
-        {buttonContent}
-      </SidebarMenuButton>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarMenuButton
+              onClick={onClick}
+              className={cn(
+                "w-full h-10 flex items-center justify-center px-2", // Fixed height and centered
+                "hover:bg-gray-100",
+                className
+              )}
+            >
+              {buttonContent}
+            </SidebarMenuButton>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{text}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
-  };
+  }
+
+  return (
+    <SidebarMenuButton
+      onClick={onClick}
+      className={cn(
+        "w-full h-10 flex items-center justify-start px-3", // Fixed height and left-aligned
+        "hover:bg-gray-100",
+        className
+      )}
+    >
+      {buttonContent}
+    </SidebarMenuButton>
+  );
+};
 
   return (
     <Sidebar 

@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useOrder } from '@/components/orders/context/OrderContext';
+import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialUtils';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -17,7 +18,10 @@ interface DashboardStats {
   revenue: number;
   orders: number;
   profit: number;
-  outstandingInvoices: number;
+  mostUsedIngredient: {
+    name: string;
+    usageCount: number;
+  };
 }
 
 interface ProductSale {
@@ -35,6 +39,7 @@ export const useDashboardData = (dateRange: DateRange) => {
   const { activities = [], loading: activitiesLoading } = useActivity() || {};
   const { bahanBaku = [] } = useBahanBaku() || {};
   const { orders = [] } = useOrder() || {};
+  const { recipes = [] } = useRecipe() || {};
   const { settings = {} } = useUserSettings() || {};
 
   // ⏳ Loading State Management
@@ -65,6 +70,51 @@ export const useDashboardData = (dateRange: DateRange) => {
     }
   }, [orders, activities, dateRange]);
 
+  // 🧑‍🍳 Most Used Ingredient Calculation
+  const mostUsedIngredient = useMemo(() => {
+    try {
+      const { filteredOrders } = filteredData;
+      const ingredientUsage: Record<string, number> = {};
+      
+      // Count ingredient usage from filtered orders
+      filteredOrders.forEach(order => {
+        order?.items?.forEach(item => {
+          if (!item?.namaBarang) return;
+          
+          // Find recipe for this product
+          const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
+          if (!recipe?.bahanBaku) return;
+          
+          const quantity = Number(item.quantity) || 0;
+          
+          // Count each ingredient usage based on order quantity
+          recipe.bahanBaku.forEach(ingredient => {
+            if (!ingredient?.namaBahan) return;
+            
+            if (!ingredientUsage[ingredient.namaBahan]) {
+              ingredientUsage[ingredient.namaBahan] = 0;
+            }
+            ingredientUsage[ingredient.namaBahan] += quantity;
+          });
+        });
+      });
+      
+      // Find most used ingredient
+      const sortedIngredients = Object.entries(ingredientUsage)
+        .sort(([,a], [,b]) => b - a);
+      
+      if (sortedIngredients.length === 0) {
+        return { name: '', usageCount: 0 };
+      }
+      
+      const [name, usageCount] = sortedIngredients[0];
+      return { name, usageCount };
+    } catch (err) {
+      logger.error('Dashboard - Most used ingredient error:', err);
+      return { name: '', usageCount: 0 };
+    }
+  }, [filteredData, recipes]);
+
   // 📊 Stats Calculation
   const stats: DashboardStats = useMemo(() => {
     try {
@@ -73,21 +123,23 @@ export const useDashboardData = (dateRange: DateRange) => {
       const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
       const profit = revenue * 0.3; // 30% profit estimate
-      const outstandingInvoices = filteredOrders.filter(
-        order => order?.status === 'BELUM LUNAS'
-      ).length;
 
       return {
         revenue,
         orders: ordersCount,
         profit,
-        outstandingInvoices
+        mostUsedIngredient
       };
     } catch (err) {
       logger.error('Dashboard - Stats calculation error:', err);
-      return { revenue: 0, orders: 0, profit: 0, outstandingInvoices: 0 };
+      return { 
+        revenue: 0, 
+        orders: 0, 
+        profit: 0, 
+        mostUsedIngredient: { name: '', usageCount: 0 } 
+      };
     }
-  }, [filteredData]);
+  }, [filteredData, mostUsedIngredient]);
 
   // 🏆 Best Selling Products
   const bestSellingProducts: ProductSale[] = useMemo(() => {

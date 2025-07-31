@@ -1,4 +1,5 @@
 // src/components/recipe/dialogs/CategoryManagerDialog.tsx
+// FINAL WORKING VERSION - Integrates properly with RecipeContext
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -44,9 +45,9 @@ interface CategoryManagerDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   recipes: Recipe[];
-  // ✅ REQUIRED: Functions to actually modify recipe data
-  onUpdateRecipeCategory?: (recipeId: string, oldCategory: string, newCategory: string) => Promise<void>;
-  onRefreshData?: () => Promise<void>;
+  // ✅ Required functions from RecipeContext
+  updateRecipe: (id: string, updates: Partial<Recipe>) => Promise<boolean>;
+  refreshRecipes: () => Promise<void>;
 }
 
 interface CategoryStats {
@@ -55,60 +56,82 @@ interface CategoryStats {
   isDefault: boolean;
   canDelete: boolean;
   canEdit: boolean;
-  recipes: Recipe[]; // Store actual recipes using this category
+  recipes: Recipe[];
 }
 
 const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   isOpen,
   onOpenChange,
   recipes,
-  onUpdateRecipeCategory,
-  onRefreshData,
+  updateRecipe,
+  refreshRecipes,
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [localCategories, setLocalCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
-  // Load available categories from actual recipe data + defaults
+  // Load custom categories from localStorage
   useEffect(() => {
-    if (recipes.length === 0) return;
-    
-    // Get all unique categories from recipes
-    const usedCategories = new Set(
+    const loadCustomCategories = () => {
+      try {
+        const saved = localStorage.getItem('recipe_custom_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setCustomCategories(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch (error) {
+        console.error('Error loading custom categories:', error);
+        setCustomCategories([]);
+      }
+    };
+
+    loadCustomCategories();
+  }, []);
+
+  // Save custom categories to localStorage
+  const saveCustomCategories = useCallback((categories: string[]) => {
+    try {
+      localStorage.setItem('recipe_custom_categories', JSON.stringify(categories));
+      setCustomCategories(categories);
+    } catch (error) {
+      console.error('Error saving custom categories:', error);
+      toast.error('Gagal menyimpan kategori custom');
+    }
+  }, []);
+
+  // Get all available categories (default + custom + used in recipes)
+  const allAvailableCategories = React.useMemo(() => {
+    const usedInRecipes = new Set(
       recipes
         .map(recipe => recipe.kategoriResep)
-        .filter((category): category is string => Boolean(category))
+        .filter((cat): cat is string => Boolean(cat?.trim()))
     );
-    
-    // Combine with defaults
-    const allCategories = Array.from(new Set([
+
+    const combined = new Set([
       ...RECIPE_CATEGORIES,
-      ...Array.from(usedCategories)
-    ]));
-    
-    setLocalCategories(allCategories);
-  }, [recipes]);
+      ...customCategories,
+      ...Array.from(usedInRecipes)
+    ]);
 
-  // Get category statistics with real data
+    return Array.from(combined).filter(cat => cat?.trim());
+  }, [recipes, customCategories]);
+
+  // Get category statistics
   const categoryStats: CategoryStats[] = React.useMemo(() => {
-    if (recipes.length === 0) return [];
-
-    // Group recipes by category
     const categoryGroups = new Map<string, Recipe[]>();
     
-    // Add recipes to their categories
+    // Group recipes by category
     recipes.forEach(recipe => {
-      if (recipe.kategoriResep) {
+      if (recipe.kategoriResep?.trim()) {
         const existing = categoryGroups.get(recipe.kategoriResep) || [];
         categoryGroups.set(recipe.kategoriResep, [...existing, recipe]);
       }
     });
 
-    // Create stats for all known categories
-    return localCategories.map(categoryName => {
+    return allAvailableCategories.map(categoryName => {
       const recipesInCategory = categoryGroups.get(categoryName) || [];
       const isDefault = RECIPE_CATEGORIES.includes(categoryName as any);
       
@@ -121,29 +144,20 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
         recipes: recipesInCategory,
       };
     }).sort((a, b) => {
-      // Sort: default categories first, then by usage count, then alphabetically
+      // Sort: default first, then by usage, then alphabetically
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
       if (a.count !== b.count) return b.count - a.count;
       return a.name.localeCompare(b.name);
     });
-  }, [recipes, localCategories]);
+  }, [allAvailableCategories, recipes]);
 
+  // Add new category
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
-      toast.error('Nama kategori tidak boleh kosong');
-      return;
-    }
-
     const trimmedName = newCategoryName.trim();
-
-    // Check if category already exists (case insensitive)
-    const existingCategory = categoryStats.find(
-      cat => cat.name.toLowerCase() === trimmedName.toLowerCase()
-    );
     
-    if (existingCategory) {
-      toast.error('Kategori sudah ada');
+    if (!trimmedName) {
+      toast.error('Nama kategori tidak boleh kosong');
       return;
     }
 
@@ -152,54 +166,60 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       return;
     }
 
+    // Check if already exists (case insensitive)
+    const exists = allAvailableCategories.some(
+      cat => cat.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (exists) {
+      toast.error('Kategori sudah ada');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Add to local categories list
-      setLocalCategories(prev => [...prev, trimmedName]);
+      // Add to custom categories
+      const newCustomCategories = [...customCategories, trimmedName];
+      saveCustomCategories(newCustomCategories);
       
       toast.success(`Kategori "${trimmedName}" berhasil ditambahkan`);
       setNewCategoryName('');
       
-      // Refresh parent data if available
-      if (onRefreshData) {
-        await onRefreshData();
-      }
+      console.log('Added new category:', trimmedName);
     } catch (error) {
       console.error('Error adding category:', error);
       toast.error('Gagal menambahkan kategori');
-      
-      // Revert on error
-      setLocalCategories(prev => prev.filter(cat => cat !== trimmedName));
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Edit category name and update all recipes using it
   const handleEditCategory = async (oldName: string, newName: string) => {
-    if (!newName.trim()) {
+    const trimmedNewName = newName.trim();
+
+    if (!trimmedNewName) {
       toast.error('Nama kategori tidak boleh kosong');
       return;
     }
 
-    const trimmedNewName = newName.trim();
+    if (trimmedNewName.length > 50) {
+      toast.error('Nama kategori maksimal 50 karakter');
+      return;
+    }
 
     if (oldName === trimmedNewName) {
       setEditingCategory(null);
       return;
     }
 
-    // Check if new name already exists (case insensitive)
-    const existingCategory = categoryStats.find(
-      cat => cat.name !== oldName && cat.name.toLowerCase() === trimmedNewName.toLowerCase()
+    // Check if new name already exists
+    const exists = allAvailableCategories.some(
+      cat => cat !== oldName && cat.toLowerCase() === trimmedNewName.toLowerCase()
     );
     
-    if (existingCategory) {
+    if (exists) {
       toast.error('Kategori sudah ada');
-      return;
-    }
-
-    if (trimmedNewName.length > 50) {
-      toast.error('Nama kategori maksimal 50 karakter');
       return;
     }
 
@@ -211,52 +231,57 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
     setIsLoading(true);
     try {
-      // Find recipes using this category
+      console.log(`Editing category "${oldName}" to "${trimmedNewName}"`);
+      
+      // Find all recipes using this category
       const affectedRecipes = recipes.filter(recipe => recipe.kategoriResep === oldName);
-      
-      if (affectedRecipes.length > 0 && onUpdateRecipeCategory) {
-        // Update all recipes using this category
-        await Promise.all(
-          affectedRecipes.map(recipe => 
-            onUpdateRecipeCategory(recipe.id, oldName, trimmedNewName)
-          )
-        );
+      console.log(`Found ${affectedRecipes.length} recipes using category "${oldName}"`);
+
+      // Update all affected recipes
+      if (affectedRecipes.length > 0) {
+        const updatePromises = affectedRecipes.map(recipe => {
+          console.log(`Updating recipe "${recipe.namaResep}" category to "${trimmedNewName}"`);
+          return updateRecipe(recipe.id, { kategoriResep: trimmedNewName });
+        });
+
+        const results = await Promise.all(updatePromises);
+        const successCount = results.filter(success => success).length;
+        
+        if (successCount !== affectedRecipes.length) {
+          toast.warning(`Berhasil mengubah ${successCount} dari ${affectedRecipes.length} resep`);
+        } else {
+          console.log(`Successfully updated ${successCount} recipes`);
+        }
       }
-      
-      // Update local categories
-      setLocalCategories(prev => 
-        prev.map(cat => cat === oldName ? trimmedNewName : cat)
+
+      // Update custom categories list
+      const newCustomCategories = customCategories.map(cat => 
+        cat === oldName ? trimmedNewName : cat
       );
+      saveCustomCategories(newCustomCategories);
 
       toast.success(`Kategori "${oldName}" berhasil diubah menjadi "${trimmedNewName}"`);
       setEditingCategory(null);
       setEditName('');
+
+      // Refresh data to ensure UI is up to date
+      setTimeout(() => refreshRecipes(), 500);
       
-      // Refresh parent data
-      if (onRefreshData) {
-        await onRefreshData();
-      }
     } catch (error) {
       console.error('Error editing category:', error);
       toast.error('Gagal mengubah kategori');
-      
-      // Revert changes on error
-      setLocalCategories(prev => 
-        prev.map(cat => cat === trimmedNewName ? oldName : cat)
-      );
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Delete category (only unused custom categories)
   const handleDeleteCategory = async (categoryName: string) => {
-    // Don't allow deleting default categories
     if (RECIPE_CATEGORIES.includes(categoryName as any)) {
       toast.error('Kategori default tidak dapat dihapus');
       return;
     }
 
-    // Check if category is still being used
     const categoryInUse = recipes.some(recipe => recipe.kategoriResep === categoryName);
     if (categoryInUse) {
       toast.error('Kategori tidak dapat dihapus karena masih digunakan oleh resep');
@@ -265,35 +290,32 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
     setIsLoading(true);
     try {
-      // Remove from local categories
-      setLocalCategories(prev => prev.filter(cat => cat !== categoryName));
+      console.log(`Deleting category "${categoryName}"`);
+      
+      // Remove from custom categories
+      const newCustomCategories = customCategories.filter(cat => cat !== categoryName);
+      saveCustomCategories(newCustomCategories);
 
       toast.success(`Kategori "${categoryName}" berhasil dihapus`);
       setCategoryToDelete(null);
       
-      // Refresh parent data
-      if (onRefreshData) {
-        await onRefreshData();
-      }
+      console.log(`Successfully deleted category "${categoryName}"`);
     } catch (error) {
       console.error('Error deleting category:', error);
       toast.error('Gagal menghapus kategori');
-      
-      // Revert on error
-      setLocalCategories(prev => [...prev, categoryName]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Handle refresh
   const handleForceRefresh = async () => {
-    if (!onRefreshData) return;
-    
     setIsLoading(true);
     try {
-      await onRefreshData();
+      await refreshRecipes();
       toast.success('Data berhasil dimuat ulang');
     } catch (error) {
+      console.error('Error refreshing:', error);
       toast.error('Gagal memuat ulang data');
     } finally {
       setIsLoading(false);
@@ -301,7 +323,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   };
 
   const startEdit = (categoryName: string) => {
-    // Don't allow editing default categories
     if (RECIPE_CATEGORIES.includes(categoryName as any)) {
       toast.warning('Kategori default tidak dapat diubah');
       return;
@@ -316,7 +337,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     setEditName('');
   };
 
-  // Handle escape key to close dialog
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -335,7 +356,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   if (!isOpen) return null;
 
   const totalRecipes = recipes.length;
-  const categorizedRecipes = recipes.filter(recipe => recipe.kategoriResep).length;
+  const categorizedRecipes = recipes.filter(recipe => recipe.kategoriResep?.trim()).length;
   const uncategorizedRecipes = totalRecipes - categorizedRecipes;
 
   return (
@@ -347,8 +368,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-4 h-4 text-gray-600" />
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Tag className="w-4 h-4 text-orange-600" />
                 </div>
                 <div>
                   <CardTitle className="text-xl text-gray-900">
@@ -360,19 +381,16 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Refresh Button */}
-                {onRefreshData && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleForceRefresh}
-                    disabled={isLoading}
-                    className="h-8 w-8 p-0"
-                    title="Muat ulang data"
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleForceRefresh}
+                  disabled={isLoading}
+                  className="h-8 w-8 p-0"
+                  title="Muat ulang data"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
                 <Button
                   variant="ghost"
                   onClick={() => onOpenChange(false)}
@@ -390,74 +408,54 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
               {/* Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-gray-200">
+                <Card className="border-orange-200 bg-orange-50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <ChefHat className="w-4 h-4 text-gray-600" />
+                      <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <ChefHat className="w-4 h-4 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 font-medium">Total Resep</p>
-                        <p className="text-2xl font-semibold text-gray-900">{totalRecipes}</p>
+                        <p className="text-sm text-orange-700 font-medium">Total Resep</p>
+                        <p className="text-2xl font-semibold text-orange-900">{totalRecipes}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-gray-200">
+                <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Tag className="w-4 h-4 text-gray-600" />
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Tag className="w-4 h-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 font-medium">Terkategorisasi</p>
-                        <p className="text-2xl font-semibold text-gray-900">{categorizedRecipes}</p>
+                        <p className="text-sm text-blue-700 font-medium">Terkategorisasi</p>
+                        <p className="text-2xl font-semibold text-blue-900">{categorizedRecipes}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-gray-200">
+                <Card className="border-green-200 bg-green-50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <BarChart3 className="w-4 h-4 text-gray-600" />
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="w-4 h-4 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 font-medium">Total Kategori</p>
-                        <p className="text-2xl font-semibold text-gray-900">{categoryStats.length}</p>
+                        <p className="text-sm text-green-700 font-medium">Total Kategori</p>
+                        <p className="text-2xl font-semibold text-green-900">{categoryStats.length}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Integration Warning */}
-              {!onUpdateRecipeCategory && (
-                <Card className="border-yellow-300 bg-yellow-50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-yellow-900 mb-1">
-                          Mode Terbatas
-                        </h4>
-                        <p className="text-sm text-yellow-800">
-                          Beberapa fitur tidak tersedia karena tidak terhubung dengan sistem resep. 
-                          Pastikan callback functions sudah diimplementasi.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Add New Category */}
               <Card className="border-gray-200">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-gray-600" />
+                    <Plus className="h-5 w-5 text-orange-600" />
                     Tambah Kategori Baru
                   </CardTitle>
                 </CardHeader>
@@ -482,7 +480,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                     <Button
                       onClick={handleAddCategory}
                       disabled={!newCategoryName.trim() || isLoading}
-                      className="bg-gray-900 hover:bg-gray-800"
+                      className="bg-orange-500 hover:bg-orange-600"
                     >
                       {isLoading ? (
                         <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -554,7 +552,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       size="sm"
                                       onClick={() => handleEditCategory(category.name, editName)}
                                       disabled={isLoading}
-                                      className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800"
+                                      className="h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600"
                                     >
                                       <Check className="h-3 w-3" />
                                     </Button>
@@ -582,7 +580,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                   variant={category.count > 0 ? "default" : "secondary"} 
                                   className={
                                     category.count > 0 
-                                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200" 
+                                      ? "bg-orange-100 text-orange-700 hover:bg-orange-200" 
                                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                   }
                                 >
@@ -614,7 +612,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       variant="ghost"
                                       onClick={() => startEdit(category.name)}
                                       disabled={isLoading}
-                                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                      className="h-8 w-8 p-0 text-gray-600 hover:text-orange-600 hover:bg-orange-50"
                                       title="Edit kategori"
                                     >
                                       <Edit className="h-3 w-3" />
@@ -671,21 +669,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Debug Info */}
-              {process.env.NODE_ENV === 'development' && (
-                <Card className="border-gray-200 bg-gray-50">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Debug Info</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-xs text-gray-600 space-y-1">
-                    <p>Total recipes: {recipes.length}</p>
-                    <p>Categories in data: {categoryStats.length}</p>
-                    <p>Has update callback: {onUpdateRecipeCategory ? 'Yes' : 'No'}</p>
-                    <p>Has refresh callback: {onRefreshData ? 'Yes' : 'No'}</p>
                   </CardContent>
                 </Card>
               )}

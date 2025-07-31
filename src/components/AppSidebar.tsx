@@ -25,7 +25,8 @@ import {
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+// ✅ FIXED: Import useNavigate
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import {
@@ -58,6 +59,8 @@ import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 export function AppSidebar() {
   const location = useLocation();
+  // ✅ FIXED: Initialize useNavigate
+  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { state } = useSidebar();
   
@@ -145,99 +148,83 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ UPDATED: Centered icons with consistent padding and height
-const renderMenuItem = (item, isActive) => {
-  const menuContent = (
-    <Link to={item.url} className="flex items-center w-full h-full">
-      <item.icon className="h-5 w-5 flex-shrink-0" />
-      {!isCollapsed && <span className="ml-3">{item.title}</span>}
-    </Link>
-  );
+  // ✅ FINAL FIX: Use programmatic navigation for collapsed view to ensure centering
+  const renderMenuItem = (item, isActive) => {
+    if (isCollapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Render a standard button that navigates on click */}
+              <SidebarMenuButton
+                onClick={() => navigate(item.url)}
+                isActive={isActive}
+                className="w-full justify-center px-2"
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{item.title}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
 
-  if (isCollapsed) {
+    // For expanded view, use Link for better accessibility and SEO
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive}
-              className={cn(
-                "w-full h-10 flex items-center justify-center px-2", // Fixed height and centered
-                isActive ? "bg-accent text-accent-foreground" : "hover:bg-gray-100"
-              )}
-            >
-              {menuContent}
-            </SidebarMenuButton>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>{item.title}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className="w-full justify-start px-3"
+      >
+        <Link to={item.url} className="flex items-center w-full h-full">
+          <item.icon className="h-5 w-5 flex-shrink-0" />
+          <span className="ml-3">{item.title}</span>
+        </Link>
+      </SidebarMenuButton>
     );
-  }
+  };
 
-  return (
-    <SidebarMenuButton
-      asChild
-      isActive={isActive}
-      className={cn(
-        "w-full h-10 flex items-center justify-start px-3", // Fixed height and left-aligned
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-gray-100"
-      )}
-    >
-      {menuContent}
-    </SidebarMenuButton>
-  );
-};
+  // This function already works correctly
+  const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
+    const buttonContent = (
+      <>
+        <IconComponent className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && <span className="ml-3">{text}</span>}
+      </>
+    );
 
-// ✅ UPDATED: Centered icons with consistent padding and height
-const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => {
-  const buttonContent = (
-    <>
-      <IconComponent className="h-5 w-5 flex-shrink-0" />
-      {!isCollapsed && <span className="ml-3">{text}</span>}
-    </>
-  );
+    if (isCollapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton
+                onClick={onClick}
+                className={cn("w-full justify-center px-2", className)}
+              >
+                {buttonContent}
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{text}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
 
-  if (isCollapsed) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SidebarMenuButton
-              onClick={onClick}
-              className={cn(
-                "w-full h-10 flex items-center justify-center px-2", // Fixed height and centered
-                "hover:bg-gray-100",
-                className
-              )}
-            >
-              {buttonContent}
-            </SidebarMenuButton>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>{text}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <SidebarMenuButton
+        onClick={onClick}
+        className={cn("w-full justify-start px-3", className)}
+      >
+        {buttonContent}
+      </SidebarMenuButton>
     );
-  }
-
-  return (
-    <SidebarMenuButton
-      onClick={onClick}
-      className={cn(
-        "w-full h-10 flex items-center justify-start px-3", // Fixed height and left-aligned
-        "hover:bg-gray-100",
-        className
-      )}
-    >
-      {buttonContent}
-    </SidebarMenuButton>
-  );
-};
+  };
 
   return (
     <Sidebar 

@@ -12,6 +12,9 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
+// ✅ NEW: Import Recipe Provider untuk Order Integration
+import { RecipeProvider } from "@/contexts/RecipeContext";
+
 // Impor Komponen Aplikasi
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import EmailAuthPage from "@/components/EmailAuthPage";
@@ -40,7 +43,7 @@ const WarehousePage = React.lazy(() =>
   import("@/components/warehouse/WarehousePage")
 );
 
-// ✅ NEW: Order Management dengan struktur modular baru
+// ✅ UPDATE: Order Management dengan Recipe Integration
 const OrdersPage = React.lazy(() => 
   import("@/components/orders/components/OrdersPage")
 );
@@ -97,7 +100,7 @@ const RecipePageLoader = () => (
     </div>
 );
 
-// ✅ NEW: Enhanced loading khusus untuk Order Management
+// ✅ ENHANCED: Order Page Loader dengan Recipe Integration indicator
 const OrderPageLoader = () => (
     <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="flex flex-col items-center gap-4">
@@ -109,7 +112,7 @@ const OrderPageLoader = () => (
             </div>
             <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Memuat Manajemen Pesanan</p>
-                <p className="text-xs text-gray-500 mt-1">Sedang menyiapkan data pesanan...</p>
+                <p className="text-xs text-gray-500 mt-1">🍳 Menghubungkan dengan data resep...</p>
             </div>
         </div>
     </div>
@@ -210,7 +213,7 @@ const RecipeErrorFallback = () => {
     );
 };
 
-// ✅ NEW: Specialized error boundary untuk Order Management
+// ✅ ENHANCED: Order Error Fallback dengan Recipe context info
 const OrderErrorFallback = () => {
     const navigate = useNavigate();
     return (
@@ -226,7 +229,8 @@ const OrderErrorFallback = () => {
                         Gagal Memuat Manajemen Pesanan
                     </h3>
                     <p className="text-gray-600 mb-6 max-w-md">
-                        Terjadi kesalahan saat memuat halaman pesanan. Pastikan koneksi internet stabil dan coba lagi.
+                        Terjadi kesalahan saat memuat halaman pesanan dengan integrasi resep. 
+                        Pastikan koneksi internet stabil dan coba lagi.
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -322,7 +326,7 @@ const PurchaseErrorFallback = () => {
     );
 };
 
-// Layout Utama Aplikasi
+// ✅ ENHANCED: Layout dengan Recipe Provider Integration
 const AppLayout = () => {
     const isMobile = useIsMobile();
     const { isPaid } = usePaymentContext();
@@ -330,55 +334,59 @@ const AppLayout = () => {
     // Layout untuk Mobile
     if (isMobile) {
         return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-                    <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
-                    <div className="flex items-center space-x-2">
-                        {isPaid && <PaymentStatusIndicator />}
-                        <NotificationBell />
-                        <MobileExportButton />
-                    </div>
-                </header>
-                <main className="flex-1 overflow-auto pb-16">
-                    {/* Melindungi setiap halaman dari error rendering */}
-                    <ErrorBoundary fallback={<RouteErrorFallback />}>
-                        <Outlet />
-                    </ErrorBoundary>
-                </main>
-                <BottomTabBar />
-                {!isPaid && (
-                    <div className="fixed bottom-20 right-4 z-50">
-                        <PaymentStatusIndicator size="lg" />
-                    </div>
-                )}
-            </div>
-        );
-    }
-
-    // Layout untuk Desktop
-    return (
-        <SidebarProvider>
-            <div className="min-h-screen flex w-full bg-background">
-                <AppSidebar />
-                <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
-                    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
-                        <SidebarTrigger className="-ml-1" />
-                        <div className="flex-1" />
-                        <div className="flex items-center space-x-4">
-                            <PaymentStatusIndicator />
-                            <DateTimeDisplay />
+            <RecipeProvider> {/* 🎯 Recipe Provider untuk mobile layout */}
+                <div className="min-h-screen flex flex-col bg-background">
+                    <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+                        <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
+                        <div className="flex items-center space-x-2">
+                            {isPaid && <PaymentStatusIndicator />}
                             <NotificationBell />
+                            <MobileExportButton />
                         </div>
                     </header>
-                    <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+                    <main className="flex-1 overflow-auto pb-16">
                         {/* Melindungi setiap halaman dari error rendering */}
                         <ErrorBoundary fallback={<RouteErrorFallback />}>
                             <Outlet />
                         </ErrorBoundary>
                     </main>
-                </SidebarInset>
-            </div>
-        </SidebarProvider>
+                    <BottomTabBar />
+                    {!isPaid && (
+                        <div className="fixed bottom-20 right-4 z-50">
+                            <PaymentStatusIndicator size="lg" />
+                        </div>
+                    )}
+                </div>
+            </RecipeProvider>
+        );
+    }
+
+    // Layout untuk Desktop
+    return (
+        <RecipeProvider> {/* 🎯 Recipe Provider untuk desktop layout */}
+            <SidebarProvider>
+                <div className="min-h-screen flex w-full bg-background">
+                    <AppSidebar />
+                    <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
+                        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
+                            <SidebarTrigger className="-ml-1" />
+                            <div className="flex-1" />
+                            <div className="flex items-center space-x-4">
+                                <PaymentStatusIndicator />
+                                <DateTimeDisplay />
+                                <NotificationBell />
+                            </div>
+                        </header>
+                        <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+                            {/* Melindungi setiap halaman dari error rendering */}
+                            <ErrorBoundary fallback={<RouteErrorFallback />}>
+                                <Outlet />
+                            </ErrorBoundary>
+                        </main>
+                    </SidebarInset>
+                </div>
+            </SidebarProvider>
+        </RecipeProvider>
     );
 };
 
@@ -405,7 +413,7 @@ const App = () => {
                             {/* Rute Publik */}
                             <Route path="/auth" element={<EmailAuthPage />} />
 
-                            {/* Rute Terproteksi dengan Layout */}
+                            {/* Rute Terproteksi dengan Layout + Recipe Provider */}
                             <Route
                                 element={
                                     <AuthGuard>
@@ -444,7 +452,7 @@ const App = () => {
                                     } 
                                 />
                                 
-                                {/* ✅ NEW: Order Management dengan enhanced loading dan error handling */}
+                                {/* ✅ ENHANCED: Order Management dengan Recipe Integration */}
                                 <Route 
                                     path="pesanan" 
                                     element={

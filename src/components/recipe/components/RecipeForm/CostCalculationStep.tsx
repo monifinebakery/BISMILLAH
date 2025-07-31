@@ -1,10 +1,11 @@
 // src/components/recipe/components/RecipeForm/CostCalculationStep.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Calculator,
   DollarSign,
@@ -15,10 +16,16 @@ import {
   Target,
   BarChart3,
   Info,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Zap,
+  Settings
 } from 'lucide-react';
 import { formatCurrency, formatPercentage, calculateIngredientCost } from '../../services/recipeUtils';
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
+
+// ✅ Import Operational Cost Hook
+import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -28,6 +35,21 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   onUpdate,
   isLoading = false,
 }) => {
+  // ✅ Access Operational Cost Context
+  const { 
+    state: { 
+      overheadCalculation, 
+      loading: overheadLoading, 
+      error: overheadError,
+      isAuthenticated 
+    },
+    actions: { calculateOverhead, setError: clearOverheadError }
+  } = useOperationalCost();
+
+  // Local state for overhead management
+  const [isUsingAutoOverhead, setIsUsingAutoOverhead] = useState(true);
+  const [lastCalculatedOverhead, setLastCalculatedOverhead] = useState<number>(0);
+
   // Calculate costs
   const ingredientCost = calculateIngredientCost(data.bahanResep);
   const totalProductionCost = ingredientCost + (data.biayaTenagaKerja || 0) + (data.biayaOverhead || 0);
@@ -44,6 +66,50 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   const profitPerPiece = sellingPricePerPiece - costPerPiece;
   const profitabilityLevel = (data.marginKeuntunganPersen || 0) >= 30 ? 'high' : 
                            (data.marginKeuntunganPersen || 0) >= 15 ? 'medium' : 'low';
+
+  // ✅ Auto-calculate overhead when ingredients change
+  useEffect(() => {
+    if (isUsingAutoOverhead && isAuthenticated && ingredientCost > 0) {
+      // Calculate overhead based on material cost
+      calculateOverhead(ingredientCost);
+    }
+  }, [ingredientCost, isUsingAutoOverhead, isAuthenticated, calculateOverhead]);
+
+  // ✅ Auto-populate overhead when calculation completes
+  useEffect(() => {
+    if (isUsingAutoOverhead && overheadCalculation?.overhead_per_unit) {
+      const overheadPerUnit = overheadCalculation.overhead_per_unit;
+      const totalOverheadForBatch = overheadPerUnit * (data.jumlahPorsi || 1);
+      
+      // Only update if different from current value
+      if (Math.abs(totalOverheadForBatch - (data.biayaOverhead || 0)) > 0.01) {
+        setLastCalculatedOverhead(overheadPerUnit);
+        onUpdate('biayaOverhead', totalOverheadForBatch);
+      }
+    }
+  }, [overheadCalculation, isUsingAutoOverhead, data.jumlahPorsi, data.biayaOverhead, onUpdate]);
+
+  // Handle manual overhead toggle
+  const handleOverheadModeToggle = () => {
+    if (isUsingAutoOverhead) {
+      // Switching to manual mode
+      setIsUsingAutoOverhead(false);
+    } else {
+      // Switching to auto mode
+      setIsUsingAutoOverhead(true);
+      if (overheadCalculation?.overhead_per_unit) {
+        const totalOverheadForBatch = overheadCalculation.overhead_per_unit * (data.jumlahPorsi || 1);
+        onUpdate('biayaOverhead', totalOverheadForBatch);
+      }
+    }
+  };
+
+  // Handle manual refresh of overhead calculation
+  const handleRefreshOverhead = async () => {
+    if (isAuthenticated) {
+      await calculateOverhead(ingredientCost);
+    }
+  };
 
   const getProfitabilityColor = () => {
     switch (profitabilityLevel) {
@@ -119,6 +185,40 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Users className="h-4 w-4 text-gray-500" />
                   Biaya Tenaga Kerja
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                    <div className="absolute left-0 top-6 hidden group-hover:block z-50">
+                      <div className="bg-gray-900 text-white text-xs rounded-lg py-3 px-4 w-80 shadow-xl border border-gray-700">
+                        <div className="space-y-2">
+                          <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
+                          <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
+                          
+                          <div className="border-t border-gray-700 pt-2">
+                            <p className="text-red-300">❌ Bukan termasuk:</p>
+                            <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
+                            <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
+                          </div>
+                          
+                          <div className="border-t border-gray-700 pt-2">
+                            <p className="text-green-300">✅ Yang dihitung:</p>
+                            <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
+                            <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
+                          </div>
+                          
+                          <div className="border-t border-gray-700 pt-2">
+                            <p className="font-medium text-blue-300">📊 Formula:</p>
+                            <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
+                              (Total Gaji Bulanan Staf Produksi) ÷<br/>
+                              (Total Porsi Diproduksi per Bulan)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="absolute -top-2 left-4">
+                          <div className="w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -142,12 +242,78 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 </p>
               </div>
 
-              {/* Overhead Cost */}
+              {/* ✅ Enhanced Overhead Cost with Auto-Calculate */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Building className="h-4 w-4 text-gray-500" />
-                  Biaya Overhead
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Building className="h-4 w-4 text-gray-500" />
+                    Biaya Overhead
+                  </Label>
+                  
+                  {/* Auto/Manual Toggle */}
+                  <div className="flex items-center gap-2">
+                    {isAuthenticated && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshOverhead}
+                          disabled={overheadLoading}
+                          className="text-xs h-6 px-2"
+                        >
+                          <RefreshCw className={`h-3 w-3 mr-1 ${overheadLoading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={isUsingAutoOverhead ? "default" : "outline"}
+                          size="sm"
+                          onClick={handleOverheadModeToggle}
+                          className="text-xs h-6 px-2"
+                        >
+                          {isUsingAutoOverhead ? (
+                            <>
+                              <Zap className="h-3 w-3 mr-1" />
+                              Auto
+                            </>
+                          ) : (
+                            <>
+                              <Settings className="h-3 w-3 mr-1" />
+                              Manual
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Overhead Calculation Info */}
+                {isUsingAutoOverhead && overheadCalculation && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Auto-calculated from Operational Costs</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-green-600">Overhead per Unit:</span>
+                        <p className="font-semibold text-green-900">
+                          {formatCurrency(overheadCalculation.overhead_per_unit)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-green-600">Total untuk {data.jumlahPorsi} porsi:</span>
+                        <p className="font-semibold text-green-900">
+                          {formatCurrency(overheadCalculation.overhead_per_unit * (data.jumlahPorsi || 1))}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Overhead Input */}
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                     Rp
@@ -156,17 +322,49 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     type="number"
                     min="0"
                     value={data.biayaOverhead || ''}
-                    onChange={(e) => onUpdate('biayaOverhead', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      onUpdate('biayaOverhead', value);
+                      // Switch to manual mode if user edits
+                      if (isUsingAutoOverhead && value !== (overheadCalculation?.overhead_per_unit || 0) * (data.jumlahPorsi || 1)) {
+                        setIsUsingAutoOverhead(false);
+                      }
+                    }}
                     placeholder="0"
-                    className={`pl-8 ${errors.biayaOverhead ? 'border-red-300 focus:border-red-500' : ''}`}
+                    className={`pl-8 ${errors.biayaOverhead ? 'border-red-300 focus:border-red-500' : ''} ${
+                      isUsingAutoOverhead ? 'bg-green-50 border-green-200' : ''
+                    }`}
                     disabled={isLoading}
                   />
                 </div>
+
                 {errors.biayaOverhead && (
                   <p className="text-sm text-red-600">{errors.biayaOverhead}</p>
                 )}
+
+                {/* Error/Warning Messages */}
+                {overheadError && (
+                  <div className="bg-red-50 border border-red-200 rounded p-2">
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {overheadError}
+                    </p>
+                  </div>
+                )}
+
+                {!isAuthenticated && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                    <p className="text-xs text-yellow-700">
+                      Login untuk menggunakan auto-calculate overhead dari biaya operasional
+                    </p>
+                  </div>
+                )}
+
                 <p className="text-xs text-gray-500">
-                  Listrik, gas, sewa tempat, dll. untuk batch ini
+                  {isUsingAutoOverhead 
+                    ? `Dihitung dari biaya operasional per unit × ${data.jumlahPorsi} porsi`
+                    : "Listrik, gas, sewa tempat, dll. untuk batch ini"
+                  }
                 </p>
               </div>
 
@@ -231,7 +429,12 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-purple-700">Biaya Overhead:</span>
+                  <span className="text-sm text-purple-700 flex items-center gap-1">
+                    Biaya Overhead:
+                    {isUsingAutoOverhead && (
+                      <Zap className="h-3 w-3 text-green-600" title="Auto-calculated" />
+                    )}
+                  </span>
                   <span className="font-medium text-purple-900">
                     {formatCurrency(data.biayaOverhead || 0)}
                   </span>
@@ -542,7 +745,12 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full" />
                   <div>
-                    <p className="font-medium">Overhead</p>
+                    <p className="font-medium flex items-center gap-1">
+                      Overhead
+                      {isUsingAutoOverhead && (
+                        <Zap className="h-3 w-3 text-green-600" title="Auto-calculated" />
+                      )}
+                    </p>
                     <p className="text-gray-600">
                       {formatCurrency(data.biayaOverhead || 0)} 
                       ({Math.round(((data.biayaOverhead || 0) / totalProductionCost) * 100)}%)
@@ -555,8 +763,78 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </Card>
       )}
 
+      {/* ✅ Overhead Calculation Details */}
+      {isUsingAutoOverhead && overheadCalculation && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Zap className="h-5 w-5 text-green-600" />
+              Detail Kalkulasi Overhead Otomatis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-700">Total Biaya Operasional:</span>
+                  <span className="font-medium text-green-900">
+                    {formatCurrency(overheadCalculation.total_costs)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-700">Metode Alokasi:</span>
+                  <Badge variant="outline" className="border-green-300 text-green-700">
+                    {overheadCalculation.metode === 'per_unit' ? 'Per Unit' : 'Persentase'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-700">Basis Alokasi:</span>
+                  <span className="font-medium text-green-900">
+                    {overheadCalculation.metode === 'per_unit' 
+                      ? `${overheadCalculation.nilai_basis} unit/bulan`
+                      : `${overheadCalculation.nilai_basis}%`
+                    }
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-700">Overhead per Unit:</span>
+                  <span className="font-bold text-green-900">
+                    {formatCurrency(overheadCalculation.overhead_per_unit)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-700">Untuk {data.jumlahPorsi} porsi:</span>
+                  <span className="font-bold text-green-900">
+                    {formatCurrency(overheadCalculation.overhead_per_unit * (data.jumlahPorsi || 1))}
+                  </span>
+                </div>
+                {overheadCalculation.material_cost && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-700">Basis Bahan Baku:</span>
+                    <span className="font-medium text-green-900">
+                      {formatCurrency(overheadCalculation.material_cost)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-white rounded-lg border border-green-200">
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <Info className="h-3 w-3" />
+                Nilai overhead dihitung otomatis berdasarkan biaya operasional aktif dan pengaturan alokasi.
+                {overheadCalculation.material_cost && " Perhitungan memperhitungkan biaya bahan baku sebagai basis."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Validation Errors */}
-      {(errors.biayaTenagaKerja || errors.biayaOverhead || errors.marginKeuntunganPersen) && (
+      {(errors.biayaTenagaKerja || errors.biayaOverhead || errors.marginKeuntunganPersen || overheadError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -567,12 +845,16 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                   {errors.biayaTenagaKerja && <li>• {errors.biayaTenagaKerja}</li>}
                   {errors.biayaOverhead && <li>• {errors.biayaOverhead}</li>}
                   {errors.marginKeuntunganPersen && <li>• {errors.marginKeuntunganPersen}</li>}
+                  {overheadError && <li>• Overhead: {overheadError}</li>}
                 </ul>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* ✅ Mobile Bottom Navigation Spacer */}
+      <div className="h-20 sm:h-0" aria-hidden="true"></div>
     </div>
   );
 };

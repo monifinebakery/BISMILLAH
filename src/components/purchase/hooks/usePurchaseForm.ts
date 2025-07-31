@@ -1,249 +1,252 @@
-import { useState, useCallback } from 'react';
-import { Purchase, PurchaseItem } from '@/types/supplier';
-import { validateItemForm, ItemFormData } from '../services/purchaseValidators';
-import { generateUUID } from '@/utils/uuid';
-import { toast } from 'sonner';
+// src/components/purchase/hooks/usePurchaseForm.ts
 
-export interface PurchaseFormState {
-  supplier: string;
-  tanggal: Date;
-  items: PurchaseItem[];
-  status: 'pending' | 'completed' | 'cancelled';
+import { useState, useCallback, useEffect } from 'react';
+import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
+import { validatePurchaseForm, ValidationResult } from '../utils/validation';
+import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
+import { usePurchase } from '../context/PurchaseContext';
+
+interface UsePurchaseFormProps {
+  mode: 'create' | 'edit';
+  initialData?: Purchase | null;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
 }
 
-export interface ItemFormState {
-  namaBarang: string;
-  jumlah: number;
-  satuan: string;
-  hargaSatuan: number;
-}
-
-export const usePurchaseForm = (initialData?: Purchase) => {
+interface UsePurchaseFormReturn {
+  // Form data
+  formData: PurchaseFormData;
+  setFormData: (data: PurchaseFormData) => void;
+  
   // Form state
-  const [formData, setFormData] = useState<PurchaseFormState>({
-    supplier: initialData?.supplier || '',
-    tanggal: initialData?.tanggal ? new Date(initialData.tanggal) : new Date(),
-    items: initialData?.items || [],
-    status: (initialData?.status as any) || 'pending',
-  });
+  isSubmitting: boolean;
+  isDirty: boolean;
+  
+  // Validation
+  validation: ValidationResult;
+  validateField: (field: string) => void;
+  
+  // Items management
+  addItem: (item: Omit<PurchaseItem, 'subtotal'>) => void;
+  updateItem: (index: number, item: Partial<PurchaseItem>) => void;
+  removeItem: (index: number) => void;
+  
+  // Form actions
+  handleSubmit: () => Promise<void>;
+  handleReset: () => void;
+  
+  // Calculations
+  totalValue: number;
+}
 
-  // Item form state
-  const [itemForm, setItemForm] = useState<ItemFormState>({
-    namaBarang: '',
-    jumlah: 0,
-    satuan: '',
-    hargaSatuan: 0,
+const defaultFormData: PurchaseFormData = {
+  supplier: '',
+  tanggal: new Date(),
+  items: [],
+  metodePerhitungan: 'FIFO',
+};
+
+export const usePurchaseForm = ({
+  mode,
+  initialData,
+  onSuccess,
+  onError,
+}: UsePurchaseFormProps): UsePurchaseFormReturn => {
+  // Dependencies
+  const { addPurchase, updatePurchase } = usePurchase();
+
+  // Form state
+  const [formData, setFormDataState] = useState<PurchaseFormData>(() => {
+    if (mode === 'edit' && initialData) {
+      return {
+        supplier: initialData.supplier,
+        tanggal: initialData.tanggal,
+        items: initialData.items,
+        metodePerhitungan: initialData.metodePerhitungan,
+      };
+    }
+    return defaultFormData;
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [validation, setValidation] = useState<ValidationResult>({
+    isValid: true,
+    errors: [],
+    warnings: [],
+  });
 
-  /**
-   * Update form field
-   */
-  const updateField = useCallback(<K extends keyof PurchaseFormState>(
-    field: K,
-    value: PurchaseFormState[K]
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  // Calculate total value
+  const totalValue = calculatePurchaseTotal(formData.items);
 
-  /**
-   * Update item form field
-   */
-  const updateItemField = useCallback(<K extends keyof ItemFormState>(
-    field: K,
-    value: ItemFormState[K]
-  ) => {
-    setItemForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
-
-  /**
-   * Auto-fill item form from bahan baku selection
-   */
-  const selectBahanBaku = useCallback((bahanBaku: any) => {
-    setItemForm(prev => ({
-      ...prev,
-      namaBarang: bahanBaku.nama,
-      satuan: bahanBaku.satuan || '',
-      hargaSatuan: bahanBaku.hargaSatuan || 0,
-    }));
-  }, []);
-
-  /**
-   * Add item to purchase
-   */
-  const addItem = useCallback(() => {
-    // Validate item form
-    const validation = validateItemForm(itemForm);
-    if (!validation.isValid) {
-      validation.errors.forEach(error => toast.error(error));
-      return false;
-    }
-
-    const newItem: PurchaseItem = {
-      id: generateUUID(),
-      namaBarang: itemForm.namaBarang,
-      jumlah: itemForm.jumlah,
-      satuan: itemForm.satuan,
-      hargaSatuan: itemForm.hargaSatuan,
-      totalHarga: itemForm.jumlah * itemForm.hargaSatuan,
-    };
-
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, newItem],
-    }));
-
-    // Reset item form
-    setItemForm({
-      namaBarang: '',
-      jumlah: 0,
-      satuan: '',
-      hargaSatuan: 0,
-    });
-
-    toast.success('Item berhasil ditambahkan.');
-    return true;
-  }, [itemForm]);
-
-  /**
-   * Remove item from purchase
-   */
-  const removeItem = useCallback((itemId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.filter(item => item.id !== itemId),
-    }));
-    toast.success('Item berhasil dihapus.');
-  }, []);
-
-  /**
-   * Update existing item
-   */
-  const updateItem = useCallback((itemId: string, updatedItem: Partial<PurchaseItem>) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.map(item => {
-        if (item.id === itemId) {
-          const updated = { ...item, ...updatedItem };
-          // Recalculate total if quantity or price changed
-          if (updatedItem.jumlah !== undefined || updatedItem.hargaSatuan !== undefined) {
-            updated.totalHarga = updated.jumlah * updated.hargaSatuan;
-          }
-          return updated;
-        }
-        return item;
-      }),
-    }));
-  }, []);
-
-  /**
-   * Calculate total purchase value
-   */
-  const calculateTotal = useCallback(() => {
-    return formData.items.reduce((sum, item) => sum + item.totalHarga, 0);
-  }, [formData.items]);
-
-  /**
-   * Reset form to initial state
-   */
-  const resetForm = useCallback(() => {
-    setFormData({
-      supplier: initialData?.supplier || '',
-      tanggal: initialData?.tanggal ? new Date(initialData.tanggal) : new Date(),
-      items: initialData?.items || [],
-      status: (initialData?.status as any) || 'pending',
-    });
-    setItemForm({
-      namaBarang: '',
-      jumlah: 0,
-      satuan: '',
-      hargaSatuan: 0,
-    });
-    setIsSubmitting(false);
-  }, [initialData]);
-
-  /**
-   * Load existing purchase data
-   */
-  const loadPurchase = useCallback((purchase: Purchase) => {
-    setFormData({
-      supplier: purchase.supplier,
-      tanggal: purchase.tanggal instanceof Date ? purchase.tanggal : new Date(purchase.tanggal),
-      items: purchase.items || [],
-      status: purchase.status as any,
-    });
-  }, []);
-
-  /**
-   * Check if form has changes
-   */
-  const hasChanges = useCallback(() => {
-    if (!initialData) return formData.items.length > 0 || formData.supplier !== '';
+  // Update form data with side effects
+  const setFormData = useCallback((data: PurchaseFormData) => {
+    setFormDataState(data);
+    setIsDirty(true);
     
-    return (
-      formData.supplier !== initialData.supplier ||
-      formData.tanggal.getTime() !== new Date(initialData.tanggal).getTime() ||
-      formData.status !== initialData.status ||
-      JSON.stringify(formData.items) !== JSON.stringify(initialData.items)
-    );
-  }, [formData, initialData]);
+    // Auto-validate on change
+    const validationResult = validatePurchaseForm(data);
+    setValidation(validationResult);
+  }, []);
 
-  /**
-   * Get form validation errors
-   */
-  const getValidationErrors = useCallback(() => {
-    const errors: string[] = [];
-
-    if (!formData.supplier.trim()) {
-      errors.push('Supplier wajib dipilih');
-    }
-
-    if (formData.items.length === 0) {
-      errors.push('Minimal satu item wajib ditambahkan');
-    }
-
-    return errors;
+  // Validate specific field
+  const validateField = useCallback((field: string) => {
+    const validationResult = validatePurchaseForm(formData);
+    setValidation(validationResult);
   }, [formData]);
 
-  /**
-   * Check if form is valid
-   */
-  const isFormValid = useCallback(() => {
-    return getValidationErrors().length === 0;
-  }, [getValidationErrors]);
+  // Items management
+  const addItem = useCallback((item: Omit<PurchaseItem, 'subtotal'>) => {
+    const newItem: PurchaseItem = {
+      ...item,
+      subtotal: calculateItemSubtotal(item.kuantitas, item.hargaSatuan),
+    };
+
+    const newItems = [...formData.items, newItem];
+    const updatedFormData = {
+      ...formData,
+      items: newItems,
+    };
+
+    setFormData(updatedFormData);
+  }, [formData, setFormData]);
+
+  const updateItem = useCallback((index: number, itemUpdate: Partial<PurchaseItem>) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      ...itemUpdate,
+    };
+
+    // Recalculate subtotal if quantity or price changed
+    if (itemUpdate.kuantitas !== undefined || itemUpdate.hargaSatuan !== undefined) {
+      updatedItems[index].subtotal = calculateItemSubtotal(
+        updatedItems[index].kuantitas,
+        updatedItems[index].hargaSatuan
+      );
+    }
+
+    const updatedFormData = {
+      ...formData,
+      items: updatedItems,
+    };
+
+    setFormData(updatedFormData);
+  }, [formData, setFormData]);
+
+  const removeItem = useCallback((index: number) => {
+    const updatedItems = formData.items.filter((_, i) => i !== index);
+    const updatedFormData = {
+      ...formData,
+      items: updatedItems,
+    };
+
+    setFormData(updatedFormData);
+  }, [formData, setFormData]);
+
+  // Form submission
+  const handleSubmit = useCallback(async () => {
+    // Final validation
+    const validationResult = validatePurchaseForm(formData);
+    setValidation(validationResult);
+
+    if (!validationResult.isValid) {
+      onError?.(validationResult.errors[0]);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const purchaseData = {
+        ...formData,
+        totalNilai: totalValue,
+        status: 'pending' as const,
+      };
+
+      let success = false;
+
+      if (mode === 'create') {
+        success = await addPurchase(purchaseData);
+      } else if (mode === 'edit' && initialData) {
+        success = await updatePurchase(initialData.id, purchaseData);
+      }
+
+      if (success) {
+        setIsDirty(false);
+        onSuccess?.();
+      } else {
+        onError?.('Gagal menyimpan pembelian');
+      }
+    } catch (error: any) {
+      console.error('Form submission error:', error);
+      onError?.(error.message || 'Terjadi kesalahan saat menyimpan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, totalValue, mode, addPurchase, updatePurchase, initialData, onSuccess, onError]);
+
+  // Reset form
+  const handleReset = useCallback(() => {
+    if (mode === 'edit' && initialData) {
+      setFormDataState({
+        supplier: initialData.supplier,
+        tanggal: initialData.tanggal,
+        items: initialData.items,
+        metodePerhitungan: initialData.metodePerhitungan,
+      });
+    } else {
+      setFormDataState(defaultFormData);
+    }
+    
+    setIsDirty(false);
+    setValidation({
+      isValid: true,
+      errors: [],
+      warnings: [],
+    });
+  }, [mode, initialData]);
+
+  // Auto-validate on mount and when form data changes
+  useEffect(() => {
+    const validationResult = validatePurchaseForm(formData);
+    setValidation(validationResult);
+  }, [formData]);
+
+  // Update total in form data when items change
+  useEffect(() => {
+    const newTotal = calculatePurchaseTotal(formData.items);
+    if (Math.abs(newTotal - totalValue) > 0.01) {
+      setFormDataState(current => ({
+        ...current,
+        // Note: We don't store totalNilai in formData since it's calculated
+      }));
+    }
+  }, [formData.items, totalValue]);
 
   return {
-    // State
+    // Form data
     formData,
-    itemForm,
+    setFormData,
+    
+    // Form state
     isSubmitting,
-    setIsSubmitting,
-
-    // Form actions
-    updateField,
-    updateItemField,
-    selectBahanBaku,
+    isDirty,
+    
+    // Validation
+    validation,
+    validateField,
+    
+    // Items management
     addItem,
-    removeItem,
     updateItem,
-    resetForm,
-    loadPurchase,
-
-    // Computed values
-    totalValue: calculateTotal(),
-    hasChanges: hasChanges(),
-    isFormValid: isFormValid(),
-    validationErrors: getValidationErrors(),
-
-    // Item form validation
-    isItemFormValid: validateItemForm(itemForm).isValid,
-    itemFormErrors: validateItemForm(itemForm).errors,
+    removeItem,
+    
+    // Form actions
+    handleSubmit,
+    handleReset,
+    
+    // Calculations
+    totalValue,
   };
 };

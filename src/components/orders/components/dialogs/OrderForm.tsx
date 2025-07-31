@@ -1,6 +1,6 @@
-// 🎯 200 lines - Order form dialog dengan semua logika asli
+// 🎯 Enhanced OrderForm dengan Recipe Integration
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator } from 'lucide-react';
+import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+
+// Import Recipe Context dan Types
+import { useRecipe } from '@/contexts/RecipeContext';
+import type { Recipe } from '@/components/recipe/types';
+
+// Import Order Types
 import type { Order, NewOrder, OrderItem } from '../../types';
 import { ORDER_STATUSES, getStatusText } from '../../constants';
 import { validateOrderData } from '../../utils';
@@ -38,6 +58,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
 }) => {
   const isEditMode = !!initialData;
   
+  // Recipe Context
+  const { 
+    recipes, 
+    isLoading: recipesLoading, 
+    searchRecipes,
+    getUniqueCategories 
+  } = useRecipe();
+
   // Form state dengan semua field dari kode asli
   const [formData, setFormData] = useState({
     namaPelanggan: '',
@@ -53,6 +81,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  
+  // Recipe selector states
+  const [isRecipeSelectOpen, setIsRecipeSelectOpen] = useState(false);
+  const [recipeSearchTerm, setRecipeSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Initialize form dengan data existing jika edit mode
   useEffect(() => {
@@ -86,19 +119,62 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }
   }, [initialData, open]);
 
+  // Filter recipes berdasarkan search dan category
+  const filteredRecipes = React.useMemo(() => {
+    let filtered = recipes;
+    
+    if (recipeSearchTerm.trim()) {
+      filtered = searchRecipes(recipeSearchTerm);
+    }
+    
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(recipe => recipe.kategoriResep === selectedCategory);
+    }
+    
+    return filtered.sort((a, b) => a.namaResep.localeCompare(b.namaResep));
+  }, [recipes, recipeSearchTerm, selectedCategory, searchRecipes]);
+
+  // Get unique categories from recipes
+  const availableCategories = React.useMemo(() => {
+    return getUniqueCategories();
+  }, [getUniqueCategories]);
+
   // Update form field
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Add new item
-  const addItem = () => {
+  // Add item from recipe
+  const addItemFromRecipe = (recipe: Recipe) => {
+    const newItem: OrderItem = {
+      id: Date.now().toString(),
+      name: recipe.namaResep,
+      quantity: 1,
+      price: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
+      total: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
+      recipeId: recipe.id, // Link ke recipe
+      recipeCategory: recipe.kategoriResep,
+      isFromRecipe: true,
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+    
+    setIsRecipeSelectOpen(false);
+    toast.success(`${recipe.namaResep} ditambahkan ke pesanan`);
+  };
+
+  // Add custom item (manual input)
+  const addCustomItem = () => {
     const newItem: OrderItem = {
       id: Date.now().toString(),
       name: '',
       quantity: 1,
       price: 0,
       total: 0,
+      isFromRecipe: false,
     };
     setFormData(prev => ({
       ...prev,
@@ -172,7 +248,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -253,28 +329,133 @@ const OrderForm: React.FC<OrderFormProps> = ({
             </div>
           </div>
 
+          <Separator />
+
           {/* Order Items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Item Pesanan</h3>
-              <Button type="button" onClick={addItem} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Tambah Item
-              </Button>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <ChefHat className="h-5 w-5" />
+                Item Pesanan
+              </h3>
+              <div className="flex gap-2">
+                {/* Recipe Selector */}
+                <Popover open={isRecipeSelectOpen} onOpenChange={setIsRecipeSelectOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex items-center gap-2"
+                      disabled={recipesLoading}
+                    >
+                      <ChefHat className="h-4 w-4" />
+                      {recipesLoading ? 'Memuat...' : 'Dari Resep'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <Command>
+                      <div className="flex items-center border-b px-3">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <CommandInput 
+                          placeholder="Cari resep..." 
+                          value={recipeSearchTerm}
+                          onValueChange={setRecipeSearchTerm}
+                        />
+                      </div>
+                      
+                      {/* Category Filter */}
+                      <div className="p-2 border-b">
+                        <Select
+                          value={selectedCategory}
+                          onValueChange={setSelectedCategory}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Semua kategori" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Kategori</SelectItem>
+                            {availableCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <CommandEmpty>Tidak ada resep ditemukan</CommandEmpty>
+                      
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {filteredRecipes.map((recipe) => (
+                          <CommandItem
+                            key={recipe.id}
+                            onSelect={() => addItemFromRecipe(recipe)}
+                            className="flex flex-col items-start gap-1 p-3"
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium">{recipe.namaResep}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                Rp {recipe.hargaJualPorsi?.toLocaleString('id-ID') || 'N/A'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{recipe.kategoriResep}</span>
+                              <span>•</span>
+                              <span>{recipe.jumlahPorsi} porsi</span>
+                              {recipe.hppPerPorsi > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span>HPP: Rp {recipe.hppPerPorsi.toLocaleString('id-ID')}</span>
+                                </>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Manual Item */}
+                <Button 
+                  type="button" 
+                  onClick={addCustomItem} 
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Item Manual
+                </Button>
+              </div>
             </div>
             
             {formData.items.length > 0 ? (
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 p-4 border rounded-lg">
+                  <div key={item.id} className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
                     <div className="flex-1">
-                      <Input
-                        placeholder="Nama item"
-                        value={item.name}
-                        onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                      />
+                      <div className="flex items-center gap-2 mb-2">
+                        <Input
+                          placeholder="Nama item"
+                          value={item.name}
+                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                          disabled={item.isFromRecipe}
+                          className={item.isFromRecipe ? 'bg-blue-50' : ''}
+                        />
+                        {item.isFromRecipe && (
+                          <Badge variant="outline" className="text-blue-600 border-blue-200">
+                            <ChefHat className="h-3 w-3 mr-1" />
+                            Resep
+                          </Badge>
+                        )}
+                        {item.recipeCategory && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.recipeCategory}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="w-24">
+                      <Label className="text-xs text-gray-500">Qty</Label>
                       <Input
                         type="number"
                         placeholder="Qty"
@@ -284,6 +465,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       />
                     </div>
                     <div className="w-32">
+                      <Label className="text-xs text-gray-500">Harga</Label>
                       <Input
                         type="number"
                         placeholder="Harga"
@@ -292,8 +474,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         min="0"
                       />
                     </div>
-                    <div className="w-32 text-right font-semibold">
-                      Rp {item.total.toLocaleString('id-ID')}
+                    <div className="w-32 text-right">
+                      <Label className="text-xs text-gray-500">Total</Label>
+                      <div className="font-semibold text-lg">
+                        Rp {item.total.toLocaleString('id-ID')}
+                      </div>
                     </div>
                     <Button
                       type="button"
@@ -308,33 +493,38 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                Belum ada item. Klik "Tambah Item" untuk menambahkan item pesanan.
+              <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">
+                <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p className="mb-2">Belum ada item dalam pesanan</p>
+                <p className="text-sm">Pilih dari resep yang ada atau tambah item manual</p>
               </div>
             )}
           </div>
 
           {/* Order Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-              <Calculator className="h-5 w-5" />
-              Ringkasan Pesanan
-            </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Pajak (10%):</span>
-                <span>Rp {formData.pajak.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Total:</span>
-                <span>Rp {formData.totalPesanan.toLocaleString('id-ID')}</span>
+          {formData.items.length > 0 && (
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg border">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <Calculator className="h-5 w-5" />
+                Ringkasan Pesanan
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal ({formData.items.length} item):</span>
+                  <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>Pajak (10%):</span>
+                  <span>Rp {formData.pajak.toLocaleString('id-ID')}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-xl text-orange-600">
+                  <span>Total Pesanan:</span>
+                  <span>Rp {formData.totalPesanan.toLocaleString('id-ID')}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Catatan */}
           <div>
@@ -361,7 +551,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
             <Button
               type="submit"
               disabled={loading || formData.items.length === 0}
-              className="min-w-[120px]"
+              className="min-w-[120px] bg-orange-500 hover:bg-orange-600"
             >
               {loading ? 'Menyimpan...' : (isEditMode ? 'Update Pesanan' : 'Buat Pesanan')}
             </Button>

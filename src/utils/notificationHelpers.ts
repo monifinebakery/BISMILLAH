@@ -1,270 +1,293 @@
-// utils/notificationHelpers.ts
+// utils/notificationHelpers.ts - PRODUCTION READY VERSION
 import { Notification } from '@/contexts/NotificationContext';
 
 type NotificationInput = Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 
 /**
  * Helper functions to create standardized notification templates
- * for consistent messaging across the application
+ * Enhanced with proper error handling and validation
  */
 export const createNotificationHelper = {
   // === ORDER NOTIFICATIONS ===
   
-  orderCreated: (orderId: string, orderNumber: string, customerName: string): NotificationInput => ({
-    title: '🛍️ Pesanan Baru Dibuat!',
-    message: `Pesanan #${orderNumber} dari ${customerName} berhasil dibuat`,
-    type: 'success',
-    icon: 'shopping-cart',
-    priority: 2,
-    related_id: orderId,
-    related_type: 'order',
-    action_url: '/orders',
-    is_read: false,
-    is_archived: false
-  }),
+  orderCreated: (orderId: string, orderNumber: string, customerName: string): NotificationInput => {
+    const safeOrderNumber = String(orderNumber || 'N/A');
+    const safeCustomerName = String(customerName || 'Pelanggan');
+    
+    return {
+      title: '🛍️ Pesanan Baru Dibuat!',
+      message: `Pesanan #${safeOrderNumber} dari ${safeCustomerName} berhasil dibuat`,
+      type: 'success',
+      icon: 'shopping-cart',
+      priority: 2,
+      related_id: String(orderId || ''),
+      related_type: 'order',
+      action_url: '/orders',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  orderStatusChanged: (orderId: string, orderNumber: string, oldStatus: string, newStatus: string): NotificationInput => ({
-    title: '📝 Status Pesanan Diubah',
-    message: `Pesanan #${orderNumber} dari "${oldStatus}" menjadi "${newStatus}"`,
-    type: 'info',
-    icon: 'refresh-cw',
-    priority: 2,
-    related_id: orderId,
-    related_type: 'order',
-    action_url: '/orders',
-    is_read: false,
-    is_archived: false
-  }),
+  orderStatusChanged: (orderId: string, orderNumber: string, oldStatus: string, newStatus: string): NotificationInput => {
+    const safeOrderNumber = String(orderNumber || 'N/A');
+    const safeOldStatus = String(oldStatus || 'Unknown');
+    const safeNewStatus = String(newStatus || 'Unknown');
+    
+    return {
+      title: '📝 Status Pesanan Diubah',
+      message: `Pesanan #${safeOrderNumber} dari "${safeOldStatus}" menjadi "${safeNewStatus}"`,
+      type: 'info',
+      icon: 'refresh-cw',
+      priority: 2,
+      related_id: String(orderId || ''),
+      related_type: 'order',
+      action_url: '/orders',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  orderCompleted: (orderId: string, orderNumber: string, revenue: number): NotificationInput => ({
-    title: '🎉 Pesanan Selesai!',
-    message: `Pesanan #${orderNumber} telah selesai. Revenue Rp ${revenue.toLocaleString()} tercatat`,
-    type: 'success',
-    icon: 'check-circle',
-    priority: 2,
-    related_id: orderId,
-    related_type: 'order',
-    action_url: '/orders',
-    is_read: false,
-    is_archived: false
-  }),
+  orderCompleted: (orderId: string, orderNumber: string, revenue: number): NotificationInput => {
+    const safeOrderNumber = String(orderNumber || 'N/A');
+    const safeRevenue = Number(revenue) || 0;
+    
+    return {
+      title: '🎉 Pesanan Selesai!',
+      message: `Pesanan #${safeOrderNumber} telah selesai. Revenue Rp ${safeRevenue.toLocaleString('id-ID')} tercatat`,
+      type: 'success',
+      icon: 'check-circle',
+      priority: 2,
+      related_id: String(orderId || ''),
+      related_type: 'order',
+      action_url: '/orders',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  orderDeleted: (orderNumber: string, customerName: string): NotificationInput => ({
-    title: '🗑️ Pesanan Dihapus',
-    message: `Pesanan #${orderNumber} dari ${customerName} telah dihapus`,
-    type: 'warning',
-    icon: 'trash-2',
-    priority: 2,
-    related_type: 'order',
-    action_url: '/orders',
-    is_read: false,
-    is_archived: false
-  }),
+  orderDeleted: (orderNumber: string, customerName: string): NotificationInput => {
+    const safeOrderNumber = String(orderNumber || 'N/A');
+    const safeCustomerName = String(customerName || 'Pelanggan');
+    
+    return {
+      title: '🗑️ Pesanan Dihapus',
+      message: `Pesanan #${safeOrderNumber} dari ${safeCustomerName} telah dihapus`,
+      type: 'warning',
+      icon: 'trash-2',
+      priority: 2,
+      related_type: 'order',
+      action_url: '/orders',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
   // === PURCHASE NOTIFICATIONS ===
 
-  purchaseCreated: (purchaseId: string, supplierName: string, totalValue: number, itemCount: number): NotificationInput => ({
-    title: '📦 Pembelian Baru Dibuat!',
-    message: `Pembelian dari ${supplierName} senilai Rp ${totalValue.toLocaleString()} dengan ${itemCount} item berhasil dibuat`,
-    type: 'success',
-    icon: 'package',
-    priority: 2,
-    related_id: purchaseId,
-    related_type: 'purchase',
-    action_url: '/purchases',
-    is_read: false,
-    is_archived: false
-  }),
+  purchaseCreated: (purchaseId: string, supplierName: string, totalValue: number, itemCount: number): NotificationInput => {
+    const safeSupplierName = String(supplierName || 'Supplier');
+    const safeTotalValue = Number(totalValue) || 0;
+    const safeItemCount = Number(itemCount) || 0;
+    
+    return {
+      title: '📦 Pembelian Baru Dibuat!',
+      message: `Pembelian dari ${safeSupplierName} senilai Rp ${safeTotalValue.toLocaleString('id-ID')} dengan ${safeItemCount} item berhasil dibuat`,
+      type: 'success',
+      icon: 'package',
+      priority: 2,
+      related_id: String(purchaseId || ''),
+      related_type: 'purchase',
+      action_url: '/purchases',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  purchaseCompleted: (purchaseId: string, supplierName: string, totalValue: number): NotificationInput => ({
-    title: '✅ Pembelian Selesai!',
-    message: `Pembelian dari ${supplierName} senilai Rp ${totalValue.toLocaleString()} telah selesai dan pengeluaran tercatat`,
-    type: 'success',
-    icon: 'check-circle',
-    priority: 2,
-    related_id: purchaseId,
-    related_type: 'purchase',
-    action_url: '/purchases',
-    is_read: false,
-    is_archived: false
-  }),
+  purchaseCompleted: (purchaseId: string, supplierName: string, totalValue: number): NotificationInput => {
+    const safeSupplierName = String(supplierName || 'Supplier');
+    const safeTotalValue = Number(totalValue) || 0;
+    
+    return {
+      title: '✅ Pembelian Selesai!',
+      message: `Pembelian dari ${safeSupplierName} senilai Rp ${safeTotalValue.toLocaleString('id-ID')} telah selesai dan stok warehouse diperbarui`,
+      type: 'success',
+      icon: 'check-circle',
+      priority: 2,
+      related_id: String(purchaseId || ''),
+      related_type: 'purchase',
+      action_url: '/purchases',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  purchaseStatusChanged: (purchaseId: string, supplierName: string, oldStatus: string, newStatus: string): NotificationInput => ({
-    title: '📝 Status Pembelian Diubah',
-    message: `Pembelian dari ${supplierName} diubah dari "${oldStatus}" menjadi "${newStatus}"`,
-    type: 'info',
-    icon: 'refresh-cw',
-    priority: 2,
-    related_id: purchaseId,
-    related_type: 'purchase',
-    action_url: '/purchases',
-    is_read: false,
-    is_archived: false
-  }),
+  purchaseStatusChanged: (purchaseId: string, supplierName: string, oldStatus: string, newStatus: string): NotificationInput => {
+    const safeSupplierName = String(supplierName || 'Supplier');
+    const safeOldStatus = String(oldStatus || 'Unknown');
+    const safeNewStatus = String(newStatus || 'Unknown');
+    
+    return {
+      title: '📝 Status Pembelian Diubah',
+      message: `Pembelian dari ${safeSupplierName} diubah dari "${safeOldStatus}" menjadi "${safeNewStatus}"`,
+      type: 'info',
+      icon: 'refresh-cw',
+      priority: 2,
+      related_id: String(purchaseId || ''),
+      related_type: 'purchase',
+      action_url: '/purchases',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  purchaseDeleted: (supplierName: string, totalValue: number): NotificationInput => ({
-    title: '🗑️ Pembelian Dihapus',
-    message: `Pembelian dari ${supplierName} senilai Rp ${totalValue.toLocaleString()} telah dihapus`,
-    type: 'warning',
-    icon: 'trash-2',
-    priority: 2,
-    related_type: 'purchase',
-    action_url: '/purchases',
-    is_read: false,
-    is_archived: false
-  }),
+  purchaseDeleted: (supplierName: string, totalValue: number): NotificationInput => {
+    const safeSupplierName = String(supplierName || 'Supplier');
+    const safeTotalValue = Number(totalValue) || 0;
+    
+    return {
+      title: '🗑️ Pembelian Dihapus',
+      message: `Pembelian dari ${safeSupplierName} senilai Rp ${safeTotalValue.toLocaleString('id-ID')} telah dihapus`,
+      type: 'warning',
+      icon: 'trash-2',
+      priority: 2,
+      related_type: 'purchase',
+      action_url: '/purchases',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
   // === INVENTORY NOTIFICATIONS ===
 
-  lowStock: (itemName: string, currentStock: number, minStock: number): NotificationInput => ({
-    title: '⚠️ Stok Menipis!',
-    message: `${itemName} tersisa ${currentStock} dari minimum ${minStock}. Pertimbangkan untuk melakukan pembelian.`,
-    type: 'warning',
-    icon: 'alert-triangle',
-    priority: 3,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  lowStock: (itemName: string, currentStock: number, minStock: number): NotificationInput => {
+    const safeItemName = String(itemName || 'Item Tidak Dikenal');
+    const safeCurrentStock = Number(currentStock) || 0;
+    const safeMinStock = Number(minStock) || 0;
+    
+    return {
+      title: '⚠️ Stok Menipis!',
+      message: `${safeItemName} tersisa ${safeCurrentStock} dari minimum ${safeMinStock}. Pertimbangkan untuk melakukan pembelian.`,
+      type: 'warning',
+      icon: 'alert-triangle',
+      priority: 3,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  outOfStock: (itemName: string): NotificationInput => ({
-    title: '🚫 Stok Habis!',
-    message: `${itemName} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
-    type: 'error',
-    icon: 'alert-circle',
-    priority: 4,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  outOfStock: (itemName: string): NotificationInput => {
+    const safeItemName = String(itemName || 'Item Tidak Dikenal');
+    
+    return {
+      title: '🚫 Stok Habis!',
+      message: `${safeItemName} sudah habis. Segera lakukan pembelian untuk menghindari gangguan produksi.`,
+      type: 'error',
+      icon: 'alert-circle',
+      priority: 4,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  stockIncreased: (itemName: string, increase: number, unit: string, totalStock: number): NotificationInput => ({
-    title: '📈 Stok Ditambahkan',
-    message: `${itemName} bertambah ${increase} ${unit}. Total stok sekarang ${totalStock} ${unit}`,
-    type: 'success',
-    icon: 'trending-up',
-    priority: 1,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  stockIncreased: (itemName: string, increase: number, unit: string, totalStock: number): NotificationInput => {
+    const safeItemName = String(itemName || 'Item');
+    const safeIncrease = Number(increase) || 0;
+    const safeUnit = String(unit || 'unit');
+    const safeTotalStock = Number(totalStock) || 0;
+    
+    return {
+      title: '📈 Stok Ditambahkan',
+      message: `${safeItemName} bertambah ${safeIncrease} ${safeUnit}. Total stok sekarang ${safeTotalStock} ${safeUnit}`,
+      type: 'success',
+      icon: 'trending-up',
+      priority: 1,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  stockDecreased: (itemName: string, decrease: number, unit: string, remainingStock: number): NotificationInput => ({
-    title: '📉 Stok Berkurang',
-    message: `${itemName} berkurang ${decrease} ${unit}. Sisa stok ${remainingStock} ${unit}`,
-    type: 'info',
-    icon: 'trending-down',
-    priority: 1,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  stockDecreased: (itemName: string, decrease: number, unit: string, remainingStock: number): NotificationInput => {
+    const safeItemName = String(itemName || 'Item');
+    const safeDecrease = Number(decrease) || 0;
+    const safeUnit = String(unit || 'unit');
+    const safeRemainingStock = Number(remainingStock) || 0;
+    
+    return {
+      title: '📉 Stok Berkurang',
+      message: `${safeItemName} berkurang ${safeDecrease} ${safeUnit}. Sisa stok ${safeRemainingStock} ${safeUnit}`,
+      type: 'info',
+      icon: 'trending-down',
+      priority: 1,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  itemAdded: (itemName: string, initialStock: number, unit: string, totalValue: number): NotificationInput => ({
-    title: '📦 Item Baru Ditambahkan!',
-    message: `${itemName} berhasil ditambahkan dengan stok ${initialStock} ${unit} dan nilai Rp ${totalValue.toLocaleString()}`,
-    type: 'success',
-    icon: 'package',
-    priority: 2,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  itemAdded: (itemName: string, initialStock: number, unit: string, totalValue: number): NotificationInput => {
+    const safeItemName = String(itemName || 'Item Baru');
+    const safeInitialStock = Number(initialStock) || 0;
+    const safeUnit = String(unit || 'unit');
+    const safeTotalValue = Number(totalValue) || 0;
+    
+    return {
+      title: '📦 Item Baru Ditambahkan!',
+      message: `${safeItemName} berhasil ditambahkan dengan stok ${safeInitialStock} ${safeUnit} dan nilai Rp ${safeTotalValue.toLocaleString('id-ID')}`,
+      type: 'success',
+      icon: 'package',
+      priority: 2,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  itemDeleted: (itemName: string): NotificationInput => ({
-    title: '🗑️ Item Dihapus',
-    message: `${itemName} telah dihapus dari inventory`,
-    type: 'warning',
-    icon: 'trash-2',
-    priority: 2,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
-
-  expiringSoon: (itemName: string, daysLeft: number): NotificationInput => ({
-    title: '⏰ Akan Expired',
-    message: `${itemName} akan expired dalam ${daysLeft} hari. Pertimbangkan untuk menggunakannya terlebih dahulu.`,
-    type: 'warning',
-    icon: 'calendar',
-    priority: 3,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
-
-  expiringCritical: (itemName: string, daysLeft: number, potentialLoss: number): NotificationInput => ({
-    title: '🔥 Segera Expired!',
-    message: `${itemName} akan expired dalam ${daysLeft} hari! Gunakan segera atau akan mengalami kerugian Rp ${potentialLoss.toLocaleString()}.`,
-    type: 'error',
-    icon: 'calendar',
-    priority: 4,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
-
-  insufficientStock: (itemName: string, requested: number, available: number, unit: string): NotificationInput => ({
-    title: '⚠️ Stok Tidak Cukup',
-    message: `${itemName} hanya tersisa ${available} ${unit}, tidak cukup untuk dikurangi ${requested}`,
-    type: 'warning',
-    icon: 'alert-triangle',
-    priority: 3,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
-
-  itemNotFound: (itemName: string): NotificationInput => ({
-    title: '❌ Item Tidak Ditemukan',
-    message: `Bahan baku "${itemName}" tidak ditemukan saat mencoba mengurangi stok`,
-    type: 'error',
-    icon: 'alert-circle',
-    priority: 3,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
-
-  bulkDeleteInventory: (itemCount: number, itemNames: string[]): NotificationInput => ({
-    title: '🗑️ Bulk Delete Inventory',
-    message: `${itemCount} item berhasil dihapus dari inventory (${itemNames.join(', ').substring(0, 50)}${itemNames.length > 3 ? '...' : ''})`,
-    type: 'warning',
-    icon: 'trash-2',
-    priority: 2,
-    related_type: 'inventory',
-    action_url: '/inventory',
-    is_read: false,
-    is_archived: false
-  }),
+  expiringSoon: (itemName: string, daysLeft: number): NotificationInput => {
+    const safeItemName = String(itemName || 'Item');
+    const safeDaysLeft = Number(daysLeft) || 0;
+    
+    return {
+      title: '⏰ Akan Expired',
+      message: `${safeItemName} akan expired dalam ${safeDaysLeft} hari. Pertimbangkan untuk menggunakannya terlebih dahulu.`,
+      type: 'warning',
+      icon: 'calendar',
+      priority: 3,
+      related_type: 'inventory',
+      action_url: '/warehouse',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
   // === SYSTEM NOTIFICATIONS ===
 
-  systemError: (errorMessage: string): NotificationInput => ({
-    title: '❌ Terjadi Kesalahan Sistem',
-    message: errorMessage,
-    type: 'error',
-    icon: 'alert-circle',
-    priority: 4,
-    related_type: 'system',
-    is_read: false,
-    is_archived: false,
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-  }),
+  systemError: (errorMessage: string): NotificationInput => {
+    const safeErrorMessage = String(errorMessage || 'Terjadi kesalahan yang tidak diketahui');
+    
+    return {
+      title: '❌ Terjadi Kesalahan Sistem',
+      message: safeErrorMessage.length > 100 ? safeErrorMessage.substring(0, 100) + '...' : safeErrorMessage,
+      type: 'error',
+      icon: 'alert-circle',
+      priority: 4,
+      related_type: 'system',
+      is_read: false,
+      is_archived: false,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+    };
+  },
 
   backupSuccess: (): NotificationInput => ({
     title: '✅ Backup Berhasil',
-    message: 'Data aplikasi berhasil di-backup ke cloud',
+    message: 'Data aplikasi berhasil di-backup ke cloud storage',
     type: 'success',
     icon: 'check-circle',
     priority: 1,
@@ -273,140 +296,54 @@ export const createNotificationHelper = {
     is_archived: false
   }),
 
-  backupFailed: (reason: string): NotificationInput => ({
-    title: '❌ Backup Gagal',
-    message: `Backup gagal: ${reason}. Silakan coba lagi.`,
-    type: 'error',
-    icon: 'alert-circle',
-    priority: 3,
-    related_type: 'system',
-    is_read: false,
-    is_archived: false
-  }),
+  backupFailed: (reason: string): NotificationInput => {
+    const safeReason = String(reason || 'Alasan tidak diketahui');
+    
+    return {
+      title: '❌ Backup Gagal',
+      message: `Backup gagal: ${safeReason}. Silakan coba lagi nanti.`,
+      type: 'error',
+      icon: 'alert-circle',
+      priority: 3,
+      related_type: 'system',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  maintenanceMode: (duration: string): NotificationInput => ({
-    title: '🔧 Mode Maintenance',
-    message: `Sistem akan maintenance selama ${duration}. Harap simpan pekerjaan Anda.`,
-    type: 'warning',
-    icon: 'alert-triangle',
-    priority: 4,
-    related_type: 'system',
-    is_read: false,
-    is_archived: false,
-    expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString() // 8 hours
-  }),
+  dailySummary: (ordersCount: number, revenue: number): NotificationInput => {
+    const safeOrdersCount = Number(ordersCount) || 0;
+    const safeRevenue = Number(revenue) || 0;
+    
+    return {
+      title: '📊 Ringkasan Harian',
+      message: `Hari ini: ${safeOrdersCount} pesanan dengan total revenue Rp ${safeRevenue.toLocaleString('id-ID')}`,
+      type: 'info',
+      icon: 'calendar',
+      priority: 1,
+      related_type: 'system',
+      action_url: '/dashboard',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
-  dailySummary: (ordersCount: number, revenue: number): NotificationInput => ({
-    title: '📊 Ringkasan Harian',
-    message: `Hari ini: ${ordersCount} pesanan dengan total revenue Rp ${revenue.toLocaleString()}`,
-    type: 'info',
-    icon: 'calendar',
-    priority: 1,
-    related_type: 'system',
-    action_url: '/dashboard',
-    is_read: false,
-    is_archived: false
-  }),
-
-  weeklySummary: (ordersCount: number, newCustomers: number): NotificationInput => ({
-    title: '📈 Ringkasan Mingguan',
-    message: `Minggu ini: ${ordersCount} pesanan, ${newCustomers} pelanggan baru`,
-    type: 'info',
-    icon: 'calendar',
-    priority: 1,
-    related_type: 'system',
-    action_url: '/reports',
-    is_read: false,
-    is_archived: false
-  }),
-
-  monthlyReport: (month: string): NotificationInput => ({
-    title: '📈 Laporan Bulanan Siap',
-    message: `Laporan bulan ${month} telah selesai dibuat dan siap untuk ditinjau`,
-    type: 'info',
-    icon: 'calendar',
-    priority: 2,
-    related_type: 'system',
-    action_url: '/reports',
-    is_read: false,
-    is_archived: false
-  }),
-
-  // === FINANCIAL NOTIFICATIONS ===
-
-  financialRecordCreated: (type: 'income' | 'expense', amount: number, description: string): NotificationInput => ({
-    title: type === 'income' ? '💰 Pemasukan Dicatat' : '💸 Pengeluaran Dicatat',
-    message: `${description} - Rp ${amount.toLocaleString()}`,
-    type: 'success',
-    icon: type === 'income' ? 'trending-up' : 'trending-down',
-    priority: 2,
-    related_type: 'system',
-    action_url: '/financial',
-    is_read: false,
-    is_archived: false
-  }),
-
-  budgetAlert: (category: string, spent: number, budget: number, percentage: number): NotificationInput => ({
-    title: '⚠️ Mendekati Budget Limit',
-    message: `${category}: Rp ${spent.toLocaleString()} dari Rp ${budget.toLocaleString()} (${percentage}%)`,
-    type: 'warning',
-    icon: 'alert-triangle',
-    priority: 3,
-    related_type: 'system',
-    action_url: '/financial',
-    is_read: false,
-    is_archived: false
-  }),
-
-  budgetExceeded: (category: string, spent: number, budget: number): NotificationInput => ({
-    title: '🚫 Budget Terlampaui!',
-    message: `${category}: Rp ${spent.toLocaleString()} melebihi budget Rp ${budget.toLocaleString()}`,
-    type: 'error',
-    icon: 'alert-circle',
-    priority: 4,
-    related_type: 'system',
-    action_url: '/financial',
-    is_read: false,
-    is_archived: false
-  }),
-
-  // === SUPPLIER NOTIFICATIONS ===
-
-  supplierAdded: (supplierName: string): NotificationInput => ({
-    title: '🏪 Supplier Baru Ditambahkan',
-    message: `${supplierName} berhasil ditambahkan ke daftar supplier`,
-    type: 'success',
-    icon: 'user-plus',
-    priority: 2,
-    related_type: 'system',
-    action_url: '/suppliers',
-    is_read: false,
-    is_archived: false
-  }),
-
-  supplierUpdated: (supplierName: string): NotificationInput => ({
-    title: '📝 Info Supplier Diperbarui',
-    message: `Informasi ${supplierName} berhasil diperbarui`,
-    type: 'info',
-    icon: 'edit',
-    priority: 1,
-    related_type: 'system',
-    action_url: '/suppliers',
-    is_read: false,
-    is_archived: false
-  }),
-
-  supplierDeleted: (supplierName: string): NotificationInput => ({
-    title: '🗑️ Supplier Dihapus',
-    message: `${supplierName} telah dihapus dari daftar supplier`,
-    type: 'warning',
-    icon: 'trash-2',
-    priority: 2,
-    related_type: 'system',
-    action_url: '/suppliers',
-    is_read: false,
-    is_archived: false
-  }),
+  weeklySummary: (ordersCount: number, newCustomers: number): NotificationInput => {
+    const safeOrdersCount = Number(ordersCount) || 0;
+    const safeNewCustomers = Number(newCustomers) || 0;
+    
+    return {
+      title: '📈 Ringkasan Mingguan',
+      message: `Minggu ini: ${safeOrdersCount} pesanan, ${safeNewCustomers} pelanggan baru`,
+      type: 'info',
+      icon: 'calendar',
+      priority: 1,
+      related_type: 'system',
+      action_url: '/reports',
+      is_read: false,
+      is_archived: false
+    };
+  },
 
   // === CUSTOM NOTIFICATIONS ===
 
@@ -419,31 +356,41 @@ export const createNotificationHelper = {
     actionUrl?: string,
     relatedType?: 'order' | 'purchase' | 'inventory' | 'system',
     relatedId?: string
-  ): NotificationInput => ({
-    title,
-    message,
-    type,
-    icon,
-    priority,
-    related_type: relatedType,
-    related_id: relatedId,
-    action_url: actionUrl,
-    is_read: false,
-    is_archived: false
-  }),
+  ): NotificationInput => {
+    const safeTitle = String(title || 'Notifikasi');
+    const safeMessage = String(message || 'Tidak ada pesan');
+    const safeIcon = String(icon || 'bell');
+    
+    return {
+      title: safeTitle.length > 50 ? safeTitle.substring(0, 50) + '...' : safeTitle,
+      message: safeMessage.length > 200 ? safeMessage.substring(0, 200) + '...' : safeMessage,
+      type,
+      icon: safeIcon,
+      priority,
+      related_type: relatedType,
+      related_id: relatedId ? String(relatedId) : undefined,
+      action_url: actionUrl,
+      is_read: false,
+      is_archived: false
+    };
+  },
 
   // === WELCOME & ONBOARDING ===
 
-  welcome: (userName?: string): NotificationInput => ({
-    title: '🎉 Selamat Datang!',
-    message: `${userName ? `Halo ${userName}! ` : ''}Sistem notifikasi Anda sudah aktif dan siap digunakan.`,
-    type: 'success',
-    icon: 'welcome',
-    priority: 2,
-    related_type: 'system',
-    is_read: false,
-    is_archived: false
-  })
+  welcome: (userName?: string): NotificationInput => {
+    const safeUserName = userName ? String(userName) : null;
+    
+    return {
+      title: '🎉 Selamat Datang!',
+      message: `${safeUserName ? `Halo ${safeUserName}! ` : ''}Sistem notifikasi Anda sudah aktif dan siap digunakan.`,
+      type: 'success',
+      icon: 'welcome',
+      priority: 2,
+      related_type: 'system',
+      is_read: false,
+      is_archived: false
+    };
+  }
 };
 
 // Utility functions untuk notification management
@@ -481,17 +428,36 @@ export const notificationUtils = {
    * Check if notification is expiring
    */
   isExpiring: (notification: Notification): boolean => {
-    if (!notification.expires_at) return false;
-    return new Date(notification.expires_at) < new Date();
+    try {
+      if (!notification.expires_at) return false;
+      return new Date(notification.expires_at) < new Date();
+    } catch {
+      return false;
+    }
   },
 
   /**
    * Get time until expiry in hours
    */
   getHoursUntilExpiry: (notification: Notification): number => {
-    if (!notification.expires_at) return Infinity;
-    const now = new Date().getTime();
-    const expiry = new Date(notification.expires_at).getTime();
-    return Math.ceil((expiry - now) / (1000 * 60 * 60));
+    try {
+      if (!notification.expires_at) return Infinity;
+      const now = new Date().getTime();
+      const expiry = new Date(notification.expires_at).getTime();
+      return Math.ceil((expiry - now) / (1000 * 60 * 60));
+    } catch {
+      return Infinity;
+    }
+  },
+
+  /**
+   * Validate notification data
+   */
+  validateNotification: (notification: Partial<NotificationInput>): boolean => {
+    if (!notification.title || typeof notification.title !== 'string') return false;
+    if (!notification.message || typeof notification.message !== 'string') return false;
+    if (!['info', 'success', 'warning', 'error'].includes(notification.type || '')) return false;
+    if (!notification.priority || ![1, 2, 3, 4].includes(notification.priority)) return false;
+    return true;
   }
 };

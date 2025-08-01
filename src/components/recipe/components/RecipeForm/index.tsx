@@ -20,7 +20,7 @@ import { logger } from '@/utils/logger';
 // Form components
 import BasicInfoStep from './BasicInfoStep';
 import IngredientsStep from './IngredientsStep';
-import CostCalculationStep from './CostCalculationStep';
+import CostCalculationStep from './CostCalculationStep/index';
 
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';

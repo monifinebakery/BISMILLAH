@@ -9,10 +9,8 @@ import { BreakdownChart } from './components/BreakdownChart';
 import { CostValidationAlert } from './components/shared/ValidationAlert';
 import { useCostCalculation } from './hooks/useCostCalculation';
 import { useOverheadManagement } from './hooks/useOverheadManagement';
+import { calculateIngredientCost } from './utils/calculations';
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
-
-// Import original utility function as fallback - fix path
-import { calculateIngredientCost as originalCalculateIngredientCost, formatCurrency as originalFormatCurrency } from '../../../services/recipeUtils';
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -27,14 +25,9 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   console.log('CostCalculationStep data:', data);
   console.log('Recipe ingredients:', data.bahanResep);
   
-  // Try to calculate ingredient cost with original function as fallback
-  let ingredientCost = 0;
-  try {
-    ingredientCost = originalCalculateIngredientCost(data.bahanResep);
-    console.log('Original ingredient cost calculation:', ingredientCost);
-  } catch (error) {
-    console.error('Error calculating ingredient cost:', error);
-  }
+  // Calculate ingredient cost with enhanced function
+  const ingredientCost = calculateIngredientCost(data.bahanResep || []);
+  console.log('Calculated ingredient cost:', ingredientCost);
 
   // Main cost calculation hook
   const {
@@ -46,13 +39,11 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     isDataValid,
   } = useCostCalculation(data);
 
-  // Override ingredient cost if original calculation worked
-  if (ingredientCost > 0) {
-    costBreakdown.ingredientCost = ingredientCost;
-    costBreakdown.totalProductionCost = ingredientCost + costBreakdown.laborCost + costBreakdown.overheadCost;
-    costBreakdown.costPerPortion = data.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / data.jumlahPorsi : 0;
-    costBreakdown.costPerPiece = data.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / data.jumlahPcsPerPorsi : 0;
-  }
+  // Override ingredient cost with our enhanced calculation
+  costBreakdown.ingredientCost = ingredientCost;
+  costBreakdown.totalProductionCost = ingredientCost + costBreakdown.laborCost + costBreakdown.overheadCost;
+  costBreakdown.costPerPortion = data.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / data.jumlahPorsi : 0;
+  costBreakdown.costPerPiece = data.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / data.jumlahPcsPerPorsi : 0;
 
   // Overhead management for auto-calculation
   const overheadManagement = useOverheadManagement({
@@ -146,6 +137,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   );
 };
 
+import { formatCurrency } from './utils/formatters';
+
 // Overhead Details Card Component
 interface OverheadDetailsCardProps {
   overheadCalculation: any;
@@ -156,8 +149,6 @@ const OverheadDetailsCard: React.FC<OverheadDetailsCardProps> = ({
   overheadCalculation,
   jumlahPorsi,
 }) => {
-  const { formatCurrency } = require('../utils/formatters');
-  
   return (
     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
       <div className="flex items-center gap-2 mb-3">

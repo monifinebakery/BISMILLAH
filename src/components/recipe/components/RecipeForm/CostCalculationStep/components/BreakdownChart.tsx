@@ -4,7 +4,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap } from 'lucide-react';
 import { useResponsiveTooltip } from '../hooks/useResponsiveTooltip';
-import { formatCurrency, getCostDistribution, getDominantCostComponent } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
+import { getCostDistribution, getDominantCostComponent } from '../utils/calculations';
 import type { CostBreakdown } from '../utils/types';
 
 interface BreakdownChartProps {

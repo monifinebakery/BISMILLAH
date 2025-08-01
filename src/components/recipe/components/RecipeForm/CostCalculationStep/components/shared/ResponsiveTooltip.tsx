@@ -20,6 +20,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
 }) => {
   const { isMobile, showTooltip, toggleTooltip, hideTooltip } = useResponsiveTooltip();
 
+  // Mobile version
   if (isMobile) {
     return (
       <div className="relative">
@@ -32,13 +33,10 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
         
         {showTooltip && (
           <>
-            {/* Overlay */}
             <div 
               className="fixed inset-0 bg-black bg-opacity-20 z-40"
               onClick={hideTooltip}
             />
-            
-            {/* Mobile Tooltip Modal */}
             <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 max-w-xs w-11/12">
               <div className="bg-gray-900 text-white text-sm rounded-lg p-4 shadow-xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-200">
                 {content}
@@ -56,49 +54,21 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
     );
   }
 
-  // Desktop tooltip
-  const getTooltipPosition = () => {
-    const baseClasses = "absolute z-50 hidden group-hover:block";
-    
-    switch (side) {
-      case 'top':
-        return `${baseClasses} bottom-full mb-2 ${
-          align === 'start' ? 'left-0' : 
-          align === 'end' ? 'right-0' : 
-          'left-1/2 transform -translate-x-1/2'
-        }`;
-      case 'bottom':
-        return `${baseClasses} top-full mt-2 ${
-          align === 'start' ? 'left-0' : 
-          align === 'end' ? 'right-0' : 
-          'left-1/2 transform -translate-x-1/2'
-        }`;
-      case 'left':
-        return `${baseClasses} right-full mr-2 ${
-          align === 'start' ? 'top-0' : 
-          align === 'end' ? 'bottom-0' : 
-          'top-1/2 transform -translate-y-1/2'
-        }`;
-      case 'right':
-        return `${baseClasses} left-full ml-2 ${
-          align === 'start' ? 'top-0' : 
-          align === 'end' ? 'bottom-0' : 
-          'top-1/2 transform -translate-y-1/2'
-        }`;
-      default:
-        return `${baseClasses} bottom-full mb-2 left-1/2 transform -translate-x-1/2`;
-    }
-  };
-
-  const getArrowPosition = () => {
-    switch (side) {
-      case 'top':
-        return `absolute top-full ${
-          align === 'start' ? 'left-2' : 
-          align === 'end' ? 'right-2' : 
-          'left-1/2 transform -translate-x-1/2'
-        }`;
-      case 'bottom':
-        return `absolute bottom-full ${
-          align === 'start' ? 'left-2' : 
-          align === 'end' ?
+  // Desktop version
+  return (
+    <div className="group relative">
+      <div className={className}>
+        {children}
+      </div>
+      
+      <div className="absolute z-50 hidden group-hover:block bottom-full mb-2 left-1/2 transform -translate-x-1/2">
+        <div className="bg-gray-900 text-white text-sm rounded-lg py-3 px-4 shadow-xl border border-gray-700 max-w-xs animate-in fade-in-0 zoom-in-95 duration-200">
+          {content}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+            <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

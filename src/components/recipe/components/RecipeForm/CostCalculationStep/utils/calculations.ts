@@ -4,13 +4,23 @@ import type { CostCalculationData, CostBreakdown, ProfitAnalysis } from './types
 
 /**
  * Calculate ingredient cost from recipe materials
+ * Compatible with original recipeUtils format
  */
-export const calculateIngredientCost = (bahanResep: CostCalculationData['bahanResep']): number => {
+export const calculateIngredientCost = (bahanResep: any[]): number => {
   if (!bahanResep || bahanResep.length === 0) return 0;
   
   return bahanResep.reduce((total, bahan) => {
-    const jumlah = Number(bahan.jumlah) || 0;
-    const harga = Number(bahan.hargaPerSatuan) || 0;
+    // Handle different possible property names from original code
+    const jumlah = Number(bahan.jumlah || bahan.quantity || 0);
+    const harga = Number(bahan.hargaPerSatuan || bahan.hargaSatuan || bahan.price || bahan.unitPrice || 0);
+    
+    console.log('Ingredient calculation:', { 
+      nama: bahan.namaBahan || bahan.name, 
+      jumlah, 
+      harga, 
+      subtotal: jumlah * harga 
+    }); // Debug log
+    
     return total + (jumlah * harga);
   }, 0);
 };

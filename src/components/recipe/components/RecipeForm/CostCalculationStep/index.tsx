@@ -11,6 +11,9 @@ import { useCostCalculation } from './hooks/useCostCalculation';
 import { useOverheadManagement } from './hooks/useOverheadManagement';
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
 
+// Import original utility function as fallback
+import { calculateIngredientCost as originalCalculateIngredientCost } from '../../services/recipeUtils';
+
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
 const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
@@ -19,6 +22,20 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   onUpdate,
   isLoading = false,
 }) => {
+  
+  // Debug: Check data structure
+  console.log('CostCalculationStep data:', data);
+  console.log('Recipe ingredients:', data.bahanResep);
+  
+  // Try to calculate ingredient cost with original function as fallback
+  let ingredientCost = 0;
+  try {
+    ingredientCost = originalCalculateIngredientCost(data.bahanResep);
+    console.log('Original ingredient cost calculation:', ingredientCost);
+  } catch (error) {
+    console.error('Error calculating ingredient cost:', error);
+  }
+
   // Main cost calculation hook
   const {
     costBreakdown,
@@ -28,6 +45,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     totalRevenue,
     isDataValid,
   } = useCostCalculation(data);
+
+  // Override ingredient cost if original calculation worked
+  if (ingredientCost > 0) {
+    costBreakdown.ingredientCost = ingredientCost;
+    costBreakdown.totalProductionCost = ingredientCost + costBreakdown.laborCost + costBreakdown.overheadCost;
+    costBreakdown.costPerPortion = data.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / data.jumlahPorsi : 0;
+    costBreakdown.costPerPiece = data.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / data.jumlahPcsPerPorsi : 0;
+  }
 
   // Overhead management for auto-calculation
   const overheadManagement = useOverheadManagement({

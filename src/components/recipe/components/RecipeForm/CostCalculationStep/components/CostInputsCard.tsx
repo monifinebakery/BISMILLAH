@@ -118,7 +118,34 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
               Biaya Tenaga Kerja
-              <ResponsiveTooltip content={laborTooltipContent}>
+              <ResponsiveTooltip 
+                content={
+                  <div className="space-y-2">
+                    <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
+                    <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="text-red-300">❌ Bukan termasuk:</p>
+                      <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
+                      <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="text-green-300">✅ Yang dihitung:</p>
+                      <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
+                      <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="font-medium text-blue-300">📊 Formula:</p>
+                      <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
+                        (Total Gaji Bulanan Staf Produksi) ÷<br/>
+                        (Total Porsi Diproduksi per Bulan)
+                      </p>
+                    </div>
+                  </div>
+                }
+              >
                 <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
               </ResponsiveTooltip>
             </Label>
@@ -150,6 +177,34 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Building className="h-4 w-4 text-gray-500" />
                 Biaya Overhead
+                <ResponsiveTooltip 
+                  content={
+                    <div className="space-y-2">
+                      <p className="font-semibold text-purple-300">🏢 Biaya Overhead:</p>
+                      <p className="leading-relaxed">Biaya tidak langsung yang diperlukan untuk menjalankan operasional produksi tapi tidak terkait langsung dengan bahan baku atau tenaga kerja.</p>
+                      
+                      <div className="border-t border-gray-700 pt-2">
+                        <p className="text-green-300">✅ Termasuk:</p>
+                        <p className="text-gray-300 text-xs ml-4">• Listrik, gas, air</p>
+                        <p className="text-gray-300 text-xs ml-4">• Sewa tempat/kitchen</p>
+                        <p className="text-gray-300 text-xs ml-4">• Peralatan & maintenance</p>
+                        <p className="text-gray-300 text-xs ml-4">• Asuransi, ijin usaha</p>
+                      </div>
+                      
+                      <div className="border-t border-gray-700 pt-2">
+                        <p className="font-medium text-blue-300">🤖 Mode Auto:</p>
+                        <p className="text-gray-300 text-xs">Dihitung otomatis dari data biaya operasional yang sudah diinput di menu Biaya Operasional.</p>
+                      </div>
+                      
+                      <div className="border-t border-gray-700 pt-2">
+                        <p className="font-medium text-orange-300">✋ Mode Manual:</p>
+                        <p className="text-gray-300 text-xs">Input manual berdasarkan estimasi atau data aktual overhead untuk batch produksi ini.</p>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                </ResponsiveTooltip>
               </Label>
               
               {/* Auto/Manual Toggle */}
@@ -268,6 +323,38 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-gray-500" />
               Margin Keuntungan (%)
+              <ResponsiveTooltip 
+                content={
+                  <div className="space-y-2">
+                    <p className="font-semibold text-green-300">📈 Margin Keuntungan:</p>
+                    <p className="leading-relaxed">Persentase keuntungan yang diinginkan dari total biaya produksi (HPP). Ini akan menentukan harga jual produk Anda.</p>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="font-medium text-blue-300">📊 Contoh Perhitungan:</p>
+                      <p className="text-xs bg-gray-800 p-2 rounded mt-1">
+                        HPP: Rp 10.000<br/>
+                        Margin: 30%<br/>
+                        Keuntungan: Rp 3.000<br/>
+                        <span className="text-green-300">Harga Jual: Rp 13.000</span>
+                      </p>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="text-yellow-300">💡 Rekomendasi Margin:</p>
+                      <p className="text-gray-300 text-xs ml-4">• <span className="text-red-300">10-15%</span>: Rendah, risiko rugi</p>
+                      <p className="text-gray-300 text-xs ml-4">• <span className="text-yellow-300">15-30%</span>: Wajar untuk F&B</p>
+                      <p className="text-gray-300 text-xs ml-4">• <span className="text-green-300">30%+</span>: Ideal, sustainable</p>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="font-medium text-purple-300">🎯 Tips:</p>
+                      <p className="text-gray-300 text-xs">Pertimbangkan harga kompetitor dan daya beli target market saat menentukan margin.</p>
+                    </div>
+                  </div>
+                }
+              >
+                <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </ResponsiveTooltip>
             </Label>
             <div className="relative">
               <Input

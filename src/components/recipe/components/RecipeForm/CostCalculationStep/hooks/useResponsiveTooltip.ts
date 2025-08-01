@@ -17,8 +17,12 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
   // Detect mobile device
   useEffect(() => {
     const checkMobile = () => {
-      const isMobileDevice = window.innerWidth < 768 || 'ontouchstart' in window;
+      // More comprehensive mobile detection
+      const isMobileDevice = window.innerWidth < 768 || 
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                           'ontouchstart' in window;
       setIsMobile(isMobileDevice);
+      console.log('Mobile detection:', isMobileDevice); // Debug log
     };
     
     checkMobile();
@@ -31,30 +35,28 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
 
   // Toggle tooltip visibility
   const toggleTooltip = useCallback(() => {
+    console.log('Toggle tooltip clicked, current state:', showTooltip); // Debug log
     setShowTooltip(prev => !prev);
-  }, []);
+  }, [showTooltip]);
 
   // Hide tooltip
   const hideTooltip = useCallback(() => {
+    console.log('Hide tooltip called'); // Debug log
     setShowTooltip(false);
   }, []);
 
   // Show tooltip for a specific duration
   const showTooltipTemporary = useCallback((duration: number = 3000) => {
+    console.log('Show tooltip temporary:', duration); // Debug log
     setShowTooltip(true);
     setTimeout(() => {
       setShowTooltip(false);
     }, duration);
   }, []);
 
-  // Close tooltip when clicking outside (for mobile)
+  // Close tooltip when clicking outside or pressing Escape (for mobile)
   useEffect(() => {
-    if (!isMobile || !showTooltip) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      // This would be handled by the overlay in the component
-      // but we can add logic here if needed
-    };
+    if (!showTooltip) return;
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -62,14 +64,14 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscapeKey);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [isMobile, showTooltip]);
+  }, [showTooltip]);
+
+  console.log('useResponsiveTooltip state:', { isMobile, showTooltip }); // Debug log
 
   return {
     isMobile,

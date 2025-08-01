@@ -49,6 +49,18 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   // Local state for overhead management
   const [isUsingAutoOverhead, setIsUsingAutoOverhead] = useState(true);
   const [lastCalculatedOverhead, setLastCalculatedOverhead] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ✅ Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Calculate costs
   const ingredientCost = calculateIngredientCost(data.bahanResep);
@@ -120,6 +132,66 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     }
   };
 
+  // ✅ Responsive Tooltip Component
+  const ResponsiveTooltip: React.FC<{
+    children: React.ReactNode;
+    content: React.ReactNode;
+    className?: string;
+  }> = ({ children, content, className = "" }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    if (isMobile) {
+      return (
+        <div className="relative group">
+          <div 
+            onClick={() => setShowTooltip(!showTooltip)}
+            className={`cursor-pointer ${className}`}
+          >
+            {children}
+          </div>
+          {showTooltip && (
+            <>
+              {/* Overlay */}
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-20 z-40"
+                onClick={() => setShowTooltip(false)}
+              />
+              {/* Mobile Tooltip */}
+              <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 max-w-xs w-11/12">
+                <div className="bg-gray-900 text-white text-sm rounded-lg p-4 shadow-xl border border-gray-700">
+                  {content}
+                  <button
+                    onClick={() => setShowTooltip(false)}
+                    className="mt-3 w-full bg-gray-800 text-gray-200 py-2 px-3 rounded text-xs hover:bg-gray-700 transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // Desktop tooltip
+    return (
+      <div className="group relative">
+        <div className={className}>
+          {children}
+        </div>
+        <div className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50">
+          <div className="bg-gray-900 text-white text-sm rounded-lg py-3 px-4 shadow-xl border border-gray-700 max-w-xs">
+            {content}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+              <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       
@@ -185,40 +257,36 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Users className="h-4 w-4 text-gray-500" />
                   Biaya Tenaga Kerja
-                  <div className="group relative">
-                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                    <div className="absolute left-0 top-6 hidden group-hover:block z-50">
-                      <div className="bg-gray-900 text-white text-xs rounded-lg py-3 px-4 w-80 shadow-xl border border-gray-700">
-                        <div className="space-y-2">
-                          <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
-                          <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
-                          
-                          <div className="border-t border-gray-700 pt-2">
-                            <p className="text-red-300">❌ Bukan termasuk:</p>
-                            <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
-                            <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
-                          </div>
-                          
-                          <div className="border-t border-gray-700 pt-2">
-                            <p className="text-green-300">✅ Yang dihitung:</p>
-                            <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
-                            <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
-                          </div>
-                          
-                          <div className="border-t border-gray-700 pt-2">
-                            <p className="font-medium text-blue-300">📊 Formula:</p>
-                            <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
-                              (Total Gaji Bulanan Staf Produksi) ÷<br/>
-                              (Total Porsi Diproduksi per Bulan)
-                            </p>
-                          </div>
+                  <ResponsiveTooltip
+                    content={
+                      <div className="space-y-2">
+                        <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
+                        <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
+                        
+                        <div className="border-t border-gray-700 pt-2">
+                          <p className="text-red-300">❌ Bukan termasuk:</p>
+                          <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
+                          <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
                         </div>
-                        <div className="absolute -top-2 left-4">
-                          <div className="w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                        
+                        <div className="border-t border-gray-700 pt-2">
+                          <p className="text-green-300">✅ Yang dihitung:</p>
+                          <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
+                          <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
+                        </div>
+                        
+                        <div className="border-t border-gray-700 pt-2">
+                          <p className="font-medium text-blue-300">📊 Formula:</p>
+                          <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
+                            (Total Gaji Bulanan Staf Produksi) ÷<br/>
+                            (Total Porsi Diproduksi per Bulan)
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    }
+                  >
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </ResponsiveTooltip>
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -296,7 +364,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       <Zap className="h-4 w-4 text-green-600" />
                       <span className="text-sm font-medium text-green-800">Auto-calculated from Operational Costs</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-green-600">Overhead per Unit:</span>
                         <p className="font-semibold text-green-900">
@@ -607,7 +675,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Total Investment */}
             <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -684,7 +752,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </CardContent>
       </Card>
 
-      {/* Cost Breakdown Chart */}
+      {/* ✅ RESPONSIVE Cost Breakdown Chart */}
       {totalProductionCost > 0 && (
         <Card>
           <CardHeader>
@@ -694,23 +762,23 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             <div className="space-y-4">
               
               {/* Visual Cost Distribution */}
-              <div className="flex h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div className="flex h-4 sm:h-6 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className="bg-blue-500 transition-all duration-500"
+                  className="bg-blue-500 transition-all duration-500 hover:bg-blue-600"
                   style={{ 
                     width: `${(ingredientCost / totalProductionCost) * 100}%` 
                   }}
                   title={`Bahan Baku: ${formatCurrency(ingredientCost)}`}
                 />
                 <div 
-                  className="bg-green-500 transition-all duration-500"
+                  className="bg-green-500 transition-all duration-500 hover:bg-green-600"
                   style={{ 
                     width: `${((data.biayaTenagaKerja || 0) / totalProductionCost) * 100}%` 
                   }}
                   title={`Tenaga Kerja: ${formatCurrency(data.biayaTenagaKerja || 0)}`}
                 />
                 <div 
-                  className="bg-purple-500 transition-all duration-500"
+                  className="bg-purple-500 transition-all duration-500 hover:bg-purple-600"
                   style={{ 
                     width: `${((data.biayaOverhead || 0) / totalProductionCost) * 100}%` 
                   }}
@@ -718,46 +786,76 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 />
               </div>
 
-              {/* Legend */}
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                  <div>
-                    <p className="font-medium">Bahan Baku</p>
-                    <p className="text-gray-600">
+              {/* ✅ RESPONSIVE Legend */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                <div className="flex items-center gap-2 p-2 sm:p-0">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900">Bahan Baku</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">
                       {formatCurrency(ingredientCost)} 
-                      ({Math.round((ingredientCost / totalProductionCost) * 100)}%)
+                      <span className="block sm:inline sm:ml-1">
+                        ({Math.round((ingredientCost / totalProductionCost) * 100)}%)
+                      </span>
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  <div>
-                    <p className="font-medium">Tenaga Kerja</p>
-                    <p className="text-gray-600">
+                <div className="flex items-center gap-2 p-2 sm:p-0">
+                  <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900">Tenaga Kerja</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">
                       {formatCurrency(data.biayaTenagaKerja || 0)} 
-                      ({Math.round(((data.biayaTenagaKerja || 0) / totalProductionCost) * 100)}%)
+                      <span className="block sm:inline sm:ml-1">
+                        ({Math.round(((data.biayaTenagaKerja || 0) / totalProductionCost) * 100)}%)
+                      </span>
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full" />
-                  <div>
-                    <p className="font-medium flex items-center gap-1">
+                <div className="flex items-center gap-2 p-2 sm:p-0">
+                  <div className="w-4 h-4 bg-purple-500 rounded-full flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 flex items-center gap-1">
                       Overhead
                       {isUsingAutoOverhead && (
-                        <Zap className="h-3 w-3 text-green-600" title="Auto-calculated" />
+                        <Zap className="h-3 w-3 text-green-600 flex-shrink-0" title="Auto-calculated" />
                       )}
                     </p>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 text-xs sm:text-sm">
                       {formatCurrency(data.biayaOverhead || 0)} 
-                      ({Math.round(((data.biayaOverhead || 0) / totalProductionCost) * 100)}%)
+                      <span className="block sm:inline sm:ml-1">
+                        ({Math.round(((data.biayaOverhead || 0) / totalProductionCost) * 100)}%)
+                      </span>
                     </p>
                   </div>
                 </div>
               </div>
+
+              {/* ✅ Mobile-friendly summary */}
+              {isMobile && (
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-2 text-sm">Ringkasan Biaya</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Biaya Produksi:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(totalProductionCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Komponen Terbesar:</span>
+                      <span className="font-medium text-gray-900">
+                        {ingredientCost >= (data.biayaTenagaKerja || 0) && ingredientCost >= (data.biayaOverhead || 0) 
+                          ? 'Bahan Baku' 
+                          : (data.biayaTenagaKerja || 0) >= (data.biayaOverhead || 0) 
+                            ? 'Tenaga Kerja' 
+                            : 'Overhead'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

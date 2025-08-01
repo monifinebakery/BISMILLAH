@@ -11,8 +11,8 @@ import { useCostCalculation } from './hooks/useCostCalculation';
 import { useOverheadManagement } from './hooks/useOverheadManagement';
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
 
-// Import original utility function as fallback
-import { calculateIngredientCost as originalCalculateIngredientCost } from '../../services/recipeUtils';
+// Import original utility function as fallback - fix path
+import { calculateIngredientCost as originalCalculateIngredientCost, formatCurrency as originalFormatCurrency } from '../../../services/recipeUtils';
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 

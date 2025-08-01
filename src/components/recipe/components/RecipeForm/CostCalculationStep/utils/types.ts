@@ -2,10 +2,15 @@
 
 export interface CostCalculationData {
   bahanResep: Array<{
-    namaBahan: string;
-    jumlah: number;
-    satuan: string;
-    hargaPerSatuan: number;
+    namaBahan?: string;
+    jumlah?: number;
+    quantity?: number; // Alternative property name
+    satuan?: string;
+    hargaPerSatuan?: number;
+    hargaSatuan?: number; // Alternative property name
+    price?: number; // Alternative property name
+    unitPrice?: number; // Alternative property name
+    [key: string]: any; // Allow other properties
   }>;
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;

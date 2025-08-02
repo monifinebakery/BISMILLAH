@@ -28,21 +28,26 @@ export default defineConfig(({ mode, command }) => {
     build: {
       target: 'es2020',
       rollupOptions: {
-        // ✅ EMERGENCY: NO CHUNKING AT ALL
+        // ✅ EMERGENCY FIX: Disable ALL code splitting
         output: {
-          manualChunks: undefined, // Disable all manual chunking
+          manualChunks: () => 'everything', // Force everything into one chunk
+          // ✅ Simplified naming to avoid weird hashes
+          entryFileNames: 'assets/[name].js',
+          chunkFileNames: 'assets/[name].js',
+          assetFileNames: 'assets/[name].[ext]'
         },
         
-        // ✅ ULTRA CLEAN: Only show YOUR code warnings
+        // ✅ Handle dynamic imports more safely
+        external: [],
+        
+        // ✅ Clean warnings
         onwarn(warning, warn) {
           const timestamp = new Date().toISOString();
           
-          // ✅ Only care about app code warnings
           const isAppCode = warning.id && !warning.id.includes('node_modules');
           const criticalWarnings = ['MISSING_EXPORT', 'UNRESOLVED_IMPORT', 'EMPTY_BUNDLE', 'PLUGIN_ERROR'];
           const isCritical = criticalWarnings.includes(warning.code);
           
-          // ✅ Only log and show warnings from YOUR code
           if (isAppCode || isCritical) {
             const logEntry = `${timestamp} - ${warning.code}: ${warning.message}\n`;
             fs.appendFileSync('build-warnings.log', logEntry);
@@ -51,14 +56,11 @@ export default defineConfig(({ mode, command }) => {
             if (warning.id) console.log('   📁', warning.id);
             warn(warning);
           }
-          
-          // ✅ All library warnings are completely ignored
-          // No console spam, no build output spam
         }
       },
       
-      // ✅ Increase chunk size limit - single bundle will be larger
-      chunkSizeWarningLimit: 3000,
+      // ✅ Large chunk size since we're using single bundle
+      chunkSizeWarningLimit: 5000,
       
       minify: 'esbuild',
       sourcemap: mode === 'development',
@@ -72,7 +74,7 @@ export default defineConfig(({ mode, command }) => {
       })
     },
     
-    // ✅ Enhanced dependency optimization - force React bundling
+    // ✅ Enhanced dependency optimization
     optimizeDeps: {
       include: [
         "react", 

@@ -1,0 +1,83 @@
+// src/components/recipe/components/RecipeForm/CostCalculationStep/hooks/useResponsiveTooltip.ts
+
+import { useState, useEffect, useCallback } from 'react';
+
+interface UseResponsiveTooltipReturn {
+  isMobile: boolean;
+  showTooltip: boolean;
+  toggleTooltip: () => void;
+  hideTooltip: () => void;
+  showTooltipTemporary: (duration?: number) => void;
+}
+
+export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      // More comprehensive mobile detection
+      const isMobileDevice = window.innerWidth < 768 || 
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                           'ontouchstart' in window;
+      setIsMobile(isMobileDevice);
+      console.log('Mobile detection:', isMobileDevice); // Debug log
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
+  // Toggle tooltip visibility
+  const toggleTooltip = useCallback(() => {
+    console.log('Toggle tooltip clicked, current state:', showTooltip); // Debug log
+    setShowTooltip(prev => !prev);
+  }, [showTooltip]);
+
+  // Hide tooltip
+  const hideTooltip = useCallback(() => {
+    console.log('Hide tooltip called'); // Debug log
+    setShowTooltip(false);
+  }, []);
+
+  // Show tooltip for a specific duration
+  const showTooltipTemporary = useCallback((duration: number = 3000) => {
+    console.log('Show tooltip temporary:', duration); // Debug log
+    setShowTooltip(true);
+    setTimeout(() => {
+      setShowTooltip(false);
+    }, duration);
+  }, []);
+
+  // Close tooltip when clicking outside or pressing Escape (for mobile)
+  useEffect(() => {
+    if (!showTooltip) return;
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowTooltip(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showTooltip]);
+
+  console.log('useResponsiveTooltip state:', { isMobile, showTooltip }); // Debug log
+
+  return {
+    isMobile,
+    showTooltip,
+    toggleTooltip,
+    hideTooltip,
+    showTooltipTemporary,
+  };
+};

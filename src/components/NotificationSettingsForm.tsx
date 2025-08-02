@@ -79,7 +79,6 @@ const NotificationSettingsForm = () => {
     monthly_reports: true,
     
     // Additional
-    : false,
     reminder_notifications: true,
     security_alerts: true,
     

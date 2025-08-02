@@ -46,7 +46,6 @@ type FormState = {
   monthly_reports: boolean;
   
   // Additional
-  marketing_notifications: boolean;
   reminder_notifications: boolean;
   security_alerts: boolean;
   

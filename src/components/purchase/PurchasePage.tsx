@@ -30,6 +30,7 @@ import {
 const PurchaseTable = React.lazy(() => import('./components/PurchaseTable'));
 const BulkActionsToolbar = React.lazy(() => import('./components/BulkActionsToolbar'));
 const PurchaseDialog = React.lazy(() => import('./components/PurchaseDialog'));
+const PurchaseDetailDialog = React.lazy(() => import('./components/PurchaseDetailDialog'));
 const BulkDeleteDialog = React.lazy(() => import('./components/BulkDeleteDialog'));
 
 // Utils
@@ -79,6 +80,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [showDataWarning, setShowDataWarning] = useState(false);
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [detailPurchase, setDetailPurchase] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   // Calculate stats
   const { stats } = usePurchaseStats(purchases);
@@ -226,6 +229,24 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     setEditingPurchase(null);
   }, []);
 
+  const handleViewDetails = useCallback((purchase: any) => {
+    setDetailPurchase(purchase);
+    setIsDetailDialogOpen(true);
+  }, []);
+
+  const handleCloseDetailDialog = useCallback(() => {
+    setIsDetailDialogOpen(false);
+    setDetailPurchase(null);
+  }, []);
+
+  const handleEditFromDetail = useCallback((purchase: any) => {
+    // Close detail dialog and open edit dialog
+    setDetailPurchase(null);
+    setIsDetailDialogOpen(false);
+    setEditingPurchase(purchase);
+    setIsDialogOpen(true);
+  }, []);
+
   const handleExport = useCallback(() => {
     if (!purchases.length) {
       toast.info('Tidak ada data pembelian untuk di-export');
@@ -345,6 +366,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
               onEdit={handleEditPurchase}
               onStatusChange={updateStatus}
               onDelete={handleDeletePurchase}
+              onViewDetails={handleViewDetails}
               validateStatusChange={validateStatusChange}
             />
           </Suspense>
@@ -367,6 +389,20 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           onClose={handleCloseDialog}
         />
       </Suspense>
+
+      {/* Purchase Detail Dialog */}
+      {detailPurchase && (
+        <Suspense fallback={null}>
+          <PurchaseDetailDialog
+            isOpen={isDetailDialogOpen}
+            purchase={detailPurchase}
+            suppliers={suppliers}
+            bahanBaku={bahanBaku}
+            onClose={handleCloseDetailDialog}
+            onEdit={handleEditFromDetail}
+          />
+        </Suspense>
+      )}
 
       {/* Loading overlay for status updates */}
       {isAnyPurchaseUpdating && (

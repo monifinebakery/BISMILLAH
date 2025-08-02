@@ -1,5 +1,5 @@
 // src/pages/SettingsPage.tsx
-// CLEAN VERSION - NO DEBUG MODE
+// CLEAN VERSION - UPDATED FOR NOTIFICATION COMPATIBILITY
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { toast } from 'sonner';
 import { 
@@ -19,7 +20,10 @@ import {
   MapPin,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  BellRing,
+  Shield,
+  Info
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';
@@ -79,6 +83,7 @@ const SettingsPage = () => {
       const success = await saveSettings(settingsToUpdate);
       if (success) {
         setHasChanges(false);
+        toast.success('Pengaturan bisnis berhasil disimpan');
       }
     } finally {
       setIsSaving(false);
@@ -95,7 +100,7 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
@@ -107,7 +112,7 @@ const SettingsPage = () => {
                 <div>
                   <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
                   <p className="text-orange-100 mt-1">
-                    Kelola informasi bisnis dan preferensi aplikasi Anda
+                    Kelola informasi bisnis, notifikasi, dan preferensi aplikasi Anda
                   </p>
                 </div>
               </div>
@@ -142,10 +147,11 @@ const SettingsPage = () => {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Kolom Kiri: Forms */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Business Information Form */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Kolom Utama: Forms */}
+          <div className="xl:col-span-3 space-y-8">
+            
+            {/* ✅ BUSINESS INFORMATION SECTION */}
             <Card className="shadow-lg border-0 overflow-hidden">
               <CardHeader className="bg-gray-50 border-b">
                 <div className="flex items-center gap-3">
@@ -173,6 +179,7 @@ const SettingsPage = () => {
                     className="h-11 text-base border-gray-300"
                   />
                 </div>
+                
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -185,6 +192,7 @@ const SettingsPage = () => {
                     className="h-11 text-base border-gray-300"
                   />
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -213,6 +221,7 @@ const SettingsPage = () => {
                     />
                   </div>
                 </div>
+                
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
@@ -226,67 +235,176 @@ const SettingsPage = () => {
                     rows={4}
                   />
                 </div>
+
+                {/* Action Buttons for Business Info */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  {hasChanges && (
+                    <Button 
+                      onClick={handleReset}
+                      variant="outline"
+                      className="border-gray-300 hover:bg-gray-50"
+                    >
+                      Batalkan
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={handleSaveChanges}
+                    disabled={!hasChanges || isSaving}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Simpan Info Bisnis
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Notification Settings Form */}
-            <NotificationSettingsForm />
+            {/* ✅ NOTIFICATION SETTINGS SECTION */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <BellRing className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Pengaturan Notifikasi</h2>
+                  <p className="text-gray-600">Atur preferensi notifikasi dan peringatan sistem</p>
+                </div>
+              </div>
+              
+              <NotificationSettingsForm />
+            </div>
+
+            {/* ✅ SECURITY & PRIVACY SECTION (Future) */}
+            <Card className="shadow-lg border-0 overflow-hidden opacity-60">
+              <CardHeader className="bg-gray-50 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <Shield className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Keamanan & Privasi</CardTitle>
+                      <CardDescription>
+                        Pengaturan keamanan akun dan privasi data (Segera Hadir)
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="bg-orange-100 px-3 py-1 rounded-full">
+                    <span className="text-xs font-medium text-orange-700">Coming Soon</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center py-8 text-gray-400">
+                  <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Fitur pengaturan keamanan akan tersedia di update selanjutnya</p>
+                </div>
+              </CardContent>
+            </Card>
 
           </div>
 
-          {/* Kolom Kanan: Sidebar Actions & Preview */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-0">
+          {/* ✅ SIDEBAR: Quick Actions & Info */}
+          <div className="xl:col-span-1 space-y-6">
+            
+            {/* Quick Actions Card */}
+            <Card className="shadow-lg border-0 sticky top-6">
               <CardHeader>
-                <CardTitle>Aksi</CardTitle>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button 
                   onClick={handleSaveChanges}
                   disabled={!hasChanges || isSaving}
-                  className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  size="lg"
                 >
                   {isSaving ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Menyimpan...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
                     </>
                   ) : (
                     <>
-                      <Save className="mr-2 h-5 w-5" />
-                      Simpan Perubahan
+                      <Save className="mr-2 h-4 w-4" />
+                      Save All
                     </>
                   )}
                 </Button>
-                {hasChanges && (
-                  <Button 
-                    onClick={handleReset}
-                    variant="outline"
-                    className="w-full h-10 border-gray-300 hover:bg-gray-50"
-                  >
-                    Batalkan Perubahan
-                  </Button>
-                )}
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm text-gray-700">Status</h4>
+                  <div className="flex items-center gap-2 text-sm">
+                    {hasChanges ? (
+                      <>
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-orange-700">Unsaved changes</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-green-700">All saved</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
+            {/* Tips Card */}
             <Card className="shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
                   <div className="bg-yellow-100 p-2 rounded-lg flex-shrink-0">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <Info className="h-5 w-5 text-yellow-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-yellow-800 mb-2">Tips</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
-                      <li>Informasi ini akan muncul di semua invoice</li>
-                      <li>Pastikan data kontak sudah benar</li>
-                      <li>Alamat sebaiknya ditulis lengkap</li>
+                    <h4 className="font-semibold text-yellow-800 mb-2">Tips Pengaturan</h4>
+                    <ul className="text-sm text-yellow-700 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Informasi bisnis akan muncul di semua invoice</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Aktifkan notifikasi stok rendah untuk monitoring</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Set threshold sesuai dengan kebutuhan bisnis</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Review pengaturan secara berkala</span>
+                      </li>
                     </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Version Info */}
+            <Card className="shadow-lg border-0">
+              <CardContent className="p-4">
+                <div className="text-center text-xs text-gray-500 space-y-1">
+                  <p className="font-medium">Bakery Management System</p>
+                  <p>Version 2.1.0</p>
+                  <p>© 2025 MoniFine</p>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         </div>
       </div>

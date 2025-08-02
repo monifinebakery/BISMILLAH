@@ -90,7 +90,6 @@ const NotificationSettingsForm = () => {
   useEffect(() => {
     if (settings) {
       setFormState({
-        email_notifications: settings.email_notifications ?? true,
         push_notifications: settings.push_notifications ?? true,
         order_notifications: settings.order_notifications ?? true,
         inventory_notifications: settings.inventory_notifications ?? true,

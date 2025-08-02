@@ -59,7 +59,7 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 };
 
 /**
- * ✅ FIXED: Improved OTP sending with better captcha handling
+ * ✅ UPDATED: Better error handling and debugging for database issues
  */
 export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
@@ -78,10 +78,13 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       // Continue anyway
     }
 
-    // ✅ FIXED: Better captcha token handling
-    const otpOptions: any = {
+    // ✅ DEBUGGING: Try different approaches based on error
+    console.log('🔍 Attempting OTP send for:', email);
+    
+    // Method 1: Try with shouldCreateUser = false first (for existing users)
+    let otpOptions: any = {
       channel: 'email',
-      shouldCreateUser: true,
+      shouldCreateUser: false, // ✅ Try existing users first
     };
 
     // Only add captcha token if it's a valid string
@@ -89,34 +92,58 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       otpOptions.captchaToken = captchaToken;
     }
 
-    const { error } = await supabase.auth.signInWithOtp({
+    console.log('🔍 Trying with shouldCreateUser: false');
+    let { error } = await supabase.auth.signInWithOtp({
       email,
       options: otpOptions,
     });
 
-    if (error) {
-      console.error('Email OTP error:', error);
+    // If user doesn't exist, try creating new user
+    if (error && error.message?.includes('User not found')) {
+      console.log('🔍 User not found, trying with shouldCreateUser: true');
+      
+      otpOptions.shouldCreateUser = true;
+      
+      const result = await supabase.auth.signInWithOtp({
+        email,
+        options: otpOptions,
+      });
+      
+      error = result.error;
+    }
 
-      // ✅ IMPROVED: Better error handling
-      if (error.message?.includes('captcha verification process failed')) {
+    if (error) {
+      console.error('📛 Email OTP error:', error);
+      console.error('📛 Error details:', {
+        message: error.message,
+        status: error.status,
+        statusCode: error.__isAuthError ? 'AuthError' : 'Unknown'
+      });
+
+      // ✅ IMPROVED: More specific error handling
+      if (error.message?.includes('Database error saving new user')) {
+        console.error('📛 Database schema issue detected');
+        toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
+      } else if (error.message?.includes('captcha verification process failed')) {
         toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
       } else if (error.message?.includes('email rate limit exceeded') ||
                   error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam 5 menit.');
-      } else if (error.message?.includes('Database error saving new user')) {
-        toast.error('Terjadi kesalahan database. Silakan coba lagi atau hubungi support.');
       } else if (error.message?.includes('Invalid email')) {
         toast.error('Format email tidak valid');
+      } else if (error.message?.includes('User not found')) {
+        toast.error('Email tidak terdaftar dalam sistem');
       } else {
         toast.error(error.message || 'Gagal mengirim kode verifikasi');
       }
       return false;
     }
 
+    console.log('✅ OTP sent successfully');
     toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
     return true;
   } catch (error) {
-    console.error('Error sending email OTP:', error);
+    console.error('📛 Unexpected error in sendEmailOtp:', error);
     toast.error('Terjadi kesalahan jaringan. Silakan periksa koneksi internet Anda.');
     return false;
   }
@@ -171,6 +198,39 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     console.error('Error verifying OTP:', error);
     toast.error('Terjadi kesalahan jaringan saat verifikasi');
     return false;
+  }
+};
+
+/**
+ * ✅ NEW: Check if user exists before attempting OTP
+ */
+export const checkUserExists = async (email: string): Promise<boolean> => {
+  try {
+    // Try to send OTP with shouldCreateUser: false
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        channel: 'email',
+        shouldCreateUser: false,
+      },
+    });
+
+    // If no error, user exists
+    if (!error) {
+      return true;
+    }
+
+    // If "User not found" error, user doesn't exist
+    if (error.message?.includes('User not found')) {
+      return false;
+    }
+
+    // For other errors, assume user might exist
+    console.warn('Unclear user existence check:', error);
+    return true;
+  } catch (error) {
+    console.error('Error checking user existence:', error);
+    return false; // Assume user doesn't exist on error
   }
 };
 

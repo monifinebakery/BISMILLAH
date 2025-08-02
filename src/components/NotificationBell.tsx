@@ -12,8 +12,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
-// 🔧 FIXED: Separate imports
 import { useNotification, type Notification } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -90,42 +88,76 @@ const NotificationBell = () => {
     }
   };
 
-  const displayNotifications = notifications.slice(0, 50);
+  // Show all notifications (removed limit)
+  const displayNotifications = notifications;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 transition-colors" title="Notifikasi">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative hover:bg-gray-100 transition-colors" 
+          title="Notifikasi"
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge variant="destructive" className={cn("absolute -top-1 -right-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-xs font-bold", urgentCount > 0 ? "bg-red-600 animate-pulse" : "bg-orange-500")}>
+            <Badge 
+              variant="destructive" 
+              className={cn(
+                "absolute -top-1 -right-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-xs font-bold", 
+                urgentCount > 0 ? "bg-red-600 animate-pulse" : "bg-orange-500"
+              )}
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-96 p-0 shadow-xl border-gray-200 rounded-lg" align="end" sideOffset={8}>
+      <PopoverContent 
+        className="w-96 p-0 shadow-xl border-gray-200 rounded-lg" 
+        align="end" 
+        sideOffset={8}
+      >
         <div className="bg-white rounded-lg overflow-hidden">
+          {/* Header - Fixed */}
           <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-800">Notifikasi</h3>
-              {unreadCount > 0 && <Badge variant="secondary">{unreadCount} baru</Badge>}
+              {unreadCount > 0 && (
+                <Badge variant="secondary">{unreadCount} baru</Badge>
+              )}
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => refreshNotifications()} className="text-gray-500 hover:text-gray-800 h-8 w-8 p-0" title="Refresh">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => refreshNotifications()} 
+                className="text-gray-500 hover:text-gray-800 h-8 w-8 p-0" 
+                title="Refresh"
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
               {unreadCount > 0 && (
-                <Button variant="link" size="sm" onClick={handleMarkAllAsRead} className="text-blue-600 text-xs px-2 h-8">
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  onClick={handleMarkAllAsRead} 
+                  className="text-blue-600 text-xs px-2 h-8"
+                >
                   Baca Semua
                 </Button>
               )}
             </div>
           </div>
 
+          {/* Content - Scrollable */}
           {isLoading ? (
-            <div className="flex items-center justify-center p-8 text-gray-500"><RefreshCw className="h-5 w-5 animate-spin mr-2" /><span>Memuat...</span></div>
+            <div className="flex items-center justify-center p-8 text-gray-500">
+              <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+              <span>Memuat...</span>
+            </div>
           ) : displayNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
               <Bell className="h-10 w-10 text-gray-300 mb-3" />
@@ -133,29 +165,87 @@ const NotificationBell = () => {
               <p className="text-sm">Notifikasi baru akan muncul di sini.</p>
             </div>
           ) : (
-            <ScrollArea className="max-h-96">
+            // ✅ FIXED: Custom scrollable area
+            <div 
+              className="max-h-96 overflow-y-auto overscroll-contain"
+              style={{ 
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#CBD5E1 #F1F5F9' 
+              }}
+            >
               <div className="divide-y divide-gray-100">
                 {displayNotifications.map((notification) => (
-                  <div key={notification.id} className={cn("group flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer", !notification.is_read && "bg-blue-50/50")} onClick={() => handleNotificationClick(notification)}>
-                    <div className={cn("flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border", getTypeColor(notification.type, notification.priority))}>
+                  <div 
+                    key={notification.id} 
+                    className={cn(
+                      "group flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors", 
+                      !notification.is_read && "bg-blue-50/50"
+                    )} 
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    {/* Icon */}
+                    <div className={cn(
+                      "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border", 
+                      getTypeColor(notification.type, notification.priority)
+                    )}>
                       {getNotificationIcon(notification)}
                     </div>
+                    
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <h4 className={cn("text-sm font-medium truncate", !notification.is_read ? "text-gray-900" : "text-gray-700")}>{notification.title}</h4>
-                          {notification.message && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>}
-                          <time className="text-xs text-gray-500 mt-2 block">{formatRelativeTime(notification.created_at)}</time>
+                          <h4 className={cn(
+                            "text-sm font-medium truncate", 
+                            !notification.is_read ? "text-gray-900" : "text-gray-700"
+                          )}>
+                            {notification.title}
+                          </h4>
+                          {notification.message && (
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                          )}
+                          <time className="text-xs text-gray-500 mt-2 block">
+                            {formatRelativeTime(notification.created_at)}
+                          </time>
                         </div>
+                        
+                        {/* Actions Dropdown */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-gray-400" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-gray-400 transition-opacity" 
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {!notification.is_read && <DropdownMenuItem onClick={(e) => handleAction(e, markAsRead(notification.id), 'Ditandai dibaca')}><Check className="h-4 w-4 mr-2" />Tandai Dibaca</DropdownMenuItem>}
-                            <DropdownMenuItem onClick={(e) => handleAction(e, archiveNotification(notification.id), 'Notifikasi diarsipkan')}><Archive className="h-4 w-4 mr-2" />Arsipkan</DropdownMenuItem>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {!notification.is_read && (
+                              <DropdownMenuItem 
+                                onClick={(e) => handleAction(e, markAsRead(notification.id), 'Ditandai dibaca')}
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Tandai Dibaca
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem 
+                              onClick={(e) => handleAction(e, archiveNotification(notification.id), 'Notifikasi diarsipkan')}
+                            >
+                              <Archive className="h-4 w-4 mr-2" />
+                              Arsipkan
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={(e) => handleAction(e, deleteNotification(notification.id), 'Notifikasi dihapus')} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Hapus</DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => handleAction(e, deleteNotification(notification.id), 'Notifikasi dihapus')} 
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -163,14 +253,10 @@ const NotificationBell = () => {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
-          )}
-
-          {displayNotifications.length > 0 && (
-            <div className="border-t bg-gray-50 p-3 text-center">
-              <Button variant="link" size="sm" onClick={() => { navigate('/notifications'); setIsOpen(false); }} className="text-sm text-blue-600 h-auto">Lihat Semua Notifikasi</Button>
             </div>
           )}
+
+          {/* ✅ REMOVED: Footer with "Lihat Semua Notifikasi" button */}
         </div>
       </PopoverContent>
     </Popover>

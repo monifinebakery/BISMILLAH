@@ -169,14 +169,95 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  // ✅ UPDATED: Handle event type (assume order.payment_status_changed if not specified)
+  // ✅ UPDATED: Handle multiple event types
   const eventType = payload.event || 'order.payment_status_changed';
   
-  if (eventType !== 'order.payment_status_changed') {
-    console.log(`⚠️ Event tidak relevan: ${eventType}`);
+  console.log(`🎪 Processing event: ${eventType}`);
+  
+  // ✅ Handle order.created event (customer submits form on Scalev)
+  if (eventType === 'order.created') {
+    console.log('🆕 New order created from Scalev landing page');
+    
+    const { customerEmail, customerName } = extractCustomerInfo(payload);
+    
+    if (!isValidEmail(customerEmail)) {
+      console.warn('⚠️ Invalid email in order.created, but responding success to Scalev');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Order created but email invalid, skipped DB insert',
+        event_type: eventType
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    
+    // Create initial payment record with 'pending' status
+    const payloadData = payload.data || payload;
+    const insertData = {
+      user_id: null, // Will be linked when user registers
+      email: customerEmail,
+      amount: payloadData.amount || 0,
+      currency: payloadData.currency || 'IDR',
+      order_id: payloadData.order_id || payloadData.id,
+      pg_reference_id: payloadData.reference || payloadData.pg_reference_id,
+      payment_status: 'pending', // Initial status for new orders
+      is_paid: false,
+      payment_method: payloadData.payment_method,
+      sub_payment_method: payloadData.sub_payment_method,
+      financial_entity: payloadData.financial_entity?.name,
+      payment_account_holder: payloadData.payment_account_holder,
+      payment_account_number: payloadData.payment_account_number,
+      business_name: customerName,
+      owner_name: customerName,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    console.log('💾 Creating initial payment record:', insertData);
+    
+    const { data: newRecord, error: insertError } = await supabase
+      .from('user_payments')
+      .insert(insertData)
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('❌ Failed to create payment record:', insertError);
+      // Don't return error to Scalev, just log it
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Order received but DB insert failed',
+        error: insertError.message
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    
+    console.log('✅ Initial payment record created:', newRecord.id);
+    
     return new Response(JSON.stringify({
       success: true,
-      message: `Event '${eventType}' tidak diproses.`,
+      message: 'Order created successfully',
+      data: {
+        id: newRecord.id,
+        order_id: newRecord.order_id,
+        email: newRecord.email,
+        status: newRecord.payment_status
+      }
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+  
+  // ✅ Handle order.payment_status_changed event (payment completed/failed)
+  if (eventType !== 'order.payment_status_changed') {
+    console.log(`⚠️ Event not handled: ${eventType}`);
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Event '${eventType}' received but not processed.`,
       event_type: eventType
     }), {
       status: 200,

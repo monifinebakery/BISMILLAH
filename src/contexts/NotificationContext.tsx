@@ -27,7 +27,6 @@ export interface Notification {
 interface NotificationSettings {
   id?: string;
   user_id: string;
-  email_notifications: boolean;
   push_notifications: boolean;
   inventory_alerts: boolean;
   order_alerts: boolean;

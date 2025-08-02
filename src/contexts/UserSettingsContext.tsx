@@ -1,5 +1,5 @@
 // src/contexts/UserSettingsContext.tsx
-// 🔧 FIXED - Sesuaikan dengan database schema
+// 🔧 FIXED - Tanpa settings_data, gunakan kolom terpisah
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,11 +73,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       logger.context('UserSettingsContext', 'Fetching settings for user:', user.id);
       
-      // 🔧 QUERY SESUAI DATABASE SCHEMA
+      // 🔧 QUERY TANPA settings_data - hanya kolom yang ada di database
       const { data, error } = await supabase
         .from('user_settings')
         .select(`
-          settings_data,
           email,
           business_name,
           owner_name,
@@ -85,7 +84,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         `)
         .eq('user_id', user.id)
         .limit(1)
-        .maybeSingle(); // 🔧 Gunakan maybeSingle() untuk handle null
+        .maybeSingle();
 
       if (error) {
         console.error('[UserSettingsContext] Error fetching settings:', error);
@@ -100,22 +99,21 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (data) {
-        // 🔧 GABUNGKAN DATA DARI KOLOM TERPISAH + JSONB
-        const mergedSettings: UserSettings = { 
-          ...defaultSettings,
-          // Data dari kolom terpisah
+        // 🔧 BUAT SETTINGS DARI KOLOM DATABASE
+        const loadedSettings: UserSettings = { 
+          ...defaultSettings, // Default untuk yang tidak ada di DB
+          // Data dari database
           email: data.email || defaultSettings.email,
           businessName: data.business_name || defaultSettings.businessName,
           ownerName: data.owner_name || defaultSettings.ownerName,
-          // Data dari JSONB settings_data
-          ...(data.settings_data || {}),
           updatedAt: data.updated_at || new Date().toISOString()
         };
         
-        setSettings(mergedSettings);
-        logger.context('UserSettingsContext', 'Settings loaded successfully');
+        setSettings(loadedSettings);
+        logger.context('UserSettingsContext', 'Settings loaded successfully:', loadedSettings);
       } else {
-        // 🔧 JIKA BELUM ADA DATA, CREATE DEFAULT
+        // 🔧 JIKA BELUM ADA DATA, BUAT BARU
+        logger.context('UserSettingsContext', 'No data found, creating default settings');
         await createDefaultSettings();
       }
     } catch (error) {
@@ -129,26 +127,58 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [user, addNotification]);
 
-  // 🔧 FUNCTION UNTUK CREATE DEFAULT SETTINGS
+  // 🔧 FUNCTION UNTUK CREATE DEFAULT SETTINGS (SIMPLIFIED)
   const createDefaultSettings = async () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // 🔧 HANYA INSERT KOLOM YANG ADA DI DATABASE
+      const { data, error } = await supabase
         .from('user_settings')
         .insert({
           user_id: user.id,
-          settings_data: defaultSettings,
           email: user.email || '',
           business_name: defaultSettings.businessName,
           owner_name: defaultSettings.ownerName
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
+        // 🔧 JIKA ERROR KARENA DUPLICATE, COBA FETCH LAGI
+        if (error.code === '23505') {
+          logger.context('UserSettingsContext', 'Data already exists, fetching existing data');
+          // Fetch existing data
+          const { data: existingData, error: fetchError } = await supabase
+            .from('user_settings')
+            .select(`
+              email,
+              business_name,
+              owner_name,
+              updated_at
+            `)
+            .eq('user_id', user.id)
+            .single();
+
+          if (!fetchError && existingData) {
+            const loadedSettings: UserSettings = { 
+              ...defaultSettings,
+              email: existingData.email || defaultSettings.email,
+              businessName: existingData.business_name || defaultSettings.businessName,
+              ownerName: existingData.owner_name || defaultSettings.ownerName,
+              updatedAt: existingData.updated_at || new Date().toISOString()
+            };
+            setSettings(loadedSettings);
+            logger.context('UserSettingsContext', 'Existing settings loaded');
+            return;
+          }
+        }
+        
         console.error('[UserSettingsContext] Error creating default settings:', error);
+        toast.error("Gagal membuat pengaturan default.");
       } else {
         setSettings(defaultSettings);
-        logger.context('UserSettingsContext', 'Default settings created');
+        logger.context('UserSettingsContext', 'Default settings created successfully');
       }
     } catch (error) {
       console.error('[UserSettingsContext] Error in createDefaultSettings:', error);
@@ -174,11 +204,9 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
       
-      // 🔧 SAVE KE DATABASE DENGAN STRUCTURE YANG BENAR
+      // 🔧 SAVE HANYA KOLOM YANG ADA DI DATABASE
       const dbData = {
         user_id: user.id,
-        settings_data: updatedSettings,
-        // Simpan juga di kolom terpisah untuk compatibility
         email: updatedSettings.email,
         business_name: updatedSettings.businessName,
         owner_name: updatedSettings.ownerName,
@@ -234,38 +262,24 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const hasSignificantChanges = (oldSettings: UserSettings, newSettings: Partial<UserSettings>): boolean => {
-    const significantFields = ['businessName', 'ownerName', 'email', 'phone', 'address'];
+    // 🔧 HANYA CEK FIELD YANG DISIMPAN DI DATABASE
+    const significantFields = ['businessName', 'ownerName', 'email'];
     
     return significantFields.some(field => {
       const fieldKey = field as keyof UserSettings;
       return newSettings[fieldKey] !== undefined && 
              newSettings[fieldKey] !== oldSettings[fieldKey];
-    }) || 
-    (newSettings.notifications && 
-     JSON.stringify(newSettings.notifications) !== JSON.stringify(oldSettings.notifications)) ||
-    (newSettings.financialCategories && 
-     JSON.stringify(newSettings.financialCategories) !== JSON.stringify(oldSettings.financialCategories)) ||
-    (newSettings.recipeCategories && 
-     JSON.stringify(newSettings.recipeCategories) !== JSON.stringify(oldSettings.recipeCategories));
+    });
   };
 
   const getUpdateMessage = (newSettings: Partial<UserSettings>): string => {
     if (newSettings.businessName || newSettings.ownerName) {
       return 'Informasi bisnis telah diperbarui';
     }
-    if (newSettings.email || newSettings.phone) {
-      return 'Informasi kontak telah diperbarui';
+    if (newSettings.email) {
+      return 'Email telah diperbarui';
     }
-    if (newSettings.notifications) {
-      return 'Pengaturan notifikasi telah diperbarui';
-    }
-    if (newSettings.financialCategories) {
-      return 'Kategori keuangan telah diperbarui';
-    }
-    if (newSettings.recipeCategories) {
-      return 'Kategori resep telah diperbarui';
-    }
-    return 'Pengaturan aplikasi telah diperbarui';
+    return 'Pengaturan telah diperbarui';
   };
 
   return (

@@ -69,20 +69,37 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('✅ Found customer email:', customerEmail);
     }
     
-    // Method 2: Check specific fields
+    // Method 2: Check specific fields dengan prioritas yang benar
     const emailSources = [
+      // ✅ PRIORITAS TINGGI: Customer/buyer emails
+      payloadData.customer_email,
+      payloadData.buyer_email,
+      payloadData.payer_email,
+      payloadData.user_email,
+      payloadData.client_email,
       payload.customer_email,
       payload.email,
-      payloadData.customer_email,
       payloadData.email,
+      
+      // ✅ MEDIUM PRIORITY: Nested customer info
+      payloadData.customer_info?.email,
+      payloadData.customer?.email,
+      payloadData.buyer?.email,
+      payloadData.payer?.email,
+      payloadData.user?.email,
+      payloadData.billing?.email,
+      payloadData.contact?.email,
+      
+      // ⚠️ LOW PRIORITY: Bisa jadi system email
       payloadData.payment_account_holder,
-      // Check all payment history entries
+      
+      // Check payment history (last resort)
       ...(payloadData.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
     ];
     
-    console.log('📧 All email sources found:', emailSources);
+    console.log('📧 All email sources found (in priority order):', emailSources.filter(Boolean));
     
-    // Take first valid email that's not system email
+    // Take first valid email that's definitely a customer email
     for (const email of emailSources) {
       if (email && 
           email.includes('@') && 
@@ -90,9 +107,13 @@ const handler = async (req: Request): Promise<Response> => {
           !email.includes('@scalev.') &&
           !email.includes('system@') &&
           !email.includes('unknown@') &&
-          !email.includes('fallback@')) {
+          !email.includes('fallback@') &&
+          !email.includes('monifinebakery@') && // ✅ EXCLUDE MERCHANT EMAIL
+          !email.includes('admin@') &&
+          !email.includes('noreply@') &&
+          !email.includes('support@')) {
         customerEmail = email;
-        console.log('✅ Selected email from sources:', customerEmail);
+        console.log('✅ Selected customer email from sources:', customerEmail);
         break;
       }
     }

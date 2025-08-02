@@ -79,7 +79,7 @@ const NotificationSettingsForm = () => {
     monthly_reports: true,
     
     // Additional
-    marketing_notifications: false,
+    : false,
     reminder_notifications: true,
     security_alerts: true,
     
@@ -106,7 +106,6 @@ const NotificationSettingsForm = () => {
         daily_reports: settings.daily_reports ?? false,
         weekly_reports: settings.weekly_reports ?? false,
         monthly_reports: settings.monthly_reports ?? true,
-        marketing_notifications: settings.marketing_notifications ?? false,
         reminder_notifications: settings.reminder_notifications ?? true,
         security_alerts: settings.security_alerts ?? true,
         low_stock_threshold: settings.low_stock_threshold ?? 10,

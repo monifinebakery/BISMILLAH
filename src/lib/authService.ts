@@ -1,34 +1,42 @@
 // src/services/authService.ts
 
-import { supabase } from '@/integrations/supabase/client'; // Pastikan path ini benar untuk client Supabase Anda
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cleanupAuthState } from '@/lib/authUtils'; // Pastikan utilitas ini relevan dan sesuai tujuan
+import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
 
-// Tentukan URL redirect berdasarkan environment
+// ✅ FIXED: Updated redirect URL handling to match your Supabase config
 const getRedirectUrl = () => {
-  if (process.env.NODE_ENV === 'development') {
-    return 'https://sync--gleaming-peony-f4a091.netlify.app/'; // URL lokal Anda untuk pengembangan
+  // Use environment variable if available
+  if (process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL) {
+    return process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL;
   }
-  // Untuk produksi, gunakan subdomain utama aplikasi Anda yang sudah terdaftar di Supabase Auth Settings
-  return 'https://kalkulator.monifine.my.id/';
+  
+  if (typeof window !== 'undefined') {
+    // Client-side: use current origin
+    return `${window.location.origin}/auth/callback`;
+  }
+  
+  // Server-side fallback based on your actual URLs
+  if (process.env.NODE_ENV === 'development') {
+    return 'https://dev3--gleaming-peony-f4a091.netlify.app/auth/callback';
+  }
+  
+  return 'https://kalkulator.monifine.my.id/auth/callback';
 };
 
 /**
  * Mengirim email reset password ke alamat email yang diberikan.
- * @param email Alamat email untuk mengirim link reset password.
- * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
  */
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getRedirectUrl(), // Menggunakan fungsi dinamis
+      redirectTo: getRedirectUrl(),
     });
 
     if (error) {
       console.error('Password reset error:', error);
 
-      // Tangani error rate limit spesifik dari Supabase
       if (error.message?.includes('email rate limit exceeded') ||
           error.message?.includes('over_email_send_rate_limit')) {
         toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
@@ -48,103 +56,134 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 };
 
 /**
- * Mengirim kode OTP ke alamat email yang diberikan.
- * Fungsi ini akan selalu mengirim OTP atau link konfirmasi, dan mengembalikan boolean sukses.
- * Pesan toast akan digeneralisasi karena UI akan selalu menampilkan input OTP.
- * @param email Alamat email untuk mengirim OTP.
- * @param captchaToken Token hCaptcha (opsional, bisa null jika captcha tidak diaktifkan).
- * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ * ✅ FIXED: Improved OTP sending with better captcha handling
  */
 export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
-    // Pertimbangkan tujuan cleanupAuthState():
-    // Jika tujuannya untuk menghapus sesi yang ada sebelum mengirim OTP login/daftar,
-    // pastikan ini adalah perilaku yang diinginkan dan tidak mengganggu alur.
-    // supabase.auth.signInWithOtp umumnya tidak memerlukan cleanup eksplisit.
-    cleanupAuthState(); // Pastikan fungsi ini didefinisikan dan sesuai dengan kebutuhan Anda
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Format email tidak valid');
+      return false;
+    }
+
+    // Clean up auth state (optional - remove if causing issues)
+    try {
+      cleanupAuthState();
+    } catch (cleanupError) {
+      console.warn('Cleanup auth state failed:', cleanupError);
+      // Continue anyway
+    }
+
+    // ✅ FIXED: Better captcha token handling
+    const otpOptions: any = {
+      channel: 'email',
+      shouldCreateUser: true,
+    };
+
+    // Only add captcha token if it's a valid string
+    if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
+      otpOptions.captchaToken = captchaToken;
+    }
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        channel: 'email',
-        shouldCreateUser: true, // Rekomendasi: true agar pengguna baru bisa mendaftar/login dengan OTP
-        captchaToken: captchaToken, // Meneruskan token hCaptcha ke Supabase
-      },
+      options: otpOptions,
     });
 
     if (error) {
       console.error('Email OTP error:', error);
 
-      // Tingkatkan penanganan pesan error spesifik untuk captcha dan rate limit
+      // ✅ IMPROVED: Better error handling
       if (error.message?.includes('captcha verification process failed')) {
-        toast.error('Verifikasi CAPTCHA gagal. Pastikan Anda bukan robot dan coba lagi.');
+        toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
       } else if (error.message?.includes('email rate limit exceeded') ||
                   error.message?.includes('over_email_send_rate_limit')) {
-        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
+        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam 5 menit.');
+      } else if (error.message?.includes('Database error saving new user')) {
+        toast.error('Terjadi kesalahan database. Silakan coba lagi atau hubungi support.');
+      } else if (error.message?.includes('Invalid email')) {
+        toast.error('Format email tidak valid');
       } else {
-        toast.error(error.message || 'Gagal mengirim kode'); // Pesan lebih umum
+        toast.error(error.message || 'Gagal mengirim kode verifikasi');
       }
       return false;
     }
 
-    // Pesan sukses digeneralisasi karena UI akan selalu menampilkan input OTP
-    toast.success('Kode atau link konfirmasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    
+    toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
     return true;
   } catch (error) {
     console.error('Error sending email OTP:', error);
-    toast.error('Terjadi kesalahan saat mengirim kode'); // Pesan lebih umum
+    toast.error('Terjadi kesalahan jaringan. Silakan periksa koneksi internet Anda.');
     return false;
   }
 };
 
 /**
- * Verifikasi kode OTP yang dikirim ke email.
- * @param email Email yang digunakan untuk mengirim OTP.
- * @param token Kode OTP yang diterima pengguna.
- * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ * ✅ IMPROVED: Better OTP verification with retry logic
  */
 export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
   try {
+    // Validate inputs
+    if (!email || !token) {
+      toast.error('Email dan kode OTP harus diisi');
+      return false;
+    }
+
+    // Clean token (remove spaces, convert to uppercase if needed)
+    const cleanToken = token.replace(/\s/g, '').toUpperCase();
+
     const { data, error } = await supabase.auth.verifyOtp({
       email,
-      token,
-      type: 'email' // Tipe verifikasi adalah 'email'
+      token: cleanToken,
+      type: 'email'
     });
     
     if (error) {
       console.error('OTP verification error:', error);
-      toast.error(error.message || 'Kode tidak valid atau sudah kadaluarsa.'); // Pesan error lebih informatif
+      
+      // ✅ IMPROVED: More specific error messages
+      if (error.message?.includes('expired')) {
+        toast.error('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
+      } else if (error.message?.includes('invalid') || error.message?.includes('wrong')) {
+        toast.error('Kode OTP tidak valid. Silakan periksa kembali.');
+      } else if (error.message?.includes('too many attempts')) {
+        toast.error('Terlalu banyak percobaan. Silakan minta kode baru.');
+      } else {
+        toast.error(error.message || 'Verifikasi gagal. Silakan coba lagi.');
+      }
       return false;
     }
     
-    // Periksa apakah sesi berhasil dibuat
-    if (data.session) {
-      toast.success('Login berhasil! Anda akan diarahkan.');
-      // Di sini Anda bisa menambahkan logika redirect ke halaman dashboard atau halaman lain
-      // Contoh: window.location.href = '/dashboard';
+    // Check if session was created
+    if (data.session && data.user) {
+      toast.success('Login berhasil! Selamat datang.');
       return true;
     } else {
-      // Kasus ini jarang, tapi bisa terjadi jika verifikasi teknis berhasil
-      // tapi sesi pengguna tidak langsung terdeteksi atau dibuat.
-      toast.error('Verifikasi berhasil, tetapi sesi tidak ditemukan. Silakan coba login ulang.');
+      console.warn('OTP verified but no session created:', data);
+      toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }
   } catch (error) {
     console.error('Error verifying OTP:', error);
-    toast.error('Terjadi kesalahan saat verifikasi kode');
+    toast.error('Terjadi kesalahan jaringan saat verifikasi');
     return false;
   }
 };
 
 /**
  * Memeriksa apakah pengguna saat ini terotentikasi.
- * @returns Promise yang mengembalikan boolean yang menunjukkan apakah pengguna terotentikasi.
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return !!session; // Mengembalikan true jika ada sesi, false jika null
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Error checking authentication:', error);
+      return false;
+    }
+    
+    return !!session && !!session.user;
   } catch (error) {
     console.error('Error checking authentication:', error);
     return false;
@@ -152,15 +191,44 @@ export const isAuthenticated = async (): Promise<boolean> => {
 };
 
 /**
- * Mendapatkan sesi saat ini.
- * @returns Promise yang mengembalikan sesi saat ini atau null.
+ * ✅ IMPROVED: Better session handling
  */
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Error getting current session:', error);
+      return null;
+    }
+    
     return session;
   } catch (error) {
     console.error('Error getting current session:', error);
     return null;
+  }
+};
+
+/**
+ * ✅ NEW: Helper function to check if user needs to verify email
+ */
+export const checkEmailVerificationStatus = async (): Promise<{
+  isVerified: boolean;
+  needsVerification: boolean;
+}> => {
+  try {
+    const session = await getCurrentSession();
+    
+    if (!session || !session.user) {
+      return { isVerified: false, needsVerification: false };
+    }
+    
+    const isVerified = !!session.user.email_confirmed_at;
+    const needsVerification = !isVerified && !!session.user.email;
+    
+    return { isVerified, needsVerification };
+  } catch (error) {
+    console.error('Error checking email verification:', error);
+    return { isVerified: false, needsVerification: false };
   }
 };

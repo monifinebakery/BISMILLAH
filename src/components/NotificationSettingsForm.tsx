@@ -161,19 +161,18 @@ const NotificationSettingsForm = () => {
             Metode Notifikasi
           </h3>
             
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
-              <div className="flex items-center gap-3">
-                <Smartphone className="h-4 w-4 text-gray-500" />
-                <div>
-                  <Label className="font-medium">Push Notification</Label>
-                  <p className="text-sm text-gray-500">Notifikasi browser</p>
-                </div>
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <Smartphone className="h-4 w-4 text-gray-500" />
+              <div>
+                <Label className="font-medium">Push Notification</Label>
+                <p className="text-sm text-gray-500">Notifikasi browser</p>
               </div>
-              <Switch
-                checked={formState.push_notifications}
-                onCheckedChange={(checked) => handleInputChange('push_notifications', checked)}
-              />
             </div>
+            <Switch
+              checked={formState.push_notifications}
+              onCheckedChange={(checked) => handleInputChange('push_notifications', checked)}
+            />
           </div>
         </div>
 

@@ -107,11 +107,13 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
   // Handle edit purchase
   const handleEdit = (purchase: any) => {
+    console.log('Edit clicked for:', purchase.id);
     onEdit(purchase);
   };
 
   // Handle delete purchase (individual)
   const handleDelete = (purchaseId: string) => {
+    console.log('Delete clicked for:', purchaseId);
     if (confirm('Yakin ingin menghapus pembelian ini?')) {
       if (onDelete) {
         onDelete(purchaseId);
@@ -124,6 +126,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
   // Handle view details
   const handleViewDetails = (purchase: any) => {
+    console.log('View details clicked for:', purchase.id);
     if (onViewDetails) {
       onViewDetails(purchase);
     } else {
@@ -243,7 +246,134 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     );
   };
 
-  // Rest of the component remains the same...
+  // ✅ FIXED: Action buttons component
+  const ActionButtons: React.FC<{ purchase: any }> = ({ purchase }) => {
+    // Option 1: Fixed Dropdown Menu
+    const useDropdown = true; // Set to false to use simple buttons
+
+    if (useDropdown) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              aria-label={`Actions for purchase ${purchase.id}`}
+              type="button"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="end" 
+            className="w-[160px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
+            side="bottom"
+            sideOffset={4}
+            avoidCollisions={true}
+            collisionPadding={8}
+          >
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleViewDetails(purchase);
+              }}
+              className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm"
+              role="menuitem"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Lihat Detail
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (purchase.status !== 'completed') {
+                  handleEdit(purchase);
+                }
+              }}
+              disabled={purchase.status === 'completed'}
+              className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              role="menuitem"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (purchase.status !== 'completed') {
+                  handleDelete(purchase.id);
+                }
+              }}
+              disabled={purchase.status === 'completed'}
+              className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              role="menuitem"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Hapus
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+
+    // Option 2: Simple Button Layout (fallback)
+    return (
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleViewDetails(purchase);
+          }}
+          className="h-8 px-2 hover:bg-gray-100"
+          title="Lihat Detail"
+          type="button"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleEdit(purchase);
+          }}
+          disabled={purchase.status === 'completed'}
+          className="h-8 px-2 hover:bg-gray-100 disabled:opacity-50"
+          title="Edit"
+          type="button"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDelete(purchase.id);
+          }}
+          disabled={purchase.status === 'completed'}
+          className="h-8 px-2 hover:bg-red-50 text-red-600 disabled:opacity-50"
+          title="Hapus"
+          type="button"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
 
   // Render sort icon
   const renderSortIcon = (field: string) => {
@@ -380,7 +510,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={selectAll}
-                      aria-label="Select all"
+                      aria-label="Select all purchases"
                     />
                   </TableHead>
 
@@ -390,6 +520,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       variant="ghost"
                       onClick={() => handleSort('tanggal')}
                       className="h-auto p-0 font-medium hover:bg-transparent"
+                      type="button"
                     >
                       <Calendar className="h-4 w-4 mr-2" />
                       Tanggal
@@ -402,6 +533,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       variant="ghost"
                       onClick={() => handleSort('supplier')}
                       className="h-auto p-0 font-medium hover:bg-transparent"
+                      type="button"
                     >
                       <User className="h-4 w-4 mr-2" />
                       Supplier
@@ -421,6 +553,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       variant="ghost"
                       onClick={() => handleSort('totalNilai')}
                       className="h-auto p-0 font-medium hover:bg-transparent"
+                      type="button"
                     >
                       <Receipt className="h-4 w-4 mr-2" />
                       Total Nilai
@@ -433,6 +566,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       variant="ghost"
                       onClick={() => handleSort('status')}
                       className="h-auto p-0 font-medium hover:bg-transparent"
+                      type="button"
                     >
                       Status
                       {renderSortIcon('status')}
@@ -444,7 +578,16 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
               </TableHeader>
               <TableBody>
                 {currentPurchases.map((purchase) => (
-                  <TableRow key={purchase.id} className="hover:bg-gray-50">
+                  <TableRow 
+                    key={purchase.id} 
+                    className="hover:bg-gray-50"
+                    onClick={(e) => {
+                      // Prevent row click when clicking action buttons
+                      if (e.target.closest('button, [role="menuitem"]')) {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {/* Select Checkbox */}
                     <TableCell>
                       <Checkbox
@@ -518,36 +661,9 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       />
                     </TableCell>
 
-                    {/* Actions */}
+                    {/* ✅ FIXED: Actions with proper event handling */}
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(purchase)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Lihat Detail
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleEdit(purchase)}
-                            disabled={purchase.status === 'completed'}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(purchase.id)}
-                            disabled={purchase.status === 'completed'}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ActionButtons purchase={purchase} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -567,6 +683,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                     size="sm"
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
+                    type="button"
                   >
                     Sebelumnya
                   </Button>
@@ -581,6 +698,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                           size="sm"
                           onClick={() => setCurrentPage(page)}
                           className="w-8 h-8 p-0"
+                          type="button"
                         >
                           {page}
                         </Button>
@@ -595,6 +713,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                           size="sm"
                           onClick={() => setCurrentPage(totalPages)}
                           className="w-8 h-8 p-0"
+                          type="button"
                         >
                           {totalPages}
                         </Button>
@@ -607,6 +726,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                     size="sm"
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
+                    type="button"
                   >
                     Selanjutnya
                   </Button>
@@ -623,7 +743,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         purchase={confirmationDialog.purchase}
         newStatus={confirmationDialog.newStatus!}
         validation={confirmationDialog.validation}
-        isUpdating={false} // You can connect this to actual loading state
+        isUpdating={false}
         onConfirm={handleConfirmStatusChange}
         onCancel={handleCancelStatusChange}
       />

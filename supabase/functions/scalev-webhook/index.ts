@@ -34,104 +34,133 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('- unique_id:', payloadData.unique_id);
     console.log('- order_id:', payloadData.order_id);
 
-    // STEP 1: Ambil email APAPUN yang ada (improved extraction)
-    let customerEmail = null; // ✅ Changed from fallback email
+    // STEP 1: Extract customer email dengan prioritas yang benar
+    let customerEmail = null;
     
     console.log('🔍 HUNTING FOR CUSTOMER EMAIL...');
     
-    // Method 1: Cari di semua level payload untuk email pattern
-    function findEmailsInObject(obj, path = '') {
-      if (typeof obj === 'string' && obj.includes('@') && obj.includes('.')) {
-        console.log(`📧 Found email at ${path}: ${obj}`);
-        return obj;
-      }
+    // Method 1: Check payment_status_history for customer email (HIGHEST PRIORITY)
+    if (payloadData.payment_status_history && Array.isArray(payloadData.payment_status_history)) {
+      console.log('📧 Checking payment_status_history...');
       
-      if (typeof obj === 'object' && obj !== null) {
-        for (const [key, value] of Object.entries(obj)) {
-          const foundEmail = findEmailsInObject(value, path ? `${path}.${key}` : key);
-          if (foundEmail && 
-              !foundEmail.includes('@scalev.') && 
-              !foundEmail.includes('system@') &&
-              !foundEmail.includes('unknown@') &&
-              !foundEmail.includes('fallback@')) {
-            return foundEmail;
-          }
+      // Look for the most recent "paid" status with customer email
+      for (const history of payloadData.payment_status_history) {
+        if (history.by?.email && 
+            history.by.email.includes('@') && 
+            history.by.email.includes('.') &&
+            !history.by.email.includes('@scalev.') &&
+            !history.by.email.includes('system@') &&
+            !history.by.email.includes('admin@') &&
+            !history.by.email.includes('monifinebakery@') &&
+            !history.by.email.includes('noreply@')) {
+          customerEmail = history.by.email;
+          console.log('✅ Found customer email in payment_status_history:', customerEmail);
+          break;
         }
       }
-      
-      return null;
     }
     
-    // Cari email di seluruh payload
-    const foundEmail = findEmailsInObject(payload);
-    if (foundEmail) {
-      customerEmail = foundEmail;
-      console.log('✅ Found customer email:', customerEmail);
-    }
-    
-    // Method 2: Check specific fields dengan prioritas yang benar
-    const emailSources = [
-      // ✅ PRIORITAS TINGGI: Customer/buyer emails
-      payloadData.customer_email,
-      payloadData.buyer_email,
-      payloadData.payer_email,
-      payloadData.user_email,
-      payloadData.client_email,
-      payload.customer_email,
-      payload.email,
-      payloadData.email,
+    // Method 2: Check direct payload fields (MEDIUM PRIORITY)
+    if (!customerEmail) {
+      console.log('📧 Checking direct payload fields...');
       
-      // ✅ MEDIUM PRIORITY: Nested customer info
-      payloadData.customer_info?.email,
-      payloadData.customer?.email,
-      payloadData.buyer?.email,
-      payloadData.payer?.email,
-      payloadData.user?.email,
-      payloadData.billing?.email,
-      payloadData.contact?.email,
+      const directEmailSources = [
+        payloadData.customer_email,
+        payloadData.buyer_email,
+        payloadData.payer_email,
+        payloadData.user_email,
+        payloadData.client_email,
+        payload.customer_email,
+        payload.email,
+        payloadData.email,
+        
+        // Nested object checks
+        payloadData.customer_info?.email,
+        payloadData.customer?.email,
+        payloadData.buyer?.email,
+        payloadData.payer?.email,
+        payloadData.user?.email,
+        payloadData.billing?.email,
+        payloadData.contact?.email
+      ];
       
-      // ⚠️ LOW PRIORITY: Bisa jadi system email
-      payloadData.payment_account_holder,
-      
-      // Check payment history (last resort)
-      ...(payloadData.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
-    ];
-    
-    console.log('📧 All email sources found (in priority order):', emailSources.filter(Boolean));
-    
-    // Take first valid email that's definitely a customer email
-    for (const email of emailSources) {
-      if (email && 
-          email.includes('@') && 
-          email.includes('.') &&
-          !email.includes('@scalev.') &&
-          !email.includes('system@') &&
-          !email.includes('unknown@') &&
-          !email.includes('fallback@') &&
-          !email.includes('monifinebakery@') && // ✅ EXCLUDE MERCHANT EMAIL
-          !email.includes('admin@') &&
-          !email.includes('noreply@') &&
-          !email.includes('support@')) {
-        customerEmail = email;
-        console.log('✅ Selected customer email from sources:', customerEmail);
-        break;
+      for (const email of directEmailSources) {
+        if (email && 
+            email.includes('@') && 
+            email.includes('.') &&
+            !email.includes('@scalev.') &&
+            !email.includes('system@') &&
+            !email.includes('admin@') &&
+            !email.includes('monifinebakery@') &&
+            !email.includes('noreply@')) {
+          customerEmail = email;
+          console.log('✅ Found customer email in direct fields:', customerEmail);
+          break;
+        }
       }
     }
     
-    // ✅ If still no email, we cannot proceed
+    // Method 3: Deep search in payload (LOWEST PRIORITY)
+    if (!customerEmail) {
+      console.log('📧 Deep searching for email patterns...');
+      
+      function findEmailsInObject(obj, path = '') {
+        if (typeof obj === 'string' && obj.includes('@') && obj.includes('.')) {
+          console.log(`📧 Found email at ${path}: "${obj}"`);
+          return obj;
+        }
+        
+        if (typeof obj === 'object' && obj !== null) {
+          for (const [key, value] of Object.entries(obj)) {
+            const foundEmail = findEmailsInObject(value, path ? `${path}.${key}` : key);
+            if (foundEmail && 
+                !foundEmail.includes('@scalev.') && 
+                !foundEmail.includes('system@') &&
+                !foundEmail.includes('admin@') &&
+                !foundEmail.includes('monifinebakery@') &&
+                !foundEmail.includes('noreply@')) {
+              return foundEmail;
+            }
+          }
+        }
+        
+        return null;
+      }
+      
+      const foundEmail = findEmailsInObject(payload);
+      if (foundEmail) {
+        customerEmail = foundEmail;
+        console.log('✅ Found customer email via deep search:', customerEmail);
+      }
+    }
+    
+    // ✅ VALIDATION: Ensure we have a valid customer email
     if (!customerEmail) {
       console.log('❌ No valid customer email found, cannot create payment record');
+      
+      // Log available data for debugging
+      console.log('🔍 DEBUG - Available email-like data:');
+      console.log('- payment_account_holder:', payloadData.payment_account_holder);
+      console.log('- payment_status_history:', payloadData.payment_status_history?.map(h => ({
+        email: h.by?.email,
+        name: h.by?.name,
+        status: h.status
+      })));
+      
       return new Response(JSON.stringify({
         success: false,
         error: 'No valid customer email found in payload',
-        available_emails: emailSources.filter(Boolean)
+        debug_info: {
+          payment_account_holder: payloadData.payment_account_holder,
+          payment_status_history: payloadData.payment_status_history?.map(h => h.by?.email)
+        }
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
     
-    console.log('🎯 Final email to use:', customerEmail);
+    console.log('🎯 Final customer email to use:', customerEmail);
 
     // STEP 2: Extract additional Scalev data
     const pgReferenceId = payloadData.pg_reference_id || 
@@ -158,34 +187,72 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('- Amount:', amount);
     console.log('- Paid Time:', paidTime);
 
-    // ✅ STEP 2.5: TRY TO FIND AND LINK USER_ID
+    // ✅ STEP 2.5: TRY TO FIND AND LINK USER_ID (FIXED LOGIC)
     console.log('🔗 Attempting to find user_id for email:', customerEmail);
 
     let linkedUserId = null;
 
-    try {
-      // Try to find user by email in auth.users
-      console.log('🔍 Looking up user in auth.users...');
-      
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (!authError && authData?.users) {
-        const matchingUser = authData.users.find(user => 
-          user.email?.toLowerCase() === customerEmail.toLowerCase()
-        );
+    // CRITICAL: Only proceed if we have a valid customer email
+    if (!customerEmail) {
+      console.log('⚠️ No customer email, skipping user lookup');
+    } else {
+      try {
+        // Try to find user by email in auth.users
+        console.log('🔍 Looking up user in auth.users...');
         
-        if (matchingUser) {
-          linkedUserId = matchingUser.id;
-          console.log('✅ Found matching user:', { id: linkedUserId, email: matchingUser.email });
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error('❌ Error fetching auth users:', authError);
+        } else if (!authData?.users) {
+          console.log('❌ No users data returned');
         } else {
-          console.log('❌ No matching user found in auth.users');
-          console.log('Available users:', authData.users.slice(0, 5).map(u => ({ id: u.id, email: u.email })));
+          // 🔍 DEBUG: Log all users for investigation
+          console.log('📊 DEBUG: All auth users found:');
+          authData.users.forEach((user, index) => {
+            console.log(`  ${index + 1}. ID: ${user.id.substring(0, 8)}...`);
+            console.log(`     Email: ${user.email}`);
+          });
+          
+          console.log(`🎯 SEARCHING FOR EMAIL: "${customerEmail}"`);
+          
+          // ✅ CRITICAL: Exact email matching logic
+          const matchingUser = authData.users.find(user => {
+            const userEmail = user.email?.toLowerCase().trim();
+            const searchEmail = customerEmail.toLowerCase().trim();
+            const isMatch = userEmail === searchEmail;
+            
+            console.log(`  Comparing: "${userEmail}" === "${searchEmail}" = ${isMatch}`);
+            return isMatch;
+          });
+          
+          if (matchingUser) {
+            linkedUserId = matchingUser.id;
+            console.log('✅ FOUND EXACT MATCH:', {
+              id: linkedUserId,
+              email: matchingUser.email,
+              created_at: matchingUser.created_at
+            });
+          } else {
+            console.log('❌ NO EXACT MATCH FOUND for email:', customerEmail);
+            console.log('📧 Available emails:', authData.users.map(u => u.email));
+            
+            // 🚨 SAFETY CHECK: Make sure we don't accidentally use first user
+            console.log('🚨 SAFETY: linkedUserId remains NULL - will not link to wrong user');
+          }
         }
-      } else {
-        console.error('❌ Error fetching auth users:', authError);
+      } catch (userLookupError) {
+        console.error('❌ Exception during user lookup:', userLookupError);
+        linkedUserId = null; // Ensure it stays null on error
       }
-    } catch (userLookupError) {
-      console.error('❌ Exception during user lookup:', userLookupError);
+    }
+
+    // 🔍 FINAL SAFETY CHECK
+    console.log('🎯 FINAL linkedUserId decision:', linkedUserId);
+    if (linkedUserId && customerEmail) {
+      console.log(`✅ LINKING: "${customerEmail}" → user_id: ${linkedUserId}`);
+    } else {
+      console.log('⚠️ NO LINKING: Will create unlinked payment record');
     }
 
     // STEP 3: Buat record dengan data lengkap termasuk user_id

@@ -1,10 +1,12 @@
 // src/services/authService.ts
-// 🌟 UNIVERSAL LOGIN - All emails can login (paid & unpaid users)
+// 🎯 SIMPLE EMAIL OTP AUTH + VERIFICATION COMPONENT
 
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
+import { Mail, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 
 // ✅ Smart auto-detection for redirect URL
 const getRedirectUrl = () => {
@@ -25,10 +27,9 @@ const getRedirectUrl = () => {
 };
 
 /**
- * 🌟 UNIVERSAL LOGIN FUNCTION - Works for ALL users
- * Tries multiple methods to ensure everyone can log in
+ * 🎯 SEND EMAIL OTP - Simple and reliable
  */
-export const universalLogin = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,155 +38,54 @@ export const universalLogin = async (email: string, captchaToken: string | null 
       return false;
     }
 
-    // Clean up any existing auth state
+    // Clean up auth state
     try {
       cleanupAuthState();
     } catch (cleanupError) {
       console.warn('Cleanup auth state failed:', cleanupError);
     }
 
-    console.log('🌟 Starting universal login for:', email);
+    console.log('📧 Sending email OTP to:', email);
 
-    // Prepare base options
-    let baseOptions: any = {
-      shouldCreateUser: true, // ✅ Always allow user creation
-      emailRedirectTo: getRedirectUrl(),
+    // Prepare OTP options
+    let otpOptions: any = {
+      channel: 'email',
+      shouldCreateUser: true, // Allow new user creation
     };
 
     // Add captcha if provided
     if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
-      baseOptions.captchaToken = captchaToken;
+      otpOptions.captchaToken = captchaToken;
     }
 
-    // 🔄 METHOD 1: Try Magic Link (most reliable)
-    console.log('🔄 Method 1: Trying Magic Link...');
-    try {
-      const { data: magicData, error: magicError } = await supabase.auth.signInWithOtp({
-        email,
-        options: baseOptions,
-      });
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: otpOptions,
+    });
 
-      if (!magicError) {
-        console.log('✅ Magic Link sent successfully');
-        toast.success('Magic link telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-        return true;
-      }
-
-      console.log('❌ Magic Link failed:', magicError.message);
-    } catch (magicErr) {
-      console.log('❌ Magic Link exception:', magicErr);
+    if (error) {
+      console.error('❌ Email OTP error:', error);
+      
+      // Still show success to user to avoid revealing system details
+      toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+      return true; // Return true to proceed to verification page
     }
 
-    // 🔄 METHOD 2: Try OTP Code (fallback)
-    console.log('🔄 Method 2: Trying OTP Code...');
-    try {
-      const otpOptions = {
-        ...baseOptions,
-        channel: 'email' as const,
-      };
-
-      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: otpOptions,
-      });
-
-      if (!otpError) {
-        console.log('✅ OTP sent successfully');
-        toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-        return true;
-      }
-
-      console.log('❌ OTP failed:', otpError.message);
-    } catch (otpErr) {
-      console.log('❌ OTP exception:', otpErr);
-    }
-
-    // 🔄 METHOD 3: Try without captcha (if captcha was provided)
-    if (captchaToken) {
-      console.log('🔄 Method 3: Trying without CAPTCHA...');
-      try {
-        const noCaptchaOptions = {
-          shouldCreateUser: true,
-          emailRedirectTo: getRedirectUrl(),
-        };
-
-        const { data: noCaptchaData, error: noCaptchaError } = await supabase.auth.signInWithOtp({
-          email,
-          options: noCaptchaOptions,
-        });
-
-        if (!noCaptchaError) {
-          console.log('✅ No-CAPTCHA method successful');
-          toast.success('Link login telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-          return true;
-        }
-
-        console.log('❌ No-CAPTCHA failed:', noCaptchaError.message);
-      } catch (noCaptchaErr) {
-        console.log('❌ No-CAPTCHA exception:', noCaptchaErr);
-      }
-    }
-
-    // 🔄 METHOD 4: Try existing user only (for paid users)
-    console.log('🔄 Method 4: Trying existing user only...');
-    try {
-      const existingOnlyOptions = {
-        shouldCreateUser: false,
-        emailRedirectTo: getRedirectUrl(),
-      };
-
-      if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
-        existingOnlyOptions.captchaToken = captchaToken;
-      }
-
-      const { data: existingData, error: existingError } = await supabase.auth.signInWithOtp({
-        email,
-        options: existingOnlyOptions,
-      });
-
-      if (!existingError) {
-        console.log('✅ Existing user method successful');
-        toast.success('Link login telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-        return true;
-      }
-
-      console.log('❌ Existing user failed:', existingError.message);
-    } catch (existingErr) {
-      console.log('❌ Existing user exception:', existingErr);
-    }
-
-    // 🚨 All methods failed - show user-friendly error
-    console.error('🚨 All login methods failed for email:', email);
-    
-    // Show generic success message to avoid revealing system details
-    toast.success('Permintaan login telah diproses. Jika email Anda terdaftar, Anda akan menerima link login dalam beberapa menit. Silakan cek kotak masuk dan folder spam.');
-    return true; // Return true to avoid showing error to user
+    console.log('✅ Email OTP sent successfully');
+    toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+    return true;
 
   } catch (error) {
-    console.error('🚨 Universal login critical error:', error);
+    console.error('🚨 Critical error in sendEmailOtp:', error);
     
-    // Even on critical error, show success to user
-    toast.success('Permintaan login telah diproses. Silakan cek email Anda dalam beberapa menit.');
+    // Show success even on error to avoid revealing system issues
+    toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
     return true;
   }
 };
 
 /**
- * ✅ Enhanced Magic Link function (wrapper for universalLogin)
- */
-export const sendMagicLink = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
-  return universalLogin(email, captchaToken);
-};
-
-/**
- * ✅ Enhanced OTP function (wrapper for universalLogin) 
- */
-export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
-  return universalLogin(email, captchaToken);
-};
-
-/**
- * ✅ IMPROVED: Better OTP verification with retry logic
+ * ✅ VERIFY EMAIL OTP
  */
 export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
   try {
@@ -195,7 +95,6 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     }
 
     const cleanToken = token.replace(/\s/g, '').toUpperCase();
-
     console.log('🔍 Verifying OTP for:', email);
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -236,7 +135,256 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
 };
 
 /**
- * ✅ Password reset (universal)
+ * 📧 EMAIL VERIFICATION COMPONENT
+ */
+interface EmailVerificationPageProps {
+  email?: string;
+  onVerifySuccess?: () => void;
+  onBackToLogin?: () => void;
+}
+
+export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
+  email = 'kalkulatorhppbymonifine@gmail.com',
+  onVerifySuccess,
+  onBackToLogin
+}) => {
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [error, setError] = useState('');
+  
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanResend(true);
+    }
+  }, [countdown]);
+
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value.toUpperCase();
+    setOtp(newOtp);
+    setError('');
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all fields filled
+    if (newOtp.every(digit => digit !== '') && !isVerifying) {
+      handleVerifyOtp(newOtp.join(''));
+    }
+  };
+
+  // Handle backspace
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\s/g, '').toUpperCase();
+    
+    if (pastedData.length === 6) {
+      const newOtp = pastedData.split('').slice(0, 6);
+      setOtp(newOtp);
+      setError('');
+      
+      if (!isVerifying) {
+        handleVerifyOtp(newOtp.join(''));
+      }
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async (otpCode: string) => {
+    if (otpCode.length !== 6) {
+      setError('Kode OTP harus 6 digit');
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      const success = await verifyEmailOtp(email, otpCode);
+      
+      if (success) {
+        onVerifySuccess?.();
+      } else {
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Resend code
+  const handleResendCode = async () => {
+    if (!canResend) return;
+
+    setIsResending(true);
+    setError('');
+
+    try {
+      const success = await sendEmailOtp(email);
+      
+      if (success) {
+        setCountdown(60);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      setError('Terjadi kesalahan saat mengirim ulang kode.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-xl font-semibold text-gray-800 text-center mb-2">Sistem HPP</h1>
+          <p className="text-gray-600 text-center text-sm">Hitung Harga Pokok Penjualan dengan mudah</p>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Email Icon */}
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail className="w-8 h-8 text-green-600" />
+          </div>
+
+          {/* Title */}
+          <h2 className="text-lg font-semibold text-gray-800 text-center mb-2">
+            Cek Email Anda
+          </h2>
+
+          {/* Description */}
+          <div className="text-center text-gray-600 mb-6">
+            <p className="mb-2">
+              Kami telah mengirim kode verifikasi ke
+            </p>
+            <p className="font-semibold text-gray-800 mb-4">{email}.</p>
+            <p className="text-sm">
+              Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+              <div className="flex items-center">
+                <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+                <span className="text-red-800 text-sm">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {/* OTP Input */}
+          <div className="flex justify-center space-x-2 mb-4">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => (inputRefs.current[index] = el)}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9A-Z]*"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleOtpChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={index === 0 ? handlePaste : undefined}
+                className="w-10 h-10 text-center text-lg font-medium border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                disabled={isVerifying}
+              />
+            ))}
+          </div>
+
+          {/* Verify Button */}
+          <button
+            onClick={() => handleVerifyOtp(otp.join(''))}
+            disabled={otp.some(digit => digit === '') || isVerifying}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors mb-4"
+          >
+            {isVerifying ? (
+              <div className="flex items-center justify-center">
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Memverifikasi...
+              </div>
+            ) : (
+              'Verifikasi Kode'
+            )}
+          </button>
+
+          {/* Tips */}
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Tips:</strong> Kode akan expired dalam 5 menit. Jika tidak menerima email, coba kirim ulang.
+            </p>
+          </div>
+
+          {/* Resend */}
+          <div className="text-center mb-4">
+            {canResend ? (
+              <button
+                onClick={handleResendCode}
+                disabled={isResending}
+                className="text-blue-600 hover:text-blue-700 text-sm focus:outline-none disabled:opacity-50"
+              >
+                {isResending ? 'Mengirim ulang...' : 'Kirim Ulang Kode'}
+              </button>
+            ) : (
+              <span className="text-gray-500 text-sm">
+                Kirim ulang dalam {countdown} detik
+              </span>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="text-center">
+            <span className="text-gray-500 text-sm mr-1">Butuh bantuan?</span>
+            <button
+              onClick={onBackToLogin}
+              className="text-blue-600 hover:text-blue-700 text-sm focus:outline-none"
+            >
+              Hubungi admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ✅ Password reset
  */
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
@@ -246,47 +394,15 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 
     if (error) {
       console.error('❌ Password reset error:', error);
-      
-      // Show success message regardless to avoid revealing if email exists
-      toast.success('Jika email Anda terdaftar, Anda akan menerima link reset password dalam beberapa menit.');
-      return true;
     }
 
-    toast.success('Link reset password telah dikirim ke email Anda');
+    // Always show success message
+    toast.success('Jika email Anda terdaftar, Anda akan menerima link reset password dalam beberapa menit.');
     return true;
   } catch (error) {
     console.error('🚨 Critical error sending password reset:', error);
-    
-    // Show success message even on error
     toast.success('Permintaan reset password telah diproses. Silakan cek email Anda.');
     return true;
-  }
-};
-
-/**
- * ✅ Magic Link callback handler
- */
-export const handleMagicLinkCallback = async (code: string) => {
-  try {
-    console.log('🔍 Processing magic link callback...');
-    
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    
-    if (error) {
-      console.error('❌ Magic link callback error:', error);
-      throw error;
-    }
-    
-    if (data.session && data.user) {
-      console.log('✅ Magic link authentication successful:', data.user.email);
-      toast.success('Login berhasil! Selamat datang.');
-      return { session: data.session, user: data.user };
-    }
-    
-    throw new Error('No session created from magic link');
-  } catch (error) {
-    console.error('🚨 Error in magic link callback:', error);
-    throw error;
   }
 };
 
@@ -458,29 +574,6 @@ export const checkEmailVerificationStatus = async (): Promise<{
   } catch (error) {
     console.error('🚨 Error checking email verification:', error);
     return { isVerified: false, needsVerification: false };
-  }
-};
-
-/**
- * 🌟 NEW: Check user payment status (you can implement this based on your payment system)
- */
-export const checkUserPaymentStatus = async (): Promise<{
-  isPaid: boolean;
-  paymentStatus: string;
-}> => {
-  try {
-    const user = await getCurrentUser();
-    
-    if (!user) {
-      return { isPaid: false, paymentStatus: 'not_authenticated' };
-    }
-
-    // You can implement your payment status check here
-    // For now, we'll assume all users can access (paid or unpaid)
-    return { isPaid: true, paymentStatus: 'active' };
-  } catch (error) {
-    console.error('🚨 Error checking payment status:', error);
-    return { isPaid: false, paymentStatus: 'error' };
   }
 };
 

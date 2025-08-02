@@ -1,15 +1,4 @@
-/**
- * ✅ RESTORED: OTP verification function
- */
-export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
-  try {
-    // Validate inputs
-    if (!email || !token) {
-      toast.error('Email dan kode OTP harus diisi');
-      return false;
-    }
-
-    // src/services/authService.ts
+// src/services/authService.ts
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -70,7 +59,82 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 };
 
 /**
- * ✅ UPDATED: Better error handling and debugging for database issues
+ * ✅ MAGIC LINK: Send magic link for passwordless authentication
+ */
+export const sendMagicLink = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+  try {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Format email tidak valid');
+      return false;
+    }
+
+    // Clean up auth state (optional - remove if causing issues)
+    try {
+      cleanupAuthState();
+    } catch (cleanupError) {
+      console.warn('Cleanup auth state failed:', cleanupError);
+      // Continue anyway
+    }
+
+    console.log('🔍 Sending magic link to:', email);
+    
+    // Prepare magic link options
+    let magicLinkOptions: any = {
+      emailRedirectTo: getRedirectUrl(),
+      shouldCreateUser: true, // Allow new user creation
+    };
+
+    // Only add captcha token if it's a valid string
+    if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
+      magicLinkOptions.captchaToken = captchaToken;
+    }
+
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: magicLinkOptions,
+    });
+
+    if (error) {
+      console.error('📛 Magic link error:', error);
+      console.error('📛 Error details:', {
+        message: error.message,
+        status: error.status,
+        statusCode: error.__isAuthError ? 'AuthError' : 'Unknown'
+      });
+
+      // ✅ IMPROVED: More specific error handling
+      if (error.message?.includes('Database error saving new user')) {
+        console.error('📛 Database schema issue detected');
+        toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
+      } else if (error.message?.includes('captcha verification process failed')) {
+        toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
+      } else if (error.message?.includes('email rate limit exceeded') ||
+                  error.message?.includes('over_email_send_rate_limit')) {
+        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam 5 menit.');
+      } else if (error.message?.includes('Invalid email')) {
+        toast.error('Format email tidak valid');
+      } else if (error.message?.includes('signup_disabled')) {
+        toast.error('Pendaftaran akun baru sedang dinonaktifkan.');
+      } else {
+        toast.error(error.message || 'Gagal mengirim magic link');
+      }
+      return false;
+    }
+
+    console.log('✅ Magic link sent successfully:', data);
+    toast.success('Magic link telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+    return true;
+  } catch (error) {
+    console.error('📛 Unexpected error in sendMagicLink:', error);
+    toast.error('Terjadi kesalahan jaringan. Silakan periksa koneksi internet Anda.');
+    return false;
+  }
+};
+
+/**
+ * ✅ OTP: Send OTP code for email verification (alternative to magic link)
  */
 export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
@@ -89,7 +153,6 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       // Continue anyway
     }
 
-    // ✅ DEBUGGING: Try different approaches based on error
     console.log('🔍 Attempting OTP send for:', email);
     
     // Method 1: Try with shouldCreateUser = false first (for existing users)
@@ -213,6 +276,33 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
 };
 
 /**
+ * ✅ MAGIC LINK: Handle magic link callback after user clicks link in email
+ */
+export const handleMagicLinkCallback = async (code: string) => {
+  try {
+    console.log('[AuthService] Processing magic link callback...');
+    
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error) {
+      console.error('[AuthService] Magic link callback error:', error);
+      throw error;
+    }
+    
+    if (data.session && data.user) {
+      console.log('[AuthService] Magic link authentication successful:', data.user.email);
+      toast.success('Login berhasil! Selamat datang.');
+      return { session: data.session, user: data.user };
+    }
+    
+    throw new Error('No session created from magic link');
+  } catch (error) {
+    console.error('[AuthService] Error in magic link callback:', error);
+    throw error;
+  }
+};
+
+/**
  * ✅ NEW: Check if user exists before attempting OTP
  */
 export const checkUserExists = async (email: string): Promise<boolean> => {
@@ -284,6 +374,116 @@ export const getCurrentSession = async (): Promise<Session | null> => {
 };
 
 /**
+ * ✅ Get current user
+ */
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('[AuthService] Get user error:', error);
+      return null;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('[AuthService] Error getting current user:', error);
+    return null;
+  }
+};
+
+/**
+ * ✅ Sign out pengguna saat ini
+ */
+export const signOut = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('[AuthService] Sign out error:', error);
+      toast.error('Gagal logout');
+      return false;
+    }
+    
+    // Cleanup auth state after signout
+    try {
+      cleanupAuthState();
+    } catch (cleanupError) {
+      console.warn('Cleanup after signout failed:', cleanupError);
+    }
+    
+    toast.success('Logout berhasil');
+    return true;
+  } catch (error) {
+    console.error('[AuthService] Error in signOut:', error);
+    toast.error('Terjadi kesalahan saat logout');
+    return false;
+  }
+};
+
+/**
+ * ✅ Listen to auth state changes
+ */
+export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    callback(event, session);
+  });
+  
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+/**
+ * ✅ Check if user has valid session
+ */
+export const hasValidSession = async (): Promise<boolean> => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('[AuthService] Session check error:', error);
+      return false;
+    }
+    
+    return !!session && !isSessionExpired(session);
+  } catch (error) {
+    console.error('[AuthService] Error checking session:', error);
+    return false;
+  }
+};
+
+/**
+ * ✅ Check if session is expired
+ */
+const isSessionExpired = (session: Session): boolean => {
+  if (!session.expires_at) return false;
+  
+  const now = Math.floor(Date.now() / 1000);
+  return session.expires_at < now;
+};
+
+/**
+ * ✅ Refresh current session if needed
+ */
+export const refreshSession = async (): Promise<Session | null> => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    
+    if (error) {
+      console.error('[AuthService] Session refresh error:', error);
+      return null;
+    }
+    
+    return data.session;
+  } catch (error) {
+    console.error('[AuthService] Error refreshing session:', error);
+    return null;
+  }
+};
+
+/**
  * ✅ NEW: Helper function to check if user needs to verify email
  */
 export const checkEmailVerificationStatus = async (): Promise<{
@@ -306,3 +506,6 @@ export const checkEmailVerificationStatus = async (): Promise<{
     return { isVerified: false, needsVerification: false };
   }
 };
+
+// Export supabase client untuk penggunaan langsung jika diperlukan
+export { supabase };

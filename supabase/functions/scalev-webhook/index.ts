@@ -12,78 +12,73 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Fungsi untuk memverifikasi tanda tangan webhook Scalev (keamanan opsional)
-const verifyScalevSignature = (payload: string, signature: string, secret: string): boolean => {
-  try {
-    // Verifikasi sederhana - periksa apakah tanda tangan dan rahasia ada
-    // Dalam produksi, implementasikan verifikasi HMAC-SHA256 yang tepat
-    console.log('🔐 Verifikasi tanda tangan:', {
-      hasSignature: !!signature,
-      signatureLength: signature?.length || 0,
-      hasSecret: !!secret,
-      secretLength: secret?.length || 0
-    });
-    return true; // Selalu kembalikan true untuk saat ini - tanda tangan opsional, GANTI DI PRODUKSI
-  } catch (error) {
-    console.error('❌ Error verifikasi tanda tangan:', error);
-    return true; // Tetap izinkan permintaan meskipun verifikasi tanda tangan gagal
+// ✅ UPDATED: Extract customer info based on real Scalev payload
+const extractCustomerInfo = (payload) => {
+  // Payload bisa berupa direct object (bukan nested di .data)
+  const payloadData = payload.data || payload;
+  
+  // Extract email dari payment_status_history (most reliable source)
+  let customerEmail = null;
+  let customerName = null;
+  
+  // Priority 1: From payment_status_history (paling akurat)
+  if (payloadData.payment_status_history && payloadData.payment_status_history.length > 0) {
+    // Ambil from latest entry
+    const latestHistory = payloadData.payment_status_history[payloadData.payment_status_history.length - 1];
+    customerEmail = latestHistory.by?.email;
+    customerName = latestHistory.by?.name;
   }
-};
-
-// ✅ FUNGSI BARU: Ekstrak informasi customer dari payload
-const extractCustomerInfo = (payload: any) => {
-  const payloadData = payload.data || {};
   
-  // Cari email dari berbagai kemungkinan field berdasarkan available fields Scalev
-  const customerEmail = payloadData.customer_email || 
-                       payloadData.email || 
-                       payloadData.payment_account_holder || // ✅ TAMBAH: dari payment account
-                       payloadData.business || // ✅ TAMBAH: dari business field
-                       payload.customer?.email ||
-                       (payload.payment_status_history && 
-                        payload.payment_status_history[0]?.by?.email);
+  // Priority 2: From payment_account_holder
+  if (!customerEmail && payloadData.payment_account_holder) {
+    // Check if payment_account_holder contains email format
+    if (payloadData.payment_account_holder.includes('@')) {
+      customerEmail = payloadData.payment_account_holder;
+    }
+  }
   
-  const customerName = payloadData.customer_name || 
-                      payloadData.name ||
-                      payloadData.payment_account_holder ||
-                      payload.customer?.name ||
-                      (payload.payment_status_history && 
-                       payload.payment_status_history[0]?.by?.name) ||
-                      'Unknown User';
+  // Priority 3: From direct fields (fallback)
+  customerEmail = customerEmail || 
+                 payloadData.customer_email || 
+                 payloadData.email;
+  
+  customerName = customerName || 
+                payloadData.payment_account_holder || 
+                payloadData.customer_name || 
+                payloadData.name ||
+                'Unknown Customer';
   
   return { customerEmail, customerName };
 };
 
-// ✅ FUNGSI BARU: Validasi email
-const isValidEmail = (email: string | null | undefined): boolean => {
-  if (!email || typeof email !== 'string') return false;
-  return email.includes('@') && email.includes('.');
+// ✅ UPDATED: Map Scalev payment status to our DB status
+const mapPaymentStatus = (scalevStatus) => {
+  switch(scalevStatus?.toLowerCase()) {
+    case 'paid':
+    case 'settled':
+    case 'completed':
+    case 'settlement':
+    case 'capture':
+      return 'settled';
+    case 'failed':
+    case 'deny':
+    case 'cancel':
+    case 'expire':
+    case 'error':
+      return 'failed';
+    case 'unpaid':
+    case 'pending':
+    case 'authorization':
+    case 'waiting_payment':
+    default:
+      return 'pending';
+  }
 };
 
-// ✅ FUNGSI BARU: Debug payload structure untuk development
-const debugPayloadStructure = (payload: any) => {
-  console.log('🔬 =================================');
-  console.log('🔬 DEEP PAYLOAD ANALYSIS');
-  console.log('🔬 =================================');
-  
-  const traverse = (obj: any, path = '') => {
-    if (!obj || typeof obj !== 'object') return;
-    
-    Object.keys(obj).forEach(key => {
-      const value = obj[key];
-      const currentPath = path ? `${path}.${key}` : key;
-      
-      if (typeof value === 'string' && value.includes('@')) {
-        console.log(`📧 Possible email at ${currentPath}:`, value);
-      }
-      
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        traverse(value, currentPath);
-      }
-    });
-  };
-  
-  traverse(payload);
+// ✅ UPDATED: Validate email format
+const isValidEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  return email.includes('@') && email.includes('.') && email.length > 5;
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -94,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('🔧 Metode:', req.method);
   console.log('🌐 URL:', req.url);
 
-  // Tangani permintaan preflight CORS
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     console.log('✅ Permintaan preflight CORS berhasil ditangani');
     return new Response(null, { headers: corsHeaders });
@@ -128,34 +123,36 @@ const handler = async (req: Request): Promise<Response> => {
     
     // ✅ IMPROVED: Debug payload structure lengkap
     console.log('🔍 =================================');
-    console.log('🔍 STRUKTUR PAYLOAD LENGKAP');
+    console.log('🔍 STRUKTUR PAYLOAD SCALEV');
     console.log('🔍 =================================');
     console.log('🔍 Full payload:', JSON.stringify(payload, null, 2));
-    console.log('🔍 Payload keys:', Object.keys(payload));
-    console.log('🔍 Payload.data keys:', Object.keys(payload.data || {}));
     
-    // ✅ TAMBAH: Deep analysis untuk mencari email
-    debugPayloadStructure(payload);
+    // ✅ UPDATED: Handle both nested and direct payload structures
+    const payloadData = payload.data || payload;
     
     console.log('🎪 Tipe Event:', payload.event);
+    console.log('💳 Payment ID:', payloadData.id);
+    console.log('🆔 Order ID:', payloadData.order_id);
+    console.log('📊 Payment Status:', payloadData.payment_status);
+    console.log('💰 Payment Method:', payloadData.payment_method);
+    console.log('🏦 Financial Entity:', payloadData.financial_entity?.name);
+    console.log('💳 Account Holder:', payloadData.payment_account_holder);
+    console.log('💳 Account Number:', payloadData.payment_account_number);
+    console.log('⏰ Paid Time:', payloadData.paid_time);
+    console.log('⏰ Transfer Time:', payloadData.transfer_time);
     
-    // ✅ IMPROVED: Gunakan fungsi ekstraksi yang sudah diperbaiki
-    const payloadData = payload.data || {};
+    // ✅ UPDATED: Extract customer info using improved function
     const { customerEmail, customerName } = extractCustomerInfo(payload);
+    console.log('📧 Extracted Email:', customerEmail);
+    console.log('👤 Extracted Name:', customerName);
     
-    console.log('💳 ID Pembayaran (Scalev):', payloadData.id);
-    console.log('🆔 ID Order (Sistem Anda):', payloadData.order_id);
-    console.log('🔗 Referensi (Scalev):', payloadData.reference || payloadData.pg_reference_id);
-    console.log('📊 Status (Scalev):', payloadData.status || payloadData.payment_status);
-    console.log('💰 Jumlah:', payloadData.amount);
-    console.log('💱 Mata Uang:', payloadData.currency);
-    console.log('📧 Email Pelanggan:', customerEmail);
-    console.log('👤 Nama Pelanggan:', customerName);
-    console.log('⏰ Dibayar Pada:', payloadData.paid_at || payloadData.paid_time);
-    
-    // Log data atribusi jika ada
-    console.log('📊 Saluran Pemasaran:', payloadData.metadata?.marketing_channel);
-    console.log('🆔 ID Kampanye:', payloadData.metadata?.campaign_id);
+    // Debug payment_status_history
+    if (payloadData.payment_status_history) {
+      console.log('📜 Payment History:');
+      payloadData.payment_status_history.forEach((history, index) => {
+        console.log(`  ${index + 1}. ${history.status} at ${history.at} by ${history.by?.email || 'unknown'}`);
+      });
+    }
 
   } catch (parseError) {
     console.log('❌ =================================');
@@ -172,93 +169,50 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  // Verifikasi tanda tangan opsional
-  const signature = req.headers.get('x-scalev-signature') || '';
-  const webhookSecret = Deno.env.get('SCALEV_SECRET_KEY') || '';
+  // ✅ UPDATED: Handle event type (assume order.payment_status_changed if not specified)
+  const eventType = payload.event || 'order.payment_status_changed';
   
-  console.log('🔐 =================================');
-  console.log('🔐 VERIFIKASI TANDA TANGAN');
-  console.log('🔐 =================================');
-  
-  if (signature && webhookSecret) {
-    const isValid = verifyScalevSignature(rawPayload, signature, webhookSecret);
-    if (!isValid) {
-      console.log('❌ Verifikasi tanda tangan gagal');
-      return new Response(JSON.stringify({
-        error: "Tanda tangan tidak valid",
-        webhook_received_successfully: false
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    } else {
-      console.log('✅ Verifikasi tanda tangan berhasil');
-    }
-  } else {
-    console.log('⚠️ Verifikasi tanda tangan dilewati');
-  }
-
-  // ✅ IMPROVED: Flexible status mapping
-  const scalevStatus = payload.data?.status || payload.data?.payment_status || payload.status;
-  let dbStatus: string;
-  
-  switch(scalevStatus?.toLowerCase()) {
-    case 'completed':
-    case 'settled':
-    case 'paid':           // ✅ FIXED: Tambah case untuk 'paid'
-    case 'settlement':
-    case 'capture':
-      dbStatus = 'settled';
-      break;
-    case 'failed':
-    case 'deny':
-    case 'cancel':
-    case 'expire':
-    case 'error':
-      dbStatus = 'failed';
-      break;
-    case 'pending':
-    case 'unpaid':
-    case 'authorization':
-    default:
-      dbStatus = 'pending';
-      break;
-  }
-
-  console.log(`🔄 Memetakan status Scalev '${scalevStatus}' ke status DB '${dbStatus}'`);
-
-  // Hanya proses jika event adalah 'order.payment_status_changed'
-  if (payload.event !== 'order.payment_status_changed') {
-    console.log(`⚠️ Event tidak relevan: ${payload.event}`);
+  if (eventType !== 'order.payment_status_changed') {
+    console.log(`⚠️ Event tidak relevan: ${eventType}`);
     return new Response(JSON.stringify({
       success: true,
-      message: `Event '${payload.event}' tidak diproses.`,
-      event_type: payload.event
+      message: `Event '${eventType}' tidak diproses.`,
+      event_type: eventType
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 
-  // ✅ IMPROVED: Ekstrak customer info menggunakan fungsi yang sudah diperbaiki
+  // ✅ UPDATED: Extract customer info using real payload structure
+  const payloadData = payload.data || payload;
   const { customerEmail, customerName } = extractCustomerInfo(payload);
 
-  // ✅ IMPROVED: Validasi email yang lebih baik dengan debugging
+  // ✅ IMPROVED: Email validation with better error reporting
   if (!isValidEmail(customerEmail)) {
-    console.error('🚫 Email pelanggan tidak valid atau tidak ditemukan di payload');
-    console.log('🔍 Available fields:', JSON.stringify(Object.keys(payload.data || {}), null, 2));
-    console.log('🔍 Payment account holder:', payload.data?.payment_account_holder);
-    console.log('🔍 Business field:', payload.data?.business);
+    console.error('🚫 Email pelanggan tidak valid atau tidak ditemukan');
+    console.log('🔍 Available fields:', Object.keys(payloadData));
+    console.log('🔍 Payment account holder:', payloadData.payment_account_holder);
+    console.log('🔍 Payment status history:', payloadData.payment_status_history);
     
-    // ✅ TAMBAH: Debug semua field yang mungkin berisi email
-    const possibleEmailFields: {[key: string]: any} = {};
-    const payloadData = payload.data || {};
+    // Debug all possible email sources
+    const possibleEmailFields = {};
     Object.keys(payloadData).forEach(key => {
       const value = payloadData[key];
       if (typeof value === 'string' && value.includes('@')) {
         possibleEmailFields[key] = value;
       }
     });
+    
+    // Check payment_status_history for emails
+    if (payloadData.payment_status_history) {
+      payloadData.payment_status_history.forEach((history, index) => {
+        if (history.by?.email) {
+          possibleEmailFields[`payment_status_history[${index}].by.email`] = history.by.email;
+        }
+      });
+    }
+    
     console.log('🔍 Fields yang mungkin berisi email:', possibleEmailFields);
     
     return new Response(JSON.stringify({
@@ -267,28 +221,30 @@ const handler = async (req: Request): Promise<Response> => {
       available_fields: Object.keys(payloadData),
       possible_email_fields: possibleEmailFields,
       extracted_email: customerEmail,
-      debug_info: {
-        payment_account_holder: payloadData.payment_account_holder,
-        business: payloadData.business,
-        raw_payload_keys: Object.keys(payload)
-      }
+      payment_status_history: payloadData.payment_status_history
     }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 
+  // ✅ UPDATED: Map payment status
+  const scalevStatus = payloadData.payment_status;
+  const dbStatus = mapPaymentStatus(scalevStatus);
+  
+  console.log(`🔄 Memetakan status Scalev '${scalevStatus}' ke status DB '${dbStatus}'`);
+
   let paymentRecord: any = null;
   let fetchError: any = null;
 
-  // 1. Coba cari record berdasarkan order_id terlebih dahulu
-  if (payload.data?.order_id) {
-    console.log('🔍 Mencari record berdasarkan order_id:', payload.data.order_id);
+  // ✅ STRATEGY 1: Cari berdasarkan order_id terlebih dahulu
+  if (payloadData.order_id) {
+    console.log('🔍 Mencari record berdasarkan order_id:', payloadData.order_id);
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('id, user_id, payment_status, is_paid, pg_reference_id')
-      .eq('order_id', payload.data.order_id)
+      .select('*')
+      .eq('order_id', payloadData.order_id)
       .maybeSingle();
     
     paymentRecord = data;
@@ -301,35 +257,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
   }
 
-  // 2. Jika belum ditemukan, coba cari berdasarkan pg_reference_id
-  const reference = payload.data?.reference || payload.data?.pg_reference_id;
-  if (!paymentRecord && reference) {
-    console.log('🔍 Mencari record berdasarkan pg_reference_id:', reference);
-    
-    const { data, error } = await supabase
-      .from('user_payments')
-      .select('id, user_id, payment_status, is_paid, pg_reference_id')
-      .eq('pg_reference_id', reference)
-      .maybeSingle();
-    
-    paymentRecord = data;
-    fetchError = error;
-    
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('❌ Error mengambil berdasarkan pg_reference_id:', fetchError);
-    } else if (paymentRecord) {
-      console.log('✅ Record ditemukan berdasarkan pg_reference_id:', paymentRecord.id);
-    }
-  }
-
-  // 3. Jika belum ditemukan, cari berdasarkan email
+  // ✅ STRATEGY 2: Jika belum ditemukan, cari berdasarkan email
   if (!paymentRecord && customerEmail) {
     console.log('🔍 Mencari record berdasarkan email:', customerEmail);
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('id, user_id, payment_status, is_paid, pg_reference_id')
+      .select('*')
       .eq('email', customerEmail)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     
     paymentRecord = data;
@@ -342,23 +279,41 @@ const handler = async (req: Request): Promise<Response> => {
     }
   }
 
-  // Prepare update/insert data
+  // ✅ UPDATED: Prepare update/insert data based on real Scalev payload
   const updateData: any = {
     payment_status: dbStatus,
-    amount: payload.data?.amount,
-    currency: payload.data?.currency || 'IDR',
-    order_id: payload.data?.order_id,
+    payment_method: payloadData.payment_method,
+    sub_payment_method: payloadData.sub_payment_method,
+    financial_entity: payloadData.financial_entity?.name || null,
+    payment_account_holder: payloadData.payment_account_holder,
+    payment_account_number: payloadData.payment_account_number,
+    transferproof_url: payloadData.transferproof_url,
+    epayment_provider: payloadData.epayment_provider,
+    
+    // Order info
+    order_id: payloadData.order_id,
     email: customerEmail,
-    pg_reference_id: reference,
+    
+    // Business info
+    business_name: customerName, // Use customer name as business name if not available
+    owner_name: customerName,
+    
+    // Timestamps
     updated_at: new Date().toISOString(),
-    marketing_channel: payload.data?.metadata?.marketing_channel || null,
-    campaign_id: payload.data?.metadata?.campaign_id || null
+    unpaid_time: payloadData.unpaid_time,
+    paid_time: payloadData.paid_time,
+    transfer_time: payloadData.transfer_time,
+    settled_time: payloadData.settled_time,
+    conflict_time: payloadData.conflict_time
   };
 
-  // Set payment-specific fields
+  // ✅ Set payment-specific fields based on status
   if (dbStatus === 'settled') {
     updateData.is_paid = true;
-    updateData.payment_date = payload.data?.paid_at || payload.data?.paid_time || new Date().toISOString();
+    updateData.payment_date = payloadData.paid_time || payloadData.settled_time || new Date().toISOString();
+  } else if (dbStatus === 'failed') {
+    updateData.is_paid = false;
+    updateData.payment_date = null;
   } else {
     updateData.is_paid = false;
     updateData.payment_date = null;
@@ -368,7 +323,7 @@ const handler = async (req: Request): Promise<Response> => {
   let updateError: any;
 
   if (paymentRecord) {
-    // Record ditemukan, perbarui
+    // ✅ Record ditemukan, update existing record
     console.log('✅ Record pembayaran ditemukan, updating:', paymentRecord.id);
     console.log('🔄 Update data:', updateData);
     
@@ -382,10 +337,10 @@ const handler = async (req: Request): Promise<Response> => {
     updatedRecord = data;
     updateError = error;
   } else {
-    // Record tidak ditemukan, buat yang baru
+    // ✅ Record tidak ditemukan, buat yang baru
     console.log('⚠️ Record tidak ditemukan, membuat baru untuk email:', customerEmail);
     
-    // Cari user di auth.users untuk link payment
+    // ✅ Cari user di auth.users untuk link payment
     const { data: authUsers, error: authUserError } = await supabase.auth.admin.listUsers();
     let userIdToLink: string | null = null;
     
@@ -401,11 +356,15 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Insert data with or without user_id
+    // ✅ Insert new record with Scalev data
     const insertData = {
       ...updateData,
       user_id: userIdToLink, // Will be NULL if user not found
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      
+      // Default values for required fields if not present in Scalev payload
+      amount: 0, // You might want to set a default amount or extract from somewhere
+      currency: 'IDR'
     };
 
     console.log('➕ Insert data baru:', insertData);
@@ -428,7 +387,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({
       error: "Gagal memperbarui/memasukkan status pembayaran",
       details: updateError.message,
-      reference: reference,
+      order_id: payloadData.order_id,
+      email: customerEmail,
       webhook_received_successfully: true
     }), {
       status: 500,
@@ -439,13 +399,16 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('🎉 =================================');
   console.log('🎉 PEMBAYARAN BERHASIL DIPROSES');
   console.log('🎉 =================================');
+  console.log('✅ Payment ID:', updatedRecord?.id);
   console.log('✅ User ID:', updatedRecord?.user_id);
   console.log('✅ Email:', updatedRecord?.email);
   console.log('✅ Order ID:', updatedRecord?.order_id);
-  console.log('✅ Reference:', updatedRecord?.pg_reference_id);
-  console.log('✅ Amount:', updatedRecord?.amount);
-  console.log('✅ Status DB:', updatedRecord?.payment_status);
+  console.log('✅ Payment Status:', updatedRecord?.payment_status);
   console.log('✅ Is Paid:', updatedRecord?.is_paid);
+  console.log('✅ Payment Method:', updatedRecord?.payment_method);
+  console.log('✅ Financial Entity:', updatedRecord?.financial_entity);
+  console.log('✅ Account Holder:', updatedRecord?.payment_account_holder);
+  console.log('✅ Paid Time:', updatedRecord?.paid_time);
   console.log('✅ Updated At:', updatedRecord?.updated_at);
 
   return new Response(JSON.stringify({
@@ -456,14 +419,13 @@ const handler = async (req: Request): Promise<Response> => {
       user_id: updatedRecord?.user_id,
       email: updatedRecord?.email,
       order_id: updatedRecord?.order_id,
-      reference: updatedRecord?.pg_reference_id,
-      amount: updatedRecord?.amount,
-      currency: updatedRecord?.currency,
-      status: updatedRecord?.payment_status,
+      payment_status: updatedRecord?.payment_status,
       is_paid: updatedRecord?.is_paid,
-      updated_at: updatedRecord?.updated_at,
-      marketing_channel: updatedRecord?.marketing_channel,
-      campaign_id: updatedRecord?.campaign_id
+      payment_method: updatedRecord?.payment_method,
+      financial_entity: updatedRecord?.financial_entity,
+      payment_account_holder: updatedRecord?.payment_account_holder,
+      paid_time: updatedRecord?.paid_time,
+      updated_at: updatedRecord?.updated_at
     }
   }), {
     status: 200,

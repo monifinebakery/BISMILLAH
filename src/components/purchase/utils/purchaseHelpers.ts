@@ -142,7 +142,7 @@ export const calculateTotalItems = (purchase: Purchase): number => {
 };
 
 /**
- * Get formatted total quantities by unit type
+ * Get formatted total quantities by unit type (simplified)
  */
 export const getFormattedTotalQuantities = (purchase: Purchase): string => {
   if (!purchase.items || purchase.items.length === 0) {
@@ -156,10 +156,12 @@ export const getFormattedTotalQuantities = (purchase: Purchase): string => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Format the summary with actual units
-  return Object.entries(quantitiesBySatuan)
+  // Format: "Total 2 kg" or "Total 2 kg, 1.5 liter"
+  const quantities = Object.entries(quantitiesBySatuan)
     .map(([satuan, total]) => `${total} ${satuan}`)
     .join(', ');
+
+  return `Total ${quantities}`;
 };
 
 /**

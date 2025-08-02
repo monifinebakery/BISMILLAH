@@ -100,23 +100,95 @@ const handler = async (req: Request): Promise<Response> => {
       updated_at: new Date().toISOString()
     };
 
-    console.log('💾 Inserting minimal data:', insertData);
+    console.log('💾 Preparing data:', insertData);
 
-    // STEP 3: INSERT PAKSA ke database
-    const { data: newRecord, error: insertError } = await supabase
+    // STEP 3: CHECK IF RECORD EXISTS FIRST (by order_id)
+    console.log('🔍 Checking if record exists for order_id:', insertData.order_id);
+    
+    const { data: existingRecord, error: checkError } = await supabase
       .from('user_payments')
-      .insert(insertData)
-      .select()
-      .single();
+      .select('*')
+      .eq('order_id', insertData.order_id)
+      .maybeSingle();
+    
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('❌ Error checking existing record:', checkError);
+    }
+    
+    let finalRecord;
+    let operationType;
+    
+    if (existingRecord) {
+      // RECORD EXISTS - UPDATE IT
+      console.log('✅ Record exists, UPDATING:', existingRecord.id);
+      operationType = 'UPDATE';
+      
+      // Keep original email if current email is admin email
+      const emailToUse = customerEmail.includes('monifinebakery@') || 
+                        customerEmail.includes('@scalev.') || 
+                        customerEmail.includes('system@') ?
+                        existingRecord.email : // Keep original email
+                        customerEmail; // Use new email if it's customer email
+      
+      const updateData = {
+        ...insertData,
+        email: emailToUse,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Set payment status based on payload
+      if (payload.data?.payment_status === 'paid') {
+        updateData.payment_status = 'settled';
+        updateData.is_paid = true;
+        updateData.payment_date = new Date().toISOString();
+      }
+      
+      console.log('🔄 Updating with data:', updateData);
+      
+      const { data: updatedRecord, error: updateError } = await supabase
+        .from('user_payments')
+        .update(updateData)
+        .eq('id', existingRecord.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('❌ UPDATE FAILED:', updateError);
+        finalRecord = null;
+      } else {
+        console.log('✅ UPDATE SUCCESS:', updatedRecord);
+        finalRecord = updatedRecord;
+      }
+      
+    } else {
+      // RECORD DOESN'T EXIST - INSERT NEW
+      console.log('➕ Record doesn\'t exist, INSERTING new record');
+      operationType = 'INSERT';
+      
+      const { data: newRecord, error: insertError } = await supabase
+        .from('user_payments')
+        .insert(insertData)
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('❌ INSERT FAILED:', insertError);
+        finalRecord = null;
+      } else {
+        console.log('✅ INSERT SUCCESS:', newRecord);
+        finalRecord = newRecord;
+      }
+    }
 
-    if (insertError) {
-      console.error('❌ INSERT FAILED:', insertError);
+    // STEP 4: HANDLE RESULT
+    if (!finalRecord) {
+      console.error('❌ OPERATION FAILED');
       
       // Coba insert dengan data yang lebih minimal lagi
       console.log('🔄 Trying super minimal insert...');
       
       const superMinimalData = {
-        email: customerEmail,
+        email: customerEmail.includes('monifinebakery@') ? 'fallback@customer.com' : customerEmail,
         order_id: `MINIMAL_${Date.now()}`,
         payment_status: 'pending',
         is_paid: false
@@ -143,6 +215,7 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(JSON.stringify({
           success: true,
           message: 'Minimal data inserted successfully',
+          operation: 'MINIMAL_INSERT',
           data: minimalRecord
         }), {
           status: 200,
@@ -151,35 +224,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
     } else {
-      console.log('✅ FULL INSERT SUCCESS:', newRecord);
-      
-      // Update dengan data tambahan jika ada
-      if (payload.data?.payment_status === 'paid') {
-        console.log('🔄 Updating to paid status...');
-        
-        const { data: updatedRecord, error: updateError } = await supabase
-          .from('user_payments')
-          .update({
-            payment_status: 'settled',
-            is_paid: true,
-            payment_date: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', newRecord.id)
-          .select()
-          .single();
-          
-        if (updateError) {
-          console.error('⚠️ Update failed but insert succeeded:', updateError);
-        } else {
-          console.log('✅ UPDATE TO PAID SUCCESS:', updatedRecord);
-        }
-      }
+      console.log(`✅ ${operationType} SUCCESS:`, finalRecord);
       
       return new Response(JSON.stringify({
         success: true,
-        message: 'Data inserted successfully',
-        data: newRecord
+        message: `Data ${operationType.toLowerCase()} successfully`,
+        operation: operationType,
+        data: finalRecord
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }

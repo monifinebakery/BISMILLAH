@@ -30,6 +30,62 @@ const verifyScalevSignature = (payload: string, signature: string, secret: strin
   }
 };
 
+// ✅ FUNGSI BARU: Ekstrak informasi customer dari payload
+const extractCustomerInfo = (payload: any) => {
+  const payloadData = payload.data || {};
+  
+  // Cari email dari berbagai kemungkinan field berdasarkan available fields Scalev
+  const customerEmail = payloadData.customer_email || 
+                       payloadData.email || 
+                       payloadData.payment_account_holder || // ✅ TAMBAH: dari payment account
+                       payloadData.business || // ✅ TAMBAH: dari business field
+                       payload.customer?.email ||
+                       (payload.payment_status_history && 
+                        payload.payment_status_history[0]?.by?.email);
+  
+  const customerName = payloadData.customer_name || 
+                      payloadData.name ||
+                      payloadData.payment_account_holder ||
+                      payload.customer?.name ||
+                      (payload.payment_status_history && 
+                       payload.payment_status_history[0]?.by?.name) ||
+                      'Unknown User';
+  
+  return { customerEmail, customerName };
+};
+
+// ✅ FUNGSI BARU: Validasi email
+const isValidEmail = (email: string | null | undefined): boolean => {
+  if (!email || typeof email !== 'string') return false;
+  return email.includes('@') && email.includes('.');
+};
+
+// ✅ FUNGSI BARU: Debug payload structure untuk development
+const debugPayloadStructure = (payload: any) => {
+  console.log('🔬 =================================');
+  console.log('🔬 DEEP PAYLOAD ANALYSIS');
+  console.log('🔬 =================================');
+  
+  const traverse = (obj: any, path = '') => {
+    if (!obj || typeof obj !== 'object') return;
+    
+    Object.keys(obj).forEach(key => {
+      const value = obj[key];
+      const currentPath = path ? `${path}.${key}` : key;
+      
+      if (typeof value === 'string' && value.includes('@')) {
+        console.log(`📧 Possible email at ${currentPath}:`, value);
+      }
+      
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        traverse(value, currentPath);
+      }
+    });
+  };
+  
+  traverse(payload);
+};
+
 const handler = async (req: Request): Promise<Response> => {
   console.log('🎯 =================================');
   console.log('🎯 WEBHOOK SCALEV DITERIMA');
@@ -78,30 +134,21 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🔍 Payload keys:', Object.keys(payload));
     console.log('🔍 Payload.data keys:', Object.keys(payload.data || {}));
     
+    // ✅ TAMBAH: Deep analysis untuk mencari email
+    debugPayloadStructure(payload);
+    
     console.log('🎪 Tipe Event:', payload.event);
     
-    // ✅ IMPROVED: Flexible data extraction
+    // ✅ IMPROVED: Gunakan fungsi ekstraksi yang sudah diperbaiki
     const payloadData = payload.data || {};
+    const { customerEmail, customerName } = extractCustomerInfo(payload);
+    
     console.log('💳 ID Pembayaran (Scalev):', payloadData.id);
     console.log('🆔 ID Order (Sistem Anda):', payloadData.order_id);
     console.log('🔗 Referensi (Scalev):', payloadData.reference || payloadData.pg_reference_id);
     console.log('📊 Status (Scalev):', payloadData.status || payloadData.payment_status);
     console.log('💰 Jumlah:', payloadData.amount);
     console.log('💱 Mata Uang:', payloadData.currency);
-    
-    // ✅ IMPROVED: Multiple ways to get customer email
-    const customerEmail = payloadData.customer_email || 
-                         payloadData.email || 
-                         payload.customer?.email ||
-                         (payload.payment_status_history && 
-                          payload.payment_status_history[0]?.by?.email);
-    
-    const customerName = payloadData.customer_name || 
-                        payloadData.name ||
-                        payload.customer?.name ||
-                        (payload.payment_status_history && 
-                         payload.payment_status_history[0]?.by?.name);
-    
     console.log('📧 Email Pelanggan:', customerEmail);
     console.log('👤 Nama Pelanggan:', customerName);
     console.log('⏰ Dibayar Pada:', payloadData.paid_at || payloadData.paid_time);
@@ -193,28 +240,38 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  // ✅ IMPROVED: Extract customer email from multiple sources
-  const customerEmail = payload.data?.customer_email || 
-                       payload.data?.email || 
-                       payload.customer?.email ||
-                       (payload.payment_status_history && 
-                        payload.payment_status_history[0]?.by?.email);
+  // ✅ IMPROVED: Ekstrak customer info menggunakan fungsi yang sudah diperbaiki
+  const { customerEmail, customerName } = extractCustomerInfo(payload);
 
-  const customerName = payload.data?.customer_name || 
-                      payload.data?.name ||
-                      payload.customer?.name ||
-                      (payload.payment_status_history && 
-                       payload.payment_status_history[0]?.by?.name) ||
-                      'Unknown User';
-
-  // ✅ IMPROVED: Validate required fields
-  if (!customerEmail) {
-    console.error('🚫 Email pelanggan tidak ditemukan di payload');
-    console.log('🔍 Available fields:', Object.keys(payload.data || {}));
+  // ✅ IMPROVED: Validasi email yang lebih baik dengan debugging
+  if (!isValidEmail(customerEmail)) {
+    console.error('🚫 Email pelanggan tidak valid atau tidak ditemukan di payload');
+    console.log('🔍 Available fields:', JSON.stringify(Object.keys(payload.data || {}), null, 2));
+    console.log('🔍 Payment account holder:', payload.data?.payment_account_holder);
+    console.log('🔍 Business field:', payload.data?.business);
+    
+    // ✅ TAMBAH: Debug semua field yang mungkin berisi email
+    const possibleEmailFields: {[key: string]: any} = {};
+    const payloadData = payload.data || {};
+    Object.keys(payloadData).forEach(key => {
+      const value = payloadData[key];
+      if (typeof value === 'string' && value.includes('@')) {
+        possibleEmailFields[key] = value;
+      }
+    });
+    console.log('🔍 Fields yang mungkin berisi email:', possibleEmailFields);
+    
     return new Response(JSON.stringify({
-      error: "Email pelanggan tidak ditemukan di payload webhook",
+      error: "Email pelanggan tidak ditemukan atau tidak valid di payload webhook",
       webhook_received_successfully: true,
-      available_fields: Object.keys(payload.data || {})
+      available_fields: Object.keys(payloadData),
+      possible_email_fields: possibleEmailFields,
+      extracted_email: customerEmail,
+      debug_info: {
+        payment_account_holder: payloadData.payment_account_holder,
+        business: payloadData.business,
+        raw_payload_keys: Object.keys(payload)
+      }
     }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

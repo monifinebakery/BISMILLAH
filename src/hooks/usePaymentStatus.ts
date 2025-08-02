@@ -140,13 +140,15 @@ export const usePaymentStatus = () => {
 
                 if (updateError) {
                   console.error('❌ Failed to auto-link payment:', updateError);
+                  console.error('Update error details:', {
+                    code: updateError.code,
+                    message: updateError.message,
+                    details: updateError.details,
+                    hint: updateError.hint
+                  });
                 } else {
                   console.log('✅ Successfully auto-linked PAID payment');
-                  // Force refresh after linking
-                  setTimeout(() => {
-                    queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-                  }, 1000);
-                  
+                  // Immediate return with linked payment
                   return {
                     ...updatedPayment,
                     created_at: safeParseDate(updatedPayment.created_at),
@@ -155,7 +157,7 @@ export const usePaymentStatus = () => {
                   };
                 }
               } catch (linkError) {
-                console.error('❌ Error during auto-linking:', linkError);
+                console.error('❌ Exception during auto-linking:', linkError);
               }
             }
 

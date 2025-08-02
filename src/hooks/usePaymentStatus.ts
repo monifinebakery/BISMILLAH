@@ -1,4 +1,4 @@
-// src/hooks/usePaymentStatus.ts
+// src/hooks/usePaymentStatus.ts - FIXED VERSION
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,7 @@ import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supaba
 
 export interface PaymentStatus {
   id: string;
-  user_id: string;
+  user_id: string | null;
   is_paid: boolean;
   pg_reference_id: string | null;
   order_id: string | null;
@@ -35,37 +35,77 @@ export const usePaymentStatus = () => {
         return null;
       }
 
-      // ===================================================================
-      // --- PERBAIKAN UTAMA DI SINI ---
-      // ===================================================================
-      console.log(`Fetching latest payment status for user: ${user.id}`);
-      const { data: paymentDataArray, error: fetchError } = await supabase
+      console.log(`🔍 Fetching payment status for user: ${user.id} (${user.email})`);
+
+      // ✅ STRATEGY 1: Check by user_id first (proper linked payments)
+      console.log('🔍 Checking payments by user_id...');
+      let { data: paymentsByUserId, error: userIdError } = await supabase
         .from('user_payments')
         .select(`id,user_id,is_paid,pg_reference_id,order_id,email,payment_status,created_at,updated_at`)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false }) // 1. Urutkan dari yang paling baru
-        .limit(1);                                  // 2. Ambil hanya satu record teratas
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (fetchError) {
-        // Error ini sekarang seharusnya tidak terjadi lagi untuk kasus duplikasi
-        console.error('Error fetching payment status:', fetchError);
+      if (userIdError) {
+        console.error('❌ Error fetching by user_id:', userIdError);
+      } else if (paymentsByUserId && paymentsByUserId.length > 0) {
+        console.log('✅ Found payment by user_id:', paymentsByUserId[0]);
+        return {
+          ...paymentsByUserId[0],
+          created_at: safeParseDate(paymentsByUserId[0].created_at),
+          updated_at: safeParseDate(paymentsByUserId[0].updated_at),
+        };
+      }
+
+      // ✅ STRATEGY 2: Check by email (unlinked payments)
+      console.log('🔍 No payment found by user_id, checking by email...');
+      let { data: paymentsByEmail, error: emailError } = await supabase
+        .from('user_payments')
+        .select(`id,user_id,is_paid,pg_reference_id,order_id,email,payment_status,created_at,updated_at`)
+        .eq('email', user.email)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (emailError) {
+        console.error('❌ Error fetching by email:', emailError);
         return null;
       }
 
-      // 3. Ambil elemen pertama dari array (jika ada)
-      const latestPaymentData = paymentDataArray && paymentDataArray.length > 0 ? paymentDataArray[0] : null;
+      if (paymentsByEmail && paymentsByEmail.length > 0) {
+        const payment = paymentsByEmail[0];
+        console.log('⚠️ Found payment by email but not linked to user_id:', payment);
+        
+        // ✅ AUTO-FIX: Link payment to current user
+        if (!payment.user_id) {
+          console.log('🔧 Auto-linking payment to current user...');
+          try {
+            const { error: updateError } = await supabase
+              .from('user_payments')
+              .update({ 
+                user_id: user.id,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', payment.id);
 
-      if (latestPaymentData) {
-        console.log('Latest payment status found:', latestPaymentData);
+            if (updateError) {
+              console.error('❌ Failed to auto-link payment:', updateError);
+            } else {
+              console.log('✅ Successfully auto-linked payment');
+              payment.user_id = user.id; // Update local data
+            }
+          } catch (linkError) {
+            console.error('❌ Error during auto-linking:', linkError);
+          }
+        }
+
         return {
-          ...latestPaymentData,
-          created_at: safeParseDate(latestPaymentData.created_at),
-          updated_at: safeParseDate(latestPaymentData.updated_at),
+          ...payment,
+          created_at: safeParseDate(payment.created_at),
+          updated_at: safeParseDate(payment.updated_at),
         };
       }
-      // ===================================================================
 
-      console.log('No payment status found for user.');
+      console.log('❌ No payment status found for user');
       return null;
     },
     enabled: true,
@@ -73,7 +113,7 @@ export const usePaymentStatus = () => {
     refetchOnWindowFocus: true,
   });
 
-  // useEffect untuk real-time subscription tidak perlu diubah, sudah bagus.
+  // ✅ Enhanced real-time subscription to catch both user_id and email changes
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -91,14 +131,32 @@ export const usePaymentStatus = () => {
         return;
       }
 
+      // ✅ Subscribe to changes for both user_id and email
       realtimeChannel = supabase
         .channel('payment-status-changes')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'user_payments', filter: `user_id=eq.${user.id}` },
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'user_payments', 
+            filter: `user_id=eq.${user.id}` 
+          },
           (payload) => {
-            console.log('Real-time payment update received:', payload);
-            // Invalidate query untuk memicu refetch dengan logika yang sudah diperbaiki
+            console.log('📡 Real-time payment update (by user_id):', payload);
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'user_payments', 
+            filter: `email=eq.${user.email}` 
+          },
+          (payload) => {
+            console.log('📡 Real-time payment update (by email):', payload);
             queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
           }
         )
@@ -124,13 +182,19 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
+  // ✅ Enhanced return with better status indicators
+  const isPaid = paymentStatus?.is_paid === true;
+  const needsPayment = !paymentStatus || !isPaid;
+  const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
+
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
-    isPaid: paymentStatus?.is_paid === true,
-    needsPayment: !paymentStatus || !paymentStatus.is_paid,
-    userName: null // Anda mungkin ingin mengisi ini dari data user di masa depan
+    isPaid,
+    needsPayment,
+    hasUnlinkedPayment, // Indicates if payment exists but not linked
+    userName: null
   };
 };

@@ -400,7 +400,7 @@ const SettingsPage = () => {
                 <div className="text-center text-xs text-gray-500 space-y-1">
                   <p className="font-medium">Bakery Management System</p>
                   <p>Version 2.1.0</p>
-                  <p>© 2025 MoniFine</p>
+                  <p>© 2025 Monifine</p>
                 </div>
               </CardContent>
             </Card>

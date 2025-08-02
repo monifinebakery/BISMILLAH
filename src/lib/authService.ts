@@ -83,7 +83,7 @@ export const sendMagicLink = async (email: string, captchaToken: string | null =
     // Prepare magic link options
     let magicLinkOptions: any = {
       emailRedirectTo: getRedirectUrl(),
-      shouldCreateUser: true, // Allow new user creation
+      shouldCreateUser: true, // ✅ Allow new user creation since you're OK with new users
     };
 
     // Only add captcha token if it's a valid string
@@ -108,6 +108,9 @@ export const sendMagicLink = async (email: string, captchaToken: string | null =
       if (error.message?.includes('Database error saving new user')) {
         console.error('📛 Database schema issue detected');
         toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
+      } else if (error.message?.includes('Signups not allowed for otp')) {
+        console.error('📛 Signup disabled for OTP');
+        toast.error('Pendaftaran akun baru sedang dinonaktifkan. Silakan hubungi administrator atau gunakan akun yang sudah ada.');
       } else if (error.message?.includes('captcha verification process failed')) {
         toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
       } else if (error.message?.includes('email rate limit exceeded') ||
@@ -198,6 +201,9 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       if (error.message?.includes('Database error saving new user')) {
         console.error('📛 Database schema issue detected');
         toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
+      } else if (error.message?.includes('Signups not allowed for otp')) {
+        console.error('📛 Signup disabled for OTP');
+        toast.error('Pendaftaran akun baru sedang dinonaktifkan. Silakan hubungi administrator atau gunakan akun yang sudah ada.');
       } else if (error.message?.includes('captcha verification process failed')) {
         toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
       } else if (error.message?.includes('email rate limit exceeded') ||
@@ -206,7 +212,7 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
       } else if (error.message?.includes('Invalid email')) {
         toast.error('Format email tidak valid');
       } else if (error.message?.includes('User not found')) {
-        toast.error('Email tidak terdaftar dalam sistem');
+        toast.error('Email tidak terdaftar dalam sistem. Silakan hubungi administrator untuk mendaftarkan akun Anda.');
       } else {
         toast.error(error.message || 'Gagal mengirim kode verifikasi');
       }

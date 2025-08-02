@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Lock, HelpCircle, Clock } from 'lucide-react';
-import { sendMagicLink } from '@/lib/authService'; // ✅ Fixed import for magic link
+import React, { useState, useEffect, useRef } from 'react';
+import { Mail, Lock, HelpCircle, Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService'; // ✅ Updated imports
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ interface EmailAuthPageProps {
   accentColor?: string;
   supportEmail?: string;
   logoUrl?: string;
+  onLoginSuccess?: () => void;
 }
 
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
@@ -30,14 +31,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   accentColor = '#F0F0F0',
   supportEmail = 'admin@sistemhpp.com',
   logoUrl,
+  onLoginSuccess,
 }) => {
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
-  const [linkSent, setLinkSent] = useState(false); // Track if magic link was sent
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false); // Track if OTP was sent
   const [cooldownTime, setCooldownTime] = useState(0);
   const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
+  const [error, setError] = useState('');
+  
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const debugLog = (message: string, ...args: any[]) => {
     if (DEBUG_LOGS) {
@@ -69,7 +76,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  const handleSendMagicLink = async () => {
+  const handleSendOtp = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -85,24 +92,25 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     
     setIsLoading(true);
+    setError('');
+    
     try {
-      debugLog('Attempting to send magic link for email:', email);
-      const success = await sendMagicLink(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
-      debugLog('sendMagicLink returned success:', success);
+      debugLog('Attempting to send OTP for email:', email);
+      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
+      debugLog('sendEmailOtp returned success:', success);
       
       if (success) {
-        setLinkSent(true);
-        toast.success('Link login telah dikirim ke email Anda!');
-        debugLog('Magic link sent successfully');
+        setOtpSent(true);
+        debugLog('OTP sent successfully');
         startCooldown(60);
       } else {
-        toast.error('Gagal mengirim link login. Silakan coba lagi.');
-        startCooldown(30); // Shorter cooldown on failure
-        debugLog('sendMagicLink failed');
+        toast.error('Gagal mengirim kode verifikasi. Silakan coba lagi.');
+        startCooldown(30);
+        debugLog('sendEmailOtp failed');
       }
     } catch (error) {
-      console.error('Error in handleSendMagicLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim magic link.');
+      console.error('Error in handleSendOtp:', error);
+      toast.error('Terjadi kesalahan saat mengirim kode verifikasi.');
       startCooldown(30);
     } finally {
       setIsLoading(false);
@@ -110,7 +118,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  const handleResendLink = async () => {
+  const handleResendOtp = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -122,24 +130,100 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
 
     setIsLoading(true);
+    setError('');
+    
     try {
-      debugLog('Attempting to resend magic link for email:', email);
-      const success = await sendMagicLink(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
+      debugLog('Attempting to resend OTP for email:', email);
+      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
       
       if (success) {
-        toast.success('Link login telah dikirim ulang ke email Anda');
+        setOtp(['', '', '', '', '', '']);
         startCooldown(60);
+        inputRefs.current[0]?.focus();
       } else {
-        toast.error('Gagal mengirim ulang link login. Silakan coba lagi.');
+        toast.error('Gagal mengirim ulang kode verifikasi. Silakan coba lagi.');
         startCooldown(30);
       }
     } catch (error) {
-      console.error('Error in handleResendLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim ulang magic link.');
+      console.error('Error in handleResendOtp:', error);
+      toast.error('Terjadi kesalahan saat mengirim ulang kode verifikasi.');
       startCooldown(30);
     } finally {
       setIsLoading(false);
       resetHCaptcha();
+    }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value.toUpperCase();
+    setOtp(newOtp);
+    setError('');
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all fields filled
+    if (newOtp.every(digit => digit !== '') && !isVerifying) {
+      handleVerifyOtp(newOtp.join(''));
+    }
+  };
+
+  // Handle backspace
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\s/g, '').toUpperCase();
+    
+    if (pastedData.length === 6) {
+      const newOtp = pastedData.split('').slice(0, 6);
+      setOtp(newOtp);
+      setError('');
+      
+      if (!isVerifying) {
+        handleVerifyOtp(newOtp.join(''));
+      }
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async (otpCode: string) => {
+    if (otpCode.length !== 6) {
+      setError('Kode OTP harus 6 digit');
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      debugLog('Verifying OTP for email:', email);
+      const success = await verifyEmailOtp(email, otpCode);
+      
+      if (success) {
+        onLoginSuccess?.();
+      } else {
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -169,8 +253,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
     resetHCaptcha();
-    setLinkSent(false);
-    debugLog('Email changed. linkSent set to false.');
+    setOtpSent(false);
+    setOtp(['', '', '', '', '', '']);
+    setError('');
+    debugLog('Email changed. otpSent set to false.');
   };
 
   const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
@@ -212,7 +298,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!linkSent ? (
+          {!otpSent ? (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -261,7 +347,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               )}
               
               <Button
-                onClick={handleSendMagicLink}
+                onClick={handleSendOtp}
                 className="w-full py-6 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ 
                   backgroundColor: primaryColor,
@@ -281,10 +367,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Mengirim Magic Link...
+                    Mengirim Kode Verifikasi...
                   </>
                 ) : (
-                  'Kirim Magic Link'
+                  'Kirim Kode Verifikasi'
                 )}
               </Button>
             </div>
@@ -295,13 +381,60 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </div>
               <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
               <p className="text-gray-600 leading-relaxed">
-                Kami telah mengirim <strong>magic link</strong> ke <strong>{email}</strong>.
+                Kami telah mengirim <strong>kode verifikasi</strong> ke <strong>{email}</strong>.
                 <br />
-                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk masuk ke sistem secara otomatis.
+                Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
               </p>
               
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+                    <span className="text-red-800 text-sm">{error}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Input */}
+              <div className="flex justify-center space-x-2 mb-4">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9A-Z]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onPaste={index === 0 ? handlePaste : undefined}
+                    className="w-10 h-10 text-center text-lg font-medium border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    disabled={isVerifying}
+                  />
+                ))}
+              </div>
+
+              {/* Verify Button */}
+              <Button
+                onClick={() => handleVerifyOtp(otp.join(''))}
+                disabled={otp.some(digit => digit === '') || isVerifying}
+                className="w-full py-3 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {isVerifying ? (
+                  <div className="flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Memverifikasi...
+                  </div>
+                ) : (
+                  'Verifikasi Kode'
+                )}
+              </Button>
+              
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                <strong>Tips:</strong> Link akan expired dalam 1 jam. Jika tidak menerima email, coba kirim ulang.
+                <strong>Tips:</strong> Kode akan expired dalam 5 menit. Jika tidak menerima email, coba kirim ulang.
               </div>
               
               {HCAPTCHA_ENABLED && HCaptcha && (
@@ -330,7 +463,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleResendLink}
+                  onClick={handleResendOtp}
                   disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -348,7 +481,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       Mengirim Ulang...
                     </>
                   ) : (
-                    'Kirim Ulang Magic Link'
+                    'Kirim Ulang Kode'
                   )}
                 </Button>
               </div>
@@ -376,7 +509,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           )}
           {DEBUG_LOGS && (
             <div className="text-xs text-gray-500 text-center font-mono bg-gray-100 p-2 rounded">
-              Debug: hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | Link Sent: {linkSent ? 'Yes' : 'No'}
+              Debug: hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | OTP Sent: {otpSent ? 'Yes' : 'No'}
             </div>
           )}
         </CardFooter>

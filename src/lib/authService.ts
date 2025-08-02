@@ -1,292 +1,322 @@
-import React, { useState } from 'react';
-import { Mail, Lock, HelpCircle, Clock } from 'lucide-react';
-import { sendEmailOtp } from '@/lib/authService'; // ✅ Fixed import
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+// src/services/authService.ts
+
+import { supabase } from '@/integrations/supabase/client'; // Pastikan path ini benar untuk client Supabase Anda
 import { toast } from 'sonner';
-import Hcaptcha from '@hcaptcha/react-hcaptcha';
+import { cleanupAuthState } from '@/lib/authUtils'; // Pastikan utilitas ini relevan dan sesuai tujuan
+import { Session } from '@supabase/supabase-js';
 
-interface EmailAuthPageProps {
-  appName?: string;
-  appDescription?: string;
-  primaryColor?: string;
-  accentColor?: string;
-  supportEmail?: string;
-  logoUrl?: string;
-}
-
-const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
-const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
-const DEBUG_LOGS = import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true';
-
-const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
-  appName = import.meta.env.VITE_APP_NAME || 'Sistem HPP',
-  appDescription = import.meta.env.VITE_APP_DESCRIPTION || 'Hitung Harga Pokok Penjualan dengan mudah',
-  primaryColor = '#181D31',
-  accentColor = '#F0F0F0',
-  supportEmail = 'admin@sistemhpp.com',
-  logoUrl,
-}) => {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [linkSent, setLinkSent] = useState(false); // Track if magic link was sent
-  const [cooldownTime, setCooldownTime] = useState(0);
-  const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
-  const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
-  const [hCaptchaKey, setHCaptchaKey] = useState(0);
-
-  const debugLog = (message: string, ...args: any[]) => {
-    if (DEBUG_LOGS) {
-      console.log(`[MagicLinkAuth] ${message}`, ...args);
-    }
-  };
-
-  const startCooldown = (seconds: number) => {
-    setCooldownTime(seconds);
-    if (cooldownTimer) clearInterval(cooldownTimer);
-    const timer = setInterval(() => {
-      setCooldownTime((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCooldownTimer(null);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    setCooldownTimer(timer);
-  };
-
-  const resetHCaptcha = () => {
-    if (HCAPTCHA_ENABLED) {
-      setHCaptchaToken(null);
-      setHCaptchaKey(prev => prev + 1);
-      debugLog('hCaptcha reset');
-    }
-  };
-
-  const handleSendMagicLink = async () => {
-    if (cooldownTime > 0) {
-      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
-      return;
-    }
-    if (!email || !email.includes('@')) {
-      toast.error('Masukkan alamat email yang valid.');
-      return;
-    }
-    
-    if (HCAPTCHA_ENABLED && !hCaptchaToken) {
-      toast.error('Harap selesaikan verifikasi captcha.');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      debugLog('Attempting to send magic link for email:', email);
-      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
-      debugLog('sendEmailOtp returned success:', success);
-      
-      if (success) {
-        setLinkSent(true);
-        debugLog('Magic link sent successfully');
-        startCooldown(60);
-      } else {
-        startCooldown(60);
-        debugLog('sendEmailOtp failed');
-      }
-    } catch (error) {
-      console.error('Error in handleSendMagicLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim link.');
-    } finally {
-      setIsLoading(false);
-      resetHCaptcha();
-    }
-  };
-
-  const handleResendLink = async () => {
-    if (cooldownTime > 0) {
-      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
-      return;
-    }
-    
-    if (HCAPTCHA_ENABLED && !hCaptchaToken) {
-      toast.error('Harap selesaikan verifikasi captcha terlebih dahulu.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      debugLog('Attempting to resend magic link for email:', email);
-      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
-      
-      if (success) {
-        toast.success('Link login telah dikirim ulang ke email Anda');
-        startCooldown(60);
-      } else {
-        startCooldown(60);
-      }
-    } catch (error) {
-      console.error('Error in handleResendLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim ulang link.');
-    } finally {
-      setIsLoading(false);
-      resetHCaptcha();
-    }
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (cooldownTimer) {
-        clearInterval(cooldownTimer);
-      }
-    };
-  }, [cooldownTimer]);
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    resetHCaptcha();
-    setLinkSent(false);
-    debugLog('Email changed. linkSent set to false.');
-  };
-
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 font-inter"
-      style={{ '--hpp-primary': primaryColor, '--hpp-accent': accentColor } as React.CSSProperties}
-    >
-      <Card className="w-full max-w-md shadow-xl border-0 rounded-lg overflow-hidden">
-        <div className="h-2 bg-hpp-primary"></div>
-        <CardHeader className="space-y-1 pt-6">
-          <div className="flex justify-center mb-4">
-            {logoUrl ? (
-              <img src={logoUrl} alt={appName} className="h-16 w-auto" />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-hpp-primary flex items-center justify-center">
-                <Lock className="h-8 w-8 text-white" />
-              </div>
-            )}
-          </div>
-          <CardTitle className="text-2xl font-bold text-center text-hpp-primary">
-            {appName}
-          </CardTitle>
-          <CardDescription className="text-center text-gray-600">
-            {appDescription}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!linkSent ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Masukkan email Anda"
-                    value={email}
-                    onChange={handleEmailChange}
-                    className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:ring-hpp-primary focus:border-transparent"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-              
-              {HCAPTCHA_ENABLED && (
-                <div>
-                  <Hcaptcha
-                    key={hCaptchaKey}
-                    sitekey={HCAPTCHA_SITE_KEY}
-                    onVerify={token => setHCaptchaToken(token)}
-                    onExpire={() => setHCaptchaToken(null)}
-                    theme="light"
-                  />
-                </div>
-              )}
-              
-              <Button
-                onClick={handleSendMagicLink}
-                className="w-full py-6 text-base font-medium bg-hpp-primary text-white hover:bg-opacity-90 rounded-md shadow-md transition-colors duration-200"
-                disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
-              >
-                {cooldownTime > 0 ? (
-                  <>
-                    <Clock className="mr-2 h-5 w-5" />
-                    Tunggu {cooldownTime}s
-                  </>
-                ) : isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Mengirim...
-                  </>
-                ) : (
-                  'Kirim Link Login'
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center space-y-4 py-4">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Mail className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
-              <p className="text-gray-600">
-                Kami telah mengirim link login ke <strong>{email}</strong>.
-                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk masuk ke sistem.
-              </p>
-              
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResendLink}
-                  disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
-                >
-                  {cooldownTime > 0 ? (
-                    <>
-                      <Clock className="mr-2 h-4 w-4" />
-                      Tunggu {cooldownTime}s
-                    </>
-                  ) : isLoading ? (
-                    'Mengirim Ulang...'
-                  ) : (
-                    'Kirim Ulang Link'
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2 pt-0">
-          <div className="text-xs text-center text-gray-500 flex items-center justify-center">
-            <HelpCircle className="h-3 w-3 mr-1" />
-            <span>
-              Butuh bantuan? <a href={`mailto:${supportEmail}`} className="text-hpp-primary hover:underline">Hubungi admin</a>
-            </span>
-          </div>
-          {cooldownTime > 0 && (
-            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-md">
-              Untuk mencegah spam, tunggu {cooldownTime} detik sebelum mengirim email lagi
-            </div>
-          )}
-          {DEBUG_LOGS && (
-            <div className="text-xs text-gray-500 text-center">
-              hCaptcha: {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'}
-            </div>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
-  );
+// Tentukan URL redirect berdasarkan environment
+const getRedirectUrl = () => {
+  if (process.env.NODE_ENV === 'development') {
+    return 'https://sync--gleaming-peony-f4a091.netlify.app/auth/callback'; // URL callback untuk development
+  }
+  // Untuk produksi, gunakan subdomain utama aplikasi Anda yang sudah terdaftar di Supabase Auth Settings
+  return 'https://kalkulator.monifine.my.id/auth/callback';
 };
 
-export default EmailAuthPage;
+/**
+ * Mengirim email reset password ke alamat email yang diberikan.
+ * @param email Alamat email untuk mengirim link reset password.
+ * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ */
+export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: getRedirectUrl(), // Menggunakan fungsi dinamis
+    });
+
+    if (error) {
+      console.error('Password reset error:', error);
+
+      // Tangani error rate limit spesifik dari Supabase
+      if (error.message?.includes('email rate limit exceeded') ||
+          error.message?.includes('over_email_send_rate_limit')) {
+        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
+      } else {
+        toast.error(error.message || 'Gagal mengirim link reset password');
+      }
+      return false;
+    }
+
+    toast.success('Link reset password telah dikirim ke email Anda');
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset link:', error);
+    toast.error('Terjadi kesalahan saat mengirim link reset password');
+    return false;
+  }
+};
+
+/**
+ * Mengirim magic link ke alamat email yang diberikan.
+ * Fungsi ini akan mengirim magic link untuk login/signup otomatis.
+ * @param email Alamat email untuk mengirim magic link.
+ * @param captchaToken Token hCaptcha (opsional, bisa null jika captcha tidak diaktifkan).
+ * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ */
+export const sendMagicLink = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+  try {
+    console.log('[AuthService] Sending magic link to:', email);
+    
+    // Cleanup auth state sebelum mengirim magic link (opsional)
+    cleanupAuthState(); // Pastikan fungsi ini didefinisikan dan sesuai dengan kebutuhan Anda
+
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        // Magic link akan redirect ke callback URL
+        emailRedirectTo: getRedirectUrl(),
+        shouldCreateUser: true, // Allow new user signup
+        // Pass captcha token if provided
+        ...(captchaToken && { captchaToken })
+      },
+    });
+
+    if (error) {
+      console.error('[AuthService] Magic link error:', error);
+
+      // Handle specific error cases
+      if (error.message?.includes('captcha verification process failed')) {
+        toast.error('Verifikasi CAPTCHA gagal. Pastikan Anda bukan robot dan coba lagi.');
+      } else if (error.message?.includes('email rate limit exceeded') ||
+                  error.message?.includes('over_email_send_rate_limit')) {
+        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
+      } else if (error.message?.includes('invalid_email')) {
+        toast.error('Alamat email tidak valid.');
+      } else if (error.message?.includes('signup_disabled')) {
+        toast.error('Pendaftaran akun baru sedang dinonaktifkan.');
+      } else {
+        toast.error(error.message || 'Gagal mengirim magic link');
+      }
+      return false;
+    }
+
+    console.log('[AuthService] Magic link sent successfully:', data);
+    toast.success('Magic link telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+    
+    return true;
+  } catch (error) {
+    console.error('[AuthService] Error sending magic link:', error);
+    toast.error('Terjadi kesalahan saat mengirim magic link');
+    return false;
+  }
+};
+
+/**
+ * Legacy function untuk backward compatibility (will call sendMagicLink)
+ * @deprecated Use sendMagicLink instead
+ */
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+  console.warn('[AuthService] sendEmailOtp is deprecated, use sendMagicLink instead');
+  return sendMagicLink(email, captchaToken);
+};
+
+/**
+ * Verifikasi kode OTP yang dikirim ke email.
+ * Note: Untuk magic link, verifikasi dilakukan otomatis saat user klik link.
+ * Function ini tetap ada untuk backward compatibility.
+ * @param email Email yang digunakan untuk mengirim OTP.
+ * @param token Kode OTP yang diterima pengguna.
+ * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ */
+export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email' // Tipe verifikasi adalah 'email'
+    });
+    
+    if (error) {
+      console.error('OTP verification error:', error);
+      toast.error(error.message || 'Kode tidak valid atau sudah kadaluarsa.');
+      return false;
+    }
+    
+    // Periksa apakah sesi berhasil dibuat
+    if (data.session) {
+      toast.success('Login berhasil! Anda akan diarahkan.');
+      return true;
+    } else {
+      toast.error('Verifikasi berhasil, tetapi sesi tidak ditemukan. Silakan coba login ulang.');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    toast.error('Terjadi kesalahan saat verifikasi kode');
+    return false;
+  }
+};
+
+/**
+ * Handle magic link callback setelah user klik link di email
+ * @param code Authorization code dari URL callback
+ * @returns Promise yang mengembalikan data session atau error
+ */
+export const handleMagicLinkCallback = async (code: string) => {
+  try {
+    console.log('[AuthService] Processing magic link callback...');
+    
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error) {
+      console.error('[AuthService] Magic link callback error:', error);
+      throw error;
+    }
+    
+    if (data.session && data.user) {
+      console.log('[AuthService] Magic link authentication successful:', data.user.email);
+      toast.success('Login berhasil! Selamat datang.');
+      return { session: data.session, user: data.user };
+    }
+    
+    throw new Error('No session created');
+  } catch (error) {
+    console.error('[AuthService] Error in magic link callback:', error);
+    throw error;
+  }
+};
+
+/**
+ * Memeriksa apakah pengguna saat ini terotentikasi.
+ * @returns Promise yang mengembalikan boolean yang menunjukkan apakah pengguna terotentikasi.
+ */
+export const isAuthenticated = async (): Promise<boolean> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session; // Mengembalikan true jika ada sesi, false jika null
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return false;
+  }
+};
+
+/**
+ * Mendapatkan sesi saat ini.
+ * @returns Promise yang mengembalikan sesi saat ini atau null.
+ */
+export const getCurrentSession = async (): Promise<Session | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  } catch (error) {
+    console.error('Error getting current session:', error);
+    return null;
+  }
+};
+
+/**
+ * Mendapatkan user saat ini.
+ * @returns Promise yang mengembalikan user saat ini atau null.
+ */
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('[AuthService] Get user error:', error);
+      return null;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('[AuthService] Error getting current user:', error);
+    return null;
+  }
+};
+
+/**
+ * Sign out pengguna saat ini.
+ * @returns Promise yang mengembalikan boolean (true jika berhasil, false jika gagal).
+ */
+export const signOut = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('[AuthService] Sign out error:', error);
+      toast.error('Gagal logout');
+      return false;
+    }
+    
+    // Cleanup auth state after signout
+    cleanupAuthState();
+    toast.success('Logout berhasil');
+    return true;
+  } catch (error) {
+    console.error('[AuthService] Error in signOut:', error);
+    toast.error('Terjadi kesalahan saat logout');
+    return false;
+  }
+};
+
+/**
+ * Listen to auth state changes
+ * @param callback Callback function untuk handle perubahan auth state
+ * @returns Function untuk unsubscribe
+ */
+export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    callback(event, session);
+  });
+  
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+/**
+ * Check if user has valid session
+ * @returns Promise<boolean>
+ */
+export const hasValidSession = async (): Promise<boolean> => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('[AuthService] Session check error:', error);
+      return false;
+    }
+    
+    return !!session && !isSessionExpired(session);
+  } catch (error) {
+    console.error('[AuthService] Error checking session:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if session is expired
+ * @param session Current session
+ * @returns boolean
+ */
+const isSessionExpired = (session: Session): boolean => {
+  if (!session.expires_at) return false;
+  
+  const now = Math.floor(Date.now() / 1000);
+  return session.expires_at < now;
+};
+
+/**
+ * Refresh current session if needed
+ * @returns Promise<Session | null>
+ */
+export const refreshSession = async (): Promise<Session | null> => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    
+    if (error) {
+      console.error('[AuthService] Session refresh error:', error);
+      return null;
+    }
+    
+    return data.session;
+  } catch (error) {
+    console.error('[AuthService] Error refreshing session:', error);
+    return null;
+  }
+};
+
+// Export supabase client untuk penggunaan langsung jika diperlukan
+export { supabase };

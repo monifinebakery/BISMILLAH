@@ -46,6 +46,8 @@ export const usePaymentStatus = () => {
       console.log(`🔍 === PAYMENT STATUS DETECTION START ===`);
       console.log(`👤 User ID: ${user.id}`);
       console.log(`📧 User Email: ${user.email}`);
+      console.log(`📧 User Email Type: ${typeof user.email}`);
+      console.log(`📧 User Email Length: ${user.email?.length}`);
 
       // ✅ STRATEGY 1: Check by user_id first (properly linked payments)
       console.log('🔍 Step 1: Checking payments by user_id...');
@@ -175,7 +177,28 @@ export const usePaymentStatus = () => {
         }
       }
 
-      // ✅ STRATEGY 3: Debug - show all payments for this user/email
+      // ✅ STRATEGY 3: Debug - show exact query being executed
+      console.log('🔍 Step 3: Running exact email query for debug...');
+      console.log(`Query: SELECT * FROM user_payments WHERE email = '${user.email}'`);
+      
+      let { data: exactEmailQuery, error: exactError } = await supabase
+        .from('user_payments')
+        .select(`*`)
+        .eq('email', user.email);
+        
+      console.log('📊 Exact email query result:', exactEmailQuery);
+      console.log('📊 Exact email query error:', exactError);
+
+      // ✅ STRATEGY 4: Try case-insensitive search
+      console.log('🔍 Step 4: Trying case-insensitive email search...');
+      let { data: iLikeQuery, error: iLikeError } = await supabase
+        .from('user_payments')
+        .select(`*`)
+        .ilike('email', user.email);
+        
+      console.log('📊 Case-insensitive query result:', iLikeQuery);
+
+      // ✅ STRATEGY 5: Complete debug - show all payments for this user/email
       console.log('🔍 Step 3: Complete debug search...');
       let { data: allPayments, error: debugError } = await supabase
         .from('user_payments')

@@ -79,13 +79,31 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
   const impact = getStatusChangeImpact();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onCancel}>
+    <Dialog open={isOpen} onOpenChange={onCancel} modal={true}>
       <DialogContent 
         className="max-w-md"
         aria-describedby="dialog-description"
         onOpenAutoFocus={(event) => {
           // Prevent auto-focus if there are errors to avoid focusing disabled button
           if (hasErrors) {
+            event.preventDefault();
+          }
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          if (!isUpdating) {
+            onCancel();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          if (isUpdating) {
+            event.preventDefault();
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (isUpdating) {
             event.preventDefault();
           }
         }}

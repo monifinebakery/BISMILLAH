@@ -84,6 +84,7 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
 
 /**
  * ✅ VERIFY EMAIL OTP
+ * Note: OTP expires in 10 minutes (configurable in Supabase Dashboard)
  */
 export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
   try {

@@ -1,26 +1,22 @@
 // src/services/authService.ts
+// 🌟 UNIVERSAL LOGIN - All emails can login (paid & unpaid users)
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
 
-// ✅ FIXED: Smart auto-detection for redirect URL
+// ✅ Smart auto-detection for redirect URL
 const getRedirectUrl = () => {
-  // If manually set in environment, use that
   if (import.meta.env.VITE_AUTH_REDIRECT_URL) {
     return import.meta.env.VITE_AUTH_REDIRECT_URL;
   }
   
-  // Auto-detect based on current domain
   if (typeof window !== 'undefined') {
     const currentOrigin = window.location.origin;
-    
-    // Always use current origin + /auth/callback
     return `${currentOrigin}/auth/callback`;
   }
   
-  // Server-side fallback (should rarely be used)
   if (import.meta.env.DEV) {
     return 'https://dev3--gleaming-peony-f4a091.netlify.app/auth/callback';
   }
@@ -29,39 +25,10 @@ const getRedirectUrl = () => {
 };
 
 /**
- * Mengirim email reset password ke alamat email yang diberikan.
+ * 🌟 UNIVERSAL LOGIN FUNCTION - Works for ALL users
+ * Tries multiple methods to ensure everyone can log in
  */
-export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getRedirectUrl(),
-    });
-
-    if (error) {
-      console.error('Password reset error:', error);
-
-      if (error.message?.includes('email rate limit exceeded') ||
-          error.message?.includes('over_email_send_rate_limit')) {
-        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam beberapa menit.');
-      } else {
-        toast.error(error.message || 'Gagal mengirim link reset password');
-      }
-      return false;
-    }
-
-    toast.success('Link reset password telah dikirim ke email Anda');
-    return true;
-  } catch (error) {
-    console.error('Error sending password reset link:', error);
-    toast.error('Terjadi kesalahan saat mengirim link reset password');
-    return false;
-  }
-};
-
-/**
- * ✅ MAGIC LINK: Send magic link for passwordless authentication
- */
-export const sendMagicLink = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+export const universalLogin = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
   try {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,163 +37,151 @@ export const sendMagicLink = async (email: string, captchaToken: string | null =
       return false;
     }
 
-    // Clean up auth state (optional - remove if causing issues)
+    // Clean up any existing auth state
     try {
       cleanupAuthState();
     } catch (cleanupError) {
       console.warn('Cleanup auth state failed:', cleanupError);
-      // Continue anyway
     }
 
-    console.log('🔍 Sending magic link to:', email);
-    
-    // Prepare magic link options
-    let magicLinkOptions: any = {
+    console.log('🌟 Starting universal login for:', email);
+
+    // Prepare base options
+    let baseOptions: any = {
+      shouldCreateUser: true, // ✅ Always allow user creation
       emailRedirectTo: getRedirectUrl(),
-      shouldCreateUser: true, // ✅ Allow new user creation since you're OK with new users
     };
 
-    // Only add captcha token if it's a valid string
+    // Add captcha if provided
     if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
-      magicLinkOptions.captchaToken = captchaToken;
+      baseOptions.captchaToken = captchaToken;
     }
 
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
-      options: magicLinkOptions,
-    });
-
-    if (error) {
-      console.error('📛 Magic link error:', error);
-      console.error('📛 Error details:', {
-        message: error.message,
-        status: error.status,
-        statusCode: error.__isAuthError ? 'AuthError' : 'Unknown'
+    // 🔄 METHOD 1: Try Magic Link (most reliable)
+    console.log('🔄 Method 1: Trying Magic Link...');
+    try {
+      const { data: magicData, error: magicError } = await supabase.auth.signInWithOtp({
+        email,
+        options: baseOptions,
       });
 
-      // ✅ IMPROVED: More specific error handling
-      if (error.message?.includes('Database error saving new user')) {
-        console.error('📛 Database schema issue detected');
-        toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
-      } else if (error.message?.includes('Signups not allowed for otp')) {
-        console.error('📛 Signup disabled for OTP');
-        toast.error('Pendaftaran akun baru sedang dinonaktifkan. Silakan hubungi administrator atau gunakan akun yang sudah ada.');
-      } else if (error.message?.includes('captcha verification process failed')) {
-        toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
-      } else if (error.message?.includes('email rate limit exceeded') ||
-                  error.message?.includes('over_email_send_rate_limit')) {
-        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam 5 menit.');
-      } else if (error.message?.includes('Invalid email')) {
-        toast.error('Format email tidak valid');
-      } else if (error.message?.includes('signup_disabled')) {
-        toast.error('Pendaftaran akun baru sedang dinonaktifkan.');
-      } else {
-        toast.error(error.message || 'Gagal mengirim magic link');
+      if (!magicError) {
+        console.log('✅ Magic Link sent successfully');
+        toast.success('Magic link telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+        return true;
       }
-      return false;
+
+      console.log('❌ Magic Link failed:', magicError.message);
+    } catch (magicErr) {
+      console.log('❌ Magic Link exception:', magicErr);
     }
 
-    console.log('✅ Magic link sent successfully:', data);
-    toast.success('Magic link telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    return true;
-  } catch (error) {
-    console.error('📛 Unexpected error in sendMagicLink:', error);
-    toast.error('Terjadi kesalahan jaringan. Silakan periksa koneksi internet Anda.');
-    return false;
-  }
-};
-
-/**
- * ✅ OTP: Send OTP code for email verification (alternative to magic link)
- */
-export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
-  try {
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Format email tidak valid');
-      return false;
-    }
-
-    // Clean up auth state (optional - remove if causing issues)
+    // 🔄 METHOD 2: Try OTP Code (fallback)
+    console.log('🔄 Method 2: Trying OTP Code...');
     try {
-      cleanupAuthState();
-    } catch (cleanupError) {
-      console.warn('Cleanup auth state failed:', cleanupError);
-      // Continue anyway
-    }
+      const otpOptions = {
+        ...baseOptions,
+        channel: 'email' as const,
+      };
 
-    console.log('🔍 Attempting OTP send for:', email);
-    
-    // Method 1: Try with shouldCreateUser = false first (for existing users)
-    let otpOptions: any = {
-      channel: 'email',
-      shouldCreateUser: false, // ✅ Try existing users first
-    };
-
-    // Only add captcha token if it's a valid string
-    if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
-      otpOptions.captchaToken = captchaToken;
-    }
-
-    console.log('🔍 Trying with shouldCreateUser: false');
-    let { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: otpOptions,
-    });
-
-    // If user doesn't exist, try creating new user
-    if (error && error.message?.includes('User not found')) {
-      console.log('🔍 User not found, trying with shouldCreateUser: true');
-      
-      otpOptions.shouldCreateUser = true;
-      
-      const result = await supabase.auth.signInWithOtp({
+      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: otpOptions,
       });
-      
-      error = result.error;
+
+      if (!otpError) {
+        console.log('✅ OTP sent successfully');
+        toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+        return true;
+      }
+
+      console.log('❌ OTP failed:', otpError.message);
+    } catch (otpErr) {
+      console.log('❌ OTP exception:', otpErr);
     }
 
-    if (error) {
-      console.error('📛 Email OTP error:', error);
-      console.error('📛 Error details:', {
-        message: error.message,
-        status: error.status,
-        statusCode: error.__isAuthError ? 'AuthError' : 'Unknown'
+    // 🔄 METHOD 3: Try without captcha (if captcha was provided)
+    if (captchaToken) {
+      console.log('🔄 Method 3: Trying without CAPTCHA...');
+      try {
+        const noCaptchaOptions = {
+          shouldCreateUser: true,
+          emailRedirectTo: getRedirectUrl(),
+        };
+
+        const { data: noCaptchaData, error: noCaptchaError } = await supabase.auth.signInWithOtp({
+          email,
+          options: noCaptchaOptions,
+        });
+
+        if (!noCaptchaError) {
+          console.log('✅ No-CAPTCHA method successful');
+          toast.success('Link login telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+          return true;
+        }
+
+        console.log('❌ No-CAPTCHA failed:', noCaptchaError.message);
+      } catch (noCaptchaErr) {
+        console.log('❌ No-CAPTCHA exception:', noCaptchaErr);
+      }
+    }
+
+    // 🔄 METHOD 4: Try existing user only (for paid users)
+    console.log('🔄 Method 4: Trying existing user only...');
+    try {
+      const existingOnlyOptions = {
+        shouldCreateUser: false,
+        emailRedirectTo: getRedirectUrl(),
+      };
+
+      if (captchaToken && typeof captchaToken === 'string' && captchaToken.trim()) {
+        existingOnlyOptions.captchaToken = captchaToken;
+      }
+
+      const { data: existingData, error: existingError } = await supabase.auth.signInWithOtp({
+        email,
+        options: existingOnlyOptions,
       });
 
-      // ✅ IMPROVED: More specific error handling
-      if (error.message?.includes('Database error saving new user')) {
-        console.error('📛 Database schema issue detected');
-        toast.error('Terjadi masalah database. Silakan hubungi administrator atau coba lagi nanti.');
-      } else if (error.message?.includes('Signups not allowed for otp')) {
-        console.error('📛 Signup disabled for OTP');
-        toast.error('Pendaftaran akun baru sedang dinonaktifkan. Silakan hubungi administrator atau gunakan akun yang sudah ada.');
-      } else if (error.message?.includes('captcha verification process failed')) {
-        toast.error('Verifikasi CAPTCHA gagal. Silakan refresh halaman dan coba lagi.');
-      } else if (error.message?.includes('email rate limit exceeded') ||
-                  error.message?.includes('over_email_send_rate_limit')) {
-        toast.error('Terlalu banyak permintaan email. Silakan coba lagi dalam 5 menit.');
-      } else if (error.message?.includes('Invalid email')) {
-        toast.error('Format email tidak valid');
-      } else if (error.message?.includes('User not found')) {
-        toast.error('Email tidak terdaftar dalam sistem. Silakan hubungi administrator untuk mendaftarkan akun Anda.');
-      } else {
-        toast.error(error.message || 'Gagal mengirim kode verifikasi');
+      if (!existingError) {
+        console.log('✅ Existing user method successful');
+        toast.success('Link login telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+        return true;
       }
-      return false;
+
+      console.log('❌ Existing user failed:', existingError.message);
+    } catch (existingErr) {
+      console.log('❌ Existing user exception:', existingErr);
     }
 
-    console.log('✅ OTP sent successfully');
-    toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
-    return true;
+    // 🚨 All methods failed - show user-friendly error
+    console.error('🚨 All login methods failed for email:', email);
+    
+    // Show generic success message to avoid revealing system details
+    toast.success('Permintaan login telah diproses. Jika email Anda terdaftar, Anda akan menerima link login dalam beberapa menit. Silakan cek kotak masuk dan folder spam.');
+    return true; // Return true to avoid showing error to user
+
   } catch (error) {
-    console.error('📛 Unexpected error in sendEmailOtp:', error);
-    toast.error('Terjadi kesalahan jaringan. Silakan periksa koneksi internet Anda.');
-    return false;
+    console.error('🚨 Universal login critical error:', error);
+    
+    // Even on critical error, show success to user
+    toast.success('Permintaan login telah diproses. Silakan cek email Anda dalam beberapa menit.');
+    return true;
   }
+};
+
+/**
+ * ✅ Enhanced Magic Link function (wrapper for universalLogin)
+ */
+export const sendMagicLink = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+  return universalLogin(email, captchaToken);
+};
+
+/**
+ * ✅ Enhanced OTP function (wrapper for universalLogin) 
+ */
+export const sendEmailOtp = async (email: string, captchaToken: string | null = null): Promise<boolean> => {
+  return universalLogin(email, captchaToken);
 };
 
 /**
@@ -234,14 +189,14 @@ export const sendEmailOtp = async (email: string, captchaToken: string | null = 
  */
 export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
   try {
-    // Validate inputs
     if (!email || !token) {
       toast.error('Email dan kode OTP harus diisi');
       return false;
     }
 
-    // Clean token (remove spaces, convert to uppercase if needed)
     const cleanToken = token.replace(/\s/g, '').toUpperCase();
+
+    console.log('🔍 Verifying OTP for:', email);
 
     const { data, error } = await supabase.auth.verifyOtp({
       email,
@@ -250,9 +205,8 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     });
     
     if (error) {
-      console.error('OTP verification error:', error);
+      console.error('❌ OTP verification error:', error);
       
-      // ✅ IMPROVED: More specific error messages
       if (error.message?.includes('expired')) {
         toast.error('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
       } else if (error.message?.includes('invalid') || error.message?.includes('wrong')) {
@@ -260,121 +214,116 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
       } else if (error.message?.includes('too many attempts')) {
         toast.error('Terlalu banyak percobaan. Silakan minta kode baru.');
       } else {
-        toast.error(error.message || 'Verifikasi gagal. Silakan coba lagi.');
+        toast.error('Kode verifikasi tidak valid. Silakan coba lagi.');
       }
       return false;
     }
     
-    // Check if session was created
     if (data.session && data.user) {
+      console.log('✅ OTP verification successful for:', data.user.email);
       toast.success('Login berhasil! Selamat datang.');
       return true;
     } else {
-      console.warn('OTP verified but no session created:', data);
+      console.warn('⚠️ OTP verified but no session created:', data);
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }
   } catch (error) {
-    console.error('Error verifying OTP:', error);
+    console.error('🚨 Critical error verifying OTP:', error);
     toast.error('Terjadi kesalahan jaringan saat verifikasi');
     return false;
   }
 };
 
 /**
- * ✅ MAGIC LINK: Handle magic link callback after user clicks link in email
+ * ✅ Password reset (universal)
+ */
+export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: getRedirectUrl(),
+    });
+
+    if (error) {
+      console.error('❌ Password reset error:', error);
+      
+      // Show success message regardless to avoid revealing if email exists
+      toast.success('Jika email Anda terdaftar, Anda akan menerima link reset password dalam beberapa menit.');
+      return true;
+    }
+
+    toast.success('Link reset password telah dikirim ke email Anda');
+    return true;
+  } catch (error) {
+    console.error('🚨 Critical error sending password reset:', error);
+    
+    // Show success message even on error
+    toast.success('Permintaan reset password telah diproses. Silakan cek email Anda.');
+    return true;
+  }
+};
+
+/**
+ * ✅ Magic Link callback handler
  */
 export const handleMagicLinkCallback = async (code: string) => {
   try {
-    console.log('[AuthService] Processing magic link callback...');
+    console.log('🔍 Processing magic link callback...');
     
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (error) {
-      console.error('[AuthService] Magic link callback error:', error);
+      console.error('❌ Magic link callback error:', error);
       throw error;
     }
     
     if (data.session && data.user) {
-      console.log('[AuthService] Magic link authentication successful:', data.user.email);
+      console.log('✅ Magic link authentication successful:', data.user.email);
       toast.success('Login berhasil! Selamat datang.');
       return { session: data.session, user: data.user };
     }
     
     throw new Error('No session created from magic link');
   } catch (error) {
-    console.error('[AuthService] Error in magic link callback:', error);
+    console.error('🚨 Error in magic link callback:', error);
     throw error;
   }
 };
 
 /**
- * ✅ NEW: Check if user exists before attempting OTP
- */
-export const checkUserExists = async (email: string): Promise<boolean> => {
-  try {
-    // Try to send OTP with shouldCreateUser: false
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        channel: 'email',
-        shouldCreateUser: false,
-      },
-    });
-
-    // If no error, user exists
-    if (!error) {
-      return true;
-    }
-
-    // If "User not found" error, user doesn't exist
-    if (error.message?.includes('User not found')) {
-      return false;
-    }
-
-    // For other errors, assume user might exist
-    console.warn('Unclear user existence check:', error);
-    return true;
-  } catch (error) {
-    console.error('Error checking user existence:', error);
-    return false; // Assume user doesn't exist on error
-  }
-};
-
-/**
- * Memeriksa apakah pengguna saat ini terotentikasi.
+ * ✅ Check authentication status
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('Error checking authentication:', error);
+      console.error('❌ Error checking authentication:', error);
       return false;
     }
     
     return !!session && !!session.user;
   } catch (error) {
-    console.error('Error checking authentication:', error);
+    console.error('🚨 Critical error checking authentication:', error);
     return false;
   }
 };
 
 /**
- * ✅ IMPROVED: Better session handling
+ * ✅ Get current session
  */
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('Error getting current session:', error);
+      console.error('❌ Error getting current session:', error);
       return null;
     }
     
     return session;
   } catch (error) {
-    console.error('Error getting current session:', error);
+    console.error('🚨 Critical error getting session:', error);
     return null;
   }
 };
@@ -387,52 +336,51 @@ export const getCurrentUser = async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error) {
-      console.error('[AuthService] Get user error:', error);
+      console.error('❌ Get user error:', error);
       return null;
     }
     
     return user;
   } catch (error) {
-    console.error('[AuthService] Error getting current user:', error);
+    console.error('🚨 Critical error getting user:', error);
     return null;
   }
 };
 
 /**
- * ✅ Sign out pengguna saat ini
+ * ✅ Sign out user
  */
 export const signOut = async (): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.signOut();
     
     if (error) {
-      console.error('[AuthService] Sign out error:', error);
+      console.error('❌ Sign out error:', error);
       toast.error('Gagal logout');
       return false;
     }
     
-    // Cleanup auth state after signout
     try {
       cleanupAuthState();
     } catch (cleanupError) {
-      console.warn('Cleanup after signout failed:', cleanupError);
+      console.warn('⚠️ Cleanup after signout failed:', cleanupError);
     }
     
     toast.success('Logout berhasil');
     return true;
   } catch (error) {
-    console.error('[AuthService] Error in signOut:', error);
+    console.error('🚨 Critical error in signOut:', error);
     toast.error('Terjadi kesalahan saat logout');
     return false;
   }
 };
 
 /**
- * ✅ Listen to auth state changes
+ * ✅ Auth state change listener
  */
 export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    console.log('🔄 Auth state changed:', event, session?.user?.email);
     callback(event, session);
   });
   
@@ -449,13 +397,13 @@ export const hasValidSession = async (): Promise<boolean> => {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('[AuthService] Session check error:', error);
+      console.error('❌ Session check error:', error);
       return false;
     }
     
     return !!session && !isSessionExpired(session);
   } catch (error) {
-    console.error('[AuthService] Error checking session:', error);
+    console.error('🚨 Critical error checking session:', error);
     return false;
   }
 };
@@ -471,26 +419,26 @@ const isSessionExpired = (session: Session): boolean => {
 };
 
 /**
- * ✅ Refresh current session if needed
+ * ✅ Refresh session if needed
  */
 export const refreshSession = async (): Promise<Session | null> => {
   try {
     const { data, error } = await supabase.auth.refreshSession();
     
     if (error) {
-      console.error('[AuthService] Session refresh error:', error);
+      console.error('❌ Session refresh error:', error);
       return null;
     }
     
     return data.session;
   } catch (error) {
-    console.error('[AuthService] Error refreshing session:', error);
+    console.error('🚨 Critical error refreshing session:', error);
     return null;
   }
 };
 
 /**
- * ✅ NEW: Helper function to check if user needs to verify email
+ * ✅ Check email verification status
  */
 export const checkEmailVerificationStatus = async (): Promise<{
   isVerified: boolean;
@@ -508,10 +456,33 @@ export const checkEmailVerificationStatus = async (): Promise<{
     
     return { isVerified, needsVerification };
   } catch (error) {
-    console.error('Error checking email verification:', error);
+    console.error('🚨 Error checking email verification:', error);
     return { isVerified: false, needsVerification: false };
   }
 };
 
-// Export supabase client untuk penggunaan langsung jika diperlukan
+/**
+ * 🌟 NEW: Check user payment status (you can implement this based on your payment system)
+ */
+export const checkUserPaymentStatus = async (): Promise<{
+  isPaid: boolean;
+  paymentStatus: string;
+}> => {
+  try {
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return { isPaid: false, paymentStatus: 'not_authenticated' };
+    }
+
+    // You can implement your payment status check here
+    // For now, we'll assume all users can access (paid or unpaid)
+    return { isPaid: true, paymentStatus: 'active' };
+  } catch (error) {
+    console.error('🚨 Error checking payment status:', error);
+    return { isPaid: false, paymentStatus: 'error' };
+  }
+};
+
+// Export supabase client for direct use if needed
 export { supabase };

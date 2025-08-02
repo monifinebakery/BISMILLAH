@@ -22,6 +22,17 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const payload = await req.json();
     console.log('📦 Received payload:', JSON.stringify(payload, null, 2));
+    
+    // Debug: show all fields in payload.data for reference ID hunting
+    const payloadData = payload.data || payload;
+    console.log('🔍 HUNTING FOR REFERENCE ID...');
+    console.log('Available fields in payload.data:', Object.keys(payloadData));
+    console.log('- id:', payloadData.id);
+    console.log('- pg_reference_id:', payloadData.pg_reference_id);
+    console.log('- reference_id:', payloadData.reference_id);
+    console.log('- reference:', payloadData.reference);
+    console.log('- unique_id:', payloadData.unique_id);
+    console.log('- order_id:', payloadData.order_id);
 
     // STEP 1: Ambil email APAPUN yang ada (improved extraction)
     let customerEmail = 'unknown@customer.com'; // default fallback
@@ -88,14 +99,50 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('🎯 Final email to use:', customerEmail);
 
-    // STEP 2: Buat record MINIMAL (hanya kolom required)
+    // STEP 2: Extract additional Scalev data
+    const payloadData = payload.data || payload;
+    
+    // Extract pg_reference_id and other payment details
+    const pgReferenceId = payloadData.pg_reference_id || 
+                         payloadData.reference_id ||
+                         payloadData.reference ||
+                         payloadData.id ||
+                         null;
+    
+    const paymentMethod = payloadData.payment_method || null;
+    const financialEntity = payloadData.financial_entity?.name || 
+                           payloadData.financial_entity || 
+                           null;
+    const paymentAccountHolder = payloadData.payment_account_holder || null;
+    const paymentAccountNumber = payloadData.payment_account_number || null;
+    const paidTime = payloadData.paid_time || null;
+    const transferTime = payloadData.transfer_time || null;
+    const amount = payloadData.amount || 0;
+    
+    console.log('💳 Payment details extracted:');
+    console.log('- PG Reference ID:', pgReferenceId);
+    console.log('- Payment Method:', paymentMethod);
+    console.log('- Financial Entity:', financialEntity);
+    console.log('- Account Holder:', paymentAccountHolder);
+    console.log('- Amount:', amount);
+    console.log('- Paid Time:', paidTime);
+
+    // STEP 3: Buat record dengan data lengkap
     const insertData = {
       email: customerEmail,
-      order_id: payload.data?.order_id || `AUTO_${Date.now()}`,
-      payment_status: 'pending',
-      is_paid: false,
-      amount: payload.data?.amount || 0,
-      currency: payload.data?.currency || 'IDR',
+      order_id: payloadData.order_id || `AUTO_${Date.now()}`,
+      pg_reference_id: pgReferenceId,
+      payment_status: payloadData.payment_status === 'paid' ? 'settled' : 'pending',
+      is_paid: payloadData.payment_status === 'paid',
+      amount: amount,
+      currency: payloadData.currency || 'IDR',
+      payment_method: paymentMethod,
+      financial_entity: financialEntity,
+      payment_account_holder: paymentAccountHolder,
+      payment_account_number: paymentAccountNumber,
+      paid_time: paidTime,
+      transfer_time: transferTime,
+      payment_date: payloadData.payment_status === 'paid' ? (paidTime || new Date().toISOString()) : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -136,12 +183,22 @@ const handler = async (req: Request): Promise<Response> => {
         updated_at: new Date().toISOString()
       };
       
-      // Set payment status based on payload
+      // Update payment status and additional fields based on payload
       if (payload.data?.payment_status === 'paid') {
         updateData.payment_status = 'settled';
         updateData.is_paid = true;
-        updateData.payment_date = new Date().toISOString();
+        updateData.payment_date = paidTime || new Date().toISOString();
       }
+      
+      // Always update these fields with latest data from webhook
+      if (pgReferenceId) updateData.pg_reference_id = pgReferenceId;
+      if (paymentMethod) updateData.payment_method = paymentMethod;
+      if (financialEntity) updateData.financial_entity = financialEntity;
+      if (paymentAccountHolder) updateData.payment_account_holder = paymentAccountHolder;
+      if (paymentAccountNumber) updateData.payment_account_number = paymentAccountNumber;
+      if (paidTime) updateData.paid_time = paidTime;
+      if (transferTime) updateData.transfer_time = transferTime;
+      if (amount > 0) updateData.amount = amount;
       
       console.log('🔄 Updating with data:', updateData);
       

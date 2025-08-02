@@ -134,7 +134,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     
     try {
       debugLog('Attempting to resend OTP for email:', email);
-      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
+      const success = await sendEmailOtp(email, null); // ✅ No captcha for resend
       
       if (success) {
         setOtp(['', '', '', '', '', '']);
@@ -442,35 +442,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <strong>Tips:</strong> Kode akan expired dalam 5 menit. Jika tidak menerima email, coba kirim ulang.
               </div>
               
-              {/* hCaptcha for resend */}
-              {HCAPTCHA_ENABLED && HCaptcha && (
-                <div className="flex justify-center">
-                  <HCaptcha
-                    key={hCaptchaKey}
-                    sitekey={HCAPTCHA_SITE_KEY}
-                    onVerify={(token: string) => {
-                      setHCaptchaToken(token);
-                      debugLog('hCaptcha verified for resend');
-                    }}
-                    onExpire={() => {
-                      setHCaptchaToken(null);
-                      debugLog('hCaptcha expired for resend');
-                    }}
-                    onError={(error: any) => {
-                      console.error('hCaptcha error:', error);
-                      setHCaptchaToken(null);
-                    }}
-                    theme="light"
-                  />
-                </div>
-              )}
-              
               {/* Resend Button */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleResendOtp}
-                disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
+                disabled={isLoading || cooldownTime > 0}
                 className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {cooldownTime > 0 ? (

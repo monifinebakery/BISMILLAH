@@ -1,176 +1,510 @@
-// Example: How to use EmailAuthPage with proper redirect
-// File: src/pages/LoginPage.tsx or wherever you use the auth component
+import React, { useState, useEffect, useRef } from 'react';
+import { Mail, Lock, HelpCircle, Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService'; // ✅ Updated imports
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import EmailAuthPage from '@/components/EmailAuthPage';
-import { isAuthenticated } from '@/lib/authService';
+// ✅ FIXED: Use dynamic import for hCaptcha to avoid TypeScript issues
+let HCaptcha: any = null;
 
-const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
+interface EmailAuthPageProps {
+  appName?: string;
+  appDescription?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  supportEmail?: string;
+  logoUrl?: string;
+  onLoginSuccess?: () => void;
+  redirectUrl?: string; // ✅ NEW: Custom redirect URL
+}
 
-  // ✅ Check if user is already authenticated
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
+const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
+const DEBUG_LOGS = import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true';
+
+const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
+  appName = import.meta.env.VITE_APP_NAME || 'Sistem HPP',
+  appDescription = import.meta.env.VITE_APP_DESCRIPTION || 'Hitung Harga Pokok Penjualan dengan mudah',
+  primaryColor = '#181D31',
+  accentColor = '#F0F0F0',
+  supportEmail = 'admin@sistemhpp.com',
+  logoUrl,
+  onLoginSuccess,
+  redirectUrl = '/dashboard', // ✅ Default redirect to dashboard
+}) => {
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false); // Track if OTP was sent
+  const [cooldownTime, setCooldownTime] = useState(0);
+  const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
+  const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
+  const [hCaptchaKey, setHCaptchaKey] = useState(0);
+  const [error, setError] = useState('');
+  
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const debugLog = (message: string, ...args: any[]) => {
+    if (DEBUG_LOGS) {
+      console.log(`[EmailAuth] ${message}`, ...args);
+    }
+  };
+
+  const startCooldown = (seconds: number) => {
+    setCooldownTime(seconds);
+    if (cooldownTimer) clearInterval(cooldownTimer);
+    const timer = setInterval(() => {
+      setCooldownTime((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCooldownTimer(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setCooldownTimer(timer);
+  };
+
+  const resetHCaptcha = () => {
+    if (HCAPTCHA_ENABLED) {
+      setHCaptchaToken(null);
+      setHCaptchaKey(prev => prev + 1);
+      debugLog('hCaptcha reset');
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (cooldownTime > 0) {
+      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
+      return;
+    }
+    if (!email || !email.includes('@')) {
+      toast.error('Masukkan alamat email yang valid.');
+      return;
+    }
+    
+    if (HCAPTCHA_ENABLED && !hCaptchaToken) {
+      toast.error('Harap selesaikan verifikasi captcha.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      debugLog('Attempting to send OTP for email:', email);
+      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
+      debugLog('sendEmailOtp returned success:', success);
+      
+      if (success) {
+        setOtpSent(true);
+        debugLog('OTP sent successfully');
+        startCooldown(60);
+      } else {
+        toast.error('Gagal mengirim kode verifikasi. Silakan coba lagi.');
+        startCooldown(30);
+        debugLog('sendEmailOtp failed');
+      }
+    } catch (error) {
+      console.error('Error in handleSendOtp:', error);
+      toast.error('Terjadi kesalahan saat mengirim kode verifikasi.');
+      startCooldown(30);
+    } finally {
+      setIsLoading(false);
+      // ✅ No captcha reset needed for resend
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (cooldownTime > 0) {
+      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      debugLog('Attempting to resend OTP for email:', email);
+      const success = await sendEmailOtp(email, null); // ✅ No captcha for resend
+      
+      if (success) {
+        setOtp(['', '', '', '', '', '']);
+        startCooldown(60);
+        inputRefs.current[0]?.focus();
+      } else {
+        toast.error('Gagal mengirim ulang kode verifikasi. Silakan coba lagi.');
+        startCooldown(30);
+      }
+    } catch (error) {
+      console.error('Error in handleResendOtp:', error);
+      toast.error('Terjadi kesalahan saat mengirim ulang kode verifikasi.');
+      startCooldown(30);
+    } finally {
+      setIsLoading(false);
+      resetHCaptcha();
+    }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value.toUpperCase();
+    setOtp(newOtp);
+    setError('');
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all fields filled
+    if (newOtp.every(digit => digit !== '') && !isVerifying) {
+      handleVerifyOtp(newOtp.join(''));
+    }
+  };
+
+  // Handle backspace
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\s/g, '').toUpperCase();
+    
+    if (pastedData.length === 6) {
+      const newOtp = pastedData.split('').slice(0, 6);
+      setOtp(newOtp);
+      setError('');
+      
+      if (!isVerifying) {
+        handleVerifyOtp(newOtp.join(''));
+      }
+    }
+  };
+
+  // ✅ UPDATED: Verify OTP with auto redirect
+  const handleVerifyOtp = async (otpCode: string) => {
+    if (otpCode.length !== 6) {
+      setError('Kode OTP harus 6 digit');
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      debugLog('Verifying OTP for email:', email);
+      const success = await verifyEmailOtp(email, otpCode);
+      
+      if (success) {
+        // ✅ Handle successful login with flexible redirect options
+        if (onLoginSuccess) {
+          // Custom callback provided
+          onLoginSuccess();
+        } else {
+          // Default redirect behavior
+          toast.success('Login berhasil! Mengarahkan ke dashboard...');
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 1500); // 1.5 second delay for user to see success message
+        }
+      } else {
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // ✅ FIXED: Load hCaptcha dynamically to avoid TypeScript conflicts
   useEffect(() => {
-    const checkAuth = async () => {
-      const authenticated = await isAuthenticated();
-      if (authenticated) {
-        // Already logged in, redirect to dashboard
-        navigate('/dashboard');
+    if (HCAPTCHA_ENABLED && !HCaptcha) {
+      import('@hcaptcha/react-hcaptcha')
+        .then((module) => {
+          HCaptcha = module.default;
+          setHCaptchaKey(prev => prev + 1); // Force re-render
+        })
+        .catch((error) => {
+          console.error('Failed to load hCaptcha:', error);
+        });
+    }
+  }, []);
+
+  // ✅ Fixed useEffect with proper dependency
+  useEffect(() => {
+    return () => {
+      if (cooldownTimer) {
+        clearInterval(cooldownTimer);
       }
     };
-    checkAuth();
-  }, [navigate]);
+  }, [cooldownTimer]);
 
-  // ✅ Handle successful login
-  const handleLoginSuccess = () => {
-    console.log('Login successful, redirecting to dashboard...');
-    
-    // Redirect to dashboard or main app
-    navigate('/dashboard');
-    
-    // Or redirect to a specific URL
-    // window.location.href = 'https://your-app-domain.com/dashboard';
-    
-    // Or redirect to the URL they were trying to access before login
-    // const redirectUrl = new URLSearchParams(window.location.search).get('redirect');
-    // navigate(redirectUrl || '/dashboard');
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    resetHCaptcha();
+    setOtpSent(false);
+    setOtp(['', '', '', '', '', '']);
+    setError('');
+    debugLog('Email changed. otpSent set to false.');
   };
 
+  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
+
   return (
-    <EmailAuthPage
-      appName="Sistem HPP"
-      appDescription="Hitung Harga Pokok Penjualan dengan mudah"
-      primaryColor="#181D31"
-      supportEmail="admin@sistemhpp.com"
-      onLoginSuccess={handleLoginSuccess} // ✅ This handles redirect after login
-    />
+    <div
+      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 font-inter"
+      style={{ 
+        '--hpp-primary': primaryColor, 
+        '--hpp-accent': accentColor 
+      } as React.CSSProperties}
+    >
+      <Card className="w-full max-w-md shadow-xl border-0 rounded-lg overflow-hidden">
+        <div 
+          className="h-2"
+          style={{ backgroundColor: primaryColor }}
+        ></div>
+        <CardHeader className="space-y-1 pt-6">
+          <div className="flex justify-center mb-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-16 w-auto" />
+            ) : (
+              <div 
+                className="h-16 w-16 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+            )}
+          </div>
+          <CardTitle 
+            className="text-2xl font-bold text-center"
+            style={{ color: primaryColor }}
+          >
+            {appName}
+          </CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            {appDescription}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!otpSent ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Masukkan email Anda"
+                    value={email}
+                    onChange={handleEmailChange}
+                    className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:border-transparent"
+                    style={{ 
+                      '--tw-ring-color': primaryColor,
+                      '--tw-ring-opacity': '0.5'
+                    } as React.CSSProperties}
+                    required
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+              
+              {HCAPTCHA_ENABLED && HCaptcha && (
+                <div className="flex justify-center">
+                  <HCaptcha
+                    key={hCaptchaKey}
+                    sitekey={HCAPTCHA_SITE_KEY}
+                    onVerify={(token: string) => {
+                      setHCaptchaToken(token);
+                      debugLog('hCaptcha verified');
+                    }}
+                    onExpire={() => {
+                      setHCaptchaToken(null);
+                      debugLog('hCaptcha expired');
+                    }}
+                    onError={(error: any) => {
+                      console.error('hCaptcha error:', error);
+                      setHCaptchaToken(null);
+                    }}
+                    theme="light"
+                  />
+                </div>
+              )}
+              
+              <Button
+                onClick={handleSendOtp}
+                className="w-full py-6 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  backgroundColor: primaryColor,
+                  '--hover-bg': `${primaryColor}dd`
+                } as React.CSSProperties}
+                disabled={isLoading || cooldownTime > 0 || !isFormValid}
+                type="button"
+              >
+                {cooldownTime > 0 ? (
+                  <>
+                    <Clock className="mr-2 h-5 w-5" />
+                    Tunggu {cooldownTime}s
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Mengirim Kode Verifikasi...
+                  </>
+                ) : (
+                  'Kirim Kode Verifikasi'
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <Mail className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
+              <p className="text-gray-600 leading-relaxed mb-2">
+                Kami telah mengirim <strong>kode verifikasi</strong> ke
+              </p>
+              <p className="font-semibold text-gray-800 mb-4">{email}.</p>
+              <p className="text-sm text-gray-600">
+                Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
+              </p>
+              
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+                    <span className="text-red-800 text-sm">{error}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Input */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700">Masukkan Kode OTP (6 digit)</Label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9A-Z]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      disabled={isVerifying}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Verify Button */}
+              <Button
+                onClick={() => handleVerifyOtp(otp.join(''))}
+                disabled={otp.some(digit => digit === '') || isVerifying}
+                className="w-full py-3 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {isVerifying ? (
+                  <div className="flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Memverifikasi...
+                  </div>
+                ) : (
+                  'Verifikasi Kode'
+                )}
+              </Button>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800 mb-4">
+                <strong>Tips:</strong> Kode akan expired dalam 5 menit. Jika tidak menerima email, coba kirim ulang.
+              </div>
+              
+              {/* Resend Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResendOtp}
+                disabled={isLoading || cooldownTime > 0}
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cooldownTime > 0 ? (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Tunggu {cooldownTime}s
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Mengirim Ulang...
+                  </>
+                ) : (
+                  'Kirim Ulang Kode'
+                )}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2 pt-0">
+          <div className="text-xs text-center text-gray-500 flex items-center justify-center">
+            <HelpCircle className="h-3 w-3 mr-1" />
+            <span>
+              Butuh bantuan? <a 
+                href={`mailto:${supportEmail}`} 
+                className="hover:underline transition-colors duration-200"
+                style={{ color: primaryColor }}
+              >
+                Hubungi admin
+              </a>
+            </span>
+          </div>
+          {cooldownTime > 0 && (
+            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+              <Clock className="inline h-3 w-3 mr-1" />
+              Untuk mencegah spam, tunggu {cooldownTime} detik sebelum mengirim email lagi
+            </div>
+          )}
+          {DEBUG_LOGS && (
+            <div className="text-xs text-gray-500 text-center font-mono bg-gray-100 p-2 rounded">
+              Debug: hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | OTP Sent: {otpSent ? 'Yes' : 'No'}
+            </div>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 
-export default LoginPage;
-
-// ===============================
-// Alternative: Using window.location for external redirect
-// ===============================
-
-const handleLoginSuccessExternal = () => {
-  console.log('Login successful, redirecting to external domain...');
-  
-  // For external domain redirect
-  window.location.href = 'https://kalkulator.monifine.my.id/dashboard';
-  
-  // Or with a delay
-  setTimeout(() => {
-    window.location.href = 'https://kalkulator.monifine.my.id';
-  }, 1000);
-};
-
-// ===============================
-// Alternative: Using React Router with search params
-// ===============================
-
-const LoginPageWithRedirectParam: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const handleLoginSuccess = () => {
-    const redirectUrl = searchParams.get('redirect') || '/dashboard';
-    console.log('Login successful, redirecting to:', redirectUrl);
-    
-    // Redirect to the intended destination
-    navigate(redirectUrl);
-  };
-
-  return (
-    <EmailAuthPage
-      onLoginSuccess={handleLoginSuccess}
-    />
-  );
-};
-
-// Usage: /login?redirect=/settings
-// After login, user will be redirected to /settings
-
-// ===============================
-// Alternative: Auth Context Integration
-// ===============================
-
-import { useAuth } from '@/contexts/AuthContext';
-
-const LoginPageWithAuthContext: React.FC = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLoginSuccess = async () => {
-    console.log('Login successful, updating auth context...');
-    
-    // Update auth context if needed
-    await login();
-    
-    // Redirect to dashboard
-    navigate('/dashboard');
-  };
-
-  return (
-    <EmailAuthPage
-      onLoginSuccess={handleLoginSuccess}
-    />
-  );
-};
-
-// ===============================
-// Alternative: Global redirect function
-// ===============================
-
-// utils/redirectAfterLogin.ts
-export const redirectAfterLogin = () => {
-  // Get intended destination from localStorage or URL params
-  const intendedUrl = localStorage.getItem('intendedUrl') || '/dashboard';
-  
-  // Clear the intended URL
-  localStorage.removeItem('intendedUrl');
-  
-  // Redirect
-  if (intendedUrl.startsWith('http')) {
-    // External URL
-    window.location.href = intendedUrl;
-  } else {
-    // Internal route
-    window.location.pathname = intendedUrl;
-  }
-};
-
-// Usage
-const handleLoginSuccess = () => {
-  console.log('Login successful, using global redirect...');
-  redirectAfterLogin();
-};
-
-// ===============================
-// For Next.js users
-// ===============================
-
-import { useRouter } from 'next/router';
-
-const NextJSLoginPage: React.FC = () => {
-  const router = useRouter();
-
-  const handleLoginSuccess = () => {
-    console.log('Login successful, redirecting with Next.js router...');
-    
-    // Next.js redirect
-    router.push('/dashboard');
-    
-    // Or with query params
-    // router.push({
-    //   pathname: '/dashboard',
-    //   query: { welcome: 'true' }
-    // });
-  };
-
-  return (
-    <EmailAuthPage
-      onLoginSuccess={handleLoginSuccess}
-    />
-  );
-};
+export default EmailAuthPage;

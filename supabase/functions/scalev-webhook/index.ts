@@ -74,11 +74,11 @@ const handler = async (req: Request): Promise<Response> => {
     const emailSources = [
       payload.customer_email,
       payload.email,
-      payload.data?.customer_email,
-      payload.data?.email,
-      payload.data?.payment_account_holder,
+      payloadData.customer_email,
+      payloadData.email,
+      payloadData.payment_account_holder,
       // Check all payment history entries
-      ...(payload.data?.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
+      ...(payloadData.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
     ];
     
     console.log('📧 All email sources found:', emailSources);
@@ -100,8 +100,6 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🎯 Final email to use:', customerEmail);
 
     // STEP 2: Extract additional Scalev data
-    const payloadData = payload.data || payload;
-    
     // Extract pg_reference_id and other payment details
     const pgReferenceId = payloadData.pg_reference_id || 
                          payloadData.reference_id ||

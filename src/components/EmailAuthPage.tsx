@@ -380,9 +380,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <Mail className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Kami telah mengirim <strong>kode verifikasi</strong> ke <strong>{email}</strong>.
-                <br />
+              <p className="text-gray-600 leading-relaxed mb-2">
+                Kami telah mengirim <strong>kode verifikasi</strong> ke
+              </p>
+              <p className="font-semibold text-gray-800 mb-4">{email}.</p>
+              <p className="text-sm text-gray-600">
                 Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
               </p>
               
@@ -397,30 +399,33 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               )}
 
               {/* OTP Input */}
-              <div className="flex justify-center space-x-2 mb-4">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => (inputRefs.current[index] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9A-Z]*"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    onPaste={index === 0 ? handlePaste : undefined}
-                    className="w-10 h-10 text-center text-lg font-medium border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    disabled={isVerifying}
-                  />
-                ))}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700">Masukkan Kode OTP (6 digit)</Label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9A-Z]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      disabled={isVerifying}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Verify Button */}
               <Button
                 onClick={() => handleVerifyOtp(otp.join(''))}
                 disabled={otp.some(digit => digit === '') || isVerifying}
-                className="w-full py-3 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                className="w-full py-3 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: primaryColor }}
               >
                 {isVerifying ? (
@@ -433,10 +438,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 )}
               </Button>
               
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800 mb-4">
                 <strong>Tips:</strong> Kode akan expired dalam 5 menit. Jika tidak menerima email, coba kirim ulang.
               </div>
               
+              {/* hCaptcha for resend */}
               {HCAPTCHA_ENABLED && HCaptcha && (
                 <div className="flex justify-center">
                   <HCaptcha
@@ -459,32 +465,31 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               )}
               
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {cooldownTime > 0 ? (
-                    <>
-                      <Clock className="mr-2 h-4 w-4" />
-                      Tunggu {cooldownTime}s
-                    </>
-                  ) : isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Mengirim Ulang...
-                    </>
-                  ) : (
-                    'Kirim Ulang Kode'
-                  )}
-                </Button>
-              </div>
+              {/* Resend Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResendOtp}
+                disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cooldownTime > 0 ? (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Tunggu {cooldownTime}s
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Mengirim Ulang...
+                  </>
+                ) : (
+                  'Kirim Ulang Kode'
+                )}
+              </Button>
             </div>
           )}
         </CardContent>

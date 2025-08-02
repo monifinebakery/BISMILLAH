@@ -114,18 +114,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       startCooldown(30);
     } finally {
       setIsLoading(false);
-      resetHCaptcha();
+      // ✅ No captcha reset needed for resend
     }
   };
 
   const handleResendOtp = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
-      return;
-    }
-    
-    if (HCAPTCHA_ENABLED && !hCaptchaToken) {
-      toast.error('Harap selesaikan verifikasi captcha terlebih dahulu.');
       return;
     }
 

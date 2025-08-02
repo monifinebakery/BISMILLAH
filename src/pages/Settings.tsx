@@ -282,35 +282,6 @@ const SettingsPage = () => {
               
               <NotificationSettingsForm />
             </div>
-
-            {/* ✅ SECURITY & PRIVACY SECTION (Future) */}
-            <Card className="shadow-lg border-0 overflow-hidden opacity-60">
-              <CardHeader className="bg-gray-50 border-b">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-red-100 p-2 rounded-lg">
-                      <Shield className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">Keamanan & Privasi</CardTitle>
-                      <CardDescription>
-                        Pengaturan keamanan akun dan privasi data (Segera Hadir)
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="bg-orange-100 px-3 py-1 rounded-full">
-                    <span className="text-xs font-medium text-orange-700">Coming Soon</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center py-8 text-gray-400">
-                  <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Fitur pengaturan keamanan akan tersedia di update selanjutnya</p>
-                </div>
-              </CardContent>
-            </Card>
-
           </div>
 
           {/* ✅ SIDEBAR: Quick Actions & Info */}

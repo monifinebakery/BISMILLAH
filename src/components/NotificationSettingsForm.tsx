@@ -160,21 +160,6 @@ const NotificationSettingsForm = () => {
             <Mail className="h-4 w-4" />
             Metode Notifikasi
           </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <div>
-                  <Label className="font-medium">Email</Label>
-                  <p className="text-sm text-gray-500">Notifikasi via email</p>
-                </div>
-              </div>
-              <Switch
-                checked={formState.email_notifications}
-                onCheckedChange={(checked) => handleInputChange('email_notifications', checked)}
-              />
-            </div>
             
             <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
               <div className="flex items-center gap-3">

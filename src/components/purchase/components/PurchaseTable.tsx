@@ -46,7 +46,11 @@ import {
 import { PurchaseTablePropsExtended, PurchaseStatus } from '../types/purchase.types';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getStatusColor, getStatusDisplayText, generatePurchaseSummary } from '../utils/purchaseHelpers';
+import { 
+  getStatusColor, 
+  getStatusDisplayText, 
+  getFormattedTotalQuantities 
+} from '../utils/purchaseHelpers';
 import { EmptyState } from './index';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 
@@ -246,132 +250,75 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     );
   };
 
-  // ✅ FIXED: Action buttons component
+  // Action buttons component
   const ActionButtons: React.FC<{ purchase: any }> = ({ purchase }) => {
-    // Option 1: Fixed Dropdown Menu
-    const useDropdown = true; // Set to false to use simple buttons
-
-    if (useDropdown) {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-              aria-label={`Actions for purchase ${purchase.id}`}
-              type="button"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="end" 
-            className="w-[160px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
-            side="bottom"
-            sideOffset={4}
-            avoidCollisions={true}
-            collisionPadding={8}
-          >
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleViewDetails(purchase);
-              }}
-              className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm"
-              role="menuitem"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Lihat Detail
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (purchase.status !== 'completed') {
-                  handleEdit(purchase);
-                }
-              }}
-              disabled={purchase.status === 'completed'}
-              className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              role="menuitem"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (purchase.status !== 'completed') {
-                  handleDelete(purchase.id);
-                }
-              }}
-              disabled={purchase.status === 'completed'}
-              className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              role="menuitem"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Hapus
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
-    // Option 2: Simple Button Layout (fallback)
     return (
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleViewDetails(purchase);
-          }}
-          className="h-8 px-2 hover:bg-gray-100"
-          title="Lihat Detail"
-          type="button"
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            aria-label={`Actions for purchase ${purchase.id}`}
+            type="button"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="end" 
+          className="w-[160px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
+          side="bottom"
+          sideOffset={4}
+          avoidCollisions={true}
+          collisionPadding={8}
         >
-          <Eye className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleEdit(purchase);
-          }}
-          disabled={purchase.status === 'completed'}
-          className="h-8 px-2 hover:bg-gray-100 disabled:opacity-50"
-          title="Edit"
-          type="button"
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDelete(purchase.id);
-          }}
-          disabled={purchase.status === 'completed'}
-          className="h-8 px-2 hover:bg-red-50 text-red-600 disabled:opacity-50"
-          title="Hapus"
-          type="button"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleViewDetails(purchase);
+            }}
+            className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm"
+            role="menuitem"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Lihat Detail
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (purchase.status !== 'completed') {
+                handleEdit(purchase);
+              }
+            }}
+            disabled={purchase.status === 'completed'}
+            className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            role="menuitem"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (purchase.status !== 'completed') {
+                handleDelete(purchase.id);
+              }
+            }}
+            disabled={purchase.status === 'completed'}
+            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            role="menuitem"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Hapus
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   };
 
@@ -608,7 +555,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                           })}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {new Date(purchase.createdAt).toLocaleDateString('id-ID')}
+                          {new Date(purchase.createdAt || purchase.tanggal).toLocaleDateString('id-ID')}
                         </div>
                       </div>
                     </TableCell>
@@ -625,22 +572,26 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       </div>
                     </TableCell>
 
-                    {/* Items Summary */}
+                    {/* Items Summary - Simplified */}
                     <TableCell>
                       <div>
-                        <div className="font-medium">
-                          {purchase.items.length} item{purchase.items.length > 1 ? 's' : ''}
+                        {/* Show main item name with larger font */}
+                        <div className="font-medium text-base text-gray-900">
+                          {purchase.items && purchase.items.length === 1 ? (
+                            // Single item - show name directly
+                            purchase.items[0].nama
+                          ) : purchase.items && purchase.items.length > 0 ? (
+                            // Multiple items - show first item + count
+                            `${purchase.items[0].nama}${purchase.items.length > 1 ? ` +${purchase.items.length - 1} lainnya` : ''}`
+                          ) : (
+                            'Tidak ada item'
+                          )}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {generatePurchaseSummary(purchase)}
+                        
+                        {/* Show total quantities with units */}
+                        <div className="text-sm text-gray-600 mt-1">
+                          {getFormattedTotalQuantities(purchase)}
                         </div>
-                        {/* Show first few items */}
-                        {purchase.items.length > 0 && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            {purchase.items.slice(0, 2).map(item => item.nama).join(', ')}
-                            {purchase.items.length > 2 && `, +${purchase.items.length - 2} lainnya`}
-                          </div>
-                        )}
                       </div>
                     </TableCell>
 
@@ -661,7 +612,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       />
                     </TableCell>
 
-                    {/* ✅ FIXED: Actions with proper event handling */}
+                    {/* Actions */}
                     <TableCell>
                       <ActionButtons purchase={purchase} />
                     </TableCell>

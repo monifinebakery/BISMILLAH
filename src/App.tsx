@@ -104,9 +104,9 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ SIMPLIFIED: Minimal loading components
+// ✅ FIXED: Properly centered loading components
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen w-screen bg-background">
+  <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
     <div className="flex flex-col items-center gap-4">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       <p className="text-sm text-muted-foreground">Memuat...</p>
@@ -114,13 +114,63 @@ const PageLoader = () => (
   </div>
 );
 
-// ✅ OPTIMIZED: Lightweight loading states (removed heavy animations)
+// ✅ FIXED: Properly centered page loaders with viewport units
 const createPageLoader = (title) => () => (
-  <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-orange-50 to-red-50">
+  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
       <div className="text-center">
         <p className="text-sm font-medium text-gray-700">{title}</p>
+      </div>
+    </div>
+  </div>
+);
+
+// ✅ ALTERNATIVE: Even more precise centering with absolute positioning
+const createPreciseCenteredLoader = (title) => () => (
+  <div className="fixed top-0 left-0 w-full h-full bg-gradient-to-br from-orange-50 to-red-50 z-50">
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
+        <div className="text-center">
+          <p className="text-base font-medium text-gray-700 whitespace-nowrap">{title}</p>
+          <p className="text-xs text-gray-500 mt-1">Mohon tunggu sebentar...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ✅ MINIMAL: Ultra-lightweight loader for better performance
+const MinimalLoader = () => (
+  <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-orange-500 mx-auto mb-4"></div>
+      <p className="text-gray-600 text-sm">Loading...</p>
+    </div>
+  </div>
+);
+
+// Usage examples for App.jsx:
+
+// Replace the existing PageLoader with this:
+const PageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+      <p className="text-sm text-muted-foreground">Memuat aplikasi...</p>
+    </div>
+  </div>
+);
+
+// And replace createPageLoader function with this:
+const createPageLoader = (title) => () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
+    <div className="flex flex-col items-center gap-4 p-8">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
+      <div className="text-center">
+        <p className="text-base font-medium text-gray-700">{title}</p>
+        <p className="text-xs text-gray-500 mt-1">Sedang memuat...</p>
       </div>
     </div>
   </div>

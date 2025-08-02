@@ -197,6 +197,59 @@ export const usePaymentStatus = () => {
             event: '*', 
             schema: 'public', 
             table: 'user_payments', 
+            filter: `email=eq.${user.email}` 
+          },
+          (payload) => {
+            console.log('📡 Real-time payment update (by email):', payload);
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+            setupSubscription();
+        }
+    });
+
+    return () => {
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+        supabase.removeChannel(realtimeChannel);
+      }
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
+  }, [queryClient]);
+
+  // ✅ FIXED: Proper paid user logic
+  const isPaid = paymentStatus?.is_paid === true && paymentStatus?.payment_status === 'settled';
+  const needsPayment = !paymentStatus || !isPaid;
+  const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
+
+  console.log('💰 Payment Status Check:', {
+    exists: !!paymentStatus,
+    is_paid: paymentStatus?.is_paid,
+    payment_status: paymentStatus?.payment_status,
+    finalIsPaid: isPaid,
+    needsPayment: needsPayment
+  });
+
+  return {
+    paymentStatus,
+    isLoading,
+    error,
+    refetch,
+    isPaid,
+    needsPayment,
+    hasUnlinkedPayment, // Indicates if payment exists but not linked
+    userName: null
+  };
+};_payments', 
             filter: `user_id=eq.${user.id}` 
           },
           (payload) => {

@@ -1,4 +1,4 @@
-// src/hooks/usePaymentStatus.ts - ENHANCED DEBUG VERSION
+// src/hooks/usePaymentStatus.ts - OPTIMIZED FOR YOUR TABLE STRUCTURE
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,13 +10,19 @@ import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supaba
 export interface PaymentStatus {
   id: string;
   user_id: string | null;
-  is_paid: boolean;
-  pg_reference_id: string | null;
   order_id: string | null;
+  pg_reference_id: string | null;
   email: string | null;
-  payment_status: string;
+  payment_status: string | null;
+  is_paid: boolean;
   created_at: Date | undefined;
   updated_at: Date | undefined;
+  payment_date: Date | undefined;
+  amount: number | null;
+  marketing_channel: string | null;
+  campaign_id: string | null;
+  currency: string | null;
+  customer_name: string | null;
 }
 
 export const usePaymentStatus = () => {
@@ -37,115 +43,148 @@ export const usePaymentStatus = () => {
         return null;
       }
 
-      console.log(`🔍 === PAYMENT STATUS DEBUG START ===`);
-      console.log(`User ID: ${user.id}`);
-      console.log(`User Email: ${user.email}`);
+      console.log(`🔍 === PAYMENT STATUS DETECTION START ===`);
+      console.log(`👤 User ID: ${user.id}`);
+      console.log(`📧 User Email: ${user.email}`);
 
-      // ✅ STRATEGY 1: Check by user_id first
+      // ✅ STRATEGY 1: Check by user_id first (properly linked payments)
       console.log('🔍 Step 1: Checking payments by user_id...');
       let { data: paymentsByUserId, error: userIdError } = await supabase
         .from('user_payments')
-        .select(`*`) // Select all fields for debugging
+        .select(`*`)
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (userIdError) {
         console.error('❌ Error fetching by user_id:', userIdError);
       } else {
-        console.log(`📊 Found ${paymentsByUserId?.length || 0} payments by user_id:`, paymentsByUserId);
+        console.log(`📊 Found ${paymentsByUserId?.length || 0} payments by user_id`);
         
         if (paymentsByUserId && paymentsByUserId.length > 0) {
-          const payment = paymentsByUserId[0];
-          console.log('✅ Using payment by user_id:', {
-            id: payment.id,
-            is_paid: payment.is_paid,
-            payment_status: payment.payment_status,
-            user_id: payment.user_id,
-            email: payment.email,
-            willBePaid: payment.is_paid === true && payment.payment_status === 'settled'
-          });
+          // Look for a paid payment
+          const paidPayment = paymentsByUserId.find(p => 
+            p.is_paid === true && p.payment_status === 'settled'
+          );
           
-          return {
-            ...payment,
-            created_at: safeParseDate(payment.created_at),
-            updated_at: safeParseDate(payment.updated_at),
-          };
+          if (paidPayment) {
+            console.log('✅ Found PAID payment by user_id:', {
+              id: paidPayment.id,
+              is_paid: paidPayment.is_paid,
+              payment_status: paidPayment.payment_status,
+              amount: paidPayment.amount,
+              email: paidPayment.email
+            });
+            
+            return {
+              ...paidPayment,
+              created_at: safeParseDate(paidPayment.created_at),
+              updated_at: safeParseDate(paidPayment.updated_at),
+              payment_date: safeParseDate(paidPayment.payment_date),
+            };
+          } else {
+            console.log('⚠️ Found payments by user_id but none are paid/settled:', 
+              paymentsByUserId.map(p => ({
+                id: p.id,
+                is_paid: p.is_paid,
+                payment_status: p.payment_status
+              }))
+            );
+          }
         }
       }
 
-      // ✅ STRATEGY 2: Check by email
+      // ✅ STRATEGY 2: Check by email (unlinked payments)
       console.log('🔍 Step 2: Checking payments by email...');
       let { data: paymentsByEmail, error: emailError } = await supabase
         .from('user_payments')
-        .select(`*`) // Select all fields for debugging
+        .select(`*`)
         .eq('email', user.email)
         .order('updated_at', { ascending: false });
 
       if (emailError) {
         console.error('❌ Error fetching by email:', emailError);
       } else {
-        console.log(`📊 Found ${paymentsByEmail?.length || 0} payments by email:`, paymentsByEmail);
+        console.log(`📊 Found ${paymentsByEmail?.length || 0} payments by email`);
         
         if (paymentsByEmail && paymentsByEmail.length > 0) {
-          const payment = paymentsByEmail[0];
-          console.log('⚠️ Found payment by email:', {
-            id: payment.id,
-            is_paid: payment.is_paid,
-            payment_status: payment.payment_status,
-            user_id: payment.user_id,
-            email: payment.email,
-            willBePaid: payment.is_paid === true && payment.payment_status === 'settled'
-          });
+          // Look for a paid payment
+          const paidPayment = paymentsByEmail.find(p => 
+            p.is_paid === true && p.payment_status === 'settled'
+          );
           
-          // ✅ AUTO-FIX: Link payment to current user if not linked
-          if (!payment.user_id) {
-            console.log('🔧 Auto-linking payment to current user...');
-            try {
-              const { data: updatedPayment, error: updateError } = await supabase
-                .from('user_payments')
-                .update({ 
-                  user_id: user.id,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', payment.id)
-                .select('*')
-                .single();
+          if (paidPayment) {
+            console.log('✅ Found PAID payment by email:', {
+              id: paidPayment.id,
+              is_paid: paidPayment.is_paid,
+              payment_status: paidPayment.payment_status,
+              user_id: paidPayment.user_id,
+              amount: paidPayment.amount,
+              needsLinking: !paidPayment.user_id
+            });
+            
+            // ✅ AUTO-LINK: If payment is not linked to user, link it
+            if (!paidPayment.user_id) {
+              console.log('🔧 Auto-linking PAID payment to current user...');
+              try {
+                const { data: updatedPayment, error: updateError } = await supabase
+                  .from('user_payments')
+                  .update({ 
+                    user_id: user.id,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', paidPayment.id)
+                  .select('*')
+                  .single();
 
-              if (updateError) {
-                console.error('❌ Failed to auto-link payment:', updateError);
-              } else {
-                console.log('✅ Successfully auto-linked payment:', updatedPayment);
-                // Invalidate cache to refresh data
-                queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-                return {
-                  ...updatedPayment,
-                  created_at: safeParseDate(updatedPayment.created_at),
-                  updated_at: safeParseDate(updatedPayment.updated_at),
-                };
+                if (updateError) {
+                  console.error('❌ Failed to auto-link payment:', updateError);
+                } else {
+                  console.log('✅ Successfully auto-linked PAID payment');
+                  // Force refresh after linking
+                  setTimeout(() => {
+                    queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+                  }, 1000);
+                  
+                  return {
+                    ...updatedPayment,
+                    created_at: safeParseDate(updatedPayment.created_at),
+                    updated_at: safeParseDate(updatedPayment.updated_at),
+                    payment_date: safeParseDate(updatedPayment.payment_date),
+                  };
+                }
+              } catch (linkError) {
+                console.error('❌ Error during auto-linking:', linkError);
               }
-            } catch (linkError) {
-              console.error('❌ Error during auto-linking:', linkError);
             }
-          }
 
-          return {
-            ...payment,
-            created_at: safeParseDate(payment.created_at),
-            updated_at: safeParseDate(payment.updated_at),
-          };
+            return {
+              ...paidPayment,
+              created_at: safeParseDate(paidPayment.created_at),
+              updated_at: safeParseDate(paidPayment.updated_at),
+              payment_date: safeParseDate(paidPayment.payment_date),
+            };
+          } else {
+            console.log('⚠️ Found payments by email but none are paid/settled:', 
+              paymentsByEmail.map(p => ({
+                id: p.id,
+                is_paid: p.is_paid,
+                payment_status: p.payment_status
+              }))
+            );
+          }
         }
       }
 
-      // ✅ STRATEGY 3: Broad search for debugging (check all payments for this email)
-      console.log('🔍 Step 3: Broad search for debugging...');
-      let { data: allPayments, error: allError } = await supabase
+      // ✅ STRATEGY 3: Debug - show all payments for this user/email
+      console.log('🔍 Step 3: Complete debug search...');
+      let { data: allPayments, error: debugError } = await supabase
         .from('user_payments')
         .select(`*`)
         .or(`email.eq.${user.email},user_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
 
-      if (!allError && allPayments) {
-        console.log(`📊 All related payments found:`, allPayments);
+      if (!debugError && allPayments && allPayments.length > 0) {
+        console.log(`🐛 DEBUG: All ${allPayments.length} payments for this user:`);
         allPayments.forEach((payment, index) => {
           console.log(`Payment ${index + 1}:`, {
             id: payment.id,
@@ -153,22 +192,23 @@ export const usePaymentStatus = () => {
             email: payment.email,
             is_paid: payment.is_paid,
             payment_status: payment.payment_status,
-            created_at: payment.created_at
+            amount: payment.amount,
+            isPaidAndSettled: payment.is_paid === true && payment.payment_status === 'settled'
           });
         });
       }
 
-      console.log('❌ No payment status found for user');
-      console.log(`🔍 === PAYMENT STATUS DEBUG END ===`);
+      console.log('❌ No PAID payment found for user');
+      console.log(`🔍 === PAYMENT STATUS DETECTION END ===`);
       return null;
     },
     enabled: true,
-    staleTime: 10000, // Reduced stale time for debugging
+    staleTime: 5000, // Short stale time for debugging
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Auto-refetch every 30 seconds for debugging
+    refetchInterval: 15000, // Auto-refetch every 15 seconds
   });
 
-  // ✅ Enhanced real-time subscription
+  // ✅ Real-time subscription with proper cleanup
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -176,6 +216,7 @@ export const usePaymentStatus = () => {
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Cleanup existing subscription
       if (realtimeChannel) {
         realtimeChannel.unsubscribe();
         supabase.removeChannel(realtimeChannel);
@@ -187,10 +228,23 @@ export const usePaymentStatus = () => {
         return;
       }
 
-      console.log(`📡 Setting up real-time subscription for user: ${user.id} (${user.email})`);
+      console.log(`📡 Setting up real-time payment subscription for: ${user.email}`);
 
       realtimeChannel = supabase
-        .channel('payment-status-changes')
+        .channel(`payment-changes-${user.id}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'user_payments', 
+            filter: `user_id=eq.${user.id}` 
+          },
+          (payload) => {
+            console.log('📡 Real-time payment update (by user_id):', payload);
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }
+        )
         .on(
           'postgres_changes',
           { 
@@ -204,13 +258,17 @@ export const usePaymentStatus = () => {
             queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('📡 Subscription status:', status);
+        });
     };
 
     setupSubscription();
 
+    // Listen for auth changes
     authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+            console.log('🔄 Auth state changed, refreshing payment subscription');
             setupSubscription();
         }
     });
@@ -226,17 +284,21 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ FIXED: Proper paid user logic
+  // ✅ FINAL LOGIC: User is paid if they have a payment with is_paid=true AND payment_status='settled'
   const isPaid = paymentStatus?.is_paid === true && paymentStatus?.payment_status === 'settled';
-  const needsPayment = !paymentStatus || !isPaid;
+  const needsPayment = !isPaid;
   const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
 
-  console.log('💰 Payment Status Check:', {
-    exists: !!paymentStatus,
+  // Enhanced logging for final decision
+  console.log('💰 FINAL PAYMENT STATUS:', {
+    hasPaymentRecord: !!paymentStatus,
     is_paid: paymentStatus?.is_paid,
     payment_status: paymentStatus?.payment_status,
-    finalIsPaid: isPaid,
-    needsPayment: needsPayment
+    isPaidCondition: paymentStatus?.is_paid === true,
+    isSettledCondition: paymentStatus?.payment_status === 'settled',
+    FINAL_IS_PAID: isPaid,
+    needsPayment: needsPayment,
+    hasUnlinkedPayment: hasUnlinkedPayment
   });
 
   return {
@@ -246,20 +308,7 @@ export const usePaymentStatus = () => {
     refetch,
     isPaid,
     needsPayment,
-    hasUnlinkedPayment, // Indicates if payment exists but not linked
-    userName: null
+    hasUnlinkedPayment,
+    userName: paymentStatus?.customer_name || null
   };
-};_payments', 
-            filter: `user_id=eq.${user.id}` 
-          },
-          (payload) => {
-            console.log('📡 Real-time payment update (by user_id):', payload);
-            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-          }
-        )
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'user
+};

@@ -190,7 +190,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           if (mountedRef.current) {
             setSettings(settingsData || {
               user_id: user.id,
-              email_notifications: true,
               push_notifications: true,
               inventory_alerts: true,
               order_alerts: true,

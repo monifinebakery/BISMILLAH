@@ -214,17 +214,18 @@ const TableControls: React.FC<{
             <span className="text-sm text-gray-700 hidden sm:inline">item per halaman</span>
           </div>
           
-          {/* Selection Mode Toggle - Desktop Only */}
+          {/* Selection Mode Toggle - Always Visible */}
           {!uiState.isSelectionMode && (
             <Button
               variant="outline"
               size="sm"
               onClick={uiState.toggleSelectionMode}
               disabled={loading || uiState.totalItems === 0}
-              className="hidden sm:flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <Square className="h-4 w-4" />
-              Mode Pilih
+              <span className="hidden sm:inline">Mode Pilih</span>
+              <span className="sm:hidden">Pilih</span>
             </Button>
           )}
         </div>

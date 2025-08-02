@@ -57,7 +57,6 @@ const NotificationSettingsForm = () => {
   const { settings, updateSettings, isLoading: isContextLoading } = useNotification();
   const [formState, setFormState] = useState<FormState>({
     // Basic notifications
-    email_notifications: true,
     push_notifications: true,
     
     // Business notifications

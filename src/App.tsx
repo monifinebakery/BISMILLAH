@@ -1,4 +1,4 @@
-// App.jsx - Improved Lazy Loading Strategy
+// App.jsx - Improved Lazy Loading Strategy with Perfect Centered Loaders
 
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
@@ -104,56 +104,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ FIXED: Properly centered loading components
-const PageLoader = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-    <div className="flex flex-col items-center gap-4">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      <p className="text-sm text-muted-foreground">Memuat...</p>
-    </div>
-  </div>
-);
-
-// ✅ FIXED: Properly centered page loaders with viewport units
-const createPageLoader = (title) => () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
-    <div className="flex flex-col items-center gap-4">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-gray-700">{title}</p>
-      </div>
-    </div>
-  </div>
-);
-
-// ✅ ALTERNATIVE: Even more precise centering with absolute positioning
-const createPreciseCenteredLoader = (title) => () => (
-  <div className="fixed top-0 left-0 w-full h-full bg-gradient-to-br from-orange-50 to-red-50 z-50">
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
-        <div className="text-center">
-          <p className="text-base font-medium text-gray-700 whitespace-nowrap">{title}</p>
-          <p className="text-xs text-gray-500 mt-1">Mohon tunggu sebentar...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ✅ MINIMAL: Ultra-lightweight loader for better performance
-const MinimalLoader = () => (
-  <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-orange-500 mx-auto mb-4"></div>
-      <p className="text-gray-600 text-sm">Loading...</p>
-    </div>
-  </div>
-);
-
-// Usage examples for App.jsx:
-
-// Replace the existing PageLoader with this:
+// ✅ FIXED: Perfect centered loading components
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
     <div className="flex flex-col items-center gap-4">
@@ -163,7 +114,7 @@ const PageLoader = () => (
   </div>
 );
 
-// And replace createPageLoader function with this:
+// ✅ FIXED: Perfect centered page loaders with enhanced styling
 const createPageLoader = (title) => () => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
@@ -182,51 +133,54 @@ const OrderPageLoader = createPageLoader("Memuat Pesanan");
 const OperationalCostPageLoader = createPageLoader("Memuat Biaya Operasional");
 const PurchasePageLoader = createPageLoader("Memuat Pembelian");
 
-// ✅ SIMPLIFIED: Error fallbacks
+// ✅ FIXED: Centered error fallbacks
 const RouteErrorFallback = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-background p-4 text-center">
-      <h2 className="text-xl font-semibold text-destructive mb-2">Terjadi Kesalahan</h2>
-      <p className="text-muted-foreground mb-4">Gagal memuat halaman.</p>
-      <button
-        onClick={() => navigate('/', { replace: true })}
-        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-      >
-        Kembali ke Dashboard
-      </button>
+    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+      <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
+        <div className="bg-red-100 rounded-full p-4 mb-4">
+          <div className="h-8 w-8 text-red-500 text-2xl flex items-center justify-center">⚠️</div>
+        </div>
+        <h2 className="text-xl font-semibold text-destructive mb-2">Terjadi Kesalahan</h2>
+        <p className="text-muted-foreground mb-6">Gagal memuat halaman.</p>
+        <button
+          onClick={() => navigate('/', { replace: true })}
+          className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Kembali ke Dashboard
+        </button>
+      </div>
     </div>
   );
 };
 
-// ✅ OPTIMIZED: Simplified error boundaries (removed heavy SVGs)
+// ✅ FIXED: Perfectly centered error fallbacks
 const createErrorFallback = (title) => () => {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="container mx-auto p-4 sm:p-8">
-        <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-          <div className="bg-red-100 rounded-full p-6 mb-4">
-            <div className="h-16 w-16 text-red-500 text-4xl">⚠️</div>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">{title}</h3>
-          <p className="text-gray-600 mb-6 max-w-md">
-            Terjadi kesalahan saat memuat halaman. Coba lagi.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg"
-            >
-              Muat Ulang
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg"
-            >
-              Dashboard
-            </button>
-          </div>
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
+      <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
+        <div className="bg-red-100 rounded-full p-6 mb-6">
+          <div className="h-12 w-12 text-red-500 text-3xl flex items-center justify-center">⚠️</div>
+        </div>
+        <h3 className="text-xl font-semibold text-gray-800 mb-3">{title}</h3>
+        <p className="text-gray-600 mb-6 leading-relaxed">
+          Terjadi kesalahan saat memuat halaman. Silakan coba lagi atau kembali ke dashboard.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg transition-all"
+          >
+            Muat Ulang
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors"
+          >
+            Dashboard
+          </button>
         </div>
       </div>
     </div>
@@ -251,7 +205,9 @@ const AppLayout = () => {
           <SupplierProvider>
             <div className="min-h-screen flex flex-col bg-background">
               <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-                <div className="flex-1"><h1 className="text-lg font-bold text-primary">HPP App</h1></div>
+                <div className="flex-1">
+                  <h1 className="text-lg font-bold text-primary">HPP App</h1>
+                </div>
                 <div className="flex items-center space-x-2">
                   {isPaid && <PaymentStatusIndicator />}
                   <NotificationBell />

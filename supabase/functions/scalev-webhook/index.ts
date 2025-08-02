@@ -23,24 +23,70 @@ const handler = async (req: Request): Promise<Response> => {
     const payload = await req.json();
     console.log('📦 Received payload:', JSON.stringify(payload, null, 2));
 
-    // STEP 1: Ambil email APAPUN yang ada (no validation)
+    // STEP 1: Ambil email APAPUN yang ada (improved extraction)
     let customerEmail = 'unknown@customer.com'; // default fallback
     
-    // Cari email dari berbagai sumber - ambil yang pertama ketemu
-    if (payload.data?.payment_status_history?.length > 0) {
-      const anyEmail = payload.data.payment_status_history[0]?.by?.email;
-      if (anyEmail) customerEmail = anyEmail;
+    console.log('🔍 HUNTING FOR CUSTOMER EMAIL...');
+    
+    // Method 1: Cari di semua level payload untuk email pattern
+    function findEmailsInObject(obj, path = '') {
+      if (typeof obj === 'string' && obj.includes('@') && obj.includes('.')) {
+        console.log(`📧 Found email at ${path}: ${obj}`);
+        return obj;
+      }
+      
+      if (typeof obj === 'object' && obj !== null) {
+        for (const [key, value] of Object.entries(obj)) {
+          const foundEmail = findEmailsInObject(value, path ? `${path}.${key}` : key);
+          if (foundEmail && 
+              !foundEmail.includes('@scalev.') && 
+              !foundEmail.includes('system@') &&
+              !foundEmail.includes('unknown@')) {
+            return foundEmail;
+          }
+        }
+      }
+      
+      return null;
     }
     
-    if (payload.data?.payment_account_holder?.includes('@')) {
-      customerEmail = payload.data.payment_account_holder;
+    // Cari email di seluruh payload
+    const foundEmail = findEmailsInObject(payload);
+    if (foundEmail) {
+      customerEmail = foundEmail;
+      console.log('✅ Found customer email:', customerEmail);
+    } else {
+      console.log('❌ No customer email found, using fallback');
     }
     
-    if (payload.data?.customer_email) {
-      customerEmail = payload.data.customer_email;
+    // Method 2: Check specific fields
+    const emailSources = [
+      payload.customer_email,
+      payload.email,
+      payload.data?.customer_email,
+      payload.data?.email,
+      payload.data?.payment_account_holder,
+      // Check all payment history entries
+      ...(payload.data?.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
+    ];
+    
+    console.log('📧 All email sources found:', emailSources);
+    
+    // Take first valid email that's not system email
+    for (const email of emailSources) {
+      if (email && 
+          email.includes('@') && 
+          email.includes('.') &&
+          !email.includes('@scalev.') &&
+          !email.includes('system@') &&
+          !email.includes('unknown@')) {
+        customerEmail = email;
+        console.log('✅ Selected email from sources:', customerEmail);
+        break;
+      }
     }
     
-    console.log('📧 Using email:', customerEmail);
+    console.log('🎯 Final email to use:', customerEmail);
 
     // STEP 2: Buat record MINIMAL (hanya kolom required)
     const insertData = {

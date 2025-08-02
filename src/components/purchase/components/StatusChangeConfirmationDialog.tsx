@@ -80,7 +80,16 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="max-w-md">
+      <DialogContent 
+        className="max-w-md"
+        aria-describedby="dialog-description"
+        onOpenAutoFocus={(event) => {
+          // Prevent auto-focus if there are errors to avoid focusing disabled button
+          if (hasErrors) {
+            event.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {hasErrors ? (
@@ -92,7 +101,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
             )}
             Konfirmasi Perubahan Status
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="dialog-description">
             Pastikan perubahan status ini sudah sesuai dengan kondisi purchase
           </DialogDescription>
         </DialogHeader>
@@ -106,7 +115,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
                 <Badge variant="outline" className={getStatusColor(purchase.status)}>
                   {oldStatusText}
                 </Badge>
-                <span className="text-gray-400">→</span>
+                <span className="text-gray-400" aria-hidden="true">→</span>
                 <Badge variant="outline" className={getStatusColor(newStatus)}>
                   {newStatusText}
                 </Badge>
@@ -118,7 +127,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
           {impact && (
             <Alert className={impact.type === 'warning' ? 'border-yellow-200 bg-yellow-50' : 'border-green-200 bg-green-50'}>
               <div className="flex items-start gap-2">
-                {impact.icon}
+                <div aria-hidden="true">{impact.icon}</div>
                 <div>
                   <h4 className="font-medium text-sm">{impact.title}</h4>
                   <p className="text-sm text-gray-600 mt-1">{impact.description}</p>
@@ -136,8 +145,8 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
 
           {/* Errors */}
           {hasErrors && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
+            <Alert className="border-red-200 bg-red-50" role="alert">
+              <AlertTriangle className="h-4 w-4 text-red-600" aria-hidden="true" />
               <AlertDescription>
                 <div className="space-y-1">
                   <p className="font-medium text-red-800">Tidak dapat mengubah status:</p>
@@ -153,8 +162,8 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
 
           {/* Warnings */}
           {hasWarnings && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <Info className="h-4 w-4 text-yellow-600" />
+            <Alert className="border-yellow-200 bg-yellow-50" role="alert">
+              <Info className="h-4 w-4 text-yellow-600" aria-hidden="true" />
               <AlertDescription>
                 <div className="space-y-1">
                   <p className="font-medium text-yellow-800">Perhatian:</p>
@@ -172,7 +181,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
           {newStatus === 'completed' && purchase.items.length > 0 && (
             <div className="border rounded-lg p-3 bg-gray-50">
               <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                <Package className="h-4 w-4" />
+                <Package className="h-4 w-4" aria-hidden="true" />
                 Item yang akan ditambahkan ke warehouse:
               </h4>
               <div className="space-y-1 max-h-32 overflow-y-auto">
@@ -199,11 +208,15 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
             onClick={onConfirm}
             disabled={hasErrors || isUpdating}
             className={newStatus === 'completed' ? 'bg-green-600 hover:bg-green-700' : undefined}
+            aria-describedby={hasErrors ? 'error-message' : undefined}
           >
             {isUpdating ? (
               <div className="flex items-center gap-2">
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                Memproses...
+                <div 
+                  className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"
+                  aria-hidden="true"
+                />
+                <span>Memproses...</span>
               </div>
             ) : (
               `Ubah ke "${newStatusText}"`

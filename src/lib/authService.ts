@@ -5,20 +5,23 @@ import { toast } from 'sonner';
 import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
 
-// ✅ FIXED: Updated redirect URL handling to match your Supabase config
+// ✅ FIXED: Smart auto-detection for redirect URL
 const getRedirectUrl = () => {
-  // Use environment variable if available
-  if (process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL) {
-    return process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL;
+  // If manually set in environment, use that
+  if (import.meta.env.VITE_AUTH_REDIRECT_URL) {
+    return import.meta.env.VITE_AUTH_REDIRECT_URL;
   }
   
+  // Auto-detect based on current domain
   if (typeof window !== 'undefined') {
-    // Client-side: use current origin
-    return `${window.location.origin}/auth/callback`;
+    const currentOrigin = window.location.origin;
+    
+    // Always use current origin + /auth/callback
+    return `${currentOrigin}/auth/callback`;
   }
   
-  // Server-side fallback based on your actual URLs
-  if (process.env.NODE_ENV === 'development') {
+  // Server-side fallback (should rarely be used)
+  if (import.meta.env.DEV) {
     return 'https://dev3--gleaming-peony-f4a091.netlify.app/auth/callback';
   }
   

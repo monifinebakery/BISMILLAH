@@ -25,7 +25,6 @@ import {
 // ✅ UPDATED: Extended form state to match database schema
 type FormState = {
   // Basic notifications
-  email_notifications: boolean;
   push_notifications: boolean;
   
   // Business notifications

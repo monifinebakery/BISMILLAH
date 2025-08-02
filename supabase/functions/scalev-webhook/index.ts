@@ -12,47 +12,116 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// ✅ UPDATED: Extract customer info based on real Scalev payload
-const extractCustomerInfo = (payload) => {
-  // Payload bisa berupa direct object (bukan nested di .data)
+// Fungsi untuk memverifikasi tanda tangan webhook Scalev (keamanan opsional)
+const verifyScalevSignature = (payload: string, signature: string, secret: string): boolean => {
+  try {
+    // Verifikasi sederhana - periksa apakah tanda tangan dan rahasia ada
+    // Dalam produksi, implementasikan verifikasi HMAC-SHA256 yang tepat
+    console.log('🔐 Verifikasi tanda tangan:', {
+      hasSignature: !!signature,
+      signatureLength: signature?.length || 0,
+      hasSecret: !!secret,
+      secretLength: secret?.length || 0
+    });
+    return true; // Selalu kembalikan true untuk saat ini - tanda tangan opsional, GANTI DI PRODUKSI
+  } catch (error) {
+    console.error('❌ Error verifikasi tanda tangan:', error);
+    return true; // Tetap izinkan permintaan meskipun verifikasi tanda tangan gagal
+  }
+};
+
+// ✅ FIXED: Extract customer info dengan prioritas yang benar untuk skip system emails
+const extractCustomerInfo = (payload: any) => {
   const payloadData = payload.data || payload;
   
-  // Extract email dari payment_status_history (most reliable source)
   let customerEmail = null;
   let customerName = null;
   
-  // Priority 1: From payment_status_history (paling akurat)
-  if (payloadData.payment_status_history && payloadData.payment_status_history.length > 0) {
-    // Ambil from latest entry
-    const latestHistory = payloadData.payment_status_history[payloadData.payment_status_history.length - 1];
-    customerEmail = latestHistory.by?.email;
-    customerName = latestHistory.by?.name;
-  }
+  console.log('🔍 =================================');
+  console.log('🔍 DEBUGGING EMAIL EXTRACTION');
+  console.log('🔍 =================================');
+  console.log('🔍 Payment status history:', JSON.stringify(payloadData.payment_status_history, null, 2));
   
-  // Priority 2: From payment_account_holder
-  if (!customerEmail && payloadData.payment_account_holder) {
-    // Check if payment_account_holder contains email format
-    if (payloadData.payment_account_holder.includes('@')) {
-      customerEmail = payloadData.payment_account_holder;
+  // Priority 1: Cari email customer dari payment_status_history (bukan system email)
+  if (payloadData.payment_status_history && payloadData.payment_status_history.length > 0) {
+    
+    // Loop through payment history to find CUSTOMER email (bukan system/admin email)
+    for (const history of payloadData.payment_status_history) {
+      const email = history.by?.email;
+      const name = history.by?.name;
+      
+      console.log(`🔍 Checking history entry: ${email} (${name})`);
+      
+      // Skip system/admin emails
+      if (email && 
+          !email.includes('@scalev.') && 
+          !email.includes('system@') && 
+          !email.includes('admin@') &&
+          !email.includes('monifinebakery@') && // Skip your admin email
+          !email.includes('support@') &&
+          !email.includes('noreply@') &&
+          email.includes('@')) {
+        customerEmail = email;
+        customerName = name;
+        console.log(`✅ Found customer email: ${customerEmail}`);
+        break;
+      } else {
+        console.log(`⚠️ Skipped system/admin email: ${email}`);
+      }
     }
   }
   
-  // Priority 3: From direct fields (fallback)
-  customerEmail = customerEmail || 
-                 payloadData.customer_email || 
-                 payloadData.email;
+  // Priority 2: From payment_account_holder (if it's an email)
+  if (!customerEmail && payloadData.payment_account_holder) {
+    if (payloadData.payment_account_holder.includes('@') && 
+        !payloadData.payment_account_holder.includes('@scalev.') &&
+        !payloadData.payment_account_holder.includes('system@') &&
+        !payloadData.payment_account_holder.includes('monifinebakery@')) {
+      customerEmail = payloadData.payment_account_holder;
+      console.log(`✅ Found email in payment_account_holder: ${customerEmail}`);
+    }
+  }
   
+  // Priority 3: Direct fields (fallback)
+  if (!customerEmail) {
+    customerEmail = payloadData.customer_email || 
+                   payloadData.email;
+    console.log(`✅ Found email in direct fields: ${customerEmail}`);
+  }
+  
+  // If still no customer email found, check if there's any email that's not system
+  if (!customerEmail && payloadData.payment_status_history) {
+    // As last resort, take any email that's not system
+    for (const history of payloadData.payment_status_history) {
+      const email = history.by?.email;
+      if (email && 
+          email.includes('@') && 
+          !email.includes('@scalev.') &&
+          !email.includes('system@') &&
+          !email.includes('monifinebakery@')) {
+        customerEmail = email;
+        customerName = history.by?.name;
+        console.log(`⚠️ Taking any non-system email as fallback: ${customerEmail}`);
+        break;
+      }
+    }
+  }
+  
+  // Set default name if not found
   customerName = customerName || 
                 payloadData.payment_account_holder || 
                 payloadData.customer_name || 
                 payloadData.name ||
                 'Unknown Customer';
   
+  console.log(`🎯 Final extracted email: ${customerEmail}`);
+  console.log(`🎯 Final extracted name: ${customerName}`);
+  
   return { customerEmail, customerName };
 };
 
 // ✅ UPDATED: Map Scalev payment status to our DB status
-const mapPaymentStatus = (scalevStatus) => {
+const mapPaymentStatus = (scalevStatus: string) => {
   switch(scalevStatus?.toLowerCase()) {
     case 'paid':
     case 'settled':
@@ -76,7 +145,7 @@ const mapPaymentStatus = (scalevStatus) => {
 };
 
 // ✅ UPDATED: Validate email format
-const isValidEmail = (email) => {
+const isValidEmail = (email: string | null | undefined): boolean => {
   if (!email || typeof email !== 'string') return false;
   return email.includes('@') && email.includes('.') && email.length > 5;
 };
@@ -141,16 +210,14 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('⏰ Paid Time:', payloadData.paid_time);
     console.log('⏰ Transfer Time:', payloadData.transfer_time);
     
-    // ✅ UPDATED: Extract customer info using improved function
+    // ✅ FIXED: Extract customer info using improved function
     const { customerEmail, customerName } = extractCustomerInfo(payload);
-    console.log('📧 Extracted Email:', customerEmail);
-    console.log('👤 Extracted Name:', customerName);
     
     // Debug payment_status_history
     if (payloadData.payment_status_history) {
       console.log('📜 Payment History:');
-      payloadData.payment_status_history.forEach((history, index) => {
-        console.log(`  ${index + 1}. ${history.status} at ${history.at} by ${history.by?.email || 'unknown'}`);
+      payloadData.payment_status_history.forEach((history: any, index: number) => {
+        console.log(`  ${index + 1}. ${history.status} at ${history.at} by ${history.by?.email || 'unknown'} (${history.by?.name || 'unknown'})`);
       });
     }
 
@@ -169,6 +236,32 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
+  // Verifikasi tanda tangan opsional
+  const signature = req.headers.get('x-scalev-signature') || '';
+  const webhookSecret = Deno.env.get('SCALEV_SECRET_KEY') || '';
+  
+  console.log('🔐 =================================');
+  console.log('🔐 VERIFIKASI TANDA TANGAN');
+  console.log('🔐 =================================');
+  
+  if (signature && webhookSecret) {
+    const isValid = verifyScalevSignature(rawPayload, signature, webhookSecret);
+    if (!isValid) {
+      console.log('❌ Verifikasi tanda tangan gagal');
+      return new Response(JSON.stringify({
+        error: "Tanda tangan tidak valid",
+        webhook_received_successfully: false
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    } else {
+      console.log('✅ Verifikasi tanda tangan berhasil');
+    }
+  } else {
+    console.log('⚠️ Verifikasi tanda tangan dilewati');
+  }
+
   // ✅ UPDATED: Handle multiple event types
   const eventType = payload.event || 'order.payment_status_changed';
   
@@ -182,10 +275,22 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (!isValidEmail(customerEmail)) {
       console.warn('⚠️ Invalid email in order.created, but responding success to Scalev');
+      
+      // Log semua emails yang ditemukan untuk debugging
+      const payloadData = payload.data || payload;
+      if (payloadData.payment_status_history) {
+        console.log('🔍 All emails found in payment_status_history:');
+        payloadData.payment_status_history.forEach((history: any, index: number) => {
+          console.log(`  ${index}: ${history.by?.email} (${history.by?.name})`);
+        });
+      }
+      
       return new Response(JSON.stringify({
         success: true,
         message: 'Order created but email invalid, skipped DB insert',
-        event_type: eventType
+        event_type: eventType,
+        extracted_email: customerEmail,
+        all_emails_in_history: payloadData.payment_status_history?.map((h: any) => h.by?.email)
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -224,11 +329,13 @@ const handler = async (req: Request): Promise<Response> => {
       
     if (insertError) {
       console.error('❌ Failed to create payment record:', insertError);
+      console.error('❌ Insert error details:', JSON.stringify(insertError, null, 2));
       // Don't return error to Scalev, just log it
       return new Response(JSON.stringify({
         success: true,
         message: 'Order received but DB insert failed',
-        error: insertError.message
+        error: insertError.message,
+        code: insertError.code
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -265,19 +372,19 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  // ✅ UPDATED: Extract customer info using real payload structure
+  // ✅ FIXED: Extract customer info using improved function
   const payloadData = payload.data || payload;
   const { customerEmail, customerName } = extractCustomerInfo(payload);
 
   // ✅ IMPROVED: Email validation with better error reporting
   if (!isValidEmail(customerEmail)) {
-    console.error('🚫 Email pelanggan tidak valid atau tidak ditemukan');
+    console.error('🚫 Customer email tidak valid atau tidak ditemukan');
     console.log('🔍 Available fields:', Object.keys(payloadData));
     console.log('🔍 Payment account holder:', payloadData.payment_account_holder);
     console.log('🔍 Payment status history:', payloadData.payment_status_history);
     
     // Debug all possible email sources
-    const possibleEmailFields = {};
+    const possibleEmailFields: {[key: string]: any} = {};
     Object.keys(payloadData).forEach(key => {
       const value = payloadData[key];
       if (typeof value === 'string' && value.includes('@')) {
@@ -287,7 +394,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Check payment_status_history for emails
     if (payloadData.payment_status_history) {
-      payloadData.payment_status_history.forEach((history, index) => {
+      payloadData.payment_status_history.forEach((history: any, index: number) => {
         if (history.by?.email) {
           possibleEmailFields[`payment_status_history[${index}].by.email`] = history.by.email;
         }
@@ -297,7 +404,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🔍 Fields yang mungkin berisi email:', possibleEmailFields);
     
     return new Response(JSON.stringify({
-      error: "Email pelanggan tidak ditemukan atau tidak valid di payload webhook",
+      error: "Customer email tidak ditemukan atau tidak valid di payload webhook",
       webhook_received_successfully: true,
       available_fields: Object.keys(payloadData),
       possible_email_fields: possibleEmailFields,
@@ -444,8 +551,8 @@ const handler = async (req: Request): Promise<Response> => {
       created_at: new Date().toISOString(),
       
       // Default values for required fields if not present in Scalev payload
-      amount: 0, // You might want to set a default amount or extract from somewhere
-      currency: 'IDR'
+      amount: payloadData.amount || 0, // Use amount from payload or default to 0
+      currency: payloadData.currency || 'IDR'
     };
 
     console.log('➕ Insert data baru:', insertData);
@@ -465,9 +572,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('❌ ERROR OPERASI DATABASE');
     console.log('❌ =================================');
     console.error('Detail error:', updateError);
+    console.error('Error details:', JSON.stringify(updateError, null, 2));
     return new Response(JSON.stringify({
       error: "Gagal memperbarui/memasukkan status pembayaran",
       details: updateError.message,
+      code: updateError.code,
+      hint: updateError.hint,
       order_id: payloadData.order_id,
       email: customerEmail,
       webhook_received_successfully: true

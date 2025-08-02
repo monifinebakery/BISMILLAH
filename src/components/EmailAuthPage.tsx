@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, HelpCircle, Clock } from 'lucide-react';
-import { sendMagicLink } from '@/lib/authService'; // Updated import
+import { sendMagicLink } from '@/lib/authService'; // ✅ Fixed import for magic link
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,7 +39,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   const debugLog = (message: string, ...args: any[]) => {
     if (DEBUG_LOGS) {
-      console.log(`[MagicLinkAuth] ${message}`, ...args);
+      console.log(`[EmailAuth] ${message}`, ...args);
     }
   };
 
@@ -90,15 +90,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       if (success) {
         setLinkSent(true);
+        toast.success('Link login telah dikirim ke email Anda!');
         debugLog('Magic link sent successfully');
         startCooldown(60);
       } else {
-        startCooldown(60);
+        toast.error('Gagal mengirim link login. Silakan coba lagi.');
+        startCooldown(30); // Shorter cooldown on failure
         debugLog('sendMagicLink failed');
       }
     } catch (error) {
       console.error('Error in handleSendMagicLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim link.');
+      toast.error('Terjadi kesalahan saat mengirim magic link.');
+      startCooldown(30);
     } finally {
       setIsLoading(false);
       resetHCaptcha();
@@ -125,18 +128,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         toast.success('Link login telah dikirim ulang ke email Anda');
         startCooldown(60);
       } else {
-        startCooldown(60);
+        toast.error('Gagal mengirim ulang link login. Silakan coba lagi.');
+        startCooldown(30);
       }
     } catch (error) {
       console.error('Error in handleResendLink:', error);
-      toast.error('Terjadi kesalahan saat mengirim ulang link.');
+      toast.error('Terjadi kesalahan saat mengirim ulang magic link.');
+      startCooldown(30);
     } finally {
       setIsLoading(false);
       resetHCaptcha();
     }
   };
 
-  React.useEffect(() => {
+  // ✅ Fixed useEffect with proper dependency
+  useEffect(() => {
     return () => {
       if (cooldownTimer) {
         clearInterval(cooldownTimer);
@@ -151,24 +157,38 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     debugLog('Email changed. linkSent set to false.');
   };
 
+  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 font-inter"
-      style={{ '--hpp-primary': primaryColor, '--hpp-accent': accentColor } as React.CSSProperties}
+      style={{ 
+        '--hpp-primary': primaryColor, 
+        '--hpp-accent': accentColor 
+      } as React.CSSProperties}
     >
       <Card className="w-full max-w-md shadow-xl border-0 rounded-lg overflow-hidden">
-        <div className="h-2 bg-hpp-primary"></div>
+        <div 
+          className="h-2"
+          style={{ backgroundColor: primaryColor }}
+        ></div>
         <CardHeader className="space-y-1 pt-6">
           <div className="flex justify-center mb-4">
             {logoUrl ? (
               <img src={logoUrl} alt={appName} className="h-16 w-auto" />
             ) : (
-              <div className="h-16 w-16 rounded-full bg-hpp-primary flex items-center justify-center">
+              <div 
+                className="h-16 w-16 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: primaryColor }}
+              >
                 <Lock className="h-8 w-8 text-white" />
               </div>
             )}
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-hpp-primary">
+          <CardTitle 
+            className="text-2xl font-bold text-center"
+            style={{ color: primaryColor }}
+          >
             {appName}
           </CardTitle>
           <CardDescription className="text-center text-gray-600">
@@ -190,20 +210,35 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     placeholder="Masukkan email Anda"
                     value={email}
                     onChange={handleEmailChange}
-                    className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:ring-hpp-primary focus:border-transparent"
+                    className="pl-10 py-6 text-base rounded-md border border-gray-300 focus:ring-2 focus:border-transparent"
+                    style={{ 
+                      '--tw-ring-color': primaryColor,
+                      '--tw-ring-opacity': '0.5'
+                    } as React.CSSProperties}
                     required
                     disabled={isLoading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
               
               {HCAPTCHA_ENABLED && (
-                <div>
+                <div className="flex justify-center">
                   <Hcaptcha
                     key={hCaptchaKey}
                     sitekey={HCAPTCHA_SITE_KEY}
-                    onVerify={token => setHCaptchaToken(token)}
-                    onExpire={() => setHCaptchaToken(null)}
+                    onVerify={(token) => {
+                      setHCaptchaToken(token);
+                      debugLog('hCaptcha verified');
+                    }}
+                    onExpire={() => {
+                      setHCaptchaToken(null);
+                      debugLog('hCaptcha expired');
+                    }}
+                    onError={(error) => {
+                      console.error('hCaptcha error:', error);
+                      setHCaptchaToken(null);
+                    }}
                     theme="light"
                   />
                 </div>
@@ -211,8 +246,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               
               <Button
                 onClick={handleSendMagicLink}
-                className="w-full py-6 text-base font-medium bg-hpp-primary text-white hover:bg-opacity-90 rounded-md shadow-md transition-colors duration-200"
-                disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
+                className="w-full py-6 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  backgroundColor: primaryColor,
+                  '--hover-bg': `${primaryColor}dd`
+                } as React.CSSProperties}
+                disabled={isLoading || cooldownTime > 0 || !isFormValid}
+                type="button"
               >
                 {cooldownTime > 0 ? (
                   <>
@@ -225,10 +265,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Mengirim...
+                    Mengirim Magic Link...
                   </>
                 ) : (
-                  'Kirim Link Login'
+                  'Kirim Magic Link'
                 )}
               </Button>
             </div>
@@ -238,10 +278,37 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <Mail className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
-              <p className="text-gray-600">
-                Kami telah mengirim link login ke <strong>{email}</strong>.
-                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk masuk ke sistem.
+              <p className="text-gray-600 leading-relaxed">
+                Kami telah mengirim <strong>magic link</strong> ke <strong>{email}</strong>.
+                <br />
+                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk masuk ke sistem secara otomatis.
               </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                <strong>Tips:</strong> Link akan expired dalam 1 jam. Jika tidak menerima email, coba kirim ulang.
+              </div>
+              
+              {HCAPTCHA_ENABLED && (
+                <div className="flex justify-center">
+                  <Hcaptcha
+                    key={hCaptchaKey}
+                    sitekey={HCAPTCHA_SITE_KEY}
+                    onVerify={(token) => {
+                      setHCaptchaToken(token);
+                      debugLog('hCaptcha verified for resend');
+                    }}
+                    onExpire={() => {
+                      setHCaptchaToken(null);
+                      debugLog('hCaptcha expired for resend');
+                    }}
+                    onError={(error) => {
+                      console.error('hCaptcha error:', error);
+                      setHCaptchaToken(null);
+                    }}
+                    theme="light"
+                  />
+                </div>
+              )}
               
               <div className="pt-2">
                 <Button
@@ -249,7 +316,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   variant="outline"
                   onClick={handleResendLink}
                   disabled={isLoading || cooldownTime > 0 || (HCAPTCHA_ENABLED && !hCaptchaToken)}
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cooldownTime > 0 ? (
                     <>
@@ -257,9 +324,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       Tunggu {cooldownTime}s
                     </>
                   ) : isLoading ? (
-                    'Mengirim Ulang...'
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Mengirim Ulang...
+                    </>
                   ) : (
-                    'Kirim Ulang Link'
+                    'Kirim Ulang Magic Link'
                   )}
                 </Button>
               </div>
@@ -270,17 +343,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           <div className="text-xs text-center text-gray-500 flex items-center justify-center">
             <HelpCircle className="h-3 w-3 mr-1" />
             <span>
-              Butuh bantuan? <a href={`mailto:${supportEmail}`} className="text-hpp-primary hover:underline">Hubungi admin</a>
+              Butuh bantuan? <a 
+                href={`mailto:${supportEmail}`} 
+                className="hover:underline transition-colors duration-200"
+                style={{ color: primaryColor }}
+              >
+                Hubungi admin
+              </a>
             </span>
           </div>
           {cooldownTime > 0 && (
-            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-md">
+            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-md border border-orange-200">
+              <Clock className="inline h-3 w-3 mr-1" />
               Untuk mencegah spam, tunggu {cooldownTime} detik sebelum mengirim email lagi
             </div>
           )}
           {DEBUG_LOGS && (
-            <div className="text-xs text-gray-500 text-center">
-              hCaptcha: {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'}
+            <div className="text-xs text-gray-500 text-center font-mono bg-gray-100 p-2 rounded">
+              Debug: hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | Link Sent: {linkSent ? 'Yes' : 'No'}
             </div>
           )}
         </CardFooter>

@@ -1,10 +1,9 @@
 // src/contexts/UserSettingsContext.tsx
-// 🔔 UPDATED WITH NOTIFICATION SYSTEM
+// 🔧 FIXED - Tanpa settings_data, gunakan kolom terpisah
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-// 🔔 ADD NOTIFICATION IMPORTS
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { toast } from 'sonner';
@@ -16,7 +15,6 @@ interface FinancialCategories {
   expense: string[];
 }
 
-// ✨ MENGGUNAKAN INTERFACE ANDA YANG LEBIH LENGKAP
 export interface UserSettings {
   businessName: string;
   ownerName: string;
@@ -29,7 +27,6 @@ export interface UserSettings {
   };
   financialCategories: FinancialCategories;
   recipeCategories: string[];
-  // 🔔 ADD TIMESTAMPS FOR TRACKING
   updatedAt?: string;
 }
 
@@ -39,7 +36,6 @@ interface UserSettingsContextType {
   isLoading: boolean;
 }
 
-// ✨ PENGATURAN DEFAULT DISESUAIKAN DENGAN INTERFACE LENGKAP
 const defaultSettings: UserSettings = {
   businessName: 'Bisnis Anda',
   ownerName: 'Nama Anda',
@@ -59,10 +55,8 @@ const defaultSettings: UserSettings = {
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
-// --- PROVIDER COMPONENT ---
 export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  // 🔔 ADD NOTIFICATION CONTEXT
   const { addNotification } = useNotification();
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,45 +72,118 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     
     try {
       logger.context('UserSettingsContext', 'Fetching settings for user:', user.id);
+      
+      // 🔧 QUERY TANPA settings_data - hanya kolom yang ada di database
       const { data, error } = await supabase
         .from('user_settings')
-        .select('settings_data')
+        .select(`
+          email,
+          business_name,
+          owner_name,
+          updated_at
+        `)
         .eq('user_id', user.id)
-        .limit(1) // ✨ Ambil hanya 1 baris
-        .single();
+        .limit(1)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('[UserSettingsContext] Error fetching settings:', error);
         toast.error("Gagal memuat pengaturan.");
         
-        // 🔔 CREATE ERROR NOTIFICATION
         await addNotification(createNotificationHelper.systemError(
           `Gagal memuat pengaturan pengguna: ${error.message}`
         ));
+        
+        setSettings(defaultSettings);
+        return;
       }
 
-      if (data?.settings_data) {
-        // Gabungkan data dari DB dengan default untuk memastikan semua properti ada
-        const mergedSettings = { 
-          ...defaultSettings, 
-          ...data.settings_data,
-          updatedAt: new Date().toISOString()
+      if (data) {
+        // 🔧 BUAT SETTINGS DARI KOLOM DATABASE
+        const loadedSettings: UserSettings = { 
+          ...defaultSettings, // Default untuk yang tidak ada di DB
+          // Data dari database
+          email: data.email || defaultSettings.email,
+          businessName: data.business_name || defaultSettings.businessName,
+          ownerName: data.owner_name || defaultSettings.ownerName,
+          updatedAt: data.updated_at || new Date().toISOString()
         };
-        setSettings(mergedSettings);
-       logger.context('UserSettingsContext', 'Settings loaded successfully');
+        
+        setSettings(loadedSettings);
+        logger.context('UserSettingsContext', 'Settings loaded successfully:', loadedSettings);
       } else {
-        setSettings(defaultSettings);
-        logger.context('UserSettingsContext', 'Using default settings');
+        // 🔧 JIKA BELUM ADA DATA, BUAT BARU
+        logger.context('UserSettingsContext', 'No data found, creating default settings');
+        await createDefaultSettings();
       }
     } catch (error) {
       console.error('[UserSettingsContext] Unexpected error:', error);
       await addNotification(createNotificationHelper.systemError(
         `Error tidak terduga saat memuat pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
       ));
+      setSettings(defaultSettings);
     } finally {
       setIsLoading(false);
     }
-  }, [user, addNotification]); // 🔔 ADD addNotification dependency
+  }, [user, addNotification]);
+
+  // 🔧 FUNCTION UNTUK CREATE DEFAULT SETTINGS (SIMPLIFIED)
+  const createDefaultSettings = async () => {
+    if (!user) return;
+    
+    try {
+      // 🔧 HANYA INSERT KOLOM YANG ADA DI DATABASE
+      const { data, error } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: user.id,
+          email: user.email || '',
+          business_name: defaultSettings.businessName,
+          owner_name: defaultSettings.ownerName
+        })
+        .select()
+        .single();
+
+      if (error) {
+        // 🔧 JIKA ERROR KARENA DUPLICATE, COBA FETCH LAGI
+        if (error.code === '23505') {
+          logger.context('UserSettingsContext', 'Data already exists, fetching existing data');
+          // Fetch existing data
+          const { data: existingData, error: fetchError } = await supabase
+            .from('user_settings')
+            .select(`
+              email,
+              business_name,
+              owner_name,
+              updated_at
+            `)
+            .eq('user_id', user.id)
+            .single();
+
+          if (!fetchError && existingData) {
+            const loadedSettings: UserSettings = { 
+              ...defaultSettings,
+              email: existingData.email || defaultSettings.email,
+              businessName: existingData.business_name || defaultSettings.businessName,
+              ownerName: existingData.owner_name || defaultSettings.ownerName,
+              updatedAt: existingData.updated_at || new Date().toISOString()
+            };
+            setSettings(loadedSettings);
+            logger.context('UserSettingsContext', 'Existing settings loaded');
+            return;
+          }
+        }
+        
+        console.error('[UserSettingsContext] Error creating default settings:', error);
+        toast.error("Gagal membuat pengaturan default.");
+      } else {
+        setSettings(defaultSettings);
+        logger.context('UserSettingsContext', 'Default settings created successfully');
+      }
+    } catch (error) {
+      console.error('[UserSettingsContext] Error in createDefaultSettings:', error);
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -135,20 +202,25 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         updatedAt: new Date().toISOString()
       };
 
-     logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
+      logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
       
+      // 🔧 SAVE HANYA KOLOM YANG ADA DI DATABASE
+      const dbData = {
+        user_id: user.id,
+        email: updatedSettings.email,
+        business_name: updatedSettings.businessName,
+        owner_name: updatedSettings.ownerName,
+        updated_at: updatedSettings.updatedAt
+      };
+
       const { error } = await supabase
         .from('user_settings')
-        .upsert({ 
-          user_id: user.id, 
-          settings_data: updatedSettings 
-        }, { onConflict: 'user_id' });
+        .upsert(dbData, { onConflict: 'user_id' });
 
       if (error) {
         console.error('[UserSettingsContext] Error saving settings:', error);
         toast.error("Gagal menyimpan pengaturan: " + error.message);
         
-        // 🔔 CREATE ERROR NOTIFICATION
         await addNotification(createNotificationHelper.systemError(
           `Gagal menyimpan pengaturan: ${error.message}`
         ));
@@ -159,7 +231,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       setSettings(updatedSettings);
       logger.context('UserSettingsContext', 'Settings saved successfully');
 
-      // 🔔 CREATE SUCCESS NOTIFICATION (only for significant changes)
+      // Success notification for significant changes
       if (hasSignificantChanges(settings, newSettings)) {
         await addNotification({
           title: '⚙️ Pengaturan Diperbarui',
@@ -173,7 +245,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           is_archived: false
         });
 
-        // Show toast for significant changes
         toast.success("Pengaturan berhasil disimpan!");
       }
 
@@ -182,7 +253,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.error('[UserSettingsContext] Error in saveSettings:', error);
       toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
-      // 🔔 CREATE ERROR NOTIFICATION
       await addNotification(createNotificationHelper.systemError(
         `Error saat menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
       ));
@@ -191,44 +261,25 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  // 🔔 HELPER FUNCTION: Check if changes are significant enough for notification
   const hasSignificantChanges = (oldSettings: UserSettings, newSettings: Partial<UserSettings>): boolean => {
-    // Consider business info changes as significant
-    const significantFields = ['businessName', 'ownerName', 'email', 'phone', 'address'];
+    // 🔧 HANYA CEK FIELD YANG DISIMPAN DI DATABASE
+    const significantFields = ['businessName', 'ownerName', 'email'];
     
     return significantFields.some(field => {
       const fieldKey = field as keyof UserSettings;
       return newSettings[fieldKey] !== undefined && 
              newSettings[fieldKey] !== oldSettings[fieldKey];
-    }) || 
-    // Or notification preferences changes
-    (newSettings.notifications && 
-     JSON.stringify(newSettings.notifications) !== JSON.stringify(oldSettings.notifications)) ||
-    // Or category changes
-    (newSettings.financialCategories && 
-     JSON.stringify(newSettings.financialCategories) !== JSON.stringify(oldSettings.financialCategories)) ||
-    (newSettings.recipeCategories && 
-     JSON.stringify(newSettings.recipeCategories) !== JSON.stringify(oldSettings.recipeCategories));
+    });
   };
 
-  // 🔔 HELPER FUNCTION: Generate update message
   const getUpdateMessage = (newSettings: Partial<UserSettings>): string => {
     if (newSettings.businessName || newSettings.ownerName) {
       return 'Informasi bisnis telah diperbarui';
     }
-    if (newSettings.email || newSettings.phone) {
-      return 'Informasi kontak telah diperbarui';
+    if (newSettings.email) {
+      return 'Email telah diperbarui';
     }
-    if (newSettings.notifications) {
-      return 'Pengaturan notifikasi telah diperbarui';
-    }
-    if (newSettings.financialCategories) {
-      return 'Kategori keuangan telah diperbarui';
-    }
-    if (newSettings.recipeCategories) {
-      return 'Kategori resep telah diperbarui';
-    }
-    return 'Pengaturan aplikasi telah diperbarui';
+    return 'Pengaturan telah diperbarui';
   };
 
   return (

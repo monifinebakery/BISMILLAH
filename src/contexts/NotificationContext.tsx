@@ -27,7 +27,6 @@ export interface Notification {
 interface NotificationSettings {
   id?: string;
   user_id: string;
-  email_notifications: boolean;
   push_notifications: boolean;
   inventory_alerts: boolean;
   order_alerts: boolean;
@@ -191,7 +190,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           if (mountedRef.current) {
             setSettings(settingsData || {
               user_id: user.id,
-              email_notifications: true,
               push_notifications: true,
               inventory_alerts: true,
               order_alerts: true,
@@ -203,7 +201,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           if (mountedRef.current) {
             setSettings({
               user_id: user.id,
-              email_notifications: true,
               push_notifications: true,
               inventory_alerts: true,
               order_alerts: true,

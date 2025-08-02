@@ -2,10 +2,6 @@
 
 import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
 
-// src/components/purchase/utils/purchaseHelpers.ts
-
-import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
-
 /**
  * Calculate purchase statistics from array of purchases
  */
@@ -64,13 +60,14 @@ export const searchPurchases = (purchases: Purchase[], query: string): Purchase[
   
   return purchases.filter(purchase => {
     // Search in supplier name
-    if (purchase.supplier.toLowerCase().includes(searchTerm)) {
+    if (purchase.supplier?.toLowerCase().includes(searchTerm)) {
       return true;
     }
 
     // Search in items
-    return purchase.items.some(item =>
-      item.nama.toLowerCase().includes(searchTerm) ||
+    return purchase.items?.some(item =>
+      item.nama?.toLowerCase().includes(searchTerm) ||
+      item.catatan?.toLowerCase().includes(searchTerm) ||
       item.keterangan?.toLowerCase().includes(searchTerm)
     );
   });
@@ -92,13 +89,13 @@ export const sortPurchases = (
         comparison = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
         break;
       case 'totalNilai':
-        comparison = a.totalNilai - b.totalNilai;
+        comparison = (a.totalNilai || 0) - (b.totalNilai || 0);
         break;
       case 'supplier':
-        comparison = a.supplier.localeCompare(b.supplier);
+        comparison = (a.supplier || '').localeCompare(b.supplier || '');
         break;
       case 'status':
-        comparison = a.status.localeCompare(b.status);
+        comparison = (a.status || '').localeCompare(b.status || '');
         break;
       default:
         return 0;
@@ -137,17 +134,66 @@ export const getStatusColor = (status: PurchaseStatus): string => {
 };
 
 /**
- * Calculate total items quantity in a purchase
+ * Calculate total items quantity in a purchase (returns sum of all quantities)
  */
 export const calculateTotalItems = (purchase: Purchase): number => {
-  return purchase.items.reduce((total, item) => total + item.kuantitas, 0);
+  if (!purchase.items || purchase.items.length === 0) return 0;
+  return purchase.items.reduce((total, item) => total + (item.kuantitas || 0), 0);
+};
+
+/**
+ * Get formatted total quantities by unit type (simplified)
+ */
+export const getFormattedTotalQuantities = (purchase: Purchase): string => {
+  if (!purchase.items || purchase.items.length === 0) {
+    return '0 item';
+  }
+
+  // Group quantities by satuan (unit type)
+  const quantitiesBySatuan = purchase.items.reduce((acc, item) => {
+    const satuan = item.satuan || 'unit';
+    acc[satuan] = (acc[satuan] || 0) + (item.kuantitas || 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Format: "Total 2 kg" or "Total 2 kg, 1.5 liter"
+  const quantities = Object.entries(quantitiesBySatuan)
+    .map(([satuan, total]) => `${total} ${satuan}`)
+    .join(', ');
+
+  return `Total ${quantities}`;
 };
 
 /**
  * Calculate total unique item types in a purchase
  */
 export const calculateUniqueItemTypes = (purchase: Purchase): number => {
-  return purchase.items.length;
+  return purchase.items?.length || 0;
+};
+
+/**
+ * Generate purchase summary text with proper units
+ */
+export const generatePurchaseSummary = (purchase: Purchase): string => {
+  if (!purchase.items || purchase.items.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const itemCount = purchase.items.length;
+  
+  // Group quantities by satuan (unit type)
+  const quantitiesBySatuan = purchase.items.reduce((acc, item) => {
+    const satuan = item.satuan || 'unit'; // fallback to 'unit' if satuan is missing
+    acc[satuan] = (acc[satuan] || 0) + (item.kuantitas || 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Format the summary with actual units
+  const quantitySummary = Object.entries(quantitiesBySatuan)
+    .map(([satuan, total]) => `${total} ${satuan}`)
+    .join(', ');
+
+  return `${itemCount} jenis item, total ${quantitySummary}`;
 };
 
 /**
@@ -195,17 +241,8 @@ export const canDeletePurchase = (purchase: Purchase): boolean => {
 };
 
 /**
- * Generate purchase summary text
- */
-export const generatePurchaseSummary = (purchase: Purchase): string => {
-  const itemCount = purchase.items.length;
-  const totalItems = calculateTotalItems(purchase);
-  
-  return `${itemCount} jenis item, total ${totalItems} unit`;
-};
-
-/**
  * Validate purchase data before submission
+ * @deprecated Use validatePurchase instead
  */
 export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
   const errors: string[] = [];
@@ -246,29 +283,87 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
 };
 
 /**
+ * Validate purchase data (newer version)
+ */
+export const validatePurchase = (purchase: Partial<Purchase>): {
+  isValid: boolean;
+  errors: string[];
+} => {
+  const errors = validatePurchaseData(purchase);
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+/**
+ * Calculate total value from items
+ */
+export const calculateTotalFromItems = (items: Purchase['items']): number => {
+  if (!items || items.length === 0) return 0;
+  
+  return items.reduce((total, item) => {
+    const itemTotal = (item.kuantitas || 0) * (item.hargaSatuan || 0);
+    return total + itemTotal;
+  }, 0);
+};
+
+/**
+ * Format currency for display
+ */
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+/**
+ * Get item summary for preview
+ */
+export const getItemsPreview = (items: Purchase['items'], maxItems: number = 2): string => {
+  if (!items || items.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const preview = items
+    .slice(0, maxItems)
+    .map(item => `${item.nama} (${item.kuantitas} ${item.satuan})`)
+    .join(', ');
+  
+  if (items.length > maxItems) {
+    return `${preview}, +${items.length - maxItems} lainnya`;
+  }
+  
+  return preview;
+};
+
+/**
  * Export purchases data to CSV format
  */
 export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
   const headers = [
     'Tanggal',
-    'Supplier',
+    'Supplier', 
     'Total Nilai',
     'Status',
     'Jumlah Item',
-    'Total Kuantitas',
+    'Detail Kuantitas',
     'Metode Perhitungan',
     'Dibuat'
   ];
 
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
-    purchase.supplier,
+    purchase.supplier || '',
     purchase.totalNilai.toString(),
     getStatusDisplayText(purchase.status),
-    purchase.items.length.toString(),
-    calculateTotalItems(purchase).toString(),
-    purchase.metodePerhitungan,
-    new Date(purchase.createdAt).toLocaleDateString('id-ID')
+    purchase.items?.length.toString() || '0',
+    getFormattedTotalQuantities(purchase), // Use formatted quantities with proper units
+    purchase.metodePerhitungan || '',
+    new Date(purchase.createdAt || purchase.tanggal).toLocaleDateString('id-ID')
   ]);
 
   const csvContent = [headers, ...rows]

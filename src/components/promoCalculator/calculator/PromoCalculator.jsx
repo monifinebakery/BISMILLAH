@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { usePromo } from '@/contexts/PromoContext';
 import PromoTypeSelector from './PromoTypeSelector';
 import PromoPreview from './PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';
@@ -14,8 +15,10 @@ const PromoCalculator = () => {
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const { recipes, isLoading: recipesLoading } = useRecipe();
+  const { addPromo } = usePromo();
   const { 
     calculationResult, 
     isCalculating, 
@@ -53,19 +56,37 @@ const PromoCalculator = () => {
       return;
     }
 
+    if (!formData.namaPromo) {
+      toast.error('Nama promo wajib diisi');
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      // TODO: Implement save functionality
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock save
+      const promoData = {
+        namaPromo: formData.namaPromo,
+        tipePromo: selectedType,
+        status: 'draft', // Default status
+        dataPromo: formData,
+        calculationResult: calculationResult,
+        deskripsi: formData.deskripsi || '',
+        tanggalMulai: formData.tanggalMulai,
+        tanggalSelesai: formData.tanggalSelesai
+      };
+
+      const success = await addPromo(promoData);
       
-      toast.success('Promo berhasil disimpan!');
-      
-      // Reset form
-      setSelectedType('');
-      setFormData({});
-      setShowPreview(false);
-      clearCalculation();
+      if (success) {
+        // Reset form after successful save
+        setSelectedType('');
+        setFormData({});
+        setShowPreview(false);
+        clearCalculation();
+      }
     } catch (error) {
       toast.error(`Gagal menyimpan promo: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -205,7 +226,7 @@ const PromoCalculator = () => {
                 type={selectedType}
                 data={{ calculationResult }}
                 onSave={handleSavePromo}
-                isLoading={false}
+                isLoading={isSaving}
               />
             </div>
           )}
@@ -227,10 +248,11 @@ const PromoCalculator = () => {
               
               <button
                 onClick={handleSavePromo}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                disabled={isSaving}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
-                <span className="text-sm">Simpan Promo</span>
+                <span className="text-sm">{isSaving ? 'Menyimpan...' : 'Simpan Promo'}</span>
               </button>
             </div>
           </div>
@@ -294,7 +316,7 @@ const PromoCalculator = () => {
               type={selectedType}
               data={{ calculationResult }}
               onSave={handleSavePromo}
-              isLoading={false}
+              isLoading={isSaving}
             />
           </div>
         </div>

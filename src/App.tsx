@@ -1,4 +1,4 @@
-// App.jsx - Improved Lazy Loading Strategy with Payment Status Integration
+// App.jsx - Enhanced Payment Integration with Updated Components
 
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
@@ -27,7 +27,7 @@ import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 
-// ✅ NEW: Add our payment components
+// ✅ UPDATED: Import the updated OrderConfirmationPopup
 import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -103,6 +103,13 @@ const queryClient = new QueryClient({
       // Reduce default cache time to save memory
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     },
   },
 });
@@ -196,19 +203,50 @@ const OrderErrorFallback = createErrorFallback("Gagal Memuat Pesanan");
 const OperationalCostErrorFallback = createErrorFallback("Gagal Memuat Biaya Operasional");
 const PurchaseErrorFallback = createErrorFallback("Gagal Memuat Pembelian");
 
-// ✅ FIXED: Enhanced AppLayout with payment popup integration from context
+// ✅ ENHANCED: AppLayout with improved payment integration
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 
     isPaid, 
     showOrderPopup,
     setShowOrderPopup,
-    refetchPayment 
+    refetchPayment,
+    unlinkedPaymentCount,
+    needsOrderLinking
   } = usePaymentContext();
 
   const handleOrderLinked = (payment: any) => {
     console.log('✅ Order linked successfully:', payment);
     refetchPayment(); // Refresh payment status
+  };
+
+  // ✅ ENHANCED: Smart button visibility and styling
+  const renderOrderLinkButton = (isMobileVersion = false) => {
+    if (isPaid) return null;
+
+    const baseClasses = isMobileVersion 
+      ? "text-xs bg-blue-600 text-white px-2 py-1 rounded"
+      : "text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md transition-colors";
+
+    const urgentClasses = needsOrderLinking || unlinkedPaymentCount > 0
+      ? isMobileVersion
+        ? "bg-orange-600 animate-pulse"
+        : "bg-orange-600 hover:bg-orange-700 animate-pulse"
+      : "";
+
+    const buttonText = isMobileVersion
+      ? unlinkedPaymentCount > 0 ? `Link (${unlinkedPaymentCount})` : "Link Order"
+      : unlinkedPaymentCount > 0 ? `Hubungkan Order (${unlinkedPaymentCount})` : "Hubungkan Order";
+
+    return (
+      <button
+        onClick={() => setShowOrderPopup(true)}
+        className={`${baseClasses} ${urgentClasses}`}
+        title={unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"}
+      >
+        {buttonText}
+      </button>
+    );
   };
 
   if (isMobile) {
@@ -225,15 +263,7 @@ const AppLayout = () => {
                   {isPaid && <PaymentStatusIndicator />}
                   <NotificationBell />
                   <MobileExportButton />
-                  {/* ✅ NEW: Add manual popup trigger for mobile */}
-                  {!isPaid && (
-                    <button
-                      onClick={() => setShowOrderPopup(true)}
-                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded"
-                    >
-                      Link Order
-                    </button>
-                  )}
+                  {renderOrderLinkButton(true)}
                 </div>
               </header>
               <main className="flex-1 overflow-auto pb-16">
@@ -248,7 +278,7 @@ const AppLayout = () => {
                 </div>
               )}
               
-              {/* ✅ NEW: Add order confirmation popup */}
+              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
               <OrderConfirmationPopup
                 isOpen={showOrderPopup}
                 onClose={() => setShowOrderPopup(false)}
@@ -276,15 +306,7 @@ const AppLayout = () => {
                     <PaymentStatusIndicator />
                     <DateTimeDisplay />
                     <NotificationBell />
-                    {/* ✅ NEW: Add manual popup trigger for desktop */}
-                    {!isPaid && (
-                      <button
-                        onClick={() => setShowOrderPopup(true)}
-                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md transition-colors"
-                      >
-                        Hubungkan Order
-                      </button>
-                    )}
+                    {renderOrderLinkButton(false)}
                   </div>
                 </header>
                 <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
@@ -294,7 +316,7 @@ const AppLayout = () => {
                 </main>
               </SidebarInset>
               
-              {/* ✅ NEW: Add order confirmation popup */}
+              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
               <OrderConfirmationPopup
                 isOpen={showOrderPopup}
                 onClose={() => setShowOrderPopup(false)}
@@ -311,9 +333,13 @@ const AppLayout = () => {
 const App = () => {
   useEffect(() => {
     const handleAuthRedirect = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session && window.location.hash.includes("access_token")) {
-        window.location.reload();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session && window.location.hash.includes("access_token")) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Auth redirect error:', error);
       }
     };
     handleAuthRedirect();

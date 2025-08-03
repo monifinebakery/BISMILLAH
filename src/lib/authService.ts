@@ -495,24 +495,47 @@ export const getUserPaymentStatus = async (): Promise<{
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
   try {
-    const { data: payment, error: findError } = await supabase
+    console.log('🔍 Looking for payment with order_id:', orderId);
+    
+    // ✅ FIXED: Don't use .single() for initial search
+    const { data: payments, error: findError } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId)
-      .single();
+      .limit(1);
 
-    if (findError || !payment) throw new Error('Order ID tidak ditemukan. Silakan periksa kembali.');
-    if (payment.user_id && payment.user_id !== user.id) throw new Error('Order ini sudah terhubung dengan akun lain.');
+    console.log('🔍 Search result:', { payments, findError, count: payments?.length });
 
+    if (findError) {
+      console.error('🔍 Search error:', findError);
+      throw new Error('Gagal mencari order. Silakan coba lagi.');
+    }
+
+    if (!payments || payments.length === 0) {
+      throw new Error('Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');
+    }
+
+    const payment = payments[0];
+    console.log('🔍 Found payment:', payment);
+
+    if (payment.user_id && payment.user_id !== user.id) {
+      throw new Error('Order ini sudah terhubung dengan akun lain.');
+    }
+
+    // ✅ Update the payment
     const { data: updatedPayment, error: updateError } = await supabase
       .from('user_payments')
       .update({ user_id: user.id, email: user.email })
       .eq('order_id', orderId)
       .select('*')
-      .single();
+      .single(); // Use .single() here since we know the record exists
 
-    if (updateError) throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
+    if (updateError) {
+      console.error('🔍 Update error:', updateError);
+      throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
+    }
 
+    console.log('✅ Payment linked successfully:', updatedPayment);
     toast.success('Order berhasil terhubung dengan akun Anda!');
     return updatedPayment;
   } catch (error: any) {
@@ -524,12 +547,31 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
 
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
+    console.log('🔍 Verifying order exists:', orderId);
+    
     const { data, error } = await supabase
       .from('user_payments')
       .select('id')
       .eq('order_id', orderId)
-      .single();
-    return !error && !!data;
+      .limit(1); // ✅ FIXED: Remove .single() and use .limit(1)
+    
+    console.log('🔍 Verify order response:', { data, error, count: data?.length });
+    
+    // ✅ FIXED: Check if we have any data (even if error exists due to no rows)
+    if (error && error.code === 'PGRST116') {
+      // This error code means "no rows returned" - which means order doesn't exist
+      console.log('🔍 Order not found (no rows)');
+      return false;
+    }
+    
+    if (error) {
+      console.error('🔍 Other error verifying order:', error);
+      return false;
+    }
+    
+    const exists = data && data.length > 0;
+    console.log('🔍 Order exists:', exists);
+    return exists;
   } catch (error) {
     console.error('Error verifying order:', error);
     return false;
@@ -549,7 +591,17 @@ export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    return error ? [] : payments?.map(p => p.order_id).filter(Boolean) || [];
+    console.log('🔍 Recent unlinked orders query result:', { payments, error, count: payments?.length });
+
+    if (error) {
+      console.error('Error getting recent orders:', error);
+      return [];
+    }
+
+    const orderIds = payments?.map(p => p.order_id).filter(Boolean) || [];
+    console.log('🔍 Recent unlinked order IDs:', orderIds);
+    
+    return orderIds;
   } catch (error) {
     console.error('Error getting recent orders:', error);
     return [];

@@ -4,7 +4,7 @@ import {
   getCurrentUser, 
   verifyOrderExists, 
   getRecentUnlinkedOrders 
-} from '@/services/authService';
+} from '@/lib/authService';
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;

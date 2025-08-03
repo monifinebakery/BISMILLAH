@@ -32,20 +32,6 @@ import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
-// ✅ NEW: Enhanced AppLayout with payment popup integration from context
-const AppLayout = () => {
-  const isMobile = useIsMobile();
-  const { 
-    isPaid, 
-    showOrderPopup,
-    setShowOrderPopup,
-    refetchPayment 
-  } = usePaymentContext();
-
-  const handleOrderLinked = (payment: any) => {
-    console.log('✅ Order linked successfully:', payment);
-    refetchPayment(); // Refresh payment status
-  };
 
 // ✅ OPTIMIZED: More aggressive lazy loading with webpack comments for chunk naming
 const Dashboard = React.lazy(() => 
@@ -132,7 +118,7 @@ const PageLoader = () => (
 );
 
 // ✅ FIXED: Perfect centered page loaders with enhanced styling
-const createPageLoader = (title) => () => (
+const createPageLoader = (title: string) => () => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
@@ -173,7 +159,7 @@ const RouteErrorFallback = () => {
 };
 
 // ✅ FIXED: Perfectly centered error fallbacks
-const createErrorFallback = (title) => () => {
+const createErrorFallback = (title: string) => () => {
   const navigate = useNavigate();
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
@@ -210,7 +196,7 @@ const OrderErrorFallback = createErrorFallback("Gagal Memuat Pesanan");
 const OperationalCostErrorFallback = createErrorFallback("Gagal Memuat Biaya Operasional");
 const PurchaseErrorFallback = createErrorFallback("Gagal Memuat Pembelian");
 
-// ✅ NEW: Enhanced AppLayout with payment popup integration from context
+// ✅ FIXED: Enhanced AppLayout with payment popup integration from context
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 

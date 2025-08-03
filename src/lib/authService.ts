@@ -1,4 +1,4 @@
-// src/services/authService.ts - SUPABASE DOCS COMPLIANT VERSION
+// src/services/authService.ts - COMPLETE ENHANCED VERSION WITH SAFE SESSION HANDLING
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -282,14 +282,45 @@ export const handleMagicLinkCallback = async (code: string) => {
   }
 };
 
-// ✅ SESSION MANAGEMENT (Unchanged - already good)
+// ✅ ENHANCED SESSION MANAGEMENT - Safe session handling
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) {
-      console.error('[AuthService] Get user error:', error);
+    // First check if we have a session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('[AuthService] Session error:', sessionError);
       return null;
     }
+    
+    if (!session) {
+      console.log('[AuthService] No session found - user not logged in');
+      return null;
+    }
+    
+    // If we have a session, get the user
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('[AuthService] Get user error:', error);
+      
+      // If session is invalid, try to refresh
+      if (error.message?.includes('session missing') || error.message?.includes('invalid')) {
+        console.log('[AuthService] Attempting session refresh...');
+        const refreshResult = await refreshSession();
+        
+        if (refreshResult) {
+          // Try getting user again after refresh
+          const { data: { user: refreshedUser }, error: refreshedError } = await supabase.auth.getUser();
+          if (!refreshedError && refreshedUser) {
+            return refreshedUser;
+          }
+        }
+      }
+      
+      return null;
+    }
+    
     return user;
   } catch (error) {
     console.error('[AuthService] Error getting current user:', error);
@@ -300,13 +331,26 @@ export const getCurrentUser = async () => {
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
+    
     if (error) {
-      console.error('Error getting current session:', error);
+      console.error('[AuthService] Error getting session:', error);
       return null;
     }
+    
+    if (!session) {
+      console.log('[AuthService] No session available');
+      return null;
+    }
+    
+    // Check if session is expired
+    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+      console.log('[AuthService] Session expired, attempting refresh...');
+      return await refreshSession();
+    }
+    
     return session;
   } catch (error) {
-    console.error('Error getting current session:', error);
+    console.error('[AuthService] Error getting current session:', error);
     return null;
   }
 };
@@ -314,9 +358,26 @@ export const getCurrentSession = async (): Promise<Session | null> => {
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    return !error && !!session?.user;
+    
+    if (error) {
+      console.error('[AuthService] Error checking authentication:', error);
+      return false;
+    }
+    
+    // Check if session exists and is not expired
+    if (!session) {
+      return false;
+    }
+    
+    // Check if session is expired
+    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+      console.log('[AuthService] Session expired');
+      return false;
+    }
+    
+    return !!session.user;
   } catch (error) {
-    console.error('Error checking authentication:', error);
+    console.error('[AuthService] Error checking authentication:', error);
     return false;
   }
 };
@@ -343,15 +404,53 @@ export const signOut = async (): Promise<boolean> => {
 
 export const refreshSession = async (): Promise<Session | null> => {
   try {
+    console.log('[AuthService] Refreshing session...');
+    
     const { data, error } = await supabase.auth.refreshSession();
+    
     if (error) {
       console.error('[AuthService] Session refresh error:', error);
+      
+      // If refresh fails, session is likely invalid - clean up
+      if (error.message?.includes('refresh_token_not_found') || 
+          error.message?.includes('invalid_grant')) {
+        console.log('[AuthService] Session invalid, cleaning up...');
+        await cleanupInvalidSession();
+      }
+      
       return null;
     }
-    return data.session;
+    
+    if (data.session) {
+      console.log('[AuthService] Session refreshed successfully');
+      return data.session;
+    }
+    
+    return null;
   } catch (error) {
     console.error('[AuthService] Error refreshing session:', error);
     return null;
+  }
+};
+
+// ✅ NEW: Clean up invalid session
+const cleanupInvalidSession = async () => {
+  try {
+    console.log('[AuthService] Cleaning up invalid session...');
+    
+    // Clear Supabase session
+    await supabase.auth.signOut({ scope: 'local' });
+    
+    // Clean up any local state
+    try {
+      cleanupAuthState();
+    } catch (cleanupError) {
+      console.warn('Cleanup auth state failed:', cleanupError);
+    }
+    
+    console.log('[AuthService] Invalid session cleaned up');
+  } catch (error) {
+    console.error('[AuthService] Error cleaning up invalid session:', error);
   }
 };
 
@@ -388,7 +487,7 @@ export const onAuthStateChange = (callback: (event: string, session: Session | n
   return () => subscription.unsubscribe();
 };
 
-// ✅ PAYMENT INTEGRATION (Unchanged - already good)
+// ✅ ENHANCED PAYMENT INTEGRATION - Safe auth checks
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
   try {
     const { data: payment, error: findError } = await supabase
@@ -420,8 +519,18 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
 
 export const autoLinkUserPayments = async (): Promise<number> => {
   try {
+    // Check if user is authenticated first
+    const isAuth = await isAuthenticated();
+    if (!isAuth) {
+      console.log('[AuthService] User not authenticated, skipping auto-link');
+      return 0;
+    }
+    
     const user = await getCurrentUser();
-    if (!user?.email) return 0;
+    if (!user?.email) {
+      console.log('[AuthService] No user email found for auto-link');
+      return 0;
+    }
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
@@ -458,8 +567,16 @@ export const autoLinkUserPayments = async (): Promise<number> => {
 
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
   try {
+    // Check authentication first
+    const isAuth = await isAuthenticated();
+    if (!isAuth) {
+      return { hasUnlinked: false, count: 0 };
+    }
+    
     const user = await getCurrentUser();
-    if (!user?.email) return { hasUnlinked: false, count: 0 };
+    if (!user?.email) {
+      return { hasUnlinked: false, count: 0 };
+    }
 
     const { data: unlinkedPayments, error } = await supabase
       .from('user_payments')
@@ -487,8 +604,16 @@ export const getUserPaymentStatus = async (): Promise<{
   needsLinking: boolean;
 }> => {
   try {
+    // Check authentication first
+    const isAuth = await isAuthenticated();
+    if (!isAuth) {
+      return { isPaid: false, paymentRecord: null, needsLinking: false };
+    }
+    
     const user = await getCurrentUser();
-    if (!user) return { isPaid: false, paymentRecord: null, needsLinking: false };
+    if (!user) {
+      return { isPaid: false, paymentRecord: null, needsLinking: false };
+    }
 
     // Check linked payments first
     const { data: linkedPayments } = await supabase

@@ -521,17 +521,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             </div>
           )}
         </CardContent>
-
-        <CardFooter className="flex flex-col space-y-3 pt-0">
-          <div className="text-xs text-center text-gray-500">
-            Butuh bantuan?{' '}
-            <a 
-              href={`mailto:${supportEmail}`} 
-              className="text-orange-600 hover:text-orange-700 hover:underline transition-colors"
-            >
-              Hubungi admin
-            </a>
-          </div>
           
           {cooldownTime > 0 && (
             <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
@@ -539,7 +528,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               Tunggu {cooldownTime} detik untuk mencegah spam
             </div>
           )}
-        </CardFooter>
       </Card>
     </div>
   );

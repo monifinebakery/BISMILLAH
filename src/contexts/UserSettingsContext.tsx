@@ -52,14 +52,14 @@ const defaultFinancialCategories: FinancialCategories = {
       name: 'Penjualan Produk',
       type: 'income',
       color: '#10b981',
-      isDefault: true
+      isDefault: false
     },
     {
       id: 'income_pendapatan_jasa',
       name: 'Pendapatan Jasa',
       type: 'income',
       color: '#3b82f6',
-      isDefault: true
+      isDefault: false
     }
   ],
   expense: [
@@ -68,28 +68,28 @@ const defaultFinancialCategories: FinancialCategories = {
       name: 'Pembelian Bahan Baku',
       type: 'expense',
       color: '#ef4444',
-      isDefault: true
+      isDefault: false
     },
     {
       id: 'expense_gaji',
       name: 'Gaji',
       type: 'expense',
       color: '#f59e0b',
-      isDefault: true
+      isDefault: false
     },
     {
       id: 'expense_sewa',
       name: 'Sewa',
       type: 'expense',
       color: '#8b5cf6',
-      isDefault: true
+      isDefault: false
     },
     {
       id: 'expense_marketing',
       name: 'Marketing',
       type: 'expense',
       color: '#ec4899',
-      isDefault: true
+      isDefault: false
     }
   ]
 };

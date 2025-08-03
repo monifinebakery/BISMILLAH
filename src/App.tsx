@@ -1,4 +1,4 @@
-// App.jsx - Improved Lazy Loading Strategy with Perfect Centered Loaders
+// App.jsx - Improved Lazy Loading Strategy with Payment Status Integration
 
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
@@ -27,8 +27,12 @@ import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 
+// ✅ NEW: Add our payment components
+import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 
 // ✅ OPTIMIZED: More aggressive lazy loading with webpack comments for chunk naming
 const Dashboard = React.lazy(() => 
@@ -193,10 +197,34 @@ const OrderErrorFallback = createErrorFallback("Gagal Memuat Pesanan");
 const OperationalCostErrorFallback = createErrorFallback("Gagal Memuat Biaya Operasional");
 const PurchaseErrorFallback = createErrorFallback("Gagal Memuat Pembelian");
 
-// ✅ MAIN LAYOUT: Keep providers but optimize structure
+// ✅ NEW: Enhanced AppLayout with payment popup integration
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { isPaid } = usePaymentContext();
+  
+  // ✅ NEW: Add payment status popup integration
+  const { 
+    needsOrderLinking,
+    showOrderPopup,
+    setShowOrderPopup,
+    refetch 
+  } = usePaymentStatus();
+
+  // ✅ NEW: Auto-show popup if user needs to link order
+  useEffect(() => {
+    if (needsOrderLinking && !showOrderPopup && !isPaid) {
+      const timer = setTimeout(() => {
+        setShowOrderPopup(true);
+      }, 2000); // Show after 2 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [needsOrderLinking, showOrderPopup, setShowOrderPopup, isPaid]);
+
+  const handleOrderLinked = (payment) => {
+    console.log('✅ Order linked successfully:', payment);
+    refetch(); // Refresh payment status
+  };
 
   if (isMobile) {
     return (
@@ -212,6 +240,15 @@ const AppLayout = () => {
                   {isPaid && <PaymentStatusIndicator />}
                   <NotificationBell />
                   <MobileExportButton />
+                  {/* ✅ NEW: Add manual popup trigger for mobile */}
+                  {!isPaid && (
+                    <button
+                      onClick={() => setShowOrderPopup(true)}
+                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded"
+                    >
+                      Link Order
+                    </button>
+                  )}
                 </div>
               </header>
               <main className="flex-1 overflow-auto pb-16">
@@ -225,6 +262,13 @@ const AppLayout = () => {
                   <PaymentStatusIndicator size="lg" />
                 </div>
               )}
+              
+              {/* ✅ NEW: Add order confirmation popup */}
+              <OrderConfirmationPopup
+                isOpen={showOrderPopup}
+                onClose={() => setShowOrderPopup(false)}
+                onSuccess={handleOrderLinked}
+              />
             </div>
           </SupplierProvider>
         </RecipeProvider>
@@ -247,6 +291,15 @@ const AppLayout = () => {
                     <PaymentStatusIndicator />
                     <DateTimeDisplay />
                     <NotificationBell />
+                    {/* ✅ NEW: Add manual popup trigger for desktop */}
+                    {!isPaid && (
+                      <button
+                        onClick={() => setShowOrderPopup(true)}
+                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md transition-colors"
+                      >
+                        Hubungkan Order
+                      </button>
+                    )}
                   </div>
                 </header>
                 <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
@@ -255,6 +308,13 @@ const AppLayout = () => {
                   </ErrorBoundary>
                 </main>
               </SidebarInset>
+              
+              {/* ✅ NEW: Add order confirmation popup */}
+              <OrderConfirmationPopup
+                isOpen={showOrderPopup}
+                onClose={() => setShowOrderPopup(false)}
+                onSuccess={handleOrderLinked}
+              />
             </div>
           </SidebarProvider>
         </SupplierProvider>

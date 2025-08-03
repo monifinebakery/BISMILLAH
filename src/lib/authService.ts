@@ -339,5 +339,86 @@ export const refreshSession = async (): Promise<Session | null> => {
 // ✅ ALIASES: For backward compatibility (if needed)
 export const hasValidSession = isAuthenticated;
 
+// ✅ BACKWARD COMPATIBILITY: Export missing functions to prevent import errors
+export const autoLinkUserPayments = async (): Promise<number> => {
+  console.warn('[authService] autoLinkUserPayments is deprecated and removed');
+  return 0;
+};
+
+export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
+  console.warn('[authService] checkUnlinkedPayments is deprecated and removed');
+  return { hasUnlinked: false, count: 0 };
+};
+
+export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
+  console.warn('[authService] getRecentUnlinkedOrders is deprecated and removed');
+  return [];
+};
+
+export const getUserPaymentStatus = async (): Promise<{
+  isPaid: boolean;
+  paymentRecord: any | null;
+  needsLinking: boolean;
+}> => {
+  console.warn('[authService] getUserPaymentStatus is deprecated and removed');
+  return { isPaid: false, paymentRecord: null, needsLinking: false };
+};
+
+export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
+  console.warn('[authService] linkPaymentToUser is deprecated and removed');
+  throw new Error('Payment linking feature has been removed');
+};
+
+export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
+  console.warn('[authService] verifyOrderExists is deprecated and removed');
+  return false;
+};
+
+export const sendMagicLink = async (
+  email: string, 
+  captchaToken: string | null = null,
+  allowSignup: boolean = true
+): Promise<boolean> => {
+  console.warn('[authService] sendMagicLink is deprecated and removed');
+  toast.error('Magic link authentication tidak tersedia. Gunakan OTP.');
+  return false;
+};
+
+export const sendAuth = async (
+  email: string, 
+  method: 'otp' | 'magic' = 'otp', 
+  captchaToken: string | null = null,
+  allowSignup: boolean = true,
+  skipCaptcha: boolean = false
+): Promise<boolean> => {
+  console.warn('[authService] sendAuth is deprecated, use sendEmailOtp directly');
+  if (method === 'otp') {
+    return await sendEmailOtp(email, captchaToken, allowSignup, skipCaptcha);
+  } else {
+    toast.error('Magic link authentication tidak tersedia. Gunakan OTP.');
+    return false;
+  }
+};
+
+// ✅ More compatibility exports
+export const onAuthStateChangeWithPaymentLinking = onAuthStateChange;
+export const handleMagicLinkCallback = async (code: string) => {
+  console.warn('[authService] handleMagicLinkCallback is deprecated and removed');
+  throw new Error('Magic link callback feature has been removed');
+};
+
+export const checkUserExists = async (email: string): Promise<boolean> => {
+  console.warn('[authService] checkUserExists is deprecated and removed');
+  return true; // Assume user exists for backward compatibility
+};
+
+export const checkEmailVerificationStatus = async () => {
+  const session = await getCurrentSession();
+  if (!session?.user) return { isVerified: false, needsVerification: false };
+  
+  const isVerified = !!session.user.email_confirmed_at;
+  return { isVerified, needsVerification: !isVerified && !!session.user.email };
+};
+
 // ✅ ESSENTIAL: Export supabase client
 export { supabase };

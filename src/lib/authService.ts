@@ -1,4 +1,4 @@
-// src/services/authService.ts - DUAL AUTHENTICATION (EMAIL + ORDER)
+// src/services/authService.ts - DUAL AUTHENTICATION (EMAIL + ORDER) - UPDATED
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,7 +33,8 @@ const handleAuthError = (error: any, fallbackMessage: string) => {
     'User not found': 'Email tidak terdaftar dalam sistem. Silakan hubungi administrator.',
     'expired': 'Kode sudah kadaluarsa. Silakan minta kode baru.',
     'invalid': 'Kode tidak valid. Silakan periksa kembali.',
-    'too many attempts': 'Terlalu banyak percobaan. Silakan minta kode baru.'
+    'too many attempts': 'Terlalu banyak percobaan. Silakan minta kode baru.',
+    'token has expired or is invalid': 'Kode OTP sudah kadaluarsa. Silakan minta kode baru.'
   };
   
   const message = Object.entries(errorMessages).find(([key]) => 
@@ -108,11 +109,12 @@ export const getCurrentUser = async () => {
   }
 };
 
-// ✅ EMAIL AUTH FUNCTIONS
+// ✅ ENHANCED: Email OTP with better timing and debugging
 export const sendEmailOtp = async (
   email: string, 
   captchaToken: string | null = null,
-  allowSignup: boolean = true
+  allowSignup: boolean = true,
+  skipCaptcha: boolean = false
 ): Promise<boolean> => {
   try {
     if (!validateEmail(email)) {
@@ -121,15 +123,17 @@ export const sendEmailOtp = async (
     }
 
     try { cleanupAuthState(); } catch {}
-    clearSessionCache(); // Clear cache
+    clearSessionCache();
 
-    console.log('🔍 Step 1: Sending OTP to:', email);
+    const timestamp = new Date().toISOString();
+    console.log('🔍 Step 1: Sending OTP to:', email, 'Time:', timestamp);
     
     const otpOptions: any = {
       shouldCreateUser: allowSignup,
     };
 
-    if (captchaToken?.trim()) {
+    // Skip captcha for resend or if explicitly disabled
+    if (!skipCaptcha && captchaToken?.trim()) {
       otpOptions.captchaToken = captchaToken;
     }
 
@@ -143,17 +147,17 @@ export const sendEmailOtp = async (
 
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         console.log('🔍 Signup disabled, trying existing users only...');
-        return await sendEmailOtp(email, captchaToken, false);
+        return await sendEmailOtp(email, captchaToken, false, skipCaptcha);
       }
 
       handleAuthError(error, 'Gagal mengirim kode verifikasi');
       return false;
     }
 
-    console.log('✅ OTP sent successfully. Response:', data);
+    console.log('✅ OTP sent successfully at:', new Date().toISOString(), 'Response:', data);
     
     if (data.user === null && data.session === null) {
-      toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
+      toast.success('Kode verifikasi telah dikirim ke email Anda. Kode berlaku 5 menit.');
       return true;
     } else {
       console.warn('⚠️ Unexpected OTP response format:', data);
@@ -167,32 +171,67 @@ export const sendEmailOtp = async (
   }
 };
 
-export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
+// ✅ ENHANCED: OTP verification with better error handling and timing
+export const verifyEmailOtp = async (email: string, token: string): Promise<boolean | string> => {
   try {
     if (!email || !token) {
       toast.error('Email dan kode OTP harus diisi');
       return false;
     }
 
-    const cleanToken = token.replace(/\s/g, '');
+    // Enhanced token cleaning
+    const cleanToken = token
+      .replace(/\s/g, '')           // Remove all spaces
+      .replace(/[^0-9A-Za-z]/g, '') // Remove non-alphanumeric
+      .toUpperCase()                // Uppercase for consistency
+      .slice(0, 6);                 // Take only first 6 chars
 
-    console.log('🔍 Step 2: Verifying OTP for:', email);
+    if (cleanToken.length !== 6) {
+      toast.error('Kode OTP harus 6 karakter');
+      return false;
+    }
 
+    const timestamp = new Date().toISOString();
+    console.log('🔍 Step 2: Verifying OTP for:', email, 'Time:', timestamp, 'Token length:', cleanToken.length);
+
+    const verifyStartTime = Date.now();
+    
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
       token: cleanToken,
       type: 'email',
     });
     
+    const verifyDuration = Date.now() - verifyStartTime;
+    console.log('🔍 Verification took:', verifyDuration, 'ms');
+    
     if (error) {
       console.error('📛 OTP verification error:', error);
+      
+      // Enhanced error handling with specific return values
+      if (error.message?.includes('expired') || error.message?.includes('token has expired')) {
+        console.log('🕐 Token expired, returning expired status');
+        return 'expired';
+      }
+      
+      if (error.message?.includes('invalid') && !error.message?.includes('expired')) {
+        console.log('❌ Token invalid, returning false');
+        toast.error('Kode OTP tidak valid. Silakan periksa kembali.');
+        return false;
+      }
+      
+      if (error.message?.includes('too many attempts')) {
+        console.log('🚫 Too many attempts, returning rate_limited status');
+        return 'rate_limited';
+      }
+      
       handleAuthError(error, 'Verifikasi gagal. Silakan coba lagi.');
       return false;
     }
     
     if (data.session && data.user) {
       console.log('✅ OTP verified successfully. User logged in:', data.user.email);
-      clearSessionCache(); // Clear cache to force refresh
+      clearSessionCache();
       toast.success('Login berhasil! Selamat datang.');
       return true;
     } else {
@@ -221,7 +260,7 @@ export const sendMagicLink = async (
     try { cleanupAuthState(); } catch {}
     clearSessionCache();
 
-    console.log('🔍 Sending magic link to:', email);
+    console.log('🔍 Sending magic link to:', email, 'Time:', new Date().toISOString());
     
     const magicLinkOptions: any = {
       emailRedirectTo: getRedirectUrl(),
@@ -259,17 +298,19 @@ export const sendMagicLink = async (
   }
 };
 
+// ✅ ENHANCED: Unified send auth with better debugging
 export const sendAuth = async (
   email: string, 
   method: 'otp' | 'magic' = 'otp', 
   captchaToken: string | null = null,
-  allowSignup: boolean = true
+  allowSignup: boolean = true,
+  skipCaptcha: boolean = false
 ): Promise<boolean> => {
   try {
-    console.log(`🔍 Sending ${method} auth for:`, email, 'allowSignup:', allowSignup);
+    console.log(`🔍 Sending ${method} auth for:`, email, 'allowSignup:', allowSignup, 'skipCaptcha:', skipCaptcha);
     
     if (method === 'otp') {
-      const otpResult = await sendEmailOtp(email, captchaToken, allowSignup);
+      const otpResult = await sendEmailOtp(email, captchaToken, allowSignup, skipCaptcha);
       
       if (!otpResult && !allowSignup) {
         console.log('🔍 OTP failed for existing user, trying magic link fallback...');
@@ -297,7 +338,7 @@ export const signOut = async (): Promise<boolean> => {
       return false;
     }
     
-    clearSessionCache(); // Clear cache
+    clearSessionCache();
     try { cleanupAuthState(); } catch {}
     toast.success('Logout berhasil');
     return true;
@@ -313,7 +354,6 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
     console.log('🔍 Verifying order exists:', orderId);
     
-    // ✅ BYPASS RLS: Use service role or public access
     const { data, error } = await supabase
       .from('user_payments')
       .select('id, order_id, is_paid, payment_status')
@@ -342,7 +382,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
   try {
     console.log('🔍 Linking order to user:', orderId, user.email);
     
-    // ✅ Find the order
     const { data: payments, error: findError } = await supabase
       .from('user_payments')
       .select('*')
@@ -369,7 +408,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       throw new Error('Order ini sudah terhubung dengan akun lain.');
     }
 
-    // ✅ Link the payment to user
     const { data: updatedPayment, error: updateError } = await supabase
       .from('user_payments')
       .update({ 
@@ -377,7 +415,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
         email: user.email,
         updated_at: new Date().toISOString()
       })
-      .eq('id', payment.id) // Use ID for update to avoid RLS issues
+      .eq('id', payment.id)
       .select('*')
       .single();
 
@@ -406,7 +444,6 @@ export const getUserPaymentStatus = async (): Promise<{
     const user = await getCurrentUser();
     if (!user) return { isPaid: false, paymentRecord: null, needsLinking: false };
 
-    // Check linked payments first
     const { data: linkedPayments } = await supabase
       .from('user_payments')
       .select('*')
@@ -427,19 +464,15 @@ export const getUserPaymentStatus = async (): Promise<{
   }
 };
 
-// ✅ SIMPLIFIED: No complex auto-linking needed
 export const autoLinkUserPayments = async (): Promise<number> => {
-  // No auto-linking since user needs to manually enter Order ID
   return 0;
 };
 
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
-  // No unlinked payments tracking needed
   return { hasUnlinked: false, count: 0 };
 };
 
 export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
-  // No recent orders suggestion needed
   return [];
 };
 
@@ -454,7 +487,6 @@ export const onAuthStateChange = (callback: (event: string, session: Session | n
   return () => subscription.unsubscribe();
 };
 
-// ✅ Additional auth functions
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     if (!validateEmail(email)) {
@@ -515,7 +547,7 @@ export const refreshSession = async (): Promise<Session | null> => {
     
     if (data.session) {
       console.log('[AuthService] Session refreshed successfully');
-      clearSessionCache(); // Clear to force fresh data
+      clearSessionCache();
       return data.session;
     }
     

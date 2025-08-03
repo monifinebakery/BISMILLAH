@@ -390,12 +390,6 @@ export const autoLinkUserPayments = async (): Promise<number> => {
   return 0;
 };
 
-// ✅ BACKWARD COMPATIBILITY: Export missing functions to prevent import errors (DEPRECATED)
-export const autoLinkUserPayments = async (): Promise<number> => {
-  console.warn('[authService] autoLinkUserPayments is deprecated and removed');
-  return 0;
-};
-
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
   console.warn('[authService] checkUnlinkedPayments is deprecated and removed');
   return { hasUnlinked: false, count: 0 };

@@ -1,9 +1,9 @@
-// src/hooks/usePaymentStatus.ts - FIXED VERSION WITH SAFE SESSION HANDLING
+// src/hooks/usePaymentStatus.ts - OPTIMIZED FOR FASTER LOADING
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated } from '@/lib/authService'; // ✅ Updated import
+import { getCurrentUser, isAuthenticated } from '@/services/authService';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
@@ -32,7 +32,7 @@ export const usePaymentStatus = () => {
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
-      // ✅ SAFE: Check authentication first
+      // ✅ FAST: Quick auth check without throwing
       const isAuth = await isAuthenticated();
       if (!isAuth) {
         console.log('[usePaymentStatus] User not authenticated');
@@ -47,67 +47,74 @@ export const usePaymentStatus = () => {
 
       console.log('[usePaymentStatus] Checking payment for user:', user.email);
 
-      // ✅ STEP 1: Check linked payments by user_id
-      const { data: linkedPayments, error: userIdError } = await supabase
-        .from('user_payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_paid', true)
-        .eq('payment_status', 'settled')
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      // ✅ OPTIMIZED: Parallel queries for better performance
+      const [linkedResult, unlinkedResult] = await Promise.allSettled([
+        // Query 1: Check linked payments
+        supabase
+          .from('user_payments')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_paid', true)
+          .eq('payment_status', 'settled')
+          .order('updated_at', { ascending: false })
+          .limit(1),
+        
+        // Query 2: Check unlinked payments
+        supabase
+          .from('user_payments')
+          .select('*')
+          .is('user_id', null)
+          .eq('email', user.email)
+          .eq('is_paid', true)
+          .eq('payment_status', 'settled')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+      ]);
 
-      if (!userIdError && linkedPayments?.length) {
-        console.log('[usePaymentStatus] Found linked payment:', linkedPayments[0].order_id);
+      // Process linked payments result
+      if (linkedResult.status === 'fulfilled' && 
+          !linkedResult.value.error && 
+          linkedResult.value.data?.length) {
+        
+        const payment = linkedResult.value.data[0];
+        console.log('[usePaymentStatus] Found linked payment:', payment.order_id);
+        
         return {
-          ...linkedPayments[0],
-          created_at: safeParseDate(linkedPayments[0].created_at),
-          updated_at: safeParseDate(linkedPayments[0].updated_at),
-          payment_date: safeParseDate(linkedPayments[0].payment_date),
+          ...payment,
+          created_at: safeParseDate(payment.created_at),
+          updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
         };
       }
 
-      // ✅ STEP 2: Check unlinked payments by email
-      const { data: unlinkedPayments, error: emailError } = await supabase
-        .from('user_payments')
-        .select('*')
-        .is('user_id', null)
-        .eq('email', user.email)
-        .eq('is_paid', true)
-        .eq('payment_status', 'settled')
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (!emailError && unlinkedPayments?.length) {
-        const payment = unlinkedPayments[0];
+      // Process unlinked payments result
+      if (unlinkedResult.status === 'fulfilled' && 
+          !unlinkedResult.value.error && 
+          unlinkedResult.value.data?.length) {
+        
+        const payment = unlinkedResult.value.data[0];
         console.log('[usePaymentStatus] Found unlinked payment:', payment.order_id);
         
-        // ✅ AUTO-LINK: Try to link unlinked payment to current user
-        try {
-          const { data: updatedPayment, error: updateError } = await supabase
+        // ✅ NON-BLOCKING: Try auto-link but don't wait for it
+        if (!payment.user_id) {
+          // Fire and forget auto-link
+          supabase
             .from('user_payments')
             .update({ 
               user_id: user.id,
               updated_at: new Date().toISOString()
             })
             .eq('id', payment.id)
-            .select('*')
-            .single();
-
-          if (!updateError && updatedPayment) {
-            console.log('[usePaymentStatus] Auto-linked payment successfully');
-            return {
-              ...updatedPayment,
-              created_at: safeParseDate(updatedPayment.created_at),
-              updated_at: safeParseDate(updatedPayment.updated_at),
-              payment_date: safeParseDate(updatedPayment.payment_date),
-            };
-          }
-        } catch (linkError) {
-          console.error('[usePaymentStatus] Auto-link failed:', linkError);
+            .then(({ data: updatedPayment, error: updateError }) => {
+              if (!updateError && updatedPayment) {
+                console.log('[usePaymentStatus] Auto-linked payment successfully');
+                // Trigger a refetch after successful auto-link
+                setTimeout(() => queryClient.invalidateQueries({ queryKey: ['paymentStatus'] }), 1000);
+              }
+            })
+            .catch(error => console.error('[usePaymentStatus] Auto-link failed:', error));
         }
 
-        // Return unlinked payment if auto-link fails
         return {
           ...payment,
           created_at: safeParseDate(payment.created_at),
@@ -120,21 +127,23 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 30000,
-    refetchOnWindowFocus: true,
+    staleTime: 60000, // 1 minute - longer stale time for better performance
+    cacheTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false, // Disable auto-refetch on focus for better performance
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // Reduce retry attempts
     },
   });
 
-  // ✅ SAFE REAL-TIME SUBSCRIPTION: Only setup if authenticated
+  // ✅ OPTIMIZED: Lazy real-time subscription setup
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
+    let setupTimeout: NodeJS.Timeout;
 
     const setupSubscription = async () => {
       // Cleanup existing subscription
@@ -144,7 +153,7 @@ export const usePaymentStatus = () => {
         realtimeChannel = null;
       }
 
-      // ✅ SAFE: Check if user is authenticated before setting up subscription
+      // ✅ FAST: Quick check without waiting
       const isAuth = await isAuthenticated();
       if (!isAuth) {
         console.log('[usePaymentStatus] Not authenticated, skipping subscription setup');
@@ -159,7 +168,7 @@ export const usePaymentStatus = () => {
 
       console.log('[usePaymentStatus] Setting up realtime subscription for user:', user.email);
 
-      // Setup new subscription for both user_id and email
+      // ✅ OPTIMIZED: Simpler subscription with debounced invalidation
       realtimeChannel = supabase
         .channel(`payment-changes-${user.id}`)
         .on(
@@ -168,24 +177,15 @@ export const usePaymentStatus = () => {
             event: '*', 
             schema: 'public', 
             table: 'user_payments', 
-            filter: `user_id=eq.${user.id}` 
-          },
-          (payload) => {
-            console.log('[usePaymentStatus] Payment change detected (user_id):', payload);
-            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-          }
-        )
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'user_payments', 
             filter: `email=eq.${user.email}` 
           },
-          (payload) => {
-            console.log('[usePaymentStatus] Payment change detected (email):', payload);
-            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          () => {
+            console.log('[usePaymentStatus] Payment change detected (email)');
+            // Debounce invalidation
+            clearTimeout(setupTimeout);
+            setupTimeout = setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+            }, 1000);
           }
         )
         .subscribe((status) => {
@@ -197,18 +197,22 @@ export const usePaymentStatus = () => {
         });
     };
 
-    // Initial setup
-    setupSubscription();
+    // ✅ DELAYED: Setup subscription after component mounts (non-blocking)
+    setupTimeout = setTimeout(() => {
+      setupSubscription();
+    }, 2000); // 2 second delay for better initial load performance
 
-    // Re-setup on auth changes
+    // Handle auth changes
     authSubscription = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       console.log('[usePaymentStatus] Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('[usePaymentStatus] User signed in, setting up subscription');
-        await setupSubscription();
-        // Refetch payment status when user signs in
-        queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+        clearTimeout(setupTimeout);
+        setupTimeout = setTimeout(() => {
+          setupSubscription();
+          queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+        }, 1000);
       } else if (event === 'SIGNED_OUT') {
         console.log('[usePaymentStatus] User signed out, cleaning up subscription');
         if (realtimeChannel) {
@@ -216,12 +220,12 @@ export const usePaymentStatus = () => {
           supabase.removeChannel(realtimeChannel);
           realtimeChannel = null;
         }
-        // Clear payment status when user signs out
         queryClient.setQueryData(['paymentStatus'], null);
       }
     });
 
     return () => {
+      clearTimeout(setupTimeout);
       if (realtimeChannel) {
         console.log('[usePaymentStatus] Cleaning up realtime subscription');
         realtimeChannel.unsubscribe();
@@ -239,9 +243,9 @@ export const usePaymentStatus = () => {
   const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
   const needsOrderLinking = !isLoading && !paymentStatus && !error;
 
-  // ✅ Enhanced logging for debugging
+  // ✅ REDUCED: Less frequent logging
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && process.env.NODE_ENV === 'development') {
       console.log('[usePaymentStatus] Payment status update:', {
         isPaid,
         needsPayment,
@@ -250,7 +254,7 @@ export const usePaymentStatus = () => {
         paymentRecord: paymentStatus?.order_id || 'none'
       });
     }
-  }, [isPaid, needsPayment, hasUnlinkedPayment, needsOrderLinking, paymentStatus, isLoading]);
+  }, [isPaid, isLoading]); // Only log when isPaid or loading changes
 
   return {
     paymentStatus,
@@ -266,3 +270,20 @@ export const usePaymentStatus = () => {
     userName: paymentStatus?.customer_name || null
   };
 };
+            schema: 'public', 
+            table: 'user_payments', 
+            filter: `user_id=eq.${user.id}` 
+          },
+          () => {
+            console.log('[usePaymentStatus] Payment change detected (user_id)');
+            // Debounce invalidation
+            clearTimeout(setupTimeout);
+            setupTimeout = setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+            }, 1000);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*',

@@ -1,13 +1,320 @@
-// 🎯 Main calculator component - Mobile Responsive
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
-import { useRecipe } from '@/contexts/RecipeContext';
-import PromoTypeSelector from './calculator/PromoTypeSelector';
-import PromoPreview from './calculator/PromoPreview';
-import { usePromoCalculation } from './hooks/usePromoCalculation';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { toast } from 'sonner';
+
+// Mock hooks for demonstration
+const useRecipe = () => ({
+  recipes: [
+    { id: 1, name: 'Nasi Goreng Special', hpp: 15000, harga_jual: 25000 },
+    { id: 2, name: 'Ayam Bakar', hpp: 20000, harga_jual: 35000 },
+    { id: 3, name: 'Gado-gado', hpp: 12000, harga_jual: 20000 }
+  ],
+  isLoading: false
+});
+
+const usePromoCalculation = () => ({
+  calculatePromo: async (type, data) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      originalPrice: data.originalPrice || 25000,
+      promoPrice: data.promoPrice || 20000,
+      profitMargin: 15,
+      totalSavings: 5000
+    };
+  },
+  savePromo: async (data) => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { success: true };
+  },
+  isLoading: false
+});
+
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [breakpoint]);
+  
+  return isMobile;
+};
+
+const toast = {
+  success: (message) => console.log('Success:', message),
+  error: (message) => console.log('Error:', message)
+};
+
+// Lazy load components
+const PromoTypeSelector = lazy(() => Promise.resolve({
+  default: ({ selectedType, onTypeChange, onFormSubmit, isCalculating, recipes, isMobile }) => {
+    const [formData, setFormData] = useState({});
+
+    const promoTypes = [
+      { id: 'bogo', title: 'Buy One Get One', description: 'Beli satu gratis satu dengan syarat minimal pembelian', icon: '🎁' },
+      { id: 'discount', title: 'Diskon Persentase/Nominal', description: 'Potongan harga dalam persentase atau nominal rupiah', icon: '💰' },
+      { id: 'bundle', title: 'Paket Bundle', description: 'Kombinasi beberapa produk dengan harga khusus', icon: '📦' }
+    ];
+
+    const handleTypeSelect = (type) => {
+      onTypeChange(type);
+      setFormData({});
+    };
+
+    const handleSubmit = () => {
+      onFormSubmit(formData);
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Type Selection */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pilih Tipe Promo</h2>
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
+            {promoTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => handleTypeSelect(type.id)}
+                className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
+                  selectedType === type.id
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <span className="text-2xl">{type.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`font-medium ${
+                      selectedType === type.id ? 'text-orange-900' : 'text-gray-900'
+                    }`}>
+                      {type.title}
+                    </h3>
+                    <p className={`text-sm mt-1 ${
+                      selectedType === type.id ? 'text-orange-700' : 'text-gray-600'
+                    }`}>
+                      {type.description}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Form */}
+        {selectedType && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 capitalize">
+              Pengaturan {selectedType === 'bogo' ? 'Buy One Get One' : selectedType === 'discount' ? 'Diskon' : 'Bundle'}
+            </h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Resep</label>
+              <select 
+                value={formData.recipeId || ''}
+                onChange={(e) => setFormData({...formData, recipeId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                required
+              >
+                <option value="">Pilih resep...</option>
+                {recipes.map((recipe) => (
+                  <option key={recipe.id} value={recipe.id}>
+                    {recipe.name} - HPP: {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0
+                    }).format(recipe.hpp)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Type-specific fields */}
+            {selectedType === 'discount' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Harga Normal</label>
+                  <input
+                    type="number"
+                    value={formData.originalPrice || ''}
+                    onChange={(e) => setFormData({...formData, originalPrice: parseInt(e.target.value) || 0})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="25000"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Harga Promo</label>
+                  <input
+                    type="number"
+                    value={formData.promoPrice || ''}
+                    onChange={(e) => setFormData({...formData, promoPrice: parseInt(e.target.value) || 0})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="20000"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'bogo' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Minimal Pembelian</label>
+                <input
+                  type="number"
+                  value={formData.minPurchase || ''}
+                  onChange={(e) => setFormData({...formData, minPurchase: parseInt(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="1"
+                  required
+                />
+              </div>
+            )}
+
+            {selectedType === 'bundle' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Harga Bundle</label>
+                <input
+                  type="number"
+                  value={formData.bundlePrice || ''}
+                  onChange={(e) => setFormData({...formData, bundlePrice: parseInt(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="45000"
+                  required
+                />
+              </div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={isCalculating}
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              {isCalculating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Menghitung...</span>
+                </>
+              ) : (
+                <>
+                  <Calculator className="h-4 w-4" />
+                  <span>Hitung Promo</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+}));
+
+const PromoPreview = lazy(() => Promise.resolve({
+  default: ({ type, data, onSave, isLoading, isMobile }) => {
+    if (!type || !data.calculationResult) {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Promo</h3>
+            <p className="text-gray-600 text-sm">
+              Pilih tipe promo untuk melihat preview
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const { calculationResult } = data;
+
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <span className="text-xl mr-2">📊</span>
+          Hasil Kalkulasi
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="text-sm text-gray-600">Harga Normal</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0
+                }).format(calculationResult.originalPrice)}
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 rounded-lg p-4">
+              <div className="text-sm text-orange-600">Harga Promo</div>
+              <div className="text-lg font-semibold text-orange-700">
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0
+                }).format(calculationResult.promoPrice)}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="text-sm text-green-600">Margin Keuntungan</div>
+            <div className="text-xl font-bold text-green-700">
+              {calculationResult.profitMargin}%
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="text-sm text-blue-600">Total Penghematan</div>
+            <div className="text-lg font-semibold text-blue-700">
+              {new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+              }).format(calculationResult.totalSavings)}
+            </div>
+          </div>
+
+          {!isMobile && (
+            <button
+              onClick={onSave}
+              disabled={isLoading}
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Simpan Promo</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+}));
+
+// Loading component
+const LoadingState = ({ type }) => (
+  <div className="p-4 sm:p-6 text-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+    <p className="text-gray-600 text-sm sm:text-base">
+      {type === 'form' ? 'Memuat formulir...' : 'Memuat...'}
+    </p>
+  </div>
+);
 
 const PromoCalculator = () => {
   const isMobile = useIsMobile(768);
@@ -72,12 +379,7 @@ const PromoCalculator = () => {
   };
 
   if (recipesLoading) {
-    return (
-      <div className="p-4 sm:p-6 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-        <p className="text-gray-600 text-sm sm:text-base">Memuat data resep...</p>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (recipes.length === 0) {
@@ -151,14 +453,16 @@ const PromoCalculator = () => {
           {!showPreview ? (
             // Form View
             <div className="space-y-4">
-              <PromoTypeSelector 
-                selectedType={selectedType}
-                onTypeChange={setSelectedType}
-                onFormSubmit={handleFormSubmit}
-                isCalculating={isCalculating || calculationLoading}
-                recipes={recipes}
-                isMobile={true}
-              />
+              <Suspense fallback={<LoadingState type="form" />}>
+                <PromoTypeSelector 
+                  selectedType={selectedType}
+                  onTypeChange={setSelectedType}
+                  onFormSubmit={handleFormSubmit}
+                  isCalculating={isCalculating || calculationLoading}
+                  recipes={recipes}
+                  isMobile={true}
+                />
+              </Suspense>
               
               {/* Calculation Status */}
               {formData.calculationResult && (
@@ -187,13 +491,15 @@ const PromoCalculator = () => {
                 <span className="text-sm">Kembali ke Form</span>
               </button>
               
-              <PromoPreview 
-                type={selectedType}
-                data={formData}
-                onSave={handleSavePromo}
-                isLoading={calculationLoading}
-                isMobile={true}
-              />
+              <Suspense fallback={<LoadingState type="form" />}>
+                <PromoPreview 
+                  type={selectedType}
+                  data={formData}
+                  onSave={handleSavePromo}
+                  isLoading={calculationLoading}
+                  isMobile={true}
+                />
+              </Suspense>
             </div>
           )}
         </div>
@@ -227,7 +533,7 @@ const PromoCalculator = () => {
     );
   }
 
-  // Desktop Layout (Original)
+  // Desktop Layout
   return (
     <div className="p-6">
       {/* Desktop Header */}
@@ -255,24 +561,28 @@ const PromoCalculator = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
-          <PromoTypeSelector 
-            selectedType={selectedType}
-            onTypeChange={setSelectedType}
-            onFormSubmit={handleFormSubmit}
-            isCalculating={isCalculating || calculationLoading}
-            recipes={recipes}
-          />
+          <Suspense fallback={<LoadingState type="form" />}>
+            <PromoTypeSelector 
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              onFormSubmit={handleFormSubmit}
+              isCalculating={isCalculating || calculationLoading}
+              recipes={recipes}
+            />
+          </Suspense>
         </div>
         
         {/* Preview Section */}
         <div className="lg:col-span-1">
           <div className="sticky top-6">
-            <PromoPreview 
-              type={selectedType}
-              data={formData}
-              onSave={handleSavePromo}
-              isLoading={calculationLoading}
-            />
+            <Suspense fallback={<LoadingState type="form" />}>
+              <PromoPreview 
+                type={selectedType}
+                data={formData}
+                onSave={handleSavePromo}
+                isLoading={calculationLoading}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

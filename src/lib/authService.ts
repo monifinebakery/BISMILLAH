@@ -520,6 +520,7 @@ export const getUserPaymentStatus = async (): Promise<{
   }
 };
 
+// ✅ DEPRECATED MAGIC LINK FUNCTIONS - For backward compatibility
 export const sendMagicLink = async (
   email: string, 
   captchaToken: string | null = null,

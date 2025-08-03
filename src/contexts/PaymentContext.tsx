@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { autoLinkUserPayments, checkUnlinkedPayments } from '@/services/authService';
+import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService';
 
 interface PaymentContextType {
   isPaid: boolean;
@@ -143,7 +143,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {children}
     </PaymentContext.Provider>
   );
-};
 };
 
 export const usePaymentContext = () => {

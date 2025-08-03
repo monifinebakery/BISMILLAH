@@ -29,7 +29,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           description: description || 'Mulai tambahkan biaya operasional untuk menghitung overhead produksi Anda.',
           actionLabel: actionLabel || 'Tambah Biaya Pertama',
           iconColor: 'text-orange-400',
-          bgColor: 'bg-blue-50',
+          bgColor: 'bg-orange-50',
         };
       
       case 'no-results':

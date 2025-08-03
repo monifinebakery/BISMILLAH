@@ -303,7 +303,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     };
   }, [cooldownTimer]);
 
-  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
+  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaKey === -1 || hCaptchaToken);
 
   // ✅ Get button text based on method and state
   const getButtonText = () => {
@@ -420,7 +420,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
               
-              {HCAPTCHA_ENABLED && HCaptcha && (
+              {HCAPTCHA_ENABLED && HCaptcha && hCaptchaKey > 0 && (
                 <div className="flex justify-center">
                   <HCaptcha
                     key={hCaptchaKey}
@@ -436,9 +436,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     onError={(error: any) => {
                       console.error('hCaptcha error:', error);
                       setHCaptchaToken(null);
+                      // Disable hCaptcha on error
+                      setHCaptchaKey(-1);
                     }}
                     theme="light"
+                    size="normal"
                   />
+                </div>
+              )}
+              
+              {/* ✅ Show message if hCaptcha failed to load */}
+              {HCAPTCHA_ENABLED && hCaptchaKey === -1 && (
+                <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                  ⚠️ Captcha tidak dapat dimuat. Anda masih bisa melanjutkan tanpa captcha.
                 </div>
               )}
               

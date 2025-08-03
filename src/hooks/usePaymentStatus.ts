@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated } from '@/lib/authService';
+import { getCurrentUser, isAuthenticated } from '@/services/authService';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
@@ -177,6 +177,23 @@ export const usePaymentStatus = () => {
             event: '*', 
             schema: 'public', 
             table: 'user_payments', 
+            filter: `user_id=eq.${user.id}` 
+          },
+          () => {
+            console.log('[usePaymentStatus] Payment change detected (user_id)');
+            // Debounce invalidation
+            clearTimeout(setupTimeout);
+            setupTimeout = setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+            }, 1000);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'user_payments', 
             filter: `email=eq.${user.email}` 
           },
           () => {
@@ -270,20 +287,3 @@ export const usePaymentStatus = () => {
     userName: paymentStatus?.customer_name || null
   };
 };
-            schema: 'public', 
-            table: 'user_payments', 
-            filter: `user_id=eq.${user.id}` 
-          },
-          () => {
-            console.log('[usePaymentStatus] Payment change detected (user_id)');
-            // Debounce invalidation
-            clearTimeout(setupTimeout);
-            setupTimeout = setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-            }, 1000);
-          }
-        )
-        .on(
-          'postgres_changes',
-          { 
-            event: '*',

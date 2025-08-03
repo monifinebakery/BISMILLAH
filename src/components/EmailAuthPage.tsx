@@ -33,7 +33,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   supportEmail = 'admin@sistemhpp.com',
   logoUrl,
   onLoginSuccess,
-  redirectUrl = '/dashboard', // ✅ Default redirect to dashboard
+  redirectUrl = '/', // ✅ Default redirect to dashboard
 }) => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);

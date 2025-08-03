@@ -262,7 +262,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ Simplified Verify OTP
+  // ✅ FIXED: Verify OTP with complete logic
   const handleVerifyOtp = async () => {
     const otpCode = otp.join('');
     
@@ -288,6 +288,25 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             window.location.href = redirectUrl;
           }, 1000);
         }
+      } else if (result === 'expired') {
+        // Expired
+        setAuthState('expired');
+        setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      } else if (result === 'rate_limited') {
+        // Rate limited
+        setAuthState('error');
+        setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      } else {
+        // Invalid
+        setAuthState('error');
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
     } catch (error) {
       console.error('Error verifying OTP:', error);
       setAuthState('error');

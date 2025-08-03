@@ -1,9 +1,13 @@
-// src/services/authService.ts - COMPLETE ENHANCED VERSION WITH SAFE SESSION HANDLING
+// src/services/authService.ts - OPTIMIZED FOR FASTER LOADING
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
+
+// ✅ CACHE: Simple session cache to avoid repeated calls
+let sessionCache: { session: Session | null; timestamp: number } | null = null;
+const CACHE_DURATION = 30000; // 30 seconds
 
 // ✅ UTILS
 const getRedirectUrl = () => {
@@ -39,7 +43,72 @@ const handleAuthError = (error: any, fallbackMessage: string) => {
   toast.error(message);
 };
 
-// ✅ STEP 1: Send OTP - Following Supabase Docs Pattern
+// ✅ OPTIMIZED: Fast session check with cache
+export const getCurrentSession = async (): Promise<Session | null> => {
+  try {
+    // Check cache first
+    if (sessionCache && (Date.now() - sessionCache.timestamp) < CACHE_DURATION) {
+      return sessionCache.session;
+    }
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('[AuthService] Error getting session:', error);
+      return null;
+    }
+    
+    // Update cache
+    sessionCache = { session, timestamp: Date.now() };
+    
+    // Quick expiry check without refresh for better performance
+    if (session && session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+      console.log('[AuthService] Session expired');
+      sessionCache = { session: null, timestamp: Date.now() };
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('[AuthService] Error getting current session:', error);
+    return null;
+  }
+};
+
+// ✅ OPTIMIZED: Fast authentication check
+export const isAuthenticated = async (): Promise<boolean> => {
+  try {
+    const session = await getCurrentSession();
+    return !!session?.user;
+  } catch (error) {
+    console.error('[AuthService] Error checking authentication:', error);
+    return false;
+  }
+};
+
+// ✅ OPTIMIZED: Fast user getter
+export const getCurrentUser = async () => {
+  try {
+    const session = await getCurrentSession();
+    
+    if (!session) {
+      return null;
+    }
+    
+    // Return user from session directly (faster than getUser() call)
+    return session.user;
+  } catch (error) {
+    console.error('[AuthService] Error getting current user:', error);
+    return null;
+  }
+};
+
+// ✅ Clear cache when session changes
+const clearSessionCache = () => {
+  sessionCache = null;
+};
+
+// ✅ AUTH FUNCTIONS (Keep existing implementation but with cache clearing)
 export const sendEmailOtp = async (
   email: string, 
   captchaToken: string | null = null,
@@ -51,16 +120,15 @@ export const sendEmailOtp = async (
       return false;
     }
 
-    try { cleanupAuthState(); } catch {} // Silent cleanup
+    try { cleanupAuthState(); } catch {}
+    clearSessionCache(); // Clear cache
 
     console.log('🔍 Step 1: Sending OTP to:', email);
     
-    // ✅ Following Supabase docs pattern exactly
     const otpOptions: any = {
-      shouldCreateUser: allowSignup, // Control user creation
+      shouldCreateUser: allowSignup,
     };
 
-    // Add captcha token if provided
     if (captchaToken?.trim()) {
       otpOptions.captchaToken = captchaToken;
     }
@@ -73,10 +141,8 @@ export const sendEmailOtp = async (
     if (error) {
       console.error('📛 OTP send error:', error);
 
-      // ✅ Handle specific "Signups not allowed" case
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         console.log('🔍 Signup disabled, trying existing users only...');
-        // Retry with shouldCreateUser: false for existing users
         return await sendEmailOtp(email, captchaToken, false);
       }
 
@@ -84,14 +150,12 @@ export const sendEmailOtp = async (
       return false;
     }
 
-    // ✅ Success response should have user: null, session: null (as per docs)
     console.log('✅ OTP sent successfully. Response:', data);
     
     if (data.user === null && data.session === null) {
       toast.success('Kode verifikasi telah dikirim ke email Anda. Silakan cek kotak masuk atau folder spam.');
       return true;
     } else {
-      // Unexpected response format
       console.warn('⚠️ Unexpected OTP response format:', data);
       toast.success('Kode verifikasi dikirim. Silakan cek email Anda.');
       return true;
@@ -103,7 +167,6 @@ export const sendEmailOtp = async (
   }
 };
 
-// ✅ STEP 2: Verify OTP - Following Supabase Docs Pattern
 export const verifyEmailOtp = async (email: string, token: string): Promise<boolean> => {
   try {
     if (!email || !token) {
@@ -111,16 +174,14 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
       return false;
     }
 
-    // Clean token (remove spaces, keep original case as some OTPs might be case-sensitive)
     const cleanToken = token.replace(/\s/g, '');
 
     console.log('🔍 Step 2: Verifying OTP for:', email);
 
-    // ✅ Following Supabase docs pattern exactly
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
       token: cleanToken,
-      type: 'email', // Must specify type as 'email'
+      type: 'email',
     });
     
     if (error) {
@@ -129,13 +190,13 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
       return false;
     }
     
-    // ✅ Success response should have valid session (as per docs)
     if (data.session && data.user) {
       console.log('✅ OTP verified successfully. User logged in:', data.user.email);
+      clearSessionCache(); // Clear cache to force refresh
       toast.success('Login berhasil! Selamat datang.');
       
-      // Auto-link payments after successful login
-      setTimeout(() => autoLinkUserPayments().catch(console.error), 1000);
+      // Faster auto-link without await
+      setTimeout(() => autoLinkUserPayments().catch(console.error), 500);
       return true;
     } else {
       console.warn('⚠️ OTP verified but no session created:', data);
@@ -149,7 +210,6 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
   }
 };
 
-// ✅ Magic Link - Also following docs pattern
 export const sendMagicLink = async (
   email: string, 
   captchaToken: string | null = null,
@@ -162,6 +222,7 @@ export const sendMagicLink = async (
     }
 
     try { cleanupAuthState(); } catch {}
+    clearSessionCache();
 
     console.log('🔍 Sending magic link to:', email);
     
@@ -182,7 +243,6 @@ export const sendMagicLink = async (
     if (error) {
       console.error('📛 Magic link error:', error);
       
-      // Handle signup disabled case
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         console.log('🔍 Signup disabled for magic link, trying existing users only...');
         return await sendMagicLink(email, captchaToken, false);
@@ -202,7 +262,6 @@ export const sendMagicLink = async (
   }
 };
 
-// ✅ Unified send function with automatic fallback
 export const sendAuth = async (
   email: string, 
   method: 'otp' | 'magic' = 'otp', 
@@ -215,7 +274,6 @@ export const sendAuth = async (
     if (method === 'otp') {
       const otpResult = await sendEmailOtp(email, captchaToken, allowSignup);
       
-      // ✅ Fallback to magic link if OTP completely fails and signup is disabled
       if (!otpResult && !allowSignup) {
         console.log('🔍 OTP failed for existing user, trying magic link fallback...');
         toast.info('Mencoba metode alternatif...');
@@ -232,7 +290,6 @@ export const sendAuth = async (
   }
 };
 
-// ✅ Password Reset
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     if (!validateEmail(email)) {
@@ -257,7 +314,6 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
   }
 };
 
-// ✅ Magic Link Callback Handler
 export const handleMagicLinkCallback = async (code: string) => {
   try {
     console.log('[AuthService] Processing magic link callback...');
@@ -268,10 +324,10 @@ export const handleMagicLinkCallback = async (code: string) => {
     
     if (data.session && data.user) {
       console.log('[AuthService] Magic link authentication successful:', data.user.email);
+      clearSessionCache();
       toast.success('Login berhasil! Selamat datang.');
       
-      // Auto-link payments after successful magic link
-      setTimeout(() => autoLinkUserPayments().catch(console.error), 1000);
+      setTimeout(() => autoLinkUserPayments().catch(console.error), 500);
       return { session: data.session, user: data.user };
     }
     
@@ -279,106 +335,6 @@ export const handleMagicLinkCallback = async (code: string) => {
   } catch (error) {
     console.error('[AuthService] Error in magic link callback:', error);
     throw error;
-  }
-};
-
-// ✅ ENHANCED SESSION MANAGEMENT - Safe session handling
-export const getCurrentUser = async () => {
-  try {
-    // First check if we have a session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('[AuthService] Session error:', sessionError);
-      return null;
-    }
-    
-    if (!session) {
-      console.log('[AuthService] No session found - user not logged in');
-      return null;
-    }
-    
-    // If we have a session, get the user
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error) {
-      console.error('[AuthService] Get user error:', error);
-      
-      // If session is invalid, try to refresh
-      if (error.message?.includes('session missing') || error.message?.includes('invalid')) {
-        console.log('[AuthService] Attempting session refresh...');
-        const refreshResult = await refreshSession();
-        
-        if (refreshResult) {
-          // Try getting user again after refresh
-          const { data: { user: refreshedUser }, error: refreshedError } = await supabase.auth.getUser();
-          if (!refreshedError && refreshedUser) {
-            return refreshedUser;
-          }
-        }
-      }
-      
-      return null;
-    }
-    
-    return user;
-  } catch (error) {
-    console.error('[AuthService] Error getting current user:', error);
-    return null;
-  }
-};
-
-export const getCurrentSession = async (): Promise<Session | null> => {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('[AuthService] Error getting session:', error);
-      return null;
-    }
-    
-    if (!session) {
-      console.log('[AuthService] No session available');
-      return null;
-    }
-    
-    // Check if session is expired
-    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      console.log('[AuthService] Session expired, attempting refresh...');
-      return await refreshSession();
-    }
-    
-    return session;
-  } catch (error) {
-    console.error('[AuthService] Error getting current session:', error);
-    return null;
-  }
-};
-
-export const isAuthenticated = async (): Promise<boolean> => {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('[AuthService] Error checking authentication:', error);
-      return false;
-    }
-    
-    // Check if session exists and is not expired
-    if (!session) {
-      return false;
-    }
-    
-    // Check if session is expired
-    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      console.log('[AuthService] Session expired');
-      return false;
-    }
-    
-    return !!session.user;
-  } catch (error) {
-    console.error('[AuthService] Error checking authentication:', error);
-    return false;
   }
 };
 
@@ -392,6 +348,7 @@ export const signOut = async (): Promise<boolean> => {
       return false;
     }
     
+    clearSessionCache(); // Clear cache
     try { cleanupAuthState(); } catch {}
     toast.success('Logout berhasil');
     return true;
@@ -410,19 +367,13 @@ export const refreshSession = async (): Promise<Session | null> => {
     
     if (error) {
       console.error('[AuthService] Session refresh error:', error);
-      
-      // If refresh fails, session is likely invalid - clean up
-      if (error.message?.includes('refresh_token_not_found') || 
-          error.message?.includes('invalid_grant')) {
-        console.log('[AuthService] Session invalid, cleaning up...');
-        await cleanupInvalidSession();
-      }
-      
+      clearSessionCache();
       return null;
     }
     
     if (data.session) {
       console.log('[AuthService] Session refreshed successfully');
+      clearSessionCache(); // Clear to force fresh data
       return data.session;
     }
     
@@ -433,104 +384,11 @@ export const refreshSession = async (): Promise<Session | null> => {
   }
 };
 
-// ✅ NEW: Clean up invalid session
-const cleanupInvalidSession = async () => {
-  try {
-    console.log('[AuthService] Cleaning up invalid session...');
-    
-    // Clear Supabase session
-    await supabase.auth.signOut({ scope: 'local' });
-    
-    // Clean up any local state
-    try {
-      cleanupAuthState();
-    } catch (cleanupError) {
-      console.warn('Cleanup auth state failed:', cleanupError);
-    }
-    
-    console.log('[AuthService] Invalid session cleaned up');
-  } catch (error) {
-    console.error('[AuthService] Error cleaning up invalid session:', error);
-  }
-};
-
-// ✅ UTILITY FUNCTIONS
-export const checkUserExists = async (email: string): Promise<boolean> => {
-  try {
-    // Try to send OTP with shouldCreateUser: false to check if user exists
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
-    
-    // If no error, user exists and OTP was sent
-    if (!error) return true;
-    
-    // If "User not found", user doesn't exist
-    if (error.message?.includes('User not found')) return false;
-    
-    // For other errors, assume user might exist (better safe than sorry)
-    console.warn('Unclear user existence check:', error.message);
-    return true;
-  } catch (error) {
-    console.error('Error checking user existence:', error);
-    return false;
-  }
-};
-
-export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
-    callback(event, session);
-  });
-  
-  return () => subscription.unsubscribe();
-};
-
-// ✅ ENHANCED PAYMENT INTEGRATION - Safe auth checks
-export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
-  try {
-    const { data: payment, error: findError } = await supabase
-      .from('user_payments')
-      .select('*')
-      .eq('order_id', orderId)
-      .single();
-
-    if (findError || !payment) throw new Error('Order ID tidak ditemukan. Silakan periksa kembali.');
-    if (payment.user_id && payment.user_id !== user.id) throw new Error('Order ini sudah terhubung dengan akun lain.');
-
-    const { data: updatedPayment, error: updateError } = await supabase
-      .from('user_payments')
-      .update({ user_id: user.id, email: user.email })
-      .eq('order_id', orderId)
-      .select('*')
-      .single();
-
-    if (updateError) throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
-
-    toast.success('Order berhasil terhubung dengan akun Anda!');
-    return updatedPayment;
-  } catch (error: any) {
-    console.error('Error linking payment to user:', error);
-    toast.error(error.message);
-    throw error;
-  }
-};
-
+// ✅ OPTIMIZED: Simplified payment functions with early returns
 export const autoLinkUserPayments = async (): Promise<number> => {
   try {
-    // Check if user is authenticated first
-    const isAuth = await isAuthenticated();
-    if (!isAuth) {
-      console.log('[AuthService] User not authenticated, skipping auto-link');
-      return 0;
-    }
-    
     const user = await getCurrentUser();
-    if (!user?.email) {
-      console.log('[AuthService] No user email found for auto-link');
-      return 0;
-    }
+    if (!user?.email) return 0;
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
@@ -567,16 +425,8 @@ export const autoLinkUserPayments = async (): Promise<number> => {
 
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
   try {
-    // Check authentication first
-    const isAuth = await isAuthenticated();
-    if (!isAuth) {
-      return { hasUnlinked: false, count: 0 };
-    }
-    
     const user = await getCurrentUser();
-    if (!user?.email) {
-      return { hasUnlinked: false, count: 0 };
-    }
+    if (!user?.email) return { hasUnlinked: false, count: 0 };
 
     const { data: unlinkedPayments, error } = await supabase
       .from('user_payments')
@@ -604,16 +454,8 @@ export const getUserPaymentStatus = async (): Promise<{
   needsLinking: boolean;
 }> => {
   try {
-    // Check authentication first
-    const isAuth = await isAuthenticated();
-    if (!isAuth) {
-      return { isPaid: false, paymentRecord: null, needsLinking: false };
-    }
-    
     const user = await getCurrentUser();
-    if (!user) {
-      return { isPaid: false, paymentRecord: null, needsLinking: false };
-    }
+    if (!user) return { isPaid: false, paymentRecord: null, needsLinking: false };
 
     // Check linked payments first
     const { data: linkedPayments } = await supabase
@@ -651,6 +493,35 @@ export const getUserPaymentStatus = async (): Promise<{
   }
 };
 
+export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
+  try {
+    const { data: payment, error: findError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
+
+    if (findError || !payment) throw new Error('Order ID tidak ditemukan. Silakan periksa kembali.');
+    if (payment.user_id && payment.user_id !== user.id) throw new Error('Order ini sudah terhubung dengan akun lain.');
+
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from('user_payments')
+      .update({ user_id: user.id, email: user.email })
+      .eq('order_id', orderId)
+      .select('*')
+      .single();
+
+    if (updateError) throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
+
+    toast.success('Order berhasil terhubung dengan akun Anda!');
+    return updatedPayment;
+  } catch (error: any) {
+    console.error('Error linking payment to user:', error);
+    toast.error(error.message);
+    throw error;
+  }
+};
+
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
@@ -683,6 +554,35 @@ export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
     console.error('Error getting recent orders:', error);
     return [];
   }
+};
+
+// ✅ UTILITY FUNCTIONS
+export const checkUserExists = async (email: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    
+    if (!error) return true;
+    if (error.message?.includes('User not found')) return false;
+    
+    console.warn('Unclear user existence check:', error.message);
+    return true;
+  } catch (error) {
+    console.error('Error checking user existence:', error);
+    return false;
+  }
+};
+
+export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    clearSessionCache(); // Clear cache on auth changes
+    callback(event, session);
+  });
+  
+  return () => subscription.unsubscribe();
 };
 
 // ✅ ALIASES for backward compatibility

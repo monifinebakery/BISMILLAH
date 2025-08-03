@@ -211,14 +211,12 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // ✅ SIMPLIFIED: Load initial data when authenticated
   const loadInitialData = useCallback(async () => {
-    console.log('📊 Loading initial data...');
     
     try {
       await Promise.all([
         loadCosts(),
         loadAllocationSettings(),
       ]);
-      console.log('📊 Initial data loaded successfully');
     } catch (error) {
       console.error('📊 Error loading initial data:', error);
     }
@@ -229,7 +227,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     let mounted = true;
 
     const initializeAuth = async () => {
-      console.log('🔐 Initializing auth...');
       
       try {
         // Get initial session
@@ -245,14 +242,12 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         }
 
         const isAuthenticated = !!session?.user;
-        console.log('🔐 Initial auth state:', isAuthenticated);
         
         if (mounted) {
           dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
           
           // Load data if authenticated
           if (isAuthenticated) {
-            console.log('🔐 User authenticated, loading data...');
             setTimeout(() => {
               if (mounted) {
                 loadInitialData();
@@ -273,7 +268,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     // ✅ SIMPLIFIED: Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event, !!session?.user);
         
         if (!mounted) return;
 
@@ -281,14 +275,12 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
         
         if (event === 'SIGNED_IN' && isAuthenticated) {
-          console.log('🔐 User signed in, loading data...');
           setTimeout(() => {
             if (mounted) {
               loadInitialData();
             }
           }, 100);
         } else if (event === 'SIGNED_OUT') {
-          console.log('🔐 User signed out, clearing data...');
           dispatch({ type: 'RESET_STATE' });
         }
       }
@@ -302,7 +294,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Cost actions
   const loadCosts = useCallback(async (filters?: CostFilters) => {
-    console.log('💰 Loading costs...');
     
     try {
       setLoading('costs', true);
@@ -311,7 +302,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       if (response.error) {
         dispatch({ type: 'SET_ERROR', payload: response.error });
       } else {
-        console.log('💰 Costs loaded:', response.data.length, 'items');
         dispatch({ type: 'SET_COSTS', payload: response.data });
       }
     } catch (error) {
@@ -393,7 +383,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
   // Allocation actions
   const loadAllocationSettings = useCallback(async () => {
-    console.log('⚙️ Loading allocation settings...');
     
     try {
       setLoading('allocation', true);
@@ -402,7 +391,6 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       if (response.error && !response.error.includes('tidak ditemukan')) {
         dispatch({ type: 'SET_ERROR', payload: response.error });
       } else {
-        console.log('⚙️ Allocation settings loaded:', response.data);
         dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: response.data });
       }
     } catch (error) {
@@ -472,11 +460,9 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // Utility actions
   const refreshData = useCallback(async () => {
     if (!state.isAuthenticated) {
-      console.log('🔄 Not authenticated, skipping refresh');
       return;
     }
 
-    console.log('🔄 Refreshing data...');
     await Promise.all([
       loadCosts(state.filters),
       loadAllocationSettings(),

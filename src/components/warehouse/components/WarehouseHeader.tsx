@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Plus, Package, AlertTriangle, Upload, MessageSquare } from 'lucide-react';
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -24,31 +24,76 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
       </div>
     )}
 
-    <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
-      <div className="flex items-center gap-4 mb-4 lg:mb-0">
-        <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-          <Package className="h-8 w-8 text-white" />
+    {/* Header Card with consistent styling */}
+    <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white shadow-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Icon Container */}
+          <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+            <Package className="h-8 w-8 text-white" />
+          </div>
+          
+          {/* Content */}
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+              Manajemen Gudang
+            </h1>
+            <p className="text-white opacity-90">
+              Kelola semua stok bahan baku dengan sistem inventory yang terintegrasi.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">Manajemen Gudang</h1>
-          <p className="text-sm opacity-90 mt-1">
-            {itemCount} item{selectedCount > 0 && ` • ${selectedCount} dipilih`}
-          </p>
+
+        {/* Desktop Action Buttons - Horizontal Layout */}
+        <div className="hidden md:flex gap-3">
+          <Button 
+            onClick={() => onOpenDialog('import')} 
+            className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
+          >
+            <Upload className="h-4 w-4" />
+            Import Data
+          </Button>
+          
+          <Button 
+            onClick={() => onOpenDialog('addItem')} 
+            className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Item Baru
+          </Button>
         </div>
       </div>
-      
-      <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-        <Button onClick={() => onOpenDialog('addItem')} className="flex items-center gap-2 px-4 py-2 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Tambah Item</span>
+
+      {/* Mobile Action Buttons - Vertical Layout */}
+      <div className="flex md:hidden flex-col gap-3 mt-6">
+        <Button 
+          onClick={() => onOpenDialog('import')} 
+          className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
+        >
+          <Upload className="h-4 w-4" />
+          Import Data
         </Button>
         
-        <Button onClick={() => onOpenDialog('import')} variant="secondary" className="flex items-center gap-2 px-4 py-2">
-          <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">Import</span>
+        <Button 
+          onClick={() => onOpenDialog('addItem')} 
+          className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+        >
+          <Plus className="h-4 w-4" />
+          Tambah Item Baru
         </Button>
       </div>
-    </header>
+
+      {/* Stats Bar */}
+      {itemCount > 0 && (
+        <div className="mt-4 pt-4 border-t border-white border-opacity-20">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white opacity-90">
+              Total: {itemCount} item{selectedCount > 0 && ` • ${selectedCount} dipilih`}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   </>
 );
 

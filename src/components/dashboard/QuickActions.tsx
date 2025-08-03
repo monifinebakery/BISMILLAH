@@ -38,22 +38,22 @@ const QuickActions: React.FC = () => {
       to: "/pesanan",
       icon: <ShoppingBag className="h-6 w-6" />,
       label: "Kelola Pesanan",
-      bgColor: "bg-blue-100",
-      iconColor: "text-blue-600"
+      bgColor: "bg-orange-100",
+      iconColor: "text-orange-600"
     },
     {
       to: "/gudang",
       icon: <Boxes className="h-6 w-6" />,
       label: "Kelola Stok", 
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600"
+      bgColor: "bg-orange-100",
+      iconColor: "text-orange-600"
     },
     {
       to: "/laporan",
       icon: <FileText className="h-6 w-6" />,
       label: "Laporan Keuangan",
-      bgColor: "bg-purple-100", 
-      iconColor: "text-purple-600"
+      bgColor: "bg-orange-100", 
+      iconColor: "text-orange-600"
     }
   ];
 
@@ -61,7 +61,7 @@ const QuickActions: React.FC = () => {
     <div className="mb-6">
       {/* 🏷️ Section Title */}
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
           Aksi Cepat
         </span>
       </h2>

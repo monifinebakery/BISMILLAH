@@ -46,8 +46,9 @@ interface WarehouseTableProps {
  * - Touch-friendly interactions
  * - Optimized performance
  * - Fixed BahanBakuFrontend type consistency
+ * - Stock alerts for low stock and expiring items
  * 
- * Size: ~8KB
+ * Size: ~9KB
  */
 const WarehouseTable: React.FC<WarehouseTableProps> = ({
   items,
@@ -121,6 +122,19 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     return expiryDate <= threshold && expiryDate > new Date();
   };
 
+  // ✅ NEW: Check if item has low stock
+  const isLowStockItem = (item: BahanBakuFrontend): boolean => {
+    const stok = Number(item.stok) || 0;
+    const minimum = Number(item.minimum) || 0;
+    return stok <= minimum && stok > 0;
+  };
+
+  // ✅ NEW: Check if item is out of stock
+  const isOutOfStockItem = (item: BahanBakuFrontend): boolean => {
+    const stok = Number(item.stok) || 0;
+    return stok <= 0;
+  };
+
   // Debug helper for development
   const debugItem = (item: BahanBakuFrontend) => {
     if (process.env.NODE_ENV === 'development' && item.nama.includes('Daging')) {
@@ -130,6 +144,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       console.log('Minimum:', item.minimum, typeof item.minimum);
       console.log('Harga:', item.harga, typeof item.harga);
       console.log('Stock Level:', getStockLevel(item));
+      console.log('Low Stock:', isLowStockItem(item));
+      console.log('Out of Stock:', isOutOfStockItem(item));
       console.log('Condition stok <= minimum:', Number(item.stok) <= Number(item.minimum));
       console.log('============================');
     }
@@ -193,6 +209,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
         const stockLevel = getStockLevel(item);
         const isExpiringSoon = isExpiringItem(item);
+        const isLowStock = isLowStockItem(item);
+        const isOutOfStock = isOutOfStockItem(item);
         const isItemSelected = isSelected(item.id);
         const isExpanded = expandedItems.has(item.id);
 
@@ -244,12 +262,28 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                         <p className="text-sm text-gray-500 mt-1">
                           {highlightText(item.kategori, searchTerm)} • {item.stok} {item.satuan}
                         </p>
-                        {isExpiringSoon && (
-                          <div className="flex items-center gap-1 text-xs text-red-600 mt-2">
-                            <AlertTriangle className="w-3 h-3" />
-                            Akan kadaluarsa
-                          </div>
-                        )}
+                        
+                        {/* ✅ ENHANCED: Multiple alert indicators */}
+                        <div className="flex flex-col gap-1 mt-2">
+                          {isExpiringSoon && (
+                            <div className="flex items-center gap-1 text-xs text-red-600">
+                              <AlertTriangle className="w-3 h-3" />
+                              Akan kadaluarsa
+                            </div>
+                          )}
+                          {isOutOfStock && (
+                            <div className="flex items-center gap-1 text-xs text-red-600">
+                              <AlertTriangle className="w-3 h-3" />
+                              Stok habis
+                            </div>
+                          )}
+                          {isLowStock && !isOutOfStock && (
+                            <div className="flex items-center gap-1 text-xs text-yellow-600">
+                              <AlertTriangle className="w-3 h-3" />
+                              Stok hampir habis
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Mobile Actions */}
@@ -478,6 +512,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
             const stockLevel = getStockLevel(item);
             const isExpiringSoon = isExpiringItem(item);
+            const isLowStock = isLowStockItem(item);
+            const isOutOfStock = isOutOfStockItem(item);
             const isItemSelected = isSelected(item.id);
 
             return (
@@ -524,12 +560,28 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       <div className="font-medium text-gray-900">
                         {highlightText(item.nama, searchTerm)}
                       </div>
-                      {isExpiringSoon && (
-                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Akan kadaluarsa
-                        </div>
-                      )}
+                      
+                      {/* ✅ ENHANCED: Multiple alert indicators for desktop */}
+                      <div className="flex flex-col gap-1 mt-1">
+                        {isExpiringSoon && (
+                          <div className="flex items-center gap-1 text-xs text-red-600">
+                            <AlertTriangle className="w-3 h-3" />
+                            Akan kadaluarsa
+                          </div>
+                        )}
+                        {isOutOfStock && (
+                          <div className="flex items-center gap-1 text-xs text-red-600">
+                            <AlertTriangle className="w-3 h-3" />
+                            Stok habis
+                          </div>
+                        )}
+                        {isLowStock && !isOutOfStock && (
+                          <div className="flex items-center gap-1 text-xs text-yellow-600">
+                            <AlertTriangle className="w-3 h-3" />
+                            Stok hampir habis
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </td>

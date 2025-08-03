@@ -241,10 +241,10 @@ const PromoCalculator = () => {
 
   // Desktop Layout
   return (
-    <div className="p-6">
+    <div className="py-8">
       {/* Desktop Header */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-2">
+      <div className="mb-8">
+        <div className="flex items-center space-x-3 mb-4">
           <div className="p-2 bg-orange-100 rounded-lg">
             <Calculator className="h-6 w-6 text-orange-600" />
           </div>
@@ -255,7 +255,7 @@ const PromoCalculator = () => {
         </div>
         
         {selectedType && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <p className="text-sm text-orange-800">
               <span className="font-medium">Tipe promo dipilih:</span> 
               <span className="capitalize ml-1">{selectedType}</span>
@@ -265,7 +265,7 @@ const PromoCalculator = () => {
         
         {/* Error Display for Desktop */}
         {calculationError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-3">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-red-600" />
               <span className="font-medium text-red-800">Error Perhitungan</span>
@@ -275,9 +275,9 @@ const PromoCalculator = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form Section */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Form Section - Takes more space */}
+        <div className="lg:col-span-3 space-y-6">
           <PromoTypeSelector 
             selectedType={selectedType}
             onTypeChange={setSelectedType}
@@ -287,9 +287,9 @@ const PromoCalculator = () => {
           />
         </div>
         
-        {/* Preview Section */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
+        {/* Preview Section - Narrower sidebar */}
+        <div className="lg:col-span-2">
+          <div className="sticky top-8">
             <PromoPreview 
               type={selectedType}
               data={{ calculationResult }}

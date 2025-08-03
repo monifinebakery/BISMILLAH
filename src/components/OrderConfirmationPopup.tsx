@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { linkPaymentToUser } from '@/services/authService'; // Import dari authService
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;
@@ -29,43 +30,17 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         return;
       }
 
-      // Find payment by order_id
-      const { data: payment, error: findError } = await supabase
-        .from('user_payments')
-        .select('*')
-        .eq('order_id', orderId.trim())
-        .single();
-
-      if (findError || !payment) {
-        setError('Order ID tidak ditemukan. Silakan periksa kembali.');
-        return;
-      }
-
-      if (payment.user_id && payment.user_id !== user.id) {
-        setError('Order ini sudah terhubung dengan akun lain.');
-        return;
-      }
-
-      // Link payment to current user
-      const { error: updateError } = await supabase
-        .from('user_payments')
-        .update({
-          user_id: user.id,
-          email: user.email
-        })
-        .eq('order_id', orderId.trim());
-
-      if (updateError) {
-        setError('Gagal menghubungkan order. Silakan coba lagi.');
-        return;
-      }
-
-      onSuccess?.(payment);
-      onClose();
-      setOrderId('');
+      // ✅ Use authService helper function
+      const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
-    } catch (error) {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
+      if (linkedPayment) {
+        onSuccess?.(linkedPayment);
+        onClose();
+        setOrderId('');
+      }
+      
+    } catch (error: any) {
+      setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }

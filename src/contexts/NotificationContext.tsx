@@ -1,5 +1,5 @@
 // contexts/NotificationContext.tsx - PRODUCTION READY VERSION
-// Clean, optimized, and error-free
+// Clean, optimized, and error-free - FIXED PGRST116 ERROR
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -178,26 +178,54 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setUrgentCount(urgent);
       lastLoadTimeRef.current = now;
 
-      // Load settings on initial load only
+      // ✅ FIXED: Load settings on initial load only - USING maybeSingle()
       if (isInitialLoad) {
         try {
-          const { data: settingsData } = await supabase
+          const { data: settingsData, error: settingsError } = await supabase
             .from('notification_settings')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle(); // ✅ CHANGED: .single() -> .maybeSingle()
+          
+          if (settingsError) {
+            console.warn('Error loading notification settings:', settingsError);
+          }
           
           if (mountedRef.current) {
-            setSettings(settingsData || {
-              user_id: user.id,
-              push_notifications: true,
-              inventory_alerts: true,
-              order_alerts: true,
-              financial_alerts: true
-            });
+            // If no settings found (data is null), create default settings
+            if (!settingsData) {
+              const defaultSettings = {
+                user_id: user.id,
+                push_notifications: true,
+                inventory_alerts: true,
+                order_alerts: true,
+                financial_alerts: true
+              };
+              
+              // Try to create default settings
+              try {
+                const { data: newSettings, error: insertError } = await supabase
+                  .from('notification_settings')
+                  .insert(defaultSettings)
+                  .select()
+                  .maybeSingle(); // ✅ ALSO FIXED: Use maybeSingle() here too
+                
+                if (!insertError && newSettings) {
+                  setSettings(newSettings);
+                } else {
+                  setSettings(defaultSettings);
+                }
+              } catch (insertError) {
+                console.warn('Could not create default settings:', insertError);
+                setSettings(defaultSettings);
+              }
+            } else {
+              setSettings(settingsData);
+            }
           }
         } catch (settingsError) {
-          // Use defaults if no settings found
+          console.warn('Settings loading error:', settingsError);
+          // Use defaults if settings loading fails completely
           if (mountedRef.current) {
             setSettings({
               user_id: user.id,
@@ -469,6 +497,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  // ✅ FIXED: updateSettings also uses maybeSingle() for upsert
   const updateSettings = async (newSettings: Partial<NotificationSettings>): Promise<boolean> => {
     if (!user) return false;
     try {
@@ -481,10 +510,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           updated_at: new Date().toISOString()
         })
         .select()
-        .single();
+        .maybeSingle(); // ✅ CHANGED: .single() -> .maybeSingle()
       
       if (error) throw error;
-      if (mountedRef.current) {
+      if (mountedRef.current && data) {
         setSettings(data);
         toast.success('Pengaturan notifikasi berhasil disimpan');
       }

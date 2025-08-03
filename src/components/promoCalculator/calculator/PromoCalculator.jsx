@@ -1,17 +1,59 @@
-import React, { useState, Suspense, lazy } from 'react';
-import { Calculator, Save, ChevronLeft, AlertCircle } from 'lucide-react';
+// PromoCalculator.jsx - Main calculator logic tanpa header
 
-// Loading component
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-    <span className="ml-3 text-gray-600">Memuat...</span>
-  </div>
-);
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 
-// Lazy load components
+// Mock hooks
+const useRecipe = () => ({
+  recipes: [
+    { id: 1, name: 'Nasi Goreng Special', hpp: 15000, harga_jual: 25000 },
+    { id: 2, name: 'Ayam Bakar', hpp: 20000, harga_jual: 35000 },
+    { id: 3, name: 'Gado-gado', hpp: 12000, harga_jual: 20000 }
+  ],
+  isLoading: false
+});
+
+const usePromoCalculation = () => ({
+  calculatePromo: async (type, data) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      originalPrice: data.originalPrice || 25000,
+      promoPrice: data.promoPrice || 20000,
+      profitMargin: 15,
+      totalSavings: 5000
+    };
+  },
+  savePromo: async (data) => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { success: true };
+  },
+  isLoading: false
+});
+
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [breakpoint]);
+  
+  return isMobile;
+};
+
+const toast = {
+  success: (message) => console.log('Success:', message),
+  error: (message) => console.log('Error:', message)
+};
+
+// Lazy components
 const PromoTypeSelector = lazy(() => Promise.resolve({
-  default: ({ selectedType, onTypeChange, onCalculate, isCalculating, recipes, isMobile }) => {
+  default: ({ selectedType, onTypeChange, onFormSubmit, isCalculating, recipes, isMobile }) => {
     const [formData, setFormData] = useState({});
 
     const promoTypes = [
@@ -20,13 +62,13 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
       { id: 'bundle', title: 'Paket Bundle', description: 'Kombinasi beberapa produk dengan harga khusus', icon: '📦' }
     ];
 
-    const handleCalculate = () => {
-      onCalculate(formData);
-    };
-
-    const handleTypeChange = (type) => {
+    const handleTypeSelect = (type) => {
       onTypeChange(type);
       setFormData({});
+    };
+
+    const handleSubmit = () => {
+      onFormSubmit(formData);
     };
 
     return (
@@ -37,7 +79,7 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
             {promoTypes.map((type) => (
               <button
                 key={type.id}
-                onClick={() => handleTypeChange(type.id)}
+                onClick={() => handleTypeSelect(type.id)}
                 className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
                   selectedType === type.id
                     ? 'border-orange-500 bg-orange-50'
@@ -66,7 +108,7 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
 
         {selectedType && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 capitalize">
               Pengaturan {selectedType === 'bogo' ? 'Buy One Get One' : selectedType === 'discount' ? 'Diskon' : 'Bundle'}
             </h3>
             
@@ -78,7 +120,7 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               >
                 <option value="">Pilih resep...</option>
-                {recipes.map(recipe => (
+                {recipes.map((recipe) => (
                   <option key={recipe.id} value={recipe.id}>
                     {recipe.name} - HPP: {new Intl.NumberFormat('id-ID', {
                       style: 'currency',
@@ -91,11 +133,11 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
             </div>
 
             {selectedType === 'discount' && (
-              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Harga Normal</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={formData.originalPrice || ''}
                     onChange={(e) => setFormData({...formData, originalPrice: parseInt(e.target.value) || 0})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -104,8 +146,8 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Harga Promo</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={formData.promoPrice || ''}
                     onChange={(e) => setFormData({...formData, promoPrice: parseInt(e.target.value) || 0})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -142,7 +184,7 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
             )}
 
             <button
-              onClick={handleCalculate}
+              onClick={handleSubmit}
               disabled={isCalculating}
               className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
             >
@@ -166,18 +208,22 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
 }));
 
 const PromoPreview = lazy(() => Promise.resolve({
-  default: ({ result, onSave, isMobile }) => {
-    if (!result) {
+  default: ({ type, data, onSave, isLoading, isMobile }) => {
+    if (!type || !data.calculationResult) {
       return (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-center py-8">
             <div className="text-4xl mb-4">📊</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Promo</h3>
-            <p className="text-gray-600 text-sm">Pilih tipe promo untuk melihat preview</p>
+            <p className="text-gray-600 text-sm">
+              Pilih tipe promo untuk melihat preview
+            </p>
           </div>
         </div>
       );
     }
+
+    const { calculationResult } = data;
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -195,9 +241,10 @@ const PromoPreview = lazy(() => Promise.resolve({
                   style: 'currency',
                   currency: 'IDR',
                   minimumFractionDigits: 0
-                }).format(result.originalPrice)}
+                }).format(calculationResult.originalPrice)}
               </div>
             </div>
+            
             <div className="bg-orange-50 rounded-lg p-4">
               <div className="text-sm text-orange-600">Harga Promo</div>
               <div className="text-lg font-semibold text-orange-700">
@@ -205,14 +252,16 @@ const PromoPreview = lazy(() => Promise.resolve({
                   style: 'currency',
                   currency: 'IDR',
                   minimumFractionDigits: 0
-                }).format(result.promoPrice)}
+                }).format(calculationResult.promoPrice)}
               </div>
             </div>
           </div>
-          
+
           <div className="bg-green-50 rounded-lg p-4">
             <div className="text-sm text-green-600">Margin Keuntungan</div>
-            <div className="text-xl font-bold text-green-700">{result.profitMargin}%</div>
+            <div className="text-xl font-bold text-green-700">
+              {calculationResult.profitMargin}%
+            </div>
           </div>
 
           <div className="bg-blue-50 rounded-lg p-4">
@@ -222,17 +271,27 @@ const PromoPreview = lazy(() => Promise.resolve({
                 style: 'currency',
                 currency: 'IDR',
                 minimumFractionDigits: 0
-              }).format(result.totalSavings)}
+              }).format(calculationResult.totalSavings)}
             </div>
           </div>
 
           {!isMobile && (
             <button
               onClick={onSave}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              disabled={isLoading}
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
             >
-              <Save className="h-4 w-4" />
-              <span>Simpan Promo</span>
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Simpan Promo</span>
+                </>
+              )}
             </button>
           )}
         </div>
@@ -241,77 +300,104 @@ const PromoPreview = lazy(() => Promise.resolve({
   }
 }));
 
+const LoadingState = ({ type }) => (
+  <div className="p-4 text-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+    <p className="text-gray-600 text-sm">
+      {type === 'form' ? 'Memuat formulir...' : 'Memuat...'}
+    </p>
+  </div>
+);
+
 const PromoCalculator = () => {
+  const isMobile = useIsMobile(768);
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
-  const [showPreview, setShowPreview] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
-  // Mock data
-  const recipes = [
-    { id: 1, name: 'Nasi Goreng Special', hpp: 15000, harga_jual: 25000 },
-    { id: 2, name: 'Ayam Bakar', hpp: 20000, harga_jual: 35000 },
-    { id: 3, name: 'Gado-gado', hpp: 12000, harga_jual: 20000 }
-  ];
+  const { recipes, isLoading: recipesLoading } = useRecipe();
+  const { calculatePromo, savePromo, isLoading: calculationLoading } = usePromoCalculation();
 
-  const handleCalculate = async (data) => {
-    setIsCalculating(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const result = {
-      originalPrice: data.originalPrice || 25000,
-      promoPrice: data.promoPrice || 20000,
-      profitMargin: 15,
-      totalSavings: 5000
-    };
-    
-    setFormData({ ...data, result });
-    setShowPreview(true);
-    setIsCalculating(false);
-  };
-
-  const handleSave = () => {
-    alert('Promo berhasil disimpan!');
-    setSelectedType('');
+  useEffect(() => {
     setFormData({});
     setShowPreview(false);
+  }, [selectedType]);
+
+  const handleFormSubmit = async (data) => {
+    setIsCalculating(true);
+    try {
+      const calculationResult = await calculatePromo(selectedType, data);
+      setFormData({ ...data, calculationResult });
+      
+      if (isMobile) {
+        setShowPreview(true);
+      }
+      
+      toast.success('Perhitungan promo berhasil!');
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
-  // Mobile check
-  const isMobile = window.innerWidth < 768;
+  const handleSavePromo = async () => {
+    if (!formData.calculationResult) {
+      toast.error('Lakukan perhitungan terlebih dahulu');
+      return;
+    }
+
+    try {
+      await savePromo({
+        type: selectedType,
+        data: formData,
+        calculation: formData.calculationResult
+      });
+      toast.success('Promo berhasil disimpan!');
+      
+      setSelectedType('');
+      setFormData({});
+      setShowPreview(false);
+    } catch (error) {
+      toast.error(`Gagal menyimpan promo: ${error.message}`);
+    }
+  };
+
+  if (recipesLoading) {
+    return <LoadingState />;
+  }
 
   if (recipes.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🍳</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Belum Ada Resep</h3>
-            <p className="text-gray-600 mb-6">
-              Tambahkan resep terlebih dahulu untuk menggunakan kalkulator promo
-            </p>
-            
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                <div className="text-left">
-                  <h4 className="text-sm font-medium text-orange-800">Yang perlu Anda lakukan:</h4>
-                  <ul className="text-sm text-orange-700 mt-2 space-y-1">
-                    <li>• Buat resep dengan HPP dan harga jual</li>
-                    <li>• Tentukan margin keuntungan</li>
-                    <li>• Mulai buat promo untuk resep tersebut</li>
-                  </ul>
-                </div>
+      <div className="text-center">
+        <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+          <div className="text-gray-400 text-6xl mb-4">🍳</div>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Belum Ada Resep</h3>
+          <p className="text-gray-600 mb-6">
+            Tambahkan resep terlebih dahulu untuk menggunakan kalkulator promo
+          </p>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="text-left">
+                <h4 className="text-sm font-medium text-orange-800">Yang perlu Anda lakukan:</h4>
+                <ul className="text-sm text-orange-700 mt-2 space-y-1">
+                  <li>• Buat resep dengan HPP dan harga jual</li>
+                  <li>• Tentukan margin keuntungan</li>
+                  <li>• Mulai buat promo untuk resep tersebut</li>
+                </ul>
               </div>
             </div>
-            
-            <button 
-              onClick={() => window.location.href = '/resep'}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-            >
-              Buat Resep Pertama
-            </button>
           </div>
+          
+          <button 
+            onClick={() => window.location.href = '/resep'}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+          >
+            Buat Resep Pertama
+          </button>
         </div>
       </div>
     );
@@ -321,138 +407,136 @@ const PromoCalculator = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Mobile Header */}
-        <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
-            {showPreview ? (
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="h-5 w-5 text-gray-600" />
-                </button>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">Preview Promo</h1>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Calculator className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">Kalkulator Promo</h1>
+                {selectedType && (
                   <p className="text-xs text-gray-600 capitalize">{selectedType}</p>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Calculator className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">Kalkulator Promo</h1>
-                  {selectedType && (
-                    <p className="text-xs text-gray-600 capitalize">{selectedType}</p>
-                  )}
-                </div>
-              </div>
+            </div>
+            
+            {formData.calculationResult && !showPreview && (
+              <button
+                onClick={() => setShowPreview(true)}
+                className="flex items-center space-x-1 text-orange-600 text-sm font-medium"
+              >
+                <span>Preview</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Mobile Content */}
-        <div className="p-4 pb-24">
+        <div className="p-4">
           {!showPreview ? (
-            <Suspense fallback={<LoadingSpinner />}>
-              <PromoTypeSelector 
-                selectedType={selectedType}
-                onTypeChange={setSelectedType}
-                onCalculate={handleCalculate}
-                isCalculating={isCalculating}
-                recipes={recipes}
-                isMobile={true}
-              />
-            </Suspense>
+            <div className="space-y-4">
+              <Suspense fallback={<LoadingState type="form" />}>
+                <PromoTypeSelector 
+                  selectedType={selectedType}
+                  onTypeChange={setSelectedType}
+                  onFormSubmit={handleFormSubmit}
+                  isCalculating={isCalculating || calculationLoading}
+                  recipes={recipes}
+                  isMobile={true}
+                />
+              </Suspense>
+              
+              {formData.calculationResult && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-800">
+                      Perhitungan selesai
+                    </span>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">
+                    Tap "Preview" untuk melihat hasil kalkulasi
+                  </p>
+                </div>
+              )}
+            </div>
           ) : (
-            <Suspense fallback={<LoadingSpinner />}>
-              <PromoPreview 
-                result={formData.result}
-                onSave={handleSave}
-                isMobile={true}
-              />
-            </Suspense>
+            <div className="space-y-4">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <ChevronRight className="h-4 w-4 rotate-180" />
+                <span className="text-sm">Kembali ke Form</span>
+              </button>
+              
+              <Suspense fallback={<LoadingState type="form" />}>
+                <PromoPreview 
+                  type={selectedType}
+                  data={formData}
+                  onSave={handleSavePromo}
+                  isLoading={calculationLoading}
+                  isMobile={true}
+                />
+              </Suspense>
+            </div>
           )}
         </div>
 
-        {/* Mobile Bottom Actions */}
-        {formData.result && (
+        {formData.calculationResult && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-            <button
-              onClick={handleSave}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>Simpan Promo</span>
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="text-sm">
+                  {showPreview ? 'Edit' : 'Preview'}
+                </span>
+              </button>
+              
+              <button
+                onClick={handleSavePromo}
+                disabled={calculationLoading}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                <span className="text-sm">Simpan Promo</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // Desktop
+  // Desktop Layout
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
-              <Calculator className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Kalkulator Promo</h1>
-              <p className="text-orange-100 mt-2 text-lg">
-                Hitung profit margin dan dampak promo dengan akurat
-              </p>
-            </div>
-          </div>
-          
-          {selectedType && (
-            <div className="mt-6 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-lg p-4">
-              <p className="text-orange-100">
-                <span className="font-medium">Tipe promo dipilih:</span> 
-                <span className="capitalize ml-1 text-white">
-                  {selectedType === 'bogo' ? 'Buy One Get One' : 
-                   selectedType === 'discount' ? 'Diskon' : 'Bundle'}
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2 space-y-6">
+        <Suspense fallback={<LoadingState type="form" />}>
+          <PromoTypeSelector 
+            selectedType={selectedType}
+            onTypeChange={setSelectedType}
+            onFormSubmit={handleFormSubmit}
+            isCalculating={isCalculating || calculationLoading}
+            recipes={recipes}
+          />
+        </Suspense>
       </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Suspense fallback={<LoadingSpinner />}>
-              <PromoTypeSelector 
-                selectedType={selectedType}
-                onTypeChange={setSelectedType}
-                onCalculate={handleCalculate}
-                isCalculating={isCalculating}
-                recipes={recipes}
-                isMobile={false}
-              />
-            </Suspense>
-          </div>
-
-          {/* Preview */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              <Suspense fallback={<LoadingSpinner />}>
-                <PromoPreview 
-                  result={formData.result}
-                  onSave={handleSave}
-                  isMobile={false}
-                />
-              </Suspense>
-            </div>
-          </div>
+      
+      <div className="lg:col-span-1">
+        <div className="sticky top-6">
+          <Suspense fallback={<LoadingState type="form" />}>
+            <PromoPreview 
+              type={selectedType}
+              data={formData}
+              onSave={handleSavePromo}
+              isLoading={calculationLoading}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

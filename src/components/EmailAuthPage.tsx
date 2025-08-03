@@ -379,19 +379,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       <Mail className="w-4 h-4 inline mr-1" />
                       Kode OTP
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMethodChange('magic')}
-                      className={`px-4 py-2 text-sm rounded-lg transition-all ${
-                        authMethod === 'magic' 
-                          ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      disabled={isLoading || cooldownTime > 0}
-                    >
-                      <Lock className="w-4 h-4 inline mr-1" />
-                      Magic Link
-                    </button>
                   </div>
                 </div>
               )}

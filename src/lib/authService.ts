@@ -390,6 +390,12 @@ export const autoLinkUserPayments = async (): Promise<number> => {
   return 0;
 };
 
+// ✅ BACKWARD COMPATIBILITY: Export missing functions to prevent import errors (DEPRECATED)
+export const autoLinkUserPayments = async (): Promise<number> => {
+  console.warn('[authService] autoLinkUserPayments is deprecated and removed');
+  return 0;
+};
+
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
   console.warn('[authService] checkUnlinkedPayments is deprecated and removed');
   return { hasUnlinked: false, count: 0 };
@@ -400,23 +406,118 @@ export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
   return [];
 };
 
+// ✅ ORDER VERIFICATION FUNCTIONS - KEEP THESE
+export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
+  try {
+    console.log('🔍 Verifying order exists:', orderId);
+    
+    const { data, error } = await supabase
+      .from('user_payments')
+      .select('id, order_id, is_paid, payment_status')
+      .eq('order_id', orderId)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .limit(1);
+    
+    console.log('🔍 Order verification result:', { data, error, count: data?.length });
+    
+    if (error) {
+      console.error('Order verification error:', error);
+      return false;
+    }
+    
+    const exists = data && data.length > 0;
+    console.log('🔍 Order exists:', exists);
+    return exists;
+  } catch (error) {
+    console.error('Error verifying order:', error);
+    return false;
+  }
+};
+
+export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
+  try {
+    console.log('🔍 Linking order to user:', orderId, user.email);
+    
+    const { data: payments, error: findError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('order_id', orderId)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .limit(1);
+
+    console.log('🔍 Found payments:', { payments, findError, count: payments?.length });
+
+    if (findError) {
+      console.error('🔍 Search error:', findError);
+      throw new Error('Gagal mencari order. Silakan coba lagi.');
+    }
+
+    if (!payments || payments.length === 0) {
+      throw new Error('Order ID tidak ditemukan atau belum dibayar. Silakan periksa kembali.');
+    }
+
+    const payment = payments[0];
+    console.log('🔍 Found payment:', payment);
+
+    if (payment.user_id && payment.user_id !== user.id) {
+      throw new Error('Order ini sudah terhubung dengan akun lain.');
+    }
+
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from('user_payments')
+      .update({ 
+        user_id: user.id, 
+        email: user.email,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', payment.id)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      console.error('🔍 Update error:', updateError);
+      throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
+    }
+
+    console.log('✅ Payment linked successfully:', updatedPayment);
+    toast.success('Order berhasil terhubung dengan akun Anda!');
+    return updatedPayment;
+  } catch (error: any) {
+    console.error('Error linking payment to user:', error);
+    toast.error(error.message);
+    throw error;
+  }
+};
+
 export const getUserPaymentStatus = async (): Promise<{
   isPaid: boolean;
   paymentRecord: any | null;
   needsLinking: boolean;
 }> => {
-  console.warn('[authService] getUserPaymentStatus is deprecated and removed');
-  return { isPaid: false, paymentRecord: null, needsLinking: false };
-};
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { isPaid: false, paymentRecord: null, needsLinking: false };
 
-export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
-  console.warn('[authService] linkPaymentToUser is deprecated and removed');
-  throw new Error('Payment linking feature has been removed');
-};
+    const { data: linkedPayments } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
-  console.warn('[authService] verifyOrderExists is deprecated and removed');
-  return false;
+    if (linkedPayments?.length) {
+      return { isPaid: true, paymentRecord: linkedPayments[0], needsLinking: false };
+    }
+
+    return { isPaid: false, paymentRecord: null, needsLinking: true };
+  } catch (error) {
+    console.error('Error getting user payment status:', error);
+    return { isPaid: false, paymentRecord: null, needsLinking: false };
+  }
 };
 
 export const sendMagicLink = async (

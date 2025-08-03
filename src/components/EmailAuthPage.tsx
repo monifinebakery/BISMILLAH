@@ -53,6 +53,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
   const [error, setError] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false); // ✅ NEW: Track magic link
+  const [otpExpired, setOtpExpired] = useState(false); // ✅ NEW: Track OTP expiry
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -91,10 +92,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setMagicLinkSent(false);
     setOtp(['', '', '', '', '', '']);
     setError('');
+    setOtpExpired(false); // ✅ Reset expired state
     resetHCaptcha();
   };
 
-  // ✅ ENHANCED: Unified send auth function
+  // ✅ ENHANCED: Unified send auth function with better error handling
   const handleSendAuth = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
@@ -105,23 +107,25 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
     
-    if (HCAPTCHA_ENABLED && !hCaptchaToken) {
+    if (HCAPTCHA_ENABLED && !hCaptchaToken && hCaptchaKey > 0) {
       toast.error('Harap selesaikan verifikasi captcha.');
       return;
     }
     
     setIsLoading(true);
     setError('');
+    setOtpExpired(false);
     
     try {
-      debugLog(`Attempting to send ${authMethod} for email:`, email);
+      debugLog(`Attempting to send ${authMethod} for email:`, email, 'at time:', new Date().toISOString());
       
       // ✅ Use new unified sendAuth function
       const success = await sendAuth(
         email, 
         authMethod, 
         HCAPTCHA_ENABLED ? hCaptchaToken : null,
-        allowSignup
+        allowSignup,
+        false // Don't skip captcha for initial send
       );
       
       debugLog(`sendAuth (${authMethod}) returned success:`, success);
@@ -129,6 +133,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (success) {
         if (authMethod === 'otp') {
           setOtpSent(true);
+          setOtpExpired(false);
           debugLog('OTP sent successfully');
         } else {
           setMagicLinkSent(true);
@@ -149,6 +154,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
+  // ✅ ENHANCED: Resend with skip captcha for better UX
   const handleResendAuth = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
@@ -157,17 +163,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     setIsLoading(true);
     setError('');
+    setOtpExpired(false);
     
     try {
-      debugLog(`Attempting to resend ${authMethod} for email:`, email);
+      debugLog(`Attempting to resend ${authMethod} for email:`, email, 'at time:', new Date().toISOString());
       
-      // ✅ Use sendAuth for resend (no captcha needed for resend)
-      const success = await sendAuth(email, authMethod, null, allowSignup);
+      // ✅ Use sendAuth for resend with skip captcha for OTP
+      let success;
+      if (authMethod === 'otp') {
+        // Skip captcha for resend to improve UX
+        success = await sendAuth(email, authMethod, null, allowSignup, true);
+      } else {
+        success = await sendAuth(email, authMethod, null, allowSignup, false);
+      }
       
       if (success) {
         if (authMethod === 'otp') {
           setOtp(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
+          toast.success('Kode baru telah dikirim. Kode berlaku 5 menit.');
+        } else {
+          toast.success('Magic link baru telah dikirim ke email Anda.');
         }
         startCooldown(60);
       } else {
@@ -184,7 +200,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // Handle OTP input change
+  // ✅ ENHANCED: Handle OTP input change with better validation
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
     
@@ -192,6 +208,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     newOtp[index] = value.toUpperCase();
     setOtp(newOtp);
     setError('');
+    setOtpExpired(false);
 
     // Auto-focus next input
     if (value && index < 5) {
@@ -220,6 +237,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       const newOtp = pastedData.split('').slice(0, 6);
       setOtp(newOtp);
       setError('');
+      setOtpExpired(false);
       
       if (!isVerifying) {
         handleVerifyOtp(newOtp.join(''));
@@ -227,7 +245,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ ENHANCED: Verify OTP with better error handling
+  // ✅ ENHANCED: Verify OTP with comprehensive error handling
   const handleVerifyOtp = async (otpCode: string) => {
     if (otpCode.length !== 6) {
       setError('Kode OTP harus 6 digit');
@@ -236,13 +254,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     setIsVerifying(true);
     setError('');
+    setOtpExpired(false);
 
     try {
-      debugLog('Verifying OTP for email:', email);
-      const success = await verifyEmailOtp(email, otpCode);
+      debugLog('Verifying OTP for email:', email, 'at time:', new Date().toISOString());
       
-      if (success) {
-        // ✅ Handle successful login with flexible redirect options
+      const result = await verifyEmailOtp(email, otpCode);
+      
+      if (result === true) {
+        // ✅ Success
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
@@ -251,12 +271,33 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             window.location.href = redirectUrl;
           }, 1500);
         }
+      } else if (result === 'expired') {
+        // ✅ Handle expired token
+        setOtpExpired(true);
+        setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
+        setOtp(['', '', '', '', '', '']);
+        
+        // Auto-suggest resend after 2 seconds
+        setTimeout(() => {
+          if (window.confirm('Kode OTP sudah kadaluarsa. Kirim kode baru sekarang?')) {
+            handleResendAuth();
+          }
+        }, 2000);
+        
+        inputRefs.current[0]?.focus();
+      } else if (result === 'rate_limited') {
+        // ✅ Handle rate limiting
+        setError('Terlalu banyak percobaan. Tunggu beberapa menit sebelum mencoba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
       } else {
+        // ✅ Other errors (invalid, etc.)
         setError('Kode OTP tidak valid. Silakan coba lagi.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
+      console.error('Error in handleVerifyOtp:', error);
       setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -467,10 +508,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 )}
               </Button>
 
-              {/* ✅ NEW: Info about method */}
+              {/* ✅ ENHANCED: Info about method with expiry info */}
               <div className="text-xs text-center text-gray-500">
                 {authMethod === 'otp' ? (
-                  'Kami akan mengirim kode 6 digit ke email Anda'
+                  'Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)'
                 ) : (
                   'Kami akan mengirim link khusus ke email Anda untuk login'
                 )}
@@ -506,7 +547,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </Button>
             </div>
           ) : (
-            // ✅ EXISTING: OTP Input State
+            // ✅ ENHANCED: OTP Input State with Enhanced Error Handling
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <Mail className="h-8 w-8 text-green-600" />
@@ -520,13 +561,30 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
               </p>
               
-              {/* Error Message */}
+              {/* ✅ Enhanced Error Message with Expiry Handling */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+                <div className={`border rounded p-3 mb-4 ${
+                  otpExpired 
+                    ? 'bg-orange-50 border-orange-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
                   <div className="flex items-center">
-                    <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
-                    <span className="text-red-800 text-sm">{error}</span>
+                    <AlertCircle className={`w-4 h-4 mr-2 ${
+                      otpExpired ? 'text-orange-600' : 'text-red-600'
+                    }`} />
+                    <span className={`text-sm ${
+                      otpExpired ? 'text-orange-800' : 'text-red-800'
+                    }`}>{error}</span>
                   </div>
+                  {otpExpired && (
+                    <button
+                      onClick={handleResendAuth}
+                      disabled={isLoading || cooldownTime > 0}
+                      className="mt-2 text-sm text-orange-700 hover:text-orange-900 underline disabled:opacity-50"
+                    >
+                      Kirim kode baru sekarang
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -546,7 +604,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
-                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      className={`w-12 h-12 text-center text-lg font-bold border-2 rounded-lg focus:outline-none transition-all ${
+                        otpExpired 
+                          ? 'border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200' 
+                          : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                      }`}
                       disabled={isVerifying}
                     />
                   ))}
@@ -608,7 +670,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           )}
           {DEBUG_LOGS && (
             <div className="text-xs text-gray-500 text-center font-mono bg-gray-100 p-2 rounded">
-              Debug: {authMethod.toUpperCase()} | hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | Sent: {otpSent || magicLinkSent ? 'Yes' : 'No'}
+              Debug: {authMethod.toUpperCase()} | hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | Sent: {otpSent || magicLinkSent ? 'Yes' : 'No'} | Expired: {otpExpired ? 'Yes' : 'No'}
             </div>
           )}
         </CardFooter>

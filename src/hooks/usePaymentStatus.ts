@@ -1,11 +1,11 @@
-// src/hooks/usePaymentStatus.ts - CLEAN VERSION WITHOUT LOGS
+// src/hooks/usePaymentStatus.ts - UPDATED VERSION
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { validateAuthSession } from '@/lib/authUtils';
+import { getCurrentUser, isAuthenticated } from '@/services/authService'; // ✅ Updated import
 import { safeParseDate } from '@/utils/unifiedDateUtils';
-import { RealtimeChannel, UserResponse, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface PaymentStatus {
   id: string;
@@ -32,86 +32,77 @@ export const usePaymentStatus = () => {
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
-      const isValid = await validateAuthSession();
-      if (!isValid) {
-        return null;
-      }
+      // ✅ Use updated authService functions
+      const isValid = await isAuthenticated();
+      if (!isValid) return null;
 
-      const { data: { user } }: UserResponse = await supabase.auth.getUser();
-      if (!user) {
-        return null;
-      }
+      const user = await getCurrentUser();
+      if (!user) return null;
 
-      // Check by user_id first (properly linked payments)
-      let { data: paymentsByUserId, error: userIdError } = await supabase
+      // ✅ STEP 1: Check linked payments by user_id
+      const { data: linkedPayments, error: userIdError } = await supabase
         .from('user_payments')
-        .select(`*`)
+        .select('*')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .eq('is_paid', true)
+        .eq('payment_status', 'settled')
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (!userIdError && paymentsByUserId && paymentsByUserId.length > 0) {
-        // Look for a paid payment
-        const paidPayment = paymentsByUserId.find(p => 
-          p.is_paid === true && p.payment_status === 'settled'
-        );
-        
-        if (paidPayment) {
-          return {
-            ...paidPayment,
-            created_at: safeParseDate(paidPayment.created_at),
-            updated_at: safeParseDate(paidPayment.updated_at),
-            payment_date: safeParseDate(paidPayment.payment_date),
-          };
-        }
+      if (!userIdError && linkedPayments?.length) {
+        return {
+          ...linkedPayments[0],
+          created_at: safeParseDate(linkedPayments[0].created_at),
+          updated_at: safeParseDate(linkedPayments[0].updated_at),
+          payment_date: safeParseDate(linkedPayments[0].payment_date),
+        };
       }
 
-      // Check by email (unlinked payments)
-      let { data: paymentsByEmail, error: emailError } = await supabase
+      // ✅ STEP 2: Check unlinked payments by email
+      const { data: unlinkedPayments, error: emailError } = await supabase
         .from('user_payments')
-        .select(`*`)
+        .select('*')
+        .is('user_id', null)
         .eq('email', user.email)
-        .order('updated_at', { ascending: false });
+        .eq('is_paid', true)
+        .eq('payment_status', 'settled')
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (!emailError && paymentsByEmail && paymentsByEmail.length > 0) {
-        // Look for a paid payment
-        const paidPayment = paymentsByEmail.find(p => 
-          p.is_paid === true && p.payment_status === 'settled'
-        );
+      if (!emailError && unlinkedPayments?.length) {
+        const payment = unlinkedPayments[0];
         
-        if (paidPayment) {
-          // Auto-link if payment is not linked to user
-          if (!paidPayment.user_id) {
-            try {
-              const { data: updatedPayment, error: updateError } = await supabase
-                .from('user_payments')
-                .update({ 
-                  user_id: user.id,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', paidPayment.id)
-                .select('*')
-                .single();
+        // ✅ AUTO-LINK: Try to link unlinked payment to current user
+        try {
+          const { data: updatedPayment, error: updateError } = await supabase
+            .from('user_payments')
+            .update({ 
+              user_id: user.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', payment.id)
+            .select('*')
+            .single();
 
-              if (!updateError) {
-                return {
-                  ...updatedPayment,
-                  created_at: safeParseDate(updatedPayment.created_at),
-                  updated_at: safeParseDate(updatedPayment.updated_at),
-                  payment_date: safeParseDate(updatedPayment.payment_date),
-                };
-              }
-            } catch (linkError) {
-              // Continue with unlinked payment if auto-link fails
-            }
+          if (!updateError && updatedPayment) {
+            return {
+              ...updatedPayment,
+              created_at: safeParseDate(updatedPayment.created_at),
+              updated_at: safeParseDate(updatedPayment.updated_at),
+              payment_date: safeParseDate(updatedPayment.payment_date),
+            };
           }
-
-          return {
-            ...paidPayment,
-            created_at: safeParseDate(paidPayment.created_at),
-            updated_at: safeParseDate(paidPayment.updated_at),
-            payment_date: safeParseDate(paidPayment.payment_date),
-          };
+        } catch (linkError) {
+          console.error('Auto-link failed:', linkError);
         }
+
+        // Return unlinked payment if auto-link fails
+        return {
+          ...payment,
+          created_at: safeParseDate(payment.created_at),
+          updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
+        };
       }
 
       return null;
@@ -119,26 +110,27 @@ export const usePaymentStatus = () => {
     enabled: true,
     staleTime: 30000,
     refetchOnWindowFocus: true,
+    retry: 2,
   });
 
-  // Real-time subscription
+  // ✅ REAL-TIME SUBSCRIPTION: Simplified setup
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
 
     const setupSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
+      // Cleanup existing subscription
       if (realtimeChannel) {
         realtimeChannel.unsubscribe();
         supabase.removeChannel(realtimeChannel);
         realtimeChannel = null;
       }
 
-      if (!user) {
-        return;
-      }
+      // Get current user
+      const user = await getCurrentUser();
+      if (!user) return;
 
+      // Setup new subscription for both user_id and email
       realtimeChannel = supabase
         .channel(`payment-changes-${user.id}`)
         .on(
@@ -149,9 +141,7 @@ export const usePaymentStatus = () => {
             table: 'user_payments', 
             filter: `user_id=eq.${user.id}` 
           },
-          (payload) => {
-            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-          }
+          () => queryClient.invalidateQueries({ queryKey: ['paymentStatus'] })
         )
         .on(
           'postgres_changes',
@@ -161,19 +151,19 @@ export const usePaymentStatus = () => {
             table: 'user_payments', 
             filter: `email=eq.${user.email}` 
           },
-          (payload) => {
-            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-          }
+          () => queryClient.invalidateQueries({ queryKey: ['paymentStatus'] })
         )
         .subscribe();
     };
 
+    // Initial setup
     setupSubscription();
 
-    authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
-            setupSubscription();
-        }
+    // Re-setup on auth changes
+    authSubscription = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setupSubscription();
+      }
     });
 
     return () => {
@@ -187,7 +177,7 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // Payment status logic
+  // ✅ COMPUTED VALUES: Simplified logic
   const isPaid = paymentStatus?.is_paid === true && paymentStatus?.payment_status === 'settled';
   const needsPayment = !isPaid;
   const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;

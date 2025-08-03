@@ -1,6 +1,8 @@
+// src/contexts/PaymentContext.tsx - UPDATED VERSION
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService';
+import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService'; // ✅ Updated import path
 
 interface PaymentContextType {
   isPaid: boolean;
@@ -11,13 +13,13 @@ interface PaymentContextType {
   previewTimeLeft: number;
   showUpgradePopup: boolean;
   setShowUpgradePopup: (show: boolean) => void;
-  // ✅ NEW: Order popup state
+  // Order popup state
   needsOrderLinking: boolean;
   showOrderPopup: boolean;
   setShowOrderPopup: (show: boolean) => void;
   hasUnlinkedPayment: boolean;
   refetchPayment: () => void;
-  // ✅ NEW: Enhanced features
+  // Enhanced features
   unlinkedPaymentCount: number;
 }
 
@@ -41,78 +43,71 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [unlinkedPaymentCount, setUnlinkedPaymentCount] = useState(0);
 
-  // ✅ AUTO-LINK PAYMENTS: Try to link unlinked payments when context loads
+  // ✅ AUTO-LINK PAYMENTS: Simplified with better error handling
   useEffect(() => {
+    if (isLoading || isPaid) return;
+
     const attemptAutoLink = async () => {
-      if (!isLoading && !isPaid) {
-        try {
-          const linkedCount = await autoLinkUserPayments();
-          if (linkedCount > 0) {
-            // Refresh payment status after auto-linking
-            setTimeout(() => {
-              refetch();
-            }, 1000);
-          }
-        } catch (error) {
-          console.error('Auto-link failed:', error);
+      try {
+        const linkedCount = await autoLinkUserPayments();
+        if (linkedCount > 0) {
+          setTimeout(() => refetch(), 1000); // Refresh after auto-linking
         }
+      } catch (error) {
+        console.error('Auto-link failed:', error);
       }
     };
 
     attemptAutoLink();
   }, [isLoading, isPaid, refetch]);
 
-  // ✅ CHECK UNLINKED PAYMENTS: Monitor for unlinked payments
+  // ✅ CHECK UNLINKED PAYMENTS: Simplified monitoring
   useEffect(() => {
+    if (isLoading || isPaid) return;
+
     const checkUnlinked = async () => {
-      if (!isLoading && !isPaid) {
-        try {
-          const { hasUnlinked, count } = await checkUnlinkedPayments();
-          setUnlinkedPaymentCount(count);
-          
-          // Show popup if there are unlinked payments
-          if (hasUnlinked && !showOrderPopup) {
-            setTimeout(() => {
-              setShowOrderPopup(true);
-            }, 3000); // Wait 3 seconds before showing popup
-          }
-        } catch (error) {
-          console.error('Check unlinked payments failed:', error);
+      try {
+        const { hasUnlinked, count } = await checkUnlinkedPayments();
+        setUnlinkedPaymentCount(count);
+        
+        // Auto-show popup if there are unlinked payments
+        if (hasUnlinked && !showOrderPopup) {
+          setTimeout(() => setShowOrderPopup(true), 3000);
         }
+      } catch (error) {
+        console.error('Check unlinked payments failed:', error);
       }
     };
 
     checkUnlinked();
   }, [isLoading, isPaid, showOrderPopup, setShowOrderPopup]);
 
-  // ✅ AUTO-SHOW ORDER POPUP: Show popup automatically if user needs to link order
+  // ✅ AUTO-SHOW ORDER POPUP: Simplified condition
   useEffect(() => {
     if (needsOrderLinking && !showOrderPopup && !isPaid && !isLoading) {
-      const timer = setTimeout(() => {
-        setShowOrderPopup(true);
-      }, 2000); // Show after 2 seconds
-      
+      const timer = setTimeout(() => setShowOrderPopup(true), 2000);
       return () => clearTimeout(timer);
     }
   }, [needsOrderLinking, showOrderPopup, isPaid, isLoading, setShowOrderPopup]);
 
-  // Timer untuk free preview 60 detik - only for unpaid users
+  // ✅ FREE PREVIEW TIMER: Simplified logic
   useEffect(() => {
-    if (!isLoading && needsPayment && !isPaid && !showMandatoryUpgrade) {
-      const interval = setInterval(() => {
-        setPreviewTimeLeft((prev) => {
-          if (prev <= 1) {
-            setShowMandatoryUpgrade(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
+    if (isLoading || !needsPayment || isPaid || showMandatoryUpgrade) return;
+
+    const interval = setInterval(() => {
+      setPreviewTimeLeft((prev) => {
+        if (prev <= 1) {
+          setShowMandatoryUpgrade(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [isLoading, needsPayment, showMandatoryUpgrade, isPaid]);
 
-  // ✅ Reset preview timer when payment status changes
+  // ✅ RESET ON PAYMENT: Simplified reset logic
   useEffect(() => {
     if (isPaid) {
       setShowMandatoryUpgrade(false);
@@ -131,13 +126,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       previewTimeLeft,
       showUpgradePopup,
       setShowUpgradePopup,
-      // ✅ NEW: Order popup state
       needsOrderLinking,
       showOrderPopup,
       setShowOrderPopup,
       hasUnlinkedPayment,
       refetchPayment: refetch,
-      // ✅ NEW: Enhanced features
       unlinkedPaymentCount
     }}>
       {children}

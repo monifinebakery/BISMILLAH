@@ -43,10 +43,29 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Desktop Action Buttons - Horizontal Layout */}
+        <div className="hidden md:flex gap-3">
+          <Button 
+            onClick={() => onOpenDialog('import')} 
+            className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
+          >
+            <Upload className="h-4 w-4" />
+            Import Data
+          </Button>
+          
+          <Button 
+            onClick={() => onOpenDialog('addItem')} 
+            className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Item Baru
+          </Button>
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3 mt-6">
+      {/* Mobile Action Buttons - Vertical Layout */}
+      <div className="flex md:hidden flex-col gap-3 mt-6">
         <Button 
           onClick={() => onOpenDialog('import')} 
           className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"

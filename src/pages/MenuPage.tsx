@@ -47,21 +47,21 @@ const MenuPage = () => {
       description: 'Hitung Promo dengan Mudah',
       icon: Calculator,
       path: '/promo',
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Manajemen Resep',
       description: 'Kelola dan hitung HPP resep masakan',
       icon: ChefHat,
       path: '/resep',
-      color: 'from-orange-500 to-red-500'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Gudang Bahan Baku',
       description: 'Manajemen stok bahan baku dan inventory',
       icon: Package,
       path: '/gudang',
-      color: 'from-green-500 to-green-600'
+      color: 'from-orange-500 to-orange-600'
     },
     // ✅ NEW: Biaya Operasional menu item
     {
@@ -69,14 +69,14 @@ const MenuPage = () => {
       description: 'Kelola biaya operasional untuk perhitungan overhead HPP',
       icon: DollarSign,
       path: '/biaya-operasional',
-      color: 'from-blue-500 to-indigo-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Supplier',
       description: 'Kelola data supplier',
       icon: Users,
       path: '/supplier',
-      color: 'from-purple-500 to-purple-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Pembelian Bahan Baku',
@@ -90,35 +90,35 @@ const MenuPage = () => {
       description: 'Kelola semua pesanan pelanggan',
       icon: ShoppingCartIcon,
       path: '/pesanan',
-      color: 'from-red-500 to-pink-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Laporan Keuangan',
       description: 'Lihat laporan dan analisis',
       icon: BarChart3,
       path: '/laporan',
-      color: 'from-green-500 to-green-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Manajemen Aset',
       description: 'Manajemen aset bisnis',
       icon: Archive,
       path: '/aset',
-      color: 'from-indigo-500 to-indigo-600'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Buat Invoice',
       description: 'Buat faktur manual untuk pelanggan',
       icon: Receipt,
       path: '/invoice',
-      color: 'from-cyan-500 to-blue-500'
+      color: 'from-orange-500 to-orange-600'
     },
     {
       title: 'Pengaturan',
       description: 'Atur preferensi aplikasi',
       icon: Settings,
       path: '/pengaturan',
-      color: 'from-gray-500 to-gray-600'
+      color: 'from-orange-500 to-orange-600'
     },
   ];
 

@@ -30,8 +30,8 @@ const BottomTabBar = () => {
               to={path}
               className={`flex flex-col items-center justify-center min-w-0 flex-1 py-1 px-1 rounded-lg transition-colors ${
                 isActive
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
+                  ? 'text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-orange-600 hover:bg-gray-50'
               }`}
             >
               <Icon className={`h-5 w-5 mb-1`} />

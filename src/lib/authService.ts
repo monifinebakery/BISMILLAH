@@ -1,4 +1,4 @@
-// src/services/authService.ts
+// src/services/authService.ts - FULL VERSION WITH PAYMENT INTEGRATION
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -268,6 +268,16 @@ export const verifyEmailOtp = async (email: string, token: string): Promise<bool
     // Check if session was created
     if (data.session && data.user) {
       toast.success('Login berhasil! Selamat datang.');
+      
+      // ✅ NEW: Auto-link payments after successful login
+      setTimeout(async () => {
+        try {
+          await autoLinkUserPayments();
+        } catch (linkError) {
+          console.error('Auto-link payments failed after OTP verification:', linkError);
+        }
+      }, 1000);
+      
       return true;
     } else {
       console.warn('OTP verified but no session created:', data);
@@ -298,6 +308,16 @@ export const handleMagicLinkCallback = async (code: string) => {
     if (data.session && data.user) {
       console.log('[AuthService] Magic link authentication successful:', data.user.email);
       toast.success('Login berhasil! Selamat datang.');
+      
+      // ✅ NEW: Auto-link payments after successful magic link
+      setTimeout(async () => {
+        try {
+          await autoLinkUserPayments();
+        } catch (linkError) {
+          console.error('Auto-link payments failed after magic link:', linkError);
+        }
+      }, 1000);
+      
       return { session: data.session, user: data.user };
     }
     
@@ -510,6 +530,261 @@ export const checkEmailVerificationStatus = async (): Promise<{
   } catch (error) {
     console.error('Error checking email verification:', error);
     return { isVerified: false, needsVerification: false };
+  }
+};
+
+// ========================================
+// ✅ NEW: PAYMENT INTEGRATION FUNCTIONS
+// ========================================
+
+/**
+ * ✅ NEW: Link payment to user by Order ID
+ */
+export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
+  try {
+    // Find payment by order_id
+    const { data: payment, error: findError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
+
+    if (findError || !payment) {
+      throw new Error('Order ID tidak ditemukan. Silakan periksa kembali.');
+    }
+
+    if (payment.user_id && payment.user_id !== user.id) {
+      throw new Error('Order ini sudah terhubung dengan akun lain.');
+    }
+
+    // Link payment to current user
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from('user_payments')
+      .update({
+        user_id: user.id,
+        email: user.email
+      })
+      .eq('order_id', orderId)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
+    }
+
+    toast.success('Order berhasil terhubung dengan akun Anda!');
+    return updatedPayment;
+  } catch (error: any) {
+    console.error('Error linking payment to user:', error);
+    toast.error(error.message);
+    throw error;
+  }
+};
+
+/**
+ * ✅ NEW: Auto-link unlinked payments for user after login
+ */
+export const autoLinkUserPayments = async (): Promise<number> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user?.email) return 0;
+
+    // Find unlinked payments for this email (within last 24 hours)
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: unlinkedPayments, error: findError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .is('user_id', null)
+      .eq('is_paid', true) // Only link successful payments
+      .gte('created_at', last24Hours)
+      .or(`email.eq.${user.email},email.eq.unlinked@payment.com`);
+
+    if (findError || !unlinkedPayments || unlinkedPayments.length === 0) {
+      return 0;
+    }
+
+    // Link payments to user
+    const { error: updateError } = await supabase
+      .from('user_payments')
+      .update({
+        user_id: user.id,
+        email: user.email
+      })
+      .in('id', unlinkedPayments.map(p => p.id));
+
+    if (updateError) {
+      console.error('Error auto-linking payments:', updateError);
+      return 0;
+    }
+
+    if (unlinkedPayments.length > 0) {
+      toast.success(`${unlinkedPayments.length} pembayaran berhasil terhubung dengan akun Anda!`);
+    }
+
+    return unlinkedPayments.length;
+  } catch (error) {
+    console.error('Error in auto-link payments:', error);
+    return 0;
+  }
+};
+
+/**
+ * ✅ NEW: Check if user has any unlinked payments
+ */
+export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user?.email) return { hasUnlinked: false, count: 0 };
+
+    const { data: unlinkedPayments, error } = await supabase
+      .from('user_payments')
+      .select('id, order_id, is_paid')
+      .is('user_id', null)
+      .eq('is_paid', true)
+      .or(`email.eq.${user.email},email.eq.unlinked@payment.com`);
+
+    if (error) {
+      console.error('Error checking unlinked payments:', error);
+      return { hasUnlinked: false, count: 0 };
+    }
+
+    return {
+      hasUnlinked: (unlinkedPayments?.length || 0) > 0,
+      count: unlinkedPayments?.length || 0
+    };
+  } catch (error) {
+    console.error('Error checking unlinked payments:', error);
+    return { hasUnlinked: false, count: 0 };
+  }
+};
+
+/**
+ * ✅ NEW: Get user's payment status
+ */
+export const getUserPaymentStatus = async (): Promise<{
+  isPaid: boolean;
+  paymentRecord: any | null;
+  needsLinking: boolean;
+}> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { isPaid: false, paymentRecord: null, needsLinking: false };
+    }
+
+    // Check for linked payments first
+    const { data: linkedPayments, error: linkedError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (!linkedError && linkedPayments && linkedPayments.length > 0) {
+      return {
+        isPaid: true,
+        paymentRecord: linkedPayments[0],
+        needsLinking: false
+      };
+    }
+
+    // Check for unlinked payments by email
+    const { data: unlinkedPayments, error: unlinkedError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .is('user_id', null)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .or(`email.eq.${user.email},email.eq.unlinked@payment.com`)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (!unlinkedError && unlinkedPayments && unlinkedPayments.length > 0) {
+      return {
+        isPaid: true,
+        paymentRecord: unlinkedPayments[0],
+        needsLinking: true
+      };
+    }
+
+    return { isPaid: false, paymentRecord: null, needsLinking: false };
+  } catch (error) {
+    console.error('Error getting user payment status:', error);
+    return { isPaid: false, paymentRecord: null, needsLinking: false };
+  }
+};
+
+/**
+ * ✅ NEW: Enhanced auth state change handler with payment linking
+ */
+export const onAuthStateChangeWithPaymentLinking = (
+  callback: (event: string, session: Session | null) => void
+) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    
+    // Auto-link payments when user signs in
+    if (event === 'SIGNED_IN' && session?.user) {
+      setTimeout(async () => {
+        try {
+          await autoLinkUserPayments();
+        } catch (error) {
+          console.error('Auto-link payments failed:', error);
+        }
+      }, 1000); // Wait 1 second after sign in
+    }
+    
+    callback(event, session);
+  });
+  
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+/**
+ * ✅ NEW: Verify order exists before showing popup
+ */
+export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
+  try {
+    const { data: payment, error } = await supabase
+      .from('user_payments')
+      .select('id')
+      .eq('order_id', orderId)
+      .single();
+
+    return !error && !!payment;
+  } catch (error) {
+    console.error('Error verifying order:', error);
+    return false;
+  }
+};
+
+/**
+ * ✅ NEW: Get recent orders for auto-suggestion
+ */
+export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
+  try {
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: payments, error } = await supabase
+      .from('user_payments')
+      .select('order_id')
+      .is('user_id', null)
+      .eq('is_paid', true)
+      .gte('created_at', last24Hours)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error || !payments) return [];
+
+    return payments.map(p => p.order_id).filter(Boolean);
+  } catch (error) {
+    console.error('Error getting recent orders:', error);
+    return [];
   }
 };
 

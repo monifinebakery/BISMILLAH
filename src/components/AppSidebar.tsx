@@ -138,16 +138,23 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ Simple menu item rendering with orange hover and active
+  // ✅ Simple menu item rendering with orange hover and active - using style override
   const renderMenuItem = (item, isActive) => (
     <SidebarMenuButton
       onClick={() => navigate(item.url)}
       isActive={isActive}
+      style={{
+        '--hover-bg': '#fed7aa', // orange-200
+        '--hover-text': '#ea580c', // orange-600
+        '--active-bg': '#fdba74', // orange-300
+        '--active-text': '#c2410c', // orange-700
+      }}
       className={cn(
         "w-full justify-start px-3 transition-all duration-200",
-        "hover:bg-orange-50 hover:text-orange-600 hover:scale-[1.02]",
-        "active:bg-orange-200 active:text-orange-700 active:scale-[0.98]",
-        isActive && "bg-orange-100 text-orange-600"
+        "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
+        "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
+        "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
+        isActive && "!bg-orange-100 !text-orange-600 !border-orange-200"
       )}
     >
       <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -155,14 +162,21 @@ export function AppSidebar() {
     </SidebarMenuButton>
   );
 
-  // ✅ Simple action button rendering with orange hover and active
+  // ✅ Simple action button rendering with orange hover and active - using style override
   const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => (
     <SidebarMenuButton
       onClick={onClick}
+      style={{
+        '--hover-bg': '#fed7aa', // orange-200
+        '--hover-text': '#ea580c', // orange-600
+        '--active-bg': '#fdba74', // orange-300
+        '--active-text': '#c2410c', // orange-700
+      }}
       className={cn(
         "w-full justify-start px-3 transition-all duration-200",
-        "hover:bg-orange-50 hover:text-orange-600 hover:scale-[1.02]",
-        "active:bg-orange-200 active:text-orange-700 active:scale-[0.98]",
+        "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
+        "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
+        "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
         className
       )}
     >
@@ -255,7 +269,7 @@ export function AppSidebar() {
               () => setShowLogoutConfirm(true),
               LogOut,
               "Keluar",
-              "text-red-500 hover:bg-red-50 hover:text-red-600 active:bg-red-200 active:text-red-700"
+              "text-red-500 [&:hover]:!bg-red-50 [&:hover]:!text-red-600 [&:active]:!bg-red-200 [&:active]:!text-red-700"
             )}
           </SidebarMenuItem>
         </SidebarMenu>

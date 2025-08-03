@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, HelpCircle, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService'; // ✅ Updated imports
+import { Mail, Lock, HelpCircle, Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { sendEmailOtp, verifyEmailOtp, sendMagicLink, sendAuth } from '@/lib/authService'; // ✅ Updated imports
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,10 @@ interface EmailAuthPageProps {
   supportEmail?: string;
   logoUrl?: string;
   onLoginSuccess?: () => void;
-  redirectUrl?: string; // ✅ NEW: Custom redirect URL
+  redirectUrl?: string;
+  allowSignup?: boolean; // ✅ NEW: Control signup
+  defaultMethod?: 'otp' | 'magic'; // ✅ NEW: Default auth method
+  showMethodToggle?: boolean; // ✅ NEW: Show method toggle
 }
 
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
@@ -33,18 +36,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   supportEmail = 'admin@sistemhpp.com',
   logoUrl,
   onLoginSuccess,
-  redirectUrl = '/', // ✅ Default redirect to dashboard
+  redirectUrl = '/',
+  allowSignup = true, // ✅ NEW: Default allow signup
+  defaultMethod = 'otp', // ✅ NEW: Default to OTP
+  showMethodToggle = true, // ✅ NEW: Show toggle by default
 }) => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [otpSent, setOtpSent] = useState(false); // Track if OTP was sent
+  const [otpSent, setOtpSent] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'otp' | 'magic'>(defaultMethod); // ✅ NEW: Auth method state
   const [cooldownTime, setCooldownTime] = useState(0);
   const [cooldownTimer, setCooldownTimer] = useState<NodeJS.Timeout | null>(null);
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
   const [error, setError] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false); // ✅ NEW: Track magic link
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -78,7 +86,16 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  const handleSendOtp = async () => {
+  const resetForm = () => {
+    setOtpSent(false);
+    setMagicLinkSent(false);
+    setOtp(['', '', '', '', '', '']);
+    setError('');
+    resetHCaptcha();
+  };
+
+  // ✅ ENHANCED: Unified send auth function
+  const handleSendAuth = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -97,30 +114,42 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError('');
     
     try {
-      debugLog('Attempting to send OTP for email:', email);
-      const success = await sendEmailOtp(email, HCAPTCHA_ENABLED ? hCaptchaToken : null);
-      debugLog('sendEmailOtp returned success:', success);
+      debugLog(`Attempting to send ${authMethod} for email:`, email);
+      
+      // ✅ Use new unified sendAuth function
+      const success = await sendAuth(
+        email, 
+        authMethod, 
+        HCAPTCHA_ENABLED ? hCaptchaToken : null,
+        allowSignup
+      );
+      
+      debugLog(`sendAuth (${authMethod}) returned success:`, success);
       
       if (success) {
-        setOtpSent(true);
-        debugLog('OTP sent successfully');
+        if (authMethod === 'otp') {
+          setOtpSent(true);
+          debugLog('OTP sent successfully');
+        } else {
+          setMagicLinkSent(true);
+          debugLog('Magic link sent successfully');
+        }
         startCooldown(60);
       } else {
-        toast.error('Gagal mengirim kode verifikasi. Silakan coba lagi.');
+        toast.error(`Gagal mengirim ${authMethod === 'otp' ? 'kode verifikasi' : 'magic link'}. Silakan coba lagi.`);
         startCooldown(30);
-        debugLog('sendEmailOtp failed');
+        debugLog(`send${authMethod} failed`);
       }
     } catch (error) {
-      console.error('Error in handleSendOtp:', error);
-      toast.error('Terjadi kesalahan saat mengirim kode verifikasi.');
+      console.error('Error in handleSendAuth:', error);
+      toast.error(`Terjadi kesalahan saat mengirim ${authMethod === 'otp' ? 'kode verifikasi' : 'magic link'}.`);
       startCooldown(30);
     } finally {
       setIsLoading(false);
-      // ✅ No captcha reset needed for resend
     }
   };
 
-  const handleResendOtp = async () => {
+  const handleResendAuth = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -130,20 +159,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError('');
     
     try {
-      debugLog('Attempting to resend OTP for email:', email);
-      const success = await sendEmailOtp(email, null); // ✅ No captcha for resend
+      debugLog(`Attempting to resend ${authMethod} for email:`, email);
+      
+      // ✅ Use sendAuth for resend (no captcha needed for resend)
+      const success = await sendAuth(email, authMethod, null, allowSignup);
       
       if (success) {
-        setOtp(['', '', '', '', '', '']);
+        if (authMethod === 'otp') {
+          setOtp(['', '', '', '', '', '']);
+          inputRefs.current[0]?.focus();
+        }
         startCooldown(60);
-        inputRefs.current[0]?.focus();
       } else {
-        toast.error('Gagal mengirim ulang kode verifikasi. Silakan coba lagi.');
+        toast.error(`Gagal mengirim ulang ${authMethod === 'otp' ? 'kode verifikasi' : 'magic link'}. Silakan coba lagi.`);
         startCooldown(30);
       }
     } catch (error) {
-      console.error('Error in handleResendOtp:', error);
-      toast.error('Terjadi kesalahan saat mengirim ulang kode verifikasi.');
+      console.error('Error in handleResendAuth:', error);
+      toast.error(`Terjadi kesalahan saat mengirim ulang ${authMethod === 'otp' ? 'kode verifikasi' : 'magic link'}.`);
       startCooldown(30);
     } finally {
       setIsLoading(false);
@@ -194,7 +227,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ UPDATED: Verify OTP with auto redirect
+  // ✅ ENHANCED: Verify OTP with better error handling
   const handleVerifyOtp = async (otpCode: string) => {
     if (otpCode.length !== 6) {
       setError('Kode OTP harus 6 digit');
@@ -211,14 +244,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (success) {
         // ✅ Handle successful login with flexible redirect options
         if (onLoginSuccess) {
-          // Custom callback provided
           onLoginSuccess();
         } else {
-          // Default redirect behavior
           toast.success('Login berhasil! Mengarahkan ke dashboard...');
           setTimeout(() => {
             window.location.href = redirectUrl;
-          }, 1500); // 1.5 second delay for user to see success message
+          }, 1500);
         }
       } else {
         setError('Kode OTP tidak valid. Silakan coba lagi.');
@@ -234,13 +265,29 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ FIXED: Load hCaptcha dynamically to avoid TypeScript conflicts
+  // ✅ Handle method change
+  const handleMethodChange = (newMethod: 'otp' | 'magic') => {
+    if (isLoading || cooldownTime > 0) return;
+    
+    setAuthMethod(newMethod);
+    resetForm();
+    debugLog('Auth method changed to:', newMethod);
+  };
+
+  // ✅ Handle email change
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    resetForm();
+    debugLog('Email changed. Form reset.');
+  };
+
+  // ✅ FIXED: Load hCaptcha dynamically
   useEffect(() => {
     if (HCAPTCHA_ENABLED && !HCaptcha) {
       import('@hcaptcha/react-hcaptcha')
         .then((module) => {
           HCaptcha = module.default;
-          setHCaptchaKey(prev => prev + 1); // Force re-render
+          setHCaptchaKey(prev => prev + 1);
         })
         .catch((error) => {
           console.error('Failed to load hCaptcha:', error);
@@ -248,7 +295,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   }, []);
 
-  // ✅ Fixed useEffect with proper dependency
   useEffect(() => {
     return () => {
       if (cooldownTimer) {
@@ -257,16 +303,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     };
   }, [cooldownTimer]);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    resetHCaptcha();
-    setOtpSent(false);
-    setOtp(['', '', '', '', '', '']);
-    setError('');
-    debugLog('Email changed. otpSent set to false.');
+  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
+
+  // ✅ Get button text based on method and state
+  const getButtonText = () => {
+    if (cooldownTime > 0) return `Tunggu ${cooldownTime}s`;
+    if (isLoading) {
+      return authMethod === 'otp' ? 'Mengirim Kode...' : 'Mengirim Magic Link...';
+    }
+    return authMethod === 'otp' ? 'Kirim Kode Verifikasi' : 'Kirim Magic Link';
   };
 
-  const isFormValid = email && email.includes('@') && (!HCAPTCHA_ENABLED || hCaptchaToken);
+  const getResendButtonText = () => {
+    if (cooldownTime > 0) return `Tunggu ${cooldownTime}s`;
+    if (isLoading) {
+      return authMethod === 'otp' ? 'Mengirim Ulang...' : 'Mengirim Ulang...';
+    }
+    return authMethod === 'otp' ? 'Kirim Ulang Kode' : 'Kirim Ulang Magic Link';
+  };
 
   return (
     <div
@@ -305,8 +359,43 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!otpSent ? (
+          {!otpSent && !magicLinkSent ? (
             <div className="space-y-4">
+              {/* ✅ NEW: Method Toggle */}
+              {showMethodToggle && (
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-gray-600">Metode Login:</p>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleMethodChange('otp')}
+                      className={`px-4 py-2 text-sm rounded-lg transition-all ${
+                        authMethod === 'otp' 
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      disabled={isLoading || cooldownTime > 0}
+                    >
+                      <Mail className="w-4 h-4 inline mr-1" />
+                      Kode OTP
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMethodChange('magic')}
+                      className={`px-4 py-2 text-sm rounded-lg transition-all ${
+                        authMethod === 'magic' 
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      disabled={isLoading || cooldownTime > 0}
+                    >
+                      <Lock className="w-4 h-4 inline mr-1" />
+                      Magic Link
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -354,7 +443,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               )}
               
               <Button
-                onClick={handleSendOtp}
+                onClick={handleSendAuth}
                 className="w-full py-6 text-base font-medium text-white rounded-md shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ 
                   backgroundColor: primaryColor,
@@ -374,14 +463,53 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Mengirim Kode Verifikasi...
+                    {getButtonText()}
                   </>
                 ) : (
-                  'Kirim Kode Verifikasi'
+                  getButtonText()
                 )}
+              </Button>
+
+              {/* ✅ NEW: Info about method */}
+              <div className="text-xs text-center text-gray-500">
+                {authMethod === 'otp' ? (
+                  'Kami akan mengirim kode 6 digit ke email Anda'
+                ) : (
+                  'Kami akan mengirim link khusus ke email Anda untuk login'
+                )}
+              </div>
+            </div>
+          ) : magicLinkSent ? (
+            // ✅ NEW: Magic Link Sent State
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <Mail className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800">Magic Link Dikirim!</h3>
+              <p className="text-gray-600 leading-relaxed mb-2">
+                Kami telah mengirim <strong>magic link</strong> ke
+              </p>
+              <p className="font-semibold text-gray-800 mb-4">{email}</p>
+              <p className="text-sm text-gray-600">
+                Silakan cek kotak masuk atau folder spam Anda dan klik link untuk login otomatis.
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800 mb-4">
+                <strong>Tips:</strong> Link akan expired dalam 1 jam. Jika tidak menerima email, coba kirim ulang.
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResendAuth}
+                disabled={isLoading || cooldownTime > 0}
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {getResendButtonText()}
               </Button>
             </div>
           ) : (
+            // ✅ EXISTING: OTP Input State
             <div className="text-center space-y-4 py-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <Mail className="h-8 w-8 text-green-600" />
@@ -390,7 +518,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <p className="text-gray-600 leading-relaxed mb-2">
                 Kami telah mengirim <strong>kode verifikasi</strong> ke
               </p>
-              <p className="font-semibold text-gray-800 mb-4">{email}.</p>
+              <p className="font-semibold text-gray-800 mb-4">{email}</p>
               <p className="text-sm text-gray-600">
                 Silakan cek kotak masuk atau folder spam Anda dan masukkan kode 6 digit di bawah ini:
               </p>
@@ -453,26 +581,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleResendOtp}
+                onClick={handleResendAuth}
                 disabled={isLoading || cooldownTime > 0}
                 className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {cooldownTime > 0 ? (
-                  <>
-                    <Clock className="mr-2 h-4 w-4" />
-                    Tunggu {cooldownTime}s
-                  </>
-                ) : isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Mengirim Ulang...
-                  </>
-                ) : (
-                  'Kirim Ulang Kode'
-                )}
+                {getResendButtonText()}
               </Button>
             </div>
           )}
@@ -498,7 +611,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           )}
           {DEBUG_LOGS && (
             <div className="text-xs text-gray-500 text-center font-mono bg-gray-100 p-2 rounded">
-              Debug: hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | OTP Sent: {otpSent ? 'Yes' : 'No'}
+              Debug: {authMethod.toUpperCase()} | hCaptcha {HCAPTCHA_ENABLED ? 'Enabled' : 'Disabled'} | Token: {hCaptchaToken ? '✓' : '✗'} | Sent: {otpSent || magicLinkSent ? 'Yes' : 'No'}
             </div>
           )}
         </CardFooter>

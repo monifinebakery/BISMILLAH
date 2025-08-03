@@ -28,7 +28,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           title: title || 'Belum Ada Biaya Operasional',
           description: description || 'Mulai tambahkan biaya operasional untuk menghitung overhead produksi Anda.',
           actionLabel: actionLabel || 'Tambah Biaya Pertama',
-          iconColor: 'text-blue-400',
+          iconColor: 'text-orange-400',
           bgColor: 'bg-blue-50',
         };
       

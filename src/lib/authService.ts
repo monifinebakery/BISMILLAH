@@ -169,7 +169,7 @@ export const sendEmailOtp = async (
   }
 };
 
-// ✅ FIXED: Verify Email OTP with enhanced error handling
+// ✅ FIXED: Verify Email OTP with enhanced mobile debugging
 export const verifyEmailOtp = async (
   email: string, 
   token: string
@@ -193,8 +193,24 @@ export const verifyEmailOtp = async (
       return false;
     }
 
-    console.log('🔍 Verifying OTP for:', email, 'token length:', cleanToken.length);
+    // ✅ ENHANCED: Add mobile debugging
+    const now = new Date();
+    const timestamp = now.toISOString();
+    const localTime = now.toLocaleString();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    console.log('🔍 Mobile Debug - Verifying OTP:', {
+      email,
+      tokenLength: cleanToken.length,
+      timestamp,
+      localTime,
+      timezone,
+      userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+    });
 
+    // ✅ ENHANCED: Add timing measurement for mobile
+    const startTime = Date.now();
+    
     // Verify OTP
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
@@ -202,45 +218,74 @@ export const verifyEmailOtp = async (
       type: 'email',
     });
     
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log('🔍 Mobile Debug - Verification result:', {
+      duration: `${duration}ms`,
+      hasError: !!error,
+      hasSession: !!data?.session,
+      hasUser: !!data?.user
+    });
+    
     if (error) {
       console.error('📛 OTP verification error:', error);
       
-      // Handle specific error types
-      if (error.message?.includes('expired') || error.message?.includes('token has expired')) {
-        console.log('🕐 Token expired');
+      // ✅ ENHANCED: Better mobile error detection
+      const errorMsg = error.message?.toLowerCase() || '';
+      
+      if (errorMsg.includes('expired') || errorMsg.includes('token has expired')) {
+        console.log('🕐 Token expired - Mobile Debug:', {
+          errorMessage: error.message,
+          timeSinceStart: duration,
+          possibleCause: duration > 10000 ? 'Network slow' : 'Token actually expired'
+        });
         return 'expired';
       }
       
-      if (error.message?.includes('too many attempts')) {
-        console.log('🚫 Too many attempts');
+      if (errorMsg.includes('too many attempts')) {
+        console.log('🚫 Too many attempts - Mobile Debug');
         toast.error('Terlalu banyak percobaan. Silakan minta kode baru.');
         return 'rate_limited';
       }
       
-      if (error.message?.includes('invalid')) {
-        console.log('❌ Token invalid');
+      if (errorMsg.includes('invalid')) {
+        console.log('❌ Token invalid - Mobile Debug:', {
+          tokenReceived: cleanToken,
+          errorMessage: error.message
+        });
         return false;
       }
       
       // Other errors
-      const errorMsg = getErrorMessage(error);
-      toast.error(errorMsg);
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage);
       return false;
     }
     
     // Check if session was created
     if (data.session && data.user) {
-      console.log('✅ OTP verified successfully. User logged in:', data.user.email);
+      console.log('✅ OTP verified successfully - Mobile Debug:', {
+        userId: data.user.id,
+        email: data.user.email,
+        sessionExpiry: data.session.expires_at,
+        duration: `${duration}ms`
+      });
       clearSessionCache();
       return true;
     } else {
-      console.warn('⚠️ OTP verified but no session created:', data);
+      console.warn('⚠️ OTP verified but no session created - Mobile Debug:', data);
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }
     
   } catch (error) {
-    console.error('📛 Unexpected error in verifyEmailOtp:', error);
+    console.error('📛 Unexpected error in verifyEmailOtp - Mobile Debug:', {
+      error,
+      stack: error.stack,
+      isMobile: navigator.userAgent.includes('Mobile'),
+      connection: navigator.onLine ? 'Online' : 'Offline'
+    });
     toast.error('Terjadi kesalahan jaringan saat verifikasi');
     return false;
   }

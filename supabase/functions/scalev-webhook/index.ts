@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🎯 SIMPLIFIED: UPDATE PAYMENT STATUS BY ORDER_ID');
+  console.log('🎯 MINIMAL: ESSENTIAL PAYMENT COLUMNS ONLY');
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,7 +25,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const payloadData = payload.data || payload;
     
-    // ✅ STEP 1: Extract essential payment data
+    // ✅ STEP 1: Extract only essential data
     const orderId = payloadData.order_id;
     const paymentStatus = payloadData.payment_status;
     const pgReferenceId = payloadData.pg_reference_id || 
@@ -34,17 +34,17 @@ const handler = async (req: Request): Promise<Response> => {
                          payloadData.id ||
                          null;
     
-    console.log('📋 Essential payment data extracted:');
+    console.log('📋 Essential data extracted:');
     console.log('- Order ID:', orderId);
     console.log('- Payment Status:', paymentStatus);
     console.log('- PG Reference ID:', pgReferenceId);
     
-    // ✅ VALIDATION: Must have order_id to proceed
+    // ✅ VALIDATION: Must have order_id
     if (!orderId) {
-      console.log('❌ No order_id found, cannot process webhook');
+      console.log('❌ No order_id found');
       return new Response(JSON.stringify({
         success: false,
-        error: 'order_id is required but not found in payload',
+        error: 'order_id is required',
         available_fields: Object.keys(payloadData)
       }), {
         status: 400,
@@ -52,204 +52,112 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // ✅ STEP 2: Find existing payment record by order_id
-    console.log('🔍 Looking for existing payment record...');
+    // ✅ STEP 2: Check if payment record exists
+    console.log('🔍 Looking for existing payment...');
     
     const { data: existingPayment, error: findError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
       .eq('order_id', orderId)
       .maybeSingle();
     
     if (findError && findError.code !== 'PGRST116') {
-      console.error('❌ Error finding payment record:', findError);
+      console.error('❌ Error finding payment:', findError);
       throw findError;
     }
     
-    if (!existingPayment) {
-      console.log('❌ No existing payment record found for order_id:', orderId);
-      console.log('🔄 Creating new payment record from webhook...');
+    let finalRecord;
+    let operationType;
+    
+    if (existingPayment) {
+      // ✅ UPDATE EXISTING RECORD
+      console.log('✅ Found existing payment, updating...');
+      operationType = 'UPDATE';
       
-      // ✅ CREATE new payment record if not exists
+      const updateData = {};
+      
+      // Update pg_reference_id if not set
+      if (pgReferenceId && !existingPayment.pg_reference_id) {
+        updateData.pg_reference_id = pgReferenceId;
+        console.log('📝 Adding pg_reference_id');
+      }
+      
+      // ✅ CORE: Update payment status and is_paid
+      if (paymentStatus === 'paid') {
+        updateData.payment_status = 'settled';
+        updateData.is_paid = true;
+        console.log('💰 MARKING AS PAID');
+      } else if (paymentStatus === 'unpaid') {
+        updateData.payment_status = 'pending';
+        updateData.is_paid = false;
+        console.log('⏳ MARKING AS UNPAID');
+      } else if (paymentStatus) {
+        updateData.payment_status = paymentStatus;
+        console.log('📝 Updating status to:', paymentStatus);
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        console.log('⚠️ No updates needed');
+        finalRecord = existingPayment;
+      } else {
+        console.log('🔄 Updating with:', updateData);
+        
+        const { data: updatedPayment, error: updateError } = await supabase
+          .from('user_payments')
+          .update(updateData)
+          .eq('order_id', orderId)
+          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+          .single();
+        
+        if (updateError) {
+          console.error('❌ Update failed:', updateError);
+          throw updateError;
+        }
+        
+        finalRecord = updatedPayment;
+        console.log('✅ Update success');
+      }
+      
+    } else {
+      // ✅ CREATE NEW RECORD
+      console.log('➕ No existing payment found, creating new...');
+      operationType = 'CREATE';
+      
       const newPaymentData = {
+        user_id: null, // Will be linked later when user logs in
         order_id: orderId,
         pg_reference_id: pgReferenceId,
-        email: 'webhook@auto-created.com', // Placeholder email
-        user_id: null, // Will be linked later when user logs in
+        email: 'pending@webhook.com', // Placeholder - will be updated when user links
         payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
-        is_paid: paymentStatus === 'paid',
-        amount: payloadData.amount || 0,
-        currency: payloadData.currency || 'IDR',
-        payment_method: paymentMethod,
-        financial_entity: financialEntity,
-        payment_account_holder: paymentAccountHolder,
-        payment_account_number: paymentAccountNumber,
-        paid_time: paidTime,
-        transfer_time: transferTime,
-        payment_date: paymentStatus === 'paid' ? (paidTime || new Date().toISOString()) : null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        is_paid: paymentStatus === 'paid'
       };
       
-      console.log('📝 Creating new payment record:', newPaymentData);
+      console.log('📝 Creating new payment:', newPaymentData);
       
       const { data: newPayment, error: createError } = await supabase
         .from('user_payments')
         .insert(newPaymentData)
-        .select()
+        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
         .single();
       
       if (createError) {
-        console.error('❌ CREATE FAILED:', createError);
+        console.error('❌ Create failed:', createError);
         throw createError;
       }
       
-      console.log('✅ NEW PAYMENT RECORD CREATED:', newPayment);
-      
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'New payment record created successfully',
-        operation: 'CREATE',
-        data: {
-          id: newPayment.id,
-          order_id: newPayment.order_id,
-          email: newPayment.email,
-          user_id: newPayment.user_id,
-          is_paid: newPayment.is_paid,
-          payment_status: newPayment.payment_status,
-          amount: newPayment.amount,
-          payment_date: newPayment.payment_date
-        },
-        note: 'Payment record created from webhook - will be linked to user when they log in'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      finalRecord = newPayment;
+      console.log('✅ Create success');
     }
-    
-    console.log('✅ Found existing payment record:', existingPayment.id);
-    console.log('Current status:', {
-      is_paid: existingPayment.is_paid,
-      payment_status: existingPayment.payment_status,
-      email: existingPayment.email,
-      user_id: existingPayment.user_id
-    });
 
-    // ✅ STEP 3: Prepare update data
-    const updateData = {
-      updated_at: new Date().toISOString()
-    };
+    // ✅ STEP 3: Return success response
+    console.log('🎉 Webhook completed successfully');
     
-    // Extract additional payment details if available
-    const paymentMethod = payloadData.payment_method || null;
-    const financialEntity = payloadData.financial_entity?.name || 
-                           payloadData.financial_entity || 
-                           null;
-    const paymentAccountHolder = payloadData.payment_account_holder || null;
-    const paymentAccountNumber = payloadData.payment_account_number || null;
-    const paidTime = payloadData.paid_time || null;
-    const transferTime = payloadData.transfer_time || null;
-    const amount = payloadData.amount || existingPayment.amount;
-    
-    // Update pg_reference_id if provided
-    if (pgReferenceId && !existingPayment.pg_reference_id) {
-      updateData.pg_reference_id = pgReferenceId;
-      console.log('📝 Adding pg_reference_id:', pgReferenceId);
-    }
-    
-    // Update payment method and details if provided
-    if (paymentMethod) {
-      updateData.payment_method = paymentMethod;
-      console.log('📝 Updating payment_method:', paymentMethod);
-    }
-    
-    if (financialEntity) {
-      updateData.financial_entity = financialEntity;
-      console.log('📝 Updating financial_entity:', financialEntity);
-    }
-    
-    if (paymentAccountHolder) {
-      updateData.payment_account_holder = paymentAccountHolder;
-    }
-    
-    if (paymentAccountNumber) {
-      updateData.payment_account_number = paymentAccountNumber;
-    }
-    
-    if (paidTime) {
-      updateData.paid_time = paidTime;
-    }
-    
-    if (transferTime) {
-      updateData.transfer_time = transferTime;
-    }
-    
-    if (amount && amount > 0) {
-      updateData.amount = amount;
-      console.log('📝 Updating amount:', amount);
-    }
-    
-    // ✅ CORE LOGIC: Update payment status and is_paid
-    if (paymentStatus === 'paid') {
-      updateData.payment_status = 'settled';
-      updateData.is_paid = true;
-      updateData.payment_date = paidTime || new Date().toISOString();
-      console.log('💰 MARKING AS PAID: payment_status = settled, is_paid = true');
-    } else if (paymentStatus === 'unpaid') {
-      updateData.payment_status = 'pending';
-      updateData.is_paid = false;
-      updateData.payment_date = null;
-      console.log('⏳ MARKING AS UNPAID: payment_status = pending, is_paid = false');
-    } else if (paymentStatus) {
-      // For other status values, keep as-is but don't auto-set is_paid
-      updateData.payment_status = paymentStatus;
-      console.log('📝 Updating payment_status to:', paymentStatus);
-    }
-    
-    console.log('📝 Final update data:', updateData);
-
-    // ✅ STEP 4: Update the payment record
-    console.log('🔄 Updating payment record...');
-    
-    const { data: updatedPayment, error: updateError } = await supabase
-      .from('user_payments')
-      .update(updateData)
-      .eq('id', existingPayment.id)
-      .select()
-      .single();
-    
-    if (updateError) {
-      console.error('❌ UPDATE FAILED:', updateError);
-      throw updateError;
-    }
-    
-    console.log('✅ UPDATE SUCCESS:', updatedPayment);
-
-    // ✅ STEP 5: Return success response
     return new Response(JSON.stringify({
       success: true,
-      message: 'Payment status updated successfully',
-      operation: 'UPDATE',
-      data: {
-        id: updatedPayment.id,
-        order_id: updatedPayment.order_id,
-        email: updatedPayment.email,
-        user_id: updatedPayment.user_id,
-        is_paid: updatedPayment.is_paid,
-        payment_status: updatedPayment.payment_status,
-        amount: updatedPayment.amount,
-        payment_date: updatedPayment.payment_date
-      },
-      changes: {
-        previous: {
-          is_paid: existingPayment.is_paid,
-          payment_status: existingPayment.payment_status
-        },
-        updated: {
-          is_paid: updatedPayment.is_paid,
-          payment_status: updatedPayment.payment_status
-        }
-      }
+      message: `Payment ${operationType.toLowerCase()} successful`,
+      operation: operationType,
+      data: finalRecord
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -257,13 +165,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error('❌ WEBHOOK ERROR:', error.message);
-    console.error('Error stack:', error.stack);
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Webhook processing failed',
-      details: error.message,
-      timestamp: new Date().toISOString()
+      error: 'Webhook failed',
+      details: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

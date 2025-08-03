@@ -495,16 +495,53 @@ export const getUserPaymentStatus = async (): Promise<{
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
   try {
-    console.log('🔍 Looking for payment with order_id:', orderId);
+    console.log('🔍 Looking for payment with order_id:', orderId, 'User:', user.email);
     
-    // ✅ FIXED: Don't use .single() for initial search
-    const { data: payments, error: findError } = await supabase
+    // ✅ Try multiple search strategies
+    console.log('🔍 Strategy 1: Exact match');
+    const { data: exactMatch, error: exactError } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId)
       .limit(1);
 
-    console.log('🔍 Search result:', { payments, findError, count: payments?.length });
+    console.log('🔍 Exact match result:', { exactMatch, exactError, count: exactMatch?.length });
+
+    // ✅ Strategy 2: Case-insensitive search
+    console.log('🔍 Strategy 2: Case-insensitive search');
+    const { data: caseInsensitive, error: caseError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .ilike('order_id', orderId)
+      .limit(5);
+
+    console.log('🔍 Case-insensitive result:', { caseInsensitive, caseError, count: caseInsensitive?.length });
+
+    // ✅ Strategy 3: Partial match
+    console.log('🔍 Strategy 3: Partial match');
+    const { data: partialMatch, error: partialError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .like('order_id', `%${orderId}%`)
+      .limit(5);
+
+    console.log('🔍 Partial match result:', { partialMatch, partialError, count: partialMatch?.length });
+
+    // ✅ Use the best match
+    let payments = exactMatch;
+    let findError = exactError;
+
+    if (!payments?.length && caseInsensitive?.length) {
+      console.log('🔍 Using case-insensitive match');
+      payments = caseInsensitive;
+      findError = caseError;
+    }
+
+    if (!payments?.length && partialMatch?.length) {
+      console.log('🔍 Using partial match');
+      payments = partialMatch;
+      findError = partialError;
+    }
 
     if (findError) {
       console.error('🔍 Search error:', findError);
@@ -512,7 +549,16 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
     }
 
     if (!payments || payments.length === 0) {
-      throw new Error('Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');
+      // ✅ Let's also check what's actually in the table
+      const { data: sampleData } = await supabase
+        .from('user_payments')
+        .select('order_id, id, is_paid, payment_status, email, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      console.log('🔍 Sample data from table:', sampleData);
+      
+      throw new Error(`Order ID "${orderId}" tidak ditemukan. Silakan periksa kembali atau hubungi admin. (Debug: Found ${sampleData?.length || 0} recent orders)`);
     }
 
     const payment = payments[0];
@@ -522,13 +568,13 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       throw new Error('Order ini sudah terhubung dengan akun lain.');
     }
 
-    // ✅ Update the payment
+    // ✅ Update the payment using the exact order_id from the found record
     const { data: updatedPayment, error: updateError } = await supabase
       .from('user_payments')
       .update({ user_id: user.id, email: user.email })
-      .eq('order_id', orderId)
+      .eq('id', payment.id) // Use ID instead of order_id for update
       .select('*')
-      .single(); // Use .single() here since we know the record exists
+      .single();
 
     if (updateError) {
       console.error('🔍 Update error:', updateError);
@@ -547,19 +593,45 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
 
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
-    console.log('🔍 Verifying order exists:', orderId);
+    console.log('🔍 Verifying order exists:', orderId, 'Length:', orderId.length);
     
+    // ✅ First, let's try a broad search to see what's in the table
+    const { data: allRecent, error: recentError } = await supabase
+      .from('user_payments')
+      .select('order_id, id, is_paid, payment_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    console.log('🔍 Recent payments in table:', allRecent);
+    
+    // ✅ Now try exact match
     const { data, error } = await supabase
       .from('user_payments')
-      .select('id')
+      .select('id, order_id, is_paid, payment_status')
       .eq('order_id', orderId)
-      .limit(1); // ✅ FIXED: Remove .single() and use .limit(1)
+      .limit(1);
     
-    console.log('🔍 Verify order response:', { data, error, count: data?.length });
+    console.log('🔍 Exact match result:', { data, error, searchTerm: orderId });
     
-    // ✅ FIXED: Check if we have any data (even if error exists due to no rows)
+    // ✅ Try case-insensitive search using ilike
+    const { data: ilikeData, error: ilikeError } = await supabase
+      .from('user_payments')
+      .select('id, order_id, is_paid, payment_status')
+      .ilike('order_id', orderId)
+      .limit(5);
+    
+    console.log('🔍 Case-insensitive search:', { ilikeData, ilikeError });
+    
+    // ✅ Try with LIKE pattern
+    const { data: likeData, error: likeError } = await supabase
+      .from('user_payments')
+      .select('id, order_id, is_paid, payment_status')
+      .like('order_id', `%${orderId}%`)
+      .limit(5);
+    
+    console.log('🔍 LIKE pattern search:', { likeData, likeError });
+    
     if (error && error.code === 'PGRST116') {
-      // This error code means "no rows returned" - which means order doesn't exist
       console.log('🔍 Order not found (no rows)');
       return false;
     }

@@ -155,8 +155,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       icon: <Package className="h-6 w-6" />,
       label: 'Total Pesanan',
       value: stats.orders.toLocaleString('id-ID'),
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
       tooltip: 'Jumlah total pesanan yang telah dibuat dalam periode yang dipilih. Setiap pesanan dihitung sebagai satu transaksi terlepas dari jumlah item di dalamnya.'
     },
     {
@@ -165,8 +165,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       label: 'Estimasi Laba Bersih',
       value: formatCurrency(stats.profit),
       description: '(Estimasi 30%)',
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
       tooltip: 'Perkiraan laba bersih berdasarkan asumsi margin keuntungan 30% dari omzet. Angka ini adalah estimasi dan dapat berbeda dengan laba aktual setelah dikurangi semua biaya operasional.'
     },
     {
@@ -177,8 +177,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       description: stats.mostUsedIngredient?.usageCount 
         ? `Dipakai ${stats.mostUsedIngredient.usageCount}x` 
         : '',
-      bgColor: 'bg-amber-100',
-      iconColor: 'text-amber-600',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
       valueColor: stats.mostUsedIngredient?.name ? 'text-gray-900' : 'text-gray-500',
       tooltip: 'Bahan baku yang paling sering digunakan dalam resep berdasarkan jumlah pesanan yang telah dibuat. Data ini membantu untuk perencanaan stok dan identifikasi bahan baku kritis.'
     }

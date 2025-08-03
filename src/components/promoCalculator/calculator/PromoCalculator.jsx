@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useRecipe } from '@/contexts/RecipeContext';
-import { usePromo } from '@/components/promoCalculator/contexts/PromoContext';
+import { usePromo } from '@/components/promoCalculator/context/PromoContext';
 import PromoTypeSelector from './PromoTypeSelector';
 import PromoPreview from './PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';

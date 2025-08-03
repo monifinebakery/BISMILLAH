@@ -241,7 +241,7 @@ const PromoCalculator = () => {
 
   // Desktop Layout
   return (
-    <div className="py-8">
+    <div className="py-6">
       {/* Desktop Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">
@@ -275,9 +275,9 @@ const PromoCalculator = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Form Section - Takes more space */}
-        <div className="lg:col-span-3 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Form Section */}
+        <div className="xl:col-span-2">
           <PromoTypeSelector 
             selectedType={selectedType}
             onTypeChange={setSelectedType}
@@ -287,9 +287,9 @@ const PromoCalculator = () => {
           />
         </div>
         
-        {/* Preview Section - Narrower sidebar */}
-        <div className="lg:col-span-2">
-          <div className="sticky top-8">
+        {/* Preview Section */}
+        <div className="xl:col-span-1">
+          <div className="sticky top-6">
             <PromoPreview 
               type={selectedType}
               data={{ calculationResult }}

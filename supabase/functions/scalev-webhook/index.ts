@@ -12,8 +12,72 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+// ✅ SIMPLIFIED AUTO-LINKING: Only link if there's exactly one recent user
+async function attemptUserLinking(paymentData, orderId) {
+  try {
+    console.log('🔍 Attempting auto-link for paid payment...');
+    
+    // Strategy 1: Look for users who recently signed up (within 1 hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
+    
+    if (!usersError && authData?.users) {
+      // Filter users created in the last hour
+      const recentUsers = authData.users.filter(user => 
+        user.created_at > oneHourAgo
+      );
+      
+      console.log(`📊 Found ${recentUsers.length} users created in last hour`);
+      
+      // Only auto-link if there's exactly ONE recent user (high confidence)
+      if (recentUsers.length === 1) {
+        const userToLink = recentUsers[0];
+        paymentData.user_id = userToLink.id;
+        paymentData.email = userToLink.email || 'linked@auto.com';
+        console.log(`✅ Auto-linked to recent user: ${userToLink.id}`);
+        return;
+      } else if (recentUsers.length > 1) {
+        console.log('⚠️ Multiple recent users found, cannot auto-link safely');
+      } else {
+        console.log('⚠️ No recent users found for auto-linking');
+      }
+    }
+    
+    // Strategy 2: Look for unlinked payments from same time period (fallback)
+    const { data: recentPayments, error: paymentsError } = await supabase
+      .from('user_payments')
+      .select('user_id, email, created_at')
+      .not('user_id', 'is', null)
+      .not('email', 'eq', 'pending@webhook.com')
+      .gte('created_at', oneHourAgo)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (!paymentsError && recentPayments && recentPayments.length > 0) {
+      // Check if all recent payments belong to the same user
+      const uniqueUsers = [...new Set(recentPayments.map(p => p.user_id))];
+      
+      if (uniqueUsers.length === 1) {
+        const userToLink = recentPayments[0];
+        paymentData.user_id = userToLink.user_id;
+        paymentData.email = userToLink.email;
+        console.log(`✅ Auto-linked based on recent payment pattern: ${userToLink.user_id}`);
+        return;
+      }
+    }
+    
+    // No auto-linking possible - will remain unlinked for manual popup linking
+    console.log('⚠️ Could not auto-link safely - will require manual linking');
+    
+  } catch (error) {
+    console.error('❌ Error during auto-linking:', error);
+    // Continue without linking - better than failing the webhook
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🎯 PRIORITY: GET DATA INTO DATABASE');
+  console.log('🎯 SIMPLE: ORDER_ID + STATUS ONLY (NO EMAIL COMPLEXITY)');
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,304 +87,173 @@ const handler = async (req: Request): Promise<Response> => {
     const payload = await req.json();
     console.log('📦 Received payload:', JSON.stringify(payload, null, 2));
     
-    // Debug: show all fields in payload.data for reference ID hunting
     const payloadData = payload.data || payload;
-    console.log('🔍 HUNTING FOR REFERENCE ID...');
-    console.log('Available fields in payload.data:', Object.keys(payloadData));
-    console.log('- id:', payloadData.id);
-    console.log('- pg_reference_id:', payloadData.pg_reference_id);
-    console.log('- reference_id:', payloadData.reference_id);
-    console.log('- reference:', payloadData.reference);
-    console.log('- unique_id:', payloadData.unique_id);
-    console.log('- order_id:', payloadData.order_id);
-
-    // STEP 1: Ambil email APAPUN yang ada (improved extraction)
-    let customerEmail = 'unknown@customer.com'; // default fallback
     
-    console.log('🔍 HUNTING FOR CUSTOMER EMAIL...');
-    
-    // Method 1: Cari di semua level payload untuk email pattern
-    function findEmailsInObject(obj, path = '') {
-      if (typeof obj === 'string' && obj.includes('@') && obj.includes('.')) {
-        console.log(`📧 Found email at ${path}: ${obj}`);
-        return obj;
-      }
-      
-      if (typeof obj === 'object' && obj !== null) {
-        for (const [key, value] of Object.entries(obj)) {
-          const foundEmail = findEmailsInObject(value, path ? `${path}.${key}` : key);
-          if (foundEmail && 
-              !foundEmail.includes('@scalev.') && 
-              !foundEmail.includes('system@') &&
-              !foundEmail.includes('unknown@')) {
-            return foundEmail;
-          }
-        }
-      }
-      
-      return null;
-    }
-    
-    // Cari email di seluruh payload
-    const foundEmail = findEmailsInObject(payload);
-    if (foundEmail) {
-      customerEmail = foundEmail;
-      console.log('✅ Found customer email:', customerEmail);
-    } else {
-      console.log('❌ No customer email found, using fallback');
-    }
-    
-    // Method 2: Check specific fields
-    const emailSources = [
-      payload.customer_email,
-      payload.email,
-      payloadData.customer_email,
-      payloadData.email,
-      payloadData.payment_account_holder,
-      // Check all payment history entries
-      ...(payloadData.payment_status_history || []).map(h => h.by?.email).filter(Boolean)
-    ];
-    
-    console.log('📧 All email sources found:', emailSources);
-    
-    // Take first valid email that's not system email
-    for (const email of emailSources) {
-      if (email && 
-          email.includes('@') && 
-          email.includes('.') &&
-          !email.includes('@scalev.') &&
-          !email.includes('system@') &&
-          !email.includes('unknown@')) {
-        customerEmail = email;
-        console.log('✅ Selected email from sources:', customerEmail);
-        break;
-      }
-    }
-    
-    console.log('🎯 Final email to use:', customerEmail);
-
-    // STEP 2: Extract additional Scalev data
-    // Extract pg_reference_id and other payment details
+    // ✅ STEP 1: Extract only essential data
+    const orderId = payloadData.order_id;
+    const paymentStatus = payloadData.payment_status;
     const pgReferenceId = payloadData.pg_reference_id || 
                          payloadData.reference_id ||
                          payloadData.reference ||
                          payloadData.id ||
                          null;
     
-    const paymentMethod = payloadData.payment_method || null;
-    const financialEntity = payloadData.financial_entity?.name || 
-                           payloadData.financial_entity || 
-                           null;
-    const paymentAccountHolder = payloadData.payment_account_holder || null;
-    const paymentAccountNumber = payloadData.payment_account_number || null;
-    const paidTime = payloadData.paid_time || null;
-    const transferTime = payloadData.transfer_time || null;
-    const amount = payloadData.amount || 0;
-    
-    console.log('💳 Payment details extracted:');
+    console.log('📋 Essential data extracted:');
+    console.log('- Order ID:', orderId);
+    console.log('- Payment Status:', paymentStatus);
     console.log('- PG Reference ID:', pgReferenceId);
-    console.log('- Payment Method:', paymentMethod);
-    console.log('- Financial Entity:', financialEntity);
-    console.log('- Account Holder:', paymentAccountHolder);
-    console.log('- Amount:', amount);
-    console.log('- Paid Time:', paidTime);
-
-    // STEP 3: Buat record dengan data lengkap
-    const insertData = {
-      email: customerEmail,
-      order_id: payloadData.order_id || `AUTO_${Date.now()}`,
-      pg_reference_id: pgReferenceId,
-      payment_status: payloadData.payment_status === 'paid' ? 'settled' : 'pending',
-      is_paid: payloadData.payment_status === 'paid',
-      amount: amount,
-      currency: payloadData.currency || 'IDR',
-      payment_method: paymentMethod,
-      financial_entity: financialEntity,
-      payment_account_holder: paymentAccountHolder,
-      payment_account_number: paymentAccountNumber,
-      paid_time: paidTime,
-      transfer_time: transferTime,
-      payment_date: payloadData.payment_status === 'paid' ? (paidTime || new Date().toISOString()) : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    console.log('💾 Preparing data:', insertData);
-
-    // STEP 3: CHECK IF RECORD EXISTS FIRST (by order_id)
-    console.log('🔍 Checking if record exists for order_id:', insertData.order_id);
     
-    const { data: existingRecord, error: checkError } = await supabase
+    // ✅ VALIDATION: Must have order_id
+    if (!orderId) {
+      console.log('❌ No order_id found');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'order_id is required',
+        available_fields: Object.keys(payloadData)
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // ✅ STEP 2: Check if payment record exists
+    console.log('🔍 Looking for existing payment...');
+    
+    const { data: existingPayment, error: findError } = await supabase
       .from('user_payments')
-      .select('*')
-      .eq('order_id', insertData.order_id)
+      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+      .eq('order_id', orderId)
       .maybeSingle();
     
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('❌ Error checking existing record:', checkError);
+    if (findError && findError.code !== 'PGRST116') {
+      console.error('❌ Error finding payment:', findError);
+      throw findError;
     }
     
     let finalRecord;
     let operationType;
     
-    if (existingRecord) {
-      // RECORD EXISTS - UPDATE IT
-      console.log('✅ Record exists, UPDATING:', existingRecord.id);
+    if (existingPayment) {
+      // ✅ UPDATE EXISTING RECORD
+      console.log('✅ Found existing payment, updating...');
+      console.log('Current payment:', existingPayment);
       operationType = 'UPDATE';
       
-      // Keep original email if current email is admin email
-      const emailToUse = customerEmail.includes('monifinebakery@') || 
-                        customerEmail.includes('@scalev.') || 
-                        customerEmail.includes('system@') ?
-                        existingRecord.email : // Keep original email
-                        customerEmail; // Use new email if it's customer email
+      const updateData = {};
       
-      const updateData = {
-        ...insertData,
-        email: emailToUse,
-        updated_at: new Date().toISOString()
-      };
+      // Update pg_reference_id if not set
+      if (pgReferenceId && !existingPayment.pg_reference_id) {
+        updateData.pg_reference_id = pgReferenceId;
+        console.log('📝 Adding pg_reference_id');
+      }
       
-      // Update payment status and additional fields based on payload
-      if (payload.data?.payment_status === 'paid') {
+      // ✅ CORE: Update payment status and is_paid
+      if (paymentStatus === 'paid') {
         updateData.payment_status = 'settled';
         updateData.is_paid = true;
-        updateData.payment_date = paidTime || new Date().toISOString();
+        console.log('💰 MARKING AS PAID');
+        
+        // ✅ AUTO-LINK: Only if payment becomes paid AND no user_id yet
+        if (!existingPayment.user_id) {
+          console.log('🔗 Payment now paid but no user_id, attempting auto-link...');
+          await attemptUserLinking(updateData, orderId);
+        } else {
+          console.log('👤 Payment already has user_id:', existingPayment.user_id);
+        }
+      } else if (paymentStatus === 'unpaid') {
+        updateData.payment_status = 'pending';
+        updateData.is_paid = false;
+        console.log('⏳ MARKING AS UNPAID');
+      } else if (paymentStatus) {
+        updateData.payment_status = paymentStatus;
+        console.log('📝 Updating status to:', paymentStatus);
       }
       
-      // Always update these fields with latest data from webhook
-      if (pgReferenceId) updateData.pg_reference_id = pgReferenceId;
-      if (paymentMethod) updateData.payment_method = paymentMethod;
-      if (financialEntity) updateData.financial_entity = financialEntity;
-      if (paymentAccountHolder) updateData.payment_account_holder = paymentAccountHolder;
-      if (paymentAccountNumber) updateData.payment_account_number = paymentAccountNumber;
-      if (paidTime) updateData.paid_time = paidTime;
-      if (transferTime) updateData.transfer_time = transferTime;
-      if (amount > 0) updateData.amount = amount;
-      
-      console.log('🔄 Updating with data:', updateData);
-      
-      const { data: updatedRecord, error: updateError } = await supabase
-        .from('user_payments')
-        .update(updateData)
-        .eq('id', existingRecord.id)
-        .select()
-        .single();
-      
-      if (updateError) {
-        console.error('❌ UPDATE FAILED:', updateError);
-        finalRecord = null;
+      // Only update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        console.log('⚠️ No updates needed');
+        finalRecord = existingPayment;
       } else {
-        console.log('✅ UPDATE SUCCESS:', updatedRecord);
-        finalRecord = updatedRecord;
+        console.log('🔄 Updating with:', updateData);
+        
+        const { data: updatedPayment, error: updateError } = await supabase
+          .from('user_payments')
+          .update(updateData)
+          .eq('order_id', orderId)
+          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+          .single();
+        
+        if (updateError) {
+          console.error('❌ Update failed:', updateError);
+          throw updateError;
+        }
+        
+        finalRecord = updatedPayment;
+        console.log('✅ Update success');
       }
       
     } else {
-      // RECORD DOESN'T EXIST - INSERT NEW
-      console.log('➕ Record doesn\'t exist, INSERTING new record');
-      operationType = 'INSERT';
+      // ✅ CREATE NEW RECORD
+      console.log('➕ No existing payment found, creating new...');
+      operationType = 'CREATE';
       
-      const { data: newRecord, error: insertError } = await supabase
-        .from('user_payments')
-        .insert(insertData)
-        .select()
-        .single();
-      
-      if (insertError) {
-        console.error('❌ INSERT FAILED:', insertError);
-        finalRecord = null;
-      } else {
-        console.log('✅ INSERT SUCCESS:', newRecord);
-        finalRecord = newRecord;
-      }
-    }
-
-    // STEP 4: HANDLE RESULT
-    if (!finalRecord) {
-      console.error('❌ OPERATION FAILED');
-      
-      // Coba insert dengan data yang lebih minimal lagi
-      console.log('🔄 Trying super minimal insert...');
-      
-      const superMinimalData = {
-        email: customerEmail.includes('monifinebakery@') ? 'fallback@customer.com' : customerEmail,
-        order_id: `MINIMAL_${Date.now()}`,
-        payment_status: 'pending',
-        is_paid: false
+      const newPaymentData = {
+        user_id: null, // Start as unlinked
+        order_id: orderId,
+        pg_reference_id: pgReferenceId,
+        email: 'unlinked@payment.com', // Placeholder (not used for matching)
+        payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
+        is_paid: paymentStatus === 'paid'
       };
       
-      const { data: minimalRecord, error: minimalError } = await supabase
-        .from('user_payments')
-        .insert(superMinimalData)
-        .select()
-        .single();
-        
-      if (minimalError) {
-        console.error('❌ EVEN MINIMAL INSERT FAILED:', minimalError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Could not insert any data',
-          details: minimalError
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+      // ✅ AUTO-LINK: Only if payment is paid
+      if (paymentStatus === 'paid') {
+        console.log('🔗 New paid payment, attempting auto-link...');
+        await attemptUserLinking(newPaymentData, orderId);
       } else {
-        console.log('✅ MINIMAL INSERT SUCCESS:', minimalRecord);
-        return new Response(JSON.stringify({
-          success: true,
-          message: 'Minimal data inserted successfully',
-          operation: 'MINIMAL_INSERT',
-          data: minimalRecord
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+        console.log('⏳ New unpaid payment, will remain unlinked until paid');
       }
       
-    } else {
-      console.log(`✅ ${operationType} SUCCESS:`, finalRecord);
+      console.log('📝 Creating new payment:', newPaymentData);
       
-      return new Response(JSON.stringify({
-        success: true,
-        message: `Data ${operationType.toLowerCase()} successfully`,
-        operation: operationType,
-        data: finalRecord
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      const { data: newPayment, error: createError } = await supabase
+        .from('user_payments')
+        .insert(newPaymentData)
+        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+        .single();
+      
+      if (createError) {
+        console.error('❌ Create failed:', createError);
+        throw createError;
+      }
+      
+      finalRecord = newPayment;
+      console.log('✅ Create success');
     }
+
+    // ✅ STEP 3: Return success response with linking status
+    const isLinked = !!finalRecord.user_id;
+    console.log('🎉 Webhook completed successfully');
+    console.log('Final record:', finalRecord);
+    
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Payment ${operationType.toLowerCase()} successful`,
+      operation: operationType,
+      data: finalRecord,
+      auto_linked: isLinked,
+      requires_manual_linking: !isLinked && finalRecord.is_paid
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
 
   } catch (error) {
-    console.error('❌ WEBHOOK ERROR:', error);
-    
-    // Bahkan kalau ada error, coba insert emergency record
-    try {
-      console.log('🚨 EMERGENCY INSERT...');
-      
-      const emergencyData = {
-        email: 'emergency@webhook.failed',
-        order_id: `EMERGENCY_${Date.now()}`,
-        payment_status: 'pending',
-        is_paid: false
-      };
-      
-      const { data: emergencyRecord } = await supabase
-        .from('user_payments')
-        .insert(emergencyData)
-        .select()
-        .single();
-        
-      console.log('🚨 EMERGENCY RECORD CREATED:', emergencyRecord);
-      
-    } catch (emergencyError) {
-      console.error('🚨 EVEN EMERGENCY FAILED:', emergencyError);
-    }
+    console.error('❌ WEBHOOK ERROR:', error.message);
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Webhook processing failed',
+      error: 'Webhook failed',
       details: error.message
     }), {
       status: 500,

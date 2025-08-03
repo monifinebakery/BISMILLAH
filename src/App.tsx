@@ -1,4 +1,4 @@
-// App.jsx - Improved Lazy Loading Strategy with Perfect Centered Loaders
+// App.jsx - Enhanced Payment Integration with Updated Components
 
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
@@ -26,6 +26,9 @@ import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
+
+// ✅ UPDATED: Import the updated OrderConfirmationPopup
+import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -100,6 +103,13 @@ const queryClient = new QueryClient({
       // Reduce default cache time to save memory
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     },
   },
 });
@@ -115,7 +125,7 @@ const PageLoader = () => (
 );
 
 // ✅ FIXED: Perfect centered page loaders with enhanced styling
-const createPageLoader = (title) => () => (
+const createPageLoader = (title: string) => () => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
@@ -156,7 +166,7 @@ const RouteErrorFallback = () => {
 };
 
 // ✅ FIXED: Perfectly centered error fallbacks
-const createErrorFallback = (title) => () => {
+const createErrorFallback = (title: string) => () => {
   const navigate = useNavigate();
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
@@ -193,10 +203,51 @@ const OrderErrorFallback = createErrorFallback("Gagal Memuat Pesanan");
 const OperationalCostErrorFallback = createErrorFallback("Gagal Memuat Biaya Operasional");
 const PurchaseErrorFallback = createErrorFallback("Gagal Memuat Pembelian");
 
-// ✅ MAIN LAYOUT: Keep providers but optimize structure
+// ✅ ENHANCED: AppLayout with improved payment integration
 const AppLayout = () => {
   const isMobile = useIsMobile();
-  const { isPaid } = usePaymentContext();
+  const { 
+    isPaid, 
+    showOrderPopup,
+    setShowOrderPopup,
+    refetchPayment,
+    unlinkedPaymentCount,
+    needsOrderLinking
+  } = usePaymentContext();
+
+  const handleOrderLinked = (payment: any) => {
+    console.log('✅ Order linked successfully:', payment);
+    refetchPayment(); // Refresh payment status
+  };
+
+  // ✅ ENHANCED: Smart button visibility and styling
+  const renderOrderLinkButton = (isMobileVersion = false) => {
+    if (isPaid) return null;
+
+    const baseClasses = isMobileVersion 
+      ? "text-xs bg-blue-600 text-white px-2 py-1 rounded"
+      : "text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md transition-colors";
+
+    const urgentClasses = needsOrderLinking || unlinkedPaymentCount > 0
+      ? isMobileVersion
+        ? "bg-orange-600 animate-pulse"
+        : "bg-orange-600 hover:bg-orange-700 animate-pulse"
+      : "";
+
+    const buttonText = isMobileVersion
+      ? unlinkedPaymentCount > 0 ? `Link (${unlinkedPaymentCount})` : "Link Order"
+      : unlinkedPaymentCount > 0 ? `Hubungkan Order (${unlinkedPaymentCount})` : "Hubungkan Order";
+
+    return (
+      <button
+        onClick={() => setShowOrderPopup(true)}
+        className={`${baseClasses} ${urgentClasses}`}
+        title={unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"}
+      >
+        {buttonText}
+      </button>
+    );
+  };
 
   if (isMobile) {
     return (
@@ -212,6 +263,7 @@ const AppLayout = () => {
                   {isPaid && <PaymentStatusIndicator />}
                   <NotificationBell />
                   <MobileExportButton />
+                  {renderOrderLinkButton(true)}
                 </div>
               </header>
               <main className="flex-1 overflow-auto pb-16">
@@ -225,6 +277,13 @@ const AppLayout = () => {
                   <PaymentStatusIndicator size="lg" />
                 </div>
               )}
+              
+              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
+              <OrderConfirmationPopup
+                isOpen={showOrderPopup}
+                onClose={() => setShowOrderPopup(false)}
+                onSuccess={handleOrderLinked}
+              />
             </div>
           </SupplierProvider>
         </RecipeProvider>
@@ -247,6 +306,7 @@ const AppLayout = () => {
                     <PaymentStatusIndicator />
                     <DateTimeDisplay />
                     <NotificationBell />
+                    {renderOrderLinkButton(false)}
                   </div>
                 </header>
                 <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
@@ -255,6 +315,13 @@ const AppLayout = () => {
                   </ErrorBoundary>
                 </main>
               </SidebarInset>
+              
+              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
+              <OrderConfirmationPopup
+                isOpen={showOrderPopup}
+                onClose={() => setShowOrderPopup(false)}
+                onSuccess={handleOrderLinked}
+              />
             </div>
           </SidebarProvider>
         </SupplierProvider>
@@ -266,9 +333,13 @@ const AppLayout = () => {
 const App = () => {
   useEffect(() => {
     const handleAuthRedirect = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session && window.location.hash.includes("access_token")) {
-        window.location.reload();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session && window.location.hash.includes("access_token")) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Auth redirect error:', error);
       }
     };
     handleAuthRedirect();

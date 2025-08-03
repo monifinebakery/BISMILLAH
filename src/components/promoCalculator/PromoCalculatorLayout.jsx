@@ -535,54 +535,64 @@ const PromoCalculator = () => {
 
   // Desktop Layout
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Desktop Header */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-2">
-          <div className="p-2 bg-orange-100 rounded-lg">
-            <Calculator className="h-6 w-6 text-orange-600" />
+      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+              <Calculator className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Kalkulator Promo</h1>
+              <p className="text-orange-100 mt-2 text-lg">
+                Hitung profit margin dan dampak promo dengan akurat
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Kalkulator Promo</h1>
-            <p className="text-gray-600">Hitung profit margin dan dampak promo dengan akurat</p>
-          </div>
+          
+          {selectedType && (
+            <div className="mt-6 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-lg p-4">
+              <p className="text-orange-100">
+                <span className="font-medium">Tipe promo dipilih:</span> 
+                <span className="capitalize ml-1 text-white">
+                  {selectedType === 'bogo' ? 'Buy One Get One' : 
+                   selectedType === 'discount' ? 'Diskon' : 'Bundle'}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
-        
-        {selectedType && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <p className="text-sm text-orange-800">
-              <span className="font-medium">Tipe promo dipilih:</span> 
-              <span className="capitalize ml-1">{selectedType}</span>
-            </p>
-          </div>
-        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form Section */}
-        <div className="lg:col-span-2 space-y-6">
-          <Suspense fallback={<LoadingState type="form" />}>
-            <PromoTypeSelector 
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              onFormSubmit={handleFormSubmit}
-              isCalculating={isCalculating || calculationLoading}
-              recipes={recipes}
-            />
-          </Suspense>
-        </div>
-        
-        {/* Preview Section */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
+      {/* Desktop Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Form Section */}
+          <div className="lg:col-span-2 space-y-6">
             <Suspense fallback={<LoadingState type="form" />}>
-              <PromoPreview 
-                type={selectedType}
-                data={formData}
-                onSave={handleSavePromo}
-                isLoading={calculationLoading}
+              <PromoTypeSelector 
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                onFormSubmit={handleFormSubmit}
+                isCalculating={isCalculating || calculationLoading}
+                recipes={recipes}
               />
             </Suspense>
+          </div>
+          
+          {/* Preview Section */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <Suspense fallback={<LoadingState type="form" />}>
+                <PromoPreview 
+                  type={selectedType}
+                  data={formData}
+                  onSave={handleSavePromo}
+                  isLoading={calculationLoading}
+                />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>

@@ -68,13 +68,61 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (!existingPayment) {
       console.log('❌ No existing payment record found for order_id:', orderId);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'No existing payment record found',
+      console.log('🔄 Creating new payment record from webhook...');
+      
+      // ✅ CREATE new payment record if not exists
+      const newPaymentData = {
         order_id: orderId,
-        message: 'Payment record must be created first before webhook can update it'
+        pg_reference_id: pgReferenceId,
+        email: 'webhook@auto-created.com', // Placeholder email
+        user_id: null, // Will be linked later when user logs in
+        payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
+        is_paid: paymentStatus === 'paid',
+        amount: payloadData.amount || 0,
+        currency: payloadData.currency || 'IDR',
+        payment_method: paymentMethod,
+        financial_entity: financialEntity,
+        payment_account_holder: paymentAccountHolder,
+        payment_account_number: paymentAccountNumber,
+        paid_time: paidTime,
+        transfer_time: transferTime,
+        payment_date: paymentStatus === 'paid' ? (paidTime || new Date().toISOString()) : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('📝 Creating new payment record:', newPaymentData);
+      
+      const { data: newPayment, error: createError } = await supabase
+        .from('user_payments')
+        .insert(newPaymentData)
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('❌ CREATE FAILED:', createError);
+        throw createError;
+      }
+      
+      console.log('✅ NEW PAYMENT RECORD CREATED:', newPayment);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'New payment record created successfully',
+        operation: 'CREATE',
+        data: {
+          id: newPayment.id,
+          order_id: newPayment.order_id,
+          email: newPayment.email,
+          user_id: newPayment.user_id,
+          is_paid: newPayment.is_paid,
+          payment_status: newPayment.payment_status,
+          amount: newPayment.amount,
+          payment_date: newPayment.payment_date
+        },
+        note: 'Payment record created from webhook - will be linked to user when they log in'
       }), {
-        status: 404,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }

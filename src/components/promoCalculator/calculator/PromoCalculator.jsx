@@ -1,6 +1,14 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { Calculator, Save, ChevronLeft, AlertCircle } from 'lucide-react';
 
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+    <span className="ml-3 text-gray-600">Memuat...</span>
+  </div>
+);
+
 // Lazy load components
 const PromoTypeSelector = lazy(() => Promise.resolve({
   default: ({ selectedType, onTypeChange, onCalculate, isCalculating, recipes, isMobile }) => {
@@ -23,7 +31,6 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
 
     return (
       <div className="space-y-6">
-        {/* Type Selection */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pilih Tipe Promo</h2>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
@@ -57,7 +64,6 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
           </div>
         </div>
 
-        {/* Form */}
         {selectedType && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">
@@ -235,14 +241,6 @@ const PromoPreview = lazy(() => Promise.resolve({
   }
 }));
 
-// Loading component
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-    <span className="ml-3 text-gray-600">Memuat...</span>
-  </div>
-);
-
 const PromoCalculator = () => {
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
@@ -357,7 +355,6 @@ const PromoCalculator = () => {
         {/* Mobile Content */}
         <div className="p-4 pb-24">
           {!showPreview ? (
-            // Form
             <Suspense fallback={<LoadingSpinner />}>
               <PromoTypeSelector 
                 selectedType={selectedType}
@@ -369,7 +366,6 @@ const PromoCalculator = () => {
               />
             </Suspense>
           ) : (
-            // Preview
             <Suspense fallback={<LoadingSpinner />}>
               <PromoPreview 
                 result={formData.result}
@@ -455,53 +451,6 @@ const PromoCalculator = () => {
                   isMobile={false}
                 />
               </Suspense>
-            </div>
-          </div>'currency',
-                          currency: 'IDR',
-                          minimumFractionDigits: 0
-                        }).format(formData.result.originalPrice)}
-                      </div>
-                    </div>
-                    <div className="bg-orange-50 rounded-lg p-4">
-                      <div className="text-sm text-orange-600">Harga Promo</div>
-                      <div className="text-lg font-semibold text-orange-700">
-                        {new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          minimumFractionDigits: 0
-                        }).format(formData.result.promoPrice)}
-                      </div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-4">
-                      <div className="text-sm text-green-600">Margin Keuntungan</div>
-                      <div className="text-xl font-bold text-green-700">{formData.result.profitMargin}%</div>
-                    </div>
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="text-sm text-blue-600">Total Penghematan</div>
-                      <div className="text-lg font-semibold text-blue-700">
-                        {new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          minimumFractionDigits: 0
-                        }).format(formData.result.totalSavings)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleSave}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Simpan Promo</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-4">📊</div>
-                  <p className="text-gray-600 text-sm">Pilih tipe promo untuk melihat preview</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

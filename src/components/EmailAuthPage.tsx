@@ -7,6 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
+// ✅ Dynamic hCaptcha import
+let HCaptcha: any = null;
+
+// ✅ Environment variables
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
+const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
+
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {
   appName?: string;
@@ -37,9 +44,32 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
   
+  // ✅ hCaptcha state
+  const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
+  const [hCaptchaKey, setHCaptchaKey] = useState(0);
+  const [hCaptchaLoaded, setHCaptchaLoaded] = useState(false);
+  
   // ✅ Refs for OTP inputs and timer
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ Load hCaptcha dynamically
+  useEffect(() => {
+    if (HCAPTCHA_ENABLED && !HCaptcha) {
+      import('@hcaptcha/react-hcaptcha')
+        .then((module) => {
+          HCaptcha = module.default;
+          setHCaptchaLoaded(true);
+          setHCaptchaKey(1);
+        })
+        .catch((error) => {
+          console.error('Failed to load hCaptcha:', error);
+          setHCaptchaLoaded(false);
+        });
+    } else if (!HCAPTCHA_ENABLED) {
+      setHCaptchaLoaded(true);
+    }
+  }, []);
 
   // ✅ Cleanup timer on unmount
   useEffect(() => {
@@ -77,11 +107,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(['', '', '', '', '', '']);
     setError('');
     setAuthState('idle');
+    resetHCaptcha();
+  };
+
+  // ✅ Reset hCaptcha
+  const resetHCaptcha = () => {
+    if (HCAPTCHA_ENABLED && hCaptchaLoaded) {
+      setHCaptchaToken(null);
+      setHCaptchaKey(prev => prev + 1);
+    }
   };
 
   // ✅ Simplified Email Validation
   const isValidEmail = (email: string) => {
     return email && email.includes('@') && email.length > 5;
+  };
+
+  // ✅ Check if form is valid
+  const isFormValid = () => {
+    const emailValid = isValidEmail(email);
+    const captchaValid = !HCAPTCHA_ENABLED || !hCaptchaLoaded || hCaptchaToken;
+    return emailValid && captchaValid;
   };
 
   // ✅ Handle Email Change
@@ -92,7 +138,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ Simplified Send OTP
+  // ✅ Send OTP with correct parameter order
   const handleSendOtp = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
@@ -104,11 +150,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
+    if (HCAPTCHA_ENABLED && hCaptchaLoaded && !hCaptchaToken) {
+      toast.error('Harap selesaikan verifikasi captcha.');
+      return;
+    }
+
     setAuthState('sending');
     setError('');
 
     try {
-      const success = await sendEmailOtp(email, true); // allowSignup = true
+      // ✅ FIXED: Use correct parameter order for authService
+      const success = await sendEmailOtp(
+        email,                                    // email (required)
+        HCAPTCHA_ENABLED ? hCaptchaToken : null, // captchaToken  
+        true,                                    // allowSignup
+        false                                    // skipCaptcha
+      );
       
       if (success) {
         setAuthState('sent');
@@ -132,7 +189,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ Simplified Resend OTP
+  // ✅ Resend OTP (skip captcha for better UX)
   const handleResendOtp = async () => {
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
@@ -144,7 +201,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(['', '', '', '', '', '']);
 
     try {
-      const success = await sendEmailOtp(email, true);
+      // ✅ FIXED: Skip captcha for resend (better UX)
+      const success = await sendEmailOtp(
+        email,  // email
+        null,   // captchaToken (skip for resend)
+        true,   // allowSignup  
+        true    // skipCaptcha (true for resend)
+      );
       
       if (success) {
         setAuthState('sent');
@@ -224,6 +287,263 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           setTimeout(() => {
             window.location.href = redirectUrl;
           }, 1000);
+        }
+      } else if (result === 'expired') {
+        // Expired
+        setAuthState('expired');
+        setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
+        setOtp(['', '', '', '', '', '']);
+      } else if (result === 'rate_limited') {
+        // Rate limited
+        setAuthState('error');
+        setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
+        setOtp(['', '', '', '', '', '']);
+      } else {
+        // Invalid
+        setAuthState('error');
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      setAuthState('error');
+      setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    }
+  };
+
+  // ✅ Get Button States
+  const isLoading = authState === 'sending' || authState === 'verifying';
+  const isSent = authState === 'sent' || authState === 'expired';
+  const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
+  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying';
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
+      <Card className="w-full max-w-md shadow-xl border-0 rounded-xl overflow-hidden">
+        {/* Header Accent */}
+        <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
+        
+        <CardHeader className="space-y-4 pt-8">
+          <div className="flex justify-center mb-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-16 w-auto" />
+            ) : (
+              <div className="h-16 w-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+            )}
+          </div>
+          <CardTitle className="text-2xl font-bold text-center text-gray-800">
+            {appName}
+          </CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            {appDescription}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {!isSent ? (
+            // ✅ Email Input Form with hCaptcha
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Masukkan email Anda"
+                    value={email}
+                    onChange={handleEmailChange}
+                    className="pl-10 py-3 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    disabled={isLoading}
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* ✅ hCaptcha Widget */}
+              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptcha && hCaptchaKey > 0 && (
+                <div className="flex justify-center">
+                  <HCaptcha
+                    key={hCaptchaKey}
+                    sitekey={HCAPTCHA_SITE_KEY}
+                    onVerify={(token: string) => {
+                      setHCaptchaToken(token);
+                      console.log('hCaptcha verified');
+                    }}
+                    onExpire={() => {
+                      setHCaptchaToken(null);
+                      console.log('hCaptcha expired');
+                    }}
+                    onError={(error: any) => {
+                      console.error('hCaptcha error:', error);
+                      setHCaptchaToken(null);
+                      toast.error('Captcha gagal dimuat. Refresh halaman dan coba lagi.');
+                    }}
+                    theme="light"
+                    size="normal"
+                  />
+                </div>
+              )}
+
+              {/* ✅ Show message if hCaptcha failed to load */}
+              {HCAPTCHA_ENABLED && !hCaptchaLoaded && (
+                <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                  ⚠️ Captcha sedang dimuat... Tunggu sebentar.
+                </div>
+              )}
+              
+              <Button
+                onClick={handleSendOtp}
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+                disabled={!canSend}
+              >
+                {cooldownTime > 0 ? (
+                  <>
+                    <Clock className="mr-2 h-5 w-5" />
+                    Tunggu {cooldownTime}s
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                    Mengirim Kode...
+                  </>
+                ) : (
+                  'Kirim Kode Verifikasi'
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
+              </p>
+            </div>
+          ) : (
+            // ✅ OTP Verification Form
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <Mail className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
+                <p className="text-gray-600">
+                  Kode verifikasi telah dikirim ke
+                </p>
+                <p className="font-semibold text-gray-800">{email}</p>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className={`border rounded-lg p-3 ${
+                  authState === 'expired' 
+                    ? 'bg-orange-50 border-orange-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-center">
+                    <AlertCircle className={`w-4 h-4 mr-2 ${
+                      authState === 'expired' ? 'text-orange-600' : 'text-red-600'
+                    }`} />
+                    <span className={`text-sm ${
+                      authState === 'expired' ? 'text-orange-800' : 'text-red-800'
+                    }`}>
+                      {error}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Input */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700 block text-center">
+                  Masukkan Kode OTP (6 digit)
+                </Label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9A-Z]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
+                      disabled={authState === 'verifying'}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Verify Button */}
+              <Button
+                onClick={handleVerifyOtp}
+                disabled={!canVerify}
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+              >
+                {authState === 'verifying' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Memverifikasi...
+                  </>
+                ) : (
+                  'Verifikasi Kode'
+                )}
+              </Button>
+              
+              {/* Info & Resend */}
+              <div className="space-y-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                  <strong>Tips:</strong> Kode akan expired dalam 5 menit. Periksa folder spam jika tidak menerima email.
+                </div>
+                
+                <Button
+                  variant="outline"
+                  onClick={handleResendOtp}
+                  disabled={isLoading || cooldownTime > 0}
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                >
+                  {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : 'Kirim Ulang Kode'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex flex-col space-y-3 pt-0">
+          <div className="text-xs text-center text-gray-500">
+            Butuh bantuan?{' '}
+            <a 
+              href={`mailto:${supportEmail}`} 
+              className="text-orange-600 hover:text-orange-700 hover:underline transition-colors"
+            >
+              Hubungi admin
+            </a>
+          </div>
+          
+          {cooldownTime > 0 && (
+            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
+              <Clock className="inline h-3 w-3 mr-1" />
+              Tunggu {cooldownTime} detik untuk mencegah spam
+            </div>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+export default EmailAuthPage;
         }
       } else if (result === 'expired') {
         // Expired

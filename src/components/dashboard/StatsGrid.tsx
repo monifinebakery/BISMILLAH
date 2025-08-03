@@ -146,8 +146,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       icon: <CircleDollarSign className="h-6 w-6" />,
       label: 'Omzet (Pendapatan Kotor)',
       value: formatCurrency(stats.revenue),
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
       tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).'
     },
     {

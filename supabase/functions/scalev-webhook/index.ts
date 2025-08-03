@@ -12,6 +12,67 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+// ✅ AUTO-LINKING FUNCTION: Try to link payment to user
+async function attemptUserLinking(paymentData, orderId) {
+  try {
+    console.log('🔍 Looking for user to link payment to...');
+    
+    // Strategy 1: Look for recent user sessions or pending payments
+    // Check if there's an existing payment for this user that we can match
+    const { data: recentPayments, error: recentError } = await supabase
+      .from('user_payments')
+      .select('user_id, email')
+      .not('user_id', 'is', null)
+      .not('email', 'eq', 'pending@webhook.com')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (!recentError && recentPayments && recentPayments.length > 0) {
+      // For now, we'll use a simple heuristic - but you might want to implement
+      // more sophisticated matching logic based on your app's flow
+      console.log('📊 Found recent payments with users:', recentPayments.length);
+      
+      // You could implement more specific matching logic here
+      // For example: match by IP, session, or other identifying info
+      
+      // Simple approach: if there's only one recent user, likely the same person
+      const uniqueUsers = [...new Set(recentPayments.map(p => p.user_id))];
+      if (uniqueUsers.length === 1) {
+        const userToLink = recentPayments[0];
+        paymentData.user_id = userToLink.user_id;
+        paymentData.email = userToLink.email;
+        console.log(`✅ Auto-linked to recent user: ${userToLink.email}`);
+        return;
+      }
+    }
+    
+    // Strategy 2: Look for users who recently signed up (within 30 minutes)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    
+    const { data: recentUsers, error: usersError } = await supabase.auth.admin.listUsers();
+    
+    if (!usersError && recentUsers?.users) {
+      const veryRecentUsers = recentUsers.users.filter(user => 
+        user.created_at > thirtyMinutesAgo
+      );
+      
+      if (veryRecentUsers.length === 1) {
+        const userToLink = veryRecentUsers[0];
+        paymentData.user_id = userToLink.id;
+        paymentData.email = userToLink.email;
+        console.log(`✅ Auto-linked to recent signup: ${userToLink.email}`);
+        return;
+      }
+    }
+    
+    console.log('⚠️ Could not auto-link payment - will remain unlinked for manual linking later');
+    
+  } catch (error) {
+    console.error('❌ Error during auto-linking:', error);
+    // Continue without linking - better than failing the webhook
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   console.log('🎯 MINIMAL: ESSENTIAL PAYMENT COLUMNS ONLY');
   
@@ -87,6 +148,12 @@ const handler = async (req: Request): Promise<Response> => {
         updateData.payment_status = 'settled';
         updateData.is_paid = true;
         console.log('💰 MARKING AS PAID');
+        
+        // ✅ AUTO-LINK: Try to find user_id when payment becomes paid
+        if (!existingPayment.user_id) {
+          console.log('🔗 Payment now paid but no user_id, attempting auto-link...');
+          await attemptUserLinking(updateData, orderId);
+        }
       } else if (paymentStatus === 'unpaid') {
         updateData.payment_status = 'pending';
         updateData.is_paid = false;
@@ -125,13 +192,19 @@ const handler = async (req: Request): Promise<Response> => {
       operationType = 'CREATE';
       
       const newPaymentData = {
-        user_id: null, // Will be linked later when user logs in
+        user_id: null, // Will be linked below if payment is paid
         order_id: orderId,
         pg_reference_id: pgReferenceId,
         email: 'pending@webhook.com', // Placeholder - will be updated when user links
         payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
         is_paid: paymentStatus === 'paid'
       };
+      
+      // ✅ AUTO-LINK: If payment is paid, try to link user immediately
+      if (paymentStatus === 'paid') {
+        console.log('🔗 New paid payment, attempting auto-link...');
+        await attemptUserLinking(newPaymentData, orderId);
+      }
       
       console.log('📝 Creating new payment:', newPaymentData);
       

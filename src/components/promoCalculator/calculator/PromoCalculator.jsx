@@ -1,5 +1,3 @@
-// PromoCalculator.jsx - Main calculator logic tanpa header
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 
@@ -74,27 +72,27 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pilih Tipe Promo</h2>
-          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Pilih Tipe Promo</h2>
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
             {promoTypes.map((type) => (
               <button
                 key={type.id}
                 onClick={() => handleTypeSelect(type.id)}
-                className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
+                className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-lg hover:scale-105 ${
                   selectedType === type.id
-                    ? 'border-orange-500 bg-orange-50'
+                    ? 'border-orange-500 bg-orange-50 shadow-md'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-start space-x-3">
-                  <span className="text-2xl">{type.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`font-medium ${
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <span className="text-3xl">{type.icon}</span>
+                  <div>
+                    <h3 className={`font-semibold text-lg ${
                       selectedType === type.id ? 'text-orange-900' : 'text-gray-900'
                     }`}>
                       {type.title}
                     </h3>
-                    <p className={`text-sm mt-1 ${
+                    <p className={`text-sm mt-2 leading-relaxed ${
                       selectedType === type.id ? 'text-orange-700' : 'text-gray-600'
                     }`}>
                       {type.description}
@@ -107,17 +105,20 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
         </div>
 
         {selectedType && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 capitalize">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
+            <h3 className="text-xl font-semibold text-gray-900 capitalize flex items-center">
+              <span className="text-2xl mr-3">
+                {selectedType === 'bogo' ? '🎁' : selectedType === 'discount' ? '💰' : '📦'}
+              </span>
               Pengaturan {selectedType === 'bogo' ? 'Buy One Get One' : selectedType === 'discount' ? 'Diskon' : 'Bundle'}
             </h3>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Resep</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Pilih Resep</label>
               <select 
                 value={formData.recipeId || ''}
                 onChange={(e) => setFormData({...formData, recipeId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
               >
                 <option value="">Pilih resep...</option>
                 {recipes.map((recipe) => (
@@ -133,24 +134,24 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
             </div>
 
             {selectedType === 'discount' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Harga Normal</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Harga Normal</label>
                   <input
                     type="number"
                     value={formData.originalPrice || ''}
                     onChange={(e) => setFormData({...formData, originalPrice: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="25000"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Harga Promo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Harga Promo</label>
                   <input
                     type="number"
                     value={formData.promoPrice || ''}
                     onChange={(e) => setFormData({...formData, promoPrice: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="20000"
                   />
                 </div>
@@ -159,12 +160,12 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
 
             {selectedType === 'bogo' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Minimal Pembelian</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Minimal Pembelian</label>
                 <input
                   type="number"
                   value={formData.minPurchase || ''}
                   onChange={(e) => setFormData({...formData, minPurchase: parseInt(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="1"
                 />
               </div>
@@ -172,12 +173,12 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
 
             {selectedType === 'bundle' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Harga Bundle</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Harga Bundle</label>
                 <input
                   type="number"
                   value={formData.bundlePrice || ''}
                   onChange={(e) => setFormData({...formData, bundlePrice: parseInt(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="45000"
                 />
               </div>
@@ -186,16 +187,16 @@ const PromoTypeSelector = lazy(() => Promise.resolve({
             <button
               onClick={handleSubmit}
               disabled={isCalculating}
-              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-3 hover:shadow-lg"
             >
               {isCalculating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   <span>Menghitung...</span>
                 </>
               ) : (
                 <>
-                  <Calculator className="h-4 w-4" />
+                  <Calculator className="h-5 w-5" />
                   <span>Hitung Promo</span>
                 </>
               )}
@@ -211,12 +212,12 @@ const PromoPreview = lazy(() => Promise.resolve({
   default: ({ type, data, onSave, isLoading, isMobile }) => {
     if (!type || !data.calculationResult) {
       return (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Promo</h3>
-            <p className="text-gray-600 text-sm">
-              Pilih tipe promo untuk melihat preview
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+          <div className="text-center py-12">
+            <div className="text-6xl mb-6">📊</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Preview Promo</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Pilih tipe promo dan isi formulir untuk melihat preview hasil kalkulasi
             </p>
           </div>
         </div>
@@ -226,17 +227,17 @@ const PromoPreview = lazy(() => Promise.resolve({
     const { calculationResult } = data;
 
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <span className="text-xl mr-2">📊</span>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <span className="text-2xl mr-3">📊</span>
           Hasil Kalkulasi
         </h3>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600">Harga Normal</div>
-              <div className="text-lg font-semibold text-gray-900">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="text-sm font-medium text-gray-600 mb-2">Harga Normal</div>
+              <div className="text-2xl font-bold text-gray-900">
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',
@@ -245,9 +246,9 @@ const PromoPreview = lazy(() => Promise.resolve({
               </div>
             </div>
             
-            <div className="bg-orange-50 rounded-lg p-4">
-              <div className="text-sm text-orange-600">Harga Promo</div>
-              <div className="text-lg font-semibold text-orange-700">
+            <div className="bg-orange-50 rounded-lg p-6">
+              <div className="text-sm font-medium text-orange-600 mb-2">Harga Promo</div>
+              <div className="text-2xl font-bold text-orange-700">
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',
@@ -257,16 +258,16 @@ const PromoPreview = lazy(() => Promise.resolve({
             </div>
           </div>
 
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="text-sm text-green-600">Margin Keuntungan</div>
-            <div className="text-xl font-bold text-green-700">
+          <div className="bg-green-50 rounded-lg p-6">
+            <div className="text-sm font-medium text-green-600 mb-2">Margin Keuntungan</div>
+            <div className="text-3xl font-bold text-green-700">
               {calculationResult.profitMargin}%
             </div>
           </div>
 
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="text-sm text-blue-600">Total Penghematan</div>
-            <div className="text-lg font-semibold text-blue-700">
+          <div className="bg-blue-50 rounded-lg p-6">
+            <div className="text-sm font-medium text-blue-600 mb-2">Total Penghematan</div>
+            <div className="text-2xl font-bold text-blue-700">
               {new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',
@@ -275,25 +276,23 @@ const PromoPreview = lazy(() => Promise.resolve({
             </div>
           </div>
 
-          {!isMobile && (
-            <button
-              onClick={onSave}
-              disabled={isLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Simpan Promo</span>
-                </>
-              )}
-            </button>
-          )}
+          <button
+            onClick={onSave}
+            disabled={isLoading}
+            className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-3 hover:shadow-lg"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-5 w-5" />
+                <span>Simpan Promo</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     );
@@ -301,9 +300,9 @@ const PromoPreview = lazy(() => Promise.resolve({
 }));
 
 const LoadingState = ({ type }) => (
-  <div className="p-4 text-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-    <p className="text-gray-600 text-sm">
+  <div className="p-8 text-center">
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto mb-6"></div>
+    <p className="text-gray-600">
       {type === 'form' ? 'Memuat formulir...' : 'Memuat...'}
     </p>
   </div>
@@ -371,19 +370,19 @@ const PromoCalculator = () => {
   if (recipes.length === 0) {
     return (
       <div className="text-center">
-        <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
-          <div className="text-gray-400 text-6xl mb-4">🍳</div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Belum Ada Resep</h3>
-          <p className="text-gray-600 mb-6">
+        <div className="bg-gray-50 rounded-xl p-12 max-w-md mx-auto">
+          <div className="text-gray-400 text-6xl mb-6">🍳</div>
+          <h3 className="text-2xl font-semibold text-gray-700 mb-4">Belum Ada Resep</h3>
+          <p className="text-gray-600 mb-8 leading-relaxed">
             Tambahkan resep terlebih dahulu untuk menggunakan kalkulator promo
           </p>
           
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8">
+            <div className="flex items-start space-x-4">
+              <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-0.5" />
               <div className="text-left">
-                <h4 className="text-sm font-medium text-orange-800">Yang perlu Anda lakukan:</h4>
-                <ul className="text-sm text-orange-700 mt-2 space-y-1">
+                <h4 className="font-medium text-orange-800 mb-3">Yang perlu Anda lakukan:</h4>
+                <ul className="text-sm text-orange-700 space-y-2">
                   <li>• Buat resep dengan HPP dan harga jual</li>
                   <li>• Tentukan margin keuntungan</li>
                   <li>• Mulai buat promo untuk resep tersebut</li>
@@ -394,7 +393,7 @@ const PromoCalculator = () => {
           
           <button 
             onClick={() => window.location.href = '/resep'}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg transition-all duration-200 font-semibold hover:shadow-lg"
           >
             Buat Resep Pertama
           </button>
@@ -512,31 +511,55 @@ const PromoCalculator = () => {
     );
   }
 
-  // Desktop Layout
+  // Desktop Layout - FIXED
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-6">
-        <Suspense fallback={<LoadingState type="form" />}>
-          <PromoTypeSelector 
-            selectedType={selectedType}
-            onTypeChange={setSelectedType}
-            onFormSubmit={handleFormSubmit}
-            isCalculating={isCalculating || calculationLoading}
-            recipes={recipes}
-          />
-        </Suspense>
+    <div className="min-h-screen bg-gray-50">
+      {/* Orange Header */}
+      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center space-x-6">
+            <div className="p-4 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+              <Calculator className="h-10 w-10 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Kalkulator Promo</h1>
+              <p className="text-orange-100 mt-3 text-lg">
+                Hitung profit margin dan dampak promo dengan akurat
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <div className="lg:col-span-1">
-        <div className="sticky top-6">
-          <Suspense fallback={<LoadingState type="form" />}>
-            <PromoPreview 
-              type={selectedType}
-              data={formData}
-              onSave={handleSavePromo}
-              isLoading={calculationLoading}
-            />
-          </Suspense>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Left Column - Form */}
+          <div className="space-y-8">
+            <Suspense fallback={<LoadingState type="form" />}>
+              <PromoTypeSelector 
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                onFormSubmit={handleFormSubmit}
+                isCalculating={isCalculating || calculationLoading}
+                recipes={recipes}
+                isMobile={false}
+              />
+            </Suspense>
+          </div>
+          
+          {/* Right Column - Preview */}
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            <Suspense fallback={<LoadingState type="form" />}>
+              <PromoPreview 
+                type={selectedType}
+                data={formData}
+                onSave={handleSavePromo}
+                isLoading={calculationLoading}
+                isMobile={false}
+              />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>

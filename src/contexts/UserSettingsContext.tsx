@@ -1,13 +1,10 @@
 // src/contexts/UserSettingsContext.tsx
-// 🔧 FIXED - Tanpa settings_data, gunakan kolom terpisah
+// 🔧 FIXED - Save & Persistence Issues Resolved
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { useNotification } from './NotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
 
 // --- INTERFACES & DEFAULTS ---
 interface FinancialCategories {
@@ -57,7 +54,6 @@ const UserSettingsContext = createContext<UserSettingsContextType | undefined>(u
 
 export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const { addNotification } = useNotification();
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,117 +67,118 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     
     try {
-      logger.context('UserSettingsContext', 'Fetching settings for user:', user.id);
+      console.log('🔍 Fetching settings for user:', user.id);
       
-      // 🔧 QUERY TANPA settings_data - hanya kolom yang ada di database
+      // ✅ FIXED: Query dengan error handling yang lebih baik
       const { data, error } = await supabase
         .from('user_settings')
-        .select(`
-          email,
-          business_name,
-          owner_name,
-          updated_at
-        `)
+        .select('*') // Select semua kolom untuk debug
         .eq('user_id', user.id)
-        .limit(1)
         .maybeSingle();
 
+      console.log('🔍 Database response:', { data, error });
+
       if (error) {
-        console.error('[UserSettingsContext] Error fetching settings:', error);
-        toast.error("Gagal memuat pengaturan.");
-        
-        await addNotification(createNotificationHelper.systemError(
-          `Gagal memuat pengaturan pengguna: ${error.message}`
-        ));
-        
+        console.error('[UserSettings] Fetch error:', error);
+        if (error.code === 'PGRST116') {
+          // No data found, create default
+          console.log('🔍 No settings found, creating default...');
+          await createDefaultSettings();
+          return;
+        }
+        toast.error('Gagal memuat pengaturan: ' + error.message);
         setSettings(defaultSettings);
         return;
       }
 
       if (data) {
-        // 🔧 BUAT SETTINGS DARI KOLOM DATABASE
+        // ✅ FIXED: Map database columns dengan benar
         const loadedSettings: UserSettings = { 
-          ...defaultSettings, // Default untuk yang tidak ada di DB
-          // Data dari database
-          email: data.email || defaultSettings.email,
-          businessName: data.business_name || defaultSettings.businessName,
-          ownerName: data.owner_name || defaultSettings.ownerName,
-          updatedAt: data.updated_at || new Date().toISOString()
+          ...defaultSettings, // Start with defaults
+          // Map database fields to our interface
+          businessName: data.business_name || data.businessName || defaultSettings.businessName,
+          ownerName: data.owner_name || data.ownerName || defaultSettings.ownerName,
+          email: data.email || user.email || defaultSettings.email,
+          phone: data.phone || defaultSettings.phone,
+          address: data.address || defaultSettings.address,
+          updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
         };
         
+        console.log('✅ Settings loaded:', loadedSettings);
         setSettings(loadedSettings);
-        logger.context('UserSettingsContext', 'Settings loaded successfully:', loadedSettings);
       } else {
-        // 🔧 JIKA BELUM ADA DATA, BUAT BARU
-        logger.context('UserSettingsContext', 'No data found, creating default settings');
+        console.log('🔍 No data found, creating default settings...');
         await createDefaultSettings();
       }
     } catch (error) {
-      console.error('[UserSettingsContext] Unexpected error:', error);
-      await addNotification(createNotificationHelper.systemError(
-        `Error tidak terduga saat memuat pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ));
+      console.error('[UserSettings] Unexpected error:', error);
+      toast.error('Error memuat pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setSettings(defaultSettings);
     } finally {
       setIsLoading(false);
     }
-  }, [user, addNotification]);
+  }, [user]);
 
-  // 🔧 FUNCTION UNTUK CREATE DEFAULT SETTINGS (SIMPLIFIED)
+  // ✅ FIXED: Create default settings dengan retry logic
   const createDefaultSettings = async () => {
     if (!user) return;
     
     try {
-      // 🔧 HANYA INSERT KOLOM YANG ADA DI DATABASE
+      console.log('🔍 Creating default settings for user:', user.id);
+      
+      // ✅ Prepare data dengan mapping yang benar
+      const settingsData = {
+        user_id: user.id,
+        business_name: defaultSettings.businessName,
+        owner_name: defaultSettings.ownerName,
+        email: user.email || '',
+        phone: defaultSettings.phone,
+        address: defaultSettings.address,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('🔍 Inserting data:', settingsData);
+
       const { data, error } = await supabase
         .from('user_settings')
-        .insert({
-          user_id: user.id,
-          email: user.email || '',
-          business_name: defaultSettings.businessName,
-          owner_name: defaultSettings.ownerName
-        })
+        .insert(settingsData)
         .select()
         .single();
 
       if (error) {
-        // 🔧 JIKA ERROR KARENA DUPLICATE, COBA FETCH LAGI
+        console.error('[UserSettings] Insert error:', error);
+        
+        // Handle duplicate key error
         if (error.code === '23505') {
-          logger.context('UserSettingsContext', 'Data already exists, fetching existing data');
-          // Fetch existing data
-          const { data: existingData, error: fetchError } = await supabase
-            .from('user_settings')
-            .select(`
-              email,
-              business_name,
-              owner_name,
-              updated_at
-            `)
-            .eq('user_id', user.id)
-            .single();
-
-          if (!fetchError && existingData) {
-            const loadedSettings: UserSettings = { 
-              ...defaultSettings,
-              email: existingData.email || defaultSettings.email,
-              businessName: existingData.business_name || defaultSettings.businessName,
-              ownerName: existingData.owner_name || defaultSettings.ownerName,
-              updatedAt: existingData.updated_at || new Date().toISOString()
-            };
-            setSettings(loadedSettings);
-            logger.context('UserSettingsContext', 'Existing settings loaded');
-            return;
-          }
+          console.log('🔍 Settings already exist, fetching...');
+          // Try to fetch existing
+          await fetchSettings();
+          return;
         }
         
-        console.error('[UserSettingsContext] Error creating default settings:', error);
-        toast.error("Gagal membuat pengaturan default.");
-      } else {
+        toast.error('Gagal membuat pengaturan default: ' + error.message);
         setSettings(defaultSettings);
-        logger.context('UserSettingsContext', 'Default settings created successfully');
+      } else {
+        console.log('✅ Default settings created:', data);
+        
+        // Map created data back to our interface
+        const newSettings: UserSettings = {
+          ...defaultSettings,
+          businessName: data.business_name || defaultSettings.businessName,
+          ownerName: data.owner_name || defaultSettings.ownerName,
+          email: data.email || defaultSettings.email,
+          phone: data.phone || defaultSettings.phone,
+          address: data.address || defaultSettings.address,
+          updatedAt: data.updated_at || new Date().toISOString()
+        };
+        
+        setSettings(newSettings);
       }
     } catch (error) {
-      console.error('[UserSettingsContext] Error in createDefaultSettings:', error);
+      console.error('[UserSettings] Error in createDefaultSettings:', error);
+      toast.error('Error membuat pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      setSettings(defaultSettings);
     }
   };
 
@@ -189,97 +186,77 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     fetchSettings();
   }, [fetchSettings]);
 
+  // ✅ FIXED: Save settings dengan validation dan error handling
   const saveSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
     if (!user) {
-      toast.error("Anda harus login untuk menyimpan pengaturan.");
+      toast.error('Anda harus login untuk menyimpan pengaturan.');
       return false;
     }
 
     try {
+      console.log('🔍 Saving settings:', newSettings);
+      
+      // ✅ Merge with current settings
       const updatedSettings = { 
         ...settings, 
         ...newSettings,
         updatedAt: new Date().toISOString()
       };
 
-      logger.context('UserSettingsContext', 'Saving settings:', updatedSettings);
-      
-      // 🔧 SAVE HANYA KOLOM YANG ADA DI DATABASE
+      // ✅ FIXED: Map to database columns dengan benar
       const dbData = {
         user_id: user.id,
-        email: updatedSettings.email,
         business_name: updatedSettings.businessName,
         owner_name: updatedSettings.ownerName,
+        email: updatedSettings.email,
+        phone: updatedSettings.phone,
+        address: updatedSettings.address,
         updated_at: updatedSettings.updatedAt
       };
 
-      const { error } = await supabase
+      console.log('🔍 Database data to save:', dbData);
+
+      // ✅ Use upsert dengan proper conflict resolution
+      const { data, error } = await supabase
         .from('user_settings')
-        .upsert(dbData, { onConflict: 'user_id' });
+        .upsert(dbData, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('[UserSettingsContext] Error saving settings:', error);
-        toast.error("Gagal menyimpan pengaturan: " + error.message);
-        
-        await addNotification(createNotificationHelper.systemError(
-          `Gagal menyimpan pengaturan: ${error.message}`
-        ));
-        
+        console.error('[UserSettings] Save error:', error);
+        toast.error('Gagal menyimpan pengaturan: ' + error.message);
         return false;
       }
 
-      setSettings(updatedSettings);
-      logger.context('UserSettingsContext', 'Settings saved successfully');
+      console.log('✅ Settings saved to database:', data);
 
-      // Success notification for significant changes
-      if (hasSignificantChanges(settings, newSettings)) {
-        await addNotification({
-          title: '⚙️ Pengaturan Diperbarui',
-          message: getUpdateMessage(newSettings),
-          type: 'success',
-          icon: 'settings',
-          priority: 1,
-          related_type: 'system',
-          action_url: '/pengaturan',
-          is_read: false,
-          is_archived: false
-        });
+      // ✅ Update local state dengan data yang berhasil disave
+      const savedSettings: UserSettings = {
+        ...updatedSettings,
+        businessName: data.business_name,
+        ownerName: data.owner_name,
+        email: data.email,
+        phone: data.phone || '',
+        address: data.address || '',
+        updatedAt: data.updated_at
+      };
 
-        toast.success("Pengaturan berhasil disimpan!");
-      }
+      setSettings(savedSettings);
+      console.log('✅ Local state updated:', savedSettings);
 
+      toast.success('Pengaturan berhasil disimpan!');
       return true;
+
     } catch (error) {
-      console.error('[UserSettingsContext] Error in saveSettings:', error);
-      toast.error(`Gagal menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      await addNotification(createNotificationHelper.systemError(
-        `Error saat menyimpan pengaturan: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ));
-      
+      console.error('[UserSettings] Error in saveSettings:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Gagal menyimpan pengaturan: ' + errorMessage);
       return false;
     }
-  };
-
-  const hasSignificantChanges = (oldSettings: UserSettings, newSettings: Partial<UserSettings>): boolean => {
-    // 🔧 HANYA CEK FIELD YANG DISIMPAN DI DATABASE
-    const significantFields = ['businessName', 'ownerName', 'email'];
-    
-    return significantFields.some(field => {
-      const fieldKey = field as keyof UserSettings;
-      return newSettings[fieldKey] !== undefined && 
-             newSettings[fieldKey] !== oldSettings[fieldKey];
-    });
-  };
-
-  const getUpdateMessage = (newSettings: Partial<UserSettings>): string => {
-    if (newSettings.businessName || newSettings.ownerName) {
-      return 'Informasi bisnis telah diperbarui';
-    }
-    if (newSettings.email) {
-      return 'Email telah diperbarui';
-    }
-    return 'Pengaturan telah diperbarui';
   };
 
   return (

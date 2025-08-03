@@ -14,7 +14,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
 
   const handleConfirmOrder = async () => {
     if (!orderId.trim()) {
-      setError('Please enter your Order ID');
+      setError('Silakan masukkan Order ID Anda');
       return;
     }
 
@@ -25,7 +25,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        setError('Please log in first');
+        setError('Silakan login terlebih dahulu');
         return;
       }
 
@@ -37,12 +37,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         .single();
 
       if (findError || !payment) {
-        setError('Order ID not found. Please check and try again.');
+        setError('Order ID tidak ditemukan. Silakan periksa kembali.');
         return;
       }
 
       if (payment.user_id && payment.user_id !== user.id) {
-        setError('This order is already linked to another account.');
+        setError('Order ini sudah terhubung dengan akun lain.');
         return;
       }
 
@@ -56,7 +56,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         .eq('order_id', orderId.trim());
 
       if (updateError) {
-        setError('Failed to link order. Please try again.');
+        setError('Gagal menghubungkan order. Silakan coba lagi.');
         return;
       }
 
@@ -65,7 +65,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       setOrderId('');
       
     } catch (error) {
-      setError('Something went wrong. Please try again.');
+      setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -76,17 +76,17 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-xl font-bold mb-4">Link Your Payment</h2>
+        <h2 className="text-xl font-bold mb-4">Hubungkan Pembayaran Anda</h2>
         
         <p className="text-gray-600 mb-4">
-          Enter your Order ID to link your payment to your account:
+          Masukkan Order ID untuk menghubungkan pembayaran ke akun Anda:
         </p>
         
         <input
           type="text"
           value={orderId}
           onChange={(e) => setOrderId(e.target.value.toUpperCase())}
-          placeholder="e.g., 250803WIJAUFI"
+          placeholder="Contoh: 250803WIJAUFI"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
           disabled={isLoading}
         />
@@ -107,7 +107,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
             disabled={isLoading}
           >
-            Cancel
+            Batal
           </button>
           
           <button
@@ -115,12 +115,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             disabled={isLoading || !orderId.trim()}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Linking...' : 'Link Payment'}
+            {isLoading ? 'Menghubungkan...' : 'Hubungkan Pembayaran'}
           </button>
         </div>
         
         <div className="mt-4 text-xs text-gray-500">
-          💡 Your Order ID can be found in your payment confirmation email or receipt.
+          💡 Order ID Anda bisa ditemukan di pesan WhatsApp konfirmasi pembayaran.
         </div>
       </div>
     </div>

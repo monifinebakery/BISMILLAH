@@ -77,7 +77,23 @@ export const usePaymentStatus = () => {
               email: paidPayment.email
             });
             
-            return {
+            // ✅ NEW: Add debug effect for popup state
+  useEffect(() => {
+    console.log('🔍 POPUP STATE CHANGE:', {
+      isLoading,
+      hasPaymentRecord: !!paymentStatus,
+      error: error?.message,
+      needsOrderLinking,
+      showOrderPopup,
+      conditions: {
+        notLoading: !isLoading,
+        noPaymentStatus: !paymentStatus,
+        noError: !error
+      }
+    });
+  }, [isLoading, paymentStatus, error, needsOrderLinking, showOrderPopup]);
+
+  return {
               ...paidPayment,
               created_at: safeParseDate(paidPayment.created_at),
               updated_at: safeParseDate(paidPayment.updated_at),
@@ -309,10 +325,16 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
+  // ✅ NEW: Add popup state management
+  const [showOrderPopup, setShowOrderPopup] = useState(false);
+
   // ✅ FINAL LOGIC: User is paid if they have a payment with is_paid=true AND payment_status='settled'
   const isPaid = paymentStatus?.is_paid === true && paymentStatus?.payment_status === 'settled';
   const needsPayment = !isPaid;
   const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
+  
+  // ✅ NEW: Check if user needs to link order (no payment record found)
+  const needsOrderLinking = !isLoading && !paymentStatus && !error;
 
   // Enhanced logging for final decision
   console.log('💰 FINAL PAYMENT STATUS:', {
@@ -323,7 +345,9 @@ export const usePaymentStatus = () => {
     isSettledCondition: paymentStatus?.payment_status === 'settled',
     FINAL_IS_PAID: isPaid,
     needsPayment: needsPayment,
-    hasUnlinkedPayment: hasUnlinkedPayment
+    hasUnlinkedPayment: hasUnlinkedPayment,
+    needsOrderLinking: needsOrderLinking,
+    showOrderPopup: showOrderPopup
   });
 
   return {
@@ -334,6 +358,10 @@ export const usePaymentStatus = () => {
     isPaid,
     needsPayment,
     hasUnlinkedPayment,
+    // ✅ NEW: Add popup state returns
+    needsOrderLinking,
+    showOrderPopup,
+    setShowOrderPopup,
     userName: paymentStatus?.customer_name || null
   };
 };

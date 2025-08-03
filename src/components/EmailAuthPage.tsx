@@ -528,7 +528,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               Tunggu {cooldownTime} detik untuk mencegah spam
             </div>
           )}
-        </CardFooter>
       </Card>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Calculator } from 'lucide-react';
-import PromoCalculator from './PromoCalculator';
+import PromoCalculator from './calculator/PromoCalculator';
 
 const PromoCalculatorLayout = () => {
   return (

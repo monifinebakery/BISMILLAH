@@ -511,56 +511,34 @@ const PromoCalculator = () => {
     );
   }
 
-  // Desktop Layout - FIXED
+  // Desktop Layout - FIXED (No double header)
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Orange Header */}
-      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center space-x-6">
-            <div className="p-4 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
-              <Calculator className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-white">Kalkulator Promo</h1>
-              <p className="text-orange-100 mt-3 text-lg">
-                Hitung profit margin dan dampak promo dengan akurat
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Left Column - Form */}
+      <div className="space-y-6">
+        <Suspense fallback={<LoadingState type="form" />}>
+          <PromoTypeSelector 
+            selectedType={selectedType}
+            onTypeChange={setSelectedType}
+            onFormSubmit={handleFormSubmit}
+            isCalculating={isCalculating || calculationLoading}
+            recipes={recipes}
+            isMobile={false}
+          />
+        </Suspense>
       </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left Column - Form */}
-          <div className="space-y-8">
-            <Suspense fallback={<LoadingState type="form" />}>
-              <PromoTypeSelector 
-                selectedType={selectedType}
-                onTypeChange={setSelectedType}
-                onFormSubmit={handleFormSubmit}
-                isCalculating={isCalculating || calculationLoading}
-                recipes={recipes}
-                isMobile={false}
-              />
-            </Suspense>
-          </div>
-          
-          {/* Right Column - Preview */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
-            <Suspense fallback={<LoadingState type="form" />}>
-              <PromoPreview 
-                type={selectedType}
-                data={formData}
-                onSave={handleSavePromo}
-                isLoading={calculationLoading}
-                isMobile={false}
-              />
-            </Suspense>
-          </div>
-        </div>
+      
+      {/* Right Column - Preview */}
+      <div className="lg:sticky lg:top-6 lg:self-start">
+        <Suspense fallback={<LoadingState type="form" />}>
+          <PromoPreview 
+            type={selectedType}
+            data={formData}
+            onSave={handleSavePromo}
+            isLoading={calculationLoading}
+            isMobile={false}
+          />
+        </Suspense>
       </div>
     </div>
   );

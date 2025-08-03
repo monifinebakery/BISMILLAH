@@ -38,8 +38,8 @@ const QuickActions: React.FC = () => {
       to: "/pesanan",
       icon: <ShoppingBag className="h-6 w-6" />,
       label: "Kelola Pesanan",
-      bgColor: "bg-blue-100",
-      iconColor: "text-blue-600"
+      bgColor: "bg-orange-100",
+      iconColor: "text-orange-600"
     },
     {
       to: "/gudang",
@@ -61,7 +61,7 @@ const QuickActions: React.FC = () => {
     <div className="mb-6">
       {/* 🏷️ Section Title */}
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-orange-600 to-purple-600 bg-clip-text text-transparent">
           Aksi Cepat
         </span>
       </h2>

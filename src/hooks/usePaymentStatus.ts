@@ -1,9 +1,9 @@
-// src/hooks/usePaymentStatus.ts - UPDATED VERSION
+// src/hooks/usePaymentStatus.ts - FIXED VERSION WITH SAFE SESSION HANDLING
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated } from '@/lib/authService'; // ✅ Updated import
+import { getCurrentUser, isAuthenticated } from '@/services/authService'; // ✅ Updated import
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
@@ -32,12 +32,20 @@ export const usePaymentStatus = () => {
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
-      // ✅ Use updated authService functions
-      const isValid = await isAuthenticated();
-      if (!isValid) return null;
+      // ✅ SAFE: Check authentication first
+      const isAuth = await isAuthenticated();
+      if (!isAuth) {
+        console.log('[usePaymentStatus] User not authenticated');
+        return null;
+      }
 
       const user = await getCurrentUser();
-      if (!user) return null;
+      if (!user) {
+        console.log('[usePaymentStatus] No user found');
+        return null;
+      }
+
+      console.log('[usePaymentStatus] Checking payment for user:', user.email);
 
       // ✅ STEP 1: Check linked payments by user_id
       const { data: linkedPayments, error: userIdError } = await supabase
@@ -50,6 +58,7 @@ export const usePaymentStatus = () => {
         .limit(1);
 
       if (!userIdError && linkedPayments?.length) {
+        console.log('[usePaymentStatus] Found linked payment:', linkedPayments[0].order_id);
         return {
           ...linkedPayments[0],
           created_at: safeParseDate(linkedPayments[0].created_at),
@@ -71,6 +80,7 @@ export const usePaymentStatus = () => {
 
       if (!emailError && unlinkedPayments?.length) {
         const payment = unlinkedPayments[0];
+        console.log('[usePaymentStatus] Found unlinked payment:', payment.order_id);
         
         // ✅ AUTO-LINK: Try to link unlinked payment to current user
         try {
@@ -85,6 +95,7 @@ export const usePaymentStatus = () => {
             .single();
 
           if (!updateError && updatedPayment) {
+            console.log('[usePaymentStatus] Auto-linked payment successfully');
             return {
               ...updatedPayment,
               created_at: safeParseDate(updatedPayment.created_at),
@@ -93,7 +104,7 @@ export const usePaymentStatus = () => {
             };
           }
         } catch (linkError) {
-          console.error('Auto-link failed:', linkError);
+          console.error('[usePaymentStatus] Auto-link failed:', linkError);
         }
 
         // Return unlinked payment if auto-link fails
@@ -105,15 +116,22 @@ export const usePaymentStatus = () => {
         };
       }
 
+      console.log('[usePaymentStatus] No payment found for user');
       return null;
     },
     enabled: true,
     staleTime: 30000,
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
-  // ✅ REAL-TIME SUBSCRIPTION: Simplified setup
+  // ✅ SAFE REAL-TIME SUBSCRIPTION: Only setup if authenticated
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -126,9 +144,20 @@ export const usePaymentStatus = () => {
         realtimeChannel = null;
       }
 
-      // Get current user
+      // ✅ SAFE: Check if user is authenticated before setting up subscription
+      const isAuth = await isAuthenticated();
+      if (!isAuth) {
+        console.log('[usePaymentStatus] Not authenticated, skipping subscription setup');
+        return;
+      }
+
       const user = await getCurrentUser();
-      if (!user) return;
+      if (!user) {
+        console.log('[usePaymentStatus] No user found, skipping subscription setup');
+        return;
+      }
+
+      console.log('[usePaymentStatus] Setting up realtime subscription for user:', user.email);
 
       // Setup new subscription for both user_id and email
       realtimeChannel = supabase
@@ -141,7 +170,10 @@ export const usePaymentStatus = () => {
             table: 'user_payments', 
             filter: `user_id=eq.${user.id}` 
           },
-          () => queryClient.invalidateQueries({ queryKey: ['paymentStatus'] })
+          (payload) => {
+            console.log('[usePaymentStatus] Payment change detected (user_id):', payload);
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }
         )
         .on(
           'postgres_changes',
@@ -151,23 +183,47 @@ export const usePaymentStatus = () => {
             table: 'user_payments', 
             filter: `email=eq.${user.email}` 
           },
-          () => queryClient.invalidateQueries({ queryKey: ['paymentStatus'] })
+          (payload) => {
+            console.log('[usePaymentStatus] Payment change detected (email):', payload);
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[usePaymentStatus] Realtime subscription active');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('[usePaymentStatus] Realtime subscription error');
+          }
+        });
     };
 
     // Initial setup
     setupSubscription();
 
     // Re-setup on auth changes
-    authSubscription = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setupSubscription();
+    authSubscription = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+      console.log('[usePaymentStatus] Auth state changed:', event);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[usePaymentStatus] User signed in, setting up subscription');
+        await setupSubscription();
+        // Refetch payment status when user signs in
+        queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[usePaymentStatus] User signed out, cleaning up subscription');
+        if (realtimeChannel) {
+          realtimeChannel.unsubscribe();
+          supabase.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
+        // Clear payment status when user signs out
+        queryClient.setQueryData(['paymentStatus'], null);
       }
     });
 
     return () => {
       if (realtimeChannel) {
+        console.log('[usePaymentStatus] Cleaning up realtime subscription');
         realtimeChannel.unsubscribe();
         supabase.removeChannel(realtimeChannel);
       }
@@ -177,11 +233,24 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ COMPUTED VALUES: Simplified logic
+  // ✅ COMPUTED VALUES: Safe calculations
   const isPaid = paymentStatus?.is_paid === true && paymentStatus?.payment_status === 'settled';
   const needsPayment = !isPaid;
   const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id;
   const needsOrderLinking = !isLoading && !paymentStatus && !error;
+
+  // ✅ Enhanced logging for debugging
+  useEffect(() => {
+    if (!isLoading) {
+      console.log('[usePaymentStatus] Payment status update:', {
+        isPaid,
+        needsPayment,
+        hasUnlinkedPayment,
+        needsOrderLinking,
+        paymentRecord: paymentStatus?.order_id || 'none'
+      });
+    }
+  }, [isPaid, needsPayment, hasUnlinkedPayment, needsOrderLinking, paymentStatus, isLoading]);
 
   return {
     paymentStatus,

@@ -1,4 +1,5 @@
 // src/components/NotificationSettingsForm.tsx
+// ✅ FIXED: Removed duplicate toast notifications
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,13 +115,23 @@ const NotificationSettingsForm = () => {
     setFormState(prev => ({ ...prev, [field]: value }));
   };
 
+  // ✅ FIXED: Removed duplicate toast - updateSettings already shows success toast
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    const success = await updateSettings(formState);
-    if (success) {
-      toast.success('Pengaturan notifikasi berhasil disimpan');
+    
+    try {
+      const success = await updateSettings(formState); // This already shows success toast in NotificationContext
+      
+      // ✅ Only show error toast if save fails (context already shows success)
+      if (!success) {
+        toast.error('Gagal menyimpan pengaturan notifikasi');
+      }
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      toast.error('Terjadi kesalahan saat menyimpan pengaturan');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   if (isContextLoading) {

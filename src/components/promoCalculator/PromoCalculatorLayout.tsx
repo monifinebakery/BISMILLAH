@@ -18,24 +18,52 @@ const LoadingFallback = ({ message = "Memuat..." }) => (
   </div>
 );
 
-// 🚫 Error fallback jika lazy load gagal
-const ErrorFallback = ({ onRetry }) => (
-  <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
-    <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat komponen</div>
-    <p className="text-gray-600 text-sm mb-4">Terjadi kesalahan saat memuat modul promo.</p>
-    <button
-      onClick={onRetry}
-      className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded font-medium transition-colors"
-    >
-      Coba Lagi
-    </button>
-  </div>
-);
+// 🚫 Error fallback jika lazy load gagal - DIPERBAIKI
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Lazy loading error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+          <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat komponen</div>
+          <p className="text-gray-600 text-sm mb-4">
+            Terjadi kesalahan saat memuat modul promo: {this.state.error?.message}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              if (this.props.onRetry) {
+                this.props.onRetry();
+              }
+            }}
+            className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded font-medium transition-colors"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const PromoCalculatorLayout = () => {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'list', 'calculator'
   const isMobile = useIsMobile(768);
-  const { promos, isLoading } = usePromo();
+  const { promos = [], isLoading } = usePromo(); // Default empty array
 
   // Get recent promos for preview
   const recentPromos = promos.slice(0, 3);
@@ -73,11 +101,13 @@ const PromoCalculatorLayout = () => {
     window.location.reload();
   };
 
-  // Render Lazy Component dengan Error Boundary sederhana
-  const LazyComponent = ({ children, fallback }) => (
-    <Suspense fallback={fallback || <LoadingFallback />}>
-      {children}
-    </Suspense>
+  // Render Lazy Component dengan Error Boundary - DIPERBAIKI
+  const LazyComponent = ({ children, fallback, onRetry }) => (
+    <ErrorBoundary onRetry={onRetry}>
+      <Suspense fallback={fallback || <LoadingFallback />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
   );
 
   // Back handler
@@ -147,7 +177,7 @@ const PromoCalculatorLayout = () => {
                     <div className="flex items-center space-x-3">
                       <span className="text-2xl">{getPromoTypeIcon(promo.tipePromo)}</span>
                       <div>
-                        <h3 className="font-semibold text-gray-900 line-clamp-1">{promo.namaPromo}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate max-w-[200px]">{promo.namaPromo}</h3>
                         <p className="text-sm text-gray-600 capitalize">{promo.tipePromo}</p>
                       </div>
                     </div>
@@ -180,9 +210,9 @@ const PromoCalculatorLayout = () => {
                     </div>
                   )}
                   {promo.deskripsi && (
-                    <p className="text-sm text-gray-600 mt-3 line-clamp-2">{promo.deskripsi}</p>
+                    <p className="text-sm text-gray-600 mt-3 truncate">{promo.deskripsi}</p>
                   )}
-                  <div className="mt-4 pt-4 border-t-2 border-gray-200">
+                  <div className="mt-4 pt-4 border-t border-gray-200">
                     <p className="text-xs text-gray-500">
                       Dibuat {new Date(promo.createdAt).toLocaleDateString('id-ID', {
                         day: 'numeric',
@@ -234,10 +264,11 @@ const PromoCalculatorLayout = () => {
             </button>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <LazyComponent fallback={<LoadingFallback message="Memuat kalkulator promo..." />}>
-              <ErrorFallback onRetry={handleRetry}>
-                <PromoCalculator onBack={handleBack} />
-              </ErrorFallback>
+            <LazyComponent 
+              fallback={<LoadingFallback message="Memuat kalkulator promo..." />}
+              onRetry={handleRetry}
+            >
+              <PromoCalculator onBack={handleBack} />
             </LazyComponent>
           </div>
         </div>
@@ -264,10 +295,11 @@ const PromoCalculatorLayout = () => {
             </div>
           </div>
           <div className="bg-white rounded-t-xl shadow-sm border border-gray-200">
-            <LazyComponent fallback={<LoadingFallback message="Memuat daftar promo..." />}>
-              <ErrorFallback onRetry={handleRetry}>
-                <PromoList />
-              </ErrorFallback>
+            <LazyComponent 
+              fallback={<LoadingFallback message="Memuat daftar promo..." />}
+              onRetry={handleRetry}
+            >
+              <PromoList />
             </LazyComponent>
           </div>
         </div>

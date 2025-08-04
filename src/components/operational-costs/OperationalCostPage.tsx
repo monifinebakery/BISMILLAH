@@ -1,18 +1,34 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { Plus, Settings, Calculator, DollarSign, AlertTriangle } from 'lucide-react';
+
+// ✅ CONSOLIDATED: Context imports
 import { OperationalCostProvider, useOperationalCost } from './context';
-import CostSummaryCard from './components/CostSummaryCard';
-import CostList from './components/CostList';
-import CostForm from './components/CostForm';
-import AllocationSettings from './components/AllocationSettings';
-import LoadingState from './components/LoadingState';
-import EmptyState from './components/EmptyState';
+
+// ✅ CONSOLIDATED: All components in single import
+import {
+  CostSummaryCard,
+  CostList,
+  CostForm,
+  AllocationSettings,
+  LoadingState,
+  EmptyState
+} from './components';
+
+// ✅ CONSOLIDATED: Types import
 import { OperationalCost } from './types';
 
-// Lazy load dialogs
+// ✅ KEEP: Lazy load dialogs (existing logic)
 const CostDialog = lazy(() => import('./dialogs/CostDialog'));
 const DeleteConfirmDialog = lazy(() => import('./dialogs/DeleteConfirmDialog'));
 const AllocationDialog = lazy(() => import('./dialogs/AllocationDialog'));
+
+// ❌ REMOVED: Individual component imports - now consolidated
+// - import CostSummaryCard from './components/CostSummaryCard';
+// - import CostList from './components/CostList';
+// - import CostForm from './components/CostForm';
+// - import AllocationSettings from './components/AllocationSettings';
+// - import LoadingState from './components/LoadingState';
+// - import EmptyState from './components/EmptyState';
 
 interface OperationalCostPageContentProps {}
 

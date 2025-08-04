@@ -9,9 +9,6 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 // ✅ CONSOLIDATED: Combined hooks import 
 import { usePurchaseCore } from './hooks/usePurchaseCore'; // New consolidated hook
 
-// ✅ SINGLE EXTERNAL CONTEXT IMPORT
-import { useBusinessContext } from '@/contexts/BusinessContext'; // New consolidated business context
-
 // ✅ ESSENTIAL COMPONENTS ONLY (Static)
 import {
   LoadingState,
@@ -121,7 +118,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     stats,
     statusOperations,
     validation
-  } = useBusinessContext(); // This would be a new consolidated business context
 
   // ✅ CONSOLIDATED: All-in-one purchase operations
   const purchaseCore = usePurchaseCore({

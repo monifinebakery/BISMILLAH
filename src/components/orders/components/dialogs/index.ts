@@ -1,4 +1,6 @@
-// 🎯 12 lines - Dialog exports (lazy loaded)
+// src/components/orders/components/dialogs/index.ts
+// 🎯 Dialogs only - clean exports
+
 export { default as OrderForm } from './OrderForm';
 export { default as BulkDeleteDialog } from './BulkDeleteDialog';
 export { default as BulkEditDialog } from './BulkEditDialog';

@@ -397,13 +397,4 @@ const DesktopWarehouseTable: React.FC<DesktopWarehouseTableProps> = ({
   );
 };
 
-export default DesktopWarehouseTable;blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        <span className="sr-only">Edit {item.nama}</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDelete(item.id, item.nama)}
-                        className="text-
+export default DesktopWarehouseTable;

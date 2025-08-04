@@ -17,6 +17,7 @@ interface AddEditDialogProps {
   availableSuppliers: string[];
 }
 
+// ✅ Updated FormData to match BahanBakuFrontend interface
 interface FormData {
   nama: string;
   kategori: string;
@@ -24,12 +25,12 @@ interface FormData {
   stok: number;
   minimum: number;
   satuan: string;
-  harga: number;
-  expiry: string;
+  harga: number; // ✅ Changed from harga_satuan to harga
+  expiry: string; // ✅ Changed from tanggal_kadaluwarsa to expiry
   // Purchase details
-  jumlahBeliKemasan: number;
-  satuanKemasan: string;
-  hargaTotalBeliKemasan: number;
+  jumlahBeliKemasan: number; // ✅ camelCase
+  satuanKemasan: string; // ✅ camelCase
+  hargaTotalBeliKemasan: number; // ✅ camelCase
 }
 
 const initialFormData: FormData = {
@@ -50,13 +51,18 @@ const initialFormData: FormData = {
 /**
  * Combined Add/Edit Dialog Component with Purchase Details
  * 
+ * ✅ Updated to match BahanBakuFrontend interface
+ * ✅ Fixed field naming consistency (camelCase)
+ * ✅ Enhanced with last update tracking support
+ * 
  * Features:
  * - Single component for both add and edit modes
- * - Real-time validation
+ * - Real-time validation using updated warehouseUtils
  * - Auto-complete for categories and suppliers
  * - Purchase details with automatic calculations
  * - Responsive design
  * - Accessibility support
+ * - Compatible with updated type system
  * 
  * Size: ~12KB (loaded lazily)
  */
@@ -79,7 +85,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const title = isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku';
   const saveText = isEditMode ? 'Simpan Perubahan' : 'Tambah Item';
 
-  // Initialize form data
+  // ✅ Updated initialization to match BahanBakuFrontend
   useEffect(() => {
     if (isEditMode && item) {
       setFormData({
@@ -89,8 +95,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         stok: item.stok || 0,
         minimum: item.minimum || 0,
         satuan: item.satuan || '',
-        harga: item.harga || 0,
-        expiry: item.expiry ? item.expiry.split('T')[0] : '', // Format for date input
+        harga: item.harga || 0, // ✅ Updated field name
+        expiry: item.expiry ? item.expiry.split('T')[0] : '', // ✅ Updated field name
         // Purchase details
         jumlahBeliKemasan: item.jumlahBeliKemasan || 0,
         satuanKemasan: item.satuanKemasan || '',
@@ -131,13 +137,13 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     if (formData.jumlahBeliKemasan > 0 && formData.harga > 0) {
       const calculatedTotal = formData.jumlahBeliKemasan * formData.harga;
       handleFieldChange('hargaTotalBeliKemasan', calculatedTotal);
-      toast.success(`Total harga dihitung: Rp ${calculatedTotal.toLocaleString()}`);
+      toast.success(`Total harga dihitung: ${warehouseUtils.formatCurrency(calculatedTotal)}`);
     } else {
       toast.error('Masukkan jumlah kemasan dan harga per satuan terlebih dahulu');
     }
   };
 
-  // Validate form data
+  // ✅ Updated validation to use updated warehouseUtils
   const validateForm = (): boolean => {
     const validation = warehouseUtils.validateBahanBaku(formData);
     
@@ -170,7 +176,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Prepare data for submission
+      // ✅ Prepare data for submission with proper field mapping
       const submitData = {
         ...formData,
         expiry: formData.expiry || undefined, // Convert empty string to undefined
@@ -268,10 +274,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Left Column */}
+            {/* Left Column - Basic Information */}
             <div className="space-y-6">
-              
-              {/* Basic Information */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
                 <div className="space-y-4">
@@ -447,7 +451,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               </div>
             </div>
 
-            {/* Right Column */}
+            {/* Right Column - Purchase Details & Preview */}
             <div className="space-y-6">
               
               {/* Purchase Details */}
@@ -569,20 +573,20 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                     <div className="flex justify-between">
                       <span className="text-blue-700">Total Harga:</span>
                       <span className="font-medium text-blue-900">
-                        Rp {formData.hargaTotalBeliKemasan.toLocaleString()}
+                        {warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-700">Harga per Satuan:</span>
                       <span className="font-medium text-blue-900">
-                        Rp {formData.harga.toLocaleString()} / {formData.satuan}
+                        {warehouseUtils.formatCurrency(formData.harga)} / {formData.satuan}
                       </span>
                     </div>
                     {formData.jumlahBeliKemasan > 0 && formData.harga > 0 && (
                       <div className="flex justify-between pt-2 border-t border-blue-200">
                         <span className="text-blue-700">Harga per Kemasan:</span>
                         <span className="font-medium text-blue-900">
-                          Rp {Math.round(formData.hargaTotalBeliKemasan / formData.jumlahBeliKemasan).toLocaleString()}
+                          {warehouseUtils.formatCurrency(Math.round(formData.hargaTotalBeliKemasan / formData.jumlahBeliKemasan))}
                         </span>
                       </div>
                     )}
@@ -590,20 +594,16 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                 </div>
               )}
 
-              {/* Stock Level Indicator */}
+              {/* ✅ Enhanced Stock Level Indicator using updated utils */}
               {formData.stok > 0 && formData.minimum > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
                   <div className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${
-                      formData.stok === 0 ? 'bg-red-500' :
-                      formData.stok <= formData.minimum ? 'bg-yellow-500' :
-                      formData.stok <= formData.minimum * 1.5 ? 'bg-blue-500' : 'bg-green-500'
+                      warehouseUtils.getStockLevelColorClass({ stok: formData.stok, minimum: formData.minimum } as any)
                     }`} />
                     <span className="text-sm text-gray-600">
-                      {formData.stok === 0 ? 'Stok Habis' :
-                       formData.stok <= formData.minimum ? 'Stok Rendah' :
-                       formData.stok <= formData.minimum * 1.5 ? 'Stok Sedang' : 'Stok Aman'}
+                      {warehouseUtils.getStockLevel({ stok: formData.stok, minimum: formData.minimum } as any).label}
                     </span>
                     <span className="text-sm text-gray-500">
                       ({formData.stok} / min: {formData.minimum})

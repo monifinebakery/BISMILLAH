@@ -9,12 +9,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 
-// ✅ CONSOLIDATED: Recipe hooks (single import instead of 3)
-import { 
-  useRecipeOperations,
-  useRecipeFiltering,
-  useRecipeStats 
-} from '../../hooks';
+// ✅ CONSOLIDATED: Recipe hooks (keep individual imports for now)
+import { useRecipeOperations } from '../../hooks/useRecipeOperations';
+import { useRecipeFiltering } from '../../hooks/useRecipeFiltering';
+import { useRecipeStats } from '../../hooks/useRecipeStats';
 
 // ✅ CONSOLIDATED: Services and types
 import { recipeApi } from '../../services/recipeApi';
@@ -25,8 +23,9 @@ import RecipeTable from './RecipeTable';
 import RecipeFilters from './RecipeFilters';
 import RecipeStats from './RecipeStats';
 
-// ✅ CONSOLIDATED: Shared components
-import { LoadingState, EmptyState } from '../shared';
+// ✅ CONSOLIDATED: Shared components (keep individual imports for now)
+import { LoadingState } from '../shared/LoadingState';
+import { EmptyState } from '../shared/EmptyState';
 
 // ✅ KEEP: Lazy loaded dialogs (existing logic)
 const RecipeForm = React.lazy(() => import('../RecipeForm'));
@@ -34,14 +33,7 @@ const DeleteRecipeDialog = React.lazy(() => import('../../dialogs/DeleteRecipeDi
 const DuplicateRecipeDialog = React.lazy(() => import('../../dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('../../dialogs/CategoryManagerDialog'));
 
-// ❌ REMOVED: Individual hook imports - now consolidated
-// - import { useRecipeOperations } from '../../hooks/useRecipeOperations';
-// - import { useRecipeFiltering } from '../../hooks/useRecipeFiltering';
-// - import { useRecipeStats } from '../../hooks/useRecipeStats';
-
-// ❌ REMOVED: Individual shared component imports - now consolidated
-// - import { LoadingState } from '../shared/LoadingState';
-// - import { EmptyState } from '../shared/EmptyState';
+// ❌ REMOVED: None - keeping individual imports to avoid creating new index files
 
 const RecipeList: React.FC = () => {
   const { user } = useAuth();

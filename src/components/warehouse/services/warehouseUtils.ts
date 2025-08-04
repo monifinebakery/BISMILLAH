@@ -161,12 +161,15 @@ export const warehouseUtils = {
     } else if (diffInDays < 7) {
       const days = Math.floor(diffInDays);
       return `${days} hari yang lalu`;
+    } else if (diffInDays < 30) {
+      const weeks = Math.floor(diffInDays / 7);
+      return `${weeks} minggu yang lalu`;
+    } else if (diffInDays < 365) {
+      const months = Math.floor(diffInDays / 30);
+      return `${months} bulan yang lalu`;
     } else {
-      return new Intl.DateTimeFormat('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      }).format(date);
+      const years = Math.floor(diffInDays / 365);
+      return `${years} tahun yang lalu`;
     }
   },
 
@@ -182,20 +185,27 @@ export const warehouseUtils = {
     const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
     if (diffInMinutes < 1) {
-      return 'Sekarang';
+      return 'Baru saja';
     } else if (diffInMinutes < 60) {
       const minutes = Math.floor(diffInMinutes);
-      return `${minutes}m`;
+      return `${minutes} menit lalu`;
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours}h`;
+      return `${hours} jam lalu`;
     } else if (diffInDays < 7) {
       const days = Math.floor(diffInDays);
-      return `${days}d`;
+      return `${days} hari lalu`;
+    } else if (diffInDays < 30) {
+      const weeks = Math.floor(diffInDays / 7);
+      return `${weeks} minggu lalu`;
+    } else if (diffInDays < 365) {
+      const months = Math.floor(diffInDays / 30);
+      return `${months} bulan lalu`;
     } else {
       return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: '2-digit'
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
       }).format(date);
     }
   },

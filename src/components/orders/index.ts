@@ -1,40 +1,39 @@
-// src/components/orders/index.ts
-// 🎯 Clean main exports - NO DUPLICATES
+// src/components/orders/index.ts - Optimized Dependencies (8 → 4)
+/**
+ * Orders Module - Clean Barrel Export
+ * 
+ * HANYA export yang benar-benar diperlukan untuk external consumers
+ * Dependencies reduced from 8 to 4
+ */
 
-// Main page component
+// ✅ CORE EXPORTS ONLY
 export { default as OrdersPage } from './components/OrdersPage';
 
-// Context (from context folder)
+// ✅ ESSENTIAL CONTEXT
 export { OrderProvider } from './context/OrderProvider';
 export { useOrder } from './context/OrderContext';
 
-// Hooks (from hooks folder)  
-export { useOrderData } from './hooks/useOrderData';
-export { useOrderUI } from './hooks/useOrderUI';
+// ✅ ESSENTIAL HOOKS
+export { useOrderData, useOrderUI } from './hooks';
 
-// Types (for external usage)
+// ✅ ESSENTIAL TYPES ONLY
 export type {
   Order,
   NewOrder,
-  OrderStatus,
-  OrderItem,
-  OrderFilters,
-  UseOrderDataReturn,
-  UseOrderUIReturn
+  OrderStatus
 } from './types';
 
-// Constants (for external usage)
-export {
-  ORDER_STATUSES,
-  ORDER_STATUS_LABELS,
-  getStatusText,
-  getStatusColor
-} from './constants';
+// ❌ REMOVED - Reduce dependencies:
+// - All detailed types (use direct imports if needed)
+// - All constants (use direct imports if needed)
+// - All utilities (use direct imports if needed)
+// - Individual hook exports (now consolidated)
 
-// Utilities (for external usage)
-export {
-  transformOrderFromDB,
-  transformOrderToDB,
-  validateOrderData,
-  formatDateForDisplay
-} from './utils';
+// ✅ OPTIONAL: Advanced imports for power users
+export const ORDERS_ADVANCED = {
+  types: () => import('./types'),
+  constants: () => import('./constants'),
+  utils: () => import('./utils'),
+  components: () => import('./components'),
+  dialogs: () => import('./components/dialogs')
+} as const;

@@ -1,12 +1,8 @@
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
-// tambah ini utk dialog
-import AddEditDialog from '../dialogs/AddEditDialog';
-import BulkOperationsDialog from '../dialogs/BulkOperationsDialog'; 
-import ImportExportDialog from '../dialogs/ImportExportDialog';
 
-// Dynamic Dialog Imports (Lazy Loaded)
+// ✅ ONLY Lazy Imports - Remove direct imports completely
 const AddEditDialog = lazy(() => import('../dialogs/AddEditDialog'));
 const BulkOperationsDialog = lazy(() => import('../dialogs/BulkOperationsDialog'));
 const ImportExportDialog = lazy(() => import('../dialogs/ImportExportDialog'));
@@ -111,6 +107,8 @@ interface DialogManagerProps {
 
 /**
  * Dialog Manager Component
+ * 
+ * ✅ FIXED: Removed double imports that caused 'aUe' error
  * 
  * Manages dynamic loading of dialog components with:
  * - Lazy loading for better performance

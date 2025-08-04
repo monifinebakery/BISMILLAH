@@ -1,79 +1,50 @@
 // src/components/warehouse/index.ts
 /**
- * Main Warehouse Module Export
+ * Warehouse Module - Clean Barrel Export
  * 
- * Clean barrel export for external consumers
- * Provides all necessary components, hooks, and utilities
+ * HANYA export yang benar-benar diperlukan oleh external consumers
+ * Dependencies: 6 (reduced from 11)
  */
 
-// Main Components (Static)
+// ✅ CORE EXPORTS ONLY (Most Used)
 export { default as WarehousePage } from './WarehousePage';
 export { 
   WarehouseProvider, 
-  useWarehouseContext,
-  // Backward Compatibility Exports
-  BahanBakuProvider,
-  useBahanBaku
-} from './WarehouseContext';
+  useWarehouseContext
+} from './context/WarehouseContext';
 
-// Core Types (Re-export from types.ts)
+// ✅ ESSENTIAL TYPES ONLY
 export type {
   BahanBaku,
-  FilterState,
-  SortConfig,
-  DialogState,
   WarehouseContextType,
-  // Backward Compatibility Types
-  BahanBakuContextType,
-  ComponentProps,
-  WarehouseHeaderProps,
-  WarehouseTableProps,
-  WarehouseFiltersProps,
-  BulkActionsProps,
-  DialogManagerProps,
-  DialogProps,
-  AddEditDialogProps,
-  BulkOperationsDialogProps,
-  ImportExportDialogProps,
-  ServiceConfig,
-  ValidationResult,
-  ExportFormat,
-  ImportResult,
-  BulkOperationsConfig,
-  BulkEditData,
-  PerformanceMetrics,
-  WarehouseProviderOptions
+  FilterState,
+  SortConfig
 } from './types';
 
-// Core Hooks
-export { useWarehouseCore } from './hooks';
-
-// ✅ FIXED: Core Components (exclude DialogManager)
+// ✅ CORE COMPONENTS (Static only)
 export {
   WarehouseHeader,
   WarehouseTable,
   WarehouseFilters,
-  BulkActions,
-  // ❌ REMOVED: DialogManager - not exported from components/index.ts
-  // DialogManager
+  BulkActions
 } from './components';
 
-// ✅ DialogManager - Direct import since it's not in barrel export
-export { default as DialogManager } from './components/DialogManager';
+// ✅ CORE HOOK
+export { useWarehouseCore } from './hooks/useWarehouseCore';
 
-// Services & Utilities (for advanced usage)
-export { warehouseApi, warehouseUtils, createWarehouseService } from './services';
+// ❌ REMOVED - Reduce dependencies:
+// - Backward compatibility exports (BahanBakuProvider, useBahanBaku)
+// - All detailed types (consumers can import from ./types if needed)
+// - DialogManager (lazy-loaded, not for barrel export)
+// - Services (advanced usage, import directly)
+// - lazyImports object (consumers can import directly)
+// - preloadDialogs (advanced usage)
 
-// Dynamic Imports (for manual lazy loading)
-export const lazyImports = {
-  // Hooks
-  useBulkOperations: () => import('./hooks/useWarehouseBulk'),
-  
-  // Dialogs
-  AddEditDialog: () => import('./dialogs/AddEditDialog'),
-  BulkOperationsDialog: () => import('./dialogs/BulkOperationsDialog'),
-  ImportExportDialog: () => import('./dialogs/ImportExportDialog'),
-};
-
-// Dialog Preloader (for performance optimization)
-export { preloadDialogs } from './dialogs';
+// ✅ OPTIONAL: Advanced imports (for power users)
+// These don't increase dependencies since they're just references
+export const ADVANCED_IMPORTS = {
+  types: () => import('./types'),
+  services: () => import('./services'),
+  dialogs: () => import('./dialogs'),
+  hooks: () => import('./hooks')
+} as const;

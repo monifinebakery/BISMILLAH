@@ -1,7 +1,7 @@
-// 🎯 Form untuk BOGO (Buy One Get One) - Fixed with Recipe Selection
+// 🎯 Form untuk BOGO (Buy One Get One) - Fixed with Proper Recipe Properties
 
 import React, { useState } from 'react';
-import { Gift, Search, Calendar, ChevronDown, X } from 'lucide-react';
+import { Gift, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BogoForm = ({ onSubmit, isLoading, recipes }) => {
@@ -20,9 +20,10 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
   const [showResepUtama, setShowResepUtama] = useState(false);
   const [showResepGratis, setShowResepGratis] = useState(false);
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.namaResep.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecipes = recipes.filter(recipe => {
+    const name = getRecipeProperty(recipe, 'name');
+    return name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,6 +53,27 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Helper function to get the correct property value
+  const getRecipeProperty = (recipe, property) => {
+    if (!recipe) return property === 'name' ? 'Unknown Recipe' : 0;
+    
+    const possibleNames = {
+      hpp: ['hpp', 'hppPerPorsi', 'cost_per_portion', 'hpp_per_porsi'],
+      harga: ['harga_jual', 'hargaJualPorsi', 'hargaJual', 'price', 'selling_price', 'harga_jual_porsi'],
+      name: ['namaResep', 'name', 'recipe_name', 'nama_resep']
+    };
+    
+    const names = possibleNames[property] || [property];
+    
+    for (const name of names) {
+      if (recipe[name] !== undefined && recipe[name] !== null) {
+        return recipe[name];
+      }
+    }
+    
+    return property === 'name' ? 'Unknown Recipe' : 0;
+  };
+
   const getRecipeById = (id) => recipes.find(r => r.id === id);
 
   const formatCurrency = (value) => {
@@ -72,7 +94,6 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
     excludeId = null 
   }) => {
     const selectedRecipe = getRecipeById(value);
-    const availableRecipes = recipes.filter(r => r.id !== excludeId);
 
     return (
       <div className="relative">
@@ -88,10 +109,12 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
           <div className="flex-1">
             {selectedRecipe ? (
               <div>
-                <div className="font-medium text-gray-900">{selectedRecipe.namaResep}</div>
+                <div className="font-medium text-gray-900">
+                  {getRecipeProperty(selectedRecipe, 'name')}
+                </div>
                 <div className="text-sm text-gray-500">
-                  HPP: {formatCurrency(selectedRecipe.hpp)} • 
-                  Harga: {formatCurrency(selectedRecipe.hargaJual)}
+                  HPP: {formatCurrency(getRecipeProperty(selectedRecipe, 'hpp'))} • 
+                  Harga: {formatCurrency(getRecipeProperty(selectedRecipe, 'harga'))}
                 </div>
               </div>
             ) : (
@@ -126,25 +149,33 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
                   Tidak ada resep ditemukan
                 </div>
               ) : (
-                filteredRecipes.filter(r => r.id !== excludeId).map((recipe) => (
-                  <button
-                    key={recipe.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(recipe.id);
-                      setShowDropdown(false);
-                      setSearchTerm('');
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                  >
-                    <div className="font-medium text-gray-900">{recipe.namaResep}</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      HPP: {formatCurrency(recipe.hpp)} • 
-                      Harga: {formatCurrency(recipe.hargaJual)} • 
-                      Margin: {((recipe.hargaJual - recipe.hpp) / recipe.hargaJual * 100).toFixed(1)}%
-                    </div>
-                  </button>
-                ))
+                filteredRecipes.filter(r => r.id !== excludeId).map((recipe) => {
+                  const hpp = getRecipeProperty(recipe, 'hpp');
+                  const harga = getRecipeProperty(recipe, 'harga');
+                  const margin = harga > 0 ? ((harga - hpp) / harga * 100) : 0;
+                  
+                  return (
+                    <button
+                      key={recipe.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(recipe.id);
+                        setShowDropdown(false);
+                        setSearchTerm('');
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900">
+                        {getRecipeProperty(recipe, 'name')}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        HPP: {formatCurrency(hpp)} • 
+                        Harga: {formatCurrency(harga)} • 
+                        Margin: {margin.toFixed(1)}%
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
@@ -210,25 +241,25 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
           <h4 className="font-medium text-green-800 mb-3">Preview BOGO:</h4>
           <div className="text-sm text-green-700">
             <div className="flex items-center justify-between mb-2">
-              <span>Beli: {getRecipeById(formData.resepUtama)?.namaResep}</span>
+              <span>Beli: {getRecipeProperty(getRecipeById(formData.resepUtama), 'name')}</span>
               <span className="font-medium">
-                {formatCurrency(getRecipeById(formData.resepUtama)?.hargaJual)}
+                {formatCurrency(getRecipeProperty(getRecipeById(formData.resepUtama), 'harga'))}
               </span>
             </div>
             <div className="flex items-center justify-between mb-2">
-              <span>Gratis: {getRecipeById(formData.resepGratis)?.namaResep}</span>
+              <span>Gratis: {getRecipeProperty(getRecipeById(formData.resepGratis), 'name')}</span>
               <span className="font-medium line-through text-gray-500">
-                {formatCurrency(getRecipeById(formData.resepGratis)?.hargaJual)}
+                {formatCurrency(getRecipeProperty(getRecipeById(formData.resepGratis), 'harga'))}
               </span>
             </div>
             <div className="border-t border-green-300 pt-2 mt-2">
               <div className="flex items-center justify-between font-semibold">
                 <span>Total Customer Bayar:</span>
-                <span>{formatCurrency(getRecipeById(formData.resepUtama)?.hargaJual)}</span>
+                <span>{formatCurrency(getRecipeProperty(getRecipeById(formData.resepUtama), 'harga'))}</span>
               </div>
               <div className="flex items-center justify-between text-xs mt-1">
                 <span>Hemat:</span>
-                <span>{formatCurrency(getRecipeById(formData.resepGratis)?.hargaJual)}</span>
+                <span>{formatCurrency(getRecipeProperty(getRecipeById(formData.resepGratis), 'harga'))}</span>
               </div>
             </div>
           </div>

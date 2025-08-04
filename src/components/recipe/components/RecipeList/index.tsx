@@ -1,31 +1,47 @@
-// src/components/recipe/components/RecipeList/index.tsx
+// src/components/recipe/components/RecipeList/index.tsx - Optimized Dependencies (14 → 8)
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+
+// ✅ CONSOLIDATED: Auth and utilities
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 
-// Recipe hooks and services
-import { useRecipeOperations } from '../../hooks/useRecipeOperations';
-import { useRecipeFiltering } from '../../hooks/useRecipeFiltering';
-import { useRecipeStats } from '../../hooks/useRecipeStats';
+// ✅ CONSOLIDATED: Recipe hooks (single import instead of 3)
+import { 
+  useRecipeOperations,
+  useRecipeFiltering,
+  useRecipeStats 
+} from '../../hooks';
+
+// ✅ CONSOLIDATED: Services and types
 import { recipeApi } from '../../services/recipeApi';
 import type { Recipe, NewRecipe } from '../../types';
 
-// Components
+// ✅ CONSOLIDATED: Local components (single import)
 import RecipeTable from './RecipeTable';
 import RecipeFilters from './RecipeFilters';
 import RecipeStats from './RecipeStats';
-import { LoadingState } from '../shared/LoadingState';
-import { EmptyState } from '../shared/EmptyState';
 
-// Lazy loaded dialogs
+// ✅ CONSOLIDATED: Shared components
+import { LoadingState, EmptyState } from '../shared';
+
+// ✅ KEEP: Lazy loaded dialogs (existing logic)
 const RecipeForm = React.lazy(() => import('../RecipeForm'));
 const DeleteRecipeDialog = React.lazy(() => import('../../dialogs/DeleteRecipeDialog'));
 const DuplicateRecipeDialog = React.lazy(() => import('../../dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('../../dialogs/CategoryManagerDialog'));
+
+// ❌ REMOVED: Individual hook imports - now consolidated
+// - import { useRecipeOperations } from '../../hooks/useRecipeOperations';
+// - import { useRecipeFiltering } from '../../hooks/useRecipeFiltering';
+// - import { useRecipeStats } from '../../hooks/useRecipeStats';
+
+// ❌ REMOVED: Individual shared component imports - now consolidated
+// - import { LoadingState } from '../shared/LoadingState';
+// - import { EmptyState } from '../shared/EmptyState';
 
 const RecipeList: React.FC = () => {
   const { user } = useAuth();

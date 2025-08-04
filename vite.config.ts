@@ -3,24 +3,12 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
 import { componentTagger } from "lovable-tagger";
-import { visualizer } from "rollup-plugin-visualizer";
 
-export default defineConfig(({ mode, command }) => {
+export default defineConfig(({ mode }) => {
   const plugins = [react()];
 
   if (mode === "development") {
     plugins.push(componentTagger());
-  }
-
-  if (command === "build") {
-    plugins.push(
-      visualizer({
-        open: true,
-        filename: "dist/stats.html",
-        gzipSize: true,
-        brotliSize: true,
-      })
-    );
   }
 
   return {

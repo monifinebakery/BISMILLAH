@@ -1,67 +1,99 @@
-// contexts/AppProviders.tsx - Optimized Dependencies (9 → 6 dependencies)
+// contexts/AppProviders.tsx - Temporary Fallback (use original structure)
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// ✅ CORE FOUNDATION (Layer 1) - Essential system contexts
+// Import semua context provider dengan path yang konsisten
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
-
-// ✅ BUSINESS CORE (Layer 2) - Essential business contexts
+import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 
-// ✅ CONSOLIDATED PROVIDERS (Layer 3) - Group related providers
-import { BusinessDataProviders } from './BusinessDataProviders';
+// ✅ NEW: Import PromoProvider
+import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 
-// ❌ REMOVED: Individual imports to reduce dependencies
-// These are now handled by BusinessDataProviders:
-// - ActivityProvider, BahanBakuProvider, SupplierProvider, RecipeProvider
-// - AssetProvider, PurchaseProvider, OrderProvider, OperationalCostProvider
-// - PromoProvider, FollowUpTemplateProvider
+// ⚡ WAREHOUSE: Import both versions for performance testing
+import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseContext';
+// import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
+
+import { SupplierProvider } from './SupplierContext';
+import { RecipeProvider } from './RecipeContext';
+import { AssetProvider } from './AssetContext';
+import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
+import { OrderProvider } from '@/components/orders/context/OrderProvider';
+import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
+
+// ✅ NEW: Import OperationalCostProvider
+import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
 
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 /**
- * ✅ OPTIMIZED AppProviders - Reduced from 12 nested providers to 6
- * 
- * New Architecture:
- * Layer 1: Foundation (Auth, Notifications, Settings)
- * Layer 2: Financial & Payment
- * Layer 3: Business Data (Consolidated)
- * 
- * Dependencies reduced from 9 to 6 by consolidating related providers
+ * ⚡ FALLBACK AppProviders - Original structure to fix error
+ * Using original nesting until we identify the FinancialProvider issue
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
     <>
-      {/* Layer 1: Foundation - Core system services */}
+      {/* 1. Foundation Layer - Core authentication & system */}
       <AuthProvider>
+        {/* 2. Core Services Layer - Essential app services */}
         <NotificationProvider>
           <UserSettingsProvider>
-            
-            {/* Layer 2: Financial Core - Business financial logic */}
-            <FinancialProvider>
-              <PaymentProvider>
-                
-                {/* Layer 3: Business Data - All business entities consolidated */}
-                <BusinessDataProviders>
-                  {children}
-                </BusinessDataProviders>
-                
-              </PaymentProvider>
-            </FinancialProvider>
-            
+            <ActivityProvider>
+              
+              {/* 3. Business Logic Layer - Financial & payment systems */}
+              <FinancialProvider>
+                <PaymentProvider>
+                  
+                  {/* 4. Core Business Entities - Main data providers */}
+                  {/* ⚡ WAREHOUSE: Enhanced modular context */}
+                  <BahanBakuProvider>
+                    <SupplierProvider>
+                      
+                      {/* 5. Complex Business Logic - Recipe management */}
+                      <RecipeProvider>
+                        
+                        {/* 6. Asset & Operations - Business operations */}
+                        <AssetProvider>
+                          <PurchaseProvider>
+                            <OrderProvider>
+                              
+                              {/* 7. Cost Management - Operational costs for HPP calculation */}
+                              {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
+                              <OperationalCostProvider>
+                                
+                                {/* 8. Advanced Features - Enhanced capabilities */}
+                                {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
+                                <PromoProvider>
+                                  <FollowUpTemplateProvider>
+                                    
+                                    {/* 9. Application Layer - Final app content */}
+                                    {children}
+                                    
+                                  </FollowUpTemplateProvider>
+                                </PromoProvider>
+                              </OperationalCostProvider>
+                            </OrderProvider>
+                          </PurchaseProvider>
+                        </AssetProvider>
+                      </RecipeProvider>
+                    </SupplierProvider>
+                  </BahanBakuProvider>
+                </PaymentProvider>
+              </FinancialProvider>
+            </ActivityProvider>
           </UserSettingsProvider>
         </NotificationProvider>
       </AuthProvider>
       
-      {/* Global UI - Enhanced notifications */}
+      {/* Global UI Components - Enhanced notifications */}
       <Toaster 
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton

@@ -1,5 +1,5 @@
 // src/components/financial/dialogs/FinancialTransactionDialog.tsx
-// Modular and Clean Transaction Dialog
+// ✅ FIXED: Support both string and object category formats
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
+
+// ✅ UPDATED: Support both category formats
+interface CategoryObject {
+  id: string;
+  name: string;
+  type: 'income' | 'expense';
+  color: string;
+  isDefault: boolean;
+}
+
+type CategoryItem = string | CategoryObject;
 
 // Types
 export type TransactionType = 'income' | 'expense';
@@ -29,10 +40,26 @@ interface FinancialTransactionDialogProps {
   onUpdateTransaction?: (id: string, transaction: Partial<Transaction>) => Promise<boolean>;
   transaction?: Transaction | null;
   categories?: {
-    income: string[];
-    expense: string[];
+    income: CategoryItem[]; // ✅ Support both string and object
+    expense: CategoryItem[];
   };
 }
+
+// ✅ UTILITY: Extract category name and id from both formats
+const getCategoryInfo = (category: CategoryItem) => {
+  if (typeof category === 'string') {
+    return { id: category, name: category };
+  }
+  return { id: category.id, name: category.name };
+};
+
+// ✅ UTILITY: Get category color (for future use)
+const getCategoryColor = (category: CategoryItem): string => {
+  if (typeof category === 'object' && category.color) {
+    return category.color;
+  }
+  return '#6b7280'; // Default gray color
+};
 
 // Default form state
 const getInitialFormState = (): Omit<Transaction, 'id'> => ({
@@ -67,6 +94,15 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 }) => {
   const [formData, setFormData] = useState<Omit<Transaction, 'id'>>(getInitialFormState());
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✅ DEBUG: Log categories to check format
+  useEffect(() => {
+    if (isOpen && categories) {
+      console.log('🔍 Categories received:', categories);
+      console.log('🔍 Income categories:', categories.income);
+      console.log('🔍 Expense categories:', categories.expense);
+    }
+  }, [categories, isOpen]);
 
   // Initialize form data when dialog opens or transaction changes
   useEffect(() => {
@@ -131,8 +167,13 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   };
 
-  // Get current category list based on transaction type
-  const currentCategoryList = formData.type === 'income' ? categories.income : categories.expense;
+  // ✅ FIXED: Get current category list and handle both formats
+  const getCurrentCategoryList = (): CategoryItem[] => {
+    const currentList = formData.type === 'income' ? categories.income : categories.expense;
+    return currentList || [];
+  };
+
+  const currentCategoryList = getCurrentCategoryList();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -178,7 +219,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             </div>
           </div>
 
-          {/* Category */}
+          {/* ✅ FIXED: Category with object support */}
           <div>
             <Label htmlFor="category">Kategori</Label>
             <Select
@@ -190,11 +231,22 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {currentCategoryList.length > 0 ? (
-                  currentCategoryList.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))
+                  currentCategoryList.map((categoryItem) => {
+                    const { id, name } = getCategoryInfo(categoryItem);
+                    const color = getCategoryColor(categoryItem);
+                    
+                    return (
+                      <SelectItem key={id} value={id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full border"
+                            style={{ backgroundColor: color }}
+                          ></div>
+                          <span>{name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })
                 ) : (
                   <SelectItem value="" disabled>
                     Tidak ada kategori tersedia

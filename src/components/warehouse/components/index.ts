@@ -1,25 +1,25 @@
 // src/components/warehouse/components/index.ts
 /**
- * Warehouse Components Barrel Export
- * HANYA untuk static components yang always loaded
+ * Warehouse Components - Static Only Exports
+ * 
+ * HANYA components yang always loaded (frequent use)
+ * Dependencies: 4 (reduced from 5)
  */
 
-// ✅ Static Components (Always loaded - frequent use)
+// ✅ STATIC COMPONENTS ONLY
 export { default as WarehouseHeader } from './WarehouseHeader';
 export { default as WarehouseTable } from './WarehouseTable';
 export { default as WarehouseFilters } from './WarehouseFilters';
 export { default as BulkActions } from './BulkActions';
 
-// ❌ REMOVED: DialogManager - akan di-lazy load
-// export { default as DialogManager } from './DialogManager';
+// ❌ REMOVED: DialogManager
+// Reason: Lazy-loaded component, tidak untuk barrel export
+// Usage: import DialogManager dari './DialogManager' langsung
 
-// ✅ Type-only exports (tidak mempengaruhi bundle)
+// ✅ TYPE-ONLY EXPORTS (zero runtime cost)
 export type {
   WarehouseHeaderProps,
   WarehouseTableProps,
   WarehouseFiltersProps,
-  BulkActionsProps,
+  BulkActionsProps
 } from '../types';
-
-// ✅ OPTIONAL: Export DialogManagerProps sebagai type saja
-export type { DialogManagerProps } from '../types';

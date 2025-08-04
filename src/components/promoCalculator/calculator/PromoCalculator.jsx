@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { usePromo } from '@/components/promoCalculator/context/PromoContext';
 import PromoTypeSelector from './PromoTypeSelector';
 import PromoPreview from './PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';
@@ -13,23 +14,30 @@ const PromoCalculator = () => {
   const isMobile = useIsMobile(768);
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
-  const [isCalculating, setIsCalculating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const { recipes, isLoading: recipesLoading } = useRecipe();
-  const { calculatePromo, savePromo, isLoading: calculationLoading } = usePromoCalculation();
+  const { addPromo } = usePromo();
+  const { 
+    calculationResult, 
+    isCalculating, 
+    calculationError, 
+    calculatePromo, 
+    clearCalculation 
+  } = usePromoCalculation();
 
   // Reset form when type changes
   useEffect(() => {
     setFormData({});
     setShowPreview(false);
-  }, [selectedType]);
+    clearCalculation();
+  }, [selectedType, clearCalculation]);
 
   const handleFormSubmit = async (data) => {
-    setIsCalculating(true);
     try {
-      const calculationResult = await calculatePromo(selectedType, data);
-      setFormData({ ...data, calculationResult });
+      const result = await calculatePromo(selectedType, data);
+      setFormData({ ...data, calculationResult: result });
       
       // Auto show preview on mobile after calculation
       if (isMobile) {
@@ -39,31 +47,46 @@ const PromoCalculator = () => {
       toast.success('Perhitungan promo berhasil!');
     } catch (error) {
       toast.error(`Error: ${error.message}`);
-    } finally {
-      setIsCalculating(false);
     }
   };
 
   const handleSavePromo = async () => {
-    if (!formData.calculationResult) {
+    if (!calculationResult) {
       toast.error('Lakukan perhitungan terlebih dahulu');
       return;
     }
 
+    if (!formData.namaPromo) {
+      toast.error('Nama promo wajib diisi');
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      await savePromo({
-        type: selectedType,
-        data: formData,
-        calculation: formData.calculationResult
-      });
-      toast.success('Promo berhasil disimpan!');
+      const promoData = {
+        namaPromo: formData.namaPromo,
+        tipePromo: selectedType,
+        status: 'draft', // Default status
+        dataPromo: formData,
+        calculationResult: calculationResult,
+        deskripsi: formData.deskripsi || '',
+        tanggalMulai: formData.tanggalMulai,
+        tanggalSelesai: formData.tanggalSelesai
+      };
+
+      const success = await addPromo(promoData);
       
-      // Reset form
-      setSelectedType('');
-      setFormData({});
-      setShowPreview(false);
+      if (success) {
+        // Reset form after successful save
+        setSelectedType('');
+        setFormData({});
+        setShowPreview(false);
+        clearCalculation();
+      }
     } catch (error) {
       toast.error(`Gagal menyimpan promo: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -134,7 +157,7 @@ const PromoCalculator = () => {
               </div>
             </div>
             
-            {formData.calculationResult && !showPreview && (
+            {calculationResult && !showPreview && (
               <button
                 onClick={() => setShowPreview(true)}
                 className="flex items-center space-x-1 text-orange-600 text-sm font-medium"
@@ -155,13 +178,12 @@ const PromoCalculator = () => {
                 selectedType={selectedType}
                 onTypeChange={setSelectedType}
                 onFormSubmit={handleFormSubmit}
-                isCalculating={isCalculating || calculationLoading}
+                isCalculating={isCalculating}
                 recipes={recipes}
-                isMobile={true}
               />
               
               {/* Calculation Status */}
-              {formData.calculationResult && (
+              {calculationResult && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -172,6 +194,19 @@ const PromoCalculator = () => {
                   <p className="text-xs text-green-700 mt-1">
                     Tap "Preview" untuk melihat hasil kalkulasi
                   </p>
+                </div>
+              )}
+              
+              {/* Error Display */}
+              {calculationError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-medium text-red-800">
+                      Error Perhitungan
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-700 mt-1">{calculationError}</p>
                 </div>
               )}
             </div>
@@ -189,17 +224,16 @@ const PromoCalculator = () => {
               
               <PromoPreview 
                 type={selectedType}
-                data={formData}
+                data={{ calculationResult }}
                 onSave={handleSavePromo}
-                isLoading={calculationLoading}
-                isMobile={true}
+                isLoading={isSaving}
               />
             </div>
           )}
         </div>
 
         {/* Mobile Bottom Actions */}
-        {formData.calculationResult && (
+        {calculationResult && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -214,11 +248,11 @@ const PromoCalculator = () => {
               
               <button
                 onClick={handleSavePromo}
-                disabled={calculationLoading}
+                disabled={isSaving}
                 className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
-                <span className="text-sm">Simpan Promo</span>
+                <span className="text-sm">{isSaving ? 'Menyimpan...' : 'Simpan Promo'}</span>
               </button>
             </div>
           </div>
@@ -227,12 +261,12 @@ const PromoCalculator = () => {
     );
   }
 
-  // Desktop Layout (Original)
+  // Desktop Layout
   return (
-    <div className="p-6">
+    <div className="py-6">
       {/* Desktop Header */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-2">
+      <div className="mb-8">
+        <div className="flex items-center space-x-3 mb-4">
           <div className="p-2 bg-orange-100 rounded-lg">
             <Calculator className="h-6 w-6 text-orange-600" />
           </div>
@@ -243,35 +277,46 @@ const PromoCalculator = () => {
         </div>
         
         {selectedType && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <p className="text-sm text-orange-800">
               <span className="font-medium">Tipe promo dipilih:</span> 
               <span className="capitalize ml-1">{selectedType}</span>
             </p>
           </div>
         )}
+        
+        {/* Error Display for Desktop */}
+        {calculationError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <span className="font-medium text-red-800">Error Perhitungan</span>
+            </div>
+            <p className="text-sm text-red-700 mt-1">{calculationError}</p>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Form Section */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2">
           <PromoTypeSelector 
             selectedType={selectedType}
             onTypeChange={setSelectedType}
             onFormSubmit={handleFormSubmit}
-            isCalculating={isCalculating || calculationLoading}
+            isCalculating={isCalculating}
             recipes={recipes}
           />
         </div>
         
         {/* Preview Section */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <div className="sticky top-6">
             <PromoPreview 
               type={selectedType}
-              data={formData}
+              data={{ calculationResult }}
               onSave={handleSavePromo}
-              isLoading={calculationLoading}
+              isLoading={isSaving}
             />
           </div>
         </div>

@@ -6,6 +6,6 @@ export { default as PromoTypeSelector } from './PromoTypeSelector';
 // Forms - lazy loaded only
 const BogoForm = lazy(() => import('./forms/BogoForm'));
 const BundleForm = lazy(() => import('./forms/BundleForm'));
-const DiscountForm = lazy(() => import('./forms/DiscountForm'));
+// const DiscountForm = lazy(() => import('./forms/DiscountForm'));
 
 // ---

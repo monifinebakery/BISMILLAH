@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
-import type { Supplier } from '@/types/supplier';
-import type { SupplierFormData } from '../index';
+import type { Supplier, SupplierFormData } from '@/types/supplier';
 
 export const useSupplierForm = (
   supplier: Supplier | null,

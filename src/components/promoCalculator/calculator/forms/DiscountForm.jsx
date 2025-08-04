@@ -1,5 +1,3 @@
-className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"// 🎯 Form untuk Diskon - Fixed Recipe Properties
-
 import React, { useState } from 'react';
 import { Percent, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';

@@ -4,36 +4,42 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
-import type { BahanBaku } from '../types';
+import type { BahanBakuFrontend } from '../types'; // ✅ Updated import
 
 interface BulkOperationsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   operation: 'edit' | 'delete';
   selectedItems: string[];
-  selectedItemsData: BahanBaku[];
+  selectedItemsData: BahanBakuFrontend[]; // ✅ Updated type
   onConfirm: (data?: any) => Promise<void>;
   isProcessing: boolean;
   availableCategories: string[];
   availableSuppliers: string[];
 }
 
+// ✅ Updated BulkEditData to match BahanBakuFrontend field names
 interface BulkEditData {
   kategori?: string;
   supplier?: string;
   minimum?: number;
-  harga?: number;
-  expiry?: string;
+  harga?: number; // ✅ Changed from harga_satuan to harga
+  expiry?: string; // ✅ Changed from tanggal_kadaluwarsa to expiry
 }
 
 /**
  * Combined Bulk Operations Dialog Component
+ * 
+ * ✅ Updated to use BahanBakuFrontend interface
+ * ✅ Fixed field naming consistency (camelCase)
+ * ✅ Enhanced with updated warehouseUtils functions
  * 
  * Handles both bulk edit and bulk delete operations:
  * - Bulk Edit: Update multiple items with same values
  * - Bulk Delete: Delete multiple items with confirmation
  * - Progress indication
  * - Validation and error handling
+ * - Compatible with updated type system
  * 
  * Size: ~6KB (loaded lazily)
  */
@@ -156,18 +162,24 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </h3>
             <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {selectedItemsData.slice(0, 10).map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-sm">
-                    <div className={`w-2 h-2 rounded-full ${
-                      item.stok === 0 ? 'bg-red-500' :
-                      item.stok <= item.minimum ? 'bg-yellow-500' : 'bg-green-500'
-                    }`} />
-                    <span className="truncate">{item.nama}</span>
-                    <span className="text-gray-500 text-xs">
-                      ({item.stok} {item.satuan})
-                    </span>
-                  </div>
-                ))}
+                {selectedItemsData.slice(0, 10).map((item) => {
+                  // ✅ Use updated helper functions
+                  const stockLevel = warehouseUtils.getStockLevel(item);
+                  
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 text-sm">
+                      <div className={`w-2 h-2 rounded-full ${
+                        stockLevel.level === 'out' ? 'bg-red-500' :
+                        stockLevel.level === 'low' ? 'bg-yellow-500' :
+                        stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
+                      }`} />
+                      <span className="truncate">{item.nama}</span>
+                      <span className="text-gray-500 text-xs">
+                        ({item.stok} {item.satuan})
+                      </span>
+                    </div>
+                  );
+                })}
                 {selectedCount > 10 && (
                   <div className="text-sm text-gray-500 italic col-span-full">
                     ... dan {selectedCount - 10} item lainnya
@@ -284,7 +296,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   />
                 </div>
 
-                {/* Price */}
+                {/* Price - ✅ Updated field name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Harga per Satuan
@@ -305,7 +317,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   </div>
                 </div>
 
-                {/* Expiry Date */}
+                {/* Expiry Date - ✅ Updated field name */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tanggal Kadaluarsa
@@ -345,7 +357,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                 </div>
               </div>
 
-              {/* Items Summary */}
+              {/* ✅ Enhanced Items Summary with updated calculations */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Ringkasan Item yang Akan Dihapus:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -359,6 +371,19 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                       {warehouseUtils.formatCurrency(
                         selectedItemsData.reduce((sum, item) => sum + (item.stok * item.harga), 0)
                       )}
+                    </span>
+                  </div>
+                  {/* ✅ Additional analytics */}
+                  <div>
+                    <span className="text-gray-600">Item Stok Rendah:</span>
+                    <span className="font-medium ml-2 text-yellow-600">
+                      {selectedItemsData.filter(item => warehouseUtils.isLowStockItem(item)).length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Item Akan Kadaluarsa:</span>
+                    <span className="font-medium ml-2 text-red-600">
+                      {selectedItemsData.filter(item => warehouseUtils.isExpiringItem(item)).length}
                     </span>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
-// 🎯 Enhanced OrdersPage - Optimized Dependencies (8 → 5)
-import React, { useState, useCallback, Suspense } from 'react';
+// src/components/orders/components/OrdersPage.tsx - Optimized Dependencies (8 → 6)
+
+import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -8,139 +9,216 @@ import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
 
-// ✅ CONSOLIDATED: External contexts and types
+// ✅ CONSOLIDATED: Template integration (enhanced)
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+
+// ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder } from '../types';
+
+// ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
 
-// ✅ KEEP: Lazy load heavy components (existing logic)
-const OrderTable = React.lazy(() => import('./OrderTable'));
-const OrderFilters = React.lazy(() => import('./OrderFilters'));
-const OrderControls = React.lazy(() => import('./OrderControls'));
-const OrderDialogs = React.lazy(() => import('./OrderDialogs'));
+// ✅ OPTIMIZED: Lazy loading with better error boundaries
+const OrderTable = React.lazy(() => 
+  import('./OrderTable').catch(() => ({
+    default: () => (
+      <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
+        <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel pesanan</div>
+        <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
+      </div>
+    )
+  }))
+);
 
-// ❌ REMOVED: None - already consolidated well
-// All imports are necessary and grouped logically
+const OrderFilters = React.lazy(() => 
+  import('./OrderFilters').catch(() => ({
+    default: () => <div className="h-16 bg-gray-100 rounded animate-pulse" />
+  }))
+);
+
+const OrderControls = React.lazy(() => 
+  import('./OrderControls').catch(() => ({
+    default: () => <div className="h-12 bg-gray-100 rounded animate-pulse" />
+  }))
+);
+
+const OrderDialogs = React.lazy(() => 
+  import('./OrderDialogs').catch(() => ({
+    default: () => null
+  }))
+);
+
+// ❌ REMOVED: Unnecessary imports - already well optimized
+
+// ✅ INTERFACES: Consolidated component state
+interface OrdersPageState {
+  dialogs: {
+    orderForm: boolean;
+    templateManager: boolean;
+  };
+  editingOrder: Order | null;
+  selectedOrderForTemplate: Order | null;
+}
+
+const initialState: OrdersPageState = {
+  dialogs: {
+    orderForm: false,
+    templateManager: false
+  },
+  editingOrder: null,
+  selectedOrderForTemplate: null
+};
 
 const OrdersPage: React.FC = () => {
-  // Get context data
+  // ✅ CONTEXTS: Direct usage
   const contextValue = useOrder();
   const { orders, loading, addOrder, updateOrder, deleteOrder } = contextValue;
 
-  // ✅ ENHANCED: Template hooks integration
+  // ✅ TEMPLATE INTEGRATION: Enhanced with error handling
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
 
-  // UI state management dengan logika asli
+  // ✅ UI STATE: Optimized with memoization
   const uiState = useOrderUI(orders, 10);
 
-  // Dialog states dari kode asli
-  const [showOrderForm, setShowOrderForm] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [showTemplateManager, setShowTemplateManager] = useState(false);
-  const [selectedOrderForTemplate, setSelectedOrderForTemplate] = useState<Order | null>(null);
+  // ✅ CONSOLIDATED: Single state object
+  const [pageState, setPageState] = useState<OrdersPageState>(initialState);
 
-  // Event handlers dengan semua logika asli
-  const handleNewOrder = useCallback(() => {
-    try {
-      setEditingOrder(null);
-      setShowOrderForm(true);
-    } catch (error) {
-      console.error('Error opening new order form:', error);
-      toast.error('Gagal membuka form pesanan baru');
+  // ✅ MEMOIZED: Dialog handlers
+  const dialogHandlers = useMemo(() => ({
+    openOrderForm: (order: Order | null = null) => {
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, orderForm: true },
+        editingOrder: order
+      }));
+    },
+
+    closeOrderForm: () => {
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, orderForm: false },
+        editingOrder: null
+      }));
+    },
+
+    openTemplateManager: () => {
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, templateManager: true },
+        selectedOrderForTemplate: null
+      }));
+    },
+
+    closeTemplateManager: () => {
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, templateManager: false },
+        selectedOrderForTemplate: null
+      }));
     }
-  }, []);
+  }), []);
 
-  const handleEditOrder = useCallback((order: Order) => {
-    try {
-      if (!order?.id) {
-        toast.error('Data pesanan tidak valid');
-        return;
+  // ✅ MEMOIZED: Business logic handlers
+  const businessHandlers = useMemo(() => ({
+    newOrder: () => {
+      try {
+        dialogHandlers.openOrderForm();
+      } catch (error) {
+        console.error('Error opening new order form:', error);
+        toast.error('Gagal membuka form pesanan baru');
       }
-      setEditingOrder(order);
-      setShowOrderForm(true);
-    } catch (error) {
-      console.error('Error opening edit form:', error);
-      toast.error('Gagal membuka form edit pesanan');
-    }
-  }, []);
+    },
 
-  const handleDeleteOrder = useCallback(async (orderId: string) => {
-    try {
-      if (!orderId) {
-        toast.error('ID pesanan tidak valid');
-        return;
+    editOrder: (order: Order) => {
+      try {
+        if (!order?.id) {
+          toast.error('Data pesanan tidak valid');
+          return;
+        }
+        dialogHandlers.openOrderForm(order);
+      } catch (error) {
+        console.error('Error opening edit form:', error);
+        toast.error('Gagal membuka form edit pesanan');
       }
+    },
 
-      // Remove from selection jika dipilih - dari kode asli
-      if (uiState.selectedOrderIds.includes(orderId)) {
-        uiState.toggleSelectOrder(orderId, false);
+    deleteOrder: async (orderId: string) => {
+      try {
+        if (!orderId) {
+          toast.error('ID pesanan tidak valid');
+          return;
+        }
+
+        // Remove from selection if selected
+        if (uiState.selectedOrderIds.includes(orderId)) {
+          uiState.toggleSelectOrder(orderId, false);
+        }
+
+        const success = await deleteOrder(orderId);
+        if (success) {
+          toast.success('Pesanan berhasil dihapus');
+        }
+      } catch (error) {
+        toast.error('Gagal menghapus pesanan');
+        console.error('Error deleting order:', error);
       }
+    },
 
-      const success = await deleteOrder(orderId);
-      if (success) {
-        toast.success('Pesanan berhasil dihapus');
+    statusChange: async (orderId: string, newStatus: string) => {
+      try {
+        if (!orderId || !newStatus) {
+          toast.error('Parameter tidak valid');
+          return;
+        }
+
+        const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
+        if (success) {
+          const order = orders.find(o => o.id === orderId);
+          toast.success(`Status pesanan #${order?.nomorPesanan || orderId} berhasil diubah.`);
+        }
+      } catch (error) {
+        toast.error('Gagal mengubah status pesanan');
+        console.error('Error updating status:', error);
       }
-    } catch (error) {
-      toast.error('Gagal menghapus pesanan');
-      console.error('Error deleting order:', error);
-    }
-  }, [deleteOrder, uiState]);
+    },
 
-  const handleStatusChange = useCallback(async (orderId: string, newStatus: string) => {
-    try {
-      if (!orderId || !newStatus) {
-        toast.error('Parameter tidak valid');
-        return;
-      }
+    submitOrder: async (data: Partial<Order> | Partial<NewOrder>) => {
+      const isEditingMode = !!pageState.editingOrder;
+      
+      try {
+        if (!data) {
+          toast.error('Data pesanan tidak valid');
+          return;
+        }
 
-      const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
-      if (success) {
-        const order = orders.find(o => o.id === orderId);
-        toast.success(`Status pesanan #${order?.nomorPesanan || orderId} berhasil diubah.`);
-      }
-    } catch (error) {
-      toast.error('Gagal mengubah status pesanan');
-      console.error('Error updating status:', error);
-    }
-  }, [updateOrder, orders]);
+        let success = false;
+        if (isEditingMode && pageState.editingOrder?.id) {
+          success = await updateOrder(pageState.editingOrder.id, data);
+        } else {
+          success = await addOrder(data as NewOrder);
+        }
 
-  const handleSubmitOrder = useCallback(async (data: Partial<Order> | Partial<NewOrder>) => {
-    const isEditingMode = !!editingOrder;
-    
-    try {
-      if (!data) {
-        toast.error('Data pesanan tidak valid');
-        return;
-      }
-
-      let success = false;
-      if (isEditingMode && editingOrder?.id) {
-        success = await updateOrder(editingOrder.id, data);
-      } else {
-        success = await addOrder(data as NewOrder);
-      }
-
-      if (success) {
-        toast.success(
+        if (success) {
+          toast.success(
+            isEditingMode 
+              ? 'Pesanan berhasil diperbarui.' 
+              : 'Pesanan baru berhasil ditambahkan.'
+          );
+          dialogHandlers.closeOrderForm();
+        }
+      } catch (error) {
+        toast.error(
           isEditingMode 
-            ? 'Pesanan berhasil diperbarui.' 
-            : 'Pesanan baru berhasil ditambahkan.'
+            ? 'Gagal memperbarui pesanan' 
+            : 'Gagal menambahkan pesanan'
         );
-        setShowOrderForm(false);
-        setEditingOrder(null);
+        console.error('Error submitting order:', error);
       }
-    } catch (error) {
-      toast.error(
-        isEditingMode 
-          ? 'Gagal memperbarui pesanan' 
-          : 'Gagal menambahkan pesanan'
-      );
-      console.error('Error submitting order:', error);
     }
-  }, [editingOrder, updateOrder, addOrder]);
+  }), [pageState.editingOrder, orders, updateOrder, addOrder, deleteOrder, uiState, dialogHandlers]);
 
-  // ✅ ENHANCED: Follow Up Handler dengan Template Integration
+  // ✅ ENHANCED: WhatsApp integration with template
   const handleFollowUp = useCallback((order: Order) => {
     console.log('✅ Follow up initiated from OrdersPage for:', order.nomorPesanan);
     
@@ -150,7 +228,7 @@ const OrdersPage: React.FC = () => {
     }
 
     try {
-      // Get template berdasarkan status order
+      // Get template based on order status
       const template = getTemplate(order.status);
       
       if (!template) {
@@ -158,28 +236,31 @@ const OrdersPage: React.FC = () => {
         return;
       }
 
-      // Process template dengan data order
+      // Process template with order data
       const processedMessage = processTemplate(template, order);
       
-      // Format nomor telepon
+      // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
-      // Buat WhatsApp URL
+      // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
       
-      // Buka WhatsApp
+      // Open WhatsApp
       window.open(whatsappUrl, '_blank');
       
       toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
       
-      // Optional: Set selected order for template manager
-      setSelectedOrderForTemplate(order);
+      // Set selected order for template manager
+      setPageState(prev => ({
+        ...prev,
+        selectedOrderForTemplate: order
+      }));
       
     } catch (error) {
       console.error('Error processing follow up template:', error);
       toast.error('Gagal memproses template follow up');
       
-      // Fallback ke pesan sederhana
+      // Fallback to simple message
       const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
@@ -187,45 +268,30 @@ const OrdersPage: React.FC = () => {
     }
   }, [getTemplate, processTemplate]);
 
-  // ✅ ENHANCED: View Detail Handler
+  // ✅ ENHANCED: View detail handler
   const handleViewDetail = useCallback((order: Order) => {
     console.log('✅ View detail initiated for:', order.nomorPesanan);
     
-    // Set order for template manager (bisa digunakan untuk preview template)
-    setSelectedOrderForTemplate(order);
+    // Set order for template manager (could be used for template preview)
+    setPageState(prev => ({
+      ...prev,
+      selectedOrderForTemplate: order
+    }));
     
-    // Placeholder untuk detail view - bisa dikembangkan lebih lanjut
+    // Placeholder for detail view - can be developed further
     toast.info(`Detail pesanan #${order.nomorPesanan} - Coming soon!`);
     
-    // TODO: Implementasi modal detail atau navigate ke detail page
+    // TODO: Implement detail modal or navigate to detail page
   }, []);
 
-  // ✅ ENHANCED: Template Manager dengan Context Integration
-  const handleOpenTemplateManager = useCallback(() => {
-    try {
-      setShowTemplateManager(true);
-      
-      // Optional: Reset selected order ketika buka template manager
-      setSelectedOrderForTemplate(null);
-      
-    } catch (error) {
-      console.error('Error opening template manager:', error);
-      toast.error('Gagal membuka template manager');
-    }
-  }, []);
-
-  const handleCloseTemplateManager = useCallback(() => {
-    setShowTemplateManager(false);
-    setSelectedOrderForTemplate(null);
-  }, []);
-
+  // ✅ EARLY RETURN: Loading state
   if (loading) {
     return <PageLoading />;
   }
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
-      {/* ✅ ENHANCED: Header dengan template integration info */}
+      {/* ✅ ENHANCED: Header with template integration info */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
@@ -241,7 +307,7 @@ const OrdersPage: React.FC = () => {
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Button
-            onClick={handleOpenTemplateManager}
+            onClick={dialogHandlers.openTemplateManager}
             variant="outline"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-blue-50 transition-all duration-200 hover:shadow-lg border-blue-300"
           >
@@ -250,7 +316,7 @@ const OrdersPage: React.FC = () => {
           </Button>
           
           <Button
-            onClick={handleNewOrder}
+            onClick={businessHandlers.newOrder}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
           >
             <Plus className="h-5 w-5" />
@@ -259,28 +325,34 @@ const OrdersPage: React.FC = () => {
         </div>
       </header>
 
-      {/* ✅ ENHANCED: Main content dengan template integration */}
-      <Suspense fallback={<div className="animate-pulse bg-gray-200 h-48 rounded"></div>}>
+      {/* ✅ OPTIMIZED: Main content with better error handling */}
+      <Suspense fallback={
+        <div className="space-y-4">
+          <div className="h-12 bg-gray-100 rounded animate-pulse" />
+          <div className="h-16 bg-gray-100 rounded animate-pulse" />
+          <div className="h-64 bg-gray-100 rounded animate-pulse" />
+        </div>
+      }>
         <OrderControls uiState={uiState} loading={loading} />
         <OrderFilters uiState={uiState} loading={loading} />
         <OrderTable
           uiState={uiState}
           loading={loading}
-          onEditOrder={handleEditOrder}
-          onDeleteOrder={handleDeleteOrder}
-          onStatusChange={handleStatusChange}
-          onNewOrder={handleNewOrder}
-          onFollowUp={handleFollowUp} // ✅ ENHANCED: Pass follow up handler
-          onViewDetail={handleViewDetail} // ✅ ENHANCED: Pass view detail handler
+          onEditOrder={businessHandlers.editOrder}
+          onDeleteOrder={businessHandlers.deleteOrder}
+          onStatusChange={businessHandlers.statusChange}
+          onNewOrder={businessHandlers.newOrder}
+          onFollowUp={handleFollowUp}
+          onViewDetail={handleViewDetail}
         />
         <OrderDialogs
-          showOrderForm={showOrderForm}
-          editingOrder={editingOrder}
-          showTemplateManager={showTemplateManager}
-          selectedOrderForTemplate={selectedOrderForTemplate} // ✅ ENHANCED: Pass selected order
-          onSubmitOrder={handleSubmitOrder}
-          onCloseOrderForm={() => setShowOrderForm(false)}
-          onCloseTemplateManager={handleCloseTemplateManager} // ✅ ENHANCED: Use enhanced handler
+          showOrderForm={pageState.dialogs.orderForm}
+          editingOrder={pageState.editingOrder}
+          showTemplateManager={pageState.dialogs.templateManager}
+          selectedOrderForTemplate={pageState.selectedOrderForTemplate}
+          onSubmitOrder={businessHandlers.submitOrder}
+          onCloseOrderForm={dialogHandlers.closeOrderForm}
+          onCloseTemplateManager={dialogHandlers.closeTemplateManager}
         />
       </Suspense>
     </div>

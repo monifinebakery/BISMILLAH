@@ -1,12 +1,14 @@
-// 🎯 25 lines - Main exports
+// src/components/orders/index.ts
+// 🎯 Clean main exports - NO DUPLICATES
+
 // Main page component
 export { default as OrdersPage } from './components/OrdersPage';
 
-// Context
+// Context (from context folder)
 export { OrderProvider } from './context/OrderProvider';
 export { useOrder } from './context/OrderContext';
 
-// Hooks
+// Hooks (from hooks folder)  
 export { useOrderData } from './hooks/useOrderData';
 export { useOrderUI } from './hooks/useOrderUI';
 

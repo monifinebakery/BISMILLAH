@@ -1,4 +1,6 @@
-// 🎯 15 lines - Hook exports
+// src/components/orders/hooks/index.ts
+// 🎯 Hooks only - NO component/context exports
+
 export { useOrderData } from './useOrderData';
 export { useOrderUI } from './useOrderUI';
 

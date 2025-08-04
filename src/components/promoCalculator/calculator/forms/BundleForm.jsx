@@ -1,6 +1,4 @@
-// ============================================================================
-// src/components/promoCalculator/calculator/forms/BundleForm.jsx
-// 🎯 Form untuk Bundle Produk (FIXED VERSION)
+// 🎯 Form untuk Bundle Produk - Fixed with Proper Recipe Properties
 
 import React, { useState } from 'react';
 import { Package, Plus, X, Search } from 'lucide-react';
@@ -20,10 +18,32 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResep, setShowResep] = useState(false);
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.namaResep.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    !formData.resepBundle.some(item => item.resepId === recipe.id)
-  );
+  // Helper function to get the correct property value
+  const getRecipeProperty = (recipe, property) => {
+    if (!recipe) return property === 'name' ? 'Unknown Recipe' : 0;
+    
+    const possibleNames = {
+      hpp: ['hpp', 'hppPerPorsi', 'cost_per_portion', 'hpp_per_porsi'],
+      harga: ['harga_jual', 'hargaJualPorsi', 'hargaJual', 'price', 'selling_price', 'harga_jual_porsi'],
+      name: ['namaResep', 'name', 'recipe_name', 'nama_resep']
+    };
+    
+    const names = possibleNames[property] || [property];
+    
+    for (const name of names) {
+      if (recipe[name] !== undefined && recipe[name] !== null) {
+        return recipe[name];
+      }
+    }
+    
+    return property === 'name' ? 'Unknown Recipe' : 0;
+  };
+
+  const filteredRecipes = recipes.filter(recipe => {
+    const name = getRecipeProperty(recipe, 'name');
+    return name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+           !formData.resepBundle.some(item => item.resepId === recipe.id);
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -77,16 +97,26 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
 
   const getRecipeById = (id) => recipes.find(r => r.id === id);
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(value || 0);
+  };
+
   // Calculate bundle statistics
   const bundleStats = (() => {
     const totalHPP = formData.resepBundle.reduce((sum, item) => {
       const recipe = getRecipeById(item.resepId);
-      return sum + (recipe ? recipe.hppPerPorsi * item.quantity : 0);
+      const hpp = getRecipeProperty(recipe, 'hpp');
+      return sum + (hpp * item.quantity);
     }, 0);
 
     const totalNormalPrice = formData.resepBundle.reduce((sum, item) => {
       const recipe = getRecipeById(item.resepId);
-      return sum + (recipe ? recipe.hargaJualPorsi * item.quantity : 0);
+      const harga = getRecipeProperty(recipe, 'harga');
+      return sum + (harga * item.quantity);
     }, 0);
 
     const bundlePrice = parseFloat(formData.hargaBundle) || 0;
@@ -111,7 +141,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Nama Bundle *
           </label>
           <input
@@ -119,13 +149,13 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
             value={formData.namaPromo}
             onChange={(e) => handleInputChange('namaPromo', e.target.value)}
             placeholder="Misal: Paket Hemat Nasi + Minuman"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Harga Bundle *
           </label>
           <div className="relative">
@@ -136,7 +166,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
               value={formData.hargaBundle}
               onChange={(e) => handleInputChange('hargaBundle', e.target.value)}
               placeholder="35000"
-              className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               required
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
@@ -156,42 +186,50 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
             <button
               type="button"
               onClick={() => setShowResep(!showResep)}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg text-sm flex items-center space-x-1 transition-colors"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span>Tambah Produk</span>
             </button>
 
             {showResep && (
-              <div className="absolute right-0 z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                <div className="p-2">
-                  <input
-                    type="text"
-                    placeholder="Cari resep..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
-                  />
-                </div>
-                {filteredRecipes.map(recipe => (
-                  <button
-                    key={recipe.id}
-                    type="button"
-                    onClick={() => addResepToBundle(recipe.id)}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-gray-900">{recipe.namaResep}</div>
-                    <div className="text-sm text-gray-500 flex justify-between">
-                      <span>HPP: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(recipe.hppPerPorsi)}</span>
-                      <span>Harga: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(recipe.hargaJualPorsi)}</span>
-                    </div>
-                  </button>
-                ))}
-                {filteredRecipes.length === 0 && (
-                  <div className="p-3 text-center text-gray-500 text-sm">
-                    Tidak ada resep yang tersedia
+              <div className="absolute right-0 z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                <div className="p-3 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari resep..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
                   </div>
-                )}
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredRecipes.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      Tidak ada resep yang tersedia
+                    </div>
+                  ) : (
+                    filteredRecipes.map(recipe => (
+                      <button
+                        key={recipe.id}
+                        type="button"
+                        onClick={() => addResepToBundle(recipe.id)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {getRecipeProperty(recipe, 'name')}
+                        </div>
+                        <div className="text-sm text-gray-500 flex justify-between mt-1">
+                          <span>HPP: {formatCurrency(getRecipeProperty(recipe, 'hpp'))}</span>
+                          <span>Harga: {formatCurrency(getRecipeProperty(recipe, 'harga'))}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -203,13 +241,17 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
             const recipe = getRecipeById(item.resepId);
             if (!recipe) return null;
 
+            const hpp = getRecipeProperty(recipe, 'hpp');
+            const harga = getRecipeProperty(recipe, 'harga');
+            const name = getRecipeProperty(recipe, 'name');
+
             return (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+              <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200">
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{recipe.namaResep}</h4>
+                  <h4 className="font-medium text-gray-900">{name}</h4>
                   <div className="text-sm text-gray-500 grid grid-cols-2 gap-4 mt-1">
-                    <span>HPP: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(recipe.hppPerPorsi)}</span>
-                    <span>Harga: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(recipe.hargaJualPorsi)}</span>
+                    <span>HPP: {formatCurrency(hpp)}</span>
+                    <span>Harga: {formatCurrency(harga)}</span>
                   </div>
                 </div>
 
@@ -220,15 +262,15 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
                       type="number"
                       min="1"
                       value={item.quantity}
-                      onChange={(e) => updateResepQuantity(index, parseInt(e.target.value))}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                      onChange={(e) => updateResepQuantity(index, parseInt(e.target.value) || 1)}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeResepFromBundle(index)}
-                    className="text-red-500 hover:text-red-700 p-1"
+                    className="text-red-500 hover:text-red-700 p-1 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -238,7 +280,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
           })}
 
           {formData.resepBundle.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
               <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
               <p>Belum ada produk dalam bundle</p>
               <p className="text-sm">Klik "Tambah Produk" untuk memulai</p>
@@ -247,33 +289,33 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       </div>
 
-      {/* Bundle Statistics - FIXED */}
+      {/* Bundle Statistics */}
       {formData.resepBundle.length > 0 && formData.hargaBundle && (
-        <div className="bg-purple-50 rounded-lg p-4">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <h5 className="font-medium text-purple-900 mb-3">Analisis Bundle</h5>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-purple-700">Total HPP:</p>
               <p className="font-semibold text-purple-900">
-                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bundleStats.totalHPP)}
+                {formatCurrency(bundleStats.totalHPP)}
               </p>
             </div>
             <div>
               <p className="text-purple-700">Harga Normal:</p>
               <p className="font-semibold text-purple-900">
-                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bundleStats.totalNormalPrice)}
+                {formatCurrency(bundleStats.totalNormalPrice)}
               </p>
             </div>
             <div>
-              <p className="text-purple-700">Hemat:</p>
+              <p className="text-purple-700">Hemat Customer:</p>
               <p className="font-semibold text-green-600">
-                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bundleStats.savings)} ({bundleStats.savingsPercent.toFixed(1)}%)
+                {formatCurrency(bundleStats.savings)} ({bundleStats.savingsPercent.toFixed(1)}%)
               </p>
             </div>
             <div>
               <p className="text-purple-700">Profit:</p>
               <p className={`font-semibold ${bundleStats.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bundleStats.profit)} ({bundleStats.profitPercent.toFixed(1)}%)
+                {formatCurrency(bundleStats.profit)} ({bundleStats.profitPercent.toFixed(1)}%)
               </p>
             </div>
           </div>
@@ -283,37 +325,37 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
       {/* Date Range & Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Tanggal Mulai
           </label>
           <input
             type="date"
             value={formData.tanggalMulai}
             onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Tanggal Selesai
           </label>
           <input
             type="date"
             value={formData.tanggalSelesai}
             onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Status
           </label>
           <select
             value={formData.status}
             onChange={(e) => handleInputChange('status', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
             <option value="aktif">Aktif</option>
             <option value="nonaktif">Non-aktif</option>
@@ -324,7 +366,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Deskripsi Bundle
         </label>
         <textarea
@@ -332,7 +374,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
           onChange={(e) => handleInputChange('deskripsi', e.target.value)}
           placeholder="Deskripsi detail paket bundle..."
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
       </div>
 
@@ -340,16 +382,16 @@ const BundleForm = ({ onSubmit, isLoading, recipes }) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+        className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
       >
         {isLoading ? (
           <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             <span>Menghitung...</span>
           </>
         ) : (
           <>
-            <Package className="h-4 w-4" />
+            <Package className="h-5 w-5" />
             <span>Hitung Bundle</span>
           </>
         )}

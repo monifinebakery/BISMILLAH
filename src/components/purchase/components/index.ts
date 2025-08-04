@@ -44,7 +44,7 @@ export const PURCHASE_COMPONENTS_LAZY = {
   
   // Utility components (light - can be loaded eagerly if needed)
   PurchaseFilters: () => import('../types'),
-  PurchaseStats: () => import('./PurchaseStats')
+  PurchaseStats: () => import('../types')
 } as const;
 
 // ✅ COMPONENT GROUPS: For batch loading

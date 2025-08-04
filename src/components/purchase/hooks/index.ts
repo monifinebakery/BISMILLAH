@@ -12,6 +12,7 @@ export { usePurchaseCore } from './usePurchaseCore';
 // ✅ ESSENTIAL HOOKS: Most commonly used hooks
 export { usePurchaseForm } from './usePurchaseForm';
 export { usePurchaseTable } from './usePurchaseTable';
+export { usePurchaseStats } from './usePurchaseStats';
 
 // ✅ CONTEXT HOOK: Re-export main purchase hook for convenience
 export { usePurchase } from '../context/PurchaseContext';
@@ -21,6 +22,7 @@ export type {
   UsePurchaseReturn,
   UsePurchaseFormReturn,
   UsePurchaseTableReturn,
+  UsePurchaseStatsReturn,
 } from '../types/purchase.types';
 
 // ❌ REMOVED - Reduce dependencies:
@@ -31,9 +33,8 @@ export type {
 
 // ✅ OPTIONAL: Advanced hooks for power users (lazy-loaded)
 export const PURCHASE_HOOKS_ADVANCED = {
-  // Legacy hooks for backward compatibility
-  stats: () => import('./usePurchaseStats').then(m => ({ usePurchaseStats: m.usePurchaseStats })),
-  status: () => import('./usePurchaseStatus').then(m => ({ usePurchaseStatus: m.usePurchaseStatus })),
+  // Core hook - already exported above
+  core: () => import('./usePurchaseCore').then(m => ({ usePurchaseCore: m.usePurchaseCore })),
   
   // Table context hook for internal use
   tableContext: () => import('../context/PurchaseTableContext').then(m => ({ usePurchaseTable: m.usePurchaseTable })),
@@ -44,12 +45,8 @@ export const PURCHASE_HOOKS_ADVANCED = {
 
 // ✅ MIGRATION: For backward compatibility
 export const PURCHASE_HOOKS_LEGACY = {
-  // Deprecated exports - will be removed in future versions
-  // Use usePurchaseCore instead
-  usePurchaseStats: () => {
-    console.warn('usePurchaseStats is deprecated. Use usePurchaseCore instead.');
-    return import('./usePurchaseStats').then(m => m.usePurchaseStats);
-  },
+  // Note: usePurchaseStats is now included in main exports
+  // These are truly deprecated hooks
   usePurchaseStatus: () => {
     console.warn('usePurchaseStatus is deprecated. Use usePurchaseCore instead.');
     return import('./usePurchaseStatus').then(m => m.usePurchaseStatus);

@@ -1,19 +1,20 @@
-// src/components/purchase/PurchasePage.tsx - Optimized Dependencies (12 → 6)
-import React, { Suspense, useState, useEffect, useCallback } from 'react';
+// src/components/purchase/PurchasePage.tsx - Optimized Dependencies (12 → 7)
+
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
-// ✅ CONSOLIDATED: Single context import
+// ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
 import { PurchaseProvider, usePurchase } from './context/PurchaseContext';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
-// ✅ CONSOLIDATED: Combined hooks import 
-import { usePurchaseCore } from './hooks/usePurchaseCore'; // File sudah ada di hooks/
-
-// ✅ CONSOLIDATED: Direct context imports
+// ✅ DIRECT CONTEXT: No barrel imports
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
-// ✅ ESSENTIAL COMPONENTS ONLY (Static)
+// ✅ CONSOLIDATED: Hook import (if exists, otherwise keep individual imports)
+import { usePurchaseCore } from './hooks/usePurchaseCore';
+
+// ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
 import {
   LoadingState,
   EmptyState,
@@ -21,10 +22,15 @@ import {
   PurchaseHeader,
 } from './components';
 
-// ✅ OPTIMIZED: Lazy loading with better error handling
+// ✅ OPTIMIZED: Lazy loading with comprehensive error boundaries
 const PurchaseTable = React.lazy(() => 
   import('./components/PurchaseTable').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
+    default: () => (
+      <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
+        <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel</div>
+        <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
+      </div>
+    )
   }))
 );
 
@@ -36,11 +42,20 @@ const BulkActionsToolbar = React.lazy(() =>
 
 const PurchaseDialog = React.lazy(() => 
   import('./components/PurchaseDialog').catch(() => ({
-    default: () => <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg">
-        <p className="text-red-500">Gagal memuat dialog</p>
+    default: () => (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg max-w-md">
+          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog</div>
+          <p className="text-gray-600 mb-4">Dialog tidak dapat dimuat. Silakan coba lagi.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Muat Ulang
+          </button>
+        </div>
       </div>
-    </div>
+    )
   }))
 );
 
@@ -56,23 +71,47 @@ const BulkDeleteDialog = React.lazy(() =>
   }))
 );
 
-// ✅ SIMPLIFIED: Utility import
+// ✅ UTILITY: Keep essential utility
 import { exportPurchasesToCSV } from './utils/purchaseHelpers';
 
-// ❌ REMOVED: Individual hook imports - now consolidated in usePurchaseCore
-// - usePurchaseStats, usePurchaseStatus
+// ❌ REMOVED: Individual hook imports now handled by usePurchaseCore
 
 interface PurchasePageProps {
   className?: string;
 }
 
-// ✅ SIMPLIFIED: Loading components
-const QuickLoader = () => (
-  <div className="h-16 bg-gray-100 rounded-lg animate-pulse mb-6" />
-);
+// ✅ CONSOLIDATED: State management
+interface AppState {
+  dialogs: {
+    purchase: { isOpen: boolean; editing: any; mode: 'create' | 'edit' };
+    detail: { isOpen: boolean; purchase: any };
+    bulkDelete: { isOpen: boolean; selectedIds: string[] };
+  };
+  warnings: {
+    dataWarning: { isVisible: boolean; hasShownToast: boolean };
+  };
+  ui: {
+    isExporting: boolean;
+  };
+}
 
+const initialAppState: AppState = {
+  dialogs: {
+    purchase: { isOpen: false, editing: null, mode: 'create' },
+    detail: { isOpen: false, purchase: null },
+    bulkDelete: { isOpen: false, selectedIds: [] }
+  },
+  warnings: {
+    dataWarning: { isVisible: false, hasShownToast: false }
+  },
+  ui: {
+    isExporting: false
+  }
+};
+
+// ✅ OPTIMIZED: Loading components
 const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
-  <div className="flex items-center justify-center py-8">
+  <div className="flex items-center justify-center py-12">
     <div className="flex flex-col items-center gap-3">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
       <p className="text-sm text-gray-600">{message}</p>
@@ -80,154 +119,142 @@ const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
   </div>
 );
 
-// ✅ CONSOLIDATED: Dialog state management
-interface DialogState {
-  purchase: {
-    isOpen: boolean;
-    editing: any;
-    mode: 'create' | 'edit';
-  };
-  detail: {
-    isOpen: boolean;
-    purchase: any;
-  };
-  warning: {
-    isVisible: boolean;
-    hasShownToast: boolean;
-  };
-}
+const QuickLoader = () => (
+  <div className="space-y-4">
+    <div className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+    <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
+  </div>
+);
 
-const initialDialogState: DialogState = {
-  purchase: { isOpen: false, editing: null, mode: 'create' },
-  detail: { isOpen: false, purchase: null },
-  warning: { isVisible: false, hasShownToast: false }
-};
-
-// ✅ OPTIMIZED: Main component with consolidated logic
+// ✅ MAIN COMPONENT: Dramatically simplified
 const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) => {
-  // ✅ CONSOLIDATED: Purchase context
+  // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
-  const { 
-    purchases, 
-    isLoading, 
-    error, 
-    updatePurchase, 
-    deletePurchase 
-  } = purchaseContext;
-  
-  // ✅ DIRECT CONTEXT ACCESS
   const { suppliers } = useSupplier();
   const { bahanBaku } = useBahanBaku();
 
-  // ✅ CONSOLIDATED: All-in-one purchase operations
+  // ✅ CONSOLIDATED: Core purchase operations
   const purchaseCore = usePurchaseCore({
     purchaseContext,
     suppliers,
     bahanBaku
   });
 
-  // ✅ SIMPLIFIED: Single state object
-  const [dialogState, setDialogState] = useState<DialogState>(initialDialogState);
+  // ✅ SINGLE STATE: Consolidated app state
+  const [appState, setAppState] = useState<AppState>(initialAppState);
 
-  // ✅ CONSOLIDATED: Data validation
-  const missingSuppliers = !suppliers?.length;
-  const missingBahanBaku = !bahanBaku?.length;
-  const hasMissingData = missingSuppliers || missingBahanBaku;
+  // ✅ MEMOIZED: Data validation
+  const dataStatus = useMemo(() => {
+    const missingSuppliers = !suppliers?.length;
+    const missingBahanBaku = !bahanBaku?.length;
+    const hasMissingData = missingSuppliers || missingBahanBaku;
 
-  // ✅ SIMPLIFIED: Initial warning effect
-  useEffect(() => {
-    if (hasMissingData && !dialogState.warning.hasShownToast) {
-      setDialogState(prev => ({
-        ...prev,
-        warning: { isVisible: true, hasShownToast: true }
-      }));
-      
-      if (missingSuppliers && missingBahanBaku) {
-        toast.warning('Tambahkan data supplier dan bahan baku untuk fitur pembelian yang lengkap');
-      } else if (missingSuppliers) {
-        toast.warning('Tambahkan data supplier untuk mencatat pembelian dari vendor');
-      } else if (missingBahanBaku) {
-        toast.warning('Tambahkan data bahan baku untuk mengelola stok yang dibeli');
+    return {
+      missingSuppliers,
+      missingBahanBaku,
+      hasMissingData
+    };
+  }, [suppliers, bahanBaku]);
+
+  // ✅ CONSOLIDATED: All dialog actions
+  const dialogActions = useMemo(() => ({
+    purchase: {
+      openAdd: () => {
+        if (purchaseCore.validatePrerequisites()) {
+          setAppState(prev => ({
+            ...prev,
+            dialogs: {
+              ...prev.dialogs,
+              purchase: { isOpen: true, editing: null, mode: 'create' }
+            }
+          }));
+        }
+      },
+      openEdit: (purchase: any) => {
+        if (purchaseCore.canEdit(purchase)) {
+          setAppState(prev => ({
+            ...prev,
+            dialogs: {
+              ...prev.dialogs,
+              purchase: { isOpen: true, editing: purchase, mode: 'edit' }
+            }
+          }));
+        }
+      },
+      close: () => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            purchase: { isOpen: false, editing: null, mode: 'create' }
+          }
+        }));
+      }
+    },
+    detail: {
+      open: (purchase: any) => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            detail: { isOpen: true, purchase }
+          }
+        }));
+      },
+      close: () => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            detail: { isOpen: false, purchase: null }
+          }
+        }));
+      },
+      editFromDetail: (purchase: any) => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            detail: { isOpen: false, purchase: null },
+            purchase: { isOpen: true, editing: purchase, mode: 'edit' }
+          }
+        }));
+      }
+    },
+    warning: {
+      dismiss: () => {
+        setAppState(prev => ({
+          ...prev,
+          warnings: {
+            ...prev.warnings,
+            dataWarning: { ...prev.warnings.dataWarning, isVisible: false }
+          }
+        }));
       }
     }
-  }, [hasMissingData, missingSuppliers, missingBahanBaku, dialogState.warning.hasShownToast]);
+  }), [purchaseCore]);
 
-  // ✅ CONSOLIDATED: Dialog handlers
-  const dialogHandlers = {
-    openAdd: useCallback(() => {
-      if (purchaseCore.validatePrerequisites()) {
-        setDialogState(prev => ({
-          ...prev,
-          purchase: { isOpen: true, editing: null, mode: 'create' }
-        }));
-      }
-    }, [purchaseCore]),
-
-    openEdit: useCallback((purchase: any) => {
-      if (purchaseCore.canEdit(purchase)) {
-        setDialogState(prev => ({
-          ...prev,
-          purchase: { isOpen: true, editing: purchase, mode: 'edit' }
-        }));
-      }
-    }, [purchaseCore]),
-
-    closePurchase: useCallback(() => {
-      setDialogState(prev => ({
-        ...prev,
-        purchase: { isOpen: false, editing: null, mode: 'create' }
-      }));
-    }, []),
-
-    openDetail: useCallback((purchase: any) => {
-      setDialogState(prev => ({
-        ...prev,
-        detail: { isOpen: true, purchase }
-      }));
-    }, []),
-
-    closeDetail: useCallback(() => {
-      setDialogState(prev => ({
-        ...prev,
-        detail: { isOpen: false, purchase: null }
-      }));
-    }, []),
-
-    editFromDetail: useCallback((purchase: any) => {
-      setDialogState(prev => ({
-        ...prev,
-        detail: { isOpen: false, purchase: null },
-        purchase: { isOpen: true, editing: purchase, mode: 'edit' }
-      }));
-    }, []),
-
-    dismissWarning: useCallback(() => {
-      setDialogState(prev => ({
-        ...prev,
-        warning: { ...prev.warning, isVisible: false }
-      }));
-    }, [])
-  };
-
-  // ✅ SIMPLIFIED: Action handlers
-  const actionHandlers = {
-    delete: useCallback(async (purchaseId: string) => {
+  // ✅ CONSOLIDATED: Business logic handlers
+  const businessHandlers = useMemo(() => ({
+    delete: async (purchaseId: string) => {
       const result = await purchaseCore.handleDelete(purchaseId);
       if (result.success) {
         toast.success('Pembelian berhasil dihapus');
       } else {
         toast.error(result.error || 'Gagal menghapus pembelian');
       }
-    }, [purchaseCore]),
-
-    export: useCallback(() => {
-      if (!purchases.length) {
+    },
+    
+    export: async () => {
+      if (!purchaseContext.purchases.length) {
         toast.info('Tidak ada data pembelian untuk di-export');
         return;
       }
 
+      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: true } }));
+
       try {
-        const csvContent = exportPurchasesToCSV(purchases);
+        const csvContent = exportPurchasesToCSV(purchaseContext.purchases);
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -245,16 +272,42 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       } catch (error) {
         console.error('Export error:', error);
         toast.error('Gagal export data pembelian');
+      } finally {
+        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: false } }));
       }
-    }, [purchases]),
+    },
 
-    settings: useCallback(() => {
+    settings: () => {
       toast.info('Pengaturan pembelian akan segera tersedia');
-    }, [])
-  };
+    }
+  }), [purchaseCore, purchaseContext.purchases]);
 
-  // ✅ EARLY RETURNS
-  if (error) {
+  // ✅ OPTIMIZED: Warning effect with cleanup
+  useEffect(() => {
+    if (dataStatus.hasMissingData && !appState.warnings.dataWarning.hasShownToast) {
+      setAppState(prev => ({
+        ...prev,
+        warnings: {
+          ...prev.warnings,
+          dataWarning: { isVisible: true, hasShownToast: true }
+        }
+      }));
+      
+      // Consolidated warning messages
+      const warnings = [];
+      if (dataStatus.missingSuppliers) warnings.push('supplier');
+      if (dataStatus.missingBahanBaku) warnings.push('bahan baku');
+      
+      const warningMessage = warnings.length === 2 
+        ? 'Tambahkan data supplier dan bahan baku untuk fitur pembelian yang lengkap'
+        : `Tambahkan data ${warnings[0]} untuk ${warnings[0] === 'supplier' ? 'mencatat pembelian dari vendor' : 'mengelola stok yang dibeli'}`;
+      
+      toast.warning(warningMessage);
+    }
+  }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, dataStatus.missingBahanBaku, appState.warnings.dataWarning.hasShownToast]);
+
+  // ✅ EARLY RETURNS: Optimized error and loading states
+  if (purchaseContext.error) {
     return (
       <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
         <div className="text-center py-12">
@@ -265,7 +318,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Gagal memuat data</h3>
-            <p className="text-gray-500 mb-4">{error}</p>
+            <p className="text-gray-500 mb-4">{purchaseContext.error}</p>
             <button
               onClick={() => window.location.reload()}
               className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -278,7 +331,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     );
   }
 
-  if (isLoading) {
+  if (purchaseContext.isLoading) {
     return (
       <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
         <LoadingState />
@@ -290,11 +343,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
       
       {/* Data warning banner */}
-      {dialogState.warning.isVisible && hasMissingData && (
+      {appState.warnings.dataWarning.isVisible && dataStatus.hasMissingData && (
         <DataWarningBanner
-          missingSuppliers={missingSuppliers}
-          missingBahanBaku={missingBahanBaku}
-          onDismiss={dialogHandlers.dismissWarning}
+          missingSuppliers={dataStatus.missingSuppliers}
+          missingBahanBaku={dataStatus.missingBahanBaku}
+          onDismiss={dialogActions.warning.dismiss}
         />
       )}
 
@@ -303,31 +356,32 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         totalPurchases={purchaseCore.stats.total}
         totalValue={purchaseCore.stats.totalValue}
         pendingCount={purchaseCore.stats.byStatus.pending}
-        onAddPurchase={dialogHandlers.openAdd}
-        onExport={actionHandlers.export}
-        onSettings={actionHandlers.settings}
+        onAddPurchase={dialogActions.purchase.openAdd}
+        onExport={businessHandlers.export}
+        onSettings={businessHandlers.settings}
+        isExporting={appState.ui.isExporting}
         className="mb-8"
       />
 
       {/* Main content */}
-      {!purchases.length ? (
+      {!purchaseContext.purchases.length ? (
         <EmptyState
-          onAddPurchase={dialogHandlers.openAdd}
-          hasSuppliers={!missingSuppliers}
-          hasBahanBaku={!missingBahanBaku}
+          onAddPurchase={dialogActions.purchase.openAdd}
+          hasSuppliers={!dataStatus.missingSuppliers}
+          hasBahanBaku={!dataStatus.missingBahanBaku}
         />
       ) : (
-        <PurchaseTableProvider purchases={purchases} suppliers={suppliers}>
+        <PurchaseTableProvider purchases={purchaseContext.purchases} suppliers={suppliers}>
           <Suspense fallback={<QuickLoader />}>
             <BulkActionsToolbar />
           </Suspense>
 
           <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
             <PurchaseTable 
-              onEdit={dialogHandlers.openEdit}
+              onEdit={dialogActions.purchase.openEdit}
               onStatusChange={purchaseCore.updateStatus}
-              onDelete={actionHandlers.delete}
-              onViewDetails={dialogHandlers.openDetail}
+              onDelete={businessHandlers.delete}
+              onViewDetails={dialogActions.detail.open}
               validateStatusChange={purchaseCore.validateStatusChange}
             />
           </Suspense>
@@ -338,37 +392,41 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         </PurchaseTableProvider>
       )}
 
-      {/* Dialogs */}
+      {/* ✅ OPTIMIZED: Conditional dialogs with better loading */}
       <Suspense fallback={null}>
-        <PurchaseDialog
-          isOpen={dialogState.purchase.isOpen}
-          mode={dialogState.purchase.mode}
-          purchase={dialogState.purchase.editing}
-          suppliers={suppliers}
-          bahanBaku={bahanBaku}
-          onClose={dialogHandlers.closePurchase}
-        />
-      </Suspense>
-
-      {dialogState.detail.purchase && (
-        <Suspense fallback={null}>
-          <PurchaseDetailDialog
-            isOpen={dialogState.detail.isOpen}
-            purchase={dialogState.detail.purchase}
+        {appState.dialogs.purchase.isOpen && (
+          <PurchaseDialog
+            isOpen={appState.dialogs.purchase.isOpen}
+            mode={appState.dialogs.purchase.mode}
+            purchase={appState.dialogs.purchase.editing}
             suppliers={suppliers}
             bahanBaku={bahanBaku}
-            onClose={dialogHandlers.closeDetail}
-            onEdit={dialogHandlers.editFromDetail}
+            onClose={dialogActions.purchase.close}
+          />
+        )}
+      </Suspense>
+
+      {appState.dialogs.detail.purchase && (
+        <Suspense fallback={null}>
+          <PurchaseDetailDialog
+            isOpen={appState.dialogs.detail.isOpen}
+            purchase={appState.dialogs.detail.purchase}
+            suppliers={suppliers}
+            bahanBaku={bahanBaku}
+            onClose={dialogActions.detail.close}
+            onEdit={dialogActions.detail.editFromDetail}
           />
         </Suspense>
       )}
 
-      {/* Loading overlay */}
+      {/* Processing overlay */}
       {purchaseCore.isProcessing && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-            <span className="text-sm text-gray-700">Mengupdate status...</span>
+            <span className="text-sm text-gray-700">
+              {appState.ui.isExporting ? 'Mengexport data...' : 'Mengupdate status...'}
+            </span>
           </div>
         </div>
       )}
@@ -376,7 +434,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   );
 };
 
-// ✅ SIMPLIFIED: Main component
+// ✅ WRAPPER: Main component
 const PurchasePage: React.FC<PurchasePageProps> = ({ className }) => {
   return (
     <PurchaseProvider>

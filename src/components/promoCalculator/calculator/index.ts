@@ -7,6 +7,7 @@
  */
 
 import { lazy } from 'react';
+import React from 'react'; // ⚠️ HARUS DITAMBAHKAN
 
 // ✅ CORE CALCULATOR COMPONENTS: Always needed
 export { default as PromoCalculator } from './PromoCalculator';

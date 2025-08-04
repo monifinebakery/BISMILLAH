@@ -43,7 +43,7 @@ export const PURCHASE_COMPONENTS_LAZY = {
   StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog'),
   
   // Utility components (light - can be loaded eagerly if needed)
-  PurchaseFilters: () => import('./PurchaseFilters'),
+  PurchaseFilters: () => import('../types'),
   PurchaseStats: () => import('./PurchaseStats')
 } as const;
 

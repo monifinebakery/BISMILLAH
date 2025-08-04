@@ -9,13 +9,18 @@
 // ✅ CORE EXPORTS ONLY
 export { default as PurchasePage } from './PurchasePage';
 
-// ✅ ESSENTIAL CONTEXT
+// ✅ CONTEXT EXPORTS (sesuai struktur)
 export {
   PurchaseProvider,
   usePurchase
 } from './context/PurchaseContext';
 
-// ✅ ESSENTIAL TYPES ONLY
+// ✅ TABLE CONTEXT (untuk internal use)
+export {
+  PurchaseTableProvider
+} from './context/PurchaseTableContext';
+
+// ✅ TYPES (sesuai struktur file)
 export type {
   Purchase,
   PurchaseStatus,

@@ -9,12 +9,14 @@ import { Calendar } from '@/components/ui/calendar';
 // ✅ CONSOLIDATED: Single hook import instead of multiple
 import { useFinancialCore } from './hooks/useFinancialCore'; // New consolidated hook
 
-// ✅ CONSOLIDATED: Date utilities
-import { useDateRangeManager } from '@/hooks/useDateRangeManager'; // Consolidated date logic
-
-// ✅ CONSOLIDATED: UI utilities
+// ✅ UI utilities
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+// ✅ DATE UTILITIES (keep existing)
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 // ✅ LAZY LOADED COMPONENTS (Better code splitting)
 const FinancialCharts = React.lazy(() => 
@@ -133,16 +135,67 @@ const SummaryCards: React.FC<{
   );
 };
 
-// ✅ SIMPLIFIED: Date Range Selector (extracted logic)
+// ✅ SIMPLIFIED: Date Range Selector (keep original logic)
 const DateRangeSelector: React.FC<{
   dateRange: { from: Date; to?: Date };
   onDateRangeChange: (range: { from: Date; to?: Date }) => void;
   isMobile?: boolean;
 }> = ({ dateRange, onDateRangeChange, isMobile = false }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { formatDateRange, getQuickDateOptions } = useDateRangeManager();
 
-  const quickOptions = getQuickDateOptions();
+  // ✅ KEEP ORIGINAL: Date formatting logic
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Pilih tanggal";
+    
+    if (dateRange.to) {
+      if (isMobile) {
+        return `${format(dateRange.from, 'dd/MM/yy')} - ${format(dateRange.to, 'dd/MM/yy')}`;
+      } else {
+        return `${formatDateForDisplay(dateRange.from)} - ${formatDateForDisplay(dateRange.to)}`;
+      }
+    } else {
+      return isMobile ? format(dateRange.from, 'dd/MM/yyyy') : formatDateForDisplay(dateRange.from);
+    }
+  };
+
+  // ✅ KEEP ORIGINAL: Quick date options
+  const quickDateOptions = [
+    {
+      label: "Hari ini",
+      range: { 
+        from: startOfDay(new Date()), 
+        to: endOfDay(new Date()) 
+      }
+    },
+    {
+      label: "Kemarin",
+      range: { 
+        from: startOfDay(subDays(new Date(), 1)), 
+        to: endOfDay(subDays(new Date(), 1)) 
+      }
+    },
+    {
+      label: "7 Hari Terakhir",
+      range: { 
+        from: startOfDay(subDays(new Date(), 6)), 
+        to: endOfDay(new Date()) 
+      }
+    },
+    {
+      label: "Bulan ini",
+      range: { 
+        from: startOfMonth(new Date()), 
+        to: endOfMonth(new Date()) 
+      }
+    },
+    {
+      label: "Bulan Kemarin",
+      range: { 
+        from: startOfMonth(subMonths(new Date(), 1)), 
+        to: endOfMonth(subMonths(new Date(), 1)) 
+      }
+    }
+  ];
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -176,7 +229,7 @@ const DateRangeSelector: React.FC<{
             <div className="text-sm font-medium text-gray-500 px-2 py-1">
               Pilihan Cepat
             </div>
-            {quickOptions.map((option, index) => (
+            {quickDateOptions.map((option, index) => (
               <Button
                 key={index}
                 variant="ghost"

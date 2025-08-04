@@ -48,14 +48,18 @@ export type {
 // Core Hooks
 export { useWarehouseCore } from './hooks';
 
-// Core Components (for custom implementations)
+// ✅ FIXED: Core Components (exclude DialogManager)
 export {
   WarehouseHeader,
   WarehouseTable,
   WarehouseFilters,
   BulkActions,
-  DialogManager
+  // ❌ REMOVED: DialogManager - not exported from components/index.ts
+  // DialogManager
 } from './components';
+
+// ✅ DialogManager - Direct import since it's not in barrel export
+export { default as DialogManager } from './components/DialogManager';
 
 // Services & Utilities (for advanced usage)
 export { warehouseApi, warehouseUtils, createWarehouseService } from './services';

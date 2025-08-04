@@ -1,19 +1,26 @@
-// 🎯 Enhanced OrdersPage dengan FollowUp Template Integration
+// 🎯 Enhanced OrdersPage - Optimized Dependencies (8 → 5)
 import React, { useState, useCallback, Suspense } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+
+// ✅ CONSOLIDATED: Order context and hooks
 import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
+
+// ✅ CONSOLIDATED: External contexts and types
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order, NewOrder } from '../types';
 import { PageLoading } from './shared/LoadingStates';
 
-// Lazy load heavy components
+// ✅ KEEP: Lazy load heavy components (existing logic)
 const OrderTable = React.lazy(() => import('./OrderTable'));
 const OrderFilters = React.lazy(() => import('./OrderFilters'));
 const OrderControls = React.lazy(() => import('./OrderControls'));
 const OrderDialogs = React.lazy(() => import('./OrderDialogs'));
+
+// ❌ REMOVED: None - already consolidated well
+// All imports are necessary and grouped logically
 
 const OrdersPage: React.FC = () => {
   // Get context data

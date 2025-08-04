@@ -15,7 +15,7 @@ import { useMemo, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 interface UsePurchaseCoreProps {
-  purchaseContext: PurchaseContextType; // Use the existing context type
+  purchaseContext: any; // PurchaseContextType
   suppliers: any[];
   bahanBaku: any[];
 }

@@ -7,7 +7,11 @@ import { PurchaseProvider, usePurchase } from './context/PurchaseContext';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // ✅ CONSOLIDATED: Combined hooks import 
-import { usePurchaseCore } from './hooks/usePurchaseCore'; // New consolidated hook
+import { usePurchaseCore } from './hooks/usePurchaseCore'; // File sudah ada di hooks/
+
+// ✅ CONSOLIDATED: Direct context imports
+import { useSupplier } from '@/contexts/SupplierContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ ESSENTIAL COMPONENTS ONLY (Static)
 import {
@@ -111,13 +115,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     deletePurchase 
   } = purchaseContext;
   
-  // ✅ CONSOLIDATED: Single hook for business data and operations
-  const {
-    suppliers,
-    bahanBaku,
-    stats,
-    statusOperations,
-    validation
+  // ✅ DIRECT CONTEXT ACCESS
+  const { suppliers } = useSupplier();
+  const { bahanBaku } = useBahanBaku();
 
   // ✅ CONSOLIDATED: All-in-one purchase operations
   const purchaseCore = usePurchaseCore({

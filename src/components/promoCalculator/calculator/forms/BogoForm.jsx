@@ -1,8 +1,8 @@
-// 🎯 Form untuk BOGO (Buy One Get One)
+// 🎯 Form untuk BOGO (Buy One Get One) - Fixed with Recipe Selection
 
 import React, { useState } from 'react';
-import { Gift, Search, Calendar } from 'lucide-react';
-import { toast } from 'sonner'; // ← ADD THIS MISSING IMPORT
+import { Gift, Search, Calendar, ChevronDown, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 const BogoForm = ({ onSubmit, isLoading, recipes }) => {
   const [formData, setFormData] = useState({
@@ -54,11 +54,121 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
 
   const getRecipeById = (id) => recipes.find(r => r.id === id);
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(value || 0);
+  };
+
+  const RecipeSelector = ({ 
+    label, 
+    value, 
+    onChange, 
+    showDropdown, 
+    setShowDropdown, 
+    placeholder,
+    excludeId = null 
+  }) => {
+    const selectedRecipe = getRecipeById(value);
+    const availableRecipes = recipes.filter(r => r.id !== excludeId);
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label} *
+        </label>
+        
+        <button
+          type="button"
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
+        >
+          <div className="flex-1">
+            {selectedRecipe ? (
+              <div>
+                <div className="font-medium text-gray-900">{selectedRecipe.namaResep}</div>
+                <div className="text-sm text-gray-500">
+                  HPP: {formatCurrency(selectedRecipe.hpp)} • 
+                  Harga: {formatCurrency(selectedRecipe.hargaJual)}
+                </div>
+              </div>
+            ) : (
+              <span className="text-gray-500">{placeholder}</span>
+            )}
+          </div>
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${
+            showDropdown ? 'rotate-180' : ''
+          }`} />
+        </button>
+
+        {showDropdown && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            {/* Search */}
+            <div className="p-3 border-b border-gray-200">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cari resep..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Recipe List */}
+            <div className="max-h-48 overflow-y-auto">
+              {filteredRecipes.filter(r => r.id !== excludeId).length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  Tidak ada resep ditemukan
+                </div>
+              ) : (
+                filteredRecipes.filter(r => r.id !== excludeId).map((recipe) => (
+                  <button
+                    key={recipe.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(recipe.id);
+                      setShowDropdown(false);
+                      setSearchTerm('');
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900">{recipe.namaResep}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      HPP: {formatCurrency(recipe.hpp)} • 
+                      Harga: {formatCurrency(recipe.hargaJual)} • 
+                      Margin: {((recipe.hargaJual - recipe.hpp) / recipe.hargaJual * 100).toFixed(1)}%
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Clear button */}
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute top-8 right-10 p-1 text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Nama Promo */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Nama Promo *
         </label>
         <input
@@ -66,55 +176,112 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
           value={formData.namaPromo}
           onChange={(e) => handleInputChange('namaPromo', e.target.value)}
           placeholder="Misal: BOGO Bakso Special"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           required
         />
       </div>
 
+      {/* Recipe Selectors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <RecipeSelector
+          label="Resep Utama (Dibeli)"
+          value={formData.resepUtama}
+          onChange={(id) => handleInputChange('resepUtama', id)}
+          showDropdown={showResepUtama}
+          setShowDropdown={setShowResepUtama}
+          placeholder="Pilih resep yang dibeli"
+          excludeId={formData.resepGratis}
+        />
+
+        <RecipeSelector
+          label="Resep Gratis"
+          value={formData.resepGratis}
+          onChange={(id) => handleInputChange('resepGratis', id)}
+          showDropdown={showResepGratis}
+          setShowDropdown={setShowResepGratis}
+          placeholder="Pilih resep gratis"
+          excludeId={formData.resepUtama}
+        />
+      </div>
+
+      {/* BOGO Preview */}
+      {formData.resepUtama && formData.resepGratis && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 className="font-medium text-green-800 mb-3">Preview BOGO:</h4>
+          <div className="text-sm text-green-700">
+            <div className="flex items-center justify-between mb-2">
+              <span>Beli: {getRecipeById(formData.resepUtama)?.namaResep}</span>
+              <span className="font-medium">
+                {formatCurrency(getRecipeById(formData.resepUtama)?.hargaJual)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span>Gratis: {getRecipeById(formData.resepGratis)?.namaResep}</span>
+              <span className="font-medium line-through text-gray-500">
+                {formatCurrency(getRecipeById(formData.resepGratis)?.hargaJual)}
+              </span>
+            </div>
+            <div className="border-t border-green-300 pt-2 mt-2">
+              <div className="flex items-center justify-between font-semibold">
+                <span>Total Customer Bayar:</span>
+                <span>{formatCurrency(getRecipeById(formData.resepUtama)?.hargaJual)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs mt-1">
+                <span>Hemat:</span>
+                <span>{formatCurrency(getRecipeById(formData.resepGratis)?.hargaJual)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Minimal Quantity */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Minimal Pembelian
         </label>
         <input
           type="number"
           min="1"
           value={formData.minimalQty}
-          onChange={(e) => handleInputChange('minimalQty', parseInt(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          onChange={(e) => handleInputChange('minimalQty', parseInt(e.target.value) || 1)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Jumlah minimum resep utama yang harus dibeli untuk mendapat gratis
+        </p>
       </div>
 
-      {/* Basic Info */}
+      {/* Date Range */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Tanggal Mulai
           </label>
           <input
             type="date"
             value={formData.tanggalMulai}
             onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Tanggal Selesai
           </label>
           <input
             type="date"
             value={formData.tanggalSelesai}
             onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Deskripsi Promo
         </label>
         <textarea
@@ -122,19 +289,19 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
           onChange={(e) => handleInputChange('deskripsi', e.target.value)}
           placeholder="Deskripsi detail promo BOGO..."
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
       </div>
 
       {/* Status */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Status
         </label>
         <select
           value={formData.status}
           onChange={(e) => handleInputChange('status', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         >
           <option value="aktif">Aktif</option>
           <option value="nonaktif">Non-aktif</option>
@@ -146,16 +313,16 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+        className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
       >
         {isLoading ? (
           <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             <span>Menghitung...</span>
           </>
         ) : (
           <>
-            <Gift className="h-4 w-4" />
+            <Gift className="h-5 w-5" />
             <span>Hitung BOGO</span>
           </>
         )}

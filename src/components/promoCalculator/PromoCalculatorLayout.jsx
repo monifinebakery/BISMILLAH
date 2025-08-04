@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Calculator, Gift, TrendingUp, Eye, Plus, ArrowLeft, List } from 'lucide-react';
 import PromoCalculator from './calculator/PromoCalculator';
-import PromoList from './promoList/PromoList';
+import PromoList from './list/PromoList';
 import { usePromo } from './context/PromoContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -130,7 +130,7 @@ const PromoCalculatorLayout = () => {
               
               <button
                 onClick={() => setCurrentView('calculator')}
-                className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 border-2 border-orange-400 hover:border-orange-500"
               >
                 <Plus className="h-5 w-5" />
                 <span>Buat Promo Baru</span>
@@ -141,9 +141,9 @@ const PromoCalculatorLayout = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-blue-300 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="p-2 bg-blue-100 rounded-lg border border-blue-200">
                 <Gift className="h-6 w-6 text-blue-600" />
               </div>
               <div>
@@ -153,9 +153,9 @@ const PromoCalculatorLayout = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-green-300 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
+              <div className="p-2 bg-green-100 rounded-lg border border-green-200">
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -165,9 +165,9 @@ const PromoCalculatorLayout = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-purple-300 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
+              <div className="p-2 bg-purple-100 rounded-lg border border-purple-200">
                 <Eye className="h-6 w-6 text-purple-600" />
               </div>
               <div>
@@ -179,13 +179,13 @@ const PromoCalculatorLayout = () => {
         </div>
 
         {/* Recent Promos Preview */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100">
+        <div className="bg-white rounded-xl border-2 border-gray-200">
+          <div className="p-6 border-b-2 border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Promo Terbaru</h2>
               <button 
                 onClick={() => setCurrentView('list')}
-                className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors"
+                className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors border border-orange-200 hover:border-orange-300 px-3 py-1 rounded-lg"
               >
                 Lihat Semua
               </button>
@@ -214,7 +214,7 @@ const PromoCalculatorLayout = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {recentPromos.map((promo) => (
-                  <div key={promo.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
+                  <div key={promo.id} className="border-2 border-gray-200 rounded-lg p-6 hover:border-orange-300 transition-colors cursor-pointer">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
                         <span className="text-2xl">{getPromoTypeIcon(promo.tipePromo)}</span>
@@ -230,7 +230,7 @@ const PromoCalculatorLayout = () => {
                     
                     {promo.calculationResult && (
                       <div className="space-y-3">
-                        <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                           <div className="grid grid-cols-1 gap-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Harga Normal:</span>
@@ -266,7 +266,7 @@ const PromoCalculatorLayout = () => {
                       <p className="text-sm text-gray-600 mt-3 line-clamp-2">{promo.deskripsi}</p>
                     )}
                     
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-4 pt-4 border-t-2 border-gray-200">
                       <p className="text-xs text-gray-500">
                         Dibuat {new Date(promo.createdAt).toLocaleDateString('id-ID', {
                           day: 'numeric',
@@ -284,7 +284,7 @@ const PromoCalculatorLayout = () => {
 
         {/* Quick Actions */}
         {!isMobile && promos.length > 0 && (
-          <div className="mt-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+          <div className="mt-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white border-2 border-orange-400">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-2">Siap membuat promo baru?</h3>
@@ -292,7 +292,7 @@ const PromoCalculatorLayout = () => {
               </div>
               <button
                 onClick={() => setCurrentView('calculator')}
-                className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors"
+                className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors border-2 border-white hover:border-orange-100"
               >
                 Mulai Sekarang
               </button>

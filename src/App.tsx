@@ -1,24 +1,24 @@
-// App.tsx - Optimized Dependencies (10 → 5 dependencies)
+// App.tsx - Realistic Optimization (tanpa bikin file baru)
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
-// ✅ CORE UI ONLY (Essential for layout)
+// ✅ CONSOLIDATED: UI components grouped
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
-// ✅ SINGLE CONTEXT IMPORT (All contexts bundled)
+// ✅ CONSOLIDATED: Context imports grouped  
 import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
-// ✅ CORE LAYOUT COMPONENTS ONLY
+// ✅ CONSOLIDATED: Core layout components grouped
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { AppSidebar } from "@/components/AppSidebar";
 import AuthGuard from "@/components/AuthGuard";
 import PaymentGuard from "@/components/PaymentGuard";
 
-// ✅ LIGHTWEIGHT UI COMPONENTS
+// ✅ CONSOLIDATED: UI components grouped
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
@@ -26,14 +26,11 @@ import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
+// ✅ CONSOLIDATED: Utilities grouped
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// ❌ REMOVED: Individual context imports (moved to AppProviders)
-// - RecipeProvider, SupplierProvider, OperationalCostProvider
-// These are now handled in AppProviders, reducing dependencies
-
-// ✅ OPTIMIZED: Lazy loading with better chunk names
+// ✅ KEEP: All existing lazy loading logic (no changes)
 const Dashboard = React.lazy(() => 
   import(/* webpackChunkName: "dashboard" */ "./pages/Dashboard")
 );
@@ -72,7 +69,6 @@ const PromoCalculatorPage = React.lazy(() =>
   import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")
 );
 
-// ✅ BATCH LAZY LOADING (Less critical pages)
 const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/NotFound")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/AssetManagement")),
@@ -82,7 +78,7 @@ const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, Invoic
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/InvoicePage"))
 ];
 
-// ✅ OPTIMIZED: Lighter query client
+// ✅ KEEP: All existing logic unchanged
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,7 +94,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ SIMPLIFIED: Unified loading component
 const AppLoader = ({ title = "Memuat aplikasi..." }: { title?: string }) => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
@@ -111,7 +106,6 @@ const AppLoader = ({ title = "Memuat aplikasi..." }: { title?: string }) => (
   </div>
 );
 
-// ✅ SIMPLIFIED: Unified error component
 const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; onRetry?: () => void }) => {
   const navigate = useNavigate();
   
@@ -144,7 +138,6 @@ const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; on
   );
 };
 
-// ✅ SIMPLIFIED: AppLayout without redundant providers
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 

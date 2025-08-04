@@ -28,12 +28,17 @@ interface MobileWarehouseCardProps {
 /**
  * Mobile Card Component for Warehouse Items
  * 
+ * ✅ Updated to use BahanBakuFrontend interface
+ * ✅ Fixed field naming consistency (camelCase)
+ * ✅ Enhanced with updated warehouseUtils functions
+ * 
  * Features:
  * - Expandable details
  * - Touch-friendly actions
  * - Stock level indicators
  * - Last update timestamp
  * - Multiple alert types
+ * - Compatible with updated type system
  * 
  * Size: ~4KB
  */
@@ -49,6 +54,13 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
+  // ✅ Use updated warehouseUtils functions
+  const stockLevel = warehouseUtils.getStockLevel(item);
+  const isExpiringItem = warehouseUtils.isExpiringItem(item);
+  const isLowStockItem = warehouseUtils.isLowStockItem(item);
+  const isOutOfStockItem = warehouseUtils.isOutOfStockItem(item);
+  const alerts = warehouseUtils.getItemAlerts(item);
+
   // Highlight search terms
   const highlightText = (text: string, searchTerm: string) => {
     if (!searchTerm) return text;
@@ -63,64 +75,11 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
     );
   };
 
-  // Enhanced stock level calculation
-  const getStockLevel = (item: BahanBakuFrontend) => {
-    const stok = Number(item.stok) || 0;
-    const minimum = Number(item.minimum) || 0;
-    
-    return warehouseUtils.formatStockLevel(stok, minimum);
-  };
-
-  // Check if item is expiring soon
-  const isExpiringItem = (item: BahanBakuFrontend): boolean => {
-    if (!item.expiry) return false;
-    const expiryDate = new Date(item.expiry);
-    const threshold = new Date();
-    threshold.setDate(threshold.getDate() + 7); // 7 days warning
-    return expiryDate <= threshold && expiryDate > new Date();
-  };
-
-  // Check if item has low stock
-  const isLowStockItem = (item: BahanBakuFrontend): boolean => {
-    const stok = Number(item.stok) || 0;
-    const minimum = Number(item.minimum) || 0;
-    return stok <= minimum && stok > 0;
-  };
-
-  // Check if item is out of stock
-  const isOutOfStockItem = (item: BahanBakuFrontend): boolean => {
-    const stok = Number(item.stok) || 0;
-    return stok <= 0;
-  };
-
   // Format last update time
   const formatLastUpdate = (timestamp?: string | Date) => {
     if (!timestamp) return 'Tidak diketahui';
-    
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-
-    if (diffInHours < 1) {
-      const minutes = Math.floor(diffInMs / (1000 * 60));
-      return `${minutes} menit yang lalu`;
-    } else if (diffInHours < 24) {
-      const hours = Math.floor(diffInHours);
-      return `${hours} jam yang lalu`;
-    } else if (diffInDays < 7) {
-      const days = Math.floor(diffInDays);
-      return `${days} hari yang lalu`;
-    } else {
-      return warehouseUtils.formatDate(timestamp);
-    }
+    return warehouseUtils.formatLastUpdate(timestamp);
   };
-
-  const stockLevel = getStockLevel(item);
-  const isExpiringSoon = isExpiringItem(item);
-  const isLowStock = isLowStockItem(item);
-  const isOutOfStock = isOutOfStockItem(item);
 
   return (
     <div 
@@ -152,9 +111,7 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
 
             {/* Stock Level Indicator */}
             <div className={`w-3 h-3 rounded-full mt-2 flex-shrink-0 ${
-              stockLevel.level === 'out' ? 'bg-red-500' :
-              stockLevel.level === 'low' ? 'bg-yellow-500' :
-              stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
+              warehouseUtils.getStockLevelColorClass(item)
             }`} 
             title={`Stock Level: ${stockLevel.level}`}
             />
@@ -172,30 +129,18 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
                   
                   {/* Alert Indicators */}
                   <div className="flex flex-col gap-1 mt-2">
-                    {isExpiringSoon && (
-                      <div className="flex items-center gap-1 text-xs text-red-600">
+                    {alerts.map((alert, index) => (
+                      <div key={index} className={`flex items-center gap-1 text-xs ${alert.color}`}>
                         <AlertTriangle className="w-3 h-3" />
-                        Akan kadaluarsa
+                        {alert.message}
                       </div>
-                    )}
-                    {isOutOfStock && (
-                      <div className="flex items-center gap-1 text-xs text-red-600">
-                        <AlertTriangle className="w-3 h-3" />
-                        Stok habis
-                      </div>
-                    )}
-                    {isLowStock && !isOutOfStock && (
-                      <div className="flex items-center gap-1 text-xs text-yellow-600">
-                        <AlertTriangle className="w-3 h-3" />
-                        Stok hampir habis
-                      </div>
-                    )}
+                    ))}
                   </div>
 
                   {/* Last Update */}
                   <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                     <Clock className="w-3 h-3" />
-                    Diperbarui {formatLastUpdate(item.updatedAt || item.createdAt)}
+                    Diperbarui {formatLastUpdate(item.updatedAt)}
                   </div>
                 </div>
 
@@ -299,7 +244,7 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
             </div>
             <div>
               <span className="text-gray-500">Kadaluarsa:</span>
-              <div className={`font-medium ${isExpiringSoon ? 'text-red-600' : 'text-gray-900'}`}>
+              <div className={`font-medium ${isExpiringItem ? 'text-red-600' : 'text-gray-900'}`}>
                 {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
               </div>
             </div>
@@ -323,7 +268,7 @@ const MobileWarehouseCard: React.FC<MobileWarehouseCardProps> = ({
             <div className="col-span-2">
               <span className="text-gray-500">Terakhir diperbarui:</span>
               <div className="font-medium text-gray-900">
-                {formatLastUpdate(item.updatedAt || item.createdAt)}
+                {formatLastUpdate(item.updatedAt)}
               </div>
             </div>
           </div>

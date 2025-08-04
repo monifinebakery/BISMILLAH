@@ -1,4 +1,4 @@
-// src/contexts/FinancialContext.tsx
+// src/financial/contexts/FinancialContext.tsx
 // MODULAR VERSION - Clean, organized, and type-safe
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';

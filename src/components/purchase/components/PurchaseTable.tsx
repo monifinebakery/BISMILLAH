@@ -51,7 +51,7 @@ import {
   getStatusDisplayText, 
   getFormattedTotalQuantities 
 } from '../utils/purchaseHelpers';
-import { EmptyState } from './index';
+import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 
 // Status options untuk dropdown

@@ -1,6 +1,10 @@
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
+// tambah ini utk dialog
+import AddEditDialog from '../dialogs/AddEditDialog';
+import BulkOperationsDialog from '../dialogs/BulkOperationsDialog'; 
+import ImportExportDialog from '../dialogs/ImportExportDialog';
 
 // Dynamic Dialog Imports (Lazy Loaded)
 const AddEditDialog = lazy(() => import('../dialogs/AddEditDialog'));

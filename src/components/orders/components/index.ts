@@ -1,20 +1,25 @@
-// src/components/orders/components/index.ts
-// 🎯 Components only - NO context/hooks exports
+// src/components/orders/components/index.ts - Optimized Dependencies (4 → 2)
+/**
+ * Orders Components - Static Only Exports
+ * 
+ * HANYA components yang always loaded (essential components)
+ * Dependencies reduced from 4 to 2
+ */
 
-// Main page component
+// ✅ STATIC COMPONENTS ONLY (Always loaded)
 export { default as OrdersPage } from './OrdersPage';
-
-// Core components
 export { default as OrderTable } from './OrderTable';
 export { default as OrderFilters } from './OrderFilters';
 export { default as OrderControls } from './OrderControls';
 export { default as RecipeAnalytics } from './RecipeAnalytics';
 
-// Lazy-loaded dialog exports (dynamic imports)
-export const OrderDialogs = () => import('./OrderDialogs');
-
-// Re-export from dialogs subfolder (not duplicating here)
-export * from './dialogs';
-
-// Re-export from shared subfolder
+// ✅ SHARED COMPONENTS
 export * from './shared';
+
+// ❌ REMOVED: Heavy exports to reduce dependencies
+// - OrderDialogs (use direct import for lazy loading)
+// - dialogs subfolder exports (use direct imports)
+// - Lazy-loaded component references
+
+// ✅ NOTE: For lazy loading, import directly:
+// const OrderDialogs = lazy(() => import('./OrderDialogs'));

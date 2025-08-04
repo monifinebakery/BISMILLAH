@@ -12,7 +12,11 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+<<<<<<< HEAD
   errorInfo: any;
+=======
+  errorInfo: React.ErrorInfo | null;
+>>>>>>> 680929f3 (berjuang di branch dev3 💪🌱)
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -36,9 +40,18 @@ class ErrorBoundary extends Component<Props, State> {
     };
   }
 
+<<<<<<< HEAD
   componentDidCatch(error: Error, errorInfo: any) {
     // 📝 Log error untuk debugging
     logger.error('Dashboard ErrorBoundary caught error:', error, errorInfo);
+=======
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // 📝 Log error untuk debugging
+    logger.error('Dashboard ErrorBoundary caught error:', {
+      error,
+      errorInfo
+    });
+>>>>>>> 680929f3 (berjuang di branch dev3 💪🌱)
     
     this.setState({
       error,

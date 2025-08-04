@@ -1,55 +1,45 @@
-// src/components/financial/index.ts
-// 🎯 SIMPLIFIED - Clean barrel export (12 deps → 6-8 deps)
+// src/components/financial/index.ts - Optimized Dependencies (12 → 5)
+/**
+ * Financial Module - Clean Barrel Export
+ * 
+ * HANYA export yang benar-benar diperlukan untuk external consumers
+ * Dependencies reduced from 12 to 5
+ */
 
-// === MAIN PAGE COMPONENT ===
+// ✅ CORE EXPORTS ONLY
 export { default as FinancialReportPage } from './FinancialReportPage';
 
-// === CORE COMPONENTS ===
-export { default as FinancialCharts } from './components/FinancialCharts';
-export { default as CategoryCharts } from './components/CategoryCharts';
-export { default as TransactionTable } from './components/TransactionTable';
-
-// === DIALOGS ===
-export { default as FinancialTransactionDialog } from './dialogs/FinancialTransactionDialog';
-export { default as CategoryManagementDialog } from './dialogs/CategoryManagementDialog';
-
-// === CONTEXT ===
+// ✅ ESSENTIAL CONTEXT
 export { FinancialProvider, useFinancial } from './contexts/FinancialContext';
 
-// === HOOKS ===
-export { 
-  useFinancialData,
-  useFinancialChartData,
-  usePagination,
-  useFinancialForm
-} from './hooks/useFinancialData';
+// ✅ CONSOLIDATED HOOK (Single import instead of multiple)
+export { useFinancialCore } from './hooks/useFinancialCore'; // New consolidated hook
 
-export {
-  useFilteredTransactions,
-  useTransactionOperations,
-  useCategoryData
-} from './hooks/useFinancialContext';
-
-// === TYPES ===
+// ✅ ESSENTIAL TYPES ONLY
 export type {
   FinancialTransaction,
-  FinancialTransactionType,
-  FinancialCategories,
-  FinancialSummary,
-  TransactionFormData,
-  DateRange
+  FinancialContextType
 } from './types/financial';
 
-// === CONSTANTS (grouped) ===
-export {
-  DEFAULT_CATEGORIES,
-  TRANSACTION_TYPES,
-  CHART_CONFIG
-} from './constants';
-
-// === UTILITIES (key functions only) ===
+// ✅ UTILITY FUNCTIONS (Essential only)
 export {
   calculateFinancialSummary,
-  validateTransaction,
-  formatTransactionForDisplay
+  validateTransaction
 } from './utils/financialUtils';
+
+// ❌ REMOVED - Reduce dependencies:
+// - Individual components (use direct imports if needed)
+// - Individual hooks (consolidated into useFinancialCore)
+// - Detailed types (import from ./types if needed)
+// - Constants (import directly)
+// - Non-essential utilities
+
+// ✅ OPTIONAL: Advanced imports for power users
+export const FINANCIAL_ADVANCED = {
+  components: () => import('./components'),
+  dialogs: () => import('./dialogs'),
+  hooks: () => import('./hooks'),
+  types: () => import('./types/financial'),
+  utils: () => import('./utils/financialUtils'),
+  constants: () => import('./constants')
+} as const;

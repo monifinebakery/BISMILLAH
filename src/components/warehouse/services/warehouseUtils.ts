@@ -2,6 +2,7 @@
 /**
  * Warehouse Utility Functions (Updated for exact Supabase schema)
  * Simple helper functions with database field mapping
+ * Enhanced with last update tracking and helper functions
  */
 
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
@@ -100,6 +101,196 @@ export const warehouseUtils = {
     });
   },
 
+  // NEW: Enhanced stock level calculation with number conversion
+  getStockLevel: (item: BahanBakuFrontend) => {
+    const stok = Number(item.stok) || 0;
+    const minimum = Number(item.minimum) || 0;
+    
+    if (stok <= 0) {
+      return { level: 'out', color: 'red', label: 'Stok Habis' };
+    } else if (stok <= minimum) {
+      return { level: 'low', color: 'yellow', label: 'Stok Rendah' };
+    } else if (stok <= minimum * 2) {
+      return { level: 'medium', color: 'blue', label: 'Stok Sedang' };
+    } else {
+      return { level: 'good', color: 'green', label: 'Stok Baik' };
+    }
+  },
+
+  // NEW: Check if item is expiring soon (within 7 days)
+  isExpiringItem: (item: BahanBakuFrontend): boolean => {
+    if (!item.expiry) return false;
+    const expiryDate = new Date(item.expiry);
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() + 7); // 7 days warning
+    return expiryDate <= threshold && expiryDate > new Date();
+  },
+
+  // NEW: Check if item has low stock
+  isLowStockItem: (item: BahanBakuFrontend): boolean => {
+    const stok = Number(item.stok) || 0;
+    const minimum = Number(item.minimum) || 0;
+    return stok <= minimum && stok > 0;
+  },
+
+  // NEW: Check if item is out of stock
+  isOutOfStockItem: (item: BahanBakuFrontend): boolean => {
+    const stok = Number(item.stok) || 0;
+    return stok <= 0;
+  },
+
+  // NEW: Format last update time with relative formatting
+  formatLastUpdate: (timestamp?: string | Date): string => {
+    if (!timestamp) return 'Tidak diketahui';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+    if (diffInMinutes < 1) {
+      return 'Baru saja';
+    } else if (diffInMinutes < 60) {
+      const minutes = Math.floor(diffInMinutes);
+      return `${minutes} menit yang lalu`;
+    } else if (diffInHours < 24) {
+      const hours = Math.floor(diffInHours);
+      return `${hours} jam yang lalu`;
+    } else if (diffInDays < 7) {
+      const days = Math.floor(diffInDays);
+      return `${days} hari yang lalu`;
+    } else {
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }).format(date);
+    }
+  },
+
+  // NEW: Format last update time (compact version for desktop)
+  formatLastUpdateCompact: (timestamp?: string | Date): string => {
+    if (!timestamp) return '-';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+    if (diffInMinutes < 1) {
+      return 'Sekarang';
+    } else if (diffInMinutes < 60) {
+      const minutes = Math.floor(diffInMinutes);
+      return `${minutes}m`;
+    } else if (diffInHours < 24) {
+      const hours = Math.floor(diffInHours);
+      return `${hours}h`;
+    } else if (diffInDays < 7) {
+      const days = Math.floor(diffInDays);
+      return `${days}d`;
+    } else {
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: '2-digit'
+      }).format(date);
+    }
+  },
+
+  // NEW: Highlight search terms in text
+  highlightText: (text: string, searchTerm: string): React.ReactNode => {
+    if (!searchTerm) return text;
+    
+    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === searchTerm.toLowerCase() ? (
+        React.createElement('mark', { key: index, className: 'bg-yellow-200 px-1 rounded' }, part)
+      ) : part
+    );
+  },
+
+  // NEW: Get stock level color class for styling
+  getStockLevelColorClass: (item: BahanBakuFrontend): string => {
+    const stockLevel = warehouseUtils.getStockLevel(item);
+    
+    const colorClasses = {
+      out: 'bg-red-500',
+      low: 'bg-yellow-500',
+      medium: 'bg-blue-500',
+      good: 'bg-green-500'
+    };
+    
+    return colorClasses[stockLevel.level as keyof typeof colorClasses] || 'bg-gray-500';
+  },
+
+  // NEW: Get row background color class for table rows
+  getRowBackgroundClass: (item: BahanBakuFrontend, isSelected: boolean): string => {
+    const stockLevel = warehouseUtils.getStockLevel(item);
+    
+    if (isSelected) return 'bg-orange-50';
+    if (stockLevel.level === 'out') return 'bg-red-50';
+    if (stockLevel.level === 'low') return 'bg-yellow-50';
+    return '';
+  },
+
+  // NEW: Get alert indicators for an item
+  getItemAlerts: (item: BahanBakuFrontend): Array<{
+    type: 'expiring' | 'outOfStock' | 'lowStock';
+    message: string;
+    color: string;
+    priority: number;
+  }> => {
+    const alerts = [];
+    
+    if (warehouseUtils.isExpiringItem(item)) {
+      alerts.push({
+        type: 'expiring' as const,
+        message: 'Akan kadaluarsa',
+        color: 'text-red-600',
+        priority: 1
+      });
+    }
+    
+    if (warehouseUtils.isOutOfStockItem(item)) {
+      alerts.push({
+        type: 'outOfStock' as const,
+        message: 'Stok habis',
+        color: 'text-red-600',
+        priority: 1
+      });
+    } else if (warehouseUtils.isLowStockItem(item)) {
+      alerts.push({
+        type: 'lowStock' as const,
+        message: 'Stok hampir habis',
+        color: 'text-yellow-600',
+        priority: 2
+      });
+    }
+    
+    return alerts.sort((a, b) => a.priority - b.priority);
+  },
+
+  // NEW: Debug helper for development
+  debugItem: (item: BahanBakuFrontend): void => {
+    if (process.env.NODE_ENV === 'development' && item.nama.includes('Debug')) {
+      console.log('=== WAREHOUSE TABLE DEBUG ===');
+      console.log('Item:', item.nama);
+      console.log('Stok:', item.stok, typeof item.stok);
+      console.log('Minimum:', item.minimum, typeof item.minimum);
+      console.log('Harga:', item.harga, typeof item.harga);
+      console.log('Stock Level:', warehouseUtils.getStockLevel(item));
+      console.log('Low Stock:', warehouseUtils.isLowStockItem(item));
+      console.log('Out of Stock:', warehouseUtils.isOutOfStockItem(item));
+      console.log('Expiring:', warehouseUtils.isExpiringItem(item));
+      console.log('Alerts:', warehouseUtils.getItemAlerts(item));
+      console.log('Last Update:', warehouseUtils.formatLastUpdate(item.updatedAt));
+      console.log('============================');
+    }
+  },
+
   // Validation (updated for new field names)
   validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
     const errors: string[] = [];
@@ -193,7 +384,7 @@ export const warehouseUtils = {
     }
   },
 
-  // Export helpers (updated for new field names)
+  // Export helpers (updated for new field names + last update)
   prepareExportData: (items: BahanBakuFrontend[]) => {
     return items.map(item => ({
       'Nama': item.nama,
@@ -209,6 +400,7 @@ export const warehouseUtils = {
       'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
       'Dibuat': warehouseUtils.formatDate(item.createdAt),
       'Diupdate': warehouseUtils.formatDate(item.updatedAt),
+      'Terakhir Diupdate': warehouseUtils.formatLastUpdate(item.updatedAt),
     }));
   },
 
@@ -287,7 +479,7 @@ export const warehouseUtils = {
     return Math.ceil(thirtyDaysStock + safetyStock + currentShortfall);
   },
 
-  // Generate stock report data
+  // Generate stock report data (enhanced with last update info)
   generateStockReport: (items: BahanBakuFrontend[]) => {
     const totalItems = items.length;
     const lowStockItems = warehouseUtils.getLowStockItems(items);
@@ -302,12 +494,22 @@ export const warehouseUtils = {
       return acc;
     }, {} as Record<string, number>);
 
+    // NEW: Find recently updated items (within last 24 hours)
+    const recentlyUpdated = items.filter(item => {
+      if (!item.updatedAt) return false;
+      const updateTime = new Date(item.updatedAt);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return updateTime > yesterday;
+    });
+
     return {
       summary: {
         totalItems,
         lowStockCount: lowStockItems.length,
         outOfStockCount: outOfStockItems.length,
         expiringCount: expiringItems.length,
+        recentlyUpdatedCount: recentlyUpdated.length,
         totalValue,
         averageStockLevel: Math.round(averageStockLevel),
       },
@@ -316,6 +518,7 @@ export const warehouseUtils = {
         lowStock: lowStockItems,
         outOfStock: outOfStockItems,
         expiring: expiringItems,
+        recentlyUpdated: recentlyUpdated,
       }
     };
   },

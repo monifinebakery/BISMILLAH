@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Calculator, Gift, TrendingUp, Eye, Plus, ArrowLeft, List } from 'lucide-react';
 import PromoCalculator from './calculator/PromoCalculator';
-import PromoList from './list/PromoList';
+import PromoList from './promoList/PromoList';
 import { usePromo } from './context/PromoContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 

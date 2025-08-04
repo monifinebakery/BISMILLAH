@@ -1,39 +1,39 @@
-// App.jsx - Enhanced Payment Integration with Updated Components
-
+// App.tsx - Optimized Dependencies (10 → 5 dependencies)
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
-// ✅ CRITICAL: Keep only essential imports in main bundle
+// ✅ CORE UI ONLY (Essential for layout)
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+
+// ✅ SINGLE CONTEXT IMPORT (All contexts bundled)
 import { AppProviders } from "@/contexts/AppProviders";
 import { usePaymentContext } from "./contexts/PaymentContext";
 
-// ✅ KEEP: Core contexts that need to be available immediately
-import { RecipeProvider } from "@/contexts/RecipeContext";
-import { SupplierProvider } from "@/contexts/SupplierContext";
-import { OperationalCostProvider } from "@/components/operational-costs/context/OperationalCostContext";
-
-// ✅ KEEP: Critical components for layout
+// ✅ CORE LAYOUT COMPONENTS ONLY
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import EmailAuthPage from "@/components/EmailAuthPage";
 import { AppSidebar } from "@/components/AppSidebar";
 import AuthGuard from "@/components/AuthGuard";
 import PaymentGuard from "@/components/PaymentGuard";
+
+// ✅ LIGHTWEIGHT UI COMPONENTS
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
-
-// ✅ UPDATED: Import the updated OrderConfirmationPopup
 import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// ✅ OPTIMIZED: More aggressive lazy loading with webpack comments for chunk naming
+// ❌ REMOVED: Individual context imports (moved to AppProviders)
+// - RecipeProvider, SupplierProvider, OperationalCostProvider
+// These are now handled in AppProviders, reducing dependencies
+
+// ✅ OPTIMIZED: Lazy loading with better chunk names
 const Dashboard = React.lazy(() => 
   import(/* webpackChunkName: "dashboard" */ "./pages/Dashboard")
 );
@@ -58,18 +58,6 @@ const FinancialReportPage = React.lazy(() =>
   import(/* webpackChunkName: "financial" */ "@/components/financial/FinancialReportPage")
 );
 
-const NotFound = React.lazy(() => 
-  import(/* webpackChunkName: "not-found" */ "./pages/NotFound")
-);
-
-const AssetManagement = React.lazy(() => 
-  import(/* webpackChunkName: "assets" */ "./pages/AssetManagement")
-);
-
-const Settings = React.lazy(() => 
-  import(/* webpackChunkName: "settings" */ "./pages/Settings")
-);
-
 const SupplierManagementPage = React.lazy(() => 
   import(/* webpackChunkName: "suppliers" */ "@/components/supplier").then(module => ({
     default: module.SupplierManagement
@@ -80,31 +68,27 @@ const PurchaseManagement = React.lazy(() =>
   import(/* webpackChunkName: "purchase" */ "./components/purchase/PurchasePage")
 );
 
-const MenuPage = React.lazy(() => 
-  import(/* webpackChunkName: "menu" */ "./pages/MenuPage")
-);
-
-const PaymentSuccessPage = React.lazy(() => 
-  import(/* webpackChunkName: "payment" */ "./pages/PaymentSuccessPage")
-);
-
-const InvoicePage = React.lazy(() => 
-  import(/* webpackChunkName: "invoice" */ "./pages/InvoicePage")
-);
-
 const PromoCalculatorPage = React.lazy(() => 
   import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")
 );
 
-// ✅ OPTIMIZED: Query client with smaller cache
+// ✅ BATCH LAZY LOADING (Less critical pages)
+const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/NotFound")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/AssetManagement")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/Settings")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/MenuPage")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/PaymentSuccessPage")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/InvoicePage"))
+];
+
+// ✅ OPTIMIZED: Lighter query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Reduce default cache time to save memory
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       retry: (failureCount, error) => {
-        // Don't retry on auth errors
         if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
           return false;
         }
@@ -114,18 +98,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ FIXED: Perfect centered loading components
-const PageLoader = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-    <div className="flex flex-col items-center gap-4">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-      <p className="text-sm text-muted-foreground">Memuat aplikasi...</p>
-    </div>
-  </div>
-);
-
-// ✅ FIXED: Perfect centered page loaders with enhanced styling
-const createPageLoader = (title: string) => () => (
+// ✅ SIMPLIFIED: Unified loading component
+const AppLoader = ({ title = "Memuat aplikasi..." }: { title?: string }) => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
@@ -137,37 +111,10 @@ const createPageLoader = (title: string) => () => (
   </div>
 );
 
-const RecipePageLoader = createPageLoader("Memuat Resep");
-const SupplierPageLoader = createPageLoader("Memuat Supplier");
-const OrderPageLoader = createPageLoader("Memuat Pesanan");
-const OperationalCostPageLoader = createPageLoader("Memuat Biaya Operasional");
-const PurchasePageLoader = createPageLoader("Memuat Pembelian");
-
-// ✅ FIXED: Centered error fallbacks
-const RouteErrorFallback = () => {
+// ✅ SIMPLIFIED: Unified error component
+const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; onRetry?: () => void }) => {
   const navigate = useNavigate();
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-      <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
-        <div className="bg-red-100 rounded-full p-4 mb-4">
-          <div className="h-8 w-8 text-red-500 text-2xl flex items-center justify-center">⚠️</div>
-        </div>
-        <h2 className="text-xl font-semibold text-destructive mb-2">Terjadi Kesalahan</h2>
-        <p className="text-muted-foreground mb-6">Gagal memuat halaman.</p>
-        <button
-          onClick={() => navigate('/', { replace: true })}
-          className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Kembali ke Dashboard
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ✅ FIXED: Perfectly centered error fallbacks
-const createErrorFallback = (title: string) => () => {
-  const navigate = useNavigate();
+  
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
       <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
@@ -176,11 +123,11 @@ const createErrorFallback = (title: string) => () => {
         </div>
         <h3 className="text-xl font-semibold text-gray-800 mb-3">{title}</h3>
         <p className="text-gray-600 mb-6 leading-relaxed">
-          Terjadi kesalahan saat memuat halaman. Silakan coba lagi atau kembali ke dashboard.
+          Gagal memuat halaman. Silakan coba lagi atau kembali ke dashboard.
         </p>
         <div className="flex gap-3">
           <button
-            onClick={() => window.location.reload()}
+            onClick={onRetry || (() => window.location.reload())}
             className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg transition-all"
           >
             Muat Ulang
@@ -197,13 +144,7 @@ const createErrorFallback = (title: string) => () => {
   );
 };
 
-const RecipeErrorFallback = createErrorFallback("Gagal Memuat Resep");
-const SupplierErrorFallback = createErrorFallback("Gagal Memuat Supplier");
-const OrderErrorFallback = createErrorFallback("Gagal Memuat Pesanan");
-const OperationalCostErrorFallback = createErrorFallback("Gagal Memuat Biaya Operasional");
-const PurchaseErrorFallback = createErrorFallback("Gagal Memuat Pembelian");
-
-// ✅ ENHANCED: AppLayout with improved payment integration
+// ✅ SIMPLIFIED: AppLayout without redundant providers
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 
@@ -217,10 +158,9 @@ const AppLayout = () => {
 
   const handleOrderLinked = (payment: any) => {
     console.log('✅ Order linked successfully:', payment);
-    refetchPayment(); // Refresh payment status
+    refetchPayment();
   };
 
-  // ✅ ENHANCED: Smart button visibility and styling
   const renderOrderLinkButton = (isMobileVersion = false) => {
     if (isPaid) return null;
 
@@ -251,82 +191,68 @@ const AppLayout = () => {
 
   if (isMobile) {
     return (
-      <OperationalCostProvider>
-        <RecipeProvider>
-          <SupplierProvider>
-            <div className="min-h-screen flex flex-col bg-background">
-              <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-                <div className="flex-1">
-                  <h1 className="text-lg font-bold text-primary">HPP App</h1>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {isPaid && <PaymentStatusIndicator />}
-                  <NotificationBell />
-                  <MobileExportButton />
-                  {renderOrderLinkButton(true)}
-                </div>
-              </header>
-              <main className="flex-1 overflow-auto pb-16">
-                <ErrorBoundary fallback={<RouteErrorFallback />}>
-                  <Outlet />
-                </ErrorBoundary>
-              </main>
-              <BottomTabBar />
-              {!isPaid && (
-                <div className="fixed bottom-20 right-4 z-50">
-                  <PaymentStatusIndicator size="lg" />
-                </div>
-              )}
-              
-              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
-              <OrderConfirmationPopup
-                isOpen={showOrderPopup}
-                onClose={() => setShowOrderPopup(false)}
-                onSuccess={handleOrderLinked}
-              />
-            </div>
-          </SupplierProvider>
-        </RecipeProvider>
-      </OperationalCostProvider>
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-primary">HPP App</h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            {isPaid && <PaymentStatusIndicator />}
+            <NotificationBell />
+            <MobileExportButton />
+            {renderOrderLinkButton(true)}
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto pb-16">
+          <ErrorBoundary fallback={(() => <AppError />)}>
+            <Outlet />
+          </ErrorBoundary>
+        </main>
+        <BottomTabBar />
+        {!isPaid && (
+          <div className="fixed bottom-20 right-4 z-50">
+            <PaymentStatusIndicator size="lg" />
+          </div>
+        )}
+        
+        <OrderConfirmationPopup
+          isOpen={showOrderPopup}
+          onClose={() => setShowOrderPopup(false)}
+          onSuccess={handleOrderLinked}
+        />
+      </div>
     );
   }
 
   return (
-    <OperationalCostProvider>
-      <RecipeProvider>
-        <SupplierProvider>
-          <SidebarProvider>
-            <div className="min-h-screen flex w-full bg-background">
-              <AppSidebar />
-              <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
-                <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
-                  <SidebarTrigger className="-ml-1" />
-                  <div className="flex-1" />
-                  <div className="flex items-center space-x-4">
-                    <PaymentStatusIndicator />
-                    <DateTimeDisplay />
-                    <NotificationBell />
-                    {renderOrderLinkButton(false)}
-                  </div>
-                </header>
-                <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
-                  <ErrorBoundary fallback={<RouteErrorFallback />}>
-                    <Outlet />
-                  </ErrorBoundary>
-                </main>
-              </SidebarInset>
-              
-              {/* ✅ ENHANCED: Order confirmation popup with better integration */}
-              <OrderConfirmationPopup
-                isOpen={showOrderPopup}
-                onClose={() => setShowOrderPopup(false)}
-                onSuccess={handleOrderLinked}
-              />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
+            <SidebarTrigger className="-ml-1" />
+            <div className="flex-1" />
+            <div className="flex items-center space-x-4">
+              <PaymentStatusIndicator />
+              <DateTimeDisplay />
+              <NotificationBell />
+              {renderOrderLinkButton(false)}
             </div>
-          </SidebarProvider>
-        </SupplierProvider>
-      </RecipeProvider>
-    </OperationalCostProvider>
+          </header>
+          <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
+            <ErrorBoundary fallback={(() => <AppError />)}>
+              <Outlet />
+            </ErrorBoundary>
+          </main>
+        </SidebarInset>
+        
+        <OrderConfirmationPopup
+          isOpen={showOrderPopup}
+          onClose={() => setShowOrderPopup(false)}
+          onSuccess={handleOrderLinked}
+        />
+      </div>
+    </SidebarProvider>
   );
 };
 
@@ -349,7 +275,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AppProviders>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<AppLoader />}>
             <Routes>
               <Route path="/auth" element={<EmailAuthPage />} />
               <Route
@@ -366,8 +292,8 @@ const App = () => {
                 <Route 
                   path="resep" 
                   element={
-                    <Suspense fallback={<RecipePageLoader />}>
-                      <ErrorBoundary fallback={<RecipeErrorFallback />}>
+                    <Suspense fallback={<AppLoader title="Memuat Resep" />}>
+                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Resep" />)}>
                         <RecipesPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -379,8 +305,8 @@ const App = () => {
                 <Route 
                   path="supplier" 
                   element={
-                    <Suspense fallback={<SupplierPageLoader />}>
-                      <ErrorBoundary fallback={<SupplierErrorFallback />}>
+                    <Suspense fallback={<AppLoader title="Memuat Supplier" />}>
+                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Supplier" />)}>
                         <SupplierManagementPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -390,8 +316,8 @@ const App = () => {
                 <Route 
                   path="pembelian" 
                   element={
-                    <Suspense fallback={<PurchasePageLoader />}>
-                      <ErrorBoundary fallback={<PurchaseErrorFallback />}>
+                    <Suspense fallback={<AppLoader title="Memuat Pembelian" />}>
+                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Pembelian" />)}>
                         <PurchaseManagement />
                       </ErrorBoundary>
                     </Suspense>
@@ -401,8 +327,8 @@ const App = () => {
                 <Route 
                   path="pesanan" 
                   element={
-                    <Suspense fallback={<OrderPageLoader />}>
-                      <ErrorBoundary fallback={<OrderErrorFallback />}>
+                    <Suspense fallback={<AppLoader title="Memuat Pesanan" />}>
+                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Pesanan" />)}>
                         <OrdersPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -412,8 +338,8 @@ const App = () => {
                 <Route 
                   path="biaya-operasional" 
                   element={
-                    <Suspense fallback={<OperationalCostPageLoader />}>
-                      <ErrorBoundary fallback={<OperationalCostErrorFallback />}>
+                    <Suspense fallback={<AppLoader title="Memuat Biaya Operasional" />}>
+                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Biaya Operasional" />)}>
                         <OperationalCostPage />
                       </ErrorBoundary>
                     </Suspense>

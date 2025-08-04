@@ -1,20 +1,34 @@
-// src/components/operational-costs/OperationalCostPage.tsx
-
 import React, { useState, Suspense, lazy } from 'react';
-import { Plus, Settings, Calculator } from 'lucide-react'; // ✅ Only import icons that exist
+import { Plus, Settings, Calculator, DollarSign, AlertTriangle } from 'lucide-react';
+
+// ✅ CONSOLIDATED: Context imports
 import { OperationalCostProvider, useOperationalCost } from './context';
-import CostSummaryCard from './components/CostSummaryCard';
-import CostList from './components/CostList';
-import CostForm from './components/CostForm';
-import AllocationSettings from './components/AllocationSettings';
-import LoadingState from './components/LoadingState';
-import EmptyState from './components/EmptyState';
+
+// ✅ CONSOLIDATED: All components in single import
+import {
+  CostSummaryCard,
+  CostList,
+  CostForm,
+  AllocationSettings,
+  LoadingState,
+  EmptyState
+} from './components';
+
+// ✅ CONSOLIDATED: Types import
 import { OperationalCost } from './types';
 
-// Lazy load dialogs
+// ✅ KEEP: Lazy load dialogs (existing logic)
 const CostDialog = lazy(() => import('./dialogs/CostDialog'));
 const DeleteConfirmDialog = lazy(() => import('./dialogs/DeleteConfirmDialog'));
 const AllocationDialog = lazy(() => import('./dialogs/AllocationDialog'));
+
+// ❌ REMOVED: Individual component imports - now consolidated
+// - import CostSummaryCard from './components/CostSummaryCard';
+// - import CostList from './components/CostList';
+// - import CostForm from './components/CostForm';
+// - import AllocationSettings from './components/AllocationSettings';
+// - import LoadingState from './components/LoadingState';
+// - import EmptyState from './components/EmptyState';
 
 interface OperationalCostPageContentProps {}
 
@@ -48,7 +62,6 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
 
   const handleViewCost = (cost: OperationalCost) => {
     setSelectedCost(cost);
-    // Could open a view-only dialog or navigate to detail page
     console.log('View cost:', cost);
   };
 
@@ -65,7 +78,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
   const hasCosts = state.costs.length > 0;
   const hasActiveSettings = !!state.allocationSettings;
 
-  // ✅ Show loading state while auth is being checked
+  // Show loading state while auth is being checked
   if (state.loading.auth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -77,7 +90,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
     );
   }
 
-  // ✅ Show auth error if not authenticated
+  // Show auth error if not authenticated
   if (!state.isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -98,48 +111,115 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
     );
   }
 
+  // Check if there are any issues with allocation settings
+  const isConnected = true; // You can replace this with actual connection status
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Page Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Biaya Operasional</h1>
-              <p className="text-gray-600 mt-1">
-                Kelola biaya operasional dan hitung overhead untuk HPP produksi
+      {/* Connection Warning */}
+      {!isConnected && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-yellow-400" />
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                Koneksi tidak stabil. Data mungkin tidak ter-update secara real-time.
               </p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+          </div>
+        </div>
+      )}
+
+      {/* Header Card with orange gradient background */}
+      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+            {/* Icon Container */}
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                <DollarSign className="h-8 w-8 text-white" />
+              </div>
+              
+              {/* Content */}
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-white">
+                  Biaya Operasional
+                </h1>
+                <p className="text-orange-100 mt-2 text-base md:text-lg">
+                  Kelola biaya operasional dan hitung overhead untuk HPP produksi
+                </p>
+              </div>
+            </div>
+
+            {/* Desktop Action Buttons - Horizontal Layout */}
+            <div className="hidden lg:flex items-center gap-3">
               <button
                 onClick={handleCalculateOverhead}
                 disabled={state.loading.overhead || !hasCosts || !hasActiveSettings}
-                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Hitung overhead berdasarkan pengaturan alokasi"
               >
-                <Calculator className="h-4 w-4 mr-2" />
+                <Calculator className="h-4 w-4" />
                 {state.loading.overhead ? 'Menghitung...' : 'Hitung Overhead'}
               </button>
               
               <button
                 onClick={handleOpenAllocationSettings}
-                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
               >
-                <Settings className="h-4 w-4 mr-2" />
+                <Settings className="h-4 w-4" />
                 Pengaturan
               </button>
               
               <button
                 onClick={handleAddCost}
                 disabled={state.loading.costs}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm disabled:opacity-50"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4" />
                 Tambah Biaya
               </button>
             </div>
           </div>
+
+          {/* Mobile Action Buttons - Vertical Layout */}
+          <div className="lg:hidden mt-6 space-y-3">
+            <button
+              onClick={handleCalculateOverhead}
+              disabled={state.loading.overhead || !hasCosts || !hasActiveSettings}
+              className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Hitung overhead berdasarkan pengaturan alokasi"
+            >
+              <Calculator className="h-4 w-4" />
+              {state.loading.overhead ? 'Menghitung...' : 'Hitung Overhead'}
+            </button>
+            
+            <button
+              onClick={handleOpenAllocationSettings}
+              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+            >
+              <Settings className="h-4 w-4" />
+              Pengaturan
+            </button>
+            
+            <button
+              onClick={handleAddCost}
+              disabled={state.loading.costs}
+              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Biaya
+            </button>
+          </div>
+
+          {/* Stats Bar */}
+          {hasCosts && (
+            <div className="mt-6">
+              <div className="text-orange-100 text-sm">
+                Total: {state.costs.length} biaya{!hasActiveSettings && ' • Pengaturan alokasi belum diatur'}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -151,7 +231,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
               onClick={() => setActiveTab('costs')}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'costs'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -161,7 +241,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
               onClick={() => setActiveTab('allocation')}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'allocation'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -188,13 +268,13 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
             {state.overheadCalculation && (
               <div className="bg-white rounded-lg border p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Calculator className="h-5 w-5 mr-2 text-blue-600" />
+                  <Calculator className="h-5 w-5 mr-2 text-orange-600" />
                   Hasil Perhitungan Overhead
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-blue-600 break-all">
+                    <div className="text-xl md:text-2xl font-bold text-orange-600 break-all">
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',

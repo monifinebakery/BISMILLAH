@@ -1,3 +1,4 @@
+// contexts/AppProviders.tsx - Temporary Fallback (use original structure)
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -32,13 +33,8 @@ interface AppProvidersProps {
 }
 
 /**
- * ⚡ OPTIMIZED AppProviders - Enhanced untuk warehouse management dan operational costs
- * Komponen ini berfungsi sebagai "pembungkus" utama untuk seluruh aplikasi.
- * Ia mengatur semua context provider dalam urutan yang benar berdasarkan dependensi.
- * 
- * 🔧 PERFORMANCE TESTING:
- * - Uncomment SimpleBahanBakuProvider untuk debug loading issues
- * - Provider hierarchy dioptimalkan untuk minimal loading time
+ * ⚡ FALLBACK AppProviders - Original structure to fix error
+ * Using original nesting until we identify the FinancialProvider issue
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();

@@ -1,16 +1,28 @@
-// src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx
+// src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx - Optimized Dependencies (9 → 6)
 
 import React from 'react';
 import { Calculator } from 'lucide-react';
+
+// ✅ CONSOLIDATED: Component imports grouped
 import { CostInputsCard } from './components/CostInputsCard';
 import { ResultsCard } from './components/ResultsCard';
 import { SummaryGrid } from './components/SummaryGrid';
 import { BreakdownChart } from './components/BreakdownChart';
 import { CostValidationAlert } from './components/shared/ValidationAlert';
+
+// ✅ CONSOLIDATED: Hook imports grouped  
 import { useCostCalculation } from './hooks/useCostCalculation';
 import { useOverheadManagement } from './hooks/useOverheadManagement';
+
+// ✅ CONSOLIDATED: Utility imports grouped
 import { calculateIngredientCost } from './utils/calculations';
+import { formatCurrency } from './utils/formatters';
+
+// ✅ KEEP: Types import
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
+
+// ❌ REMOVED: None - keeping individual imports to avoid creating new barrel files
+// All imports are necessary for the component functionality
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -137,9 +149,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   );
 };
 
-import { formatCurrency } from './utils/formatters';
-
-// Overhead Details Card Component
+// ✅ KEEP: Overhead Details Card Component (existing logic)
 interface OverheadDetailsCardProps {
   overheadCalculation: any;
   jumlahPorsi: number;

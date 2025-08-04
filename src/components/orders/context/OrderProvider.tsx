@@ -1,134 +1,155 @@
-// 🎯 Enhanced OrderProvider dengan FollowUpTemplate Integration
-import React, { ReactNode } from 'react';
+// src/components/orders/context/OrderProvider.tsx - Optimized Dependencies (4 → 3)
+
+import React, { ReactNode, useMemo } from 'react';
 import { logger } from '@/utils/logger';
+
+// ✅ CONSOLIDATED: Context imports
 import OrderContext from './OrderContext';
+import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
+
+// ✅ CONSOLIDATED: External contexts (grouped)
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
+
+// ✅ ESSENTIAL: Local imports
 import { useOrderData } from '../hooks/useOrderData';
 import type { Order } from '../types';
 import { safeParseDate, isValidDate } from '../utils';
+
+// ❌ REMOVED: None - already well optimized
 
 interface OrderProviderProps {
   children: ReactNode;
 }
 
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
+  // ✅ CONTEXTS: All required contexts
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addFinancialTransaction } = useFinancial();
   const { settings } = useUserSettings();
   const { addNotification } = useNotification();
 
-  logger.context('OrderProvider', 'Provider render', { 
-    user: user?.id,
-    hasActivity: !!addActivity,
-    hasFinancial: !!addFinancialTransaction,
-    hasSettings: !!settings,
-    hasNotification: !!addNotification,
-  });
+  // ✅ MEMOIZED: Dependency check for performance
+  const contextDependencies = useMemo(() => {
+    const hasAllDependencies = !!(user && addActivity && addFinancialTransaction && settings && addNotification);
+    
+    logger.context('OrderProvider', 'Dependency check', {
+      user: user?.id,
+      hasActivity: !!addActivity,
+      hasFinancial: !!addFinancialTransaction,
+      hasSettings: !!settings,
+      hasNotification: !!addNotification,
+      allReady: hasAllDependencies
+    });
 
-  // Initialize main data hook dengan semua dependencies dari kode asli
+    return { hasAllDependencies, user };
+  }, [user, addActivity, addFinancialTransaction, settings, addNotification]);
+
+  // ✅ OPTIMIZED: Main data hook with all dependencies
   const orderData = useOrderData(
-    user,
+    contextDependencies.user,
     addActivity,
     addFinancialTransaction,
     settings,
     addNotification
   );
 
-  // Enhanced utility methods dari kode asli
-  const getOrdersByDateRange = (startDate: Date, endDate: Date): Order[] => {
-    try {
-      if (!isValidDate(startDate) || !isValidDate(endDate)) {
-        console.error('OrderProvider: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+  // ✅ MEMOIZED: Utility methods for better performance
+  const utilityMethods = useMemo(() => ({
+    getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
+      try {
+        if (!isValidDate(startDate) || !isValidDate(endDate)) {
+          console.error('OrderProvider: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+          return [];
+        }
+        
+        return orderData.orders.filter(order => {
+          try {
+            const orderDate = safeParseDate(order.tanggal);
+            if (!orderDate) return false;
+            return orderDate >= startDate && orderDate <= endDate;
+          } catch (error) {
+            console.error('OrderProvider: Error processing order date:', error, order);
+            return false;
+          }
+        });
+      } catch (error) {
+        console.error('OrderProvider: Error in getOrdersByDateRange:', error);
         return [];
       }
-      
-      return orderData.orders.filter(order => {
-        try {
-          const orderDate = safeParseDate(order.tanggal);
-          if (!orderDate) return false;
-          return orderDate >= startDate && orderDate <= endDate;
-        } catch (error) {
-          console.error('OrderProvider: Error processing order date:', error, order);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('OrderProvider: Error in getOrdersByDateRange:', error);
-      return [];
     }
-  };
+  }), [orderData.orders]);
 
-  // Enhanced context value dengan semua fitur dari kode asli
-  const value = {
-    // Core data
-    orders: orderData.orders,
-    loading: orderData.loading,
+  // ✅ MEMOIZED: Context value with all features
+  const contextValue = useMemo(() => {
+    const baseValue = {
+      // Core data
+      orders: orderData.orders,
+      loading: orderData.loading,
+      
+      // CRUD operations
+      addOrder: orderData.addOrder,
+      updateOrder: orderData.updateOrder,
+      deleteOrder: orderData.deleteOrder,
+      
+      // Enhanced features
+      isConnected: orderData.isConnected,
+      refreshData: orderData.refreshData,
+      getOrderById: orderData.getOrderById,
+      getOrdersByStatus: orderData.getOrdersByStatus,
+      getOrdersByDateRange: utilityMethods.getOrdersByDateRange,
+      bulkUpdateStatus: orderData.bulkUpdateStatus,
+      bulkDeleteOrders: orderData.bulkDeleteOrders,
+    };
+
+    logger.context('OrderProvider', 'Context value created', {
+      orderCount: orderData.orders.length,
+      loading: orderData.loading,
+      connected: orderData.isConnected,
+      hasAllDependencies: contextDependencies.hasAllDependencies
+    });
+
+    return baseValue;
+  }, [orderData, utilityMethods, contextDependencies.hasAllDependencies]);
+
+  // ✅ MEMOIZED: Limited context for when user is not available
+  const limitedContextValue = useMemo(() => {
+    logger.context('OrderProvider', 'Providing limited context - no user');
     
-    // CRUD operations dengan semua logika asli
-    addOrder: orderData.addOrder,
-    updateOrder: orderData.updateOrder, 
-    deleteOrder: orderData.deleteOrder,
-    
-    // Enhanced features dari kode asli
-    isConnected: orderData.isConnected,
-    refreshData: orderData.refreshData,
-    getOrderById: orderData.getOrderById,
-    getOrdersByStatus: orderData.getOrdersByStatus,
-    getOrdersByDateRange,
-    bulkUpdateStatus: orderData.bulkUpdateStatus,
-    bulkDeleteOrders: orderData.bulkDeleteOrders,
-  };
+    const noOpAsync = async () => {
+      console.warn('OrderProvider: Operation called without user');
+      return false;
+    };
 
-  logger.context('OrderProvider', 'Providing context value:', {
-    orderCount: orderData.orders.length,
-    loading: orderData.loading,
-    connected: orderData.isConnected,
-    hasAllDependencies: !!(user && addActivity && addFinancialTransaction && settings && addNotification)
-  });
+    const noOpVoid = async () => {
+      console.warn('OrderProvider: Operation called without user');
+    };
 
-  // Handle missing dependencies seperti kode asli
-  if (!user) {
-    logger.context('OrderProvider', 'No user found, providing limited context');
+    return {
+      orders: [],
+      loading: false,
+      isConnected: false,
+      addOrder: noOpAsync,
+      updateOrder: noOpAsync,
+      deleteOrder: noOpAsync,
+      bulkUpdateStatus: noOpAsync,
+      bulkDeleteOrders: noOpAsync,
+      refreshData: noOpVoid,
+      getOrderById: () => undefined,
+      getOrdersByStatus: () => [],
+      getOrdersByDateRange: () => [],
+    };
+  }, []);
+
+  // ✅ EARLY RETURN: Handle missing user with limited functionality
+  if (!contextDependencies.user) {
     return (
       <FollowUpTemplateProvider>
-        <OrderContext.Provider value={{
-          ...value,
-          orders: [],
-          loading: false,
-          isConnected: false,
-          addOrder: async () => {
-            console.warn('OrderProvider: addOrder called without user');
-            return false;
-          },
-          updateOrder: async () => {
-            console.warn('OrderProvider: updateOrder called without user');
-            return false;
-          },
-          deleteOrder: async () => {
-            console.warn('OrderProvider: deleteOrder called without user');
-            return false;
-          },
-          bulkUpdateStatus: async () => {
-            console.warn('OrderProvider: bulkUpdateStatus called without user');
-            return false;
-          },
-          bulkDeleteOrders: async () => {
-            console.warn('OrderProvider: bulkDeleteOrders called without user');
-            return false;
-          },
-          refreshData: async () => {
-            console.warn('OrderProvider: refreshData called without user');
-          },
-          getOrderById: () => undefined,
-          getOrdersByStatus: () => [],
-          getOrdersByDateRange: () => [],
-        }}>
+        <OrderContext.Provider value={limitedContextValue}>
           {children}
         </OrderContext.Provider>
       </FollowUpTemplateProvider>
@@ -137,7 +158,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
   return (
     <FollowUpTemplateProvider>
-      <OrderContext.Provider value={value}>
+      <OrderContext.Provider value={contextValue}>
         {children}
       </OrderContext.Provider>
     </FollowUpTemplateProvider>

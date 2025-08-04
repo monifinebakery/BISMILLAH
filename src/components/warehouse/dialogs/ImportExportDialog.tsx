@@ -1,66 +1,170 @@
+// src/components/warehouse/dialogs/ImportDialog.tsx
 // 🎯 Optimized Import Dialog - Lazy Load XLSX (~50KB instead of 600KB)
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface BahanBaku {
-  nama_bahan_baku: string;
+// ✅ Updated interface to match BahanBakuFrontend structure
+interface BahanBakuImport {
+  nama: string; // ✅ Changed from nama_bahan_baku
   kategori: string;
   supplier: string;
   satuan: string;
-  tanggal_kadaluarsa?: string;
-  stok_saat_ini: number;
-  minimum_stok: number;
-  jumlah_beli_kemasan: number;
-  satuan_kemasan: string;
-  harga_total_beli_kemasan: number;
+  expiry?: string; // ✅ Changed from tanggal_kadaluwarsa
+  stok: number; // ✅ Changed from stok_saat_ini
+  minimum: number; // ✅ Changed from minimum_stok
+  jumlahBeliKemasan: number; // ✅ Changed from jumlah_beli_kemasan
+  satuanKemasan: string; // ✅ Changed from satuan_kemasan
+  hargaTotalBeliKemasan: number; // ✅ Changed from harga_total_beli_kemasan
 }
 
 interface ImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (data: BahanBaku[]) => Promise<boolean>;
+  onImport: (data: BahanBakuImport[]) => Promise<boolean>;
 }
 
-const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
+/**
+ * Warehouse Import Dialog Component
+ * 
+ * ✅ Updated to match BahanBakuFrontend interface
+ * ✅ Enhanced with better field mapping
+ * ✅ Optimized XLSX lazy loading
+ * ✅ Improved validation and error handling
+ * 
+ * Features:
+ * - Lazy load XLSX library (only when needed)
+ * - Support CSV and Excel formats
+ * - Real-time validation and preview
+ * - Template download functionality
+ * - Progress indication and error reporting
+ * - Compatible with updated type system
+ * 
+ * Size: ~8KB + XLSX library (loaded on demand)
+ */
+const ImportDialog: React.FC<ImportDialogProps> = ({
   isOpen,
   onClose,
   onImport
 }) => {
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<{ valid: BahanBaku[]; errors: string[] } | null>(null);
+  const [preview, setPreview] = useState<{ valid: BahanBakuImport[]; errors: string[] } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Header mapping (sama seperti sebelumnya)
+  // ✅ Updated header mapping to match BahanBakuFrontend field names
   const headerMap: Record<string, string> = {
-    'nama_bahan_baku': 'nama_bahan_baku', 'nama bahan baku': 'nama_bahan_baku', 'nama': 'nama_bahan_baku',
-    'kategori': 'kategori', 'category': 'kategori',
-    'supplier': 'supplier', 'pemasok': 'supplier',
-    'satuan': 'satuan', 'unit': 'satuan',
-    'tanggal_kadaluarsa': 'tanggal_kadaluarsa', 'kadaluarsa': 'tanggal_kadaluarsa', 'expiry': 'tanggal_kadaluarsa',
-    'stok_saat_ini': 'stok_saat_ini', 'stok': 'stok_saat_ini', 'stock': 'stok_saat_ini',
-    'minimum_stok': 'minimum_stok', 'minimum': 'minimum_stok', 'min_stock': 'minimum_stok',
-    'jumlah_beli_kemasan': 'jumlah_beli_kemasan', 'qty_kemasan': 'jumlah_beli_kemasan',
-    'satuan_kemasan': 'satuan_kemasan', 'kemasan': 'satuan_kemasan',
-    'harga_total_beli_kemasan': 'harga_total_beli_kemasan', 'harga_total': 'harga_total_beli_kemasan'
+    // Name variations
+    'nama_bahan_baku': 'nama', 
+    'nama bahan baku': 'nama', 
+    'nama': 'nama',
+    'name': 'nama',
+    'item_name': 'nama',
+    
+    // Category variations
+    'kategori': 'kategori', 
+    'category': 'kategori',
+    'jenis': 'kategori',
+    
+    // Supplier variations
+    'supplier': 'supplier', 
+    'pemasok': 'supplier',
+    'vendor': 'supplier',
+    
+    // Unit variations
+    'satuan': 'satuan', 
+    'unit': 'satuan',
+    'uom': 'satuan',
+    
+    // Expiry variations
+    'tanggal_kadaluwarsa': 'expiry', 
+    'kadaluarsa': 'expiry', 
+    'expiry': 'expiry',
+    'expiry_date': 'expiry',
+    'exp_date': 'expiry',
+    
+    // Stock variations
+    'stok_saat_ini': 'stok', 
+    'stok': 'stok', 
+    'stock': 'stok',
+    'current_stock': 'stok',
+    'qty': 'stok',
+    'quantity': 'stok',
+    
+    // Minimum stock variations
+    'minimum_stok': 'minimum', 
+    'minimum': 'minimum', 
+    'min_stock': 'minimum',
+    'min': 'minimum',
+    'reorder_point': 'minimum',
+    
+    // Package quantity variations
+    'jumlah_beli_kemasan': 'jumlahBeliKemasan', 
+    'qty_kemasan': 'jumlahBeliKemasan',
+    'package_qty': 'jumlahBeliKemasan',
+    'kemasan_qty': 'jumlahBeliKemasan',
+    
+    // Package unit variations
+    'satuan_kemasan': 'satuanKemasan', 
+    'kemasan': 'satuanKemasan',
+    'package_unit': 'satuanKemasan',
+    'pack_unit': 'satuanKemasan',
+    
+    // Total price variations
+    'harga_total_beli_kemasan': 'hargaTotalBeliKemasan', 
+    'harga_total': 'hargaTotalBeliKemasan',
+    'total_price': 'hargaTotalBeliKemasan',
+    'package_price': 'hargaTotalBeliKemasan',
+    'total_cost': 'hargaTotalBeliKemasan'
   };
 
-  const requiredFields = ['nama_bahan_baku', 'kategori', 'supplier', 'satuan', 'stok_saat_ini', 'minimum_stok', 'jumlah_beli_kemasan', 'satuan_kemasan', 'harga_total_beli_kemasan'];
+  // ✅ Updated required fields
+  const requiredFields = [
+    'nama', 'kategori', 'supplier', 'satuan', 'stok', 'minimum', 
+    'jumlahBeliKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
+  ];
 
-  // Validate data (sama seperti sebelumnya)
+  // ✅ Enhanced validation function
   const validate = (data: any): string[] => {
     const errors: string[] = [];
-    if (!data.nama_bahan_baku?.trim()) errors.push('Nama bahan baku kosong');
+    
+    // Required field validation
+    if (!data.nama?.trim()) errors.push('Nama bahan baku kosong');
     if (!data.kategori?.trim()) errors.push('Kategori kosong');
     if (!data.supplier?.trim()) errors.push('Supplier kosong');
     if (!data.satuan?.trim()) errors.push('Satuan kosong');
-    if (!data.satuan_kemasan?.trim()) errors.push('Satuan kemasan kosong');
-    if (isNaN(data.stok_saat_ini) || data.stok_saat_ini < 0) errors.push('Stok tidak valid');
-    if (isNaN(data.minimum_stok) || data.minimum_stok < 0) errors.push('Minimum stok tidak valid');
-    if (isNaN(data.jumlah_beli_kemasan) || data.jumlah_beli_kemasan <= 0) errors.push('Jumlah kemasan tidak valid');
-    if (isNaN(data.harga_total_beli_kemasan) || data.harga_total_beli_kemasan <= 0) errors.push('Harga total tidak valid');
+    if (!data.satuanKemasan?.trim()) errors.push('Satuan kemasan kosong');
+    
+    // Numeric field validation
+    if (isNaN(data.stok) || data.stok < 0) {
+      errors.push('Stok tidak valid (harus angka ≥ 0)');
+    }
+    if (isNaN(data.minimum) || data.minimum < 0) {
+      errors.push('Minimum stok tidak valid (harus angka ≥ 0)');
+    }
+    if (isNaN(data.jumlahBeliKemasan) || data.jumlahBeliKemasan <= 0) {
+      errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
+    }
+    if (isNaN(data.hargaTotalBeliKemasan) || data.hargaTotalBeliKemasan <= 0) {
+      errors.push('Harga total tidak valid (harus angka > 0)');
+    }
+    
+    // Date validation (optional)
+    if (data.expiry && data.expiry.trim()) {
+      const expiryDate = new Date(data.expiry);
+      if (isNaN(expiryDate.getTime())) {
+        errors.push('Format tanggal kadaluarsa tidak valid');
+      } else if (expiryDate < new Date()) {
+        errors.push('Tanggal kadaluarsa sudah lewat');
+      }
+    }
+    
+    // Business logic validation
+    if (data.stok > 0 && data.minimum > 0 && data.stok < data.minimum) {
+      errors.push('Stok saat ini lebih rendah dari minimum (akan muncul alert)');
+    }
+    
     return errors;
   };
 
@@ -79,7 +183,12 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
   // ✅ OPTIMIZED: Process file with lazy XLSX loading
   const processFile = async (file: File) => {
     if (!file.name.match(/\.(csv|xlsx|xls)$/i)) {
-      toast.error('Format file tidak didukung');
+      toast.error('Format file tidak didukung. Gunakan .csv, .xlsx, atau .xls');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error('Ukuran file terlalu besar. Maksimal 10MB');
       return;
     }
 
@@ -92,12 +201,12 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
         // CSV processing (no XLSX needed)
         const text = await file.text();
         const lines = text.split('\n').filter(l => l.trim());
-        if (lines.length < 2) throw new Error('File kosong');
+        if (lines.length < 2) throw new Error('File kosong atau hanya berisi header');
         
         const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-        jsonData = lines.slice(1).map(line => {
+        jsonData = lines.slice(1).map((line, index) => {
           const values = line.split(',').map(v => v.replace(/"/g, '').trim());
-          const row: any = {};
+          const row: any = { _rowIndex: index + 2 };
           headers.forEach((h, i) => row[h] = values[i] || '');
           return row;
         });
@@ -109,55 +218,101 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
         const buffer = await file.arrayBuffer();
         const data = new Uint8Array(buffer);
         const wb = XLSX.read(data, { type: 'array' });
+        
+        if (!wb.SheetNames.length) {
+          throw new Error('File Excel tidak memiliki sheet');
+        }
+        
         const ws = wb.Sheets[wb.SheetNames[0]];
-        jsonData = XLSX.utils.sheet_to_json(ws);
+        jsonData = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        
+        // Add row index for error reporting
+        jsonData = jsonData.map((row, index) => ({ ...row, _rowIndex: index + 2 }));
       }
 
-      // Process data (sama seperti sebelumnya)
-      const mapped = jsonData.map((row, i) => {
-        const newRow: any = {};
+      if (jsonData.length === 0) {
+        throw new Error('Tidak ada data yang dapat diproses');
+      }
+
+      // ✅ Enhanced data mapping and processing
+      const mapped = jsonData.map((row) => {
+        const newRow: any = { _rowIndex: row._rowIndex };
+        
+        // Map headers to standard field names
         Object.keys(row).forEach(key => {
+          if (key === '_rowIndex') return;
+          
           const mappedKey = headerMap[key.toLowerCase().trim()];
           if (mappedKey) {
             let value = row[key];
-            if (['stok_saat_ini', 'minimum_stok', 'jumlah_beli_kemasan', 'harga_total_beli_kemasan'].includes(mappedKey)) {
-              value = parseFloat(String(value).replace(/[,\s]/g, '')) || 0;
+            
+            // Process numeric fields
+            if (['stok', 'minimum', 'jumlahBeliKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
+              // Clean and parse numbers
+              const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
+              value = parseFloat(cleanValue) || 0;
             }
+            
+            // Process date fields
+            if (mappedKey === 'expiry' && value) {
+              // Try to parse various date formats
+              const dateValue = new Date(value);
+              if (!isNaN(dateValue.getTime())) {
+                value = dateValue.toISOString().split('T')[0];
+              }
+            }
+            
+            // Clean string fields
+            if (typeof value === 'string') {
+              value = value.trim();
+            }
+            
             newRow[mappedKey] = value;
           }
         });
-        return { ...newRow, rowIndex: i + 2 };
+        
+        return newRow;
       });
 
-      // Validate
-      const valid: BahanBaku[] = [];
+      // ✅ Enhanced validation and error collection
+      const valid: BahanBakuImport[] = [];
       const errors: string[] = [];
 
-      mapped.forEach(row => {
-        const fieldErrors = validate(row);
-        if (fieldErrors.length === 0) {
-          const { rowIndex, ...cleanRow } = row;
-          valid.push(cleanRow);
-        } else {
-          errors.push(`Baris ${row.rowIndex}: ${fieldErrors.join(', ')}`);
-        }
-      });
-
-      // Check required columns
+      // Check for required columns
+      const sampleRow = mapped[0] || {};
       const missingCols = requiredFields.filter(field => 
-        !Object.values(headerMap).includes(field) || 
-        !Object.keys(jsonData[0] || {}).some(key => headerMap[key.toLowerCase().trim()] === field)
+        !(field in sampleRow) || sampleRow[field] === undefined
       );
       
       if (missingCols.length > 0) {
-        errors.unshift(`Kolom wajib tidak ditemukan: ${missingCols.join(', ')}`);
+        errors.push(`Kolom wajib tidak ditemukan: ${missingCols.join(', ')}`);
+        errors.push('Tip: Pastikan nama kolom sesuai dengan template atau gunakan variasi nama yang didukung');
       }
 
+      // Validate each row
+      mapped.forEach(row => {
+        const fieldErrors = validate(row);
+        if (fieldErrors.length === 0) {
+          const { _rowIndex, ...cleanRow } = row;
+          valid.push(cleanRow);
+        } else {
+          errors.push(`Baris ${row._rowIndex}: ${fieldErrors.join(', ')}`);
+        }
+      });
+
+      // Set preview results
       setPreview({ valid, errors });
+      
+      // Show summary toast
+      if (valid.length > 0) {
+        toast.success(`File berhasil diproses: ${valid.length} data valid, ${errors.length} error`);
+      } else {
+        toast.error('Tidak ada data valid yang dapat diimport');
+      }
       
     } catch (error: any) {
       console.error('Processing error:', error);
-      toast.error(`Error: ${error.message}`);
+      toast.error(`Error memproses file: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -171,38 +326,67 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
       
       const XLSX = await loadXLSX();
       
+      // ✅ Updated template with correct field names
       const template = [
         {
-          nama_bahan_baku: 'Tepung Terigu',
+          nama: 'Tepung Terigu Premium',
           kategori: 'Bahan Dasar',
-          supplier: 'PT Supplier A',
+          supplier: 'PT Supplier Terpercaya',
           satuan: 'gram',
-          tanggal_kadaluarsa: '2024-12-31',
-          stok_saat_ini: 5000,
-          minimum_stok: 1000,
-          jumlah_beli_kemasan: 2,
-          satuan_kemasan: 'kg',
-          harga_total_beli_kemasan: 150000
+          expiry: '2024-12-31',
+          stok: 5000,
+          minimum: 1000,
+          jumlahBeliKemasan: 2,
+          satuanKemasan: 'sak 25kg',
+          hargaTotalBeliKemasan: 150000
         },
         {
-          nama_bahan_baku: 'Gula Pasir',
+          nama: 'Gula Pasir Halus',
           kategori: 'Pemanis',
-          supplier: 'PT Supplier B',
+          supplier: 'CV Gula Manis',
           satuan: 'gram',
-          tanggal_kadaluarsa: '2024-11-30',
-          stok_saat_ini: 3000,
-          minimum_stok: 500,
-          jumlah_beli_kemasan: 1,
-          satuan_kemasan: 'kg',
-          harga_total_beli_kemasan: 18000
+          expiry: '2024-11-30',
+          stok: 3000,
+          minimum: 500,
+          jumlahBeliKemasan: 1,
+          satuanKemasan: 'karton 1kg',
+          hargaTotalBeliKemasan: 18000
+        },
+        {
+          nama: 'Minyak Goreng',
+          kategori: 'Minyak',
+          supplier: 'PT Minyak Sehat',
+          satuan: 'ml',
+          expiry: '2025-06-15',
+          stok: 2000,
+          minimum: 300,
+          jumlahBeliKemasan: 4,
+          satuanKemasan: 'botol 500ml',
+          hargaTotalBeliKemasan: 60000
         }
       ];
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(template);
-      ws['!cols'] = Array(10).fill({ wch: 18 });
-      XLSX.utils.book_append_sheet(wb, ws, 'Template');
-      XLSX.writeFile(wb, `template_bahan_baku_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 20 }, // nama
+        { wch: 15 }, // kategori
+        { wch: 20 }, // supplier
+        { wch: 10 }, // satuan
+        { wch: 12 }, // expiry
+        { wch: 8 },  // stok
+        { wch: 8 },  // minimum
+        { wch: 15 }, // jumlahBeliKemasan
+        { wch: 15 }, // satuanKemasan
+        { wch: 18 }  // hargaTotalBeliKemasan
+      ];
+      
+      XLSX.utils.book_append_sheet(wb, ws, 'Template Bahan Baku');
+      
+      const fileName = `template_bahan_baku_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
       
       toast.success('Template berhasil di-download');
     } catch (error) {
@@ -213,7 +397,7 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
     }
   };
 
-  // Execute import (sama seperti sebelumnya)
+  // Execute import
   const executeImport = async () => {
     if (!preview?.valid.length) return;
     
@@ -224,14 +408,15 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
         toast.success(`${preview.valid.length} bahan baku berhasil diimpor`);
         onClose();
       }
-    } catch (error) {
-      toast.error('Gagal mengimpor data');
+    } catch (error: any) {
+      console.error('Import error:', error);
+      toast.error(`Gagal mengimpor data: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Drag handlers (sama seperti sebelumnya)
+  // Drag handlers
   const handleDrag = (e: React.DragEvent, over: boolean) => {
     e.preventDefault();
     setDragOver(over);
@@ -291,7 +476,7 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                   </Button>
                   <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
                     <Download className="w-4 h-4 mr-2" />
-                    {loading ? 'Membuat...' : 'Template'}
+                    {loading ? 'Membuat...' : 'Download Template'}
                   </Button>
                 </div>
                 <input
@@ -303,23 +488,60 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                 />
               </div>
 
-              {/* ✅ ENHANCED: Info panel dengan loading indicator */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex gap-3">
-                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-blue-900">Format yang Didukung</h4>
-                    <div className="text-sm text-blue-700 mt-1 space-y-1">
-                      <div>• <strong>CSV:</strong> Langsung diproses, sangat cepat</div>
-                      <div>• <strong>Excel:</strong> Memerlukan loading library (~2-3 detik)</div>
-                      <div>• <strong>Ukuran maksimal:</strong> 10MB</div>
+              {/* ✅ ENHANCED: Improved info panel */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-blue-900">Format yang Didukung</h4>
+                      <div className="text-sm text-blue-700 mt-1 space-y-1">
+                        <div>• <strong>CSV:</strong> Langsung diproses, sangat cepat</div>
+                        <div>• <strong>Excel:</strong> .xlsx, .xls (butuh loading ~2-3 detik)</div>
+                        <div>• <strong>Ukuran maksimal:</strong> 10MB</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-yellow-900">Tips Penting</h4>
+                      <div className="text-sm text-yellow-700 mt-1 space-y-1">
+                        <div>• Gunakan template untuk hasil terbaik</div>
+                        <div>• Pastikan semua kolom wajib terisi</div>
+                        <div>• Format tanggal: YYYY-MM-DD</div>
+                        <div>• Angka jangan pakai titik/koma pemisah</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* ✅ Field mapping info */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Kolom yang Diperlukan</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                  <div><span className="font-medium">nama</span> - Nama bahan baku</div>
+                  <div><span className="font-medium">kategori</span> - Kategori produk</div>
+                  <div><span className="font-medium">supplier</span> - Nama supplier</div>
+                  <div><span className="font-medium">satuan</span> - Satuan dasar</div>
+                  <div><span className="font-medium">stok</span> - Stok saat ini</div>
+                  <div><span className="font-medium">minimum</span> - Stok minimum</div>
+                  <div><span className="font-medium">expiry</span> - Tanggal kadaluarsa (opsional)</div>
+                  <div><span className="font-medium">jumlahBeliKemasan</span> - Jumlah kemasan</div>
+                  <div><span className="font-medium">satuanKemasan</span> - Jenis kemasan</div>
+                  <div><span className="font-medium">hargaTotalBeliKemasan</span> - Harga total</div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Sistem mendukung berbagai variasi nama kolom (Indonesia/Inggris)
+                </p>
+              </div>
             </div>
           ) : (
-            /* Preview (sama seperti sebelumnya) */
+            /* Preview Results */
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Preview Import</h3>
@@ -328,8 +550,8 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                 </Button>
               </div>
 
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
@@ -356,17 +578,36 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                     <p className="text-2xl font-bold text-blue-900">{preview.valid.length + preview.errors.length}</p>
                   </div>
                 </div>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div>
+                    <p className="text-sm text-purple-600">Siap Import</p>
+                    <p className="text-2xl font-bold text-purple-900">
+                      {preview.valid.length > 0 ? '✓' : '✗'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Errors */}
               {preview.errors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h4 className="font-medium text-red-900 mb-2">Error ({preview.errors.length})</h4>
-                  <div className="max-h-32 overflow-y-auto text-sm text-red-700 space-y-1">
-                    {preview.errors.slice(0, 10).map((error, i) => (
-                      <div key={i}>• {error}</div>
+                  <h4 className="font-medium text-red-900 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Error ({preview.errors.length})
+                  </h4>
+                  <div className="max-h-40 overflow-y-auto text-sm text-red-700 space-y-1">
+                    {preview.errors.slice(0, 20).map((error, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-red-400 mt-1">•</span>
+                        <span>{error}</span>
+                      </div>
                     ))}
-                    {preview.errors.length > 10 && <div className="italic">... dan {preview.errors.length - 10} error lainnya</div>}
+                    {preview.errors.length > 20 && (
+                      <div className="italic text-red-600 pt-2 border-t border-red-200">
+                        ... dan {preview.errors.length - 20} error lainnya
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -374,7 +615,9 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
               {/* Preview Table */}
               {preview.valid.length > 0 && (
                 <div>
-                  <h4 className="font-medium mb-3">Data Valid (5 pertama)</h4>
+                  <h4 className="font-medium mb-3">
+                    Data Valid (menampilkan 5 pertama dari {preview.valid.length})
+                  </h4>
                   <div className="overflow-x-auto border rounded-lg">
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50">
@@ -383,22 +626,38 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kategori</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Supplier</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Stok</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {preview.valid.slice(0, 5).map((item, i) => (
-                          <tr key={i}>
-                            <td className="px-3 py-2 font-medium">{item.nama_bahan_baku}</td>
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium">{item.nama}</td>
                             <td className="px-3 py-2 text-gray-600">{item.kategori}</td>
                             <td className="px-3 py-2 text-gray-600">{item.supplier}</td>
-                            <td className="px-3 py-2 text-gray-600">{item.stok_saat_ini} {item.satuan}</td>
-                            <td className="px-3 py-2 text-gray-600">Rp {item.harga_total_beli_kemasan?.toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-gray-600">
+                              {item.stok} {item.satuan}
+                              {item.stok <= item.minimum && (
+                                <span className="ml-1 text-yellow-600 text-xs">⚠️</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600">
+                              {item.jumlahBeliKemasan} {item.satuanKemasan}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600">
+                              Rp {item.hargaTotalBeliKemasan?.toLocaleString('id-ID')}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  {preview.valid.length > 5 && (
+                    <p className="text-sm text-gray-500 mt-2 text-center">
+                      ... dan {preview.valid.length - 5} data lainnya
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -408,7 +667,16 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t bg-gray-50">
           <div className="text-sm text-gray-600">
-            {preview && `Siap import ${preview.valid.length} bahan baku`}
+            {preview && (
+              <span>
+                Siap import <strong>{preview.valid.length}</strong> bahan baku
+                {preview.errors.length > 0 && (
+                  <span className="text-red-600 ml-2">
+                    • {preview.errors.length} error perlu diperbaiki
+                  </span>
+                )}
+              </span>
+            )}
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} disabled={loading}>
@@ -420,7 +688,14 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
                 disabled={!preview.valid.length || loading}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {loading ? 'Mengimpor...' : `Import ${preview.valid.length} Data`}
+                {loading ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Mengimpor...
+                  </>
+                ) : (
+                  `Import ${preview.valid.length} Data`
+                )}
               </Button>
             )}
           </div>
@@ -430,4 +705,4 @@ const BahanBakuImportDialog: React.FC<ImportDialogProps> = ({
   );
 };
 
-export default BahanBakuImportDialog;
+export default ImportDialog;

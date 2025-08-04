@@ -1,5 +1,4 @@
-// 🎯 Main calculator component - Mobile Responsive
-
+// PromoCalculator.jsx - Simple refactor tanpa shared components
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -10,7 +9,7 @@ import { usePromoCalculation } from '../hooks/usePromoCalculation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
-const PromoCalculator = () => {
+const PromoCalculator = ({ onBack }) => {
   const isMobile = useIsMobile(768);
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
@@ -26,6 +25,13 @@ const PromoCalculator = () => {
     calculatePromo, 
     clearCalculation 
   } = usePromoCalculation();
+
+  // Common CSS classes
+  const buttonPrimary = "bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2";
+  const buttonSecondary = "flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors";
+  const loadingSpinner = "animate-spin rounded-full h-5 w-5 border-b-2 border-white";
+  const containerMobile = "min-h-screen bg-gray-50";
+  const containerDesktop = "py-6";
 
   // Reset form when type changes
   useEffect(() => {
@@ -66,7 +72,7 @@ const PromoCalculator = () => {
       const promoData = {
         namaPromo: formData.namaPromo,
         tipePromo: selectedType,
-        status: 'draft', // Default status
+        status: 'draft',
         dataPromo: formData,
         calculationResult: calculationResult,
         deskripsi: formData.deskripsi || '',
@@ -82,6 +88,11 @@ const PromoCalculator = () => {
         setFormData({});
         setShowPreview(false);
         clearCalculation();
+        
+        // Navigate back if callback provided
+        if (onBack) {
+          onBack();
+        }
       }
     } catch (error) {
       toast.error(`Gagal menyimpan promo: ${error.message}`);
@@ -94,6 +105,7 @@ const PromoCalculator = () => {
     setShowPreview(false);
   };
 
+  // Loading State
   if (recipesLoading) {
     return (
       <div className="p-4 sm:p-6 text-center">
@@ -103,7 +115,8 @@ const PromoCalculator = () => {
     );
   }
 
-  if (recipes.length === 0) {
+  // Empty Recipe State
+  if (!recipes || recipes.length === 0) {
     return (
       <div className="p-4 sm:p-6 text-center">
         <div className="bg-gray-50 rounded-lg p-8 sm:p-12 max-w-md mx-auto">
@@ -138,10 +151,10 @@ const PromoCalculator = () => {
     );
   }
 
-  // Mobile Layout with Navigation
+  // Mobile Layout
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className={containerMobile}>
         {/* Mobile Header */}
         <div className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
@@ -238,7 +251,7 @@ const PromoCalculator = () => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowPreview(!showPreview)}
-                className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className={buttonSecondary}
               >
                 <RefreshCw className="h-4 w-4" />
                 <span className="text-sm">
@@ -249,10 +262,19 @@ const PromoCalculator = () => {
               <button
                 onClick={handleSavePromo}
                 disabled={isSaving}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                className={`${buttonPrimary} disabled:opacity-50`}
               >
-                <Save className="h-4 w-4" />
-                <span className="text-sm">{isSaving ? 'Menyimpan...' : 'Simpan Promo'}</span>
+                {isSaving ? (
+                  <>
+                    <div className={loadingSpinner}></div>
+                    <span className="text-sm">Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span className="text-sm">Simpan Promo</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -263,7 +285,7 @@ const PromoCalculator = () => {
 
   // Desktop Layout
   return (
-    <div className="py-6">
+    <div className={containerDesktop}>
       {/* Desktop Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">

@@ -187,12 +187,13 @@ const isProcessing = (
 ) || false;
 
 console.log('📊 Promo Query State:', {
-  promos?.length || 0,
+  // Gunakan && atau akses langsung jika promos selalu array
+  promos: (promos && promos.length) || 0,
   isLoading,
-  error: error?.message,
+  // Gunakan && atau akses langsung jika error bisa undefined
+  error: error ? error.message : undefined,
   selectedItems: selectedItems.length,
 });
-
   // Handlers
   const handleSearch = (value) => {
     setSearchTerm(value);

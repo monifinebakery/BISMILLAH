@@ -1,4 +1,4 @@
-// src/pages/PromoList.jsx - Daftar Promo dengan useQuery
+// src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan Edit Modal
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,10 +16,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-// Components - Updated import paths
-// import PromoTable from '@/components/promoCalculator/promoList/components/PromoTable';
-// Temporary: Create simple table component inline until PromoTable path is fixed
+// Components
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
+import PromoEditModal from '@/components/promoCalculator/promoList/components/PromoEditModal'; // Import modal
 
 // ✅ Temporary PromoTable Component - Replace with correct import later
 const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {
@@ -69,7 +68,7 @@ const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => 
             <tr key={promo.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-gray-900">
-                  {promo.namaPromo}
+                  {promo.namaPromo || promo.nama_promo}
                 </div>
                 <div className="text-sm text-gray-500">
                   {promo.deskripsi || 'Tidak ada deskripsi'}
@@ -77,7 +76,7 @@ const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => 
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {promo.tipePromo}
+                  {promo.tipePromo || promo.tipe_promo || 'Umum'}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -90,7 +89,7 @@ const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => 
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Date(promo.createdAt).toLocaleDateString('id-ID')}
+                {new Date(promo.createdAt || promo.created_at).toLocaleDateString('id-ID')}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button
@@ -149,6 +148,12 @@ const PromoList = () => {
     sortOrder: 'desc'
   });
 
+  // ✅ Modal state
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    promo: null
+  });
+
   // Build query params
   const queryParams = {
     search: searchTerm,
@@ -172,6 +177,39 @@ const PromoList = () => {
       console.error('Failed to fetch promos:', error);
       toast.error('Gagal memuat data promo');
     }
+  });
+
+  // ✅ useMutation: Update Promo (for modal)
+  const updatePromoMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      console.log('📝 Updating promo:', id, data);
+      const updatedPromo = await promoService.update(id, data);
+      return updatedPromo;
+    },
+    onSuccess: (updatedPromo) => {
+      // Update cache optimistically
+      queryClient.setQueryData(
+        PROMO_QUERY_KEYS.list(queryParams),
+        (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.map(promo => 
+            promo.id === updatedPromo.id ? updatedPromo : promo
+          );
+        }
+      );
+
+      // Invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      
+      toast.success('Promo berhasil diperbarui');
+      
+      // Close modal
+      setEditModal({ isOpen: false, promo: null });
+    },
+    onError: (error) => {
+      console.error('Update promo error:', error);
+      toast.error(error.message || 'Gagal memperbarui promo');
+    },
   });
 
   // ✅ useMutation: Delete Promo
@@ -269,14 +307,16 @@ const PromoList = () => {
   // Check if any mutation is loading
   const isProcessing = deletePromoMutation.isPending || 
                       bulkDeleteMutation.isPending || 
-                      toggleStatusMutation.isPending;
+                      toggleStatusMutation.isPending ||
+                      updatePromoMutation.isPending;
 
   // ✅ Debug logging
   console.log('📊 Promo Query State:', {
     data: promos?.length || 0,
     isLoading,
     error: error?.message,
-    selectedItems: selectedItems.length
+    selectedItems: selectedItems.length,
+    editModal: editModal.isOpen
   });
 
   // Handlers
@@ -322,21 +362,32 @@ const PromoList = () => {
     await toggleStatusMutation.mutateAsync({ id, newStatus });
   };
 
+  // ✅ Modified: Open edit modal instead of navigating
   const handleEdit = (promo) => {
-    console.log('Edit promo:', promo.id);
+    console.log('✏️ Opening edit modal for promo:', promo.id);
     
-    // ✅ Use the correct route: /promo (not /promo/calculator)
-    const editUrl = `/promo?edit=${promo.id}`;
-    
-    console.log('🔗 Navigating to:', editUrl);
-    
-    // Show loading toast
-    toast.info('Membuka editor promo...', {
-      description: 'Mengarahkan ke kalkulator promo'
+    setEditModal({
+      isOpen: true,
+      promo: promo
     });
     
-    // Navigate to correct route
-    window.location.href = editUrl;
+    toast.info('Membuka editor promo...', {
+      description: 'Modal edit promo dibuka'
+    });
+  };
+
+  // ✅ Modal handlers
+  const handleCloseEditModal = () => {
+    setEditModal({ isOpen: false, promo: null });
+  };
+
+  const handleSaveEditModal = async (formData) => {
+    if (!editModal.promo) return;
+    
+    await updatePromoMutation.mutateAsync({
+      id: editModal.promo.id,
+      data: formData
+    });
   };
 
   const handlePaginationChange = (changes) => {
@@ -553,6 +604,14 @@ const PromoList = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* ✅ Edit Modal */}
+        <PromoEditModal
+          isOpen={editModal.isOpen}
+          promo={editModal.promo}
+          onClose={handleCloseEditModal}
+          onSave={handleSaveEditModal}
+        />
       </div>
     </div>
   );

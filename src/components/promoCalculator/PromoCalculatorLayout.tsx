@@ -350,6 +350,22 @@ const PromoCalculatorLayout = () => {
     </div>
   );
 
+  // List Header Component
+  const ListHeader = ({ onCreateNew }) => (
+    <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900">Daftar Promo</h1>
+        <button 
+          onClick={onCreateNew}
+          className={styles.buttonPrimary}
+        >
+          <Plus className="h-4 w-4" />
+          <span>Buat Promo</span>
+        </button>
+      </div>
+    </div>
+  );
+
   // Dashboard View
   if (currentView === 'dashboard') {
     return (

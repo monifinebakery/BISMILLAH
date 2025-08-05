@@ -1,9 +1,12 @@
-// src/components/warehouse/WarehousePage.tsx - Optimized Dependencies
+// ===== 2. UPDATE WarehousePage.tsx =====
+// src/components/warehouse/WarehousePage.tsx
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+// ✅ TAMBAH: Import useQuery
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// ✅ SINGLE IMPORT - Reduced from multiple imports
+// SINGLE IMPORT - Reduced from multiple imports
 import { 
   WarehouseHeader, 
   WarehouseTable, 
@@ -11,11 +14,139 @@ import {
   BulkActions 
 } from './components';
 
-// ✅ CONSOLIDATED HOOK IMPORTS
+// CONSOLIDATED HOOK IMPORTS
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 import { useWarehouseContext } from './context/WarehouseContext';
 
-// ✅ OPTIMIZED: Single lazy import with better error handling
+// ✅ TAMBAH: Import types
+import type { BahanBakuFrontend } from './types';
+
+// ✅ TAMBAH: Query keys
+const warehouseQueryKeys = {
+  all: ['warehouse'] as const,
+  list: () => [...warehouseQueryKeys.all, 'list'] as const,
+  categories: () => [...warehouseQueryKeys.all, 'categories'] as const,
+  suppliers: () => [...warehouseQueryKeys.all, 'suppliers'] as const,
+};
+
+// ✅ TAMBAH: Import existing warehouse service
+import { warehouseApi } from './services/warehouseApi';
+import { supabase } from '@/integrations/supabase/client';
+
+// ✅ TAMBAH: API functions menggunakan existing service
+let crudService: any = null;
+
+const getCrudService = async () => {
+  if (!crudService) {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    crudService = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      onError: (error: string) => {
+        logger.error('Warehouse API Error:', error);
+      },
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+  }
+  return crudService;
+};
+
+const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
+  try {
+    const service = await getCrudService();
+    const items = await service.fetchBahanBaku();
+    
+    // Ensure numeric fields are properly typed
+    return items.map((item: BahanBakuFrontend) => ({
+      ...item,
+      stok: Number(item.stok) || 0,
+      minimum: Number(item.minimum) || 0,
+      harga: Number(item.harga) || 0,
+      jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
+      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
+    }));
+  } catch (error) {
+    logger.error('Failed to fetch warehouse items:', error);
+    throw new Error(`Failed to fetch warehouse items: ${error}`);
+  }
+};
+
+const createWarehouseItem = async (item: Partial<BahanBakuFrontend>): Promise<BahanBakuFrontend> => {
+  try {
+    const service = await getCrudService();
+    
+    // Remove fields that shouldn't be in create
+    const { id, createdAt, updatedAt, userId, ...createData } = item;
+    
+    const success = await service.addBahanBaku(createData);
+    if (!success) {
+      throw new Error('Failed to create item');
+    }
+    
+    // Return the created item (you might want to fetch it back for the real data)
+    return { 
+      ...item,
+      id: crypto.randomUUID(), // Temporary ID, real one comes from DB
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as BahanBakuFrontend;
+  } catch (error) {
+    logger.error('Failed to create warehouse item:', error);
+    throw new Error(`Failed to create item: ${error}`);
+  }
+};
+
+const updateWarehouseItem = async ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }): Promise<BahanBakuFrontend> => {
+  try {
+    const service = await getCrudService();
+    
+    const success = await service.updateBahanBaku(id, item);
+    if (!success) {
+      throw new Error('Failed to update item');
+    }
+    
+    // Return updated item (you might want to fetch it back for the real data)
+    return { 
+      ...item,
+      id,
+      updatedAt: new Date().toISOString(),
+    } as BahanBakuFrontend;
+  } catch (error) {
+    logger.error('Failed to update warehouse item:', error);
+    throw new Error(`Failed to update item: ${error}`);
+  }
+};
+
+const deleteWarehouseItem = async (id: string): Promise<void> => {
+  try {
+    const service = await getCrudService();
+    
+    const success = await service.deleteBahanBaku(id);
+    if (!success) {
+      throw new Error('Failed to delete item');
+    }
+  } catch (error) {
+    logger.error('Failed to delete warehouse item:', error);
+    throw new Error(`Failed to delete item: ${error}`);
+  }
+};
+
+const bulkDeleteWarehouseItems = async (ids: string[]): Promise<void> => {
+  try {
+    const service = await getCrudService();
+    
+    const success = await service.bulkDeleteBahanBaku(ids);
+    if (!success) {
+      throw new Error('Failed to bulk delete items');
+    }
+  } catch (error) {
+    logger.error('Failed to bulk delete warehouse items:', error);
+    throw new Error(`Failed to bulk delete items: ${error}`);
+  }
+};
+
+// OPTIMIZED: Single lazy import with better error handling
 const DialogManager = lazy(() => 
   import('./components/DialogManager').then(module => ({
     default: module.default
@@ -42,7 +173,6 @@ const DialogManager = lazy(() =>
               </button>
               <button
                 onClick={() => {
-                  // Close all dialogs fallback
                   if (dialogs?.close && dialogs.states) {
                     Object.keys(dialogs.states).forEach(key => dialogs.close(key));
                   }
@@ -59,7 +189,7 @@ const DialogManager = lazy(() =>
   })
 );
 
-// ✅ OPTIMIZED: Lightweight loading components
+// OPTIMIZED: Lightweight loading components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center py-8">
     <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full"></div>
@@ -97,23 +227,107 @@ const DialogSkeleton = () => (
   </div>
 );
 
+// ✅ TAMBAH: Custom hook untuk warehouse dengan useQuery
+const useWarehouseData = () => {
+  const queryClient = useQueryClient();
+  
+  // Query untuk data warehouse
+  const {
+    data: bahanBaku = [],
+    isLoading: loading,
+    error,
+    refetch,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: warehouseQueryKeys.list(),
+    queryFn: fetchWarehouseItems,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createWarehouseItem,
+    onSuccess: (newItem) => {
+      queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
+    },
+    onError: (error: Error) => {
+      logger.error('❌ Gagal menambah item:', error.message);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateWarehouseItem,
+    onSuccess: (updatedItem) => {
+      queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      logger.info(`✅ Item "${updatedItem.nama}" berhasil diperbarui`);
+    },
+    onError: (error: Error) => {
+      logger.error('❌ Gagal memperbarui item:', error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteWarehouseItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      logger.info('✅ Item berhasil dihapus');
+    },
+    onError: (error: Error) => {
+      logger.error('❌ Gagal menghapus item:', error.message);
+    },
+  });
+
+  return {
+    // Data
+    bahanBaku,
+    loading,
+    error: error as Error | null,
+    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
+    
+    // Actions
+    refetch,
+    createItem: createMutation.mutateAsync,
+    updateItem: updateMutation.mutateAsync,
+    deleteItem: deleteMutation.mutateAsync,
+    
+    // Loading states
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+  };
+};
+
 /**
- * ✅ OPTIMIZED: Warehouse Page Component
- * 
- * Dependencies reduced from 4 to 3:
- * - Consolidated imports
- * - Removed redundant imports
- * - Optimized lazy loading
+ * OPTIMIZED: Warehouse Page Component
+ * ✅ ENHANCED: Added useQuery integration
  */
 const WarehousePageContent: React.FC = () => {
   const pageId = useRef(`warehouse-${Date.now()}`);
   const isMountedRef = useRef(true);
   
-  // ✅ OPTIMIZED: Single context call
-  const context = useWarehouseContext();
+  // ✅ TAMBAH: Use warehouse data hook
+  const warehouseData = useWarehouseData();
+  
+  // ✅ UPDATE: Create context-like object untuk backward compatibility
+  const context = {
+    bahanBaku: warehouseData.bahanBaku,
+    loading: warehouseData.loading,
+    error: warehouseData.error,
+    isConnected: navigator.onLine, // Simplified
+    refetch: warehouseData.refetch,
+  };
+  
   const core = useWarehouseCore(context);
 
-  // ✅ OPTIMIZED: Simplified effect
+  // OPTIMIZED: Simplified effect
   useEffect(() => {
     logger.debug(`[${pageId.current}] 🏠 WarehousePage mounted`);
     return () => {
@@ -122,7 +336,40 @@ const WarehousePageContent: React.FC = () => {
     };
   }, []);
 
-  // ✅ Early return for missing context
+  // ✅ UPDATE: Enhanced handlers dengan mutations
+  const enhancedHandlers = {
+    ...core.handlers,
+    
+    create: async (item: Partial<BahanBakuFrontend>) => {
+      try {
+        await warehouseData.createItem(item);
+        core.dialogs?.close?.('addItem');
+      } catch (error) {
+        logger.error('Create handler error:', error);
+      }
+    },
+    
+    update: async (id: string, item: Partial<BahanBakuFrontend>) => {
+      try {
+        await warehouseData.updateItem({ id, item });
+        core.dialogs?.close?.('addItem');
+      } catch (error) {
+        logger.error('Update handler error:', error);
+      }
+    },
+    
+    delete: async (id: string, nama: string) => {
+      try {
+        if (confirm(`Hapus "${nama}"?`)) {
+          await warehouseData.deleteItem(id);
+        }
+      } catch (error) {
+        logger.error('Delete handler error:', error);
+      }
+    },
+  };
+
+  // Early return for missing context
   if (!context) {
     return (
       <div className="container mx-auto p-4 sm:p-8">
@@ -143,13 +390,13 @@ const WarehousePageContent: React.FC = () => {
     );
   }
 
-  // ✅ OPTIMIZED: Simplified dialog detection
+  // OPTIMIZED: Simplified dialog detection
   const hasDialogsOpen = Object.values(core.dialogs?.states || {}).some(Boolean) || !!core.dialogs?.editingItem;
 
   return (
     <div className="container mx-auto p-4 sm:p-8" aria-live="polite">
       
-      {/* ✅ Header Section */}
+      {/* Header Section */}
       <WarehouseHeader
         itemCount={context.bahanBaku?.length || 0}
         selectedCount={core.selection?.selectedCount || 0}
@@ -157,18 +404,18 @@ const WarehousePageContent: React.FC = () => {
         onOpenDialog={core.dialogs?.open}
       />
 
-      {/* ✅ Bulk Actions */}
+      {/* Bulk Actions */}
       {(core.selection?.selectedCount || 0) > 0 && (
         <BulkActions
           selectedCount={core.selection.selectedCount}
           onBulkEdit={() => core.dialogs?.open?.('bulkEdit')}
           onBulkDelete={() => core.dialogs?.open?.('bulkDelete')}
           onClearSelection={core.selection?.clear}
-          isProcessing={core.bulk?.isProcessing || false}
+          isProcessing={warehouseData.isProcessing || false}
         />
       )}
 
-      {/* ✅ Main Content */}
+      {/* Main Content */}
       {context.loading ? (
         <TableSkeleton />
       ) : (
@@ -197,7 +444,7 @@ const WarehousePageContent: React.FC = () => {
             sortConfig={core.filters?.sortConfig}
             onSort={core.handlers?.sort}
             onEdit={core.handlers?.edit}
-            onDelete={core.handlers?.delete}
+            onDelete={enhancedHandlers.delete}
             selectedItems={core.selection?.selectedItems || new Set()}
             onToggleSelection={core.selection?.toggle}
             onSelectAllCurrent={core.selection?.selectPage}
@@ -205,9 +452,11 @@ const WarehousePageContent: React.FC = () => {
             allCurrentSelected={core.selection?.isPageSelected || false}
             someCurrentSelected={core.selection?.isPagePartiallySelected || false}
             emptyStateAction={() => core.dialogs?.open?.('addItem')}
+            onRefresh={warehouseData.refetch}
+            lastUpdated={warehouseData.lastUpdated}
           />
 
-          {/* ✅ Pagination */}
+          {/* Pagination */}
           {(core.filters?.filteredItems?.length || 0) > 0 && (
             <div className="p-4 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -239,13 +488,13 @@ const WarehousePageContent: React.FC = () => {
         </div>
       )}
 
-      {/* ✅ OPTIMIZED: Dialog System - Only when needed */}
+      {/* OPTIMIZED: Dialog System - Only when needed */}
       {hasDialogsOpen && isMountedRef.current && (
         <ErrorBoundary>
           <Suspense fallback={<DialogSkeleton />}>
             <DialogManager
               dialogs={core.dialogs}
-              handlers={core.handlers}
+              handlers={enhancedHandlers}
               context={context}
               selection={core.selection}
               filters={core.filters}
@@ -260,7 +509,7 @@ const WarehousePageContent: React.FC = () => {
   );
 };
 
-// ✅ Main export with error boundary
+// Main export with error boundary
 const WarehousePage: React.FC = () => (
   <ErrorBoundary>
     <WarehousePageContent />

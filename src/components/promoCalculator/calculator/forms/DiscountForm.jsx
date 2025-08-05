@@ -1,16 +1,15 @@
-className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"// 🎯 Form untuk Diskon - Fixed Recipe Properties
-
+// 🎯 DiscountForm - Fixed className Issues
 import React, { useState } from 'react';
 import { Percent, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
+const DiscountForm = ({ onSubmit, isLoading, recipes = [] }) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     resep: '',
-    tipeDiskon: 'persentase', // 'persentase' atau 'nominal'
+    tipeDiskon: 'persentase',
     nilaiDiskon: '',
-    maksimalDiskon: '', // Untuk diskon persentase
+    maksimalDiskon: '',
     minimalPembelian: '',
     tanggalMulai: '',
     tanggalSelesai: '',
@@ -21,15 +20,15 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResep, setShowResep] = useState(false);
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.namaResep?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe array filtering
+  const filteredRecipes = Array.isArray(recipes) ? recipes.filter(recipe =>
+    recipe?.namaResep?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipe?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.namaPromo.trim()) {
       toast.error('Nama promo wajib diisi');
       return;
@@ -54,7 +53,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const getRecipeById = (id) => recipes.find(r => r.id === id);
+  const getRecipeById = (id) => Array.isArray(recipes) ? recipes.find(r => r?.id === id) : null;
   const selectedRecipe = getRecipeById(formData.resep);
 
   const formatCurrency = (value) => {
@@ -65,11 +64,9 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
     }).format(value || 0);
   };
 
-  // Helper function to get the correct property value
   const getRecipeProperty = (recipe, property) => {
-    if (!recipe) return 0;
+    if (!recipe) return property === 'name' ? 'Unknown Recipe' : 0;
     
-    // Try different possible property names
     const possibleNames = {
       hpp: ['hpp', 'hppPerPorsi', 'cost_per_portion'],
       harga: ['harga_jual', 'hargaJualPorsi', 'hargaJual', 'price', 'selling_price'],
@@ -87,10 +84,16 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
     return property === 'name' ? 'Unknown Recipe' : 0;
   };
 
+  // Fixed className variables for consistency
+  const inputClassName = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const inputWithIconClassName = "w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const selectClassName = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const labelClassName = "block text-sm font-medium text-gray-700 mb-2";
+
   const RecipeSelector = () => {
     return (
       <div className="relative">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className={labelClassName}>
           Pilih Resep *
         </label>
         
@@ -114,14 +117,11 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
               <span className="text-gray-500">Pilih resep untuk promo</span>
             )}
           </div>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${
-            showResep ? 'rotate-180' : ''
-          }`} />
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showResep ? 'rotate-180' : ''}`} />
         </button>
 
         {showResep && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-            {/* Search */}
             <div className="p-3 border-b border-gray-200">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -135,7 +135,6 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
               </div>
             </div>
 
-            {/* Recipe List */}
             <div className="max-h-48 overflow-y-auto">
               {filteredRecipes.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 text-sm">
@@ -174,7 +173,6 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
           </div>
         )}
 
-        {/* Clear button */}
         {formData.resep && (
           <button
             type="button"
@@ -190,10 +188,9 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Nama Promo *
           </label>
           <input
@@ -201,19 +198,19 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
             value={formData.namaPromo}
             onChange={(e) => handleInputChange('namaPromo', e.target.value)}
             placeholder="Misal: Diskon 20% Bakso Special"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputClassName}
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Tipe Diskon
           </label>
           <select
             value={formData.tipeDiskon}
             onChange={(e) => handleInputChange('tipeDiskon', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={selectClassName}
           >
             <option value="persentase">Persentase (%)</option>
             <option value="nominal">Nominal (Rp)</option>
@@ -221,13 +218,11 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       </div>
 
-      {/* Recipe Selection */}
       <RecipeSelector />
 
-      {/* Discount Configuration */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Nilai Diskon *
           </label>
           <div className="relative">
@@ -239,7 +234,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
               value={formData.nilaiDiskon}
               onChange={(e) => handleInputChange('nilaiDiskon', parseFloat(e.target.value) || '')}
               placeholder={formData.tipeDiskon === 'persentase' ? '20' : '5000'}
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className={inputWithIconClassName}
               required
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
@@ -250,7 +245,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
 
         {formData.tipeDiskon === 'persentase' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={labelClassName}>
               Maksimal Diskon (Opsional)
             </label>
             <div className="relative">
@@ -261,7 +256,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
                 value={formData.maksimalDiskon}
                 onChange={(e) => handleInputChange('maksimalDiskon', parseFloat(e.target.value) || '')}
                 placeholder="50000"
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className={inputWithIconClassName}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
                 Rp
@@ -271,7 +266,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Minimal Pembelian (Opsional)
           </label>
           <div className="relative">
@@ -282,7 +277,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
               value={formData.minimalPembelian}
               onChange={(e) => handleInputChange('minimalPembelian', parseFloat(e.target.value) || '')}
               placeholder="25000"
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className={inputWithIconClassName}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
               Rp
@@ -291,7 +286,6 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       </div>
 
-      {/* Preview Calculation */}
       {selectedRecipe && formData.nilaiDiskon > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h5 className="font-medium text-blue-900 mb-2">Preview Perhitungan</h5>
@@ -325,36 +319,34 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
         </div>
       )}
 
-      {/* Date Range */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Tanggal Mulai
           </label>
           <input
             type="date"
             value={formData.tanggalMulai}
             onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputClassName}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={labelClassName}>
             Tanggal Selesai
           </label>
           <input
             type="date"
             value={formData.tanggalSelesai}
             onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputClassName}
           />
         </div>
       </div>
 
-      {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className={labelClassName}>
           Deskripsi Promo
         </label>
         <textarea
@@ -362,19 +354,18 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
           onChange={(e) => handleInputChange('deskripsi', e.target.value)}
           placeholder="Deskripsi detail promo diskon..."
           rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className={inputClassName}
         />
       </div>
 
-      {/* Status */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className={labelClassName}>
           Status
         </label>
         <select
           value={formData.status}
           onChange={(e) => handleInputChange('status', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className={selectClassName}
         >
           <option value="aktif">Aktif</option>
           <option value="nonaktif">Non-aktif</option>
@@ -382,7 +373,6 @@ const DiscountForm = ({ onSubmit, isLoading, recipes }) => {
         </select>
       </div>
 
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={isLoading}

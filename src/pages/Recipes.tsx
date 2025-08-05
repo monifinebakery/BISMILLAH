@@ -1,13 +1,15 @@
-// src/pages/Recipes.tsx
-// FINAL VERSION: Proper CategoryManagerDialog integration
+// src/pages/Recipes.tsx - Fixed API Response Format
 
 import React, { useState, Suspense } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-// Context and hooks
-import { useRecipe } from '@/contexts/RecipeContext';
+// API and services
+import { recipeApi } from '@/components/recipe/services/recipeApi';
+
+// Hooks
 import { useRecipeFiltering } from '@/components/recipe/hooks/useRecipeFiltering';
 import { useRecipeStats } from '@/components/recipe/hooks/useRecipeStats';
 
@@ -21,13 +23,20 @@ import { LoadingState } from '@/components/recipe/components/shared/LoadingState
 // Types
 import type { Recipe, NewRecipe } from '@/components/recipe/types';
 
+// ✅ Simplified Query Keys
+export const RECIPE_QUERY_KEYS = {
+  all: ['recipes'] as const,
+  lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
+  categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
+} as const;
+
 // Lazy loaded dialogs and forms
 const RecipeForm = React.lazy(() => import('@/components/recipe/components/RecipeForm'));
 const DeleteRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DeleteRecipeDialog'));
 const DuplicateRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DuplicateRecipeDialog'));
 const CategoryManagerDialog = React.lazy(() => import('@/components/recipe/dialogs/CategoryManagerDialog'));
 
-// Custom Error Boundary component (same as before)
+// Custom Error Boundary component
 class RecipeErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ComponentType<{ error: Error; resetError: () => void }> },
   { hasError: boolean; error: Error | null }
@@ -128,20 +137,8 @@ const RecipeLoadingFallback: React.FC = () => (
 
 // Main Recipes component
 const Recipes: React.FC = () => {
-  // Context
-  const {
-    recipes,
-    isLoading,
-    error,
-    addRecipe,
-    updateRecipe,
-    deleteRecipe,
-    duplicateRecipe,
-    getUniqueCategories,
-    clearError,
-    refreshRecipes,
-  } = useRecipe();
-
+  const queryClient = useQueryClient();
+  
   // Local state for dialogs
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
@@ -149,21 +146,145 @@ const Recipes: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  // ✅ FIXED: useQuery for Recipes - Direct API response
+  const recipesQuery = useQuery({
+    queryKey: ['recipes'],
+    queryFn: async () => {
+      console.log('🔍 Fetching recipes...');
+      const recipes = await recipeApi.getRecipes(); // ✅ Direct return
+      console.log('✅ Got recipes:', recipes?.length || 0);
+      return recipes || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  // ✅ FIXED: useQuery for Categories - Direct API response
+  const categoriesQuery = useQuery({
+    queryKey: ['recipes', 'categories'],
+    queryFn: async () => {
+      console.log('🔍 Fetching categories...');
+      const categories = await recipeApi.getUniqueCategories(); // ✅ Direct return
+      console.log('✅ Got categories:', categories?.length || 0);
+      return categories || [];
+    },
+    enabled: recipesQuery.isSuccess, // Only run after recipes are loaded
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // ✅ FIXED: useMutation for Delete Recipe - Direct API call
+  const deleteRecipeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('🗑️ Deleting recipe:', id);
+      await recipeApi.deleteRecipe(id); // ✅ Direct call, throws on error
+      return id;
+    },
+    onSuccess: (deletedId) => {
+      // Remove from cache optimistically
+      queryClient.setQueryData(
+        ['recipes'],
+        (oldData: Recipe[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.filter(recipe => recipe.id !== deletedId);
+        }
+      );
+
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      
+      const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === deletedId);
+      if (deletedRecipe) {
+        toast.success(`Resep "${deletedRecipe.namaResep}" berhasil dihapus`);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal menghapus resep');
+      console.error('Error deleting recipe:', error);
+    },
+  });
+
+  // ✅ FIXED: useMutation for Duplicate Recipe - Direct API call
+  const duplicateRecipeMutation = useMutation({
+    mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
+      console.log('📋 Duplicating recipe:', id, 'with name:', newName);
+      const newRecipe = await recipeApi.duplicateRecipe(id, newName); // ✅ Direct return
+      return newRecipe;
+    },
+    onSuccess: (newRecipe) => {
+      // Add to cache optimistically
+      queryClient.setQueryData(
+        ['recipes'],
+        (oldData: Recipe[] | undefined) => {
+          if (!oldData) return [newRecipe];
+          return [newRecipe, ...oldData];
+        }
+      );
+
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      
+      toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal menduplikasi resep');
+      console.error('Error duplicating recipe:', error);
+    },
+  });
+
+  // ✅ FIXED: useMutation for Bulk Update Recipes - Direct API calls
+  const bulkUpdateRecipesMutation = useMutation({
+    mutationFn: async (updates: { id: string; data: Partial<NewRecipe> }[]) => {
+      console.log('📦 Bulk updating recipes:', updates.length);
+      const updatedRecipes = await Promise.all(
+        updates.map(({ id, data }) => recipeApi.updateRecipe(id, data)) // ✅ Direct calls
+      );
+      return updatedRecipes;
+    },
+    onSuccess: (updatedRecipes) => {
+      // Update cache optimistically
+      queryClient.setQueryData(
+        ['recipes'],
+        (oldData: Recipe[] | undefined) => {
+          if (!oldData) return updatedRecipes;
+          
+          const updatedMap = new Map(updatedRecipes.map(recipe => [recipe.id, recipe]));
+          return oldData.map(recipe => updatedMap.get(recipe.id) || recipe);
+        }
+      );
+
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal mengupdate kategori resep');
+      console.error('Error bulk updating recipes:', error);
+    },
+  });
+
+  // Get data from queries
+  const recipes = recipesQuery.data || [];
+  const availableCategories = categoriesQuery.data || [];
+  const isLoading = recipesQuery.isLoading;
+  const error = recipesQuery.error?.message || categoriesQuery.error?.message;
 
   // Hooks for filtering and stats
   const filtering = useRecipeFiltering({ recipes });
   const stats = useRecipeStats({ recipes: filtering.filteredAndSortedRecipes });
 
-  // Get available categories
-  const availableCategories = getUniqueCategories();
+  // Check if any mutation is loading
+  const isProcessing = deleteRecipeMutation.isPending || 
+                      duplicateRecipeMutation.isPending || 
+                      bulkUpdateRecipesMutation.isPending;
 
-  // Error handling
-  React.useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
+  // ✅ Debug logging
+  console.log('📊 Recipes Query State:', {
+    data: recipes?.length || 0,
+    isLoading,
+    error,
+    categories: availableCategories?.length || 0
+  });
 
   // Handlers
   const handleAddRecipe = () => {
@@ -186,74 +307,49 @@ const Recipes: React.FC = () => {
     setIsDuplicateDialogOpen(true);
   };
 
-  const handleSaveRecipe = async (recipeData: NewRecipe): Promise<void> => {
-    setIsProcessing(true);
-    try {
-      const success = editingRecipe
-        ? await updateRecipe(editingRecipe.id, recipeData)
-        : await addRecipe(recipeData);
-
-      if (success) {
-        setIsFormOpen(false);
-        setEditingRecipe(null);
-        toast.success(
-          editingRecipe 
-            ? 'Resep berhasil diperbarui!' 
-            : 'Resep baru berhasil ditambahkan!'
-        );
-      }
-    } catch (error) {
-      toast.error('Gagal menyimpan resep');
-      console.error('Error saving recipe:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleConfirmDelete = async (): Promise<void> => {
     if (!selectedRecipe) return;
     
-    setIsProcessing(true);
     try {
-      const success = await deleteRecipe(selectedRecipe.id);
-      if (success) {
-        setIsDeleteDialogOpen(false);
-        setSelectedRecipe(null);
-        toast.success(`Resep "${selectedRecipe.namaResep}" berhasil dihapus`);
-      }
+      await deleteRecipeMutation.mutateAsync(selectedRecipe.id);
+      setIsDeleteDialogOpen(false);
+      setSelectedRecipe(null);
     } catch (error) {
-      toast.error('Gagal menghapus resep');
-      console.error('Error deleting recipe:', error);
-    } finally {
-      setIsProcessing(false);
+      // Error handling is done in mutation callbacks
     }
   };
 
   const handleConfirmDuplicate = async (newName: string): Promise<boolean> => {
     if (!selectedRecipe) return false;
     
-    setIsProcessing(true);
     try {
-      const success = await duplicateRecipe(selectedRecipe.id, newName);
-      if (success) {
-        setIsDuplicateDialogOpen(false);
-        setSelectedRecipe(null);
-        toast.success(`Resep "${newName}" berhasil diduplikasi`);
-        return true;
-      }
-      return false;
+      await duplicateRecipeMutation.mutateAsync({
+        id: selectedRecipe.id,
+        newName
+      });
+      setIsDuplicateDialogOpen(false);
+      setSelectedRecipe(null);
+      return true;
     } catch (error) {
-      toast.error('Gagal menduplikasi resep');
-      console.error('Error duplicating recipe:', error);
+      // Error handling is done in mutation callbacks
       return false;
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const handleRefresh = () => {
-    clearError();
-    window.location.reload();
+    console.log('🔄 Refreshing all recipe data...');
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+  };
+
+  const handleFormSuccess = (recipe: Recipe, isEdit: boolean) => {
+    // Form handles its own cache updates, we just need to close dialogs
+    setIsFormOpen(false);
+    setEditingRecipe(null);
+    
+    // Optionally refresh categories if new recipe added
+    if (!isEdit) {
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+    }
   };
 
   // Show loading state while initial data is being fetched
@@ -261,7 +357,7 @@ const Recipes: React.FC = () => {
     return <RecipeLoadingFallback />;
   }
 
-  // Show error state if there's a context-level error
+  // Show error state if there's a query-level error
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
@@ -290,11 +386,11 @@ const Recipes: React.FC = () => {
               </Button>
               
               <Button
-                onClick={clearError}
+                onClick={() => window.location.reload()}
                 variant="outline"
                 className="w-full"
               >
-                Dismiss Error
+                Refresh Halaman
               </Button>
             </div>
           </CardContent>
@@ -402,8 +498,7 @@ const Recipes: React.FC = () => {
                 isOpen={isFormOpen}
                 onOpenChange={setIsFormOpen}
                 initialData={editingRecipe}
-                onSave={handleSaveRecipe}
-                isLoading={isProcessing}
+                onSuccess={handleFormSuccess}
               />
             )}
 
@@ -414,7 +509,7 @@ const Recipes: React.FC = () => {
                 onOpenChange={setIsDeleteDialogOpen}
                 recipe={selectedRecipe}
                 onConfirm={handleConfirmDelete}
-                isLoading={isProcessing}
+                isLoading={deleteRecipeMutation.isPending}
               />
             )}
 
@@ -425,18 +520,21 @@ const Recipes: React.FC = () => {
                 onOpenChange={setIsDuplicateDialogOpen}
                 recipe={selectedRecipe}
                 onConfirm={handleConfirmDuplicate}
-                isLoading={isProcessing}
+                isLoading={duplicateRecipeMutation.isPending}
               />
             )}
 
-            {/* ✅ FIXED: Category Manager Dialog with direct RecipeContext integration */}
+            {/* Category Manager Dialog */}
             {isCategoryDialogOpen && (
               <CategoryManagerDialog
                 isOpen={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
                 recipes={recipes}
-                updateRecipe={updateRecipe}
-                refreshRecipes={refreshRecipes}
+                updateRecipe={async (id: string, data: Partial<NewRecipe>) => {
+                  await bulkUpdateRecipesMutation.mutateAsync([{ id, data }]);
+                  return true;
+                }}
+                refreshRecipes={handleRefresh}
               />
             )}
           </Suspense>

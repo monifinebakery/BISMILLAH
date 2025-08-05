@@ -1,4 +1,4 @@
-// PromoCalculator.jsx - Updated with useQuery for recipes data
+// PromoCalculator.jsx - Updated with recipeApi (no recipeService)
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,9 +10,16 @@ import PromoTypeSelector from './PromoTypeSelector';
 import PromoPreview from './PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';
 
-// Import services
-import { recipeService } from '../services/recipeService';
+// ✅ Import recipeApi instead of recipeService
+import { recipeApi } from '@/components/recipe/services/recipeApi';
 import { promoService } from '../services/promoService';
+
+// ✅ Use the same query keys from recipe system
+export const RECIPE_QUERY_KEYS = {
+  all: ['recipes'] as const,
+  lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
+  list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters] as const,
+};
 
 const PromoCalculator = ({ onBack }) => {
   const isMobile = useIsMobile(768);
@@ -22,15 +29,15 @@ const PromoCalculator = ({ onBack }) => {
   const [formData, setFormData] = useState({});
   const [showPreview, setShowPreview] = useState(false);
   
-  // ✅ useQuery for recipes data
+  // ✅ useQuery with recipeApi instead of recipeService
   const { 
     data: recipes = [], 
     isLoading: recipesLoading,
     error: recipesError,
     refetch: refetchRecipes
   } = useQuery({
-    queryKey: ['recipes'],
-    queryFn: recipeService.getAll,
+    queryKey: RECIPE_QUERY_KEYS.lists(),
+    queryFn: () => recipeApi.getRecipes(), // ✅ Use recipeApi.getRecipes()
     staleTime: 10 * 60 * 1000, // 10 minutes - recipes don't change often
     cacheTime: 30 * 60 * 1000, // 30 minutes
     retry: 3,
@@ -144,6 +151,17 @@ const PromoCalculator = ({ onBack }) => {
 
   const handleBackToForm = () => {
     setShowPreview(false);
+  };
+
+  // ✅ Enhanced refresh handler - also refresh recipe cache
+  const handleRefreshRecipes = () => {
+    // Refresh current query
+    refetchRecipes();
+    
+    // Also invalidate recipe cache to ensure fresh data
+    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
+    
+    toast.info('Merefresh data resep...');
   };
 
   // Loading Component
@@ -358,8 +376,8 @@ const PromoCalculator = ({ onBack }) => {
       <div className="p-4 sm:p-6">
         <ErrorDisplay 
           title="Gagal Memuat Data Resep"
-          message="Terjadi kesalahan saat memuat data resep. Silakan coba lagi."
-          onRetry={refetchRecipes}
+          message={`Terjadi kesalahan: ${recipesError.message}. Silakan coba lagi.`}
+          onRetry={handleRefreshRecipes}
           variant="error"
         />
       </div>
@@ -402,7 +420,7 @@ const PromoCalculator = ({ onBack }) => {
             </button>
             
             <button
-              onClick={refetchRecipes}
+              onClick={handleRefreshRecipes}
               className="w-full sm:w-auto border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium ml-0 sm:ml-3"
             >
               Refresh Data

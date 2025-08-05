@@ -1,7 +1,7 @@
-// src/pages/PromoCalculator.jsx
-// ✅ Updated to integrate PromoTypeSelector directly for creating new promos
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ For internal navigation
+// src/pages/PromoCalculator.jsx - Fixed and Aligned with existing structure
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,168 +11,240 @@ import {
   RefreshCw, 
   AlertCircle, 
   ArrowLeft,
-  Calculator // Icon for header
+  Calculator,
+  ChevronRight,
+  Save
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-// ✅ Import components and hooks
-import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector'; // ✅ Path might need adjustment
-import PromoPreview from '@/components/promoCalculator/calculator/PromoPreview'; // ✅ Path might need adjustment
-import { usePromoCalculation } from '@/components/promoCalculator/hooks/usePromoCalculation'; // ✅ Path might need adjustment
-import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Import recipeApi
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService
+// ✅ Import existing components
+import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector';
+import PromoPreview from '@/components/promoCalculator/calculator/PromoPreview';
+import { usePromoCalculation } from '@/components/promoCalculator/hooks/usePromoCalculation';
 
-// ✅ Use the same query keys from recipe system for consistency
-export const RECIPE_QUERY_KEYS = {
+// ✅ Import services (aligned with existing)
+import { recipeApi } from '@/components/recipe/services/recipeApi';
+import { promoService } from '@/components/promoCalculator/services/promoService';
+
+// ✅ Query Keys (aligned with existing)
+const RECIPE_QUERY_KEYS = {
   all: ['recipes'],
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'],
   list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters],
 };
 
-// ✅ Promo Query Keys
 const PROMO_QUERY_KEYS = {
   all: ['promos'],
   lists: () => [...PROMO_QUERY_KEYS.all, 'list'],
   list: (params) => [...PROMO_QUERY_KEYS.lists(), params],
+  detail: (id) => [...PROMO_QUERY_KEYS.all, 'detail', id],
 };
 
 const PromoCalculator = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile(768);
   
-  // ✅ State for managing view modes
-  const [isCreating, setIsCreating] = useState(false); // ✅ New state for creation mode
-  const [selectedType, setSelectedType] = useState(''); // ✅ State for selected promo type
-
-  // ✅ State for form data and preview (if needed for dashboard mode or preview step)
+  // ✅ Check for edit mode from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const editPromoId = urlParams.get('edit');
+  const isEditMode = !!editPromoId;
+  
+  // ✅ State management
+  const [view, setView] = useState(isEditMode ? 'create' : 'dashboard'); // 'dashboard' | 'create'
+  const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
-  const [showPreview, setShowPreview] = useState(false); // For potential preview step within creation
+  const [showPreview, setShowPreview] = useState(false);
+  const [editingPromo, setEditingPromo] = useState(null);
 
-  // ✅ Fetch recipes for PromoTypeSelector forms
-  const { data: recipes = [], isLoading: isRecipesLoading, isError: isRecipesError, refetch: refetchRecipes } = useQuery({
-    queryKey: RECIPE_QUERY_KEYS.list(),
-    queryFn: recipeApi.getAllRecipes,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: isCreating // ✅ Only fetch recipes when in creation mode
+  // ✅ Fetch recipes for forms
+  const recipesQuery = useQuery({
+    queryKey: ['recipes'],
+    queryFn: async () => {
+      console.log('🔍 Fetching recipes for promo calculator...');
+      const recipes = await recipeApi.getRecipes();
+      console.log('✅ Got recipes:', recipes?.length || 0);
+      return recipes || [];
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: 3,
+    enabled: view === 'create', // Only fetch when in create mode
   });
 
-  // ✅ Fetch latest promos for dashboard view
+  // ✅ Fetch latest promos for dashboard
   const latestPromosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
-      const allPromos = await promoService.getAll({});
-      return (allPromos || []).slice(0, 3);
+      console.log('🔍 Fetching latest promos...');
+      const promos = await promoService.getAll({});
+      const latestPromos = (promos || []).slice(0, 3);
+      console.log('✅ Got latest promos:', latestPromos.length);
+      return latestPromos;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
-    enabled: !isCreating // ✅ Only fetch when NOT in creation mode
+    enabled: view === 'dashboard',
   });
 
-  // ✅ Hook for promo calculation logic
-  const { calculationResult, isCalculating, calculationError, calculatePromo, clearCalculation } = usePromoCalculation();
+  // ✅ Fetch promo for editing
+  const editPromoQuery = useQuery({
+    queryKey: PROMO_QUERY_KEYS.detail(editPromoId),
+    queryFn: async () => {
+      if (!editPromoId) return null;
+      console.log('🔍 Fetching promo for editing:', editPromoId);
+      const promo = await promoService.getById(editPromoId);
+      console.log('✅ Got promo for editing:', promo);
+      return promo;
+    },
+    enabled: !!editPromoId,
+    onSuccess: (promo) => {
+      if (promo) {
+        setEditingPromo(promo);
+        setSelectedType(promo.tipePromo);
+        setFormData(promo.dataPromo || {});
+        setView('create');
+      }
+    },
+  });
 
-  // ✅ Mutation for saving a new promo
+  // ✅ Calculation hook
+  const { 
+    calculationResult, 
+    isCalculating, 
+    calculationError, 
+    calculatePromo, 
+    clearCalculation 
+  } = usePromoCalculation();
+
+  // ✅ Save promo mutation
   const savePromoMutation = useMutation({
-    mutationFn: promoService.create,
-    onSuccess: (data) => {
-      toast.success('Promo berhasil disimpan!');
-      // Invalidate and refetch promos list
+    mutationFn: async (promoData) => {
+      if (isEditMode && editPromoId) {
+        console.log('📝 Updating promo:', editPromoId);
+        return await promoService.update(editPromoId, promoData);
+      } else {
+        console.log('➕ Creating new promo');
+        return await promoService.create(promoData);
+      }
+    },
+    onSuccess: (savedPromo) => {
+      const action = isEditMode ? 'diperbarui' : 'disimpan';
+      toast.success(`Promo berhasil ${action}!`);
+      
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
-      // ✅ Reset creation state
-      handleCancelCreate(); // Go back to dashboard view
+      
+      // Navigate back to dashboard or promo list
+      if (isEditMode) {
+        // Go back to promo list after edit
+        navigate('/promo/list');
+      } else {
+        // Stay on dashboard after create
+        handleBackToDashboard();
+      }
     },
     onError: (error) => {
       console.error('Save promo error:', error);
-      toast.error(`Gagal menyimpan promo: ${error.message}`);
+      const action = isEditMode ? 'memperbarui' : 'menyimpan';
+      toast.error(`Gagal ${action} promo: ${error.message}`);
     },
   });
 
-  // --- Handlers for Dashboard View ---
-  const handleRefreshDashboard = () => {
-    latestPromosQuery.refetch();
-    // Also refresh recipe cache if needed
-    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
-    toast.info('Merefresh data...');
-  };
-
-  const handleViewAll = () => {
-    navigate('/promo/list'); // ✅ Navigate to full list
-  };
-
-  // --- Handlers for Creation Mode ---
+  // ✅ Handlers
   const handleStartCreate = () => {
-    setIsCreating(true);
-    setSelectedType(''); // Reset type
-    setFormData({}); // Reset form data
-    clearCalculation(); // Reset calculation result
-    // Recipes will be fetched automatically due to `enabled: isCreating` in useQuery
+    setView('create');
+    setSelectedType('');
+    setFormData({});
+    setEditingPromo(null);
+    clearCalculation();
+    // Clear URL params if any
+    window.history.replaceState({}, '', '/promo');
   };
 
-  const handleCancelCreate = () => {
-    // Simple confirmation or just reset state
-    // if (window.confirm("Perubahan yang belum disimpan akan hilang. Lanjutkan?")) {
-      setIsCreating(false);
-      setSelectedType('');
-      setFormData({});
-      clearCalculation();
-    // }
+  const handleBackToDashboard = () => {
+    setView('dashboard');
+    setSelectedType('');
+    setFormData({});
+    setEditingPromo(null);
+    setShowPreview(false);
+    clearCalculation();
+    // Clear URL params
+    window.history.replaceState({}, '', '/promo');
   };
 
   const handleTypeChange = (type) => {
     setSelectedType(type);
-    clearCalculation(); // Reset calculation when type changes
+    setFormData({});
+    clearCalculation();
   };
 
   const handleFormSubmit = async (data) => {
     try {
-      console.log('Form submitted with data:', data);
-      // Assume calculatePromo is called within the specific form components (BogoForm, etc.)
-      // and sets the calculationResult in the usePromoCalculation hook.
-      // If you want to trigger it here based on `data`, you can, but it's likely handled by the form.
+      console.log('📝 Form submitted with data:', data);
       
-      // For now, we assume the form handles calculation internally and we proceed to save.
-      // You might want to check if calculationResult exists before saving.
-      
-      if (!data.namaPromo) {
-         toast.error('Nama promo wajib diisi');
-         return;
+      // Calculate promo if not already calculated
+      if (!calculationResult) {
+        const result = await calculatePromo(selectedType, data);
+        setFormData({ ...data, calculationResult: result });
+      } else {
+        setFormData({ ...data, calculationResult });
       }
       
-      // Prepare promo data for saving
-      const promoDataToSave = {
-        namaPromo: data.namaPromo,
-        tipePromo: selectedType,
-        status: data.status || 'draft',
-        dataPromo: data,
-        calculationResult: calculationResult, // This should be set by the form's internal calculation
-        deskripsi: data.deskripsi || '',
-        tanggalMulai: data.tanggalMulai || null,
-        tanggalSelesai: data.tanggalSelesai || null,
-      };
-
-      console.log('Saving promo data:', promoDataToSave);
-      await savePromoMutation.mutateAsync(promoDataToSave);
+      // Auto show preview on mobile after calculation
+      if (isMobile) {
+        setShowPreview(true);
+      }
+      
+      toast.success('Perhitungan promo berhasil!');
     } catch (error) {
-      console.error('Form submission or save error:', error);
-      toast.error(`Error: ${error.message || 'Terjadi kesalahan saat menyimpan promo.'}`);
+      console.error('Form submission error:', error);
+      toast.error(`Error: ${error.message}`);
     }
   };
 
-  // --- Render States ---
+  const handleSavePromo = async () => {
+    if (!calculationResult) {
+      toast.error('Lakukan perhitungan terlebih dahulu');
+      return;
+    }
 
-  // ✅ Loading State for Recipes (when creating)
-  if (isRecipesLoading && isCreating) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data resep untuk form promo...</p>
-        </div>
-      </div>
-    );
-  }
+    if (!formData.namaPromo) {
+      toast.error('Nama promo wajib diisi');
+      return;
+    }
 
-  // ✅ Error State for Recipes (when creating)
-  if (isRecipesError && isCreating) {
+    const promoDataToSave = {
+      namaPromo: formData.namaPromo,
+      tipePromo: selectedType,
+      status: formData.status || 'draft',
+      dataPromo: formData,
+      calculationResult: calculationResult,
+      deskripsi: formData.deskripsi || '',
+      tanggalMulai: formData.tanggalMulai || null,
+      tanggalSelesai: formData.tanggalSelesai || null,
+    };
+
+    console.log('💾 Saving promo data:', promoDataToSave);
+    await savePromoMutation.mutateAsync(promoDataToSave);
+  };
+
+  const handleViewAllPromos = () => {
+    navigate('/promo/list');
+  };
+
+  const handleRefreshDashboard = () => {
+    console.log('🔄 Refreshing dashboard...');
+    queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    toast.info('Merefresh data...');
+  };
+
+  // ✅ Loading states
+  const isLoading = recipesQuery.isLoading || latestPromosQuery.isLoading || editPromoQuery.isLoading;
+  const isProcessing = savePromoMutation.isPending || isCalculating;
+
+  // ✅ Error states
+  if (recipesQuery.isError && view === 'create') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full shadow-xl">
@@ -184,68 +256,185 @@ const PromoCalculator = () => {
             <p className="text-gray-600 mb-4">
               Tidak dapat memuat data resep yang diperlukan untuk membuat promo.
             </p>
-            <Button onClick={() => refetchRecipes()} className="w-full bg-orange-500 hover:bg-orange-600">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Coba Lagi
-            </Button>
+            <div className="space-y-3">
+              <Button onClick={() => recipesQuery.refetch()} className="w-full bg-orange-500 hover:bg-orange-600">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Coba Lagi
+              </Button>
+              <Button onClick={handleBackToDashboard} variant="outline" className="w-full">
+                Kembali ke Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // ✅ Loading State for Promos (dashboard)
-  if (latestPromosQuery.isLoading && !isCreating) {
+  // ✅ Loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat promo terbaru...</p>
+          <p className="text-gray-600">
+            {view === 'create' ? 'Memuat data resep...' : 'Memuat dashboard...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // --- Main Render Logic ---
+  // ✅ Create/Edit Mode
+  if (view === 'create') {
+    const recipes = recipesQuery.data || [];
 
-  // ✅ Creation Mode View
-  if (isCreating) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-        <div className="container mx-auto p-4 sm:p-6">
-          {/* Header with back button */}
-          <div className="flex items-center justify-between mb-6">
-            <Button onClick={handleCancelCreate} variant="outline" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Dashboard
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Buat Promo Baru</h1>
-            <div></div> {/* Spacer */}
+    // Mobile Layout for Create Mode
+    if (isMobile) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          {/* Mobile Header */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <Button onClick={handleBackToDashboard} variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Dashboard
+              </Button>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {isEditMode ? 'Edit Promo' : 'Buat Promo'}
+              </h1>
+              {calculationResult && !showPreview && (
+                <Button onClick={() => setShowPreview(true)} variant="ghost" size="sm">
+                  Preview
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
           </div>
 
-          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-orange-600" />
-                <span>Pilih Jenis dan Konfigurasi Promo</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Mobile Content */}
+          <div className="p-4">
+            {!showPreview ? (
               <PromoTypeSelector
                 selectedType={selectedType}
                 onTypeChange={handleTypeChange}
                 onFormSubmit={handleFormSubmit}
-                isCalculating={isCalculating || savePromoMutation.isPending}
+                isCalculating={isProcessing}
                 recipes={recipes}
+                initialData={editingPromo?.dataPromo}
               />
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="space-y-4">
+                <Button
+                  onClick={() => setShowPreview(false)}
+                  variant="ghost"
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke Form
+                </Button>
+                <PromoPreview 
+                  type={selectedType}
+                  data={{ calculationResult }}
+                  onSave={handleSavePromo}
+                  isLoading={isProcessing}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Bottom Actions */}
+          {calculationResult && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="outline"
+                  disabled={isProcessing}
+                >
+                  {showPreview ? 'Edit' : 'Preview'}
+                </Button>
+                <Button
+                  onClick={handleSavePromo}
+                  disabled={isProcessing}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Simpan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Desktop Layout for Create Mode
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="container mx-auto p-4 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Button onClick={handleBackToDashboard} variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isEditMode ? 'Edit Promo' : 'Buat Promo Baru'}
+            </h1>
+            <div></div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Form Section */}
+            <div className="xl:col-span-2">
+              <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-orange-600" />
+                    Konfigurasi Promo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PromoTypeSelector
+                    selectedType={selectedType}
+                    onTypeChange={handleTypeChange}
+                    onFormSubmit={handleFormSubmit}
+                    isCalculating={isProcessing}
+                    recipes={recipes}
+                    initialData={editingPromo?.dataPromo}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Preview Section */}
+            <div className="xl:col-span-1">
+              <div className="sticky top-6">
+                <PromoPreview 
+                  type={selectedType}
+                  data={{ calculationResult }}
+                  onSave={handleSavePromo}
+                  isLoading={isProcessing}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // --- Dashboard View (Default) ---
+  // ✅ Dashboard Mode
   const promos = latestPromosQuery.data || [];
 
   return (
@@ -256,7 +445,7 @@ const PromoCalculator = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
             <p className="text-gray-600 mt-1">
-              Hitung dan kelola promo Anda
+              Hitung profit margin dan dampak promo dengan akurat
             </p>
           </div>
           <div className="flex gap-3">
@@ -270,22 +459,22 @@ const PromoCalculator = () => {
               Refresh
             </Button>
             <Button
-              onClick={handleStartCreate} // ✅ Use the new handler
+              onClick={handleStartCreate}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Buat Promo Baru
+              Buat Promo
             </Button>
           </div>
         </div>
 
-        {/* Main Content Card - Dashboard Promo Terbaru */}
+        {/* Main Dashboard Card */}
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-           <CardHeader>
+          <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Promo Terbaru</span>
-              <Button variant="link" onClick={handleViewAll} className="text-orange-600 hover:text-orange-700 p-0 h-auto">
-                Lihat Semua Promo
+              <Button variant="link" onClick={handleViewAllPromos} className="text-orange-600 hover:text-orange-700 p-0 h-auto">
+                Lihat Semua
               </Button>
             </CardTitle>
           </CardHeader>
@@ -293,21 +482,44 @@ const PromoCalculator = () => {
             {promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promos.map(promo => (
-                  // Placeholder for PromoCard rendering logic
-                  // You would typically import and use PromoCard here
-                  // <PromoCard key={promo.id} promo={promo} ... />
-                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 className="font-semibold">{promo.namaPromo}</h3>
-                    <p className="text-sm text-gray-600">{promo.tipePromo} - {promo.status}</p>
-                    <p className="text-xs text-gray-500 mt-2">Dibuat: {new Date(promo.createdAt).toLocaleDateString('id-ID')}</p>
+                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">{promo.namaPromo}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
+                        promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {promo.status}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Tipe:</span>
+                        <span className="font-medium capitalize">{promo.tipePromo}</span>
+                      </div>
+                      {promo.calculationResult && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Margin:</span>
+                          <span className={`font-medium ${
+                            (promo.calculationResult.promoMargin || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {(promo.calculationResult.promoMargin || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 pt-2 border-t">
+                        Dibuat: {new Date(promo.createdAt).toLocaleDateString('id-ID')}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">🎯</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Belum Ada Promo</h3>
-                <p className="text-gray-500 mb-4">Buat promo pertama Anda untuk melihatnya di sini.</p>
+                <div className="text-gray-400 text-4xl mb-4">🎯</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Belum Ada Promo</h3>
+                <p className="text-gray-500 mb-6">Buat promo pertama Anda untuk melihatnya di sini.</p>
                 <Button onClick={handleStartCreate} className="bg-orange-500 hover:bg-orange-600">
                   <Plus className="h-4 w-4 mr-2" />
                   Buat Promo Pertama

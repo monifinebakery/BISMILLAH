@@ -323,8 +323,25 @@ const PromoList = () => {
   };
 
   const handleEdit = (promo) => {
-    // Navigate to edit promo (implement based on your routing)
     console.log('Edit promo:', promo.id);
+    
+    // ✅ Multiple options for edit functionality:
+    
+    // Option 1: Navigate to calculator with promo data (recommended)
+    if (promo.calculationResult) {
+      // Pass promo data to calculator for editing
+      const editUrl = `/promo/calculator?edit=${promo.id}`;
+      window.location.href = editUrl;
+    } else {
+      toast.info('Membuka editor promo...');
+      window.location.href = '/promo/calculator';
+    }
+    
+    // Option 2: Show edit modal (uncomment if you prefer modal)
+    // setEditingPromo(promo);
+    // setIsEditModalOpen(true);
+    
+    // Option 3: Navigate to dedicated edit page (uncomment if you have edit page)
     // window.location.href = `/promo/edit/${promo.id}`;
   };
 

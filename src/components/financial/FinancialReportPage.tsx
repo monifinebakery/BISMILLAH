@@ -28,7 +28,7 @@ import {
   CreateTransactionData,
   UpdateTransactionData,
   DEFAULT_FINANCIAL_CATEGORIES 
-} from '@/types/financial';
+} from './types/financial';
 
 // REAL API CALLS
 import {

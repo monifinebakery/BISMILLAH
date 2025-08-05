@@ -1,8 +1,12 @@
-// PromoCalculatorLayout.jsx - Updated dengan struktur folder yang benar
+// PromoCalculatorLayout.jsx - Updated with useQuery for promos data
 import React, { useState, Suspense } from 'react';
 import { Calculator, List, ArrowLeft, Plus } from 'lucide-react';
-import { usePromo } from './context/PromoContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
+import PromoCard from './components/PromoCard';
+
+// Import services
+import { promoService } from './services/promoService';
 
 // Lazy load komponen dengan path yang benar sesuai struktur folder
 const PromoCalculator = React.lazy(() => 
@@ -130,7 +134,48 @@ class ErrorBoundary extends React.Component {
 const PromoCalculatorLayout = () => {
   const [currentView, setCurrentView] = useState('dashboard');
   const isMobile = useIsMobile(768);
-  const { promos = [], isLoading } = usePromo();
+  const queryClient = useQueryClient();
+
+  // ✅ useQuery for promos data
+  const { 
+    data: promos = [], 
+    isLoading,
+    error: promosError,
+    refetch: refetchPromos
+  } = useQuery({
+    queryKey: ['promos'],
+    queryFn: promoService.getAll,
+    staleTime: 5 * 60 * 1000, // 5 minutes - promos can change frequently
+    cacheTime: 15 * 60 * 1000, // 15 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    onError: (error) => {
+      console.error('Failed to fetch promos:', error);
+    }
+  });
+
+  // ✅ Mutations for promo operations
+  const deletePromoMutation = useMutation({
+    mutationFn: promoService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['promos']);
+      toast.success('Promo berhasil dihapus');
+    },
+    onError: (error) => {
+      toast.error(`Gagal menghapus promo: ${error.message}`);
+    }
+  });
+
+  const updatePromoMutation = useMutation({
+    mutationFn: ({ id, data }) => promoService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['promos']);
+      toast.success('Promo berhasil diperbarui');
+    },
+    onError: (error) => {
+      toast.error(`Gagal memperbarui promo: ${error.message}`);
+    }
+  });
 
   // Utility functions
   const formatCurrency = (value) => {
@@ -180,6 +225,36 @@ const PromoCalculatorLayout = () => {
     setCurrentView('dashboard');
   };
 
+  // ✅ Promo action handlers with mutations
+  const handleEditPromo = (promo) => {
+    console.log('Edit promo:', promo);
+    // TODO: Implement edit functionality - could navigate to calculator with pre-filled data
+  };
+
+  const handleDeletePromo = async (promo) => {
+    if (window.confirm(`Hapus promo "${promo.namaPromo}"?`)) {
+      deletePromoMutation.mutate(promo.id);
+    }
+  };
+
+  const handleViewPromo = (promo) => {
+    console.log('View promo:', promo);
+    // TODO: Implement view functionality - could show detailed modal
+  };
+
+  const handleDuplicatePromo = (promo) => {
+    const duplicatedData = {
+      ...promo,
+      namaPromo: `${promo.namaPromo} (Copy)`,
+      status: 'draft',
+      tanggalMulai: '',
+      tanggalSelesai: ''
+    };
+    
+    // TODO: Use create mutation to save duplicated promo
+    console.log('Duplicate promo:', duplicatedData);
+  };
+
   // Enhanced Loading Component
   const LoadingFallback = ({ message = "Memuat...", size = "medium" }) => {
     const sizeClasses = {
@@ -213,63 +288,80 @@ const PromoCalculatorLayout = () => {
     );
   };
 
-  // Promo Card Component
-  const PromoCard = ({ promo }) => (
-    <div className={styles.card}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <span className="text-2xl">{getPromoTypeIcon(promo.tipePromo)}</span>
-          <div>
-            <h3 className="font-semibold text-gray-900 truncate max-w-[200px]">
-              {promo.namaPromo}
-            </h3>
-            <p className="text-sm text-gray-600 capitalize">{promo.tipePromo}</p>
-          </div>
-        </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(promo.status)}`}>
-          {promo.status}
-        </span>
+  // Error Display Component
+  const ErrorDisplay = ({ title = "Error", message, onRetry }) => (
+    <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+      <div className="text-red-500 text-lg mb-2">⚠️ {title}</div>
+      <p className="text-gray-600 text-sm mb-4">{message}</p>
+      <div className="space-x-2">
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded font-medium transition-colors"
+          >
+            Coba Lagi
+          </button>
+        )}
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded font-medium transition-colors"
+        >
+          Refresh Halaman
+        </button>
+      </div>
+    </div>
+  );
+
+  // Enhanced Promo Grid Component
+  const PromoGrid = ({ promos, onCreateNew }) => (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {promos.map((promo) => (
+          <PromoCard 
+            key={promo.id} 
+            promo={promo}
+            onEdit={handleEditPromo}
+            onDelete={handleDeletePromo}
+            onView={handleViewPromo}
+            onDuplicate={handleDuplicatePromo}
+            showActions={true}
+          />
+        ))}
       </div>
 
-      {promo.calculationResult && (
-        <div className="space-y-3">
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <div className="grid grid-cols-1 gap-2 text-sm">
-              <div className="flex justify-between">
-                <span>Harga Jual:</span>
-                <span className="font-medium">
-                  {formatCurrency(promo.calculationResult.finalPrice)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Margin:</span>
-                <span className={
-                  (promo.calculationResult.promoMargin || 0) < 5
-                    ? 'text-red-600'
-                    : (promo.calculationResult.promoMargin || 0) >= 10
-                      ? 'text-yellow-600'
-                      : 'text-green-600'
-                }>
-                  {(promo.calculationResult.promoMargin || 0).toFixed(1)}%
-                </span>
-              </div>
+      {promos.length > 0 && (
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white border-2 border-orange-400">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Siap membuat promo baru?</h3>
+              <p className="text-orange-100">
+                Tingkatkan penjualan dengan strategi promo yang tepat
+              </p>
             </div>
+            <button
+              onClick={onCreateNew}
+              className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors border-2 border-white hover:border-orange-100"
+            >
+              Mulai Sekarang
+            </button>
           </div>
         </div>
       )}
+    </div>
+  );
 
-      {promo.deskripsi && (
-        <p className="text-sm text-gray-600 mt-3 truncate">{promo.deskripsi}</p>
-      )}
-
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-          Dibuat {new Date(promo.createdAt).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
-        </p>
+  // List Header Component
+  const ListHeader = ({ onCreateNew }) => (
+    <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900">Daftar Promo</h1>
+        <button 
+          onClick={onCreateNew}
+          className={styles.buttonPrimary}
+        >
+          <Plus className="h-4 w-4" />
+          <span>Buat Promo</span>
+        </button>
       </div>
     </div>
   );
@@ -315,6 +407,12 @@ const PromoCalculatorLayout = () => {
           {/* Content */}
           {isLoading ? (
             <LoadingFallback message="Memuat promo..." size="large" />
+          ) : promosError ? (
+            <ErrorDisplay 
+              title="Gagal Memuat Data Promo"
+              message="Terjadi kesalahan saat memuat data promo. Silakan coba lagi."
+              onRetry={refetchPromos}
+            />
           ) : recentPromos.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">🎯</div>
@@ -322,35 +420,26 @@ const PromoCalculatorLayout = () => {
               <p className="text-gray-600 mb-6">
                 Mulai buat promo pertama Anda untuk meningkatkan penjualan
               </p>
+              <div className="space-y-3">
+                <button 
+                  onClick={() => setCurrentView('calculator')} 
+                  className={styles.buttonPrimary}
+                >
+                  Buat Promo Baru
+                </button>
+                <button
+                  onClick={refetchPromos}
+                  className="block mx-auto text-orange-600 hover:text-orange-800 text-sm transition-colors"
+                >
+                  Refresh Data
+                </button>
+              </div>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {recentPromos.map((promo) => (
-                  <PromoCard key={promo.id} promo={promo} />
-                ))}
-              </div>
-
-              {/* Quick Actions - Desktop Only */}
-              {!isMobile && (
-                <div className="mt-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white border-2 border-orange-400">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Siap membuat promo baru?</h3>
-                      <p className="text-orange-100">
-                        Tingkatkan penjualan dengan strategi promo yang tepat
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setCurrentView('calculator')}
-                      className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors border-2 border-white hover:border-orange-100"
-                    >
-                      Mulai Sekarang
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+            <PromoGrid 
+              promos={recentPromos} 
+              onCreateNew={() => setCurrentView('calculator')}
+            />
           )}
         </div>
       </div>
@@ -391,20 +480,7 @@ const PromoCalculatorLayout = () => {
     return (
       <div className={styles.containerLayout}>
         <div className="max-w-7xl mx-auto">
-          {/* List Header */}
-          <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-gray-900">Daftar Promo</h1>
-              <button 
-                onClick={() => setCurrentView('calculator')} 
-                className={styles.buttonPrimary}
-              >
-                <Plus className="h-4 w-4" />
-                <span>Buat Promo</span>
-              </button>
-            </div>
-          </div>
-          
+          <ListHeader onCreateNew={() => setCurrentView('calculator')} />
           <div className="bg-white rounded-t-xl shadow-sm border border-gray-200">
             <LazyComponent 
               fallback={<LoadingFallback message="Memuat daftar promo..." />}

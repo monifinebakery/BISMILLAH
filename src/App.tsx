@@ -68,8 +68,9 @@ const PurchaseManagement = React.lazy(() =>
   import(/* webpackChunkName: "purchase" */ "./components/purchase/PurchasePage")
 );
 
-const PromoCalculatorPage = React.lazy(() => 
-  import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")
+// const PromoCalculatorPage = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")); // Hapus atau komentari baris lama
+const PromoCalculator = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculator")); // ✅ Tambahkan ini
+const PromoList = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator//PromoList")); // ✅ Tambahkan ini
 );
 
 const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [

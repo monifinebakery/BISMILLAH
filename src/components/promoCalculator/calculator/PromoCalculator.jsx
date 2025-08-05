@@ -1,25 +1,74 @@
-// PromoCalculator.jsx - Updated sesuai struktur folder
+// PromoCalculator.jsx - Updated with useQuery for recipes data
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
-import { useRecipe } from '@/contexts/RecipeContext';
-import { usePromo } from '@/components/promoCalculator/context/PromoContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
-// Import components sesuai struktur folder
+// Import components
 import PromoTypeSelector from './PromoTypeSelector';
 import PromoPreview from './PromoPreview';
 import { usePromoCalculation } from '../hooks/usePromoCalculation';
 
+// Import services
+import { recipeService } from '../services/recipeService';
+import { promoService } from '../services/promoService';
+
 const PromoCalculator = ({ onBack }) => {
   const isMobile = useIsMobile(768);
+  const queryClient = useQueryClient();
+  
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
   const [showPreview, setShowPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   
-  const { recipes, isLoading: recipesLoading } = useRecipe();
-  const { addPromo } = usePromo();
+  // ✅ useQuery for recipes data
+  const { 
+    data: recipes = [], 
+    isLoading: recipesLoading,
+    error: recipesError,
+    refetch: refetchRecipes
+  } = useQuery({
+    queryKey: ['recipes'],
+    queryFn: recipeService.getAll,
+    staleTime: 10 * 60 * 1000, // 10 minutes - recipes don't change often
+    cacheTime: 30 * 60 * 1000, // 30 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onError: (error) => {
+      console.error('Failed to fetch recipes:', error);
+      toast.error('Gagal memuat data resep. Silakan refresh halaman.');
+    }
+  });
+
+  // ✅ Mutation for saving promo
+  const savePromoMutation = useMutation({
+    mutationFn: promoService.create,
+    onSuccess: (data) => {
+      toast.success('Promo berhasil disimpan!');
+      
+      // Invalidate and refetch promos list
+      queryClient.invalidateQueries(['promos']);
+      
+      // Reset form
+      setSelectedType('');
+      setFormData({});
+      setShowPreview(false);
+      clearCalculation();
+      
+      // Navigate back after short delay
+      if (onBack) {
+        setTimeout(() => {
+          onBack();
+        }, 1000);
+      }
+    },
+    onError: (error) => {
+      console.error('Save promo error:', error);
+      toast.error(`Gagal menyimpan promo: ${error.message}`);
+    }
+  });
+
   const { 
     calculationResult, 
     isCalculating, 
@@ -28,15 +77,13 @@ const PromoCalculator = ({ onBack }) => {
     clearCalculation 
   } = usePromoCalculation();
 
-  // CSS Classes untuk konsistensi
+  // CSS Classes
   const styles = {
     buttonPrimary: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed",
     buttonSecondary: "flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
-    buttonSuccess: "bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2",
     loadingSpinner: "animate-spin rounded-full h-5 w-5 border-b-2 border-white",
     containerMobile: "min-h-screen bg-gray-50",
     containerDesktop: "py-6",
-    card: "bg-white rounded-lg border border-gray-200 p-4",
     errorCard: "bg-red-50 border border-red-200 rounded-lg p-4",
     successCard: "bg-green-50 border border-green-200 rounded-lg p-4",
     warningCard: "bg-orange-50 border border-orange-200 rounded-lg p-4"
@@ -78,47 +125,21 @@ const PromoCalculator = ({ onBack }) => {
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const promoData = {
-        id: Date.now().toString(), // Generate simple ID
-        namaPromo: formData.namaPromo,
-        tipePromo: selectedType,
-        status: formData.status || 'draft',
-        dataPromo: formData,
-        calculationResult: calculationResult,
-        deskripsi: formData.deskripsi || '',
-        tanggalMulai: formData.tanggalMulai,
-        tanggalSelesai: formData.tanggalSelesai,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+    const promoData = {
+      namaPromo: formData.namaPromo,
+      tipePromo: selectedType,
+      status: formData.status || 'draft',
+      dataPromo: formData,
+      calculationResult: calculationResult,
+      deskripsi: formData.deskripsi || '',
+      tanggalMulai: formData.tanggalMulai,
+      tanggalSelesai: formData.tanggalSelesai,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
-      console.log('Saving promo data:', promoData);
-      const success = await addPromo(promoData);
-      
-      if (success) {
-        toast.success('Promo berhasil disimpan!');
-        
-        // Reset form after successful save
-        setSelectedType('');
-        setFormData({});
-        setShowPreview(false);
-        clearCalculation();
-        
-        // Navigate back if callback provided
-        if (onBack) {
-          setTimeout(() => {
-            onBack();
-          }, 1000); // Delay untuk show success message
-        }
-      }
-    } catch (error) {
-      console.error('Save promo error:', error);
-      toast.error(`Gagal menyimpan promo: ${error.message}`);
-    } finally {
-      setIsSaving(false);
-    }
+    console.log('Saving promo data:', promoData);
+    savePromoMutation.mutate(promoData);
   };
 
   const handleBackToForm = () => {
@@ -142,7 +163,7 @@ const PromoCalculator = ({ onBack }) => {
   };
 
   // Error Display Component
-  const ErrorDisplay = ({ title, message, variant = "error" }) => {
+  const ErrorDisplay = ({ title, message, onRetry, variant = "error" }) => {
     const variantStyles = {
       error: styles.errorCard,
       warning: styles.warningCard,
@@ -157,11 +178,19 @@ const PromoCalculator = ({ onBack }) => {
 
     return (
       <div className={variantStyles[variant]}>
-        <div className="flex items-center space-x-2">
-          <AlertCircle className={`h-4 w-4 ${iconColors[variant]}`} />
-          <span className="text-sm font-medium">{title}</span>
+        <div className="flex items-center space-x-2 mb-3">
+          <AlertCircle className={`h-5 w-5 ${iconColors[variant]}`} />
+          <span className="font-medium">{title}</span>
         </div>
-        {message && <p className="text-xs mt-1">{message}</p>}
+        {message && <p className="text-sm mb-4">{message}</p>}
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+          >
+            Coba Lagi
+          </button>
+        )}
       </div>
     );
   };
@@ -233,7 +262,6 @@ const PromoCalculator = ({ onBack }) => {
   // Mobile Preview View Component
   const MobilePreviewView = () => (
     <div className="space-y-4">
-      {/* Back Button */}
       <button
         onClick={handleBackToForm}
         className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
@@ -246,7 +274,7 @@ const PromoCalculator = ({ onBack }) => {
         type={selectedType}
         data={{ calculationResult }}
         onSave={handleSavePromo}
-        isLoading={isSaving}
+        isLoading={savePromoMutation.isLoading}
       />
     </div>
   );
@@ -266,10 +294,10 @@ const PromoCalculator = ({ onBack }) => {
       
       <button
         onClick={handleSavePromo}
-        disabled={isSaving}
+        disabled={savePromoMutation.isLoading}
         className={styles.buttonPrimary}
       >
-        {isSaving ? (
+        {savePromoMutation.isLoading ? (
           <>
             <div className={styles.loadingSpinner}></div>
             <span className="text-sm">Menyimpan...</span>
@@ -319,12 +347,26 @@ const PromoCalculator = ({ onBack }) => {
     </div>
   );
 
-  // Loading State
+  // ✅ Loading State - While fetching recipes
   if (recipesLoading) {
     return <LoadingSpinner message="Memuat data resep..." size="large" />;
   }
 
-  // Empty Recipe State
+  // ✅ Error State - If failed to fetch recipes
+  if (recipesError) {
+    return (
+      <div className="p-4 sm:p-6">
+        <ErrorDisplay 
+          title="Gagal Memuat Data Resep"
+          message="Terjadi kesalahan saat memuat data resep. Silakan coba lagi."
+          onRetry={refetchRecipes}
+          variant="error"
+        />
+      </div>
+    );
+  }
+
+  // ✅ Empty Recipe State
   if (!recipes || recipes.length === 0) {
     return (
       <div className="p-4 sm:p-6 text-center">
@@ -351,18 +393,27 @@ const PromoCalculator = ({ onBack }) => {
             </div>
           </div>
           
-          <button 
-            onClick={() => window.location.href = '/resep'}
-            className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-          >
-            Buat Resep Pertama
-          </button>
+          <div className="space-y-3">
+            <button 
+              onClick={() => window.location.href = '/resep'}
+              className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+            >
+              Buat Resep Pertama
+            </button>
+            
+            <button
+              onClick={refetchRecipes}
+              className="w-full sm:w-auto border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium ml-0 sm:ml-3"
+            >
+              Refresh Data
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Mobile Layout
+  // ✅ Mobile Layout
   if (isMobile) {
     return (
       <div className={styles.containerMobile}>
@@ -386,7 +437,7 @@ const PromoCalculator = ({ onBack }) => {
     );
   }
 
-  // Desktop Layout
+  // ✅ Desktop Layout
   return (
     <div className={styles.containerDesktop}>
       <DesktopHeader />
@@ -410,7 +461,7 @@ const PromoCalculator = ({ onBack }) => {
               type={selectedType}
               data={{ calculationResult }}
               onSave={handleSavePromo}
-              isLoading={isSaving}
+              isLoading={savePromoMutation.isLoading}
             />
           </div>
         </div>

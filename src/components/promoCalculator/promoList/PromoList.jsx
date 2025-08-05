@@ -5,19 +5,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
   Trash2,
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard
-import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog'; // ✅ Import PromoEditDialog
-import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService
+import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Sesuaikan path
+import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog'; // ✅ Sesuaikan path
+import { LoadingState } from '@/components/recipe/components/shared/LoadingState'; // ✅ Sesuaikan path
+import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
 
 // ✅ Query Keys - Same as PromoCalculator
 export const PROMO_QUERY_KEYS = {
@@ -135,7 +135,7 @@ const PromoList = () => {
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
           if (!oldData) return oldData;
-          return oldData.map(promo => 
+          return oldData.map(promo =>
             promo.id === updatedPromo.id ? updatedPromo : promo
           );
         }
@@ -178,23 +178,22 @@ const PromoList = () => {
   const isLoading = promosQuery.isLoading;
   const error = promosQuery.error;
 
- // ✅ Pastikan isProcessing dideklarasikan SEBELUM digunakan
-const isProcessing = (
-  deletePromoMutation && deletePromoMutation.isPending ||
-  bulkDeleteMutation && bulkDeleteMutation.isPending ||
-  toggleStatusMutation && toggleStatusMutation.isPending ||
-  duplicatePromoMutation && duplicatePromoMutation.isPending
-) || false;
+  // ✅ Perbaiki deklarasi isProcessing untuk kompatibilitas (tanpa ?. )
+  const isProcessing = (
+    (deletePromoMutation && deletePromoMutation.isPending) ||
+    (bulkDeleteMutation && bulkDeleteMutation.isPending) ||
+    (toggleStatusMutation && toggleStatusMutation.isPending) ||
+    (duplicatePromoMutation && duplicatePromoMutation.isPending)
+  ) || false;
 
-console.log('📊 Promo Query State:', {
-  // Gunakan && atau akses langsung jika promos selalu array
-  promos: (promos && promos.length) || 0,
-  isLoading,
-  // Gunakan && atau akses langsung jika error bisa undefined
-  error: error ? error.message : undefined,
-  selectedItems: selectedItems.length,
-});
-  
+  // ✅ Perbaiki console.log untuk kompatibilitas (tanpa ?. )
+  console.log('📊 Promo Query State:', {
+    data: (promos && promos.length) || 0,
+    isLoading,
+    error: (error && error.message) || null,
+    selectedItems: selectedItems.length
+  });
+
   // Handlers
   const handleSearch = (value) => {
     setSearchTerm(value);
@@ -246,16 +245,12 @@ console.log('📊 Promo Query State:', {
 
   // ✅ Handler setelah promo berhasil diedit
   const handleEditSuccess = (updatedPromo) => {
-    console.log('Promo updated successfully:', updatedPromo.id);
+    console.log('Promo updated successfully in list:', updatedPromo.id);
     // Optional: Anda bisa menambahkan logika tambahan di sini jika diperlukan
-    // Misalnya, menutup dialog secara eksplisit jika belum ditutup oleh dialog itu sendiri
-    // setIsEditDialogOpen(false); // Biasanya sudah ditutup oleh dialog
-    // setEditingPromo(null); // Biasanya sudah direset oleh dialog
   };
 
   const handleView = (promo) => {
     console.log('View promo details:', promo.id);
-    // Implementasi untuk melihat detail, misalnya modal atau halaman baru
     toast.info(`Melihat detail promo: ${promo.namaPromo}`);
     // Contoh: window.location.href = `/promo/${promo.id}`;
   };
@@ -286,7 +281,7 @@ console.log('📊 Promo Query State:', {
         setIsEditDialogOpen(false);
         setEditingPromo(null);
     }
-    window.location.href = '/promo';
+    window.location.href = '/promo'; // Arahkan ke halaman kalkulator
   };
 
   // Loading State
@@ -459,8 +454,9 @@ console.log('📊 Promo Query State:', {
                     onDelete={handleDelete}
                     onView={handleView}
                     onDuplicate={handleDuplicate}
+                    onToggleStatus={handleToggleStatus} // ✅ Tambahkan jika PromoCard membutuhkannya
                     // Jika Anda ingin menonaktifkan aksi tertentu berdasarkan status, bisa ditambahkan logika di sini
-                    // showActions={promo.status !== 'draft'} 
+                    // showActions={promo.status !== 'draft'}
                   />
                 ))}
               </div>

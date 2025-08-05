@@ -1,5 +1,5 @@
 // src/components/financial/FinancialReportPage.tsx - Final with Real API & Auth (FIXED VERSION)
-import React, { useState, useMemo, useCallback, Suspense, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, Suspense, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Plus, Settings, ChevronDown, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
@@ -356,6 +356,7 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
   // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
   const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
   const [initialLoadTime, setInitialLoadTime] = useState<Date | undefined>(undefined);
+  const hasSetInitialLoad = useRef(false); // ✅ TAMBAH: Ref untuk prevent multiple set
 
   // Query untuk transactions dengan real API
   const {
@@ -392,21 +393,24 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
     retry: 1,
   });
 
-  // ✅ TAMBAH: Set initial load time (fallback jika belum ada user action)
+  // ✅ SUPER STRICT: Initial load time hanya sekali per session
+  const hasSetInitialLoad = useRef(false);
   useEffect(() => {
-    if (transactions && transactions.length >= 0 && !initialLoadTime) {
+    if (transactions && transactions.length >= 0 && !hasSetInitialLoad.current && !transactionsLoading) {
       setInitialLoadTime(new Date());
-      logger.debug('📊 Initial financial data loaded');
+      hasSetInitialLoad.current = true;
+      logger.debug('📊 Initial financial data loaded - timestamp set ONCE');
     }
-  }, [transactions, initialLoadTime]);
+  }, [transactions, transactionsLoading]);
 
-  // ✅ TAMBAH: Smart refresh yang tidak update timestamp
+  // ✅ DEBUG: Log untuk debugging refresh
   const smartRefreshAll = async () => {
+    logger.debug('🔄 Smart refresh called - NOT updating lastUpdated timestamp');
     await Promise.all([
       refetchTransactions(),
       refetchStats()
     ]);
-    // Tidak update timestamp karena ini bukan user action
+    logger.debug('🔄 Smart refresh completed');
   };
 
   // Mutations dengan real API (FIXED - update timestamp saat user action)

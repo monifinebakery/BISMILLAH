@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
+// ✅ Import useAuth dengan ES Module
+import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ Import API functions from your existing service
 import {

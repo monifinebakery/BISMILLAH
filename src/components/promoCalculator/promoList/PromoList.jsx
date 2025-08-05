@@ -325,24 +325,55 @@ const PromoList = () => {
   const handleEdit = (promo) => {
     console.log('Edit promo:', promo.id);
     
-    // ✅ Multiple options for edit functionality:
+    // ✅ Check available routes and use the correct one
     
-    // Option 1: Navigate to calculator with promo data (recommended)
-    if (promo.calculationResult) {
-      // Pass promo data to calculator for editing
-      const editUrl = `/promo/calculator?edit=${promo.id}`;
+    // Option 1: Try common calculator routes
+    const possibleRoutes = [
+      '/kalkulator-promo',           // Indonesian route
+      '/promo-calculator',           // English route  
+      '/calculator/promo',           // Nested route
+      '/promo',                      // Simple route
+      '/calculator',                 // Generic calculator
+    ];
+    
+    // For now, let's use a more generic approach
+    // Check if we're on the same domain and try different routes
+    const currentDomain = window.location.origin;
+    
+    // Try the most likely route first
+    const editUrl = `${currentDomain}/kalkulator-promo?edit=${promo.id}`;
+    
+    console.log('🔗 Trying to navigate to:', editUrl);
+    
+    // Show loading toast while navigating
+    toast.info('Membuka editor promo...', {
+      description: 'Mengarahkan ke kalkulator promo'
+    });
+    
+    // Try navigation
+    try {
       window.location.href = editUrl;
-    } else {
-      toast.info('Membuka editor promo...');
-      window.location.href = '/promo/calculator';
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      
+      // Fallback: Show edit data in console for debugging
+      toast.error('Route tidak ditemukan. Cek console untuk data promo.', {
+        description: 'Developer: Periksa routing configuration'
+      });
+      
+      console.log('📊 Promo data for editing:', {
+        id: promo.id,
+        namaPromo: promo.namaPromo,
+        tipePromo: promo.tipePromo,
+        status: promo.status,
+        dataPromo: promo.dataPromo,
+        calculationResult: promo.calculationResult
+      });
+      
+      // Alternative: Open in new tab to avoid 404
+      const fallbackUrl = `${currentDomain}/#/promo-edit/${promo.id}`;
+      window.open(fallbackUrl, '_blank');
     }
-    
-    // Option 2: Show edit modal (uncomment if you prefer modal)
-    // setEditingPromo(promo);
-    // setIsEditModalOpen(true);
-    
-    // Option 3: Navigate to dedicated edit page (uncomment if you have edit page)
-    // window.location.href = `/promo/edit/${promo.id}`;
   };
 
   const handlePaginationChange = (changes) => {

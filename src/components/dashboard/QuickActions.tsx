@@ -13,7 +13,7 @@ const QuickActionCard: React.FC<{
   iconColor: string;
 }> = ({ to, icon, label, bgColor, iconColor }) => {
   return (
-    <Card className="bg-white border-2 border-gray-300 hover:shadow-sm transition-all duration-300 hover:scale-105">
+    <Card className="bg-white border-1 border-gray-100 hover:shadow-sm transition-all duration-300 hover:scale-105">
       <Link 
         to={to} 
         className="p-6 flex items-center h-full hover:bg-gray-50 rounded-lg transition-colors group"

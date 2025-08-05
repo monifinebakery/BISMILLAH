@@ -156,10 +156,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Ambil userId dari context Auth (jika tersedia)
-  const { useAuth } = require('@/contexts/AuthContext');
-  const { user } = useAuth();
-
   // Gunakan data dari useQuery (Supabase) atau dari props
   const queryData = useTransactionData(dateRange, user?.id);
   const transactions = legacyTransactions || queryData.transactions;

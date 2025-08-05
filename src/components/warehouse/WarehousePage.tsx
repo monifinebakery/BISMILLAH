@@ -1,4 +1,4 @@
-/ ===== 2. UPDATE WarehousePage.tsx =====
+// ===== 2. UPDATE WarehousePage.tsx =====
 // src/components/warehouse/WarehousePage.tsx
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';

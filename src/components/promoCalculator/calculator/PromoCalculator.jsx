@@ -16,9 +16,9 @@ import { promoService } from '../services/promoService';
 
 // ✅ Use the same query keys from recipe system
 export const RECIPE_QUERY_KEYS = {
-  all: ['recipes'] as const,
-  lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
-  list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters] as const,
+  all: ['recipes'],
+  lists: () => [...RECIPE_QUERY_KEYS.all, 'list'],
+  list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters],
 };
 
 const PromoCalculator = ({ onBack }) => {

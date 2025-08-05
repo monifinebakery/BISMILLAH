@@ -16,9 +16,109 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-// Components
-import PromoTable from '@/components/promoCalculator/components/PromoTable';
+// Components - Updated import paths
+// import PromoTable from '@/components/promoCalculator/promoList/components/PromoTable';
+// Temporary: Create simple table component inline until PromoTable path is fixed
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
+
+// ✅ Temporary PromoTable Component - Replace with correct import later
+const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Memuat data promo...</p>
+      </div>
+    );
+  }
+
+  if (promos.length === 0) {
+    return (
+      <div className="p-8 text-center">
+        <div className="text-gray-400 text-4xl mb-4">🎯</div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Promo</h3>
+        <p className="text-gray-600">Buat promo pertama Anda untuk melihat daftar di sini</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Nama Promo
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Tipe
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Dibuat
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Aksi
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {promos.map(promo => (
+            <tr key={promo.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">
+                  {promo.namaPromo}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {promo.deskripsi || 'Tidak ada deskripsi'}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {promo.tipePromo}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
+                  promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {promo.status}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {new Date(promo.createdAt).toLocaleDateString('id-ID')}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button
+                  onClick={() => onToggleStatus(promo.id, promo.status === 'aktif' ? 'nonaktif' : 'aktif')}
+                  className="text-indigo-600 hover:text-indigo-900 mr-3"
+                >
+                  {promo.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                </button>
+                <button
+                  onClick={() => onEdit(promo)}
+                  className="text-blue-600 hover:text-blue-900 mr-3"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(promo.id)}
+                  className="text-red-600 hover:text-red-900"
+                >
+                  Hapus
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 // Services
 import { promoService } from '@/components/promoCalculator/services/promoService';

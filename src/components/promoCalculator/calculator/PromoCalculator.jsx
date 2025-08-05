@@ -12,12 +12,11 @@ import {
   AlertCircle,
   ArrowLeft,
   Calculator,
-  Eye
 } from 'lucide-react';
 
 // ✅ Import komponen dan layanan
 // !!! PERHATIAN: Sesuaikan path ini dengan struktur folder proyek Anda !!!
-import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector'; // ✅ Sesuaikan path
+import PromoTypeSelector from '@/components/promoCalculator/components/PromoTypeSelector'; // ✅ Sesuaikan path
 import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Sesuaikan path
 import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
 
@@ -25,7 +24,7 @@ import { promoService } from '@/components/promoCalculator/services/promoService
 const RECIPE_QUERY_KEYS = {
   all: ['recipes'],
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'],
-  list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters],
+  list: () => [...RECIPE_QUERY_KEYS.lists()], // ✅ Diperbaiki: tidak perlu parameter filters untuk getAllRecipes
 };
 
 const PROMO_QUERY_KEYS = {
@@ -43,22 +42,23 @@ const PromoCalculator = () => {
   const [selectedType, setSelectedType] = useState(''); // Tipe promo yang dipilih di mode kalkulator
 
   // --- FETCH DATA RESEP untuk mode kalkulator ---
+  // ✅ Perbaikan utama ada di sini: queryKey dan queryFn
   const {
-     recipes = [],
+    data: recipes = [],
     isLoading: isRecipesLoading,
     isError: isRecipesError,
     error: recipesError,
     refetch: refetchRecipes,
   } = useQuery({
-    queryKey: RECIPE_QUERY_KEYS.list(),
-    queryFn: recipeApi.getAllRecipes,
+    queryKey: RECIPE_QUERY_KEYS.list(), // ✅ Gunakan key yang diperbaiki
+    queryFn: recipeApi.getAllRecipes,   // ✅ Gunakan fungsi secara langsung, bukan () => recipeApi.getAllRecipes()
     staleTime: 5 * 60 * 1000, // 5 menit
     cacheTime: 10 * 60 * 1000, // 10 menit
     retry: 1,
     enabled: isCreating, // Hanya fetch saat mode kalkulator aktif
     onError: (error) => {
       console.error("❌ [PromoCalculator] Gagal memuat resep:", error);
-      toast.error('Gagal memuat data resep yang diperlukan.');
+      // toast.error('Gagal memuat data resep yang diperlukan.');
     },
   });
 
@@ -156,6 +156,7 @@ const PromoCalculator = () => {
                     <div>
                       <h3 className="text-sm font-medium text-red-800">Gagal Memuat Resep</h3>
                       <p className="text-sm text-red-700 mt-1">
+                        {/* Tampilkan pesan error yang lebih spesifik */}
                         {recipesError?.message || 'Terjadi kesalahan saat memuat data resep.'}
                       </p>
                       <Button

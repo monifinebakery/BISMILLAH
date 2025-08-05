@@ -73,7 +73,6 @@ const PromoFullCalculator = React.lazy(() => /* webpackChunkName: "promo" */ imp
 // const PromoCalculatorPage = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")); // Hapus atau komentari baris lama
 const PromoCalculator = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/calculator/PromoCalculator")); // ✅ Tambahkan ini
 const PromoList = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/promoList/PromoList")); // ✅ Tambahkan ini
-);
 
 const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/NotFound")),

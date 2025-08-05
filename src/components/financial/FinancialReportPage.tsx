@@ -1,166 +1,59 @@
-// src/components/financial/FinancialReportPage.tsx - Enhanced dengan useQuery
+// src/components/financial/FinancialReportPage.tsx - Final with Real API & Auth
 import React, { useState, useMemo, useCallback, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Plus, Settings, ChevronDown, RefreshCw, TrendingUp } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Settings, ChevronDown, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 
-// ✅ TAMBAH: Import useQuery dan TanStack Query
+// TanStack Query
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // UI utilities
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { logger } from '@/utils/logger';
+
+// Auth Context
+import { useAuth } from '@/contexts/AuthContext';
 
 // DATE UTILITIES
 import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
-// ✅ TAMBAH: Types untuk financial data
-interface FinancialTransaction {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;
-  userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+// TYPES & API
+import { 
+  FinancialTransaction, 
+  CreateTransactionData,
+  UpdateTransactionData,
+  DEFAULT_FINANCIAL_CATEGORIES 
+} from '@/types/financial';
 
-interface FinancialStats {
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
-  transactionCount: number;
-  avgTransaction: number;
-  topCategory: string;
-  monthlyGrowth: number;
-  categoryBreakdown: { [key: string]: number };
-}
+// REAL API CALLS
+import {
+  getFinancialTransactions,
+  addFinancialTransaction,
+  updateFinancialTransaction,
+  deleteFinancialTransaction,
+  getTransactionsByDateRange,
+  getFinancialStats
+} from './services/financialApi';
 
-// ✅ TAMBAH: Query keys untuk financial data
+// FINANCIAL UTILITIES
+import { 
+  calculateFinancialSummary,
+  calculateCategoryTotals 
+} from '@/utils/financialUtils';
+
+// Query keys
 const financialQueryKeys = {
   all: ['financial'] as const,
-  transactions: () => [...financialQueryKeys.all, 'transactions'] as const,
-  transactionsByRange: (from: Date, to?: Date) => 
-    [...financialQueryKeys.transactions(), 'range', from.toISOString(), to?.toISOString()] as const,
-  stats: (from: Date, to?: Date) => 
-    [...financialQueryKeys.all, 'stats', from.toISOString(), to?.toISOString()] as const,
-  categories: () => [...financialQueryKeys.all, 'categories'] as const,
-  settings: () => [...financialQueryKeys.all, 'settings'] as const,
-};
-
-// ✅ TAMBAH: API functions
-const fetchFinancialTransactions = async (dateRange: { from: Date; to?: Date }): Promise<FinancialTransaction[]> => {
-  try {
-    // Replace dengan real API endpoint
-    const response = await fetch(`/api/financial/transactions?from=${dateRange.from.toISOString()}&to=${dateRange.to?.toISOString() || ''}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch transactions: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    logger.error('Failed to fetch financial transactions:', error);
-    // Mock data untuk development
-    return [
-      {
-        id: '1',
-        date: new Date().toISOString(),
-        description: 'Penjualan Menu Utama',
-        amount: 150000,
-        type: 'income',
-        category: 'Penjualan'
-      },
-      {
-        id: '2',
-        date: new Date().toISOString(),
-        description: 'Pembelian Bahan Baku',
-        amount: 75000,
-        type: 'expense',
-        category: 'Operasional'
-      }
-    ] as FinancialTransaction[];
-  }
-};
-
-const fetchFinancialStats = async (dateRange: { from: Date; to?: Date }): Promise<FinancialStats> => {
-  try {
-    const response = await fetch(`/api/financial/stats?from=${dateRange.from.toISOString()}&to=${dateRange.to?.toISOString() || ''}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch stats: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    logger.error('Failed to fetch financial stats:', error);
-    // Mock stats untuk development
-    return {
-      totalIncome: 150000,
-      totalExpense: 75000,
-      balance: 75000,
-      transactionCount: 2,
-      avgTransaction: 112500,
-      topCategory: 'Penjualan',
-      monthlyGrowth: 15.5,
-      categoryBreakdown: {
-        'Penjualan': 150000,
-        'Operasional': 75000
-      }
-    };
-  }
-};
-
-const createTransaction = async (transaction: Omit<FinancialTransaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<FinancialTransaction> => {
-  try {
-    const response = await fetch('/api/financial/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(transaction),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to create transaction: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    logger.error('Failed to create transaction:', error);
-    throw error;
-  }
-};
-
-const updateTransaction = async ({ id, transaction }: { id: string; transaction: Partial<FinancialTransaction> }): Promise<FinancialTransaction> => {
-  try {
-    const response = await fetch(`/api/financial/transactions/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(transaction),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to update transaction: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    logger.error('Failed to update transaction:', error);
-    throw error;
-  }
-};
-
-const deleteTransaction = async (id: string): Promise<void> => {
-  try {
-    const response = await fetch(`/api/financial/transactions/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to delete transaction: ${response.status}`);
-    }
-  } catch (error) {
-    logger.error('Failed to delete transaction:', error);
-    throw error;
-  }
+  transactions: (userId: string) => [...financialQueryKeys.all, 'transactions', userId] as const,
+  transactionsByRange: (userId: string, from: Date, to?: Date) => 
+    [...financialQueryKeys.transactions(userId), 'range', from.toISOString(), to?.toISOString()] as const,
+  stats: (userId: string, from: Date, to?: Date) => 
+    [...financialQueryKeys.all, 'stats', userId, from.toISOString(), to?.toISOString()] as const,
 };
 
 // LAZY LOADED COMPONENTS
@@ -229,7 +122,7 @@ const TableSkeleton = () => (
 interface PageState {
   transaction: {
     isDialogOpen: boolean;
-    editing: any;
+    editing: FinancialTransaction | null;
   };
   category: {
     isDialogOpen: boolean;
@@ -241,12 +134,12 @@ const initialPageState: PageState = {
   category: { isDialogOpen: false }
 };
 
-// ✅ ENHANCED: Summary Cards Component dengan real-time data
+// Summary Cards Component
 const SummaryCards: React.FC<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
-  stats?: FinancialStats;
+  stats?: any;
   isLoading?: boolean;
   onRefresh?: () => void;
 }> = ({ totalIncome, totalExpense, balance, stats, isLoading, onRefresh }) => {
@@ -325,7 +218,7 @@ const SummaryCards: React.FC<{
   );
 };
 
-// Date Range Selector (keep original logic)
+// Date Range Selector
 const DateRangeSelector: React.FC<{
   dateRange: { from: Date; to?: Date };
   onDateRangeChange: (range: { from: Date; to?: Date }) => void;
@@ -455,11 +348,11 @@ const DateRangeSelector: React.FC<{
   );
 };
 
-// ✅ ENHANCED: Custom hook dengan useQuery
-const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
+// Custom hook for managing financial data with REAL API
+const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) => {
   const queryClient = useQueryClient();
 
-  // Query untuk transactions
+  // Query untuk transactions dengan real API
   const {
     data: transactions = [],
     isLoading: transactionsLoading,
@@ -467,32 +360,45 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
     refetch: refetchTransactions,
     dataUpdatedAt: transactionsUpdatedAt,
   } = useQuery({
-    queryKey: financialQueryKeys.transactionsByRange(dateRange.from, dateRange.to),
-    queryFn: () => fetchFinancialTransactions(dateRange),
-    staleTime: 2 * 60 * 1000, // 2 minutes - financial data changes frequently
+    queryKey: financialQueryKeys.transactionsByRange(userId, dateRange.from, dateRange.to),
+    queryFn: async () => {
+      if (dateRange.from && dateRange.to) {
+        return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
+      } else {
+        return getFinancialTransactions(userId);
+      }
+    },
+    enabled: !!userId, // Only run when userId is available
+    staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 1,
   });
 
-  // Query untuk stats
+  // Query untuk stats dengan real API
   const {
     data: stats,
     isLoading: statsLoading,
     refetch: refetchStats,
   } = useQuery({
-    queryKey: financialQueryKeys.stats(dateRange.from, dateRange.to),
-    queryFn: () => fetchFinancialStats(dateRange),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to),
+    queryFn: () => getFinancialStats(userId, dateRange.from, dateRange.to),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
     retry: 1,
   });
 
-  // Mutations
+  // Mutations dengan real API
   const createMutation = useMutation({
-    mutationFn: createTransaction,
-    onSuccess: (newTransaction) => {
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions() });
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(dateRange.from, dateRange.to) });
-      toast.success('Transaksi berhasil ditambahkan');
+    mutationFn: (transaction: CreateTransactionData) => 
+      addFinancialTransaction(transaction, userId),
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
+        toast.success('Transaksi berhasil ditambahkan');
+      } else {
+        toast.error(response.error || 'Gagal menambah transaksi');
+      }
     },
     onError: (error: Error) => {
       toast.error(`Gagal menambah transaksi: ${error.message}`);
@@ -500,11 +406,16 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: updateTransaction,
-    onSuccess: (updatedTransaction) => {
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions() });
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(dateRange.from, dateRange.to) });
-      toast.success('Transaksi berhasil diperbarui');
+    mutationFn: ({ id, transaction }: { id: string; transaction: UpdateTransactionData }) => 
+      updateFinancialTransaction(id, transaction),
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
+        toast.success('Transaksi berhasil diperbarui');
+      } else {
+        toast.error(response.error || 'Gagal memperbarui transaksi');
+      }
     },
     onError: (error: Error) => {
       toast.error(`Gagal memperbarui transaksi: ${error.message}`);
@@ -512,11 +423,15 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteTransaction,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions() });
-      queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(dateRange.from, dateRange.to) });
-      toast.success('Transaksi berhasil dihapus');
+    mutationFn: (id: string) => deleteFinancialTransaction(id),
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
+        queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
+        toast.success('Transaksi berhasil dihapus');
+      } else {
+        toast.error(response.error || 'Gagal menghapus transaksi');
+      }
     },
     onError: (error: Error) => {
       toast.error(`Gagal menghapus transaksi: ${error.message}`);
@@ -524,15 +439,23 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
   });
 
   // Computed values
-  const totalIncome = useMemo(() => 
-    transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-  , [transactions]);
+  const summary = useMemo(() => {
+    const basicSummary = calculateFinancialSummary(transactions);
+    const categoryTotals = calculateCategoryTotals(transactions);
+    const topCategory = Object.entries(categoryTotals)
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Tidak ada';
+    const avgTransaction = transactions.length > 0 
+      ? transactions.reduce((sum, t) => sum + t.amount, 0) / transactions.length
+      : 0;
 
-  const totalExpense = useMemo(() => 
-    transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
-  , [transactions]);
-
-  const balance = totalIncome - totalExpense;
+    return {
+      ...basicSummary,
+      categoryTotals,
+      topCategory,
+      avgTransaction,
+      monthlyGrowth: stats?.monthlyGrowth || 0
+    };
+  }, [transactions, stats]);
 
   // Refresh all data
   const refreshAll = async () => {
@@ -546,9 +469,7 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
     // Data
     transactions,
     stats,
-    totalIncome,
-    totalExpense,
-    balance,
+    summary,
     lastUpdated: transactionsUpdatedAt ? new Date(transactionsUpdatedAt) : undefined,
     
     // Loading states
@@ -557,10 +478,19 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
     isStatsLoading: statsLoading,
     error: transactionsError,
     
-    // Actions
-    addTransaction: createMutation.mutateAsync,
-    updateTransaction: updateMutation.mutateAsync,
-    deleteTransaction: deleteMutation.mutateAsync,
+    // Actions with proper typing
+    addTransaction: async (transaction: CreateTransactionData) => {
+      const result = await createMutation.mutateAsync(transaction);
+      return result.success;
+    },
+    updateTransaction: async (id: string, transaction: UpdateTransactionData) => {
+      const result = await updateMutation.mutateAsync({ id, transaction });
+      return result.success;
+    },
+    deleteTransaction: async (id: string) => {
+      const result = await deleteMutation.mutateAsync(id);
+      return result.success;
+    },
     refreshAll,
     
     // Mutation states
@@ -571,9 +501,66 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }) => {
   };
 };
 
-// MAIN COMPONENT - Enhanced dengan useQuery
+// Error Display Component
+const ErrorDisplay: React.FC<{ error: string; onRetry: () => void }> = ({ error, onRetry }) => (
+  <Card className="border-red-200 bg-red-50">
+    <CardContent className="p-6">
+      <div className="flex items-center gap-3 text-red-600">
+        <AlertCircle className="h-6 w-6" />
+        <div>
+          <h3 className="font-medium">Gagal Memuat Data</h3>
+          <p className="text-sm text-red-500 mt-1">{error}</p>
+        </div>
+      </div>
+      <Button onClick={onRetry} variant="outline" className="mt-4">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Coba Lagi
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+// Auth Guard Component
+const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex justify-center items-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="p-4 sm:p-6">
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-yellow-600">
+              <AlertCircle className="h-6 w-6" />
+              <div>
+                <h3 className="font-medium">Login Diperlukan</h3>
+                <p className="text-sm text-yellow-500 mt-1">
+                  Silakan login untuk mengakses data keuangan Anda.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// MAIN COMPONENT - WITH REAL API & AUTH
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   
   // Date range state
   const [dateRange, setDateRange] = useState<{ from: Date; to?: Date }>({
@@ -581,15 +568,15 @@ const FinancialReportPage: React.FC = () => {
     to: endOfMonth(new Date())
   });
 
-  // useQuery financial data
-  const financialData = useFinancialData(dateRange);
+  // Financial data with REAL API and AUTH
+  const financialData = useFinancialData(dateRange, user?.id || '');
 
   // Single state object
   const [pageState, setPageState] = useState<PageState>(initialPageState);
 
   // Dialog handlers
   const dialogHandlers = {
-    openTransaction: useCallback((transaction: any = null) => {
+    openTransaction: useCallback((transaction: FinancialTransaction | null = null) => {
       setPageState(prev => ({
         ...prev,
         transaction: { isDialogOpen: true, editing: transaction }
@@ -618,151 +605,138 @@ const FinancialReportPage: React.FC = () => {
     }, [])
   };
 
-  // Loading state
-  if (financialData.isLoading) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="space-y-2">
-            <QuickSkeleton className="h-8 w-48 sm:w-64" />
-            <QuickSkeleton className="h-4 w-64 sm:w-96" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }, (_, i) => (
-            <QuickSkeleton key={i} className="h-24" />
-          ))}
-        </div>
-        <ChartSkeleton />
-        <TableSkeleton />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
-            {/* Real-time indicator */}
-            {financialData.lastUpdated && (
-              <div className="flex items-center gap-1 text-xs text-gray-500">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                Live
-              </div>
-            )}
-          </div>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
-          </p>
-          {/* Last updated info */}
-          {financialData.lastUpdated && (
-            <p className="text-xs text-gray-400">
-              Terakhir diperbarui: {financialData.lastUpdated.toLocaleString('id-ID')}
-            </p>
-          )}
+    <AuthGuard>
+      {/* Show error state if there's an error */}
+      {financialData.error && !financialData.isLoading && financialData.transactions.length === 0 ? (
+        <div className="p-4 sm:p-6">
+          <ErrorDisplay 
+            error={financialData.error.message || 'Terjadi kesalahan'} 
+            onRetry={financialData.refreshAll} 
+          />
         </div>
-        
-        <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
-          <Button 
-            onClick={() => dialogHandlers.openTransaction()}
-            disabled={financialData.isProcessing}
-            className="w-full sm:w-auto order-2 sm:order-1"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {financialData.isCreating ? 'Menambah...' : 'Tambah Transaksi'}
-          </Button>
-          
-          <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
-            <Button 
-              variant="outline" 
-              onClick={dialogHandlers.openCategory}
-              className={cn("w-full sm:w-auto", isMobile ? "text-sm" : "")}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              {isMobile ? "Kategori" : "Kelola Kategori"}
-            </Button>
+      ) : (
+        <div className="p-4 sm:p-6 space-y-6">
+          {/* Header */}
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
+                <div className="flex items-center gap-1 text-xs text-blue-600">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  Live Data
+                </div>
+              </div>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                Analisis pemasukan, pengeluaran, dan saldo bisnis Anda dengan data real-time
+              </p>
+              {financialData.lastUpdated && (
+                <p className="text-xs text-gray-400">
+                  Terakhir diperbarui: {financialData.lastUpdated.toLocaleString('id-ID')}
+                </p>
+              )}
+            </div>
             
-            <div className="w-full sm:w-auto sm:min-w-[280px]">
-              <DateRangeSelector 
-                dateRange={dateRange} 
-                onDateRangeChange={setDateRange}
-                isMobile={isMobile}
-              />
+            <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
+              <Button 
+                onClick={() => dialogHandlers.openTransaction()}
+                disabled={financialData.isProcessing}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {financialData.isCreating ? 'Menambah...' : 'Tambah Transaksi'}
+              </Button>
+              
+              <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
+                <Button 
+                  variant="outline" 
+                  onClick={dialogHandlers.openCategory}
+                  className={cn("w-full sm:w-auto", isMobile ? "text-sm" : "")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  {isMobile ? "Kategori" : "Kelola Kategori"}
+                </Button>
+                
+                <div className="w-full sm:w-auto sm:min-w-[280px]">
+                  <DateRangeSelector 
+                    dateRange={dateRange} 
+                    onDateRangeChange={setDateRange}
+                    isMobile={isMobile}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Summary Cards */}
+          <SummaryCards 
+            totalIncome={financialData.summary.totalIncome}
+            totalExpense={financialData.summary.totalExpense}
+            balance={financialData.summary.balance}
+            stats={financialData.stats}
+            isLoading={financialData.isStatsLoading}
+            onRefresh={financialData.refreshAll}
+          />
+
+          {/* Charts */}
+          <Suspense fallback={<ChartSkeleton />}>
+            <FinancialCharts 
+              filteredTransactions={financialData.transactions}
+              dateRange={dateRange}
+              isLoading={financialData.isTransactionsLoading}
+            />
+          </Suspense>
+
+          <Suspense fallback={
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartSkeleton />
+              <ChartSkeleton />
+            </div>
+          }>
+            <CategoryCharts 
+              filteredTransactions={financialData.transactions}
+              isLoading={financialData.isTransactionsLoading}
+            />
+          </Suspense>
+
+          {/* Transaction Table */}
+          <Suspense fallback={<TableSkeleton />}>
+            <TransactionTable
+              transactions={financialData.transactions}
+              onEditTransaction={dialogHandlers.openTransaction}
+              onAddTransaction={() => dialogHandlers.openTransaction()}
+              onDeleteTransaction={financialData.deleteTransaction}
+              isLoading={financialData.isTransactionsLoading}
+              onRefresh={financialData.refreshAll}
+            />
+          </Suspense>
+
+          {/* Dialogs */}
+          <Suspense fallback={null}>
+            <FinancialTransactionDialog
+              isOpen={pageState.transaction.isDialogOpen}
+              onClose={dialogHandlers.closeTransaction}
+              onAddTransaction={financialData.addTransaction}
+              onUpdateTransaction={financialData.updateTransaction}
+              categories={DEFAULT_FINANCIAL_CATEGORIES}
+              transaction={pageState.transaction.editing}
+              isProcessing={financialData.isProcessing}
+            />
+          </Suspense>
+
+          <Suspense fallback={null}>
+            <CategoryManagementDialog
+              isOpen={pageState.category.isDialogOpen}
+              onClose={dialogHandlers.closeCategory}
+              categories={Object.keys(financialData.summary.categoryTotals)}
+              onSaveCategories={(categories) => {
+                toast.success('Kategori berhasil disimpan');
+              }}
+            />
+          </Suspense>
         </div>
-      </div>
-
-      {/* Enhanced Summary Cards dengan real-time data */}
-      <SummaryCards 
-        totalIncome={financialData.totalIncome}
-        totalExpense={financialData.totalExpense}
-        balance={financialData.balance}
-        stats={financialData.stats}
-        isLoading={financialData.isStatsLoading}
-        onRefresh={financialData.refreshAll}
-      />
-
-      {/* Charts */}
-      <Suspense fallback={<ChartSkeleton />}>
-        <FinancialCharts 
-          filteredTransactions={financialData.transactions}
-          dateRange={dateRange}
-          isLoading={financialData.isTransactionsLoading}
-        />
-      </Suspense>
-
-      <Suspense fallback={
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartSkeleton />
-          <ChartSkeleton />
-        </div>
-      }>
-        <CategoryCharts 
-          filteredTransactions={financialData.transactions}
-          isLoading={financialData.isTransactionsLoading}
-        />
-      </Suspense>
-
-      {/* Transaction Table */}
-      <Suspense fallback={<TableSkeleton />}>
-        <TransactionTable
-          transactions={financialData.transactions}
-          onEditTransaction={dialogHandlers.openTransaction}
-          onAddTransaction={() => dialogHandlers.openTransaction()}
-          isLoading={financialData.isTransactionsLoading}
-          onRefresh={financialData.refreshAll}
-        />
-      </Suspense>
-
-      {/* Dialogs */}
-      <Suspense fallback={null}>
-        <FinancialTransactionDialog
-          isOpen={pageState.transaction.isDialogOpen}
-          onClose={dialogHandlers.closeTransaction}
-          onAddTransaction={financialData.addTransaction}
-          onUpdateTransaction={financialData.updateTransaction}
-          categories={financialData.stats?.categoryBreakdown ? Object.keys(financialData.stats.categoryBreakdown) : []}
-          transaction={pageState.transaction.editing}
-          isProcessing={financialData.isProcessing}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <CategoryManagementDialog
-          isOpen={pageState.category.isDialogOpen}
-          onClose={dialogHandlers.closeCategory}
-          categories={financialData.stats?.categoryBreakdown ? Object.keys(financialData.stats.categoryBreakdown) : []}
-          onSaveCategories={(categories) => {
-            // Handle category save
-            toast.success('Kategori berhasil disimpan');
-          }}
-        />
-      </Suspense>
-    </div>
+      )}
+    </AuthGuard>
   );
 };
 

@@ -231,9 +231,8 @@ const DialogSkeleton = () => (
 const useWarehouseData = () => {
   const queryClient = useQueryClient();
   
-  // ✅ TAMBAH: State untuk track actual data changes
-  const [lastDataUpdate, setLastDataUpdate] = useState<Date | undefined>(undefined);
-  const previousDataRef = useRef<string>('');
+  // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
+  const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
   
   // Query untuk data warehouse
   const {
@@ -254,42 +253,20 @@ const useWarehouseData = () => {
     },
   });
 
-  // ✅ TAMBAH: Effect untuk detect actual data changes
-  useEffect(() => {
-    if (bahanBaku && bahanBaku.length >= 0) {
-      const currentDataString = JSON.stringify(bahanBaku);
-      
-      // Cek apakah data beneran berubah (bukan cuma re-fetch)
-      if (previousDataRef.current && previousDataRef.current !== currentDataString) {
-        setLastDataUpdate(new Date());
-        logger.debug('📊 Data warehouse berubah, update timestamp');
-      } else if (!previousDataRef.current && bahanBaku.length > 0) {
-        // First time load dengan data
-        setLastDataUpdate(new Date());
-        logger.debug('📊 Data warehouse loaded pertama kali');
-      }
-      
-      previousDataRef.current = currentDataString;
-    }
-  }, [bahanBaku]);
-
-  // ✅ TAMBAH: Custom refetch yang tidak update timestamp jika data sama
+  // ✅ TAMBAH: Simple refetch tanpa update timestamp
   const smartRefetch = async () => {
     logger.debug('🔄 Manual refresh warehouse data...');
-    const result = await refetch();
-    
-    // Timestamp akan diupdate otomatis di useEffect di atas 
-    // hanya jika data beneran berubah
-    
-    return result;
+    // Tidak update timestamp karena ini bukan user action yang mengubah data
+    return await refetch();
   };
 
-  // Mutations
+  // Mutations dengan explicit timestamp update
   const createMutation = useMutation({
     mutationFn: createWarehouseItem,
     onSuccess: (newItem) => {
+      // ✅ FIXED: Update timestamp saat user berhasil tambah item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
-      // Timestamp akan diupdate otomatis saat data berubah
       logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
     },
     onError: (error: Error) => {
@@ -300,8 +277,9 @@ const useWarehouseData = () => {
   const updateMutation = useMutation({
     mutationFn: updateWarehouseItem,
     onSuccess: (updatedItem) => {
+      // ✅ FIXED: Update timestamp saat user berhasil edit item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
-      // Timestamp akan diupdate otomatis saat data berubah
       logger.info(`✅ Item "${updatedItem.nama}" berhasil diperbarui`);
     },
     onError: (error: Error) => {
@@ -312,8 +290,9 @@ const useWarehouseData = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteWarehouseItem,
     onSuccess: () => {
+      // ✅ FIXED: Update timestamp saat user berhasil hapus item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
-      // Timestamp akan diupdate otomatis saat data berubah
       logger.info('✅ Item berhasil dihapus');
     },
     onError: (error: Error) => {
@@ -326,10 +305,10 @@ const useWarehouseData = () => {
     bahanBaku,
     loading,
     error: error as Error | null,
-    lastUpdated: lastDataUpdate, // ✅ FIXED: Pakai timestamp yang actual berubah
+    lastUpdated: lastUserAction, // ✅ FIXED: Hanya update saat user action (tambah/edit/hapus)
     
     // Actions
-    refetch: smartRefetch, // ✅ FIXED: Pakai smart refetch
+    refetch: smartRefetch, // ✅ FIXED: Refetch tanpa update timestamp
     createItem: createMutation.mutateAsync,
     updateItem: updateMutation.mutateAsync,
     deleteItem: deleteMutation.mutateAsync,

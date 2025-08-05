@@ -210,7 +210,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                 id="amount"
                 type="number"
                 min="0"
-                step="1000"
+                step="1"
                 value={formData.amount}
                 onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
                 placeholder="0"

@@ -1,7 +1,6 @@
 // src/components/financial/components/TransactionTable.tsx
-// Enhanced Transaction Table with useQuery and Visible Pagination
-
-import React, { useState, useMemo } from 'react';
+// ✅ Fixed: Uses Supabase via financialApi, no REST fetch
+import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -25,17 +24,23 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 
+// ✅ Import API functions from your existing service
+import {
+  getTransactionsByDateRange,
+  deleteFinancialTransaction,
+} from '../../services/financialApi';
+
 // ✅ Types
 interface FinancialTransaction {
   id: string;
-  date: string;
-  description: string;
+  date: Date | string | null;
+  description: string | null;
   amount: number;
   type: 'income' | 'expense';
-  category: string;
+  category: string | null;
   userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 interface TransactionTableProps {
@@ -52,88 +57,70 @@ interface TransactionTableProps {
 
 // ✅ Query keys
 const transactionQueryKeys = {
-  all: ['transactions'] as const,
-  list: () => [...transactionQueryKeys.all, 'list'] as const,
+  all: ['financial'] as const,
+  list: () => [...transactionQueryKeys.all, 'transactions'] as const,
   byRange: (from: Date, to?: Date) => 
     [...transactionQueryKeys.list(), 'range', from.toISOString(), to?.toISOString()] as const,
 };
 
-// ✅ API functions
-const fetchTransactions = async (dateRange?: { from: Date; to?: Date }): Promise<FinancialTransaction[]> => {
-  try {
-    const params = new URLSearchParams();
-    if (dateRange?.from) {
-      params.append('from', dateRange.from.toISOString());
-    }
-    if (dateRange?.to) {
-      params.append('to', dateRange.to.toISOString());
-    }
+// ✅ Custom hook untuk transaction data — menggunakan financialApi langsung
+const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: string) => {
+  const queryClient = useQueryClient();
 
-    const response = await fetch(`/api/financial/transactions${params.toString() ? '?' + params.toString() : ''}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch transactions: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    logger.error('Failed to fetch transactions:', error);
-    // Mock data untuk development
-    return [
-      {
-        id: '1',
-        date: new Date().toISOString(),
-        description: 'Penjualan Menu Utama',
-        amount: 150000,
-        type: 'income',
-        category: 'Penjualan'
-      },
-      {
-        id: '2',
-        date: new Date().toISOString(),
-        description: 'Pembelian Bahan Baku',
-        amount: 75000,
-        type: 'expense',
-        category: 'Operasional'
-      },
-      {
-        id: '3',
-        date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-        description: 'Service AC',
-        amount: 200000,
-        type: 'expense',
-        category: 'Perawatan'
-      },
-      {
-        id: '4',
-        date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        description: 'Penjualan Paket Hemat',
-        amount: 85000,
-        type: 'income',
-        category: 'Penjualan'
-      },
-      {
-        id: '5',
-        date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-        description: 'Listrik Bulan Ini',
-        amount: 320000,
-        type: 'expense',
-        category: 'Utilitas'
+  // Hanya fetch jika userId ada dan dateRange valid
+  const enabled = !!userId && !!dateRange?.from;
+
+  const {
+    data: transactions = [],
+    isLoading,
+    error,
+    refetch,
+    dataUpdatedAt,
+    isRefetching,
+  } = useQuery({
+    queryKey: dateRange 
+      ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
+      : transactionQueryKeys.list(),
+    queryFn: () => {
+      if (!userId || !dateRange?.from) {
+        return Promise.resolve([]);
       }
-    ] as FinancialTransaction[];
-  }
-};
+      return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
+    },
+    enabled,
+    staleTime: 2 * 60 * 1000, // 2 menit
+    refetchInterval: 5 * 60 * 1000, // Refresh tiap 5 menit
+    retry: 1,
+  });
 
-const deleteTransaction = async (id: string): Promise<void> => {
-  try {
-    const response = await fetch(`/api/financial/transactions/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to delete transaction: ${response.status}`);
-    }
-  } catch (error) {
-    logger.error('Failed to delete transaction:', error);
-    throw error;
-  }
+  // Mutation: Hapus transaksi
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteFinancialTransaction(id),
+    onSuccess: (response) => {
+      if (response.success) {
+        // Invalidate cache
+        queryClient.invalidateQueries({ queryKey: transactionQueryKeys.list() });
+        toast.success('Transaksi berhasil dihapus');
+      } else {
+        toast.error(response.error || 'Gagal menghapus transaksi');
+      }
+    },
+    onError: (error: Error) => {
+      logger.error('Failed to delete transaction:', error);
+      toast.error(`Gagal menghapus transaksi: ${error.message}`);
+    },
+  });
+
+  return {
+    transactions,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
+    deleteTransaction: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+  };
 };
 
 // ✅ Loading Skeleton
@@ -152,52 +139,6 @@ const TableSkeleton = () => (
   </div>
 );
 
-// ✅ Custom hook untuk transaction data
-const useTransactionData = (dateRange?: { from: Date; to?: Date }) => {
-  const queryClient = useQueryClient();
-
-  // Query untuk transactions
-  const {
-    data: transactions = [],
-    isLoading,
-    error,
-    refetch,
-    dataUpdatedAt,
-    isRefetching,
-  } = useQuery({
-    queryKey: dateRange 
-      ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
-      : transactionQueryKeys.list(),
-    queryFn: () => fetchTransactions(dateRange),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
-    retry: 1,
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: deleteTransaction,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: transactionQueryKeys.all });
-      toast.success('Transaksi berhasil dihapus');
-    },
-    onError: (error: Error) => {
-      toast.error(`Gagal menghapus transaksi: ${error.message}`);
-    },
-  });
-
-  return {
-    transactions,
-    isLoading,
-    error,
-    refetch,
-    isRefetching,
-    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
-    deleteTransaction: deleteMutation.mutateAsync,
-    isDeleting: deleteMutation.isPending,
-  };
-};
-
 // ✅ Main Component
 const TransactionTable: React.FC<TransactionTableProps> = ({ 
   dateRange,
@@ -213,8 +154,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Use either useQuery or legacy props
-  const queryData = useTransactionData(dateRange);
+  // Ambil userId dari context Auth (jika tersedia)
+  const { useAuth } = require('@/contexts/AuthContext');
+  const { user } = useAuth();
+
+  // Gunakan data dari useQuery (Supabase) atau dari props
+  const queryData = useTransactionData(dateRange, user?.id);
   const transactions = legacyTransactions || queryData.transactions;
   const isLoading = legacyIsLoading ?? queryData.isLoading;
   const onRefresh = legacyOnRefresh || queryData.refetch;
@@ -231,66 +176,53 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, transactions.length);
 
-  // Reset page when transactions change
+  // Reset page saat data berubah
   React.useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1);
     }
   }, [transactions.length, totalPages, currentPage]);
 
-  // Reset page when items per page changes
   React.useEffect(() => {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
-  const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
-  };
+  const handlePreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
 
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  };
-
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
 
   const handleDelete = async (transaction: FinancialTransaction) => {
-    if (window.confirm(`Yakin ingin menghapus transaksi "${transaction.description}"?`)) {
-      try {
-        if (onDeleteTransaction) {
-          onDeleteTransaction(transaction.id);
-        } else {
-          await queryData.deleteTransaction(transaction.id);
-        }
-      } catch (error) {
-        console.error('Error deleting transaction:', error);
+    if (!window.confirm(`Yakin ingin menghapus transaksi "${transaction.description}"?`)) return;
+
+    try {
+      if (onDeleteTransaction) {
+        await onDeleteTransaction(transaction.id);
+      } else {
+        await queryData.deleteTransaction(transaction.id);
       }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
     }
   };
 
-  // Generate page numbers for pagination
+  // Generate page numbers
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
-    
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       const start = Math.max(1, currentPage - 2);
       const end = Math.min(totalPages, start + maxVisiblePages - 1);
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
+      for (let i = start; i <= end; i++) pages.push(i);
     }
-    
     return pages;
   };
 
-  // Error state
+  // Tampilkan error hanya jika pakai query dan error
   if (queryData.error && !legacyTransactions) {
     return (
       <Card className={className}>
@@ -301,7 +233,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <p className="text-sm text-gray-500">
               Terjadi kesalahan saat mengambil data transaksi
             </p>
-            <Button onClick={() => queryData.refetch()} variant="outline">
+            <Button onClick={onRefresh} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Coba Lagi
             </Button>
@@ -312,7 +244,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   }
 
   return (
-    <Card className={className}>
+    <Card className={cn("overflow-hidden", className)}>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex items-center gap-2">
@@ -324,7 +256,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               </div>
             )}
           </div>
-          
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
@@ -335,7 +266,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
               {isRefetching ? 'Memuat...' : 'Refresh'}
             </Button>
-            
             {onAddTransaction && (
               <Button size="sm" onClick={onAddTransaction}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -344,14 +274,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             )}
           </div>
         </div>
-        
         {lastUpdated && (
           <p className="text-xs text-gray-400">
             Terakhir diperbarui: {lastUpdated.toLocaleString('id-ID')}
           </p>
         )}
       </CardHeader>
-      
       <CardContent className="p-0">
         {isLoading ? (
           <div className="p-4">
@@ -375,7 +303,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        {format(new Date(transaction.date), 'dd MMM yyyy', { locale: id })}
+                        {transaction.date 
+                          ? format(new Date(transaction.date), 'dd MMM yyyy', { locale: id })
+                          : '-'
+                        }
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {transaction.description || '-'}
@@ -388,7 +319,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       <TableCell>
                         <Badge 
                           variant={transaction.type === 'income' ? 'default' : 'destructive'}
-                          className={transaction.type === 'income' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                          className={transaction.type === 'income' 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : ''
+                          }
                         >
                           {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
                         </Badge>
@@ -451,10 +385,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         )}
       </CardContent>
 
-      {/* Enhanced Pagination - Always Show if there are transactions */}
       {transactions.length > 0 && !isLoading && (
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
-          {/* Left side - Info & Items per page */}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div>
               Menampilkan {startItem}-{endItem} dari {transactions.length} transaksi
@@ -478,10 +410,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             </div>
           </div>
 
-          {/* Right side - Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
-              {/* Previous Button */}
               <Button 
                 variant="outline" 
                 size="sm"
@@ -493,12 +423,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 Sebelumnya
               </Button>
 
-              {/* Page Numbers */}
               <div className="flex items-center gap-1 mx-2">
-                {getPageNumbers().map((pageNum, index, array) => (
+                {getPageNumbers().map((pageNum) => (
                   <React.Fragment key={pageNum}>
-                    {/* Show ellipsis if there's a gap */}
-                    {index === 0 && pageNum > 1 && (
+                    {pageNum === 1 && currentPage > 3 && (
                       <>
                         <Button 
                           variant="outline" 
@@ -508,14 +436,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         >
                           1
                         </Button>
-                        {pageNum > 2 && (
-                          <div className="px-2">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </div>
-                        )}
+                        <div className="px-2">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </div>
                       </>
                     )}
-                    
                     <Button 
                       variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
@@ -524,15 +449,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     >
                       {pageNum}
                     </Button>
-
-                    {/* Show ellipsis if there's a gap at the end */}
-                    {index === array.length - 1 && pageNum < totalPages && (
+                    {pageNum === totalPages && currentPage < totalPages - 2 && (
                       <>
-                        {pageNum < totalPages - 1 && (
-                          <div className="px-2">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </div>
-                        )}
+                        <div className="px-2">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </div>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -547,7 +468,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 ))}
               </div>
 
-              {/* Next Button */}
               <Button 
                 variant="outline" 
                 size="sm"

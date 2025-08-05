@@ -197,7 +197,7 @@ const LoadingSpinner = () => (
 );
 
 const TableSkeleton = () => (
-  <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+  <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
     <div className="p-4 border-b">
       <div className="flex items-center justify-between">
         <div className="h-10 bg-gray-200 rounded-md w-1/3 animate-pulse" />

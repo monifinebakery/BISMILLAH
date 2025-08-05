@@ -18,7 +18,7 @@ import {
 
 // Components
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import PromoEditModal from './PromoEditModal'; // Import modal
+import PromoEditModal from '@/components/promoCalculator/promoList/components/PromoEditModal'; // Import modal
 
 // ✅ Temporary PromoTable Component - Replace with correct import later
 const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {
@@ -185,11 +185,20 @@ const PromoList = () => {
       console.log('📝 Updating promo:', id, data);
       
       // Validate data before sending
-      if (!data.nama_promo?.trim()) {
+      if (!data.namaPromo?.trim()) {
         throw new Error('Nama promo tidak boleh kosong');
       }
       
-      const updatedPromo = await promoService.update(id, data);
+      // Transform field names if needed for compatibility
+      const transformedData = {
+        ...data,
+        // Ensure we're using the right field names for the service
+        namaPromo: data.namaPromo || data.nama_promo,
+        tanggalMulai: data.tanggalMulai || data.tanggal_mulai,
+        tanggalSelesai: data.tanggalSelesai || data.tanggal_selesai
+      };
+      
+      const updatedPromo = await promoService.update(id, transformedData);
       console.log('✅ Promo updated successfully:', updatedPromo);
       return updatedPromo;
     },

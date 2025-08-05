@@ -18,7 +18,7 @@ import {
 
 // Components
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import PromoEditModal from './promoList/PromoEditModal'; // Import modal
+import PromoEditModal from './PromoEditModal'; // Import modal
 
 // ✅ Temporary PromoTable Component - Replace with correct import later
 const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {

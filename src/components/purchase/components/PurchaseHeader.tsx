@@ -65,17 +65,6 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
                 Export
               </Button>
             )}
-            
-            {onSettings && (
-              <Button
-                onClick={onSettings}
-                variant="ghost"
-                size="icon"
-                className="flex items-center justify-center p-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-            )}
           </div>
         </div>
 

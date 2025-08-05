@@ -1,10 +1,9 @@
-// 🎯 Form untuk BOGO (Buy One Get One) - Fixed with Proper Recipe Properties
-
+// BogoForm.jsx - Fixed ReferenceError: Cannot access 'x' before initialization
 import React, { useState } from 'react';
 import { Gift, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BogoForm = ({ onSubmit, isLoading, recipes }) => {
+const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     resepUtama: '',
@@ -20,10 +19,54 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
   const [showResepUtama, setShowResepUtama] = useState(false);
   const [showResepGratis, setShowResepGratis] = useState(false);
 
-  const filteredRecipes = recipes.filter(recipe => {
-    const name = getRecipeProperty(recipe, 'name');
-    return name.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  // ✅ FIXED: Helper functions moved to TOP before being used
+  const getRecipeProperty = (recipe, property) => {
+    if (!recipe || typeof recipe !== 'object') {
+      return property === 'name' ? 'Unknown Recipe' : 0;
+    }
+    
+    const possibleNames = {
+      hpp: ['hpp', 'hppPerPorsi', 'cost_per_portion', 'hpp_per_porsi'],
+      harga: ['harga_jual', 'hargaJualPorsi', 'hargaJual', 'price', 'selling_price', 'harga_jual_porsi'],
+      name: ['namaResep', 'name', 'recipe_name', 'nama_resep']
+    };
+    
+    const names = possibleNames[property] || [property];
+    
+    for (const name of names) {
+      if (recipe[name] !== undefined && recipe[name] !== null) {
+        return recipe[name];
+      }
+    }
+    
+    return property === 'name' ? 'Unknown Recipe' : 0;
+  };
+
+  const getRecipeById = (id) => {
+    if (!Array.isArray(recipes)) return null;
+    return recipes.find(r => r && r.id === id) || null;
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(value || 0);
+  };
+
+  // ✅ FIXED: Safe filtering with proper validation
+  const filteredRecipes = Array.isArray(recipes) ? recipes.filter(recipe => {
+    if (!recipe || typeof recipe !== 'object') return false;
+    
+    try {
+      const name = getRecipeProperty(recipe, 'name');
+      return name && name.toLowerCase().includes(searchTerm.toLowerCase());
+    } catch (error) {
+      console.error('Error filtering recipe:', error, recipe);
+      return false;
+    }
+  }) : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -46,42 +89,16 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
       return;
     }
 
-    onSubmit(formData);
+    try {
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Terjadi kesalahan saat menyimpan');
+    }
   };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Helper function to get the correct property value
-  const getRecipeProperty = (recipe, property) => {
-    if (!recipe) return property === 'name' ? 'Unknown Recipe' : 0;
-    
-    const possibleNames = {
-      hpp: ['hpp', 'hppPerPorsi', 'cost_per_portion', 'hpp_per_porsi'],
-      harga: ['harga_jual', 'hargaJualPorsi', 'hargaJual', 'price', 'selling_price', 'harga_jual_porsi'],
-      name: ['namaResep', 'name', 'recipe_name', 'nama_resep']
-    };
-    
-    const names = possibleNames[property] || [property];
-    
-    for (const name of names) {
-      if (recipe[name] !== undefined && recipe[name] !== null) {
-        return recipe[name];
-      }
-    }
-    
-    return property === 'name' ? 'Unknown Recipe' : 0;
-  };
-
-  const getRecipeById = (id) => recipes.find(r => r.id === id);
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value || 0);
   };
 
   const RecipeSelector = ({ 
@@ -144,39 +161,52 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
 
             {/* Recipe List */}
             <div className="max-h-48 overflow-y-auto">
-              {filteredRecipes.filter(r => r.id !== excludeId).length === 0 ? (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  Tidak ada resep ditemukan
-                </div>
-              ) : (
-                filteredRecipes.filter(r => r.id !== excludeId).map((recipe) => {
-                  const hpp = getRecipeProperty(recipe, 'hpp');
-                  const harga = getRecipeProperty(recipe, 'harga');
-                  const margin = harga > 0 ? ((harga - hpp) / harga * 100) : 0;
-                  
+              {(() => {
+                const availableRecipes = filteredRecipes.filter(r => r && r.id !== excludeId);
+                
+                if (availableRecipes.length === 0) {
                   return (
-                    <button
-                      key={recipe.id}
-                      type="button"
-                      onClick={() => {
-                        onChange(recipe.id);
-                        setShowDropdown(false);
-                        setSearchTerm('');
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                    >
-                      <div className="font-medium text-gray-900">
-                        {getRecipeProperty(recipe, 'name')}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">
-                        HPP: {formatCurrency(hpp)} • 
-                        Harga: {formatCurrency(harga)} • 
-                        Margin: {margin.toFixed(1)}%
-                      </div>
-                    </button>
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      Tidak ada resep ditemukan
+                    </div>
                   );
-                })
-              )}
+                }
+
+                return availableRecipes.map((recipe) => {
+                  if (!recipe || !recipe.id) return null;
+                  
+                  try {
+                    const hpp = getRecipeProperty(recipe, 'hpp');
+                    const harga = getRecipeProperty(recipe, 'harga');
+                    const margin = harga > 0 ? ((harga - hpp) / harga * 100) : 0;
+                    
+                    return (
+                      <button
+                        key={recipe.id}
+                        type="button"
+                        onClick={() => {
+                          onChange(recipe.id);
+                          setShowDropdown(false);
+                          setSearchTerm('');
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {getRecipeProperty(recipe, 'name')}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          HPP: {formatCurrency(hpp)} • 
+                          Harga: {formatCurrency(harga)} • 
+                          Margin: {margin.toFixed(1)}%
+                        </div>
+                      </button>
+                    );
+                  } catch (error) {
+                    console.error('Error rendering recipe:', error, recipe);
+                    return null;
+                  }
+                });
+              })()}
             </div>
           </div>
         )}
@@ -193,6 +223,12 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
         )}
       </div>
     );
+  };
+
+  // Safe recipe retrieval for preview
+  const getRecipeForPreview = (recipeId) => {
+    if (!recipeId) return null;
+    return getRecipeById(recipeId);
   };
 
   return (
@@ -235,36 +271,52 @@ const BogoForm = ({ onSubmit, isLoading, recipes }) => {
         />
       </div>
 
-      {/* BOGO Preview */}
-      {formData.resepUtama && formData.resepGratis && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h4 className="font-medium text-green-800 mb-3">Preview BOGO:</h4>
-          <div className="text-sm text-green-700">
-            <div className="flex items-center justify-between mb-2">
-              <span>Beli: {getRecipeProperty(getRecipeById(formData.resepUtama), 'name')}</span>
-              <span className="font-medium">
-                {formatCurrency(getRecipeProperty(getRecipeById(formData.resepUtama), 'harga'))}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <span>Gratis: {getRecipeProperty(getRecipeById(formData.resepGratis), 'name')}</span>
-              <span className="font-medium line-through text-gray-500">
-                {formatCurrency(getRecipeProperty(getRecipeById(formData.resepGratis), 'harga'))}
-              </span>
-            </div>
-            <div className="border-t border-green-300 pt-2 mt-2">
-              <div className="flex items-center justify-between font-semibold">
-                <span>Total Customer Bayar:</span>
-                <span>{formatCurrency(getRecipeProperty(getRecipeById(formData.resepUtama), 'harga'))}</span>
+      {/* BOGO Preview - FIXED with safe recipe access */}
+      {formData.resepUtama && formData.resepGratis && (() => {
+        const resepUtama = getRecipeForPreview(formData.resepUtama);
+        const resepGratis = getRecipeForPreview(formData.resepGratis);
+        
+        if (!resepUtama || !resepGratis) return null;
+
+        try {
+          return (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-medium text-green-800 mb-3">Preview BOGO:</h4>
+              <div className="text-sm text-green-700">
+                <div className="flex items-center justify-between mb-2">
+                  <span>Beli: {getRecipeProperty(resepUtama, 'name')}</span>
+                  <span className="font-medium">
+                    {formatCurrency(getRecipeProperty(resepUtama, 'harga'))}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span>Gratis: {getRecipeProperty(resepGratis, 'name')}</span>
+                  <span className="font-medium line-through text-gray-500">
+                    {formatCurrency(getRecipeProperty(resepGratis, 'harga'))}
+                  </span>
+                </div>
+                <div className="border-t border-green-300 pt-2 mt-2">
+                  <div className="flex items-center justify-between font-semibold">
+                    <span>Total Customer Bayar:</span>
+                    <span>{formatCurrency(getRecipeProperty(resepUtama, 'harga'))}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs mt-1">
+                    <span>Hemat:</span>
+                    <span>{formatCurrency(getRecipeProperty(resepGratis, 'harga'))}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-xs mt-1">
-                <span>Hemat:</span>
-                <span>{formatCurrency(getRecipeProperty(getRecipeById(formData.resepGratis), 'harga'))}</span>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+        } catch (error) {
+          console.error('Error rendering BOGO preview:', error);
+          return (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-700 text-sm">Error menampilkan preview</p>
+            </div>
+          );
+        }
+      })()}
 
       {/* Minimal Quantity */}
       <div>

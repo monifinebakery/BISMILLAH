@@ -428,12 +428,6 @@ const PromoList = () => {
               <Search className="h-12 w-12 mx-auto" />
             </div>
             <p className="text-gray-600 mb-4">Tidak ada promo ditemukan</p>
-            <button
-              onClick={handleCreatePromo}
-              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              Buat Promo Pertama
-            </button>
           </div>
         )}
 

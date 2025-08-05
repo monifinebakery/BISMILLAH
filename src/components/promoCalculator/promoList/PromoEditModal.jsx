@@ -42,7 +42,11 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!promo) return;
+    if (!promo) {
+      console.error('❌ No promo data available');
+      toast.error('Data promo tidak tersedia');
+      return;
+    }
 
     // Validation
     if (!formData.nama_promo.trim()) {
@@ -50,17 +54,24 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
       return;
     }
 
+    console.log('📝 Submitting form data:', {
+      promoId: promo.id,
+      formData,
+      originalPromo: promo
+    });
+
     setIsLoading(true);
     try {
-      console.log('💾 Saving promo with data:', formData);
-      
       // Call onSave from parent (PromoList)
       await onSave(formData);
       
-      // Don't close modal here - let parent handle success/error
+      console.log('✅ Form submitted successfully');
+      // Modal will be closed by parent on success
+      
     } catch (error) {
-      console.error('❌ Error in modal:', error);
+      console.error('❌ Error in modal submit:', error);
       toast.error(`Gagal memperbarui promo: ${error.message}`);
+    } finally {
       setIsLoading(false);
     }
   };

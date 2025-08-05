@@ -28,7 +28,7 @@ import { logger } from '@/utils/logger';
 import {
   getTransactionsByDateRange,
   deleteFinancialTransaction,
-} from '../../services/financialApi';
+} from '../services/financialApi';
 
 // ✅ Types
 interface FinancialTransaction {

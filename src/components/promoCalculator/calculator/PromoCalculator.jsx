@@ -1,25 +1,20 @@
 // src/pages/PromoCalculator.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // ✅ Gunakan React Router
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { 
   Plus, 
   RefreshCw, 
   AlertCircle, 
-  ArrowLeft, 
-  Eye, 
-  Edit, 
-  Trash2 
+  Eye 
 } from 'lucide-react';
-import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Sesuaikan path
-import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog'; // ✅ Sesuaikan path
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
-import { LoadingState } from '@/components/recipe/components/shared/LoadingState'; // ✅ Sesuaikan path
+import PromoCard from '@/components/promoCalculator/components/PromoCard';
+import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog';
+import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
+import { promoService } from '@/components/promoCalculator/services/promoService';
 
 // ✅ Query Keys
 const PROMO_QUERY_KEYS = {
@@ -31,24 +26,14 @@ const PROMO_QUERY_KEYS = {
 
 const PromoCalculator = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-
-  // ✅ Cek mode edit dari URL
-  const editId = searchParams.get('edit');
-
-  // ✅ State untuk promo calculator itu sendiri (jika ada form kalkulasi)
-  // Untuk contoh ini, kita fokus pada daftar promo terbaru
-  const [latestPromos, setLatestPromos] = useState([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
 
-  // ✅ useQuery: Fetch 3 Promo Terbaru
+  // ✅ Fetch 3 Promo Terbaru
   const latestPromosQuery = useQuery({
-    queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }), // Parameter khusus untuk limit
+    queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
-      // Modifikasi promoService.getAll untuk menerima limit jika perlu
-      // Untuk sementara, kita fetch semua dan slice di frontend
       const allPromos = await promoService.getAll({});
       return (allPromos || []).slice(0, 3);
     },
@@ -56,12 +41,9 @@ const PromoCalculator = () => {
     retry: 2,
   });
 
-  // ✅ useMutation: Delete Promo (untuk aksi di card)
+  // ✅ Mutations untuk aksi di card (hapus, toggle status)
   const deletePromoMutation = useMutation({
-    mutationFn: async (id) => {
-      await promoService.delete(id);
-      return id;
-    },
+    mutationFn: async (id) => await promoService.delete(id),
     onSuccess: (deletedId) => {
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       toast.success('Promo berhasil dihapus');
@@ -72,12 +54,8 @@ const PromoCalculator = () => {
     },
   });
 
-  // ✅ useMutation: Toggle Promo Status (untuk aksi di card)
   const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, newStatus }) => {
-      const updatedPromo = await promoService.toggleStatus({ id, newStatus });
-      return updatedPromo;
-    },
+    mutationFn: async ({ id, newStatus }) => await promoService.toggleStatus({ id, newStatus }),
     onSuccess: (updatedPromo) => {
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       toast.success(`Promo berhasil ${updatedPromo.status === 'aktif' ? 'diaktifkan' : 'dinonaktifkan'}`);
@@ -88,13 +66,7 @@ const PromoCalculator = () => {
     },
   });
 
-  // ✅ Sinkronisasi data terbaru
-  useEffect(() => {
-    if (latestPromosQuery.data) {
-      setLatestPromos(latestPromosQuery.data);
-    }
-  }, [latestPromosQuery.data]);
-
+  // ✅ Handlers
   const handleRefresh = () => {
     latestPromosQuery.refetch();
     if (isEditDialogOpen) {
@@ -104,18 +76,17 @@ const PromoCalculator = () => {
   };
 
   const handleCreateNew = () => {
-    // Arahkan ke halaman kalkulator promo penuh (jika berbeda) atau halaman baru
-    // Misalnya, jika ini adalah halaman ringkas, arahkan ke halaman penuh
-    navigate('/promo/full-calculator'); // Sesuaikan dengan route Anda
-    // Atau jika ini adalah halaman utama kalkulator:
-    // window.location.href = '/promo/create'; 
+    // ✅ Navigasi ke halaman daftar promo untuk membuat baru
+    // Anda bisa mengganti ini dengan logika lain jika memiliki halaman kalkulator penuh terpisah
+    navigate('/promo/list'); 
+    toast.info('Navigasi ke daftar promo untuk membuat baru.');
   };
 
   const handleViewAll = () => {
-    navigate('/promo/list'); // Arahkan ke halaman daftar promo
+    navigate('/promo/list'); // ✅ Navigasi ke daftar lengkap
   };
 
-  // ✅ Handler untuk card actions
+  // ✅ Handlers untuk card actions
   const handleEdit = (promo) => {
     setEditingPromo(promo);
     setIsEditDialogOpen(true);
@@ -133,17 +104,15 @@ const PromoCalculator = () => {
 
   const handleView = (promo) => {
     toast.info(`Melihat detail promo: ${promo.namaPromo}`);
-    // Implementasi detail view jika diperlukan, misalnya modal atau halaman baru
-    // navigate(`/promo/${promo.id}`);
+    // Implementasi detail view jika diperlukan
   };
 
-  const handleEditSuccess = (updatedPromo) => {
-    console.log('Promo updated in calculator:', updatedPromo.id);
-    // Optional: Refresh data lokal jika perlu
+  const handleEditSuccess = () => {
+    console.log('Promo updated in calculator');
   };
 
-  // ✅ Loading & Error State
-  if (latestPromosQuery.isLoading && latestPromos.length === 0) {
+  // ✅ Render States
+  if (latestPromosQuery.isLoading && !latestPromosQuery.data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4 sm:p-6">
         <LoadingState />
@@ -151,7 +120,7 @@ const PromoCalculator = () => {
     );
   }
 
-  if (latestPromosQuery.error && latestPromos.length === 0) {
+  if (latestPromosQuery.error && !latestPromosQuery.data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full shadow-xl">
@@ -179,6 +148,8 @@ const PromoCalculator = () => {
       </div>
     );
   }
+
+  const promos = latestPromosQuery.data || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -222,9 +193,9 @@ const PromoCalculator = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {latestPromos.length > 0 ? (
+            {promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {latestPromos.map(promo => (
+                {promos.map(promo => (
                   <PromoCard
                     key={promo.id}
                     promo={promo}

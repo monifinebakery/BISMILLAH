@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { promoService } from '@/components/promoCalculator/services/promoService';
+import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
 
 // ✅ Definisikan tipe data promo jika menggunakan TypeScript, atau abaikan jika JavaScript
 // interface Promo {
@@ -37,9 +37,9 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
     formState: { errors, isSubmitting },
   } = useForm({
     // Mode validasi: 'onBlur', 'onChange', 'onSubmit', 'onTouched', 'all'
-    mode: 'onBlur', 
+    mode: 'onBlur',
     // Mode re-validasi setelah submit pertama gagal
-    reValidateMode: 'onChange', 
+    reValidateMode: 'onChange',
     // Nilai default
     defaultValues: promo || {
       namaPromo: '',
@@ -94,14 +94,8 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
     // Validasi manual sebelum submit
     const formErrors = validateForm(data);
     if (Object.keys(formErrors).length > 0) {
-      // Jika ada error, set error ke form state
-      Object.keys(formErrors).forEach((key) => {
-        // setError(key, { type: 'manual', message: formErrors[key] });
-        // Karena kita tidak menggunakan setError, kita bisa tampilkan toast untuk error umum
-        // atau tampilkan error di bawah masing-masing field
-        // Untuk kesederhanaan, kita tampilkan toast error umum jika ada error validasi
-        toast.error(`Validasi gagal: ${formErrors[key]}`);
-      });
+      // Jika ada error, tampilkan toast untuk error umum
+      toast.error(`Validasi gagal: ${Object.values(formErrors)[0]}`);
       return; // Hentikan submit
     }
 
@@ -112,22 +106,22 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
         return;
       }
 
-      console.log('Updating promo with data:', data);
-      
+      console.log('Updating promo with ', data);
+
       // ✅ Panggil service untuk update promo
       const result = await promoService.update(promo.id, data);
 
-      if (result.success) { // Asumsi apiService.update mengembalikan { success: true, data: ... } atau { success: false, error: '...' }
+      if (result.success) { // Asumsi promoService.update mengembalikan { success: true, data: ... } atau { success: false, error: '...' }
         toast.success('Promo berhasil diperbarui');
-        
+
         // ✅ Invalidate cache React Query untuk memperbarui data di UI
         queryClient.invalidateQueries({ queryKey: ['promos'] }); // Sesuaikan dengan query key Anda
-        
+
         // ✅ Panggil callback onEditSuccess jika ada
         if (onEditSuccess) {
           onEditSuccess(result.data); // Kirim data promo yang diperbarui
         }
-        
+
         // ✅ Tutup dialog
         onClose();
       } else {
@@ -151,14 +145,14 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Edit Promo</h2>
-        
+
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           {/* Nama Promo */}
           <div className="mb-4">
             <Label htmlFor="namaPromo">Nama Promo</Label>
             <Input
               id="namaPromo"
-              {...register('namaPromo', { 
+              {...register('namaPromo', {
                 required: 'Nama promo wajib diisi',
                 minLength: { value: 2, message: 'Nama promo harus minimal 2 karakter' }
               })}
@@ -174,8 +168,8 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
             <Label htmlFor="tipePromo">Tipe Promo</Label>
             <select
               id="tipePromo"
-              {...register('tipePromo', { 
-                required: 'Tipe promo wajib dipilih' 
+              {...register('tipePromo', {
+                required: 'Tipe promo wajib dipilih'
               })}
               className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -194,8 +188,8 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
             <Label htmlFor="status">Status</Label>
             <select
               id="status"
-              {...register('status', { 
-                required: 'Status promo wajib dipilih' 
+              {...register('status', {
+                required: 'Status promo wajib dipilih'
               })}
               className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >

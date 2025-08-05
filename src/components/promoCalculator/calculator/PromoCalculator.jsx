@@ -1,34 +1,33 @@
 // src/pages/PromoCalculator.jsx
-// ✅ Updated to integrate PromoTypeSelector directly for creating new promos
+// ✅ Halaman utama untuk fitur promo: Dashboard dan Kalkulator
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ For internal navigation
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Plus, 
-  RefreshCw, 
-  AlertCircle, 
+import {
+  Plus,
+  RefreshCw,
+  AlertCircle,
   ArrowLeft,
-  Calculator // Icon for header
+  Calculator,
+  Eye
 } from 'lucide-react';
 
-// ✅ Import components and hooks
-import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector'; // ✅ Path might need adjustment
-import PromoPreview from '@/components/promoCalculator/calculator/PromoPreview'; // ✅ Path might need adjustment
-import { usePromoCalculation } from '@/components/promoCalculator/hooks/usePromoCalculation'; // ✅ Path might need adjustment
-import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Import recipeApi
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService
+// ✅ Import komponen dan layanan
+// !!! PERHATIAN: Sesuaikan path ini dengan struktur folder proyek Anda !!!
+import PromoTypeSelector from '@/components/promoCalculator/components/PromoTypeSelector'; // ✅ Sesuaikan path
+import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Sesuaikan path
+import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
 
-// ✅ Use the same query keys from recipe system for consistency
-export const RECIPE_QUERY_KEYS = {
+// ✅ Definisikan kunci query untuk konsistensi
+const RECIPE_QUERY_KEYS = {
   all: ['recipes'],
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'],
   list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters],
 };
 
-// ✅ Promo Query Keys
 const PROMO_QUERY_KEYS = {
   all: ['promos'],
   lists: () => [...PROMO_QUERY_KEYS.all, 'list'],
@@ -38,182 +37,92 @@ const PROMO_QUERY_KEYS = {
 const PromoCalculator = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
-  // ✅ State for managing view modes
-  const [isCreating, setIsCreating] = useState(false); // ✅ New state for creation mode
-  const [selectedType, setSelectedType] = useState(''); // ✅ State for selected promo type
 
-  // ✅ State for form data and preview (if needed for dashboard mode or preview step)
-  const [formData, setFormData] = useState({});
-  const [showPreview, setShowPreview] = useState(false); // For potential preview step within creation
+  // ✅ State untuk mengelola mode tampilan
+  const [isCreating, setIsCreating] = useState(false); // Mode dashboard vs mode kalkulator
+  const [selectedType, setSelectedType] = useState(''); // Tipe promo yang dipilih di mode kalkulator
 
-  // ✅ Fetch recipes for PromoTypeSelector forms
-  const { data: recipes = [], isLoading: isRecipesLoading, isError: isRecipesError, refetch: refetchRecipes } = useQuery({
+  // --- FETCH DATA RESEP untuk mode kalkulator ---
+  const {
+     recipes = [],
+    isLoading: isRecipesLoading,
+    isError: isRecipesError,
+    error: recipesError,
+    refetch: refetchRecipes,
+  } = useQuery({
     queryKey: RECIPE_QUERY_KEYS.list(),
     queryFn: recipeApi.getAllRecipes,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: isCreating // ✅ Only fetch recipes when in creation mode
+    staleTime: 5 * 60 * 1000, // 5 menit
+    cacheTime: 10 * 60 * 1000, // 10 menit
+    retry: 1,
+    enabled: isCreating, // Hanya fetch saat mode kalkulator aktif
+    onError: (error) => {
+      console.error("❌ [PromoCalculator] Gagal memuat resep:", error);
+      toast.error('Gagal memuat data resep yang diperlukan.');
+    },
   });
 
-  // ✅ Fetch latest promos for dashboard view
+  // --- FETCH PROMO TERBARU untuk mode dashboard ---
   const latestPromosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
       const allPromos = await promoService.getAll({});
       return (allPromos || []).slice(0, 3);
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000, // 2 menit
     retry: 2,
-    enabled: !isCreating // ✅ Only fetch when NOT in creation mode
-  });
-
-  // ✅ Hook for promo calculation logic
-  const { calculationResult, isCalculating, calculationError, calculatePromo, clearCalculation } = usePromoCalculation();
-
-  // ✅ Mutation for saving a new promo
-  const savePromoMutation = useMutation({
-    mutationFn: promoService.create,
-    onSuccess: (data) => {
-      toast.success('Promo berhasil disimpan!');
-      // Invalidate and refetch promos list
-      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
-      // ✅ Reset creation state
-      handleCancelCreate(); // Go back to dashboard view
-    },
+    enabled: !isCreating, // Hanya fetch saat di mode dashboard
     onError: (error) => {
-      console.error('Save promo error:', error);
-      toast.error(`Gagal menyimpan promo: ${error.message}`);
+      console.error("❌ [PromoCalculator] Gagal memuat promo terbaru:", error);
     },
   });
 
-  // --- Handlers for Dashboard View ---
+  // --- HANDLERS untuk mode dashboard ---
   const handleRefreshDashboard = () => {
     latestPromosQuery.refetch();
-    // Also refresh recipe cache if needed
-    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
-    toast.info('Merefresh data...');
+    toast.info('Merefresh data promo terbaru...');
   };
 
   const handleViewAll = () => {
-    navigate('/promo/list'); // ✅ Navigate to full list
+    navigate('/promo/list');
   };
 
-  // --- Handlers for Creation Mode ---
+  // --- HANDLERS untuk mode kalkulator ---
   const handleStartCreate = () => {
+    console.log("🎬 [PromoCalculator] Masuk mode buat promo baru.");
     setIsCreating(true);
-    setSelectedType(''); // Reset type
-    setFormData({}); // Reset form data
-    clearCalculation(); // Reset calculation result
-    // Recipes will be fetched automatically due to `enabled: isCreating` in useQuery
+    setSelectedType('');
+    // Data resep akan di-fetch otomatis oleh useQuery karena `enabled: isCreating`
   };
 
   const handleCancelCreate = () => {
-    // Simple confirmation or just reset state
-    // if (window.confirm("Perubahan yang belum disimpan akan hilang. Lanjutkan?")) {
-      setIsCreating(false);
-      setSelectedType('');
-      setFormData({});
-      clearCalculation();
-    // }
+    console.log("↩️ [PromoCalculator] Keluar dari mode buat promo.");
+    setIsCreating(false);
+    setSelectedType('');
   };
 
   const handleTypeChange = (type) => {
+    console.log("🔄 [PromoCalculator] Tipe promo dipilih:", type);
     setSelectedType(type);
-    clearCalculation(); // Reset calculation when type changes
   };
 
-  const handleFormSubmit = async (data) => {
-    try {
-      console.log('Form submitted with data:', data);
-      // Assume calculatePromo is called within the specific form components (BogoForm, etc.)
-      // and sets the calculationResult in the usePromoCalculation hook.
-      // If you want to trigger it here based on `data`, you can, but it's likely handled by the form.
-      
-      // For now, we assume the form handles calculation internally and we proceed to save.
-      // You might want to check if calculationResult exists before saving.
-      
-      if (!data.namaPromo) {
-         toast.error('Nama promo wajib diisi');
-         return;
-      }
-      
-      // Prepare promo data for saving
-      const promoDataToSave = {
-        namaPromo: data.namaPromo,
-        tipePromo: selectedType,
-        status: data.status || 'draft',
-        dataPromo: data,
-        calculationResult: calculationResult, // This should be set by the form's internal calculation
-        deskripsi: data.deskripsi || '',
-        tanggalMulai: data.tanggalMulai || null,
-        tanggalSelesai: data.tanggalSelesai || null,
-      };
-
-      console.log('Saving promo data:', promoDataToSave);
-      await savePromoMutation.mutateAsync(promoDataToSave);
-    } catch (error) {
-      console.error('Form submission or save error:', error);
-      toast.error(`Error: ${error.message || 'Terjadi kesalahan saat menyimpan promo.'}`);
-    }
+  // Placeholder handler untuk form submit dari PromoTypeSelector
+  const handleFormSubmit = async (formData) => {
+    console.log("📤 [PromoCalculator] Data form diterima dari selector:", formData);
+    // Di sini Anda akan mengintegrasikan dengan usePromoCalculation dan savePromoMutation
+    // Contoh sederhana:
+    toast.info("Form diterima. Integrasi logika simpan/kalkulasi belum sepenuhnya selesai.");
+    // await savePromoMutation.mutateAsync(formData);
   };
 
-  // --- Render States ---
+  // --- RENDERING ---
 
-  // ✅ Loading State for Recipes (when creating)
-  if (isRecipesLoading && isCreating) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data resep untuk form promo...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ Error State for Recipes (when creating)
-  if (isRecipesError && isCreating) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full shadow-xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Gagal Memuat Resep</h2>
-            <p className="text-gray-600 mb-4">
-              Tidak dapat memuat data resep yang diperlukan untuk membuat promo.
-            </p>
-            <Button onClick={() => refetchRecipes()} className="w-full bg-orange-500 hover:bg-orange-600">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Coba Lagi
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // ✅ Loading State for Promos (dashboard)
-  if (latestPromosQuery.isLoading && !isCreating) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat promo terbaru...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Main Render Logic ---
-
-  // ✅ Creation Mode View
+  // ✅ Mode Kalkulator Promo (saat membuat promo baru)
   if (isCreating) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="container mx-auto p-4 sm:p-6">
-          {/* Header with back button */}
+          {/* Header dengan tombol kembali */}
           <div className="flex items-center justify-between mb-6">
             <Button onClick={handleCancelCreate} variant="outline" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
@@ -231,13 +140,48 @@ const PromoCalculator = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PromoTypeSelector
-                selectedType={selectedType}
-                onTypeChange={handleTypeChange}
-                onFormSubmit={handleFormSubmit}
-                isCalculating={isCalculating || savePromoMutation.isPending}
-                recipes={recipes}
-              />
+              {/* Loading State untuk Resep */}
+              {isRecipesLoading && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500 mb-2"></div>
+                  <p className="text-gray-600">Memuat data resep untuk form promo...</p>
+                </div>
+              )}
+
+              {/* Error State untuk Resep */}
+              {isRecipesError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-sm font-medium text-red-800">Gagal Memuat Resep</h3>
+                      <p className="text-sm text-red-700 mt-1">
+                        {recipesError?.message || 'Terjadi kesalahan saat memuat data resep.'}
+                      </p>
+                      <Button
+                        onClick={() => refetchRecipes()}
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 text-red-700 border-red-300 hover:bg-red-100"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        Coba Lagi
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tampilkan PromoTypeSelector jika resep berhasil dimuat */}
+              {!isRecipesLoading && !isRecipesError && (
+                <PromoTypeSelector
+                  selectedType={selectedType}
+                  onTypeChange={handleTypeChange}
+                  onFormSubmit={handleFormSubmit}
+                  isCalculating={false} // Ganti dengan state kalkulasi yang sesungguhnya
+                  recipes={recipes} // ✅ Kirim data resep
+                />
+              )}
             </CardContent>
           </Card>
         </div>
@@ -245,13 +189,13 @@ const PromoCalculator = () => {
     );
   }
 
-  // --- Dashboard View (Default) ---
+  // --- Mode Dashboard (Default) ---
   const promos = latestPromosQuery.data || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
-        {/* Header */}
+        {/* Header Dashboard */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
@@ -270,7 +214,7 @@ const PromoCalculator = () => {
               Refresh
             </Button>
             <Button
-              onClick={handleStartCreate} // ✅ Use the new handler
+              onClick={handleStartCreate}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -279,9 +223,9 @@ const PromoCalculator = () => {
           </div>
         </div>
 
-        {/* Main Content Card - Dashboard Promo Terbaru */}
+        {/* Main Content Card - Promo Terbaru */}
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-           <CardHeader>
+          <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Promo Terbaru</span>
               <Button variant="link" onClick={handleViewAll} className="text-orange-600 hover:text-orange-700 p-0 h-auto">
@@ -290,16 +234,46 @@ const PromoCalculator = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {promos.length > 0 ? (
+            {latestPromosQuery.isLoading && promos.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500 mr-2"></div>
+                <span className="text-gray-600">Memuat promo...</span>
+              </div>
+            ) : latestPromosQuery.isError && promos.length === 0 ? (
+              <div className="text-center py-8 text-red-500">
+                <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                <p>Gagal memuat promo terbaru.</p>
+                <Button onClick={handleRefreshDashboard} variant="outline" className="mt-2">
+                  Coba Lagi
+                </Button>
+              </div>
+            ) : promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promos.map(promo => (
-                  // Placeholder for PromoCard rendering logic
-                  // You would typically import and use PromoCard here
-                  // <PromoCard key={promo.id} promo={promo} ... />
-                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 className="font-semibold">{promo.namaPromo}</h3>
-                    <p className="text-sm text-gray-600">{promo.tipePromo} - {promo.status}</p>
-                    <p className="text-xs text-gray-500 mt-2">Dibuat: {new Date(promo.createdAt).toLocaleDateString('id-ID')}</p>
+                  // Placeholder untuk PromoCard
+                  // !!! GUNAKAN KOMPONEN ASLI PromoCard.jsx JIKA SUDAH ADA !!!
+                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-gray-900 truncate">{promo.namaPromo}</h3>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
+                        promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {promo.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">{promo.tipePromo}</p>
+                    {promo.calculationResult && (
+                      <div className="mt-2 text-xs">
+                        <p>Harga Jual: <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(promo.calculationResult.finalPrice)}</span></p>
+                        <p>Margin: <span className={`font-medium ${
+                          (promo.calculationResult.promoMargin || 0) < 5 ? 'text-red-600' :
+                          (promo.calculationResult.promoMargin || 0) >= 10 ? 'text-yellow-600' : 'text-green-600'
+                        }`}>{(promo.calculationResult.promoMargin || 0).toFixed(1)}%</span></p>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 mt-3">Dibuat: {new Date(promo.createdAt).toLocaleDateString('id-ID')}</p>
                   </div>
                 ))}
               </div>

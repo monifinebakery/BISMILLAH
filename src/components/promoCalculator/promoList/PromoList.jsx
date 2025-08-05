@@ -1,5 +1,4 @@
-// src/pages/PromoList.jsx - Daftar Promo dengan useQuery
-
+// src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan PromoCard
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,112 +14,8 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-
-// Components - Updated import paths
-// import PromoTable from '@/components/promoCalculator/promoList/components/PromoTable';
-// Temporary: Create simple table component inline until PromoTable path is fixed
+import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-
-// ✅ Temporary PromoTable Component - Replace with correct import later
-const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {
-  if (isLoading) {
-    return (
-      <div className="p-8 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-        <p className="text-gray-600">Memuat data promo...</p>
-      </div>
-    );
-  }
-
-  if (promos.length === 0) {
-    return (
-      <div className="p-8 text-center">
-        <div className="text-gray-400 text-4xl mb-4">🎯</div>
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Promo</h3>
-        <p className="text-gray-600">Buat promo pertama Anda untuk melihat daftar di sini</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Nama Promo
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tipe
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Dibuat
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Aksi
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {promos.map(promo => (
-            <tr key={promo.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {promo.namaPromo}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {promo.deskripsi || 'Tidak ada deskripsi'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {promo.tipePromo}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
-                  promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {promo.status}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Date(promo.createdAt).toLocaleDateString('id-ID')}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button
-                  onClick={() => onToggleStatus(promo.id, promo.status === 'aktif' ? 'nonaktif' : 'aktif')}
-                  className="text-indigo-600 hover:text-indigo-900 mr-3"
-                >
-                  {promo.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-                <button
-                  onClick={() => onEdit(promo)}
-                  className="text-blue-600 hover:text-blue-900 mr-3"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(promo.id)}
-                  className="text-red-600 hover:text-red-900"
-                >
-                  Hapus
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-// Services
 import { promoService } from '@/components/promoCalculator/services/promoService';
 
 // ✅ Query Keys - Same as PromoCalculator
@@ -133,7 +28,6 @@ export const PROMO_QUERY_KEYS = {
 
 const PromoList = () => {
   const queryClient = useQueryClient();
-
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
@@ -144,7 +38,7 @@ const PromoList = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    pageSize: 10,
+    pageSize: 100, // ✅ Tingkatkan pageSize atau hapus pagination sederhana untuk grid
     sortBy: 'created_at',
     sortOrder: 'desc'
   });
@@ -165,7 +59,7 @@ const PromoList = () => {
       console.log('✅ Got promos:', promos?.length || 0);
       return promos || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes - promos change more frequently
+    staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
@@ -182,7 +76,6 @@ const PromoList = () => {
       return id;
     },
     onSuccess: (deletedId) => {
-      // Remove from cache optimistically
       queryClient.setQueryData(
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
@@ -190,13 +83,8 @@ const PromoList = () => {
           return oldData.filter(promo => promo.id !== deletedId);
         }
       );
-
-      // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
-      
       toast.success('Promo berhasil dihapus');
-      
-      // Clear selection if deleted item was selected
       setSelectedItems(prev => prev.filter(id => id !== deletedId));
     },
     onError: (error) => {
@@ -213,7 +101,6 @@ const PromoList = () => {
       return ids;
     },
     onSuccess: (deletedIds) => {
-      // Remove from cache optimistically
       queryClient.setQueryData(
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
@@ -221,10 +108,7 @@ const PromoList = () => {
           return oldData.filter(promo => !deletedIds.includes(promo.id));
         }
       );
-
-      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
-      
       toast.success(`${deletedIds.length} promo berhasil dihapus`);
       setSelectedItems([]);
     },
@@ -242,7 +126,6 @@ const PromoList = () => {
       return updatedPromo;
     },
     onSuccess: (updatedPromo) => {
-      // Update cache optimistically
       queryClient.setQueryData(
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
@@ -252,7 +135,6 @@ const PromoList = () => {
           );
         }
       );
-
       toast.success(`Promo berhasil ${updatedPromo.status === 'aktif' ? 'diaktifkan' : 'dinonaktifkan'}`);
     },
     onError: (error) => {
@@ -261,17 +143,41 @@ const PromoList = () => {
     },
   });
 
+  // ✅ useMutation: Duplicate Promo
+  const duplicatePromoMutation = useMutation({
+    mutationFn: async (originalPromo) => {
+      console.log('📋 Duplicating promo:', originalPromo.id);
+      const newPromo = await promoService.duplicate(originalPromo);
+      return newPromo;
+    },
+    onSuccess: (newPromo) => {
+      // Add new promo to the list
+      queryClient.setQueryData(
+        PROMO_QUERY_KEYS.list(queryParams),
+        (oldData) => {
+          if (!oldData) return [newPromo];
+          return [newPromo, ...oldData]; // Add to top
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      toast.success('Promo berhasil diduplikat');
+    },
+    onError: (error) => {
+      console.error('Duplicate promo error:', error);
+      toast.error(error.message || 'Gagal menduplikat promo');
+    },
+  });
+
   // ✅ Get data from queries
   const promos = promosQuery.data || [];
   const isLoading = promosQuery.isLoading;
   const error = promosQuery.error;
 
-  // Check if any mutation is loading
   const isProcessing = deletePromoMutation.isPending || 
                       bulkDeleteMutation.isPending || 
-                      toggleStatusMutation.isPending;
+                      toggleStatusMutation.isPending ||
+                      duplicatePromoMutation.isPending;
 
-  // ✅ Debug logging
   console.log('📊 Promo Query State:', {
     data: promos?.length || 0,
     isLoading,
@@ -282,7 +188,7 @@ const PromoList = () => {
   // Handlers
   const handleSearch = (value) => {
     setSearchTerm(value);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleSelectItem = (id, selected) => {
@@ -312,7 +218,6 @@ const PromoList = () => {
       toast.error('Pilih promo yang ingin dihapus');
       return;
     }
-
     if (window.confirm(`Yakin ingin menghapus ${selectedItems.length} promo yang dipilih?`)) {
       await bulkDeleteMutation.mutateAsync(selectedItems);
     }
@@ -324,19 +229,24 @@ const PromoList = () => {
 
   const handleEdit = (promo) => {
     console.log('Edit promo:', promo.id);
-    
-    // ✅ Use the correct route: /promo (not /promo/calculator)
     const editUrl = `/promo?edit=${promo.id}`;
-    
     console.log('🔗 Navigating to:', editUrl);
-    
-    // Show loading toast
     toast.info('Membuka editor promo...', {
       description: 'Mengarahkan ke kalkulator promo'
     });
-    
-    // Navigate to correct route
     window.location.href = editUrl;
+  };
+
+  const handleView = (promo) => {
+    console.log('View promo details:', promo.id);
+    // Implementasi untuk melihat detail, misalnya modal atau halaman baru
+    toast.info(`Melihat detail promo: ${promo.namaPromo}`);
+    // Contoh: window.location.href = `/promo/${promo.id}`;
+  };
+
+  const handleDuplicate = async (promo) => {
+    console.log('Duplicate promo:', promo.id);
+    await duplicatePromoMutation.mutateAsync(promo);
   };
 
   const handlePaginationChange = (changes) => {
@@ -350,7 +260,6 @@ const PromoList = () => {
   };
 
   const handleCreateNew = () => {
-    // Navigate to promo calculator - use correct route
     window.location.href = '/promo';
   };
 
@@ -374,15 +283,12 @@ const PromoList = () => {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Gagal Memuat Promo
             </h2>
-            
             <p className="text-gray-600 mb-4">
               {error.message || 'Terjadi kesalahan saat memuat data promo'}
             </p>
-            
             <div className="space-y-3">
               <Button
                 onClick={handleRefresh}
@@ -391,7 +297,6 @@ const PromoList = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Coba Lagi
               </Button>
-              
               <Button
                 onClick={() => window.location.reload()}
                 variant="outline"
@@ -409,7 +314,6 @@ const PromoList = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
-        
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -442,7 +346,6 @@ const PromoList = () => {
         {/* Main Content Card */}
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
-            
             {/* Filters & Search */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -457,7 +360,6 @@ const PromoList = () => {
                     className="pl-10"
                   />
                 </div>
-
                 {/* Bulk Actions */}
                 {selectedItems.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -476,7 +378,6 @@ const PromoList = () => {
                     </Button>
                   </div>
                 )}
-
                 {/* Filter Button */}
                 <Button
                   variant="outline"
@@ -485,7 +386,6 @@ const PromoList = () => {
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
-
                 {/* Export Button */}
                 <Button
                   variant="outline"
@@ -495,7 +395,6 @@ const PromoList = () => {
                   Export
                 </Button>
               </div>
-
               {/* Quick Stats */}
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-blue-50 rounded-lg p-3">
@@ -523,20 +422,33 @@ const PromoList = () => {
               </div>
             </div>
 
-            {/* Table */}
-            <PromoTable
-              promos={promos}
-              isLoading={isLoading}
-              selectedItems={selectedItems}
-              pagination={pagination}
-              totalCount={promos.length} // Note: This should come from API response
-              onSelectItem={handleSelectItem}
-              onSelectAll={handleSelectAll}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggleStatus={handleToggleStatus}
-              onPaginationChange={handlePaginationChange}
-            />
+            {/* Promo Cards Grid */}
+            {promos.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                {promos.map(promo => (
+                  <PromoCard
+                    key={promo.id}
+                    promo={promo}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onView={handleView}
+                    onDuplicate={handleDuplicate}
+                    // Jika Anda ingin menonaktifkan aksi tertentu berdasarkan status, bisa ditambahkan logika di sini
+                    // showActions={promo.status !== 'draft'} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-gray-400 text-4xl mb-4">🎯</div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Promo</h3>
+                <p className="text-gray-600 mb-4">Buat promo pertama Anda untuk melihat daftar di sini</p>
+                <Button onClick={handleCreateNew} className="bg-orange-500 hover:bg-orange-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Buat Promo Pertama
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

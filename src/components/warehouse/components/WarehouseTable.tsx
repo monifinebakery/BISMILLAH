@@ -230,17 +230,19 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Mobile Card View
   const MobileCardView = () => (
     <div className="md:hidden space-y-3 p-4">
-      {/* ✅ TAMBAH: Mobile refresh button */}
-      {onRefresh && (
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-sm text-gray-600">
+      {/* ✅ UPDATE: Mobile header dengan info update */}
+      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200">
+        <div>
+          <span className="text-sm font-medium text-gray-700">
             {items.length} item
-            {lastUpdated && (
-              <span className="text-xs text-gray-400 ml-2">
-                • {lastUpdated.toLocaleTimeString('id-ID')}
-              </span>
-            )}
           </span>
+          {lastUpdated && (
+            <div className="text-xs text-gray-400 mt-1">
+              Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+            </div>
+          )}
+        </div>
+        {onRefresh && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -250,8 +252,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           >
             <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Mobile Selection Header */}
       {isSelectionMode && (
@@ -493,17 +495,19 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Desktop Table View
   const DesktopTableView = () => (
     <div className="hidden md:block overflow-x-auto">
-      {/* ✅ TAMBAH: Desktop header with refresh */}
-      {onRefresh && (
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
-          <span className="text-sm text-gray-600">
+      {/* ✅ UPDATE: Desktop header dengan last updated info di kiri */}
+      <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+        <div>
+          <span className="text-sm font-medium text-gray-700">
             {items.length} item tersimpan
-            {lastUpdated && (
-              <span className="text-xs text-gray-400 ml-2">
-                • Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
-              </span>
-            )}
           </span>
+          {lastUpdated && (
+            <div className="text-xs text-gray-400 mt-1">
+              Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+            </div>
+          )}
+        </div>
+        {onRefresh && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -514,8 +518,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Memuat...' : 'Refresh'}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">

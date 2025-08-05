@@ -421,12 +421,6 @@ const PromoCalculatorLayout = () => {
                 Mulai buat promo pertama Anda untuk meningkatkan penjualan
               </p>
               <div className="space-y-3">
-                <button 
-                  onClick={() => setCurrentView('calculator')} 
-                  className={styles.buttonPrimary}
-                >
-                  Buat Promo Baru
-                </button>
                 <button
                   onClick={refetchPromos}
                   className="block mx-auto text-orange-600 hover:text-orange-800 text-sm transition-colors"

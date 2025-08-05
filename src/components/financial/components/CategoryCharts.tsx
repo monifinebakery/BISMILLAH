@@ -1,8 +1,8 @@
-// src/components/financial/components/CategoryCharts.tsx
-// Separated Category Charts Component for Code Splitting
-
+// src/components/financial/components/CategoryCharts.tsx - Enhanced dengan useQuery support
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { 
   PieChart, 
   Pie, 
@@ -12,8 +12,12 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/utils/formatUtils';
 
+// ✅ TAMBAH: Enhanced props untuk useQuery support
 interface CategoryChartsProps {
   filteredTransactions: any[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  lastUpdated?: Date;
 }
 
 // Custom label component for pie chart
@@ -39,7 +43,31 @@ const renderCustomizedLabel = ({
   );
 };
 
-const CategoryCharts: React.FC<CategoryChartsProps> = ({ filteredTransactions }) => {
+// ✅ TAMBAH: Loading skeleton untuk category charts
+const CategoryLoadingSkeleton = () => (
+  <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
+    <div className="text-center">
+      <div className="animate-spin h-6 w-6 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+      <p className="text-gray-500 text-sm">Memuat kategori...</p>
+    </div>
+  </div>
+);
+
+/**
+ * ✅ ENHANCED: Category Charts Component dengan useQuery support
+ * 
+ * Features:
+ * - Loading states untuk kategori data
+ * - Enhanced empty states
+ * - Real-time data updates
+ * - Refresh functionality
+ */
+const CategoryCharts: React.FC<CategoryChartsProps> = ({ 
+  filteredTransactions, 
+  isLoading = false,
+  onRefresh,
+  lastUpdated 
+}) => {
   const categoryData = useMemo(() => {
     const result = {
       incomeData: [],
@@ -79,31 +107,98 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({ filteredTransactions })
 
   const COLORS = ['#16a34a', '#2563eb', '#f59e0b', '#8b5cf6', '#dc2626', '#06b6d4'];
 
-  const EmptyState: React.FC<{ title: string }> = ({ title }) => (
+  // ✅ ENHANCED: Empty state dengan better UX
+  const EmptyState: React.FC<{ title: string; type: 'income' | 'expense' }> = ({ title, type }) => (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          {title}
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="h-6 w-6 p-0"
+            >
+              <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64 flex items-center justify-center text-gray-500">
-          Tidak ada data
+          <div className="text-center">
+            <div className="text-4xl mb-2">
+              {type === 'income' ? '💰' : '💸'}
+            </div>
+            <p className="text-sm">Tidak ada data {type === 'income' ? 'pemasukan' : 'pengeluaran'}</p>
+            <p className="text-xs text-gray-400 mt-1">Tambah transaksi untuk melihat distribusi kategori</p>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 
+  // ✅ ENHANCED: Category pie chart dengan loading support
   const CategoryPieChart: React.FC<{
     title: string;
     data: { name: string; value: number }[];
-  }> = ({ title, data }) => {
+    type: 'income' | 'expense';
+  }> = ({ title, data, type }) => {
+    if (isLoading) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              {title}
+              {onRefresh && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  className="h-6 w-6 p-0"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CategoryLoadingSkeleton />
+          </CardContent>
+        </Card>
+      );
+    }
+
     if (data.length === 0) {
-      return <EmptyState title={title} />;
+      return <EmptyState title={title} type={type} />;
     }
 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <div>
+              {title}
+              {/* ✅ TAMBAH: Data summary */}
+              <p className="text-sm font-normal text-gray-500 mt-1">
+                {data.length} kategori • Total: {formatCurrency(data.reduce((sum, item) => sum + item.value, 0))}
+              </p>
+            </div>
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="h-6 w-6 p-0"
+              >
+                <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64">
@@ -130,6 +225,22 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({ filteredTransactions })
               </PieChart>
             </ResponsiveContainer>
           </div>
+          
+          {/* ✅ TAMBAH: Category legend */}
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            {data.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span>{entry.name}</span>
+                </div>
+                <span className="font-medium">{formatCurrency(entry.value)}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
@@ -140,10 +251,12 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({ filteredTransactions })
       <CategoryPieChart 
         title="Distribusi Kategori Pemasukan"
         data={categoryData.incomeData}
+        type="income"
       />
       <CategoryPieChart 
         title="Distribusi Kategori Pengeluaran"
         data={categoryData.expenseData}
+        type="expense"
       />
     </div>
   );

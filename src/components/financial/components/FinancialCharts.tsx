@@ -1,10 +1,10 @@
-// src/components/financial/components/FinancialCharts.tsx
-// Separated Chart Component for Code Splitting
-
+// src/components/financial/components/FinancialCharts.tsx - Enhanced dengan useQuery support
 import React, { useMemo } from 'react';
 import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { 
   ComposedChart, 
   Area, 
@@ -18,9 +18,13 @@ import {
 } from 'recharts';
 import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
 
+// ✅ TAMBAH: Props enhancement untuk useQuery support
 interface FinancialChartsProps {
   filteredTransactions: any[];
   dateRange: { from: Date; to?: Date };
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  lastUpdated?: Date;
 }
 
 // Custom Tooltip Component
@@ -40,9 +44,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// ✅ TAMBAH: Loading skeleton untuk chart
+const ChartLoadingSkeleton = () => (
+  <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
+    <div className="text-center">
+      <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p className="text-gray-500 text-sm">Memuat data chart...</p>
+    </div>
+  </div>
+);
+
+/**
+ * ✅ ENHANCED: Financial Charts Component dengan useQuery support
+ * 
+ * Features:
+ * - Loading states untuk chart data
+ * - Refresh functionality
+ * - Real-time data updates
+ * - Enhanced error handling
+ * - Performance optimizations
+ */
 const FinancialCharts: React.FC<FinancialChartsProps> = ({ 
   filteredTransactions, 
-  dateRange 
+  dateRange,
+  isLoading = false,
+  onRefresh,
+  lastUpdated
 }) => {
   const { transactionData, dailyData } = useMemo(() => {
     const result = {
@@ -124,51 +151,102 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{chartTitle}</CardTitle>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              {chartTitle}
+              {/* ✅ TAMBAH: Real-time indicator */}
+              {!isLoading && filteredTransactions.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-gray-500">Live</span>
+                </div>
+              )}
+            </CardTitle>
+            {/* ✅ TAMBAH: Data info */}
+            {!isLoading && (
+              <p className="text-sm text-gray-500 mt-1">
+                {filteredTransactions.length} transaksi
+                {lastUpdated && (
+                  <span className="ml-2">
+                    • Diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+          
+          {/* ✅ TAMBAH: Refresh button */}
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Memuat...' : 'Refresh'}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart 
-              data={data} 
-              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis 
-                dataKey={useDailyData ? "date" : "month"} 
-                tick={{ fontSize: 12 }} 
-              />
-              <YAxis 
-                tickFormatter={(tick) => formatLargeNumber(tick)} 
-                tick={{ fontSize: 12 }} 
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                formatter={(value) => <span className="text-sm">{value}</span>}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="Saldo" 
-                fill="#2563eb40" 
-                stroke="#2563eb" 
-                strokeWidth={2} 
-                name="Saldo" 
-              />
-              <Bar 
-                dataKey="Pemasukan" 
-                fill="#16a34a" 
-                name="Pemasukan" 
-                radius={[4, 4, 0, 0]} 
-              />
-              <Bar 
-                dataKey="Pengeluaran" 
-                fill="#dc2626" 
-                name="Pengeluaran" 
-                radius={[4, 4, 0, 0]} 
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        {/* ✅ TAMBAH: Loading state */}
+        {isLoading ? (
+          <ChartLoadingSkeleton />
+        ) : data.length === 0 ? (
+          <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
+            <div className="text-center">
+              <div className="text-4xl mb-4">📊</div>
+              <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+              <p className="text-sm text-gray-400 mt-1">Pilih rentang tanggal yang berbeda atau tambah transaksi</p>
+            </div>
+          </div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart 
+                data={data} 
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis 
+                  dataKey={useDailyData ? "date" : "month"} 
+                  tick={{ fontSize: 12 }} 
+                />
+                <YAxis 
+                  tickFormatter={(tick) => formatLargeNumber(tick)} 
+                  tick={{ fontSize: 12 }} 
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  formatter={(value) => <span className="text-sm">{value}</span>}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="Saldo" 
+                  fill="#2563eb40" 
+                  stroke="#2563eb" 
+                  strokeWidth={2} 
+                  name="Saldo" 
+                />
+                <Bar 
+                  dataKey="Pemasukan" 
+                  fill="#16a34a" 
+                  name="Pemasukan" 
+                  radius={[4, 4, 0, 0]} 
+                />
+                <Bar 
+                  dataKey="Pengeluaran" 
+                  fill="#dc2626" 
+                  name="Pengeluaran" 
+                  radius={[4, 4, 0, 0]} 
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -142,7 +142,7 @@ const BestSellingProducts: React.FC<Props> = ({
   };
 
   return (
-    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+    <Card className="bg-white border-1.5 border-gray-200 hover:shadow-lg transition-shadow duration-300">
       {/* 🏆 Header */}
       <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100 p-4">
         <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">

@@ -73,7 +73,7 @@ const PromoCalculator = React.lazy(() =>
 );
 
 const PromoList = React.lazy(() => 
-  import(/* webpackChunkName: "promo-list" */ "./pages/PromoList")
+  import(/* webpackChunkName: "promo-list" */ "@/components/promoCalculator/promoList/PromoList")
 );
 
 // ✅ Optional: Keep PromoFullCalculator if you have it

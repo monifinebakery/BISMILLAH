@@ -1,14 +1,41 @@
-// src/components/recipe/services/recipeApi.ts
+// src/components/recipe/services/recipeApi.ts - useQuery Optimized
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { Recipe, RecipeDB, NewRecipe, RecipeApiResponse } from '../types';
+import type { Recipe, RecipeDB, NewRecipe } from '../types';
+
+// ✅ Standardized API Response Types for useQuery
+export interface ApiResponse<T> {
+  data: T;
+  error?: string;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: any;
+}
 
 /**
- * Recipe API Service with data transformation
+ * Recipe API Service optimized for useQuery
  */
 class RecipeApiService {
   private readonly tableName = 'recipes';
+
+  // ✅ Get current user ID with error handling
+  private async getCurrentUserId(): Promise<string> {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      throw new Error(`Authentication error: ${error.message}`);
+    }
+    
+    if (!session?.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    return session.user.id;
+  }
 
   // Transform database format to frontend format
   private transformFromDB = (dbItem: RecipeDB): Recipe => ({
@@ -53,39 +80,65 @@ class RecipeApiService {
   });
 
   /**
-   * Fetch all recipes for a user
+   * ✅ useQuery-optimized: Get all recipes
+   * Automatically handles auth and throws errors for useQuery
    */
-  async fetchRecipes(userId: string): Promise<RecipeApiResponse> {
+  async getRecipes(filters?: {
+    category?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<Recipe[]> {
     try {
-      logger.debug('RecipeAPI: Fetching recipes for user:', userId);
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Fetching recipes with filters:', filters);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from(this.tableName)
         .select('*')
-        .eq('user_id', userId)
-        .order('nama_resep', { ascending: true });
+        .eq('user_id', userId);
+
+      // Apply filters
+      if (filters?.category) {
+        query = query.eq('kategori_resep', filters.category);
+      }
+
+      if (filters?.search) {
+        query = query.or(
+          `nama_resep.ilike.%${filters.search}%,kategori_resep.ilike.%${filters.search}%,deskripsi.ilike.%${filters.search}%`
+        );
+      }
+
+      // Apply sorting
+      const sortBy = filters?.sortBy || 'nama_resep';
+      const ascending = (filters?.sortOrder || 'asc') === 'asc';
+      query = query.order(sortBy, { ascending });
+
+      const { data, error } = await query;
 
       if (error) {
         logger.error('RecipeAPI: Error fetching recipes:', error);
-        return { data: [], error: error.message };
+        throw new Error(error.message);
       }
 
       const transformedData = (data || []).map(this.transformFromDB);
       logger.debug(`RecipeAPI: Successfully fetched ${transformedData.length} recipes`);
 
-      return { data: transformedData };
+      return transformedData;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in fetchRecipes:', error);
-      return { data: [], error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error fetching recipes');
     }
   }
 
   /**
-   * Fetch single recipe by ID
+   * ✅ useQuery-optimized: Get single recipe by ID
    */
-  async fetchRecipeById(id: string, userId: string): Promise<{ data: Recipe | null; error?: string }> {
+  async getRecipe(id: string): Promise<Recipe> {
     try {
+      const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Fetching recipe by ID:', id);
 
       const { data, error } = await supabase
@@ -97,24 +150,25 @@ class RecipeApiService {
 
       if (error) {
         logger.error('RecipeAPI: Error fetching recipe by ID:', error);
-        return { data: null, error: error.message };
+        throw new Error(error.message);
       }
 
-      const transformedData = this.transformFromDB(data);
-      return { data: transformedData };
+      return this.transformFromDB(data);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in fetchRecipeById:', error);
-      return { data: null, error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error fetching recipe');
     }
   }
 
   /**
-   * Add new recipe
+   * ✅ useMutation-optimized: Create new recipe
    */
-  async addRecipe(recipe: NewRecipe, userId: string): Promise<{ success: boolean; error?: string; data?: Recipe }> {
+  async createRecipe(recipe: NewRecipe): Promise<Recipe> {
     try {
-      logger.debug('RecipeAPI: Adding new recipe:', recipe.namaResep);
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Creating new recipe:', recipe.namaResep);
 
       const dbData = this.transformToDB(recipe);
       const { data, error } = await supabase
@@ -124,30 +178,28 @@ class RecipeApiService {
         .single();
 
       if (error) {
-        logger.error('RecipeAPI: Error adding recipe:', error);
-        return { success: false, error: error.message };
+        logger.error('RecipeAPI: Error creating recipe:', error);
+        throw new Error(error.message);
       }
 
       const transformedData = this.transformFromDB(data);
-      logger.debug('RecipeAPI: Successfully added recipe:', transformedData.id);
+      logger.debug('RecipeAPI: Successfully created recipe:', transformedData.id);
 
-      return { success: true, data: transformedData };
+      return transformedData;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in addRecipe:', error);
-      return { success: false, error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error creating recipe');
     }
   }
 
   /**
-   * Update existing recipe
+   * ✅ useMutation-optimized: Update existing recipe
    */
-  async updateRecipe(
-    id: string, 
-    updates: Partial<NewRecipe>, 
-    userId: string
-  ): Promise<{ success: boolean; error?: string; data?: Recipe }> {
+  async updateRecipe(id: string, updates: Partial<NewRecipe>): Promise<Recipe> {
     try {
+      const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Updating recipe:', id);
 
       const dbUpdates = this.transformToDB(updates);
@@ -161,25 +213,27 @@ class RecipeApiService {
 
       if (error) {
         logger.error('RecipeAPI: Error updating recipe:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
       }
 
       const transformedData = this.transformFromDB(data);
       logger.debug('RecipeAPI: Successfully updated recipe:', transformedData.id);
 
-      return { success: true, data: transformedData };
+      return transformedData;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in updateRecipe:', error);
-      return { success: false, error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error updating recipe');
     }
   }
 
   /**
-   * Delete recipe
+   * ✅ useMutation-optimized: Delete recipe
    */
-  async deleteRecipe(id: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteRecipe(id: string): Promise<void> {
     try {
+      const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Deleting recipe:', id);
 
       const { error } = await supabase
@@ -190,23 +244,89 @@ class RecipeApiService {
 
       if (error) {
         logger.error('RecipeAPI: Error deleting recipe:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
       }
 
       logger.debug('RecipeAPI: Successfully deleted recipe:', id);
-      return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in deleteRecipe:', error);
-      return { success: false, error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error deleting recipe');
     }
   }
 
   /**
-   * Bulk delete recipes
+   * ✅ useMutation-optimized: Duplicate recipe
    */
-  async bulkDeleteRecipes(ids: string[], userId: string): Promise<{ success: boolean; error?: string }> {
+  async duplicateRecipe(id: string, newName: string): Promise<Recipe> {
     try {
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Duplicating recipe:', id, 'with new name:', newName);
+
+      // First, get the original recipe
+      const original = await this.getRecipe(id);
+      
+      // Create new recipe data
+      const duplicateData: NewRecipe = {
+        ...original,
+        namaResep: newName,
+        // Remove IDs and timestamps that shouldn't be copied
+      };
+
+      // Create the duplicate
+      return await this.createRecipe(duplicateData);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error duplicating recipe');
+    }
+  }
+
+  /**
+   * ✅ useQuery-optimized: Get unique categories
+   */
+  async getUniqueCategories(): Promise<string[]> {
+    try {
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Fetching unique categories');
+
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('kategori_resep')
+        .eq('user_id', userId)
+        .not('kategori_resep', 'is', null)
+        .not('kategori_resep', 'eq', '');
+
+      if (error) {
+        logger.error('RecipeAPI: Error fetching categories:', error);
+        throw new Error(error.message);
+      }
+
+      // Extract unique categories
+      const categories = [...new Set(
+        (data || [])
+          .map(item => item.kategori_resep)
+          .filter(Boolean)
+      )].sort();
+
+      logger.debug(`RecipeAPI: Found ${categories.length} unique categories`);
+      return categories;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error fetching categories');
+    }
+  }
+
+  /**
+   * ✅ useMutation-optimized: Bulk delete recipes
+   */
+  async bulkDeleteRecipes(ids: string[]): Promise<void> {
+    try {
+      const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Bulk deleting recipes:', ids.length);
 
       const { error } = await supabase
@@ -217,109 +337,74 @@ class RecipeApiService {
 
       if (error) {
         logger.error('RecipeAPI: Error bulk deleting recipes:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
       }
 
       logger.debug('RecipeAPI: Successfully bulk deleted recipes:', ids.length);
-      return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in bulkDeleteRecipes:', error);
-      return { success: false, error: errorMessage };
-    }
-  }
-
-  /**
-   * Search recipes by text
-   */
-  async searchRecipes(
-    query: string, 
-    userId: string
-  ): Promise<RecipeApiResponse> {
-    try {
-      logger.debug('RecipeAPI: Searching recipes with query:', query);
-
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*')
-        .eq('user_id', userId)
-        .or(`nama_resep.ilike.%${query}%,kategori_resep.ilike.%${query}%,deskripsi.ilike.%${query}%`)
-        .order('nama_resep', { ascending: true });
-
-      if (error) {
-        logger.error('RecipeAPI: Error searching recipes:', error);
-        return { data: [], error: error.message };
+      if (error instanceof Error) {
+        throw error;
       }
-
-      const transformedData = (data || []).map(this.transformFromDB);
-      logger.debug(`RecipeAPI: Found ${transformedData.length} recipes matching query`);
-
-      return { data: transformedData };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in searchRecipes:', error);
-      return { data: [], error: errorMessage };
+      throw new Error('Unexpected error bulk deleting recipes');
     }
   }
 
   /**
-   * Get recipes by category
+   * ✅ useMutation-optimized: Bulk update recipes
    */
-  async getRecipesByCategory(
-    category: string, 
-    userId: string
-  ): Promise<RecipeApiResponse> {
+  async bulkUpdateRecipes(updates: { id: string; data: Partial<NewRecipe> }[]): Promise<Recipe[]> {
     try {
-      logger.debug('RecipeAPI: Fetching recipes by category:', category);
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Bulk updating recipes:', updates.length);
 
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*')
-        .eq('user_id', userId)
-        .eq('kategori_resep', category)
-        .order('nama_resep', { ascending: true });
+      const results = await Promise.all(
+        updates.map(async ({ id, data }) => {
+          return await this.updateRecipe(id, data);
+        })
+      );
 
-      if (error) {
-        logger.error('RecipeAPI: Error fetching recipes by category:', error);
-        return { data: [], error: error.message };
-      }
-
-      const transformedData = (data || []).map(this.transformFromDB);
-      logger.debug(`RecipeAPI: Found ${transformedData.length} recipes in category ${category}`);
-
-      return { data: transformedData };
+      logger.debug('RecipeAPI: Successfully bulk updated recipes:', results.length);
+      return results;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('RecipeAPI: Unexpected error in getRecipesByCategory:', error);
-      return { data: [], error: errorMessage };
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error bulk updating recipes');
     }
   }
 
   /**
-   * Setup real-time subscription
+   * ✅ Real-time subscription for useQuery integration
+   * Returns subscription cleanup function
    */
   setupRealtimeSubscription(
-    userId: string,
     onInsert?: (recipe: Recipe) => void,
     onUpdate?: (recipe: Recipe) => void,
     onDelete?: (id: string) => void
-  ) {
-    logger.debug('RecipeAPI: Setting up real-time subscription for user:', userId);
+  ): () => void {
+    logger.debug('RecipeAPI: Setting up real-time subscription');
 
     const channel = supabase
-      .channel(`recipes-${userId}`)
+      .channel('recipes-realtime')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: this.tableName,
-          filter: `user_id=eq.${userId}`
         },
-        (payload) => {
+        async (payload) => {
           logger.debug('RecipeAPI: Real-time event received:', payload.eventType);
 
           try {
+            // Check if the change is for current user
+            const userId = await this.getCurrentUserId();
+            const changeUserId = (payload.new as RecipeDB)?.user_id || (payload.old as RecipeDB)?.user_id;
+            
+            if (changeUserId !== userId) {
+              return; // Ignore changes for other users
+            }
+
             switch (payload.eventType) {
               case 'INSERT':
                 if (payload.new && onInsert) {
@@ -351,7 +436,48 @@ class RecipeApiService {
       supabase.removeChannel(channel);
     };
   }
+
+  /**
+   * ✅ Health check method for debugging
+   */
+  async healthCheck(): Promise<{ isConnected: boolean; userAuthenticated: boolean; error?: string }> {
+    try {
+      // Check Supabase connection
+      const { error: connectionError } = await supabase.from(this.tableName).select('count').limit(1);
+      
+      if (connectionError) {
+        return { isConnected: false, userAuthenticated: false, error: connectionError.message };
+      }
+
+      // Check user authentication
+      try {
+        await this.getCurrentUserId();
+        return { isConnected: true, userAuthenticated: true };
+      } catch (authError) {
+        return { isConnected: true, userAuthenticated: false, error: (authError as Error).message };
+      }
+    } catch (error) {
+      return { 
+        isConnected: false, 
+        userAuthenticated: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
 }
 
 // Export singleton instance
 export const recipeApi = new RecipeApiService();
+
+// ✅ Export additional types for useQuery integration
+export type RecipeFilters = {
+  category?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+};
+
+export type BulkUpdateData = {
+  id: string;
+  data: Partial<NewRecipe>;
+};

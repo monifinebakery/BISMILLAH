@@ -1,11 +1,11 @@
-// 🎯 Main list component dengan table, filter, dan pagination - Mobile Responsive
-
+// PromoList.jsx - Updated with PromoCard view option
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Download, Trash2, Menu, X } from 'lucide-react';
+import { Search, Filter, Plus, Download, Trash2, Menu, X, Grid, List as ListIcon } from 'lucide-react';
 import PromoTable from './PromoTable';
 import PromoFilters from './PromoFilters';
 import BulkActions from './BulkActions';
 import PromoEditModal from './PromoEditModal';
+import PromoCard from '../components/PromoCard'; // ✅ Import PromoCard
 import { usePromoList } from '../hooks/usePromoList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ const PromoList = () => {
   const isMobile = useIsMobile(768);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(isMobile ? 'cards' : 'table'); // ✅ Cards default for mobile
   const [filters, setFilters] = useState({
     status: '',
     type: '',
@@ -57,7 +58,7 @@ const PromoList = () => {
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
     setPagination(prev => ({ ...prev, page: 1 }));
-    setShowFilters(false); // Close mobile filter panel
+    setShowFilters(false);
   };
 
   const handlePaginationChange = (newPagination) => {
@@ -125,7 +126,6 @@ const PromoList = () => {
   };
 
   const handleExport = () => {
-    // Implement export functionality
     toast.info('Fitur export akan segera tersedia');
     setShowMobileActions(false);
   };
@@ -134,6 +134,90 @@ const PromoList = () => {
     window.location.hash = '#calculator';
     setShowMobileActions(false);
   };
+
+  // ✅ PromoCard specific handlers
+  const handleViewPromo = (promo) => {
+    setEditModal({ isOpen: true, promo });
+  };
+
+  const handleDuplicatePromo = (promo) => {
+    const duplicatedPromo = {
+      ...promo,
+      id: Date.now().toString(),
+      namaPromo: `${promo.namaPromo} (Copy)`,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    toast.success('Promo berhasil diduplikasi');
+    console.log('Duplicated promo:', duplicatedPromo);
+    // TODO: Implement actual duplication logic
+  };
+
+  // ✅ Cards View Component
+  const CardsView = () => (
+    <div className="space-y-4">
+      {/* Cards Grid */}
+      <div className={isMobile 
+        ? "space-y-4" 
+        : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      }>
+        {promos.map((promo) => (
+          <div
+            key={promo.id}
+            className={`${selectedItems.includes(promo.id) ? 'ring-2 ring-orange-500 ring-opacity-50' : ''}`}
+          >
+            <PromoCard
+              promo={promo}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleViewPromo}
+              onDuplicate={handleDuplicatePromo}
+              showActions={true}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Pagination for Cards */}
+      {!isMobile && totalCount > pagination.pageSize && (
+        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+          <div className="text-sm text-gray-700">
+            Menampilkan {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, totalCount)} dari {totalCount} promo
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handlePaginationChange({ page: pagination.page - 1 })}
+              disabled={pagination.page === 1}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => handlePaginationChange({ page: pagination.page + 1 })}
+              disabled={pagination.page >= Math.ceil(totalCount / pagination.pageSize)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Load More Button */}
+      {isMobile && totalCount > promos.length && (
+        <div className="text-center pt-4">
+          <button
+            onClick={() => handlePaginationChange({ pageSize: pagination.pageSize + 10 })}
+            className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Muat Lebih Banyak ({totalCount - promos.length} lagi)
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
@@ -146,6 +230,30 @@ const PromoList = () => {
         
         {/* Desktop Actions */}
         <div className={isMobile ? 'hidden' : 'flex items-center space-x-3'}>
+          {/* ✅ View Mode Toggle - Desktop */}
+          <div className="flex items-center border border-gray-300 rounded-lg">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 ${viewMode === 'table' 
+                ? 'bg-orange-500 text-white' 
+                : 'text-gray-600 hover:bg-gray-50'
+              } rounded-l-lg transition-colors`}
+              title="Table View"
+            >
+              <ListIcon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-2 ${viewMode === 'cards' 
+                ? 'bg-orange-500 text-white' 
+                : 'text-gray-600 hover:bg-gray-50'
+              } rounded-r-lg transition-colors`}
+              title="Cards View"
+            >
+              <Grid className="h-4 w-4" />
+            </button>
+          </div>
+
           <button
             onClick={handleExport}
             className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
@@ -176,7 +284,7 @@ const PromoList = () => {
 
       {/* Mobile Actions Menu */}
       {showMobileActions && isMobile && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 shadow-lg">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 shadow-lg">
           <button
             onClick={handleCreatePromo}
             className="w-full flex items-center space-x-3 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
@@ -192,12 +300,43 @@ const PromoList = () => {
             <Download className="h-5 w-5" />
             <span>Export Data</span>
           </button>
+
+          {/* ✅ Mobile View Mode Toggle */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                setViewMode('table');
+                setShowMobileActions(false);
+              }}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-colors ${
+                viewMode === 'table'
+                  ? 'bg-orange-500 text-white'
+                  : 'border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <ListIcon className="h-4 w-4" />
+              <span>Table</span>
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('cards');
+                setShowMobileActions(false);
+              }}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-colors ${
+                viewMode === 'cards'
+                  ? 'bg-orange-500 text-white'
+                  : 'border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <Grid className="h-4 w-4" />
+              <span>Cards</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* Search and Filters */}
       <div className="space-y-3">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -209,7 +348,6 @@ const PromoList = () => {
           />
         </div>
 
-        {/* Mobile Filter Toggle */}
         <div className={isMobile ? 'block' : 'hidden'}>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -220,7 +358,6 @@ const PromoList = () => {
           </button>
         </div>
 
-        {/* Desktop Filters */}
         <div className={isMobile ? 'hidden' : 'block'}>
           <PromoFilters
             filters={filters}
@@ -228,7 +365,6 @@ const PromoList = () => {
           />
         </div>
 
-        {/* Mobile Filters Panel */}
         {showFilters && isMobile && (
           <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
             <div className="flex items-center justify-between mb-4">
@@ -259,7 +395,7 @@ const PromoList = () => {
         </div>
       )}
 
-      {/* Stats Summary - Mobile */}
+      {/* Stats Summary */}
       {isMobile && (
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="grid grid-cols-2 gap-4 text-center">
@@ -275,18 +411,18 @@ const PromoList = () => {
         </div>
       )}
 
-      {/* Table Container */}
+      {/* Content Container */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {/* Mobile: Show loading state */}
-        {isLoading && isMobile && (
+        {/* Loading State */}
+        {isLoading && (
           <div className="p-8 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
             <p className="mt-2 text-gray-600">Memuat data...</p>
           </div>
         )}
 
-        {/* Mobile: Show empty state */}
-        {!isLoading && promos.length === 0 && isMobile && (
+        {/* Empty State */}
+        {!isLoading && promos.length === 0 && (
           <div className="p-8 text-center">
             <div className="text-gray-400 mb-2">
               <Search className="h-12 w-12 mx-auto" />
@@ -301,21 +437,29 @@ const PromoList = () => {
           </div>
         )}
 
-        {/* Table */}
-        {(!isLoading || promos.length > 0) && (
-          <PromoTable
-            promos={promos}
-            isLoading={isLoading}
-            selectedItems={selectedItems}
-            pagination={pagination}
-            totalCount={totalCount}
-            onSelectItem={handleSelectItem}
-            onSelectAll={handleSelectAll}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleStatus={handleToggleStatus}
-            onPaginationChange={handlePaginationChange}
-          />
+        {/* ✅ Content - Table or Cards based on viewMode */}
+        {!isLoading && promos.length > 0 && (
+          <>
+            {viewMode === 'table' ? (
+              <PromoTable
+                promos={promos}
+                isLoading={isLoading}
+                selectedItems={selectedItems}
+                pagination={pagination}
+                totalCount={totalCount}
+                onSelectItem={handleSelectItem}
+                onSelectAll={handleSelectAll}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleStatus={handleToggleStatus}
+                onPaginationChange={handlePaginationChange}
+              />
+            ) : (
+              <div className="p-4 sm:p-6">
+                <CardsView />
+              </div>
+            )}
+          </>
         )}
       </div>
 

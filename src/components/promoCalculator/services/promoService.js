@@ -1,25 +1,126 @@
-// 🎯 Service untuk CRUD operations promo
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const promoService = {
-  // Create new promo
-  createPromo: async (promoData) => {
+  // ✅ Get all promos (for useQuery)
+  getAll: async (params = {}) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      let query = supabase
+        .from('promos')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Apply search filter
+      if (params.search) {
+        query = query.or(`nama_promo.ilike.%${params.search}%,deskripsi.ilike.%${params.search}%`);
+      }
+
+      // Apply filters
+      if (params.filters?.status) {
+        query = query.eq('status', params.filters.status);
+      }
+      if (params.filters?.type) {
+        query = query.eq('tipe_promo', params.filters.type);
+      }
+      if (params.filters?.dateRange?.start) {
+        query = query.gte('created_at', params.filters.dateRange.start);
+      }
+      if (params.filters?.dateRange?.end) {
+        query = query.lte('created_at', params.filters.dateRange.end);
+      }
+
+      // Apply sorting
+      const sortBy = params.pagination?.sortBy || 'created_at';
+      const sortOrder = params.pagination?.sortOrder || 'desc';
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+      // Apply pagination
+      if (params.pagination?.page && params.pagination?.pageSize) {
+        const from = (params.pagination.page - 1) * params.pagination.pageSize;
+        const to = from + params.pagination.pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      // Transform data to match expected format
+      const transformedData = data?.map(promo => ({
+        id: promo.id,
+        namaPromo: promo.nama_promo,
+        tipePromo: promo.tipe_promo,
+        status: promo.status,
+        deskripsi: promo.deskripsi,
+        tanggalMulai: promo.tanggal_mulai,
+        tanggalSelesai: promo.tanggal_selesai,
+        dataPromo: promo.data_promo,
+        calculationResult: promo.calculation_result,
+        createdAt: promo.created_at,
+        updatedAt: promo.updated_at
+      })) || [];
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error getting promos:', error);
+      throw error;
+    }
+  },
+
+  // ✅ Get promo by ID
+  getById: async (id) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('promos')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Transform data
+      return {
+        id: data.id,
+        namaPromo: data.nama_promo,
+        tipePromo: data.tipe_promo,
+        status: data.status,
+        deskripsi: data.deskripsi,
+        tanggalMulai: data.tanggal_mulai,
+        tanggalSelesai: data.tanggal_selesai,
+        dataPromo: data.data_promo,
+        calculationResult: data.calculation_result,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    } catch (error) {
+      console.error('Error getting promo by ID:', error);
+      throw error;
+    }
+  },
+
+  // ✅ Create new promo (for useMutation)
+  create: async (promoData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const promoRecord = {
         user_id: user.id,
-        nama_promo: promoData.data.namaPromo,
-        tipe_promo: promoData.type,
-        data_promo: promoData.data,
-        calculation_result: promoData.calculation,
-        status: promoData.data.status || 'aktif',
-        tanggal_mulai: promoData.data.tanggalMulai || null,
-        tanggal_selesai: promoData.data.tanggalSelesai || null,
-        deskripsi: promoData.data.deskripsi || null,
+        nama_promo: promoData.namaPromo,
+        tipe_promo: promoData.tipePromo,
+        data_promo: promoData.dataPromo || promoData,
+        calculation_result: promoData.calculationResult,
+        status: promoData.status || 'draft',
+        tanggal_mulai: promoData.tanggalMulai || null,
+        tanggal_selesai: promoData.tanggalSelesai || null,
+        deskripsi: promoData.deskripsi || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -32,70 +133,48 @@ export const promoService = {
 
       if (error) throw error;
 
-      return data;
+      // Transform response
+      return {
+        id: data.id,
+        namaPromo: data.nama_promo,
+        tipePromo: data.tipe_promo,
+        status: data.status,
+        deskripsi: data.deskripsi,
+        tanggalMulai: data.tanggal_mulai,
+        tanggalSelesai: data.tanggal_selesai,
+        dataPromo: data.data_promo,
+        calculationResult: data.calculation_result,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
       console.error('Error creating promo:', error);
       throw error;
     }
   },
 
-  // Get all promos for user
-  getPromos: async (options = {}) => {
+  // ✅ Update promo (for useMutation)
+  update: async (id, updates) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      let query = supabase
-        .from('promos')
-        .select('*')
-        .eq('user_id', user.id);
-
-      // Apply filters
-      if (options.status) {
-        query = query.eq('status', options.status);
-      }
-      if (options.type) {
-        query = query.eq('tipe_promo', options.type);
-      }
-
-      // Apply sorting
-      const sortBy = options.sortBy || 'created_at';
-      const sortOrder = options.sortOrder || 'desc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-      // Apply pagination
-      if (options.page && options.pageSize) {
-        const from = (options.page - 1) * options.pageSize;
-        const to = from + options.pageSize - 1;
-        query = query.range(from, to);
-      }
-
-      const { data, error, count } = await supabase
-        .from('promos')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      return { data, count };
-    } catch (error) {
-      console.error('Error getting promos:', error);
-      throw error;
-    }
-  },
-
-  // Update promo
-  updatePromo: async (id, updates) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      // Transform updates to database format
+      const dbUpdates = {};
+      if (updates.namaPromo) dbUpdates.nama_promo = updates.namaPromo;
+      if (updates.tipePromo) dbUpdates.tipe_promo = updates.tipePromo;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.deskripsi !== undefined) dbUpdates.deskripsi = updates.deskripsi;
+      if (updates.tanggalMulai !== undefined) dbUpdates.tanggal_mulai = updates.tanggalMulai;
+      if (updates.tanggalSelesai !== undefined) dbUpdates.tanggal_selesai = updates.tanggalSelesai;
+      if (updates.dataPromo) dbUpdates.data_promo = updates.dataPromo;
+      if (updates.calculationResult) dbUpdates.calculation_result = updates.calculationResult;
+      
+      dbUpdates.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('promos')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(dbUpdates)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
@@ -103,15 +182,28 @@ export const promoService = {
 
       if (error) throw error;
 
-      return data;
+      // Transform response
+      return {
+        id: data.id,
+        namaPromo: data.nama_promo,
+        tipePromo: data.tipe_promo,
+        status: data.status,
+        deskripsi: data.deskripsi,
+        tanggalMulai: data.tanggal_mulai,
+        tanggalSelesai: data.tanggal_selesai,
+        dataPromo: data.data_promo,
+        calculationResult: data.calculation_result,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
       console.error('Error updating promo:', error);
       throw error;
     }
   },
 
-  // Delete promo
-  deletePromo: async (id) => {
+  // ✅ Delete promo (for useMutation)
+  delete: async (id) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -124,15 +216,15 @@ export const promoService = {
 
       if (error) throw error;
 
-      return true;
+      return { success: true, id };
     } catch (error) {
       console.error('Error deleting promo:', error);
       throw error;
     }
   },
 
-  // Bulk delete promos
-  bulkDeletePromos: async (ids) => {
+  // ✅ Bulk delete promos (for useMutation)
+  bulkDelete: async (ids) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -145,19 +237,40 @@ export const promoService = {
 
       if (error) throw error;
 
-      return true;
+      return { success: true, deletedIds: ids };
     } catch (error) {
       console.error('Error bulk deleting promos:', error);
       throw error;
     }
   },
 
-  // Toggle promo status
-  toggleStatus: async (id, newStatus) => {
+  // ✅ Toggle promo status (for useMutation)
+  toggleStatus: async ({ id, newStatus }) => {
     try {
-      return await promoService.updatePromo(id, { status: newStatus });
+      return await promoService.update(id, { status: newStatus });
     } catch (error) {
       console.error('Error toggling promo status:', error);
+      throw error;
+    }
+  },
+
+  // ✅ Duplicate promo (for useMutation)
+  duplicate: async (originalPromo) => {
+    try {
+      const duplicatedData = {
+        namaPromo: `${originalPromo.namaPromo} (Copy)`,
+        tipePromo: originalPromo.tipePromo,
+        status: 'draft',
+        deskripsi: originalPromo.deskripsi,
+        dataPromo: originalPromo.dataPromo,
+        calculationResult: originalPromo.calculationResult,
+        tanggalMulai: null, // Reset dates for new promo
+        tanggalSelesai: null
+      };
+
+      return await promoService.create(duplicatedData);
+    } catch (error) {
+      console.error('Error duplicating promo:', error);
       throw error;
     }
   }

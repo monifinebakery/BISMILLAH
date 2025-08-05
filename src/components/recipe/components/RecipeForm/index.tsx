@@ -1,6 +1,7 @@
-// src/components/recipe/components/RecipeForm/index.tsx - Mobile-Friendly Version
+// src/components/recipe/components/RecipeForm/index.tsx - with useQuery
 
 import React, { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,14 +25,24 @@ import CostCalculationStep from './CostCalculationStep/index';
 
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
+import { recipeApi } from '../../services/recipeApi';
 import { RECIPE_CATEGORIES } from '../../types';
 import type { Recipe, NewRecipe, RecipeFormStep, BahanResep } from '../../types';
+
+// Query Keys
+export const RECIPE_QUERY_KEYS = {
+  all: ['recipes'] as const,
+  lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
+  list: (filters: Record<string, any>) => [...RECIPE_QUERY_KEYS.lists(), filters] as const,
+  details: () => [...RECIPE_QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...RECIPE_QUERY_KEYS.details(), id] as const,
+} as const;
 
 interface RecipeFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: Recipe | null;
-  onSave: (data: NewRecipe) => Promise<void>;
+  onSuccess?: (recipe: Recipe, isEdit: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -45,12 +56,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   isOpen,
   onOpenChange,
   initialData,
-  onSave,
-  isLoading = false,
+  onSuccess,
+  isLoading: externalLoading = false,
 }) => {
   const [currentStep, setCurrentStep] = useState<RecipeFormStep>('basic');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isCalculating, setIsCalculating] = useState(false);
+  const queryClient = useQueryClient();
 
   // Form data state
   const [formData, setFormData] = useState<NewRecipe>({
@@ -70,6 +82,79 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const currentStepIndex = STEPS.findIndex(step => step.key === currentStep);
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === STEPS.length - 1;
+
+  // ✅ useQuery: Create Recipe Mutation
+  const createRecipeMutation = useMutation({
+    mutationFn: async (data: NewRecipe) => {
+      const response = await recipeApi.createRecipe(data);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data;
+    },
+    onSuccess: (newRecipe) => {
+      // Invalidate and refetch recipes list
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
+      
+      // Add to cache optimistically
+      queryClient.setQueryData(
+        RECIPE_QUERY_KEYS.detail(newRecipe.id), 
+        newRecipe
+      );
+
+      toast.success('Resep berhasil ditambahkan!');
+      onSuccess?.(newRecipe, false);
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      logger.error('RecipeForm: Error creating recipe:', error);
+      toast.error(error.message || 'Gagal menambahkan resep');
+    },
+  });
+
+  // ✅ useQuery: Update Recipe Mutation
+  const updateRecipeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<NewRecipe> }) => {
+      const response = await recipeApi.updateRecipe(id, data);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data;
+    },
+    onSuccess: (updatedRecipe) => {
+      // Invalidate and refetch recipes list
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
+      
+      // Update specific recipe in cache
+      queryClient.setQueryData(
+        RECIPE_QUERY_KEYS.detail(updatedRecipe.id), 
+        updatedRecipe
+      );
+
+      // Update any cached lists that contain this recipe
+      queryClient.setQueriesData(
+        { queryKey: RECIPE_QUERY_KEYS.lists() },
+        (oldData: Recipe[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(recipe => 
+            recipe.id === updatedRecipe.id ? updatedRecipe : recipe
+          );
+        }
+      );
+
+      toast.success('Resep berhasil diperbarui!');
+      onSuccess?.(updatedRecipe, true);
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      logger.error('RecipeForm: Error updating recipe:', error);
+      toast.error(error.message || 'Gagal memperbarui resep');
+    },
+  });
+
+  // Check if any mutation is loading
+  const isMutationLoading = createRecipeMutation.isPending || updateRecipeMutation.isPending;
+  const isLoading = externalLoading || isMutationLoading;
 
   // Initialize form data
   useEffect(() => {
@@ -237,7 +322,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }
   };
 
-  // Submit form
+  // ✅ Submit form with useQuery mutations
   const handleSubmit = async () => {
     // Validate all data
     const validation = validateRecipeData(formData);
@@ -247,11 +332,19 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }
 
     try {
-      await onSave(formData);
-      toast.success(isEditMode ? 'Resep berhasil diperbarui!' : 'Resep berhasil ditambahkan!');
+      if (isEditMode && initialData?.id) {
+        // Update existing recipe
+        await updateRecipeMutation.mutateAsync({
+          id: initialData.id,
+          data: formData
+        });
+      } else {
+        // Create new recipe
+        await createRecipeMutation.mutateAsync(formData);
+      }
     } catch (error) {
-      logger.error('RecipeForm: Error saving recipe:', error);
-      toast.error('Gagal menyimpan resep');
+      // Error handling is done in mutation callbacks
+      logger.error('RecipeForm: Error in handleSubmit:', error);
     }
   };
 
@@ -341,7 +434,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
         {/* Content with Mobile-Safe Padding */}
         <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="p-6 pb-32 sm:pb-6"> {/* ✅ Extra bottom padding for mobile - increased to pb-32 */}
+          <div className="p-6 pb-32 sm:pb-6">
             {renderStepContent()}
           </div>
         </CardContent>

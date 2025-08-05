@@ -144,15 +144,7 @@ const OrderRowActions: React.FC<{
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem 
-          onClick={handleViewDetail}
-          className="cursor-pointer"
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          Lihat Detail
-        </DropdownMenuItem>
-        
+      <DropdownMenuContent align="end" className="w-48">        
         <DropdownMenuItem 
           onClick={() => { setIsOpen(false); onEdit(); }}
           className="cursor-pointer"

@@ -1,5 +1,5 @@
 // src/contexts/RecipeContext.tsx
-// UPDATED: Uses new category helper functions, no default categories
+// UPDATED: Uses new recipeApi methods (no fetchRecipes, addRecipe, etc.)
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -75,7 +75,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setError(null);
   }, []);
 
-  // Load recipes from API
+  // ✅ UPDATED: Load recipes using new recipeApi.getRecipes()
   const loadRecipes = useCallback(async () => {
     if (!user?.id) {
       setRecipes([]);
@@ -88,14 +88,12 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setError(null);
       
       logger.debug('RecipeContext: Loading recipes for user:', user.id);
-      const result = await recipeApi.fetchRecipes(user.id);
       
-      if (result.error) {
-        throw new Error(result.error);
-      }
+      // ✅ Use new recipeApi.getRecipes() method
+      const recipesData = await recipeApi.getRecipes();
       
-      setRecipes(result.data);
-      logger.debug(`RecipeContext: Loaded ${result.data.length} recipes`);
+      setRecipes(recipesData);
+      logger.debug(`RecipeContext: Loaded ${recipesData.length} recipes`);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load recipes';
@@ -112,7 +110,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     await loadRecipes();
   }, [loadRecipes]);
 
-  // Add new recipe
+  // ✅ UPDATED: Add new recipe using new recipeApi.createRecipe()
   const addRecipe = useCallback(async (recipeData: NewRecipe): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -154,17 +152,15 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         };
       }
 
-      const result = await recipeApi.addRecipe(finalRecipeData, user.id);
+      // ✅ Use new recipeApi.createRecipe() method
+      const newRecipe = await recipeApi.createRecipe(finalRecipeData);
 
-      if (result.success && result.data) {
-        // Add to local state
-        setRecipes(prev => [result.data!, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
-        toast.success('Resep berhasil ditambahkan!');
-        logger.debug('RecipeContext: Successfully added recipe:', result.data.id);
-        return true;
-      } else {
-        throw new Error(result.error || 'Gagal menambahkan resep');
-      }
+      // Add to local state
+      setRecipes(prev => [newRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
+      toast.success('Resep berhasil ditambahkan!');
+      logger.debug('RecipeContext: Successfully added recipe:', newRecipe.id);
+      return true;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Gagal menambahkan resep';
       setError(errorMessage);
@@ -174,7 +170,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [user?.id]);
 
-  // Update existing recipe
+  // ✅ UPDATED: Update existing recipe using new recipeApi.updateRecipe()
   const updateRecipe = useCallback(async (id: string, updates: Partial<NewRecipe>): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -223,17 +219,15 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         };
       }
 
-      const result = await recipeApi.updateRecipe(id, finalUpdates, user.id);
+      // ✅ Use new recipeApi.updateRecipe() method
+      const updatedRecipe = await recipeApi.updateRecipe(id, finalUpdates);
 
-      if (result.success && result.data) {
-        // Update local state
-        setRecipes(prev => prev.map(r => r.id === id ? result.data! : r));
-        toast.success('Resep berhasil diperbarui!');
-        logger.debug('RecipeContext: Successfully updated recipe:', result.data.id);
-        return true;
-      } else {
-        throw new Error(result.error || 'Gagal memperbarui resep');
-      }
+      // Update local state
+      setRecipes(prev => prev.map(r => r.id === id ? updatedRecipe : r));
+      toast.success('Resep berhasil diperbarui!');
+      logger.debug('RecipeContext: Successfully updated recipe:', updatedRecipe.id);
+      return true;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Gagal memperbarui resep';
       setError(errorMessage);
@@ -243,7 +237,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [user?.id, recipes]);
 
-  // Delete recipe
+  // ✅ UPDATED: Delete recipe using new recipeApi.deleteRecipe()
   const deleteRecipe = useCallback(async (id: string): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -259,17 +253,16 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
 
       logger.debug('RecipeContext: Deleting recipe:', id);
-      const result = await recipeApi.deleteRecipe(id, user.id);
+      
+      // ✅ Use new recipeApi.deleteRecipe() method
+      await recipeApi.deleteRecipe(id);
 
-      if (result.success) {
-        // Remove from local state
-        setRecipes(prev => prev.filter(r => r.id !== id));
-        toast.success(`Resep "${recipeToDelete.namaResep}" berhasil dihapus`);
-        logger.debug('RecipeContext: Successfully deleted recipe:', id);
-        return true;
-      } else {
-        throw new Error(result.error || 'Gagal menghapus resep');
-      }
+      // Remove from local state
+      setRecipes(prev => prev.filter(r => r.id !== id));
+      toast.success(`Resep "${recipeToDelete.namaResep}" berhasil dihapus`);
+      logger.debug('RecipeContext: Successfully deleted recipe:', id);
+      return true;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
       setError(errorMessage);
@@ -279,7 +272,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [user?.id, recipes]);
 
-  // Duplicate recipe
+  // ✅ UPDATED: Duplicate recipe using new recipeApi.duplicateRecipe()
   const duplicateRecipe = useCallback(async (id: string, newName: string): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -296,29 +289,15 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       logger.debug('RecipeContext: Duplicating recipe:', id, 'with name:', newName);
 
-      const duplicatedRecipe: NewRecipe = {
-        namaResep: newName,
-        jumlahPorsi: originalRecipe.jumlahPorsi,
-        kategoriResep: originalRecipe.kategoriResep,
-        deskripsi: originalRecipe.deskripsi,
-        fotoUrl: originalRecipe.fotoUrl,
-        bahanResep: [...originalRecipe.bahanResep],
-        biayaTenagaKerja: originalRecipe.biayaTenagaKerja,
-        biayaOverhead: originalRecipe.biayaOverhead,
-        marginKeuntunganPersen: originalRecipe.marginKeuntunganPersen,
-        totalHpp: originalRecipe.totalHpp,
-        hppPerPorsi: originalRecipe.hppPerPorsi,
-        hargaJualPorsi: originalRecipe.hargaJualPorsi,
-        jumlahPcsPerPorsi: originalRecipe.jumlahPcsPerPorsi,
-        hppPerPcs: originalRecipe.hppPerPcs,
-        hargaJualPerPcs: originalRecipe.hargaJualPerPcs,
-      };
+      // ✅ Use new recipeApi.duplicateRecipe() method
+      const duplicatedRecipe = await recipeApi.duplicateRecipe(id, newName);
 
-      const success = await addRecipe(duplicatedRecipe);
-      if (success) {
-        toast.success(`Resep "${newName}" berhasil diduplikasi`);
-      }
-      return success;
+      // Add to local state
+      setRecipes(prev => [duplicatedRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
+      toast.success(`Resep "${newName}" berhasil diduplikasi`);
+      logger.debug('RecipeContext: Successfully duplicated recipe:', duplicatedRecipe.id);
+      return true;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Gagal menduplikasi resep';
       setError(errorMessage);
@@ -326,9 +305,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       logger.error('RecipeContext: Error duplicating recipe:', error);
       return false;
     }
-  }, [user?.id, recipes, addRecipe]);
+  }, [user?.id, recipes]);
 
-  // Bulk delete recipes
+  // ✅ UPDATED: Bulk delete recipes using new recipeApi.bulkDeleteRecipes()
   const bulkDeleteRecipes = useCallback(async (ids: string[]): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -344,17 +323,15 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setError(null);
       logger.debug('RecipeContext: Bulk deleting recipes:', ids);
 
-      const result = await recipeApi.bulkDeleteRecipes(ids, user.id);
+      // ✅ Use new recipeApi.bulkDeleteRecipes() method
+      await recipeApi.bulkDeleteRecipes(ids);
 
-      if (result.success) {
-        // Remove from local state
-        setRecipes(prev => prev.filter(r => !ids.includes(r.id)));
-        toast.success(`${ids.length} resep berhasil dihapus`);
-        logger.debug('RecipeContext: Successfully bulk deleted recipes:', ids.length);
-        return true;
-      } else {
-        throw new Error(result.error || 'Gagal menghapus resep');
-      }
+      // Remove from local state
+      setRecipes(prev => prev.filter(r => !ids.includes(r.id)));
+      toast.success(`${ids.length} resep berhasil dihapus`);
+      logger.debug('RecipeContext: Successfully bulk deleted recipes:', ids.length);
+      return true;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
       setError(errorMessage);
@@ -385,7 +362,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return recipes.filter(recipe => recipe.kategoriResep === category);
   }, [recipes]);
 
-  // ✅ UPDATED: Get unique categories using helper function
+  // ✅ Get unique categories using helper function
   const getUniqueCategories = useCallback((): string[] => {
     return getAllAvailableCategories(recipes);
   }, [recipes]);
@@ -440,14 +417,13 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     loadRecipes();
   }, [loadRecipes]);
 
-  // Setup real-time subscription
+  // ✅ UPDATED: Setup real-time subscription with new recipeApi method
   useEffect(() => {
     if (!user?.id) return;
 
     logger.debug('RecipeContext: Setting up real-time subscription for user:', user.id);
     
     const unsubscribe = recipeApi.setupRealtimeSubscription(
-      user.id,
       (newRecipe) => {
         setRecipes(prev => {
           const exists = prev.find(r => r.id === newRecipe.id);

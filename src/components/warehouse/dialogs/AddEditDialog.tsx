@@ -1,10 +1,16 @@
+// ===== 3. UPDATE AddEditDialog.tsx dengan useQuery =====
 // src/components/warehouse/dialogs/AddEditDialog.tsx
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Edit2, Save, AlertCircle, Calculator } from 'lucide-react';
+import { X, Plus, Edit2, Save, AlertCircle, Calculator, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+// ✅ TAMBAH: Import useQuery
+import { useQuery } from '@tanstack/react-query';
+import { warehouseApi } from '../services/warehouseApi';
+import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
+import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
 
 interface AddEditDialogProps {
@@ -17,7 +23,80 @@ interface AddEditDialogProps {
   availableSuppliers: string[];
 }
 
-// ✅ Updated FormData to match BahanBakuFrontend interface
+// ✅ TAMBAH: Query keys for dialog data
+const dialogQueryKeys = {
+  categories: ['warehouse', 'dialog', 'categories'] as const,
+  suppliers: ['warehouse', 'dialog', 'suppliers'] as const,
+  item: (id: string) => ['warehouse', 'dialog', 'item', id] as const,
+};
+
+// ✅ TAMBAH: API functions for dialog
+const fetchDialogCategories = async (): Promise<string[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const service = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+    
+    const items = await service.fetchBahanBaku();
+    const categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
+    return categories.sort();
+  } catch (error) {
+    logger.error('Failed to fetch dialog categories:', error);
+    return [];
+  }
+};
+
+const fetchDialogSuppliers = async (): Promise<string[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const service = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+    
+    const items = await service.fetchBahanBaku();
+    const suppliers = [...new Set(items.map(item => item.supplier).filter(Boolean))];
+    return suppliers.sort();
+  } catch (error) {
+    logger.error('Failed to fetch dialog suppliers:', error);
+    return [];
+  }
+};
+
+const fetchItemForEdit = async (itemId: string): Promise<BahanBakuFrontend | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const service = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+    
+    const items = await service.fetchBahanBaku();
+    const item = items.find(item => item.id === itemId);
+    
+    if (!item) return null;
+    
+    // Ensure proper typing
+    return {
+      ...item,
+      stok: Number(item.stok) || 0,
+      minimum: Number(item.minimum) || 0,
+      harga: Number(item.harga) || 0,
+      jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
+      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
+    };
+  } catch (error) {
+    logger.error('Failed to fetch item for edit:', error);
+    return null;
+  }
+};
+
+// Updated FormData to match BahanBakuFrontend interface
 interface FormData {
   nama: string;
   kategori: string;
@@ -25,12 +104,11 @@ interface FormData {
   stok: number;
   minimum: number;
   satuan: string;
-  harga: number; // ✅ Changed from harga_satuan to harga
-  expiry: string; // ✅ Changed from tanggal_kadaluwarsa to expiry
-  // Purchase details
-  jumlahBeliKemasan: number; // ✅ camelCase
-  satuanKemasan: string; // ✅ camelCase
-  hargaTotalBeliKemasan: number; // ✅ camelCase
+  harga: number;
+  expiry: string;
+  jumlahBeliKemasan: number;
+  satuanKemasan: string;
+  hargaTotalBeliKemasan: number;
 }
 
 const initialFormData: FormData = {
@@ -42,29 +120,20 @@ const initialFormData: FormData = {
   satuan: '',
   harga: 0,
   expiry: '',
-  // Purchase details
   jumlahBeliKemasan: 0,
   satuanKemasan: '',
   hargaTotalBeliKemasan: 0,
 };
 
 /**
- * Combined Add/Edit Dialog Component with Purchase Details
- * 
- * ✅ Updated to match BahanBakuFrontend interface
- * ✅ Fixed field naming consistency (camelCase)
- * ✅ Enhanced with last update tracking support
+ * ✅ ENHANCED: Add/Edit Dialog Component dengan useQuery
  * 
  * Features:
- * - Single component for both add and edit modes
- * - Real-time validation using updated warehouseUtils
- * - Auto-complete for categories and suppliers
- * - Purchase details with automatic calculations
- * - Responsive design
- * - Accessibility support
- * - Compatible with updated type system
- * 
- * Size: ~12KB (loaded lazily)
+ * - useQuery untuk categories & suppliers
+ * - useQuery untuk fetch item saat edit
+ * - Fallback ke props untuk backward compatibility
+ * - Enhanced loading states
+ * - Real-time data refresh
  */
 const AddEditDialog: React.FC<AddEditDialogProps> = ({
   isOpen,
@@ -72,8 +141,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   mode,
   item,
   onSave,
-  availableCategories,
-  availableSuppliers,
+  availableCategories: propCategories,
+  availableSuppliers: propSuppliers,
 }) => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<string[]>([]);
@@ -85,28 +154,82 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const title = isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku';
   const saveText = isEditMode ? 'Simpan Perubahan' : 'Tambah Item';
 
-  // ✅ Updated initialization to match BahanBakuFrontend
+  // ✅ TAMBAH: useQuery untuk categories
+  const {
+    data: queriedCategories = [],
+    isLoading: categoriesLoading,
+    refetch: refetchCategories,
+  } = useQuery({
+    queryKey: dialogQueryKeys.categories,
+    queryFn: fetchDialogCategories,
+    enabled: isOpen, // Only fetch when dialog is open
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // ✅ TAMBAH: useQuery untuk suppliers
+  const {
+    data: queriedSuppliers = [],
+    isLoading: suppliersLoading,
+    refetch: refetchSuppliers,
+  } = useQuery({
+    queryKey: dialogQueryKeys.suppliers,
+    queryFn: fetchDialogSuppliers,
+    enabled: isOpen, // Only fetch when dialog is open
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // ✅ TAMBAH: useQuery untuk fetch item saat edit
+  const {
+    data: fetchedItem,
+    isLoading: itemLoading,
+    refetch: refetchItem,
+  } = useQuery({
+    queryKey: dialogQueryKeys.item(item?.id || ''),
+    queryFn: () => fetchItemForEdit(item?.id || ''),
+    enabled: isEditMode && !!item?.id && isOpen,
+    staleTime: 1 * 60 * 1000, // 1 minute - fresh data untuk edit
+  });
+
+  // ✅ TAMBAH: Use queried data dengan fallback
+  const availableCategories = queriedCategories.length > 0 ? queriedCategories : propCategories;
+  const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
+
+  // ✅ TAMBAH: Refresh dialog data
+  const handleRefreshDialogData = async () => {
+    try {
+      await Promise.all([
+        refetchCategories(),
+        refetchSuppliers(),
+        isEditMode && item?.id ? refetchItem() : Promise.resolve()
+      ]);
+      toast.success('Data dialog berhasil diperbarui');
+    } catch (error) {
+      toast.error('Gagal memperbarui data dialog');
+    }
+  };
+
+  // ✅ UPDATE: Initialization dengan useQuery data
   useEffect(() => {
-    if (isEditMode && item) {
+    if (isEditMode && (fetchedItem || item)) {
+      const sourceItem = fetchedItem || item;
       setFormData({
-        nama: item.nama || '',
-        kategori: item.kategori || '',
-        supplier: item.supplier || '',
-        stok: item.stok || 0,
-        minimum: item.minimum || 0,
-        satuan: item.satuan || '',
-        harga: item.harga || 0, // ✅ Updated field name
-        expiry: item.expiry ? item.expiry.split('T')[0] : '', // ✅ Updated field name
-        // Purchase details
-        jumlahBeliKemasan: item.jumlahBeliKemasan || 0,
-        satuanKemasan: item.satuanKemasan || '',
-        hargaTotalBeliKemasan: item.hargaTotalBeliKemasan || 0,
+        nama: sourceItem.nama || '',
+        kategori: sourceItem.kategori || '',
+        supplier: sourceItem.supplier || '',
+        stok: Number(sourceItem.stok) || 0,
+        minimum: Number(sourceItem.minimum) || 0,
+        satuan: sourceItem.satuan || '',
+        harga: Number(sourceItem.harga) || 0,
+        expiry: sourceItem.expiry ? sourceItem.expiry.split('T')[0] : '',
+        jumlahBeliKemasan: Number(sourceItem.jumlahBeliKemasan) || 0,
+        satuanKemasan: sourceItem.satuanKemasan || '',
+        hargaTotalBeliKemasan: Number(sourceItem.hargaTotalBeliKemasan) || 0,
       });
     } else {
       setFormData(initialFormData);
     }
     setErrors([]);
-  }, [isEditMode, item, isOpen]);
+  }, [isEditMode, fetchedItem, item, isOpen]);
 
   // Handle form field changes
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
@@ -143,7 +266,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     }
   };
 
-  // ✅ Updated validation to use updated warehouseUtils
+  // Updated validation to use updated warehouseUtils
   const validateForm = (): boolean => {
     const validation = warehouseUtils.validateBahanBaku(formData);
     
@@ -176,19 +299,16 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      // ✅ Prepare data for submission with proper field mapping
+      // Prepare data for submission with proper field mapping
       const submitData = {
         ...formData,
-        expiry: formData.expiry || undefined, // Convert empty string to undefined
-        // Clean up purchase details - set to null/undefined if empty
+        expiry: formData.expiry || undefined,
         jumlahBeliKemasan: formData.jumlahBeliKemasan || undefined,
         satuanKemasan: formData.satuanKemasan.trim() || undefined,
         hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan || undefined,
       };
 
       await onSave(submitData);
-      
-      // Success handling is done in parent component
       onClose();
       
     } catch (error: any) {
@@ -221,6 +341,18 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   if (!isOpen) return null;
 
+  // ✅ TAMBAH: Loading state untuk edit mode
+  if (isEditMode && itemLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 flex flex-col items-center">
+          <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+          <p className="text-gray-600">Memuat data item...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
@@ -242,13 +374,27 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            disabled={isSubmitting}
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* ✅ TAMBAH: Refresh button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRefreshDialogData}
+              disabled={categoriesLoading || suppliersLoading || isSubmitting}
+              className="text-gray-500 hover:text-gray-700"
+              title="Refresh data categories dan suppliers"
+            >
+              <RefreshCw className={`w-4 h-4 ${categoriesLoading || suppliersLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              disabled={isSubmitting}
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Error Display */}
@@ -300,6 +446,9 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Kategori *
+                      {categoriesLoading && (
+                        <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+                      )}
                     </label>
                     <Input
                       type="text"
@@ -312,7 +461,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
                       placeholder="Masukkan atau pilih kategori"
                       className="w-full"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || categoriesLoading}
                       required
                     />
                     
@@ -337,6 +486,9 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Supplier *
+                      {suppliersLoading && (
+                        <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+                      )}
                     </label>
                     <Input
                       type="text"
@@ -349,7 +501,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       onBlur={() => setTimeout(() => setShowSupplierDropdown(false), 200)}
                       placeholder="Masukkan atau pilih supplier"
                       className="w-full"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || suppliersLoading}
                       required
                     />
                     
@@ -397,7 +549,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       onChange={(e) => handleFieldChange('expiry', e.target.value)}
                       className="w-full"
                       disabled={isSubmitting}
-                      min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                      min={new Date().toISOString().split('T')[0]}
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Opsional - untuk bahan yang memiliki tanggal kadaluarsa
@@ -594,7 +746,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                 </div>
               )}
 
-              {/* ✅ Enhanced Stock Level Indicator using updated utils */}
+              {/* Enhanced Stock Level Indicator using updated utils */}
               {formData.stok > 0 && formData.minimum > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
@@ -611,6 +763,33 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* ✅ TAMBAH: Data status indicator */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Status Data</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Categories:</span>
+                    <span className={`font-medium ${categoriesLoading ? 'text-orange-600' : 'text-green-600'}`}>
+                      {categoriesLoading ? 'Loading...' : `${availableCategories.length} tersedia`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Suppliers:</span>
+                    <span className={`font-medium ${suppliersLoading ? 'text-orange-600' : 'text-green-600'}`}>
+                      {suppliersLoading ? 'Loading...' : `${availableSuppliers.length} tersedia`}
+                    </span>
+                  </div>
+                  {isEditMode && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Item Data:</span>
+                      <span className="font-medium text-green-600">
+                        {fetchedItem ? 'Fresh from server' : 'From cache'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </form>
@@ -628,7 +807,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           <Button
             type="submit"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || categoriesLoading || suppliersLoading}
             className="flex items-center gap-2"
           >
             {isSubmitting ? (

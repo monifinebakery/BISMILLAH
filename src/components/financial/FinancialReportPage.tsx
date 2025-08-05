@@ -1,10 +1,11 @@
-// src/components/financial/FinancialReportPage.tsx - Final with Real API & Auth
-import React, { useState, useMemo, useCallback, Suspense } from 'react';
+// src/components/financial/FinancialReportPage.tsx - Final with Real API & Auth (FIXED VERSION)
+import React, { useState, useMemo, useCallback, Suspense, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Plus, Settings, ChevronDown, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { logger } from '@/utils/logger';
 
 // TanStack Query
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -348,9 +349,13 @@ const DateRangeSelector: React.FC<{
   );
 };
 
-// Custom hook for managing financial data with REAL API
+// Custom hook for managing financial data with REAL API (FIXED VERSION)
 const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) => {
   const queryClient = useQueryClient();
+  
+  // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
+  const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
+  const [initialLoadTime, setInitialLoadTime] = useState<Date | undefined>(undefined);
 
   // Query untuk transactions dengan real API
   const {
@@ -387,12 +392,31 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
     retry: 1,
   });
 
-  // Mutations dengan real API
+  // ✅ TAMBAH: Set initial load time (fallback jika belum ada user action)
+  useEffect(() => {
+    if (transactions && transactions.length >= 0 && !initialLoadTime) {
+      setInitialLoadTime(new Date());
+      logger.debug('📊 Initial financial data loaded');
+    }
+  }, [transactions, initialLoadTime]);
+
+  // ✅ TAMBAH: Smart refresh yang tidak update timestamp
+  const smartRefreshAll = async () => {
+    await Promise.all([
+      refetchTransactions(),
+      refetchStats()
+    ]);
+    // Tidak update timestamp karena ini bukan user action
+  };
+
+  // Mutations dengan real API (FIXED - update timestamp saat user action)
   const createMutation = useMutation({
     mutationFn: (transaction: CreateTransactionData) => 
       addFinancialTransaction(transaction, userId),
     onSuccess: (response) => {
       if (response.success) {
+        // ✅ FIXED: Update timestamp saat user berhasil tambah transaksi
+        setLastUserAction(new Date());
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
         toast.success('Transaksi berhasil ditambahkan');
@@ -410,6 +434,8 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
       updateFinancialTransaction(id, transaction),
     onSuccess: (response) => {
       if (response.success) {
+        // ✅ FIXED: Update timestamp saat user berhasil edit transaksi
+        setLastUserAction(new Date());
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
         toast.success('Transaksi berhasil diperbarui');
@@ -426,6 +452,8 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
     mutationFn: (id: string) => deleteFinancialTransaction(id),
     onSuccess: (response) => {
       if (response.success) {
+        // ✅ FIXED: Update timestamp saat user berhasil hapus transaksi
+        setLastUserAction(new Date());
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.transactions(userId) });
         queryClient.invalidateQueries({ queryKey: financialQueryKeys.stats(userId, dateRange.from, dateRange.to) });
         toast.success('Transaksi berhasil dihapus');
@@ -457,20 +485,13 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
     };
   }, [transactions, stats]);
 
-  // Refresh all data
-  const refreshAll = async () => {
-    await Promise.all([
-      refetchTransactions(),
-      refetchStats()
-    ]);
-  };
-
   return {
     // Data
     transactions,
     stats,
     summary,
-    lastUpdated: transactionsUpdatedAt ? new Date(transactionsUpdatedAt) : undefined,
+    // ✅ FIXED: Prioritas lastUserAction, fallback ke initialLoadTime
+    lastUpdated: lastUserAction || initialLoadTime,
     
     // Loading states
     isLoading: transactionsLoading || statsLoading,
@@ -491,7 +512,7 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
       const result = await deleteMutation.mutateAsync(id);
       return result.success;
     },
-    refreshAll,
+    refreshAll: smartRefreshAll, // ✅ FIXED: Pakai smart refresh
     
     // Mutation states
     isCreating: createMutation.isPending,
@@ -557,7 +578,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// MAIN COMPONENT - WITH REAL API & AUTH
+// MAIN COMPONENT - WITH REAL API & AUTH (FIXED VERSION)
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();

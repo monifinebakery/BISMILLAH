@@ -260,7 +260,7 @@ const InvoicePage: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 p-4">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
-          <Card className="print:hidden shadow-lg border-0">
+          <Card className="print:hidden border-1 border-gray-200">
             <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-3">
@@ -312,7 +312,7 @@ const InvoicePage: React.FC = () => {
           </Card>
 
           {/* Invoice Content */}
-          <Card className="shadow-xl border-0 overflow-hidden invoice-content" id="invoice-content">
+          <Card className="border-1 border-gray-200 overflow-hidden invoice-content" id="invoice-content">
             <div className="bg-white p-4 sm:p-8">
               {/* Header Section */}
               <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 mb-6 sm:mb-8 pb-4 sm:pb-8 border-b-2 border-gray-200">

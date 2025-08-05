@@ -1,5 +1,8 @@
+// ===== 1. UPDATE DialogManager.tsx dengan useQuery =====
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
+// ✅ TAMBAH: Import useQuery dan mutation utilities
+import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 
 // ✅ ONLY Lazy Imports - Remove direct imports completely
@@ -97,6 +100,11 @@ interface DialogManagerProps {
     editSave: (updates: any) => Promise<void>;
     delete: (id: string, nama: string) => Promise<void>;
     sort: (key: string) => void;
+    // ✅ TAMBAH: Enhanced handlers dengan useQuery support
+    create: (item: any) => Promise<void>;
+    update: (id: string, item: any) => Promise<void>;
+    bulkDelete: (ids: string[]) => Promise<void>;
+    bulkUpdate: (items: { id: string; data: any }[]) => Promise<void>;
   };
   context: any;
   selection: any;
@@ -106,17 +114,16 @@ interface DialogManagerProps {
 }
 
 /**
- * Dialog Manager Component
+ * ✅ ENHANCED: Dialog Manager Component dengan useQuery integration
  * 
- * ✅ FIXED: Removed double imports that caused 'aUe' error
+ * Features:
+ * - QueryClient integration untuk cache management
+ * - Enhanced error handling dengan retry logic
+ * - Performance monitoring untuk dialog loading
+ * - Smart preloading untuk common dialogs
+ * - Cache invalidation setelah operations
  * 
- * Manages dynamic loading of dialog components with:
- * - Lazy loading for better performance
- * - Error boundaries for graceful failure
- * - Loading states with smooth animations
- * - Smart preloading for common dialogs
- * 
- * Size: ~3KB
+ * Size: ~4KB
  */
 const DialogManager: React.FC<DialogManagerProps> = ({
   dialogs,
@@ -129,6 +136,9 @@ const DialogManager: React.FC<DialogManagerProps> = ({
 }) => {
   const [loadedDialogs, setLoadedDialogs] = useState<Set<string>>(new Set());
   const [failedDialogs, setFailedDialogs] = useState<Set<string>>(new Set());
+  
+  // ✅ TAMBAH: QueryClient untuk cache management
+  const queryClient = useQueryClient();
 
   // Track which dialogs have been loaded for performance monitoring
   useEffect(() => {
@@ -140,6 +150,18 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     });
   }, [dialogs.states, loadedDialogs, pageId]);
 
+  // ✅ TAMBAH: Preload critical dialogs untuk better performance
+  useEffect(() => {
+    // Preload AddEditDialog saat component mount (dialog paling sering digunakan)
+    const preloadTimer = setTimeout(() => {
+      import('../dialogs/AddEditDialog').catch(() => {
+        logger.debug(`[${pageId}] Failed to preload AddEditDialog`);
+      });
+    }, 1000);
+
+    return () => clearTimeout(preloadTimer);
+  }, [pageId]);
+
   // Retry handler for failed dialog loads
   const retryDialog = (dialogName: string) => {
     setFailedDialogs(prev => {
@@ -147,6 +169,87 @@ const DialogManager: React.FC<DialogManagerProps> = ({
       newSet.delete(dialogName);
       return newSet;
     });
+  };
+
+  // ✅ TAMBAH: Enhanced handlers dengan cache invalidation
+  const enhancedHandlers = {
+    ...handlers,
+    
+    // Enhanced save handler dengan cache management
+    handleSave: async (data: any, isEdit: boolean = false) => {
+      try {
+        if (isEdit && dialogs.editingItem) {
+          await handlers.update(dialogs.editingItem.id, data);
+        } else {
+          await handlers.create(data);
+        }
+        
+        // ✅ Smart cache invalidation
+        queryClient.invalidateQueries({ queryKey: ['warehouse', 'list'] });
+        queryClient.invalidateQueries({ queryKey: ['warehouse', 'categories'] });
+        queryClient.invalidateQueries({ queryKey: ['warehouse', 'suppliers'] });
+        
+        logger.debug(`[${pageId}] ✅ ${isEdit ? 'Updated' : 'Created'} item successfully`);
+        
+      } catch (error) {
+        logger.error(`[${pageId}] ❌ Failed to ${isEdit ? 'update' : 'create'} item:`, error);
+        throw error;
+      }
+    },
+
+    // Enhanced bulk operations dengan cache management
+    handleBulkOperation: async (operation: 'edit' | 'delete', data?: any) => {
+      try {
+        if (operation === 'delete') {
+          const selectedIds = Array.from(selection.selectedItems);
+          await handlers.bulkDelete(selectedIds);
+          
+          logger.debug(`[${pageId}] ✅ Bulk deleted ${selectedIds.length} items`);
+        } else if (operation === 'edit' && data) {
+          const selectedIds = Array.from(selection.selectedItems);
+          const updateItems = selectedIds.map(id => ({ id, data }));
+          await handlers.bulkUpdate(updateItems);
+          
+          logger.debug(`[${pageId}] ✅ Bulk updated ${selectedIds.length} items`);
+        }
+        
+        // ✅ Comprehensive cache invalidation untuk bulk operations
+        queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+        
+      } catch (error) {
+        logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, error);
+        throw error;
+      }
+    },
+
+    // Enhanced import handler
+    handleImport: async (items: any[]) => {
+      try {
+        // Import items satu per satu dengan progress tracking
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const item of items) {
+          try {
+            await handlers.create(item);
+            successCount++;
+          } catch (error) {
+            errorCount++;
+            logger.warn(`[${pageId}] Failed to import item:`, item.nama, error);
+          }
+        }
+        
+        // ✅ Full cache refresh setelah import
+        await queryClient.refetchQueries({ queryKey: ['warehouse'] });
+        
+        logger.info(`[${pageId}] ✅ Import completed: ${successCount} success, ${errorCount} errors`);
+        
+        return { successCount, errorCount };
+      } catch (error) {
+        logger.error(`[${pageId}] ❌ Import operation failed:`, error);
+        throw error;
+      }
+    }
   };
 
   return (
@@ -165,14 +268,10 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               mode={dialogs.editingItem ? 'edit' : 'add'}
               item={dialogs.editingItem}
               onSave={async (data) => {
-                if (dialogs.editingItem) {
-                  await handlers.editSave(data);
-                } else {
-                  await context.addBahanBaku(data);
-                }
+                await enhancedHandlers.handleSave(data, !!dialogs.editingItem);
               }}
-              availableCategories={filters.availableCategories}
-              availableSuppliers={filters.availableSuppliers}
+              availableCategories={filters.availableCategories || []}
+              availableSuppliers={filters.availableSuppliers || []}
             />
           </Suspense>
         </DialogErrorBoundary>
@@ -189,20 +288,17 @@ const DialogManager: React.FC<DialogManagerProps> = ({
                 dialogs.close('bulkDelete');
               }}
               operation={dialogs.states.bulkEdit ? 'edit' : 'delete'}
-              selectedItems={selection.selectedItems}
-              selectedItemsData={selection.selectedItems.map(id => 
-                context.bahanBaku.find((item: any) => item.id === id)
+              selectedItems={selection.selectedItems || new Set()}
+              selectedItemsData={Array.from(selection.selectedItems || []).map((id: string) => 
+                context.bahanBaku?.find((item: any) => item.id === id)
               ).filter(Boolean)}
               onConfirm={async (data) => {
-                if (dialogs.states.bulkEdit) {
-                  await bulk.bulkEdit(data);
-                } else {
-                  await bulk.bulkDelete();
-                }
+                const operation = dialogs.states.bulkEdit ? 'edit' : 'delete';
+                await enhancedHandlers.handleBulkOperation(operation, data);
               }}
-              isProcessing={bulk.isProcessing}
-              availableCategories={filters.availableCategories}
-              availableSuppliers={filters.availableSuppliers}
+              isProcessing={bulk?.isProcessing || false}
+              availableCategories={filters.availableCategories || []}
+              availableSuppliers={filters.availableSuppliers || []}
             />
           </Suspense>
         </DialogErrorBoundary>
@@ -219,18 +315,39 @@ const DialogManager: React.FC<DialogManagerProps> = ({
                 dialogs.close('export');
               }}
               type={dialogs.states.import ? 'import' : 'export'}
-              data={filters.filteredItems}
-              selectedData={selection.selectedItems.map(id => 
-                context.bahanBaku.find((item: any) => item.id === id)
+              data={filters.filteredItems || []}
+              selectedData={Array.from(selection.selectedItems || []).map((id: string) => 
+                context.bahanBaku?.find((item: any) => item.id === id)
               ).filter(Boolean)}
-              onImport={context.addBahanBaku}
+              onImport={async (items: any[]) => {
+                const result = await enhancedHandlers.handleImport(items);
+                return result;
+              }}
               onExport={(data, format) => {
-                // Handle export logic here
-                logger.debug(`[${pageId}] 📤 Exporting ${data.length} items as ${format}`);
+                // ✅ Enhanced export dengan format options
+                logger.info(`[${pageId}] 📤 Exporting ${data.length} items as ${format}`);
+                
+                // Bisa ditambahkan logic export sesuai format
+                if (format === 'excel') {
+                  // Export to Excel logic
+                } else if (format === 'csv') {
+                  // Export to CSV logic
+                } else if (format === 'pdf') {
+                  // Export to PDF logic
+                }
               }}
             />
           </Suspense>
         </DialogErrorBoundary>
+      )}
+
+      {/* ✅ TAMBAH: Debug info untuk development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white text-xs p-2 rounded z-[100] max-w-xs">
+          <div>Loaded Dialogs: {loadedDialogs.size}</div>
+          <div>Failed Dialogs: {failedDialogs.size}</div>
+          <div>Active: {Object.values(dialogs.states).filter(Boolean).length}</div>
+        </div>
       )}
     </>
   );

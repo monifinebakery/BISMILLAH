@@ -30,7 +30,7 @@ const warehouseQueryKeys = {
 };
 
 // ✅ TAMBAH: Import existing warehouse service
-import { warehouseApi } from '../services/warehouseApi';
+import { warehouseApi } from './services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 
 // ✅ TAMBAH: API functions menggunakan existing service

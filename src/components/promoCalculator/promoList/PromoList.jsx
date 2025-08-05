@@ -14,9 +14,10 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard dengan path yang benar
+import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard
+import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog'; // ✅ Import PromoEditDialog
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService dengan path yang benar
+import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService
 
 // ✅ Query Keys - Same as PromoCalculator
 export const PROMO_QUERY_KEYS = {
@@ -42,6 +43,10 @@ const PromoList = () => {
     sortBy: 'created_at',
     sortOrder: 'desc'
   });
+
+  // ✅ State untuk dialog edit
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState(null);
 
   // Build query params
   const queryParams = {
@@ -180,7 +185,7 @@ const PromoList = () => {
                         duplicatePromoMutation?.isPending) ?? false;
 
   console.log('📊 Promo Query State:', {
-    data: promos?.length || 0,
+     promos?.length || 0,
     isLoading,
     error: error?.message,
     selectedItems: selectedItems.length
@@ -228,14 +233,20 @@ const PromoList = () => {
     await toggleStatusMutation.mutateAsync({ id, newStatus });
   };
 
+  // ✅ Handler untuk membuka dialog edit
   const handleEdit = (promo) => {
-    console.log('Edit promo:', promo.id);
-    const editUrl = `/promo?edit=${promo.id}`;
-    console.log('🔗 Navigating to:', editUrl);
-    toast.info('Membuka editor promo...', {
-      description: 'Mengarahkan ke kalkulator promo'
-    });
-    window.location.href = editUrl;
+    console.log('Opening edit dialog for promo:', promo.id);
+    setEditingPromo(promo);
+    setIsEditDialogOpen(true);
+  };
+
+  // ✅ Handler setelah promo berhasil diedit
+  const handleEditSuccess = (updatedPromo) => {
+    console.log('Promo updated successfully:', updatedPromo.id);
+    // Optional: Anda bisa menambahkan logika tambahan di sini jika diperlukan
+    // Misalnya, menutup dialog secara eksplisit jika belum ditutup oleh dialog itu sendiri
+    // setIsEditDialogOpen(false); // Biasanya sudah ditutup oleh dialog
+    // setEditingPromo(null); // Biasanya sudah direset oleh dialog
   };
 
   const handleView = (promo) => {
@@ -258,9 +269,19 @@ const PromoList = () => {
     console.log('🔄 Refreshing promo data...');
     queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
     setSelectedItems([]);
+    // Jika dialog sedang terbuka, tutup saat refresh
+    if (isEditDialogOpen) {
+        setIsEditDialogOpen(false);
+        setEditingPromo(null);
+    }
   };
 
   const handleCreateNew = () => {
+    // Jika dialog sedang terbuka, tutup saat navigasi
+    if (isEditDialogOpen) {
+        setIsEditDialogOpen(false);
+        setEditingPromo(null);
+    }
     window.location.href = '/promo';
   };
 
@@ -430,7 +451,7 @@ const PromoList = () => {
                   <PromoCard
                     key={promo.id}
                     promo={promo}
-                    onEdit={handleEdit}
+                    onEdit={handleEdit} // ✅ Gunakan handleEdit yang membuka dialog
                     onDelete={handleDelete}
                     onView={handleView}
                     onDuplicate={handleDuplicate}
@@ -470,6 +491,18 @@ const PromoList = () => {
           </Card>
         )}
       </div>
+
+      {/* ✅ Promo Edit Dialog */}
+      <PromoEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          console.log('Closing edit dialog');
+          setIsEditDialogOpen(false);
+          setEditingPromo(null);
+        }}
+        promo={editingPromo}
+        onEditSuccess={handleEditSuccess}
+      />
     </div>
   );
 };

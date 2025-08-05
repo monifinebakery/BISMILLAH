@@ -419,7 +419,7 @@ const WarehousePageContent: React.FC = () => {
       {context.loading ? (
         <TableSkeleton />
       ) : (
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
           
           <WarehouseFilters
             searchTerm={core.filters?.searchTerm || ''}

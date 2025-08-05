@@ -1,4 +1,4 @@
-/ ===== 1. UPDATE WarehouseTable.tsx =====
+// ===== 1. UPDATE WarehouseTable.tsx =====
 // src/components/warehouse/components/WarehouseTable.tsx
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';

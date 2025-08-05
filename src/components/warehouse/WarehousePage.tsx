@@ -1,6 +1,6 @@
 // ===== 2. UPDATE WarehousePage.tsx =====
 // src/components/warehouse/WarehousePage.tsx
-import React, { Suspense, lazy, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 // ✅ TAMBAH: Import useQuery
@@ -197,7 +197,7 @@ const LoadingSpinner = () => (
 );
 
 const TableSkeleton = () => (
-  <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+  <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
     <div className="p-4 border-b">
       <div className="flex items-center justify-between">
         <div className="h-10 bg-gray-200 rounded-md w-1/3 animate-pulse" />
@@ -227,9 +227,12 @@ const DialogSkeleton = () => (
   </div>
 );
 
-// ✅ TAMBAH: Custom hook untuk warehouse dengan useQuery
+// ✅ TAMBAH: Custom hook untuk warehouse dengan useQuery (FIXED VERSION)
 const useWarehouseData = () => {
   const queryClient = useQueryClient();
+  
+  // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
+  const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
   
   // Query untuk data warehouse
   const {
@@ -250,10 +253,19 @@ const useWarehouseData = () => {
     },
   });
 
-  // Mutations
+  // ✅ TAMBAH: Simple refetch tanpa update timestamp
+  const smartRefetch = async () => {
+    logger.debug('🔄 Manual refresh warehouse data...');
+    // Tidak update timestamp karena ini bukan user action yang mengubah data
+    return await refetch();
+  };
+
+  // Mutations dengan explicit timestamp update
   const createMutation = useMutation({
     mutationFn: createWarehouseItem,
     onSuccess: (newItem) => {
+      // ✅ FIXED: Update timestamp saat user berhasil tambah item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
     },
@@ -265,6 +277,8 @@ const useWarehouseData = () => {
   const updateMutation = useMutation({
     mutationFn: updateWarehouseItem,
     onSuccess: (updatedItem) => {
+      // ✅ FIXED: Update timestamp saat user berhasil edit item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info(`✅ Item "${updatedItem.nama}" berhasil diperbarui`);
     },
@@ -276,6 +290,8 @@ const useWarehouseData = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteWarehouseItem,
     onSuccess: () => {
+      // ✅ FIXED: Update timestamp saat user berhasil hapus item
+      setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info('✅ Item berhasil dihapus');
     },
@@ -289,10 +305,10 @@ const useWarehouseData = () => {
     bahanBaku,
     loading,
     error: error as Error | null,
-    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
+    lastUpdated: lastUserAction, // ✅ FIXED: Hanya update saat user action (tambah/edit/hapus)
     
     // Actions
-    refetch,
+    refetch: smartRefetch, // ✅ FIXED: Refetch tanpa update timestamp
     createItem: createMutation.mutateAsync,
     updateItem: updateMutation.mutateAsync,
     deleteItem: deleteMutation.mutateAsync,
@@ -419,7 +435,7 @@ const WarehousePageContent: React.FC = () => {
       {context.loading ? (
         <TableSkeleton />
       ) : (
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
           
           <WarehouseFilters
             searchTerm={core.filters?.searchTerm || ''}

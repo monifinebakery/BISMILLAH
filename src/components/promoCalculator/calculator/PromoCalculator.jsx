@@ -1,81 +1,113 @@
-// PromoCalculator.jsx - Updated with recipeApi (no recipeService)
+// src/pages/PromoCalculator.jsx - Fixed and Aligned with existing structure
+
 import React, { useState, useEffect } from 'react';
-import { Calculator, Save, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { 
+  Plus, 
+  RefreshCw, 
+  AlertCircle, 
+  ArrowLeft,
+  Calculator,
+  ChevronRight,
+  Save
+} from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-// Import components
-import PromoTypeSelector from './PromoTypeSelector';
-import PromoPreview from './PromoPreview';
-import { usePromoCalculation } from '../hooks/usePromoCalculation';
+// ✅ Import existing components
+import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector';
+import PromoPreview from '@/components/promoCalculator/calculator/PromoPreview';
+import { usePromoCalculation } from '@/components/promoCalculator/hooks/usePromoCalculation';
 
-// ✅ Import recipeApi instead of recipeService
+// ✅ Import services (aligned with existing)
 import { recipeApi } from '@/components/recipe/services/recipeApi';
-import { promoService } from '../services/promoService';
+import { promoService } from '@/components/promoCalculator/services/promoService';
 
-// ✅ Use the same query keys from recipe system
-export const RECIPE_QUERY_KEYS = {
+// ✅ Query Keys (aligned with existing)
+const RECIPE_QUERY_KEYS = {
   all: ['recipes'],
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'],
   list: (filters) => [...RECIPE_QUERY_KEYS.lists(), filters],
 };
 
-const PromoCalculator = ({ onBack }) => {
-  const isMobile = useIsMobile(768);
+const PROMO_QUERY_KEYS = {
+  all: ['promos'],
+  lists: () => [...PROMO_QUERY_KEYS.all, 'list'],
+  list: (params) => [...PROMO_QUERY_KEYS.lists(), params],
+  detail: (id) => [...PROMO_QUERY_KEYS.all, 'detail', id],
+};
+
+const PromoCalculator = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile(768);
   
+  // ✅ Check for edit mode from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const editPromoId = urlParams.get('edit');
+  const isEditMode = !!editPromoId;
+  
+  // ✅ State management
+  const [view, setView] = useState(isEditMode ? 'create' : 'dashboard'); // 'dashboard' | 'create'
   const [selectedType, setSelectedType] = useState('');
   const [formData, setFormData] = useState({});
   const [showPreview, setShowPreview] = useState(false);
-  
-  // ✅ useQuery with recipeApi instead of recipeService
-  const { 
-    data: recipes = [], 
-    isLoading: recipesLoading,
-    error: recipesError,
-    refetch: refetchRecipes
-  } = useQuery({
-    queryKey: RECIPE_QUERY_KEYS.lists(),
-    queryFn: () => recipeApi.getRecipes(), // ✅ Use recipeApi.getRecipes()
-    staleTime: 10 * 60 * 1000, // 10 minutes - recipes don't change often
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+  const [editingPromo, setEditingPromo] = useState(null);
+
+  // ✅ Fetch recipes for forms
+  const recipesQuery = useQuery({
+    queryKey: ['recipes'],
+    queryFn: async () => {
+      console.log('🔍 Fetching recipes for promo calculator...');
+      const recipes = await recipeApi.getRecipes();
+      console.log('✅ Got recipes:', recipes?.length || 0);
+      return recipes || [];
+    },
+    staleTime: 10 * 60 * 1000,
     retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error('Failed to fetch recipes:', error);
-      toast.error('Gagal memuat data resep. Silakan refresh halaman.');
-    }
+    enabled: view === 'create', // Only fetch when in create mode
   });
 
-  // ✅ Mutation for saving promo
-  const savePromoMutation = useMutation({
-    mutationFn: promoService.create,
-    onSuccess: (data) => {
-      toast.success('Promo berhasil disimpan!');
-      
-      // Invalidate and refetch promos list
-      queryClient.invalidateQueries(['promos']);
-      
-      // Reset form
-      setSelectedType('');
-      setFormData({});
-      setShowPreview(false);
-      clearCalculation();
-      
-      // Navigate back after short delay
-      if (onBack) {
-        setTimeout(() => {
-          onBack();
-        }, 1000);
+  // ✅ Fetch latest promos for dashboard
+  const latestPromosQuery = useQuery({
+    queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
+    queryFn: async () => {
+      console.log('🔍 Fetching latest promos...');
+      const promos = await promoService.getAll({});
+      const latestPromos = (promos || []).slice(0, 3);
+      console.log('✅ Got latest promos:', latestPromos.length);
+      return latestPromos;
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+    enabled: view === 'dashboard',
+  });
+
+  // ✅ Fetch promo for editing
+  const editPromoQuery = useQuery({
+    queryKey: PROMO_QUERY_KEYS.detail(editPromoId),
+    queryFn: async () => {
+      if (!editPromoId) return null;
+      console.log('🔍 Fetching promo for editing:', editPromoId);
+      const promo = await promoService.getById(editPromoId);
+      console.log('✅ Got promo for editing:', promo);
+      return promo;
+    },
+    enabled: !!editPromoId,
+    onSuccess: (promo) => {
+      if (promo) {
+        setEditingPromo(promo);
+        setSelectedType(promo.tipePromo);
+        setFormData(promo.dataPromo || {});
+        setView('create');
       }
     },
-    onError: (error) => {
-      console.error('Save promo error:', error);
-      toast.error(`Gagal menyimpan promo: ${error.message}`);
-    }
   });
 
+  // ✅ Calculation hook
   const { 
     calculationResult, 
     isCalculating, 
@@ -84,30 +116,79 @@ const PromoCalculator = ({ onBack }) => {
     clearCalculation 
   } = usePromoCalculation();
 
-  // CSS Classes
-  const styles = {
-    buttonPrimary: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed",
-    buttonSecondary: "flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
-    loadingSpinner: "animate-spin rounded-full h-5 w-5 border-b-2 border-white",
-    containerMobile: "min-h-screen bg-gray-50",
-    containerDesktop: "py-6",
-    errorCard: "bg-red-50 border border-red-200 rounded-lg p-4",
-    successCard: "bg-green-50 border border-green-200 rounded-lg p-4",
-    warningCard: "bg-orange-50 border border-orange-200 rounded-lg p-4"
+  // ✅ Save promo mutation
+  const savePromoMutation = useMutation({
+    mutationFn: async (promoData) => {
+      if (isEditMode && editPromoId) {
+        console.log('📝 Updating promo:', editPromoId);
+        return await promoService.update(editPromoId, promoData);
+      } else {
+        console.log('➕ Creating new promo');
+        return await promoService.create(promoData);
+      }
+    },
+    onSuccess: (savedPromo) => {
+      const action = isEditMode ? 'diperbarui' : 'disimpan';
+      toast.success(`Promo berhasil ${action}!`);
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      
+      // Navigate back to dashboard or promo list
+      if (isEditMode) {
+        // Go back to promo list after edit
+        navigate('/promo/list');
+      } else {
+        // Stay on dashboard after create
+        handleBackToDashboard();
+      }
+    },
+    onError: (error) => {
+      console.error('Save promo error:', error);
+      const action = isEditMode ? 'memperbarui' : 'menyimpan';
+      toast.error(`Gagal ${action} promo: ${error.message}`);
+    },
+  });
+
+  // ✅ Handlers
+  const handleStartCreate = () => {
+    setView('create');
+    setSelectedType('');
+    setFormData({});
+    setEditingPromo(null);
+    clearCalculation();
+    // Clear URL params if any
+    window.history.replaceState({}, '', '/promo');
   };
 
-  // Reset form when type changes
-  useEffect(() => {
+  const handleBackToDashboard = () => {
+    setView('dashboard');
+    setSelectedType('');
     setFormData({});
+    setEditingPromo(null);
     setShowPreview(false);
     clearCalculation();
-  }, [selectedType, clearCalculation]);
+    // Clear URL params
+    window.history.replaceState({}, '', '/promo');
+  };
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
+    setFormData({});
+    clearCalculation();
+  };
 
   const handleFormSubmit = async (data) => {
     try {
-      console.log('Submitting form data:', data);
-      const result = await calculatePromo(selectedType, data);
-      setFormData({ ...data, calculationResult: result });
+      console.log('📝 Form submitted with data:', data);
+      
+      // Calculate promo if not already calculated
+      if (!calculationResult) {
+        const result = await calculatePromo(selectedType, data);
+        setFormData({ ...data, calculationResult: result });
+      } else {
+        setFormData({ ...data, calculationResult });
+      }
       
       // Auto show preview on mobile after calculation
       if (isMobile) {
@@ -132,357 +213,321 @@ const PromoCalculator = ({ onBack }) => {
       return;
     }
 
-    const promoData = {
+    const promoDataToSave = {
       namaPromo: formData.namaPromo,
       tipePromo: selectedType,
       status: formData.status || 'draft',
       dataPromo: formData,
       calculationResult: calculationResult,
       deskripsi: formData.deskripsi || '',
-      tanggalMulai: formData.tanggalMulai,
-      tanggalSelesai: formData.tanggalSelesai,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      tanggalMulai: formData.tanggalMulai || null,
+      tanggalSelesai: formData.tanggalSelesai || null,
     };
 
-    console.log('Saving promo data:', promoData);
-    savePromoMutation.mutate(promoData);
+    console.log('💾 Saving promo data:', promoDataToSave);
+    await savePromoMutation.mutateAsync(promoDataToSave);
   };
 
-  const handleBackToForm = () => {
-    setShowPreview(false);
+  const handleViewAllPromos = () => {
+    navigate('/promo/list');
   };
 
-  // ✅ Enhanced refresh handler - also refresh recipe cache
-  const handleRefreshRecipes = () => {
-    // Refresh current query
-    refetchRecipes();
-    
-    // Also invalidate recipe cache to ensure fresh data
-    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
-    
-    toast.info('Merefresh data resep...');
+  const handleRefreshDashboard = () => {
+    console.log('🔄 Refreshing dashboard...');
+    queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    toast.info('Merefresh data...');
   };
 
-  // Loading Component
-  const LoadingSpinner = ({ message = "Memuat...", size = "medium" }) => {
-    const sizeClasses = {
-      small: "h-4 w-4",
-      medium: "h-8 w-8",
-      large: "h-12 w-12"
-    };
+  // ✅ Loading states
+  const isLoading = recipesQuery.isLoading || latestPromosQuery.isLoading || editPromoQuery.isLoading;
+  const isProcessing = savePromoMutation.isPending || isCalculating;
 
+  // ✅ Error states
+  if (recipesQuery.isError && view === 'create') {
     return (
-      <div className="p-4 sm:p-6 text-center">
-        <div className={`animate-spin rounded-full border-b-2 border-orange-500 ${sizeClasses[size]} mx-auto mb-4`}></div>
-        <p className="text-gray-600 text-sm sm:text-base">{message}</p>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full shadow-xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Gagal Memuat Resep</h2>
+            <p className="text-gray-600 mb-4">
+              Tidak dapat memuat data resep yang diperlukan untuk membuat promo.
+            </p>
+            <div className="space-y-3">
+              <Button onClick={() => recipesQuery.refetch()} className="w-full bg-orange-500 hover:bg-orange-600">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Coba Lagi
+              </Button>
+              <Button onClick={handleBackToDashboard} variant="outline" className="w-full">
+                Kembali ke Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
-  };
+  }
 
-  // Error Display Component
-  const ErrorDisplay = ({ title, message, onRetry, variant = "error" }) => {
-    const variantStyles = {
-      error: styles.errorCard,
-      warning: styles.warningCard,
-      success: styles.successCard
-    };
-
-    const iconColors = {
-      error: "text-red-600",
-      warning: "text-orange-600",
-      success: "text-green-600"
-    };
-
+  // ✅ Loading state
+  if (isLoading) {
     return (
-      <div className={variantStyles[variant]}>
-        <div className="flex items-center space-x-2 mb-3">
-          <AlertCircle className={`h-5 w-5 ${iconColors[variant]}`} />
-          <span className="font-medium">{title}</span>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {view === 'create' ? 'Memuat data resep...' : 'Memuat dashboard...'}
+          </p>
         </div>
-        {message && <p className="text-sm mb-4">{message}</p>}
-        {onRetry && (
-          <button
-            onClick={onRetry}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-          >
-            Coba Lagi
-          </button>
-        )}
       </div>
     );
-  };
+  }
 
-  // Mobile Header Component
-  const MobileHeader = () => (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-orange-100 rounded-lg">
-          <Calculator className="h-5 w-5 text-orange-600" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Kalkulator Promo</h1>
-          {selectedType && (
-            <p className="text-xs text-gray-600 capitalize">{selectedType}</p>
+  // ✅ Create/Edit Mode
+  if (view === 'create') {
+    const recipes = recipesQuery.data || [];
+
+    // Mobile Layout for Create Mode
+    if (isMobile) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          {/* Mobile Header */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <Button onClick={handleBackToDashboard} variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Dashboard
+              </Button>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {isEditMode ? 'Edit Promo' : 'Buat Promo'}
+              </h1>
+              {calculationResult && !showPreview && (
+                <Button onClick={() => setShowPreview(true)} variant="ghost" size="sm">
+                  Preview
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="p-4">
+            {!showPreview ? (
+              <PromoTypeSelector
+                selectedType={selectedType}
+                onTypeChange={handleTypeChange}
+                onFormSubmit={handleFormSubmit}
+                isCalculating={isProcessing}
+                recipes={recipes}
+                initialData={editingPromo?.dataPromo}
+              />
+            ) : (
+              <div className="space-y-4">
+                <Button
+                  onClick={() => setShowPreview(false)}
+                  variant="ghost"
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke Form
+                </Button>
+                <PromoPreview 
+                  type={selectedType}
+                  data={{ calculationResult }}
+                  onSave={handleSavePromo}
+                  isLoading={isProcessing}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Bottom Actions */}
+          {calculationResult && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="outline"
+                  disabled={isProcessing}
+                >
+                  {showPreview ? 'Edit' : 'Preview'}
+                </Button>
+                <Button
+                  onClick={handleSavePromo}
+                  disabled={isProcessing}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Simpan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
-      </div>
-      
-      {calculationResult && !showPreview && (
-        <button
-          onClick={() => setShowPreview(true)}
-          className="flex items-center space-x-1 text-orange-600 text-sm font-medium"
-        >
-          <span>Preview</span>
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      )}
-    </div>
-  );
+      );
+    }
 
-  // Mobile Form View Component
-  const MobileFormView = () => (
-    <div className="space-y-4">
-      <PromoTypeSelector 
-        selectedType={selectedType}
-        onTypeChange={setSelectedType}
-        onFormSubmit={handleFormSubmit}
-        isCalculating={isCalculating}
-        recipes={recipes}
-      />
-      
-      {/* Calculation Status */}
-      {calculationResult && (
-        <div className={styles.successCard}>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-medium text-green-800">
-              Perhitungan selesai
-            </span>
+    // Desktop Layout for Create Mode
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="container mx-auto p-4 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Button onClick={handleBackToDashboard} variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isEditMode ? 'Edit Promo' : 'Buat Promo Baru'}
+            </h1>
+            <div></div>
           </div>
-          <p className="text-xs text-green-700 mt-1">
-            Tap "Preview" untuk melihat hasil kalkulasi
-          </p>
-        </div>
-      )}
-      
-      {/* Error Display */}
-      {calculationError && (
-        <ErrorDisplay 
-          title="Error Perhitungan"
-          message={calculationError}
-          variant="error"
-        />
-      )}
-    </div>
-  );
 
-  // Mobile Preview View Component
-  const MobilePreviewView = () => (
-    <div className="space-y-4">
-      <button
-        onClick={handleBackToForm}
-        className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
-      >
-        <ChevronRight className="h-4 w-4 rotate-180" />
-        <span className="text-sm">Kembali ke Form</span>
-      </button>
-      
-      <PromoPreview 
-        type={selectedType}
-        data={{ calculationResult }}
-        onSave={handleSavePromo}
-        isLoading={savePromoMutation.isLoading}
-      />
-    </div>
-  );
-
-  // Mobile Bottom Actions Component
-  const MobileBottomActions = () => (
-    <div className="grid grid-cols-2 gap-3">
-      <button
-        onClick={() => setShowPreview(!showPreview)}
-        className={styles.buttonSecondary}
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span className="text-sm">
-          {showPreview ? 'Edit' : 'Preview'}
-        </span>
-      </button>
-      
-      <button
-        onClick={handleSavePromo}
-        disabled={savePromoMutation.isLoading}
-        className={styles.buttonPrimary}
-      >
-        {savePromoMutation.isLoading ? (
-          <>
-            <div className={styles.loadingSpinner}></div>
-            <span className="text-sm">Menyimpan...</span>
-          </>
-        ) : (
-          <>
-            <Save className="h-4 w-4" />
-            <span className="text-sm">Simpan</span>
-          </>
-        )}
-      </button>
-    </div>
-  );
-
-  // Desktop Header Component
-  const DesktopHeader = () => (
-    <div className="mb-8">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="p-2 bg-orange-100 rounded-lg">
-          <Calculator className="h-6 w-6 text-orange-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kalkulator Promo</h1>
-          <p className="text-gray-600">Hitung profit margin dan dampak promo dengan akurat</p>
-        </div>
-      </div>
-      
-      {selectedType && (
-        <div className={styles.warningCard}>
-          <p className="text-sm text-orange-800">
-            <span className="font-medium">Tipe promo dipilih:</span> 
-            <span className="capitalize ml-1">{selectedType}</span>
-          </p>
-        </div>
-      )}
-      
-      {/* Error Display for Desktop */}
-      {calculationError && (
-        <div className="mt-4">
-          <ErrorDisplay 
-            title="Error Perhitungan"
-            message={calculationError}
-            variant="error"
-          />
-        </div>
-      )}
-    </div>
-  );
-
-  // ✅ Loading State - While fetching recipes
-  if (recipesLoading) {
-    return <LoadingSpinner message="Memuat data resep..." size="large" />;
-  }
-
-  // ✅ Error State - If failed to fetch recipes
-  if (recipesError) {
-    return (
-      <div className="p-4 sm:p-6">
-        <ErrorDisplay 
-          title="Gagal Memuat Data Resep"
-          message={`Terjadi kesalahan: ${recipesError.message}. Silakan coba lagi.`}
-          onRetry={handleRefreshRecipes}
-          variant="error"
-        />
-      </div>
-    );
-  }
-
-  // ✅ Empty Recipe State
-  if (!recipes || recipes.length === 0) {
-    return (
-      <div className="p-4 sm:p-6 text-center">
-        <div className="bg-gray-50 rounded-lg p-8 sm:p-12 max-w-md mx-auto">
-          <div className="text-gray-400 text-4xl sm:text-6xl mb-4">🍳</div>
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">
-            Belum Ada Resep
-          </h3>
-          <p className="text-sm sm:text-base text-gray-600 mb-6">
-            Tambahkan resep terlebih dahulu untuk menggunakan kalkulator promo
-          </p>
-          
-          <div className={styles.warningCard + " mb-6"}>
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-              <div className="text-left">
-                <h4 className="text-sm font-medium text-orange-800">Yang perlu Anda lakukan:</h4>
-                <ul className="text-sm text-orange-700 mt-2 space-y-1">
-                  <li>• Buat resep dengan HPP dan harga jual</li>
-                  <li>• Tentukan margin keuntungan</li>
-                  <li>• Mulai buat promo untuk resep tersebut</li>
-                </ul>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Form Section */}
+            <div className="xl:col-span-2">
+              <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-orange-600" />
+                    Konfigurasi Promo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PromoTypeSelector
+                    selectedType={selectedType}
+                    onTypeChange={handleTypeChange}
+                    onFormSubmit={handleFormSubmit}
+                    isCalculating={isProcessing}
+                    recipes={recipes}
+                    initialData={editingPromo?.dataPromo}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Preview Section */}
+            <div className="xl:col-span-1">
+              <div className="sticky top-6">
+                <PromoPreview 
+                  type={selectedType}
+                  data={{ calculationResult }}
+                  onSave={handleSavePromo}
+                  isLoading={isProcessing}
+                />
               </div>
             </div>
           </div>
-          
-          <div className="space-y-3">
-            <button 
-              onClick={() => window.location.href = '/resep'}
-              className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-            >
-              Buat Resep Pertama
-            </button>
-            
-            <button
-              onClick={handleRefreshRecipes}
-              className="w-full sm:w-auto border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium ml-0 sm:ml-3"
-            >
-              Refresh Data
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
-  // ✅ Mobile Layout
-  if (isMobile) {
-    return (
-      <div className={styles.containerMobile}>
-        {/* Mobile Header */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
-          <MobileHeader />
-        </div>
+  // ✅ Dashboard Mode
+  const promos = latestPromosQuery.data || [];
 
-        {/* Mobile Content */}
-        <div className="p-4">
-          {!showPreview ? <MobileFormView /> : <MobilePreviewView />}
-        </div>
-
-        {/* Mobile Bottom Actions */}
-        {calculationResult && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-            <MobileBottomActions />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ✅ Desktop Layout
   return (
-    <div className={styles.containerDesktop}>
-      <DesktopHeader />
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Form Section */}
-        <div className="xl:col-span-2">
-          <PromoTypeSelector 
-            selectedType={selectedType}
-            onTypeChange={setSelectedType}
-            onFormSubmit={handleFormSubmit}
-            isCalculating={isCalculating}
-            recipes={recipes}
-          />
-        </div>
-        
-        {/* Preview Section */}
-        <div className="xl:col-span-1">
-          <div className="sticky top-6">
-            <PromoPreview 
-              type={selectedType}
-              data={{ calculationResult }}
-              onSave={handleSavePromo}
-              isLoading={savePromoMutation.isLoading}
-            />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
+            <p className="text-gray-600 mt-1">
+              Hitung profit margin dan dampak promo dengan akurat
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleRefreshDashboard}
+              disabled={latestPromosQuery.isFetching}
+              className="border-gray-300"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${latestPromosQuery.isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              onClick={handleStartCreate}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Buat Promo
+            </Button>
           </div>
         </div>
+
+        {/* Main Dashboard Card */}
+        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Promo Terbaru</span>
+              <Button variant="link" onClick={handleViewAllPromos} className="text-orange-600 hover:text-orange-700 p-0 h-auto">
+                Lihat Semua
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {promos.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {promos.map(promo => (
+                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">{promo.namaPromo}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
+                        promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {promo.status}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Tipe:</span>
+                        <span className="font-medium capitalize">{promo.tipePromo}</span>
+                      </div>
+                      {promo.calculationResult && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Margin:</span>
+                          <span className={`font-medium ${
+                            (promo.calculationResult.promoMargin || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {(promo.calculationResult.promoMargin || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 pt-2 border-t">
+                        Dibuat: {new Date(promo.createdAt).toLocaleDateString('id-ID')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-4xl mb-4">🎯</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Belum Ada Promo</h3>
+                <p className="text-gray-500 mb-6">Buat promo pertama Anda untuk melihatnya di sini.</p>
+                <Button onClick={handleStartCreate} className="bg-orange-500 hover:bg-orange-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Buat Promo Pertama
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

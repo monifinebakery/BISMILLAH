@@ -60,7 +60,7 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer relative group">
+    <Card className="bg-white border-1.5 border-gray-200 hover:border transition-all duration-300 cursor-pointer relative group">
       <CardContent className="p-4 sm:p-6 flex items-center">
         {/* 🎨 Icon */}
         <div className={`${bgColor} p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0`}>
@@ -105,7 +105,7 @@ const StatCard: React.FC<{
 
       {/* Mobile Tooltip - Show on tap/hover */}
       {tooltip && isMobile && (
-        <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
+        <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg border z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
           <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-900 rotate-45"></div>
           <p className="leading-relaxed">{tooltip}</p>
         </div>
@@ -123,7 +123,7 @@ const StatCard: React.FC<{
           <TooltipContent 
             side="top" 
             align="center"
-            className="max-w-xs sm:max-w-sm md:max-w-md z-50 px-3 py-2 text-sm bg-gray-900 text-white rounded-md shadow-lg border-0"
+            className="max-w-xs sm:max-w-sm md:max-w-md z-50 px-3 py-2 text-sm bg-gray-900 text-white rounded-md border border-gray-100"
             sideOffset={8}
             avoidCollisions={true}
             collisionPadding={16}

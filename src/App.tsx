@@ -1,5 +1,4 @@
-// ===== 3. UPDATE App.tsx - Full version dengan warehouse useQuery integration =====
-// App.tsx - Full updated version
+// ===== App.tsx - Updated with correct promo routing =====
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
@@ -68,11 +67,20 @@ const PurchaseManagement = React.lazy(() =>
   import(/* webpackChunkName: "purchase" */ "./components/purchase/PurchasePage")
 );
 
-const PromoFullCalculator = React.lazy(() => /* webpackChunkName: "promo" */ import("@/components/promoCalculator/PromoFullCalculator"));
+// ✅ UPDATED: Promo components with correct paths
+const PromoCalculator = React.lazy(() => 
+  import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/calculator/PromoCalculator")
+);
 
-// const PromoCalculatorPage = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")); // Hapus atau komentari baris lama
-const PromoCalculator = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/calculator/PromoCalculator")); // ✅ Tambahkan ini
-const PromoList = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/promoList/PromoList")); // ✅ Tambahkan ini
+const PromoList = React.lazy(() => 
+  import(/* webpackChunkName: "promo-list" */ "./pages/PromoList")
+);
+
+// ✅ Optional: Keep PromoFullCalculator if you have it
+const PromoFullCalculator = React.lazy(() => 
+  import(/* webpackChunkName: "promo-full" */ "@/components/promoCalculator/PromoFullCalculator")
+    .catch(() => ({ default: () => <div>PromoFullCalculator not found</div> }))
+);
 
 const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/NotFound")),
@@ -450,12 +458,51 @@ const App = () => {
                 <Route path="menu" element={<MenuPage />} />
                 <Route path="payment-success" element={<PaymentSuccessPage />} />
                 
-                {/* ✅ PROMO ROUTING YANG DIPERBARUI SESUAI OPSI 1 */}
-                <Route path="promo" element={<PromoCalculator />} /> {/* Dashboard ringkas promo */}
-                <Route path="promo/list" element={<PromoList />} /> {/* Daftar lengkap promo */}
-                {/* Jika Anda memiliki halaman kalkulator penuh terpisah: */}
-                <Route path="promo/create" element={<PromoFullCalculator />} />
-                <Route path="promo/edit/:id" element={<PromoFullCalculator />} />
+                {/* ✅ UPDATED: Promo routing sesuai dengan struktur yang sudah dibuat */}
+                <Route 
+                  path="promo" 
+                  element={
+                    <Suspense fallback={<AppLoader title="Memuat Kalkulator Promo" />}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Kalkulator Promo" />}>
+                        <PromoCalculator />
+                      </ErrorBoundary>
+                    </Suspense>
+                  } 
+                />
+                
+                <Route 
+                  path="promo/list" 
+                  element={
+                    <Suspense fallback={<AppLoader title="Memuat Daftar Promo" />}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Daftar Promo" />}>
+                        <PromoList />
+                      </ErrorBoundary>
+                    </Suspense>
+                  } 
+                />
+                
+                {/* ✅ Optional: Advanced promo routes if needed */}
+                <Route 
+                  path="promo/create" 
+                  element={
+                    <Suspense fallback={<AppLoader title="Memuat Form Promo" />}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Form Promo" />}>
+                        <PromoFullCalculator />
+                      </ErrorBoundary>
+                    </Suspense>
+                  } 
+                />
+                
+                <Route 
+                  path="promo/edit/:id" 
+                  element={
+                    <Suspense fallback={<AppLoader title="Memuat Editor Promo" />}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Editor Promo" />}>
+                        <PromoFullCalculator />
+                      </ErrorBoundary>
+                    </Suspense>
+                  } 
+                />
                 
                 <Route path="*" element={<NotFound />} />
               </Route>

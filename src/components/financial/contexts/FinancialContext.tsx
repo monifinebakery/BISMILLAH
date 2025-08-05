@@ -11,15 +11,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useNotification } from '@/contexts/NotificationContext';
 
-// ✅ PERBAIKAN: Import dari types yang sudah ada
+// ✅ FIXED: Import dengan path yang benar sesuai struktur folder
 import { 
   FinancialTransaction, 
   FinancialContextType,
   CreateTransactionData,
   UpdateTransactionData 
-} from './types/financial'; // Updated path
+} from '../types/financial'; // Relative path ke financial/types/financial.ts
 
-// ✅ PERBAIKAN: Import dari utils yang sudah ada
+// ✅ FIXED: Import dari utils yang sudah ada
 import { 
   safeParseDate, 
   toSafeISOString 
@@ -28,15 +28,15 @@ import {
 import { 
   validateTransaction,
   formatTransactionForDisplay 
-} from '@/components/financial/utils/financialUtils'; // Updated path
+} from '../utils/financialUtils'; // Relative path ke financial/utils/financialUtils.ts
 
-// ✅ TAMBAHAN: Import API functions untuk consistency
+// ✅ FIXED: Import API functions dari services
 import {
   addFinancialTransaction as apiAddTransaction,
   updateFinancialTransaction as apiUpdateTransaction,
   deleteFinancialTransaction as apiDeleteTransaction,
   getFinancialTransactions
-} from './services/financialApi';
+} from '../services/financialApi'; // Relative path ke financial/services/financialApi.ts
 
 // ===========================================
 // CONTEXT SETUP

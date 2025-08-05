@@ -7,56 +7,33 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
-
-// ✅ Definisikan tipe data promo jika menggunakan TypeScript, atau abaikan jika JavaScript
-// interface Promo {
-//   id: string;
-//   userId: string;
-//   namaPromo: string;
-//   tipePromo: 'bogo' | 'discount' | 'bundle';
-//   status: 'aktif' | 'nonaktif' | 'draft';
-//   dataPromo: any;
-//   calculationResult: any;
-//   tanggalMulai?: string;
-//   tanggalSelesai?: string;
-//   deskripsi?: string;
-//   createdAt: string;
-//   updatedAt: string;
-// }
+import { promoService } from '@/components/promoCalculator/services/promoService';
 
 const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
   const queryClient = useQueryClient();
 
-  // ✅ Inisialisasi useForm tanpa resolver Zod
   const {
     register,
     handleSubmit,
     reset,
-    setValue, // Untuk mengatur nilai tanggal secara manual jika diperlukan
     formState: { errors, isSubmitting },
   } = useForm({
-    // Mode validasi: 'onBlur', 'onChange', 'onSubmit', 'onTouched', 'all'
     mode: 'onBlur',
-    // Mode re-validasi setelah submit pertama gagal
     reValidateMode: 'onChange',
-    // Nilai default
     defaultValues: promo || {
       namaPromo: '',
       tipePromo: 'discount',
       status: 'draft',
-      tanggalMulai: '', // String kosong untuk input date
+      tanggalMulai: '',
       tanggalSelesai: '',
       deskripsi: '',
     },
   });
 
-  // ✅ Reset form ketika promo berubah atau dialog dibuka
   useEffect(() => {
     if (isOpen && promo) {
       reset(promo);
     } else if (isOpen) {
-      // Jika dialog dibuka tanpa promo (misalnya untuk create baru, walau tidak digunakan di sini)
       reset({
         namaPromo: '',
         tipePromo: 'discount',
@@ -68,7 +45,6 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
     }
   }, [isOpen, promo, reset]);
 
-  // ✅ Fungsi validasi manual
   const validateForm = (data) => {
     const errors = {};
     if (!data.namaPromo || data.namaPromo.trim().length < 2) {
@@ -83,49 +59,34 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
       errors.status = 'Pilih status promo yang valid';
     }
 
-    // Validasi tanggal opsional, tidak perlu dicek keberadaannya
-    // Tapi bisa dicek format jika diinginkan
-
     return errors;
   };
 
-  // ✅ Handler submit form
   const onSubmit = async (data) => {
-    // Validasi manual sebelum submit
     const formErrors = validateForm(data);
     if (Object.keys(formErrors).length > 0) {
-      // Jika ada error, tampilkan toast untuk error umum
       toast.error(`Validasi gagal: ${Object.values(formErrors)[0]}`);
-      return; // Hentikan submit
+      return;
     }
 
     try {
-      // Pastikan ID promo ada
       if (!promo?.id) {
         toast.error('ID promo tidak ditemukan');
         return;
       }
 
       console.log('Updating promo with ', data);
-
-      // ✅ Panggil service untuk update promo
       const result = await promoService.update(promo.id, data);
 
-      if (result.success) { // Asumsi promoService.update mengembalikan { success: true, data: ... } atau { success: false, error: '...' }
+      if (result && result.success) {
         toast.success('Promo berhasil diperbarui');
-
-        // ✅ Invalidate cache React Query untuk memperbarui data di UI
-        queryClient.invalidateQueries({ queryKey: ['promos'] }); // Sesuaikan dengan query key Anda
-
-        // ✅ Panggil callback onEditSuccess jika ada
+        queryClient.invalidateQueries({ queryKey: ['promos'] });
         if (onEditSuccess) {
-          onEditSuccess(result.data); // Kirim data promo yang diperbarui
+          onEditSuccess(result.data);
         }
-
-        // ✅ Tutup dialog
         onClose();
       } else {
-        toast.error(`Gagal memperbarui promo: ${result.error || 'Unknown error'}`);
+        toast.error(`Gagal memperbarui promo: ${result?.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating promo:', error);
@@ -133,7 +94,6 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
     }
   };
 
-  // ✅ Handler untuk error submit (jika ada error lain selain validasi)
   const onError = (errors) => {
     console.error('Form errors:', errors);
     toast.error('Silakan periksa kembali isian form.');

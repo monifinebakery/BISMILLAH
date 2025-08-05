@@ -356,7 +356,7 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
   // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
   const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
   const [initialLoadTime, setInitialLoadTime] = useState<Date | undefined>(undefined);
-  const hasSetInitialLoad = useRef(false); // ✅ TAMBAH: Ref untuk prevent multiple set
+  const hasSetInitialLoad = useRef(false); // ✅ Ref untuk prevent multiple set
 
   // Query untuk transactions dengan real API
   const {
@@ -394,7 +394,6 @@ const useFinancialData = (dateRange: { from: Date; to?: Date }, userId: string) 
   });
 
   // ✅ SUPER STRICT: Initial load time hanya sekali per session
-  const hasSetInitialLoad = useRef(false);
   useEffect(() => {
     if (transactions && transactions.length >= 0 && !hasSetInitialLoad.current && !transactionsLoading) {
       setInitialLoadTime(new Date());

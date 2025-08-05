@@ -60,7 +60,7 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-2 border-gray-100 hover:border transition-all duration-300 cursor-pointer relative group">
+    <Card className="bg-white border-1.5 border-gray-200 hover:border transition-all duration-300 cursor-pointer relative group">
       <CardContent className="p-4 sm:p-6 flex items-center">
         {/* 🎨 Icon */}
         <div className={`${bgColor} p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0`}>

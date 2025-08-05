@@ -1,3 +1,4 @@
+// src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan PromoCard
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,9 +14,9 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard
+import PromoCard from '@/components/promoCalculator/components/PromoCard'; // ✅ Import PromoCard dengan path yang benar
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import { promoService } from '@/components/promoCalculator/services/promoService';
+import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService dengan path yang benar
 
 // ✅ Query Keys - Same as PromoCalculator
 export const PROMO_QUERY_KEYS = {
@@ -37,7 +38,7 @@ const PromoList = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    pageSize: 10,
+    pageSize: 100, // ✅ Tingkatkan pageSize atau hapus pagination sederhana untuk grid
     sortBy: 'created_at',
     sortOrder: 'desc'
   });
@@ -58,7 +59,7 @@ const PromoList = () => {
       console.log('✅ Got promos:', promos?.length || 0);
       return promos || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes - promos change more frequently
+    staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
@@ -75,7 +76,6 @@ const PromoList = () => {
       return id;
     },
     onSuccess: (deletedId) => {
-      // Remove from cache optimistically
       queryClient.setQueryData(
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
@@ -83,10 +83,8 @@ const PromoList = () => {
           return oldData.filter(promo => promo.id !== deletedId);
         }
       );
-      // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       toast.success('Promo berhasil dihapus');
-      // Clear selection if deleted item was selected
       setSelectedItems(prev => prev.filter(id => id !== deletedId));
     },
     onError: (error) => {
@@ -95,10 +93,98 @@ const PromoList = () => {
     },
   });
 
+  // ✅ useMutation: Bulk Delete Promos
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      console.log('📦 Bulk deleting promos:', ids.length);
+      await promoService.bulkDelete(ids);
+      return ids;
+    },
+    onSuccess: (deletedIds) => {
+      queryClient.setQueryData(
+        PROMO_QUERY_KEYS.list(queryParams),
+        (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.filter(promo => !deletedIds.includes(promo.id));
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      toast.success(`${deletedIds.length} promo berhasil dihapus`);
+      setSelectedItems([]);
+    },
+    onError: (error) => {
+      console.error('Bulk delete error:', error);
+      toast.error(error.message || 'Gagal menghapus promo');
+    },
+  });
+
+  // ✅ useMutation: Toggle Promo Status
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }) => {
+      console.log('🔄 Toggling promo status:', id, newStatus);
+      const updatedPromo = await promoService.toggleStatus({ id, newStatus });
+      return updatedPromo;
+    },
+    onSuccess: (updatedPromo) => {
+      queryClient.setQueryData(
+        PROMO_QUERY_KEYS.list(queryParams),
+        (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.map(promo => 
+            promo.id === updatedPromo.id ? updatedPromo : promo
+          );
+        }
+      );
+      toast.success(`Promo berhasil ${updatedPromo.status === 'aktif' ? 'diaktifkan' : 'dinonaktifkan'}`);
+    },
+    onError: (error) => {
+      console.error('Toggle status error:', error);
+      toast.error(error.message || 'Gagal mengubah status promo');
+    },
+  });
+
+  // ✅ useMutation: Duplicate Promo
+  const duplicatePromoMutation = useMutation({
+    mutationFn: async (originalPromo) => {
+      console.log('📋 Duplicating promo:', originalPromo.id);
+      const newPromo = await promoService.duplicate(originalPromo);
+      return newPromo;
+    },
+    onSuccess: (newPromo) => {
+      // Add new promo to the list
+      queryClient.setQueryData(
+        PROMO_QUERY_KEYS.list(queryParams),
+        (oldData) => {
+          if (!oldData) return [newPromo];
+          return [newPromo, ...oldData]; // Add to top
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      toast.success('Promo berhasil diduplikat');
+    },
+    onError: (error) => {
+      console.error('Duplicate promo error:', error);
+      toast.error(error.message || 'Gagal menduplikat promo');
+    },
+  });
+
   // ✅ Get data from queries
   const promos = promosQuery.data || [];
   const isLoading = promosQuery.isLoading;
   const error = promosQuery.error;
+
+  // ✅ Pastikan isProcessing dideklarasikan SEBELUM digunakan
+  const isProcessing = (deletePromoMutation?.isPending || 
+                        bulkDeleteMutation?.isPending || 
+                        toggleStatusMutation?.isPending ||
+                        duplicatePromoMutation?.isPending) ?? false;
+
+  console.log('📊 Promo Query State:', {
+    data: promos?.length || 0,
+    isLoading,
+    error: error?.message,
+    selectedItems: selectedItems.length
+  });
 
   // Handlers
   const handleSearch = (value) => {
@@ -146,7 +232,26 @@ const PromoList = () => {
     console.log('Edit promo:', promo.id);
     const editUrl = `/promo?edit=${promo.id}`;
     console.log('🔗 Navigating to:', editUrl);
+    toast.info('Membuka editor promo...', {
+      description: 'Mengarahkan ke kalkulator promo'
+    });
     window.location.href = editUrl;
+  };
+
+  const handleView = (promo) => {
+    console.log('View promo details:', promo.id);
+    // Implementasi untuk melihat detail, misalnya modal atau halaman baru
+    toast.info(`Melihat detail promo: ${promo.namaPromo}`);
+    // Contoh: window.location.href = `/promo/${promo.id}`;
+  };
+
+  const handleDuplicate = async (promo) => {
+    console.log('Duplicate promo:', promo.id);
+    await duplicatePromoMutation.mutateAsync(promo);
+  };
+
+  const handlePaginationChange = (changes) => {
+    setPagination(prev => ({ ...prev, ...changes }));
   };
 
   const handleRefresh = () => {
@@ -222,7 +327,7 @@ const PromoList = () => {
             <Button
               variant="outline"
               onClick={handleRefresh}
-              disabled={isProcessing}
+              disabled={isProcessing} // ✅ Gunakan isProcessing yang sudah didefinisikan
               className="border-gray-300"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -231,13 +336,14 @@ const PromoList = () => {
             <Button
               onClick={handleCreateNew}
               className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isProcessing}
+              disabled={isProcessing} // ✅ Gunakan isProcessing yang sudah didefinisikan
             >
               <Plus className="h-4 w-4 mr-2" />
               Buat Promo
             </Button>
           </div>
         </div>
+
         {/* Main Content Card */}
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
@@ -265,7 +371,7 @@ const PromoList = () => {
                       variant="outline"
                       size="sm"
                       onClick={handleBulkDelete}
-                      disabled={isProcessing}
+                      disabled={isProcessing} // ✅ Gunakan isProcessing yang sudah didefinisikan
                       className="text-red-600 border-red-200 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -316,7 +422,8 @@ const PromoList = () => {
                 </div>
               </div>
             </div>
-            {/* Grid PromoCard */}
+
+            {/* Promo Cards Grid */}
             {promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
                 {promos.map(promo => (
@@ -325,30 +432,30 @@ const PromoList = () => {
                     promo={promo}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onView={() => console.log('View Promo:', promo.id)}
-                    onDuplicate={() => console.log('Duplicate Promo:', promo.id)}
+                    onView={handleView}
+                    onDuplicate={handleDuplicate}
+                    // Jika Anda ingin menonaktifkan aksi tertentu berdasarkan status, bisa ditambahkan logika di sini
+                    // showActions={promo.status !== 'draft'} 
                   />
                 ))}
               </div>
             ) : (
               <div className="p-8 text-center">
-                <div className="text-gray-400 mb-2">🎯</div>
-                <p className="text-gray-500">
-                  Belum Ada Promo
-                </p>
+                <div className="text-gray-400 text-4xl mb-4">🎯</div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Promo</h3>
+                <p className="text-gray-600 mb-4">Buat promo pertama Anda untuk melihat daftar di sini</p>
                 <Button
-                  variant="outline"
-                  size="sm"
                   onClick={handleCreateNew}
-                  className="mt-2"
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Buat Promo Pertama
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
+
         {/* Status Bar */}
         {isProcessing && (
           <Card className="border-blue-200 bg-blue-50">

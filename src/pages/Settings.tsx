@@ -152,7 +152,7 @@ const SettingsPage = () => {
           <div className="xl:col-span-3 space-y-8">
             
             {/* ✅ BUSINESS INFORMATION SECTION */}
-            <Card className="shadow-lg border-0 overflow-hidden">
+            <Card className="border-1 border-gray-100 overflow-hidden">
               <CardHeader className="bg-gray-50 border-b">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 p-2 rounded-lg">

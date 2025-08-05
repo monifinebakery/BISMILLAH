@@ -448,12 +448,14 @@ const App = () => {
                 <Route path="pengaturan" element={<Settings />} />
                 <Route path="menu" element={<MenuPage />} />
                 <Route path="payment-success" element={<PaymentSuccessPage />} />
+                
                 {/* ✅ PROMO ROUTING YANG DIPERBARUI SESUAI OPSI 1 */}
                 <Route path="promo" element={<PromoCalculator />} /> {/* Dashboard ringkas promo */}
                 <Route path="promo/list" element={<PromoList />} /> {/* Daftar lengkap promo */}
                 {/* Jika Anda memiliki halaman kalkulator penuh terpisah: */}
                 {/* <Route path="promo/create" element={<PromoFullCalculator />} /> */}
                 {/* <Route path="promo/edit/:id" element={<PromoFullCalculator />} /> */}
+                
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

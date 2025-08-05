@@ -69,7 +69,7 @@ const PurchaseManagement = React.lazy(() =>
 );
 
 // const PromoCalculatorPage = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculatorPage")); // Hapus atau komentari baris lama
-const PromoCalculator = React.lazy(() => import(/* webpackChunkName: "promo" */ "./pages/PromoCalculator")); // ✅ Tambahkan ini
+const PromoCalculator = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/calculator/PromoCalculator")); // ✅ Tambahkan ini
 const PromoList = React.lazy(() => import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/promoList/PromoList")); // ✅ Tambahkan ini
 );
 

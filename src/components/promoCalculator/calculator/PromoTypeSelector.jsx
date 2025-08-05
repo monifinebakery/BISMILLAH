@@ -1,3 +1,4 @@
+// src › components › promoCalculator › calculator ›  PromoTypeSelector.jsx
 // 🎯 Selector dan form loader untuk tipe promo
 import React, { lazy, Suspense } from 'react';
 import { Gift, Percent, Package } from 'lucide-react';

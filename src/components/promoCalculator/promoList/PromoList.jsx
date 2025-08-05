@@ -178,18 +178,20 @@ const PromoList = () => {
   const isLoading = promosQuery.isLoading;
   const error = promosQuery.error;
 
-  // ✅ Pastikan isProcessing dideklarasikan SEBELUM digunakan
-  const isProcessing = (deletePromoMutation?.isPending || 
-                        bulkDeleteMutation?.isPending || 
-                        toggleStatusMutation?.isPending ||
-                        duplicatePromoMutation?.isPending) ?? false;
+ // ✅ Pastikan isProcessing dideklarasikan SEBELUM digunakan
+const isProcessing = (
+  deletePromoMutation && deletePromoMutation.isPending ||
+  bulkDeleteMutation && bulkDeleteMutation.isPending ||
+  toggleStatusMutation && toggleStatusMutation.isPending ||
+  duplicatePromoMutation && duplicatePromoMutation.isPending
+) || false;
 
-  console.log('📊 Promo Query State:', {
-     promos?.length || 0,
-    isLoading,
-    error: error?.message,
-    selectedItems: selectedItems.length
-  });
+console.log('📊 Promo Query State:', {
+  promos?.length || 0,
+  isLoading,
+  error: error?.message,
+  selectedItems: selectedItems.length,
+});
 
   // Handlers
   const handleSearch = (value) => {

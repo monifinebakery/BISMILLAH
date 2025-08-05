@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
-import { usePromoList } from '../hooks/usePromoList';
 import { toast } from 'sonner';
 
 const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
@@ -12,13 +11,13 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
     deskripsi: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { updatePromo } = usePromoList();
 
+  // ✅ Reset form when promo changes
   useEffect(() => {
     if (promo) {
+      console.log('📝 Setting form data for promo:', promo);
       setFormData({
-        nama_promo: promo.nama_promo || '',
+        nama_promo: promo.nama_promo || promo.namaPromo || '',
         status: promo.status || 'aktif',
         tanggal_mulai: promo.tanggal_mulai || '',
         tanggal_selesai: promo.tanggal_selesai || '',
@@ -27,18 +26,41 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
     }
   }, [promo]);
 
+  // ✅ Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        nama_promo: '',
+        status: 'aktif',
+        tanggal_mulai: '',
+        tanggal_selesai: '',
+        deskripsi: ''
+      });
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!promo) return;
 
+    // Validation
+    if (!formData.nama_promo.trim()) {
+      toast.error('Nama promo tidak boleh kosong');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await updatePromo(promo.id, formData);
-      toast.success('Promo berhasil diperbarui');
-      onSave();
+      console.log('💾 Saving promo with data:', formData);
+      
+      // Call onSave from parent (PromoList)
+      await onSave(formData);
+      
+      // Don't close modal here - let parent handle success/error
     } catch (error) {
+      console.error('❌ Error in modal:', error);
       toast.error(`Gagal memperbarui promo: ${error.message}`);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -47,6 +69,12 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleClose = () => {
+    if (isLoading) return; // Prevent closing while saving
+    onClose();
+  };
+
+  // Don't render if not open
   if (!isOpen) return null;
 
   return (
@@ -55,7 +83,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
         {/* Backdrop */}
         <div 
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
+          onClick={handleClose}
         ></div>
 
         {/* Modal */}
@@ -69,8 +97,9 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                 </h3>
                 <button
                   type="button"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -80,7 +109,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Promo
+                    Nama Promo *
                   </label>
                   <input
                     type="text"
@@ -88,6 +117,8 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                     onChange={(e) => handleInputChange('nama_promo', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
+                    disabled={isLoading}
+                    placeholder="Masukkan nama promo"
                   />
                 </div>
 
@@ -99,6 +130,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    disabled={isLoading}
                   >
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Non-aktif</option>
@@ -116,6 +148,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                       value={formData.tanggal_mulai}
                       onChange={(e) => handleInputChange('tanggal_mulai', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -128,6 +161,8 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                       value={formData.tanggal_selesai}
                       onChange={(e) => handleInputChange('tanggal_selesai', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      disabled={isLoading}
+                      min={formData.tanggal_mulai} // Ensure end date is after start date
                     />
                   </div>
                 </div>
@@ -140,9 +175,21 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                     value={formData.deskripsi}
                     onChange={(e) => handleInputChange('deskripsi', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    disabled={isLoading}
+                    placeholder="Deskripsi promo (opsional)"
                   />
                 </div>
+
+                {/* Display promo info */}
+                {promo && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                    <div className="font-medium text-gray-700 mb-1">Info Promo:</div>
+                    <div className="text-gray-600">
+                      ID: {promo.id} | Dibuat: {new Date(promo.createdAt || promo.created_at).toLocaleDateString('id-ID')}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -150,7 +197,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !formData.nama_promo.trim()}
                 className="w-full inline-flex justify-center items-center space-x-2 rounded-lg border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
@@ -161,14 +208,15 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
-                    <span>Simpan</span>
+                    <span>Simpan Perubahan</span>
                   </>
                 )}
               </button>
               <button
                 type="button"
-                onClick={onClose}
-                className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                onClick={handleClose}
+                disabled={isLoading}
+                className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Batal
               </button>

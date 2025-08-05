@@ -325,55 +325,18 @@ const PromoList = () => {
   const handleEdit = (promo) => {
     console.log('Edit promo:', promo.id);
     
-    // ✅ Check available routes and use the correct one
+    // ✅ Use the correct route: /promo (not /promo/calculator)
+    const editUrl = `/promo?edit=${promo.id}`;
     
-    // Option 1: Try common calculator routes
-    const possibleRoutes = [
-      '/kalkulator-promo',           // Indonesian route
-      '/promo-calculator',           // English route  
-      '/calculator/promo',           // Nested route
-      '/promo',                      // Simple route
-      '/calculator',                 // Generic calculator
-    ];
+    console.log('🔗 Navigating to:', editUrl);
     
-    // For now, let's use a more generic approach
-    // Check if we're on the same domain and try different routes
-    const currentDomain = window.location.origin;
-    
-    // Try the most likely route first
-    const editUrl = `${currentDomain}/kalkulator-promo?edit=${promo.id}`;
-    
-    console.log('🔗 Trying to navigate to:', editUrl);
-    
-    // Show loading toast while navigating
+    // Show loading toast
     toast.info('Membuka editor promo...', {
       description: 'Mengarahkan ke kalkulator promo'
     });
     
-    // Try navigation
-    try {
-      window.location.href = editUrl;
-    } catch (error) {
-      console.error('Navigation failed:', error);
-      
-      // Fallback: Show edit data in console for debugging
-      toast.error('Route tidak ditemukan. Cek console untuk data promo.', {
-        description: 'Developer: Periksa routing configuration'
-      });
-      
-      console.log('📊 Promo data for editing:', {
-        id: promo.id,
-        namaPromo: promo.namaPromo,
-        tipePromo: promo.tipePromo,
-        status: promo.status,
-        dataPromo: promo.dataPromo,
-        calculationResult: promo.calculationResult
-      });
-      
-      // Alternative: Open in new tab to avoid 404
-      const fallbackUrl = `${currentDomain}/#/promo-edit/${promo.id}`;
-      window.open(fallbackUrl, '_blank');
-    }
+    // Navigate to correct route
+    window.location.href = editUrl;
   };
 
   const handlePaginationChange = (changes) => {
@@ -387,8 +350,8 @@ const PromoList = () => {
   };
 
   const handleCreateNew = () => {
-    // Navigate to promo calculator
-    window.location.href = '/promo/calculator';
+    // Navigate to promo calculator - use correct route
+    window.location.href = '/promo';
   };
 
   // Loading State

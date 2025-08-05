@@ -28,7 +28,7 @@ import {
 import { 
   validateTransaction,
   formatTransactionForDisplay 
-} from './utils/financialUtils'; // Updated path
+} from '@/components/financial/utils/financialUtils'; // Updated path
 
 // ✅ TAMBAHAN: Import API functions untuk consistency
 import {

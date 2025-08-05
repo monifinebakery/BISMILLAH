@@ -194,6 +194,7 @@ console.log('📊 Promo Query State:', {
   error: error ? error.message : undefined,
   selectedItems: selectedItems.length,
 });
+  
   // Handlers
   const handleSearch = (value) => {
     setSearchTerm(value);

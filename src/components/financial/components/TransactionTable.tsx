@@ -1,6 +1,6 @@
 // src/components/financial/components/TransactionTable.tsx
 // ✅ Fixed: Uses Supabase via financialApi, no REST fetch
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react'; // ✅ Import hooks directly
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Plus, 
-  ChevronLeft, 
-  ChevronRight, 
-  MoreHorizontal, 
-  RefreshCw, 
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  RefreshCw,
   AlertCircle,
   Trash2,
   Edit
@@ -23,16 +23,19 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
-// ✅ Import useAuth dengan ES Module
+
+// ✅ Import useAuth dengan ES Module - Pastikan path ini benar sesuai struktur proyek Anda
 import { useAuth } from '@/contexts/AuthContext';
 
-// ✅ Import API functions from your existing service
+// ✅ Import API functions - Sesuaikan path relatif jika perlu
+// Misalnya, jika file ini ada di src/components/financial/components/,
+// maka path ke services adalah ../services/
 import {
   getTransactionsByDateRange,
   deleteFinancialTransaction,
-} from '../services/financialApi';
+} from '../services/financialApi'; // ✅ Sesuaikan path ini
 
-// ✅ Types
+// ✅ Types - Sebaiknya diimpor dari file types terpisah jika memungkinkan
 interface FinancialTransaction {
   id: string;
   date: Date | string | null;
@@ -61,14 +64,13 @@ interface TransactionTableProps {
 const transactionQueryKeys = {
   all: ['financial'] as const,
   list: () => [...transactionQueryKeys.all, 'transactions'] as const,
-  byRange: (from: Date, to?: Date) => 
+  byRange: (from: Date, to?: Date) =>
     [...transactionQueryKeys.list(), 'range', from.toISOString(), to?.toISOString()] as const,
 };
 
 // ✅ Custom hook untuk transaction data — menggunakan financialApi langsung
 const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: string) => {
   const queryClient = useQueryClient();
-
   // Hanya fetch jika userId ada dan dateRange valid
   const enabled = !!userId && !!dateRange?.from;
 
@@ -80,7 +82,7 @@ const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: stri
     dataUpdatedAt,
     isRefetching,
   } = useQuery({
-    queryKey: dateRange 
+    queryKey: dateRange
       ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
       : transactionQueryKeys.list(),
     queryFn: () => {
@@ -142,9 +144,9 @@ const TableSkeleton = () => (
 );
 
 // ✅ Main Component
-const TransactionTable: React.FC<TransactionTableProps> = ({ 
+const TransactionTable: React.FC<TransactionTableProps> = ({
   dateRange,
-  onEditTransaction, 
+  onEditTransaction,
   onAddTransaction,
   onDeleteTransaction,
   className,
@@ -156,8 +158,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
+  const { user } = useAuth(); // ✅ Harus di sini
+
   // Gunakan data dari useQuery (Supabase) atau dari props
-  const queryData = useTransactionData(dateRange, user?.id);
+  const queryData = useTransactionData(dateRange, user?.id); // ✅ Sekarang user sudah didefinisikan
   const transactions = legacyTransactions || queryData.transactions;
   const isLoading = legacyIsLoading ?? queryData.isLoading;
   const onRefresh = legacyOnRefresh || queryData.refetch;
@@ -175,13 +180,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const endItem = Math.min(currentPage * itemsPerPage, transactions.length);
 
   // Reset page saat data berubah
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1);
     }
   }, [transactions.length, totalPages, currentPage]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
@@ -194,7 +199,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   const handleDelete = async (transaction: FinancialTransaction) => {
     if (!window.confirm(`Yakin ingin menghapus transaksi "${transaction.description}"?`)) return;
-
     try {
       if (onDeleteTransaction) {
         await onDeleteTransaction(transaction.id);
@@ -203,6 +207,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       }
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      // Tampilkan toast error jika perlu
     }
   };
 
@@ -231,7 +236,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <p className="text-sm text-gray-500">
               Terjadi kesalahan saat mengambil data transaksi
             </p>
-            <Button onClick={onRefresh} variant="outline">
+            <Button onClick={() => onRefresh()} variant="outline"> {/* Gunakan onRefresh yang sudah didefinisikan */}
               <RefreshCw className="mr-2 h-4 w-4" />
               Coba Lagi
             </Button>
@@ -255,10 +260,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRefresh}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onRefresh()} // Gunakan onRefresh yang sudah didefinisikan
               disabled={isRefetching}
             >
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
@@ -301,7 +306,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        {transaction.date 
+                        {transaction.date
                           ? format(new Date(transaction.date), 'dd MMM yyyy', { locale: id })
                           : '-'
                         }
@@ -315,10 +320,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={transaction.type === 'income' ? 'default' : 'destructive'}
-                          className={transaction.type === 'income' 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                          className={transaction.type === 'income'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
                             : ''
                           }
                         >
@@ -333,17 +338,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {onEditTransaction && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => onEditTransaction(transaction)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(transaction)}
                             disabled={queryData.isDeleting}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -363,9 +368,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                           {dateRange ? 'Tidak ada transaksi pada rentang tanggal ini.' : 'Belum ada transaksi.'}
                         </p>
                         {onAddTransaction && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={onAddTransaction}
                             className="mt-2"
                           >
@@ -391,8 +396,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span>Per halaman:</span>
-              <Select 
-                value={itemsPerPage.toString()} 
+              <Select
+                value={itemsPerPage.toString()}
                 onValueChange={(value) => setItemsPerPage(Number(value))}
               >
                 <SelectTrigger className="w-16 h-8">
@@ -410,8 +415,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handlePreviousPage}
                 disabled={currentPage === 1}
@@ -426,8 +431,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   <React.Fragment key={pageNum}>
                     {pageNum === 1 && currentPage > 3 && (
                       <>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handlePageChange(1)}
                           className="w-8 h-8 p-0"
@@ -439,7 +444,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         </div>
                       </>
                     )}
-                    <Button 
+                    <Button
                       variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => handlePageChange(pageNum)}
@@ -452,8 +457,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         <div className="px-2">
                           <MoreHorizontal className="h-4 w-4" />
                         </div>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handlePageChange(totalPages)}
                           className="w-8 h-8 p-0"
@@ -466,8 +471,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 ))}
               </div>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}

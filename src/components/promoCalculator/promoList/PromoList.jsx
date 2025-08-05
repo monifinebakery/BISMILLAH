@@ -18,7 +18,7 @@ import {
 
 // Components
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
-import PromoEditModal from './PromoEditModal'; // Import modal
+import PromoEditModal from '@/components/promoCalculator/promoList/components/PromoEditModal'; // Import modal
 
 // ✅ Temporary PromoTable Component - Replace with correct import later
 const PromoTable = ({ promos, isLoading, onEdit, onDelete, onToggleStatus }) => {
@@ -183,22 +183,43 @@ const PromoList = () => {
   const updatePromoMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       console.log('📝 Updating promo:', id, data);
+      
+      // Validate data before sending
+      if (!data.nama_promo?.trim()) {
+        throw new Error('Nama promo tidak boleh kosong');
+      }
+      
       const updatedPromo = await promoService.update(id, data);
+      console.log('✅ Promo updated successfully:', updatedPromo);
       return updatedPromo;
     },
     onSuccess: (updatedPromo) => {
+      console.log('🎉 Update mutation success, updating cache...');
+      
       // Update cache optimistically
       queryClient.setQueryData(
         PROMO_QUERY_KEYS.list(queryParams),
         (oldData) => {
-          if (!oldData) return oldData;
-          return oldData.map(promo => 
-            promo.id === updatedPromo.id ? updatedPromo : promo
+          if (!oldData) {
+            console.warn('⚠️ No old data found in cache');
+            return oldData;
+          }
+          
+          const newData = oldData.map(promo => 
+            promo.id === updatedPromo.id ? { ...promo, ...updatedPromo } : promo
           );
+          
+          console.log('📊 Cache updated:', {
+            oldCount: oldData.length,
+            newCount: newData.length,
+            updatedId: updatedPromo.id
+          });
+          
+          return newData;
         }
       );
 
-      // Invalidate queries to ensure fresh data
+      // Also invalidate to ensure fresh data from server
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       
       toast.success('Promo berhasil diperbarui');
@@ -207,7 +228,7 @@ const PromoList = () => {
       setEditModal({ isOpen: false, promo: null });
     },
     onError: (error) => {
-      console.error('Update promo error:', error);
+      console.error('❌ Update promo error:', error);
       toast.error(error.message || 'Gagal memperbarui promo');
     },
   });
@@ -382,12 +403,27 @@ const PromoList = () => {
   };
 
   const handleSaveEditModal = async (formData) => {
-    if (!editModal.promo) return;
+    if (!editModal.promo) {
+      console.error('❌ No promo selected for editing');
+      return;
+    }
     
-    await updatePromoMutation.mutateAsync({
+    console.log('💾 Attempting to save promo:', {
       id: editModal.promo.id,
-      data: formData
+      formData
     });
+    
+    try {
+      await updatePromoMutation.mutateAsync({
+        id: editModal.promo.id,
+        data: formData
+      });
+      
+      console.log('✅ Promo saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save promo:', error);
+      throw error; // Re-throw so modal can handle it
+    }
   };
 
   const handlePaginationChange = (changes) => {

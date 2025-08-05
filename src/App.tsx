@@ -1,10 +1,12 @@
-// App.tsx - Realistic Optimization (tanpa bikin file baru)
+// ===== 3. UPDATE App.tsx - Full version dengan warehouse useQuery integration =====
+// App.tsx - Full updated version
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
 // ✅ CONSOLIDATED: UI components grouped
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 // ✅ CONSOLIDATED: Context imports grouped  
@@ -29,8 +31,9 @@ import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 // ✅ CONSOLIDATED: Utilities grouped
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { logger } from "@/utils/logger";
 
-// ✅ KEEP: All existing lazy loading logic (no changes)
+// ✅ LAZY LOADING: All page components
 const Dashboard = React.lazy(() => 
   import(/* webpackChunkName: "dashboard" */ "./pages/Dashboard")
 );
@@ -78,22 +81,32 @@ const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, Invoic
   React.lazy(() => import(/* webpackChunkName: "misc" */ "./pages/InvoicePage"))
 ];
 
-// ✅ KEEP: All existing logic unchanged
+// ✅ ENHANCED: QueryClient configuration optimized untuk warehouse
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
-      retry: (failureCount, error) => {
-        if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: (failureCount, error: any) => {
+        // Don't retry auth errors
+        if (error?.message?.includes('session missing') || 
+            error?.message?.includes('not authenticated') ||
+            error?.status === 401 || error?.status === 403) {
           return false;
         }
+        // Retry network errors up to 2 times
         return failureCount < 2;
       },
+      refetchOnWindowFocus: false, // Disable auto refetch on window focus
+      refetchOnReconnect: true, // Enable refetch on network reconnect
+    },
+    mutations: {
+      retry: 1, // Retry mutations once on failure
     },
   },
 });
 
+// ✅ ENHANCED: App loader dengan warehouse context
 const AppLoader = ({ title = "Memuat aplikasi..." }: { title?: string }) => (
   <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 z-50">
     <div className="flex flex-col items-center gap-4 p-8">
@@ -106,7 +119,16 @@ const AppLoader = ({ title = "Memuat aplikasi..." }: { title?: string }) => (
   </div>
 );
 
-const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; onRetry?: () => void }) => {
+// ✅ ENHANCED: App error dengan retry logic
+const AppError = ({ 
+  title = "Terjadi Kesalahan", 
+  onRetry, 
+  showRetry = true 
+}: { 
+  title?: string; 
+  onRetry?: () => void;
+  showRetry?: boolean;
+}) => {
   const navigate = useNavigate();
   
   return (
@@ -120,12 +142,14 @@ const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; on
           Gagal memuat halaman. Silakan coba lagi atau kembali ke dashboard.
         </p>
         <div className="flex gap-3">
-          <button
-            onClick={onRetry || (() => window.location.reload())}
-            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg transition-all"
-          >
-            Muat Ulang
-          </button>
+          {showRetry && (
+            <button
+              onClick={onRetry || (() => window.location.reload())}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg transition-all"
+            >
+              Muat Ulang
+            </button>
+          )}
           <button
             onClick={() => navigate('/')}
             className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors"
@@ -138,6 +162,62 @@ const AppError = ({ title = "Terjadi Kesalahan", onRetry }: { title?: string; on
   );
 };
 
+// ✅ NEW: Warehouse-specific error boundary
+const WarehouseErrorBoundary = ({ children }: { children: React.ReactNode }) => (
+  <ErrorBoundary 
+    fallback={(error, errorInfo) => {
+      // Log warehouse errors for debugging
+      logger.error('Warehouse Error:', { error, errorInfo });
+      
+      return (
+        <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto">
+          <div className="bg-red-100 rounded-full p-6 mb-6">
+            <div className="h-12 w-12 text-red-500 text-3xl flex items-center justify-center">📦</div>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">Error Warehouse</h3>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Terjadi error saat memuat data warehouse. Hal ini mungkin karena masalah koneksi atau server.
+          </p>
+          
+          {/* Show error details in development */}
+          {process.env.NODE_ENV === 'development' && error && (
+            <details className="text-left bg-gray-100 p-4 rounded mb-4 max-w-full overflow-auto">
+              <summary className="cursor-pointer font-medium text-red-600 mb-2">
+                Error Details (Development Only)
+              </summary>
+              <pre className="text-xs text-gray-700 whitespace-pre-wrap">
+                {error.toString()}
+              </pre>
+            </details>
+          )}
+          
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                // Clear warehouse cache and reload
+                queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+                window.location.reload();
+              }}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2 rounded-lg transition-all"
+            >
+              Reset & Reload
+            </button>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors"
+            >
+              Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }}
+  >
+    {children}
+  </ErrorBoundary>
+);
+
+// ✅ ENHANCED: App layout dengan warehouse optimizations
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 
@@ -197,7 +277,7 @@ const AppLayout = () => {
           </div>
         </header>
         <main className="flex-1 overflow-auto pb-16">
-          <ErrorBoundary fallback={(() => <AppError />)}>
+          <ErrorBoundary fallback={() => <AppError />}>
             <Outlet />
           </ErrorBoundary>
         </main>
@@ -233,7 +313,7 @@ const AppLayout = () => {
             </div>
           </header>
           <main className="flex-1 w-full min-w-0 overflow-auto p-4 sm:p-6">
-            <ErrorBoundary fallback={(() => <AppError />)}>
+            <ErrorBoundary fallback={() => <AppError />}>
               <Outlet />
             </ErrorBoundary>
           </main>
@@ -249,6 +329,7 @@ const AppLayout = () => {
   );
 };
 
+// ✅ MAIN: App component dengan QueryClient dan Warehouse optimizations
 const App = () => {
   useEffect(() => {
     const handleAuthRedirect = async () => {
@@ -263,6 +344,17 @@ const App = () => {
     };
     handleAuthRedirect();
   }, []);
+
+  // ✅ Enhanced error handling untuk QueryClient
+  const handleQueryError = (error: any) => {
+    logger.error('React Query Error:', error);
+    
+    // Handle specific Supabase errors
+    if (error?.message?.includes('session missing')) {
+      logger.warn('Session expired, redirecting to auth...');
+      window.location.href = '/auth';
+    }
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -286,20 +378,30 @@ const App = () => {
                   path="resep" 
                   element={
                     <Suspense fallback={<AppLoader title="Memuat Resep" />}>
-                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Resep" />)}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Resep" />}>
                         <RecipesPage />
                       </ErrorBoundary>
                     </Suspense>
                   } 
                 />
                 
-                <Route path="gudang" element={<WarehousePage />} />
+                {/* ✅ ENHANCED: Warehouse route dengan special error boundary */}
+                <Route 
+                  path="gudang" 
+                  element={
+                    <Suspense fallback={<AppLoader title="Memuat Warehouse" />}>
+                      <WarehouseErrorBoundary>
+                        <WarehousePage />
+                      </WarehouseErrorBoundary>
+                    </Suspense>
+                  } 
+                />
                 
                 <Route 
                   path="supplier" 
                   element={
                     <Suspense fallback={<AppLoader title="Memuat Supplier" />}>
-                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Supplier" />)}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Supplier" />}>
                         <SupplierManagementPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -310,7 +412,7 @@ const App = () => {
                   path="pembelian" 
                   element={
                     <Suspense fallback={<AppLoader title="Memuat Pembelian" />}>
-                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Pembelian" />)}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Pembelian" />}>
                         <PurchaseManagement />
                       </ErrorBoundary>
                     </Suspense>
@@ -321,7 +423,7 @@ const App = () => {
                   path="pesanan" 
                   element={
                     <Suspense fallback={<AppLoader title="Memuat Pesanan" />}>
-                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Pesanan" />)}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Pesanan" />}>
                         <OrdersPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -332,7 +434,7 @@ const App = () => {
                   path="biaya-operasional" 
                   element={
                     <Suspense fallback={<AppLoader title="Memuat Biaya Operasional" />}>
-                      <ErrorBoundary fallback={(() => <AppError title="Gagal Memuat Biaya Operasional" />)}>
+                      <ErrorBoundary fallback={() => <AppError title="Gagal Memuat Biaya Operasional" />}>
                         <OperationalCostPage />
                       </ErrorBoundary>
                     </Suspense>
@@ -350,6 +452,20 @@ const App = () => {
               </Route>
             </Routes>
           </Suspense>
+          
+          {/* ✅ ENHANCED: React Query DevTools hanya di development */}
+          {process.env.NODE_ENV === 'development' && (
+            <ReactQueryDevtools 
+              initialIsOpen={false} 
+              position="bottom-right"
+              toggleButtonProps={{
+                style: {
+                  background: '#f97316', // Orange color to match theme
+                  color: 'white',
+                }
+              }}
+            />
+          )}
         </AppProviders>
       </TooltipProvider>
     </QueryClientProvider>

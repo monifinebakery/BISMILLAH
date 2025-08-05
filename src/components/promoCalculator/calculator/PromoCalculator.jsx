@@ -17,7 +17,7 @@ import {
 
 // ✅ Import komponen dan layanan
 // !!! PERHATIAN: Sesuaikan path ini dengan struktur folder proyek Anda !!!
-import PromoTypeSelector from '@/components/promoCalculator/components/PromoTypeSelector'; // ✅ Sesuaikan path
+import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector'; // ✅ Sesuaikan path
 import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Sesuaikan path
 import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Sesuaikan path
 

@@ -1,3 +1,4 @@
+// ===== 1. UPDATE WarehouseFilters.tsx dengan useQuery =====
 // src/components/warehouse/components/WarehouseFilters.tsx
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,14 @@ import {
   CheckSquare,
   Square,
   RotateCcw,
-  Settings2
+  Settings2,
+  RefreshCw // ✅ TAMBAH: Import refresh icon
 } from 'lucide-react';
+// ✅ TAMBAH: Import useQuery
+import { useQuery } from '@tanstack/react-query';
+import { warehouseApi } from '../services/warehouseApi';
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 import type { FilterState } from '../types';
 
 interface WarehouseFiltersProps {
@@ -29,18 +36,54 @@ interface WarehouseFiltersProps {
   activeFiltersCount: number;
 }
 
+// ✅ TAMBAH: Query keys for filter data
+const filterQueryKeys = {
+  categories: ['warehouse', 'categories'] as const,
+  suppliers: ['warehouse', 'suppliers'] as const,
+};
+
+// ✅ TAMBAH: API functions for filter data
+const fetchCategories = async (): Promise<string[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const service = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+    
+    const items = await service.fetchBahanBaku();
+    const categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
+    return categories.sort();
+  } catch (error) {
+    logger.error('Failed to fetch categories:', error);
+    return [];
+  }
+};
+
+const fetchSuppliers = async (): Promise<string[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const service = await warehouseApi.createService('crud', {
+      userId: user?.id,
+      enableDebugLogs: process.env.NODE_ENV === 'development'
+    });
+    
+    const items = await service.fetchBahanBaku();
+    const suppliers = [...new Set(items.map(item => item.supplier).filter(Boolean))];
+    return suppliers.sort();
+  } catch (error) {
+    logger.error('Failed to fetch suppliers:', error);
+    return [];
+  }
+};
+
 /**
  * Warehouse Filters Component
- * 
- * Comprehensive filtering system with:
- * - Search functionality
- * - Category/Supplier filters
- * - Stock level filters
- * - Expiry filters
- * - Selection mode toggle
- * - Items per page control
- * 
- * Size: ~4KB
+ * ✅ ENHANCED: Added useQuery for categories & suppliers
+ * ✅ ENHANCED: Added refresh functionality
+ * ✅ ENHANCED: Fallback to props for backward compatibility
  */
 const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   searchTerm,
@@ -52,12 +95,53 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   onItemsPerPageChange,
   isSelectionMode,
   onToggleSelectionMode,
-  availableCategories,
-  availableSuppliers,
+  availableCategories: propCategories,
+  availableSuppliers: propSuppliers,
   activeFiltersCount,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // ✅ TAMBAH: useQuery for categories
+  const {
+    data: queriedCategories = [],
+    isLoading: categoriesLoading,
+    refetch: refetchCategories,
+  } = useQuery({
+    queryKey: filterQueryKeys.categories,
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000, // 10 minutes - categories don't change often
+    retry: 1,
+  });
+
+  // ✅ TAMBAH: useQuery for suppliers
+  const {
+    data: queriedSuppliers = [],
+    isLoading: suppliersLoading,
+    refetch: refetchSuppliers,
+  } = useQuery({
+    queryKey: filterQueryKeys.suppliers,
+    queryFn: fetchSuppliers,
+    staleTime: 10 * 60 * 1000, // 10 minutes - suppliers don't change often
+    retry: 1,
+  });
+
+  // ✅ TAMBAH: Use queried data with fallback to props for backward compatibility
+  const availableCategories = queriedCategories.length > 0 ? queriedCategories : propCategories;
+  const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
+
+  // ✅ TAMBAH: Refresh filter data
+  const handleRefreshFilters = async () => {
+    try {
+      await Promise.all([
+        refetchCategories(),
+        refetchSuppliers()
+      ]);
+      logger.info('Filter data refreshed successfully');
+    } catch (error) {
+      logger.error('Failed to refresh filter data:', error);
+    }
+  };
 
   // Update individual filter
   const updateFilter = (key: keyof FilterState, value: string) => {
@@ -147,6 +231,19 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             )}
           </Button>
 
+          {/* ✅ TAMBAH: Refresh filters button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefreshFilters}
+            disabled={categoriesLoading || suppliersLoading}
+            className="text-gray-500 hover:text-gray-700"
+            title="Refresh kategori dan supplier"
+          >
+            <RefreshCw className={`w-4 h-4 ${categoriesLoading || suppliersLoading ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh filter data</span>
+          </Button>
+
           {/* Reset Filters */}
           {activeFiltersCount > 0 && (
             <Button
@@ -170,11 +267,15 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Kategori
+              {categoriesLoading && (
+                <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+              )}
             </label>
             <select
               value={filters.category}
               onChange={(e) => updateFilter('category', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
+              disabled={categoriesLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Semua Kategori</option>
               {availableCategories.map((category) => (
@@ -183,17 +284,24 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
                 </option>
               ))}
             </select>
+            {categoriesLoading && (
+              <p className="text-xs text-gray-500 mt-1">Memuat kategori...</p>
+            )}
           </div>
 
           {/* Supplier Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Supplier
+              {suppliersLoading && (
+                <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+              )}
             </label>
             <select
               value={filters.supplier}
               onChange={(e) => updateFilter('supplier', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
+              disabled={suppliersLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Semua Supplier</option>
               {availableSuppliers.map((supplier) => (
@@ -202,6 +310,9 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
                 </option>
               ))}
             </select>
+            {suppliersLoading && (
+              <p className="text-xs text-gray-500 mt-1">Memuat supplier...</p>
+            )}
           </div>
 
           {/* Stock Level Filter */}

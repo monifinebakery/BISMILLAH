@@ -44,7 +44,7 @@ import {
 import { 
   calculateFinancialSummary,
   calculateCategoryTotals 
-} from '@/utils/financialUtils';
+} from './utils/financialUtils';
 
 // Query keys
 const financialQueryKeys = {

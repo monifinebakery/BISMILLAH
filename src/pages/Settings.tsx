@@ -103,7 +103,7 @@ const SettingsPage = () => {
       <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+          <div className="bg-white rounded-2xl border-1 border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl">

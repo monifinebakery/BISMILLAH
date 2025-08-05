@@ -16,7 +16,7 @@ import {
 
 // ✅ Import components and hooks
 import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector'; // ✅ Path might need adjustment
-import PromoPreview from '@/components/promoCalculator/components/PromoPreview'; // ✅ Path might need adjustment
+import PromoPreview from '@/components/promoCalculator/calculator/PromoPreview'; // ✅ Path might need adjustment
 import { usePromoCalculation } from '@/components/promoCalculator/hooks/usePromoCalculation'; // ✅ Path might need adjustment
 import { recipeApi } from '@/components/recipe/services/recipeApi'; // ✅ Import recipeApi
 import { promoService } from '@/components/promoCalculator/services/promoService'; // ✅ Import promoService

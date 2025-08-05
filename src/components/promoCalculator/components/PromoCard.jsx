@@ -1,5 +1,5 @@
-// PromoCard.jsx - Komponen untuk menampilkan card promo
-import React from 'react';
+// src/components/promoCalculator/components/PromoCard.jsx - Komponen untuk menampilkan card promo
+import React, { useState, useRef, useEffect } from 'react'; // ✅ Tambahkan useState, useRef, useEffect
 import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
 
 const PromoCard = ({ 
@@ -11,6 +11,10 @@ const PromoCard = ({
   className = "",
   showActions = true 
 }) => {
+  // ✅ State untuk mengontrol dropdown
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null); // Untuk mendeteksi klik di luar dropdown
+
   // Utility functions
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
@@ -72,6 +76,43 @@ const PromoCard = ({
 
   const daysRemaining = getDaysRemaining(promo.tanggalSelesai);
 
+  // ✅ Fungsi untuk toggle dropdown
+  const toggleDropdown = () => {
+    setIsDropdownOpen(prev => !prev);
+  };
+
+  // ✅ Fungsi untuk menutup dropdown
+  const closeDropdown = () => {
+    setIsDropdownOpen(false);
+  };
+
+  // ✅ Fungsi untuk menangani klik di luar dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        closeDropdown();
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  // ✅ Fungsi pembungkus untuk menutup dropdown setelah aksi
+  const handleAction = (actionFn) => {
+    return () => {
+      if (actionFn) actionFn(promo);
+      closeDropdown();
+    };
+  };
+
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 ${className}`}>
       {/* Card Header */}
@@ -97,52 +138,61 @@ const PromoCard = ({
             
             {/* Actions Menu */}
             {showActions && (
-              <div className="relative group">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+              // ✅ Tambahkan ref dan onClick untuk toggle
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                  onClick={toggleDropdown} // ✅ Ganti hover dengan click
+                  aria-haspopup="true"
+                  aria-expanded={isDropdownOpen}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </button>
                 
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                  <div className="py-1">
-                    {onView && (
-                      <button
-                        onClick={() => onView(promo)}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>Lihat Detail</span>
-                      </button>
-                    )}
-                    {onEdit && (
-                      <button
-                        onClick={() => onEdit(promo)}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Edit className="h-4 w-4" />
-                        <span>Edit</span>
-                      </button>
-                    )}
-                    {onDuplicate && (
-                      <button
-                        onClick={() => onDuplicate(promo)}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Copy className="h-4 w-4" />
-                        <span>Duplikat</span>
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button
-                        onClick={() => onDelete(promo)}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Hapus</span>
-                      </button>
-                    )}
+                {/* ✅ Gunakan state isDropdownOpen untuk kontrol visibilitas */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                    <div className="py-1">
+                      {onView && (
+                        <button
+                          onClick={handleAction(onView)} // ✅ Gunakan wrapper
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span>Lihat Detail</span>
+                        </button>
+                      )}
+                      {onEdit && (
+                        <button
+                          onClick={handleAction(onEdit)} // ✅ Gunakan wrapper
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                      {onDuplicate && (
+                        <button
+                          onClick={handleAction(onDuplicate)} // ✅ Gunakan wrapper
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Copy className="h-4 w-4" />
+                          <span>Duplikat</span>
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={handleAction(onDelete)} // ✅ Gunakan wrapper
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

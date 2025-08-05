@@ -1,4 +1,4 @@
-// src/pages/Recipes.tsx - with useQuery
+// src/pages/Recipes.tsx - Fixed API Response Format
 
 import React, { useState, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,13 +23,10 @@ import { LoadingState } from '@/components/recipe/components/shared/LoadingState
 // Types
 import type { Recipe, NewRecipe } from '@/components/recipe/types';
 
-// Query Keys - Import from RecipeForm if already defined there
+// ✅ Simplified Query Keys
 export const RECIPE_QUERY_KEYS = {
   all: ['recipes'] as const,
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...RECIPE_QUERY_KEYS.lists(), filters] as const,
-  details: () => [...RECIPE_QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...RECIPE_QUERY_KEYS.details(), id] as const,
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 
@@ -150,48 +147,44 @@ const Recipes: React.FC = () => {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
-  // ✅ useQuery: Fetch Recipes
+  // ✅ FIXED: useQuery for Recipes - Direct API response
   const recipesQuery = useQuery({
-    queryKey: RECIPE_QUERY_KEYS.lists(),
+    queryKey: ['recipes'],
     queryFn: async () => {
-      const response = await recipeApi.getRecipes();
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      return response.data;
+      console.log('🔍 Fetching recipes...');
+      const recipes = await recipeApi.getRecipes(); // ✅ Direct return
+      console.log('✅ Got recipes:', recipes?.length || 0);
+      return recipes || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // ✅ useQuery: Get Unique Categories
+  // ✅ FIXED: useQuery for Categories - Direct API response
   const categoriesQuery = useQuery({
-    queryKey: RECIPE_QUERY_KEYS.categories(),
+    queryKey: ['recipes', 'categories'],
     queryFn: async () => {
-      const response = await recipeApi.getUniqueCategories();
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      return response.data;
+      console.log('🔍 Fetching categories...');
+      const categories = await recipeApi.getUniqueCategories(); // ✅ Direct return
+      console.log('✅ Got categories:', categories?.length || 0);
+      return categories || [];
     },
-    enabled: !!recipesQuery.data, // Only run after recipes are loaded
+    enabled: recipesQuery.isSuccess, // Only run after recipes are loaded
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // ✅ useMutation: Delete Recipe
+  // ✅ FIXED: useMutation for Delete Recipe - Direct API call
   const deleteRecipeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await recipeApi.deleteRecipe(id);
-      if (response.error) {
-        throw new Error(response.error);
-      }
+      console.log('🗑️ Deleting recipe:', id);
+      await recipeApi.deleteRecipe(id); // ✅ Direct call, throws on error
       return id;
     },
     onSuccess: (deletedId) => {
       // Remove from cache optimistically
       queryClient.setQueryData(
-        RECIPE_QUERY_KEYS.lists(),
+        ['recipes'],
         (oldData: Recipe[] | undefined) => {
           if (!oldData) return oldData;
           return oldData.filter(recipe => recipe.id !== deletedId);
@@ -199,7 +192,7 @@ const Recipes: React.FC = () => {
       );
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
       
       const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === deletedId);
       if (deletedRecipe) {
@@ -212,19 +205,17 @@ const Recipes: React.FC = () => {
     },
   });
 
-  // ✅ useMutation: Duplicate Recipe
+  // ✅ FIXED: useMutation for Duplicate Recipe - Direct API call
   const duplicateRecipeMutation = useMutation({
     mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
-      const response = await recipeApi.duplicateRecipe(id, newName);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      return response.data;
+      console.log('📋 Duplicating recipe:', id, 'with name:', newName);
+      const newRecipe = await recipeApi.duplicateRecipe(id, newName); // ✅ Direct return
+      return newRecipe;
     },
     onSuccess: (newRecipe) => {
       // Add to cache optimistically
       queryClient.setQueryData(
-        RECIPE_QUERY_KEYS.lists(),
+        ['recipes'],
         (oldData: Recipe[] | undefined) => {
           if (!oldData) return [newRecipe];
           return [newRecipe, ...oldData];
@@ -232,7 +223,7 @@ const Recipes: React.FC = () => {
       );
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
       
       toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
     },
@@ -242,24 +233,19 @@ const Recipes: React.FC = () => {
     },
   });
 
-  // ✅ useMutation: Bulk Update Recipes (for category management)
+  // ✅ FIXED: useMutation for Bulk Update Recipes - Direct API calls
   const bulkUpdateRecipesMutation = useMutation({
     mutationFn: async (updates: { id: string; data: Partial<NewRecipe> }[]) => {
-      const responses = await Promise.all(
-        updates.map(({ id, data }) => recipeApi.updateRecipe(id, data))
+      console.log('📦 Bulk updating recipes:', updates.length);
+      const updatedRecipes = await Promise.all(
+        updates.map(({ id, data }) => recipeApi.updateRecipe(id, data)) // ✅ Direct calls
       );
-      
-      const errors = responses.filter(response => response.error);
-      if (errors.length > 0) {
-        throw new Error(`Failed to update ${errors.length} recipes`);
-      }
-      
-      return responses.map(response => response.data);
+      return updatedRecipes;
     },
     onSuccess: (updatedRecipes) => {
       // Update cache optimistically
       queryClient.setQueryData(
-        RECIPE_QUERY_KEYS.lists(),
+        ['recipes'],
         (oldData: Recipe[] | undefined) => {
           if (!oldData) return updatedRecipes;
           
@@ -269,7 +255,7 @@ const Recipes: React.FC = () => {
       );
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal mengupdate kategori resep');
@@ -291,6 +277,14 @@ const Recipes: React.FC = () => {
   const isProcessing = deleteRecipeMutation.isPending || 
                       duplicateRecipeMutation.isPending || 
                       bulkUpdateRecipesMutation.isPending;
+
+  // ✅ Debug logging
+  console.log('📊 Recipes Query State:', {
+    data: recipes?.length || 0,
+    isLoading,
+    error,
+    categories: availableCategories?.length || 0
+  });
 
   // Handlers
   const handleAddRecipe = () => {
@@ -343,7 +337,8 @@ const Recipes: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
+    console.log('🔄 Refreshing all recipe data...');
+    queryClient.invalidateQueries({ queryKey: ['recipes'] });
   };
 
   const handleFormSuccess = (recipe: Recipe, isEdit: boolean) => {
@@ -353,7 +348,7 @@ const Recipes: React.FC = () => {
     
     // Optionally refresh categories if new recipe added
     if (!isEdit) {
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
     }
   };
 

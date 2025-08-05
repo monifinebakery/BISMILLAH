@@ -1,6 +1,6 @@
 // ===== 2. UPDATE WarehousePage.tsx =====
 // src/components/warehouse/WarehousePage.tsx
-import React, { Suspense, lazy, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 // ✅ TAMBAH: Import useQuery
@@ -227,9 +227,13 @@ const DialogSkeleton = () => (
   </div>
 );
 
-// ✅ TAMBAH: Custom hook untuk warehouse dengan useQuery
+// ✅ TAMBAH: Custom hook untuk warehouse dengan useQuery (FIXED VERSION)
 const useWarehouseData = () => {
   const queryClient = useQueryClient();
+  
+  // ✅ TAMBAH: State untuk track actual data changes
+  const [lastDataUpdate, setLastDataUpdate] = useState<Date | undefined>(undefined);
+  const previousDataRef = useRef<string>('');
   
   // Query untuk data warehouse
   const {
@@ -250,11 +254,42 @@ const useWarehouseData = () => {
     },
   });
 
+  // ✅ TAMBAH: Effect untuk detect actual data changes
+  useEffect(() => {
+    if (bahanBaku && bahanBaku.length >= 0) {
+      const currentDataString = JSON.stringify(bahanBaku);
+      
+      // Cek apakah data beneran berubah (bukan cuma re-fetch)
+      if (previousDataRef.current && previousDataRef.current !== currentDataString) {
+        setLastDataUpdate(new Date());
+        logger.debug('📊 Data warehouse berubah, update timestamp');
+      } else if (!previousDataRef.current && bahanBaku.length > 0) {
+        // First time load dengan data
+        setLastDataUpdate(new Date());
+        logger.debug('📊 Data warehouse loaded pertama kali');
+      }
+      
+      previousDataRef.current = currentDataString;
+    }
+  }, [bahanBaku]);
+
+  // ✅ TAMBAH: Custom refetch yang tidak update timestamp jika data sama
+  const smartRefetch = async () => {
+    logger.debug('🔄 Manual refresh warehouse data...');
+    const result = await refetch();
+    
+    // Timestamp akan diupdate otomatis di useEffect di atas 
+    // hanya jika data beneran berubah
+    
+    return result;
+  };
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: createWarehouseItem,
     onSuccess: (newItem) => {
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      // Timestamp akan diupdate otomatis saat data berubah
       logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
     },
     onError: (error: Error) => {
@@ -266,6 +301,7 @@ const useWarehouseData = () => {
     mutationFn: updateWarehouseItem,
     onSuccess: (updatedItem) => {
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      // Timestamp akan diupdate otomatis saat data berubah
       logger.info(`✅ Item "${updatedItem.nama}" berhasil diperbarui`);
     },
     onError: (error: Error) => {
@@ -277,6 +313,7 @@ const useWarehouseData = () => {
     mutationFn: deleteWarehouseItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+      // Timestamp akan diupdate otomatis saat data berubah
       logger.info('✅ Item berhasil dihapus');
     },
     onError: (error: Error) => {
@@ -289,10 +326,10 @@ const useWarehouseData = () => {
     bahanBaku,
     loading,
     error: error as Error | null,
-    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
+    lastUpdated: lastDataUpdate, // ✅ FIXED: Pakai timestamp yang actual berubah
     
     // Actions
-    refetch,
+    refetch: smartRefetch, // ✅ FIXED: Pakai smart refetch
     createItem: createMutation.mutateAsync,
     updateItem: updateMutation.mutateAsync,
     deleteItem: deleteMutation.mutateAsync,

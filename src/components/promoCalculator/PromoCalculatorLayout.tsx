@@ -322,12 +322,6 @@ const PromoCalculatorLayout = () => {
               <p className="text-gray-600 mb-6">
                 Mulai buat promo pertama Anda untuk meningkatkan penjualan
               </p>
-              <button 
-                onClick={() => setCurrentView('calculator')} 
-                className={styles.buttonPrimary}
-              >
-                Buat Promo Baru
-              </button>
             </div>
           ) : (
             <>

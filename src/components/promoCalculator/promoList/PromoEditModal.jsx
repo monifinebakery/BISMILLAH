@@ -4,10 +4,10 @@ import { toast } from 'sonner';
 
 const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    nama_promo: '',
+    namaPromo: '', // ✅ Changed from nama_promo to match service
     status: 'aktif',
-    tanggal_mulai: '',
-    tanggal_selesai: '',
+    tanggalMulai: '', // ✅ Changed from tanggal_mulai to match service
+    tanggalSelesai: '', // ✅ Changed from tanggal_selesai to match service
     deskripsi: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -17,10 +17,10 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
     if (promo) {
       console.log('📝 Setting form data for promo:', promo);
       setFormData({
-        nama_promo: promo.nama_promo || promo.namaPromo || '',
+        namaPromo: promo.namaPromo || promo.nama_promo || '',
         status: promo.status || 'aktif',
-        tanggal_mulai: promo.tanggal_mulai || '',
-        tanggal_selesai: promo.tanggal_selesai || '',
+        tanggalMulai: promo.tanggalMulai || promo.tanggal_mulai || '',
+        tanggalSelesai: promo.tanggalSelesai || promo.tanggal_selesai || '',
         deskripsi: promo.deskripsi || ''
       });
     }
@@ -30,10 +30,10 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        nama_promo: '',
+        namaPromo: '',
         status: 'aktif',
-        tanggal_mulai: '',
-        tanggal_selesai: '',
+        tanggalMulai: '',
+        tanggalSelesai: '',
         deskripsi: ''
       });
       setIsLoading(false);
@@ -49,7 +49,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
     }
 
     // Validation
-    if (!formData.nama_promo.trim()) {
+    if (!formData.namaPromo.trim()) {
       toast.error('Nama promo tidak boleh kosong');
       return;
     }
@@ -124,8 +124,8 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                   </label>
                   <input
                     type="text"
-                    value={formData.nama_promo}
-                    onChange={(e) => handleInputChange('nama_promo', e.target.value)}
+                    value={formData.namaPromo}
+                    onChange={(e) => handleInputChange('namaPromo', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                     disabled={isLoading}
@@ -156,8 +156,8 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                     </label>
                     <input
                       type="date"
-                      value={formData.tanggal_mulai}
-                      onChange={(e) => handleInputChange('tanggal_mulai', e.target.value)}
+                      value={formData.tanggalMulai}
+                      onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled={isLoading}
                     />
@@ -169,11 +169,11 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
                     </label>
                     <input
                       type="date"
-                      value={formData.tanggal_selesai}
-                      onChange={(e) => handleInputChange('tanggal_selesai', e.target.value)}
+                      value={formData.tanggalSelesai}
+                      onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled={isLoading}
-                      min={formData.tanggal_mulai} // Ensure end date is after start date
+                      min={formData.tanggalMulai} // Ensure end date is after start date
                     />
                   </div>
                 </div>
@@ -208,7 +208,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                disabled={isLoading || !formData.nama_promo.trim()}
+                disabled={isLoading || !formData.namaPromo.trim()}
                 className="w-full inline-flex justify-center items-center space-x-2 rounded-lg border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (

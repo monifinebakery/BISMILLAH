@@ -79,7 +79,7 @@ const PromoCalculator = () => {
       logger.component('PromoCalculator', 'Fetching latest promos for dashboard...');
       const promos = await promoService.getAll({});
       const latestPromos = (promos || []).slice(0, 3);
-      console.log('✅ Got latest promos:', latestPromos.length);
+      logger.success('Latest promos loaded:', { count: latestPromos.length });
       return latestPromos;
     },
     staleTime: 2 * 60 * 1000,

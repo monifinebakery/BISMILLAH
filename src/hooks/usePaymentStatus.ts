@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { getCurrentUser, isAuthenticated } from '@/lib/authService';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { logger } from '@/utils/logger';
 
 export interface PaymentStatus {
   id: string;

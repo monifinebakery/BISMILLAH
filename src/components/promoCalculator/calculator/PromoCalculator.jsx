@@ -124,7 +124,7 @@ const PromoCalculator = () => {
         logger.component('PromoCalculator', 'Updating existing promo:', editPromoId);
         return await promoService.update(editPromoId, promoData);
       } else {
-        console.log('➕ Creating new promo');
+        logger.component('PromoCalculator', 'Creating new promo');
         return await promoService.create(promoData);
       }
     },

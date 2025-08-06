@@ -381,6 +381,67 @@ export const refreshSession = async (): Promise<Session | null> => {
   }
 };
 
+// ✅ NEW: Verify customer order using robust verification
+export const verifyCustomerOrder = async (email: string, orderId: string): Promise<{
+  success: boolean;
+  message: string;
+  data?: any;
+}> => {
+  try {
+    // Validate inputs
+    if (!email || !orderId) {
+      return { 
+        success: false, 
+        message: 'Email dan Order ID harus diisi' 
+      };
+    }
+
+    if (!validateEmail(email)) {
+      return { 
+        success: false, 
+        message: 'Format email tidak valid' 
+      };
+    }
+
+    console.log('🔍 Verifying customer order:', { email, orderId });
+
+    // Call the database function for robust verification
+    const { data, error } = await supabase.rpc('verify_payment_robust', {
+      p_email: email.trim(),
+      p_order_id: orderId.trim()
+    });
+    
+    console.log('🔍 Verification result:', { data, error });
+
+    if (error) {
+      console.error('📛 Order verification error:', error);
+      const errorMsg = getErrorMessage(error);
+      return { 
+        success: false, 
+        message: errorMsg || 'Gagal memverifikasi order' 
+      };
+    }
+
+    // Return the result from the database function
+    const result = data || { success: false, message: 'No response from server' };
+    
+    if (result.success) {
+      console.log('✅ Order verification successful:', result);
+    } else {
+      console.log('❌ Order verification failed:', result.message);
+    }
+
+    return result;
+    
+  } catch (error: any) {
+    console.error('📛 Unexpected error in verifyCustomerOrder:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Terjadi kesalahan saat memverifikasi order' 
+    };
+  }
+};
+
 // ✅ ALIASES: For backward compatibility (if needed)
 export const hasValidSession = isAuthenticated;
 

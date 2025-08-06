@@ -21,7 +21,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
 }) => {
   const { isMobile, showTooltip, toggleTooltip, hideTooltip } = useResponsiveTooltip();
 
-  console.log('ResponsiveTooltip render:', { isMobile, showTooltip }); // Debug log
+   logger.debug('ResponsiveTooltip render:', { isMobile, showTooltip });
 
   // Mobile version
   if (isMobile) {

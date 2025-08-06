@@ -22,6 +22,7 @@ import { formatDateForDisplay } from '../utils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface OrderTableProps {
   uiState: UseOrderUIReturn;

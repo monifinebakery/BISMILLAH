@@ -17,6 +17,7 @@ import type { Order, NewOrder } from '../types';
 
 // ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
+import { logger } from '@/utils/logger';
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 

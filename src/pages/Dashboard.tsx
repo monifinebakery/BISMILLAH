@@ -35,13 +35,15 @@ const getDefaultDateRange = () => {
   };
 };
 
-// 👋 Helper function untuk greeting
-const getGreeting = () => {
+// 👋 Helper function untuk greeting dengan ownerName
+const getGreeting = (ownerName?: string) => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Selamat pagi! 🌅';
-  if (hour < 17) return 'Selamat siang! ☀️';
-  if (hour < 21) return 'Selamat sore! 🌇';
-  return 'Selamat malam! 🌙';
+  const name = ownerName ? `kak ${ownerName}` : 'kak';
+  
+  if (hour < 12) return `Selamat pagi, ${name}! 🌅`;
+  if (hour < 17) return `Selamat siang, ${name}! ☀️`;
+  if (hour < 21) return `Selamat sore, ${name}! 🌇`;
+  return `Selamat malam, ${name}! 🌙`;
 };
 
 const Dashboard = () => {
@@ -51,6 +53,13 @@ const Dashboard = () => {
   const [pagination, setPagination] = useState({
     products: 1,
     activities: 1
+  });
+
+  // 👤 Owner name - bisa dari localStorage, session, atau props
+  const [ownerName, setOwnerName] = useState<string | undefined>(() => {
+    // Coba ambil dari localStorage terlebih dahulu
+    const savedName = localStorage.getItem('ownerName');
+    return savedName || undefined;
   });
 
   const isMobile = useIsMobile();
@@ -66,8 +75,8 @@ const Dashboard = () => {
     error
   } = useDashboardData(dateRange);
 
-  // 👋 Greeting message
-  const greeting = useMemo(() => getGreeting(), []);
+  // 👋 Greeting message dengan ownerName
+  const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
 
   // 📊 Dashboard Header Props
   const headerProps = useMemo(() => ({
@@ -142,12 +151,35 @@ const Dashboard = () => {
     <ErrorBoundary>
       <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
         {/* 🏠 Header - Always loaded with all required props */}
-        <DashboardHeader 
-          dateRange={dateRange}
-          setDateRange={handleDateRangeChange}
-          greeting={greeting}
-          isMobile={isMobile}
-        />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <DashboardHeader 
+            dateRange={dateRange}
+            setDateRange={handleDateRangeChange}
+            greeting={greeting}
+            isMobile={isMobile}
+          />
+          
+          {/* 👤 Owner Name Quick Setting */}
+          {!ownerName && (
+            <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+              <span className="text-amber-700">💡 Tip:</span>
+              <input
+                type="text"
+                placeholder="Nama Anda..."
+                className="bg-transparent border-none outline-none placeholder-amber-500 w-24"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const name = (e.target as HTMLInputElement).value.trim();
+                    if (name) {
+                      setOwnerName(name);
+                      localStorage.setItem('ownerName', name);
+                    }
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* 📊 Stats Grid - High priority, suspend dengan timeout singkat */}
         <Suspense fallback={<SectionLoader height="h-24" />}>

@@ -204,7 +204,6 @@ const Recipes: React.FC = () => {
   // ✅ FIXED: useMutation for Duplicate Recipe - Direct API call
   const duplicateRecipeMutation = useMutation({
     mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
-      console.log('📋 Duplicating recipe:', id, 'with name:', newName);
       const newRecipe = await recipeApi.duplicateRecipe(id, newName); // ✅ Direct return
       return newRecipe;
     },

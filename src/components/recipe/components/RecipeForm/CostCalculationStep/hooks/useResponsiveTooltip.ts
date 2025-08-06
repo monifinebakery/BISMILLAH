@@ -47,7 +47,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
 
   // Show tooltip for a specific duration
   const showTooltipTemporary = useCallback((duration: number = 3000) => {
-    console.log('Show tooltip temporary:', duration); // Debug log
+    logger.debug('Show tooltip temporary:', duration);
     setShowTooltip(true);
     setTimeout(() => {
       setShowTooltip(false);

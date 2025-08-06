@@ -9,6 +9,7 @@
 // ✅ ESSENTIAL CONTEXT: Core context exports
 export { OrderProvider } from './OrderProvider';
 export { useOrder } from './OrderContext';
+import { logger } from '@/utils/logger';
 
 // ✅ CONTEXT COMPONENT: Default context export for advanced usage
 export { default as OrderContext } from './OrderContext';

@@ -181,7 +181,7 @@ const PromoCalculator = () => {
 
   const handleFormSubmit = async (data) => {
     try {
-      console.log('📝 Form submitted with data:', data);
+      logger.component('PromoCalculator', 'Form submitted with data:', data);
       
       // Calculate promo if not already calculated
       if (!calculationResult) {

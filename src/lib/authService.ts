@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cleanupAuthState } from '@/lib/authUtils';
 import { Session } from '@supabase/supabase-js';
+import { logger } from '@/utils/logger';
 
 // ✅ SIMPLIFIED: Basic session cache (optional)
 let sessionCache: Session | null = null;

@@ -109,7 +109,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
-        console.log('✅ Payment linked successfully:', linkedPayment);
+        logger.success('Payment linked successfully:', linkedPayment);
         onSuccess?.(linkedPayment);
         onClose();
         resetForm();

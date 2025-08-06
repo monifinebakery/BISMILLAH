@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
+import { logger } from '@/utils/logger';
 
 // ✅ UPDATED: Support both category formats
 interface CategoryObject {

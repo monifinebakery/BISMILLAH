@@ -1,6 +1,7 @@
 // pages/Dashboard.tsx
 import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -38,7 +39,7 @@ const getDefaultDateRange = () => {
 // 👋 Helper function untuk greeting dengan ownerName
 const getGreeting = (ownerName?: string) => {
   const hour = new Date().getHours();
-  const name = ownerName ? `kak ${ownerName}` : 'kak';
+  const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
   
   if (hour < 12) return `Selamat pagi, ${name}! 🌅`;
   if (hour < 17) return `Selamat siang, ${name}! ☀️`;
@@ -55,12 +56,9 @@ const Dashboard = () => {
     activities: 1
   });
 
-  // 👤 Owner name - bisa dari localStorage, session, atau props
-  const [ownerName, setOwnerName] = useState<string | undefined>(() => {
-    // Coba ambil dari localStorage terlebih dahulu
-    const savedName = localStorage.getItem('ownerName');
-    return savedName || undefined;
-  });
+  // 👤 Get settings from context (includes ownerName)
+  const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
+  const { ownerName } = settings;
 
   const isMobile = useIsMobile();
 
@@ -135,8 +133,8 @@ const Dashboard = () => {
     );
   }
 
-  // 🔄 Loading state untuk initial load
-  if (!dateRange || !dateRange.from || !dateRange.to) {
+  // 🔄 Loading state untuk settings dan initial load
+  if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
     return (
       <div className="p-8 flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -159,20 +157,19 @@ const Dashboard = () => {
             isMobile={isMobile}
           />
           
-          {/* 👤 Owner Name Quick Setting */}
-          {!ownerName && (
+          {/* 👤 Owner Name Quick Setting - Show if default name */}
+          {(!ownerName || ownerName === 'Nama Anda') && (
             <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
               <span className="text-amber-700">💡 Tip:</span>
               <input
                 type="text"
-                placeholder="Nama Anda..."
-                className="bg-transparent border-none outline-none placeholder-amber-500 w-24"
-                onKeyPress={(e) => {
+                placeholder="Masukkan nama Anda..."
+                className="bg-transparent border-none outline-none placeholder-amber-500 w-32"
+                onKeyPress={async (e) => {
                   if (e.key === 'Enter') {
                     const name = (e.target as HTMLInputElement).value.trim();
                     if (name) {
-                      setOwnerName(name);
-                      localStorage.setItem('ownerName', name);
+                      await saveSettings({ ownerName: name });
                     }
                   }
                 }}

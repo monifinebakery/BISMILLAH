@@ -8,6 +8,8 @@ import type { Order, NewOrder } from '../types';
 // ✅ SHARED COMPONENT: Direct import
 import { DialogLoader } from './shared/LoadingStates';
 
+import { logger } from '@/utils/logger';
+
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderForm = React.lazy(() => 
   import('./dialogs/OrderForm').catch(() => ({

@@ -33,7 +33,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     try {
       const orders = await getRecentUnlinkedOrders();
       setRecentOrders(orders);
-      console.log('Recent unlinked orders:', orders);
+      logger.component('OrderConfirmationPopup', 'Recent unlinked orders loaded:', orders);
     } catch (error) {
       console.error('Error loading recent orders:', error);
     }

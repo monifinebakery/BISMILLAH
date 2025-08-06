@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useResponsiveTooltip } from '../../hooks/useResponsiveTooltip';
+import { logger } from '@/utils/logger';
 
 interface ResponsiveTooltipProps {
   children: React.ReactNode;

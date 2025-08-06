@@ -22,7 +22,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
                            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                            'ontouchstart' in window;
       setIsMobile(isMobileDevice);
-      logger.debug('Mobile detection:', isMobileDevice); // Ganti console.log dengan logger.debug
+      logger.debug('Mobile detection:', isMobileDevice);
     };
     
     checkMobile();

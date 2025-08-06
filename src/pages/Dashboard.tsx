@@ -1,6 +1,7 @@
 // pages/Dashboard.tsx
 import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,17 +24,41 @@ const SectionLoader = ({ height = "h-32" }) => (
   </div>
 );
 
-const Dashboard = () => {
-  // 🎛️ State Management
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date().toISOString();
-    return { from: today, to: today };
-  });
+// 🗓️ Helper function untuk inisialisasi date range
+const getDefaultDateRange = () => {
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  return {
+    from: thirtyDaysAgo.toISOString().split('T')[0], // Format: YYYY-MM-DD
+    to: today.toISOString().split('T')[0]
+  };
+};
 
+// 👋 Helper function untuk greeting dengan ownerName
+const getGreeting = (ownerName?: string) => {
+  const hour = new Date().getHours();
+  const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
+  
+  if (hour < 12) return `Selamat pagi, ${name}! 🌅`;
+  if (hour < 17) return `Selamat siang, ${name}! ☀️`;
+  if (hour < 21) return `Selamat sore, ${name}! 🌇`;
+  return `Selamat malam, ${name}! 🌙`;
+};
+
+const Dashboard = () => {
+  // 🎛️ State Management - Fixed initialization
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
+  
   const [pagination, setPagination] = useState({
     products: 1,
     activities: 1
   });
+
+  // 👤 Get settings from context (includes ownerName)
+  const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
+  const { ownerName } = settings;
 
   const isMobile = useIsMobile();
 
@@ -48,6 +73,17 @@ const Dashboard = () => {
     error
   } = useDashboardData(dateRange);
 
+  // 👋 Greeting message dengan ownerName
+  const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
+
+  // 📊 Dashboard Header Props
+  const headerProps = useMemo(() => ({
+    dateRange,
+    setDateRange,
+    greeting,
+    isMobile
+  }), [dateRange, greeting, isMobile]);
+
   // 📊 Computed values yang ringan
   const dashboardProps = useMemo(() => ({
     dateRange,
@@ -58,6 +94,27 @@ const Dashboard = () => {
     ...stats
   }), [dateRange, pagination, isMobile, stats]);
 
+  // 🛡️ Safe date range handler
+  const handleDateRangeChange = (newRange: { from: string; to: string }) => {
+    // Validate that both dates exist and are valid
+    if (!newRange || !newRange.from || !newRange.to) {
+      console.error('Invalid date range provided:', newRange);
+      return;
+    }
+
+    // Validate date format (basic check)
+    const fromDate = new Date(newRange.from);
+    const toDate = new Date(newRange.to);
+    
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      console.error('Invalid date format:', newRange);
+      return;
+    }
+
+    console.log('Setting new date range:', newRange);
+    setDateRange(newRange);
+  };
+
   // ⚠️ Error State
   if (error) {
     return (
@@ -67,7 +124,7 @@ const Dashboard = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
           >
             Muat Ulang
           </button>
@@ -76,11 +133,50 @@ const Dashboard = () => {
     );
   }
 
+  // 🔄 Loading state untuk settings dan initial load
+  if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-        {/* 🏠 Header - Always loaded */}
-        <DashboardHeader {...dashboardProps} />
+        {/* 🏠 Header - Always loaded with all required props */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <DashboardHeader 
+            dateRange={dateRange}
+            setDateRange={handleDateRangeChange}
+            greeting={greeting}
+            isMobile={isMobile}
+          />
+          
+          {/* 👤 Owner Name Quick Setting - Show if default name */}
+          {(!ownerName || ownerName === 'Nama Anda') && (
+            <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+              <span className="text-amber-700">💡 Tip:</span>
+              <input
+                type="text"
+                placeholder="Masukkan nama Anda..."
+                className="bg-transparent border-none outline-none placeholder-amber-500 w-32"
+                onKeyPress={async (e) => {
+                  if (e.key === 'Enter') {
+                    const name = (e.target as HTMLInputElement).value.trim();
+                    if (name) {
+                      await saveSettings({ ownerName: name });
+                    }
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* 📊 Stats Grid - High priority, suspend dengan timeout singkat */}
         <Suspense fallback={<SectionLoader height="h-24" />}>
@@ -96,7 +192,7 @@ const Dashboard = () => {
         </Suspense>
 
         {/* 📈 Main Content Grid - Lower priority */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* Left Column */}
           <div className="space-y-6">
             <Suspense fallback={<SectionLoader height="h-64" />}>

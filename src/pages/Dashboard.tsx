@@ -23,13 +23,31 @@ const SectionLoader = ({ height = "h-32" }) => (
   </div>
 );
 
-const Dashboard = () => {
-  // 🎛️ State Management
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date().toISOString();
-    return { from: today, to: today };
-  });
+// 🗓️ Helper function untuk inisialisasi date range
+const getDefaultDateRange = () => {
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  return {
+    from: thirtyDaysAgo.toISOString().split('T')[0], // Format: YYYY-MM-DD
+    to: today.toISOString().split('T')[0]
+  };
+};
 
+// 👋 Helper function untuk greeting
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Selamat pagi! 🌅';
+  if (hour < 17) return 'Selamat siang! ☀️';
+  if (hour < 21) return 'Selamat sore! 🌇';
+  return 'Selamat malam! 🌙';
+};
+
+const Dashboard = () => {
+  // 🎛️ State Management - Fixed initialization
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
+  
   const [pagination, setPagination] = useState({
     products: 1,
     activities: 1
@@ -48,6 +66,17 @@ const Dashboard = () => {
     error
   } = useDashboardData(dateRange);
 
+  // 👋 Greeting message
+  const greeting = useMemo(() => getGreeting(), []);
+
+  // 📊 Dashboard Header Props
+  const headerProps = useMemo(() => ({
+    dateRange,
+    setDateRange,
+    greeting,
+    isMobile
+  }), [dateRange, greeting, isMobile]);
+
   // 📊 Computed values yang ringan
   const dashboardProps = useMemo(() => ({
     dateRange,
@@ -58,6 +87,27 @@ const Dashboard = () => {
     ...stats
   }), [dateRange, pagination, isMobile, stats]);
 
+  // 🛡️ Safe date range handler
+  const handleDateRangeChange = (newRange: { from: string; to: string }) => {
+    // Validate that both dates exist and are valid
+    if (!newRange || !newRange.from || !newRange.to) {
+      console.error('Invalid date range provided:', newRange);
+      return;
+    }
+
+    // Validate date format (basic check)
+    const fromDate = new Date(newRange.from);
+    const toDate = new Date(newRange.to);
+    
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      console.error('Invalid date format:', newRange);
+      return;
+    }
+
+    console.log('Setting new date range:', newRange);
+    setDateRange(newRange);
+  };
+
   // ⚠️ Error State
   if (error) {
     return (
@@ -67,7 +117,7 @@ const Dashboard = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
           >
             Muat Ulang
           </button>
@@ -76,11 +126,28 @@ const Dashboard = () => {
     );
   }
 
+  // 🔄 Loading state untuk initial load
+  if (!dateRange || !dateRange.from || !dateRange.to) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-        {/* 🏠 Header - Always loaded */}
-        <DashboardHeader {...dashboardProps} />
+        {/* 🏠 Header - Always loaded with all required props */}
+        <DashboardHeader 
+          dateRange={dateRange}
+          setDateRange={handleDateRangeChange}
+          greeting={greeting}
+          isMobile={isMobile}
+        />
 
         {/* 📊 Stats Grid - High priority, suspend dengan timeout singkat */}
         <Suspense fallback={<SectionLoader height="h-24" />}>
@@ -96,7 +163,7 @@ const Dashboard = () => {
         </Suspense>
 
         {/* 📈 Main Content Grid - Lower priority */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* Left Column */}
           <div className="space-y-6">
             <Suspense fallback={<SectionLoader height="h-64" />}>

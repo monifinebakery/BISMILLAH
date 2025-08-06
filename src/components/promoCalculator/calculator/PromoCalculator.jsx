@@ -62,9 +62,9 @@ const PromoCalculator = () => {
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
-      logger.component('PromoCalculator', 'Fetching recipes for promo calculator...');
+      logger.debug('Fetching recipes for promo calculator...');
       const recipes = await recipeApi.getRecipes();
-      logger.success('Recipes loaded for promo calculator:', { count: recipes?.length || 0 });
+      logger.success('Recipes loaded for promo calculator:', recipes?.length || 0);
       return recipes || [];
     },
     staleTime: 10 * 60 * 1000,
@@ -76,7 +76,6 @@ const PromoCalculator = () => {
   const latestPromosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
-      logger.component('PromoCalculator', 'Fetching latest promos for dashboard...');
       const promos = await promoService.getAll({});
       const latestPromos = (promos || []).slice(0, 3);
       logger.success('Latest promos loaded:', { count: latestPromos.length });

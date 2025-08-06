@@ -54,17 +54,17 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
 
   // DEBUG: Log raw warehouse data
   useEffect(() => {
-    console.log('=== WAREHOUSE DEBUG ===');
-    console.log('Loading:', loadingWarehouse);
-    console.log('Total items:', warehouseItems.length);
+    logger.debug('=== WAREHOUSE DEBUG ===');
+    logger.debug('Loading:', loadingWarehouse);
+    logger.debug('Total items:', warehouseItems.length);
     
     if (warehouseItems.length > 0) {
-      console.log('First item raw data:', warehouseItems[0]);
-      console.log('All field names:', Object.keys(warehouseItems[0]));
+      logger.debug('First item raw data:', warehouseItems[0]);
+      logger.debug('All field names:', Object.keys(warehouseItems[0]));
       
       // Check specific price fields
       warehouseItems.slice(0, 3).forEach((item, index) => {
-        console.log(`Item ${index + 1} - ${item.nama}:`, {
+        logger.debug(`Item ${index + 1} - ${item.nama}:`, {
           harga_satuan: item.harga_satuan,
           typeof_harga_satuan: typeof item.harga_satuan,
           all_price_related_fields: {

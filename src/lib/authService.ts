@@ -57,7 +57,7 @@ export const getCurrentSession = async (): Promise<Session | null> => {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('[AuthService] Error getting session:', error);
+      logger.error('[AuthService] Error getting session:', error);
       clearSessionCache();
       return null;
     }
@@ -68,14 +68,14 @@ export const getCurrentSession = async (): Promise<Session | null> => {
     
     // Quick expiry check
     if (session && session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      console.log('[AuthService] Session expired');
+      logger.info('[AuthService] Session expired');
       clearSessionCache();
       return null;
     }
     
     return session;
   } catch (error) {
-    console.error('[AuthService] Error getting current session:', error);
+    logger.error('[AuthService] Error getting current session:', error);
     clearSessionCache();
     return null;
   }
@@ -87,7 +87,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
     const session = await getCurrentSession();
     return !!session?.user;
   } catch (error) {
-    console.error('[AuthService] Error checking authentication:', error);
+    logger.error('[AuthService] Error checking authentication:', error);
     return false;
   }
 };
@@ -98,7 +98,7 @@ export const getCurrentUser = async () => {
     const session = await getCurrentSession();
     return session?.user || null;
   } catch (error) {
-    console.error('[AuthService] Error getting current user:', error);
+    logger.error('[AuthService] Error getting current user:', error);
     return null;
   }
 };
@@ -125,7 +125,7 @@ export const sendEmailOtp = async (
     }
     clearSessionCache();
 
-    console.log('🔍 Sending OTP to:', email, 'allowSignup:', allowSignup, 'skipCaptcha:', skipCaptcha);
+    logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
     // Prepare OTP options
     const otpOptions: any = {
@@ -135,7 +135,7 @@ export const sendEmailOtp = async (
     // Add captcha token if provided and not skipped
     if (!skipCaptcha && captchaToken?.trim()) {
       otpOptions.captchaToken = captchaToken;
-      console.log('🔍 Using captcha token');
+      logger.debug('Using captcha token for OTP');
     }
 
     // Send OTP
@@ -145,11 +145,11 @@ export const sendEmailOtp = async (
     });
 
     if (error) {
-      console.error('📛 OTP send error:', error);
+      logger.error('OTP send error:', error);
       
       // Handle signup not allowed error
       if (error.message?.includes('Signups not allowed') && allowSignup) {
-        console.log('🔍 Signup disabled, trying existing users only...');
+        logger.info('Signup disabled, trying existing users only...');
         toast.info('Mencoba untuk pengguna terdaftar...');
         return await sendEmailOtp(email, captchaToken, false, skipCaptcha);
       }
@@ -160,11 +160,11 @@ export const sendEmailOtp = async (
       return false;
     }
 
-    console.log('✅ OTP sent successfully:', data);
+    logger.success('OTP sent successfully:', { hasData: !!data });
     return true;
     
   } catch (error) {
-    console.error('📛 Unexpected error in sendEmailOtp:', error);
+    logger.error('Unexpected error in sendEmailOtp:', error);
     toast.error('Terjadi kesalahan jaringan');
     return false;
   }
@@ -200,7 +200,7 @@ export const verifyEmailOtp = async (
     const localTime = now.toLocaleString();
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
-    console.log('🔍 Mobile Debug - Verifying OTP:', {
+    logger.debug('Mobile Debug - Verifying OTP:', {
       email,
       tokenLength: cleanToken.length,
       timestamp,
@@ -222,7 +222,7 @@ export const verifyEmailOtp = async (
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log('🔍 Mobile Debug - Verification result:', {
+    logger.debug('Mobile Debug - Verification result:', {
       duration: `${duration}ms`,
       hasError: !!error,
       hasSession: !!data?.session,
@@ -230,13 +230,13 @@ export const verifyEmailOtp = async (
     });
     
     if (error) {
-      console.error('📛 OTP verification error:', error);
+      logger.error('OTP verification error:', error);
       
       // ✅ ENHANCED: Better mobile error detection
       const errorMsg = error.message?.toLowerCase() || '';
       
       if (errorMsg.includes('expired') || errorMsg.includes('token has expired')) {
-        console.log('🕐 Token expired - Mobile Debug:', {
+        logger.warn('Token expired - Mobile Debug:', {
           errorMessage: error.message,
           timeSinceStart: duration,
           possibleCause: duration > 10000 ? 'Network slow' : 'Token actually expired'
@@ -245,13 +245,13 @@ export const verifyEmailOtp = async (
       }
       
       if (errorMsg.includes('too many attempts')) {
-        console.log('🚫 Too many attempts - Mobile Debug');
+        logger.warn('Too many attempts - Mobile Debug');
         toast.error('Terlalu banyak percobaan. Silakan minta kode baru.');
         return 'rate_limited';
       }
       
       if (errorMsg.includes('invalid')) {
-        console.log('❌ Token invalid - Mobile Debug:', {
+        logger.warn('Token invalid - Mobile Debug:', {
           tokenReceived: cleanToken,
           errorMessage: error.message
         });
@@ -266,7 +266,7 @@ export const verifyEmailOtp = async (
     
     // Check if session was created
     if (data.session && data.user) {
-      console.log('✅ OTP verified successfully - Mobile Debug:', {
+      logger.success('OTP verified successfully - Mobile Debug:', {
         userId: data.user.id,
         email: data.user.email,
         sessionExpiry: data.session.expires_at,
@@ -275,13 +275,13 @@ export const verifyEmailOtp = async (
       clearSessionCache();
       return true;
     } else {
-      console.warn('⚠️ OTP verified but no session created - Mobile Debug:', data);
+      logger.warn('OTP verified but no session created - Mobile Debug:', data);
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }
     
   } catch (error) {
-    console.error('📛 Unexpected error in verifyEmailOtp - Mobile Debug:', {
+    logger.error('Unexpected error in verifyEmailOtp - Mobile Debug:', {
       error,
       stack: error.stack,
       isMobile: navigator.userAgent.includes('Mobile'),
@@ -298,7 +298,7 @@ export const signOut = async (): Promise<boolean> => {
     const { error } = await supabase.auth.signOut();
     
     if (error) {
-      console.error('[AuthService] Sign out error:', error);
+      logger.error('[AuthService] Sign out error:', error);
       toast.error('Gagal logout');
       return false;
     }
@@ -313,7 +313,7 @@ export const signOut = async (): Promise<boolean> => {
     toast.success('Logout berhasil');
     return true;
   } catch (error) {
-    console.error('[AuthService] Error in signOut:', error);
+    logger.error('[AuthService] Error in signOut:', error);
     toast.error('Terjadi kesalahan saat logout');
     return false;
   }
@@ -322,7 +322,7 @@ export const signOut = async (): Promise<boolean> => {
 // ✅ SIMPLIFIED: Auth state change listener
 export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    console.log('[AuthService] Auth state changed:', event, session?.user?.email);
+    logger.info('[AuthService] Auth state changed:', { event, email: session?.user?.email });
     clearSessionCache();
     callback(event, session);
   });
@@ -349,7 +349,7 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
     toast.success('Link reset password telah dikirim ke email Anda');
     return true;
   } catch (error) {
-    console.error('Error sending password reset:', error);
+    logger.error('Error sending password reset:', error);
     toast.error('Terjadi kesalahan saat mengirim link reset password');
     return false;
   }
@@ -358,25 +358,25 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 // ✅ OPTIONAL: Refresh session if needed
 export const refreshSession = async (): Promise<Session | null> => {
   try {
-    console.log('[AuthService] Refreshing session...');
+    logger.info('[AuthService] Refreshing session...');
     
     const { data, error } = await supabase.auth.refreshSession();
     
     if (error) {
-      console.error('[AuthService] Session refresh error:', error);
+      logger.error('[AuthService] Session refresh error:', error);
       clearSessionCache();
       return null;
     }
     
     if (data.session) {
-      console.log('[AuthService] Session refreshed successfully');
+      logger.success('[AuthService] Session refreshed successfully');
       clearSessionCache(); // Clear cache to force fresh fetch
       return data.session;
     }
     
     return null;
   } catch (error) {
-    console.error('[AuthService] Error refreshing session:', error);
+    logger.error('[AuthService] Error refreshing session:', error);
     clearSessionCache();
     return null;
   }
@@ -404,7 +404,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       };
     }
 
-    console.log('🔍 Verifying customer order:', { email, orderId });
+    logger.api('/verify-order', 'Verifying customer order:', { email, orderId });
 
     // ✅ ENHANCED: Check if user already has this order
     const { data: existingOrder, error: existingError } = await supabase
@@ -417,7 +417,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     if (!existingError && existingOrder?.length) {
       const order = existingOrder[0];
       if (order.is_paid && order.payment_status === 'settled') {
-        console.log('✅ Order already verified for this email');
+        logger.success('Order already verified for this email');
         return {
           success: true,
           message: 'Order sudah terhubung dengan email Anda',
@@ -432,10 +432,10 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       p_order_id: orderId.trim()
     });
     
-    console.log('🔍 RPC Verification result:', { data, error });
+    logger.debug('RPC Verification result:', { data, error });
 
     if (error) {
-      console.error('📛 Order verification error:', error);
+      logger.error('Order verification error:', error);
       
       // ✅ HANDLE constraint errors specifically
       if (error.code === '23505') {
@@ -457,15 +457,15 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     const result = data || { success: false, message: 'No response from server' };
     
     if (result.success) {
-      console.log('✅ Order verification successful:', result);
+      logger.success('Order verification successful:', result);
     } else {
-      console.log('❌ Order verification failed:', result.message);
+      logger.warn('Order verification failed:', result.message);
     }
 
     return result;
     
   } catch (error: any) {
-    console.error('📛 Unexpected error in verifyCustomerOrder:', error);
+    logger.error('Unexpected error in verifyCustomerOrder:', error);
     
     // ✅ HANDLE constraint errors in catch block too
     if (error.code === '23505' || error.message?.includes('already exists')) {
@@ -486,7 +486,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
 // ✅ DEBUGGING: Function untuk melihat constraint details
 export const debugConstraintIssue = async (email: string, userId: string) => {
   try {
-    console.log('🔍 DEBUG: Checking constraint for:', { email, userId });
+    logger.debug('DEBUG: Checking constraint for:', { email, userId });
     
     // Check all payments for this email
     const { data: emailPayments } = await supabase
@@ -500,7 +500,7 @@ export const debugConstraintIssue = async (email: string, userId: string) => {
       .select('*')
       .eq('user_id', userId);
     
-    console.log('🔍 DEBUG Results:', {
+    logger.debug('DEBUG Results:', {
       emailPayments: emailPayments?.length || 0,
       userPayments: userPayments?.length || 0,
       emailPaymentDetails: emailPayments,
@@ -509,7 +509,7 @@ export const debugConstraintIssue = async (email: string, userId: string) => {
     
     return { emailPayments, userPayments };
   } catch (error) {
-    console.error('❌ Debug error:', error);
+    logger.error('Debug error:', error);
     return null;
   }
 };
@@ -530,7 +530,7 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
       .limit(1);
 
     if (error) {
-      console.error('Error checking user payment:', error);
+      logger.error('Error checking user payment:', error);
       return { hasPayment: false };
     }
 
@@ -539,7 +539,7 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
       payment: data?.[0] || null
     };
   } catch (error) {
-    console.error('Error in checkUserHasPayment:', error);
+    logger.error('Error in checkUserHasPayment:', error);
     return { hasPayment: false };
   }
 };
@@ -549,24 +549,24 @@ export const hasValidSession = isAuthenticated;
 
 // ✅ BACKWARD COMPATIBILITY: Export missing functions to prevent import errors
 export const autoLinkUserPayments = async (): Promise<number> => {
-  console.warn('[authService] autoLinkUserPayments is deprecated and removed');
+  logger.warn('[authService] autoLinkUserPayments is deprecated and removed');
   return 0;
 };
 
 export const checkUnlinkedPayments = async (): Promise<{ hasUnlinked: boolean; count: number }> => {
-  console.warn('[authService] checkUnlinkedPayments is deprecated and removed');
+  logger.warn('[authService] checkUnlinkedPayments is deprecated and removed');
   return { hasUnlinked: false, count: 0 };
 };
 
 export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
-  console.warn('[authService] getRecentUnlinkedOrders is deprecated and removed');
+  logger.warn('[authService] getRecentUnlinkedOrders is deprecated and removed');
   return [];
 };
 
 // ✅ ORDER VERIFICATION FUNCTIONS - KEEP THESE
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
-    console.log('🔍 Verifying order exists:', orderId);
+    logger.api('/verify-order-exists', 'Verifying order exists:', orderId);
     
     const { data, error } = await supabase
       .from('user_payments')
@@ -576,25 +576,25 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
       .eq('payment_status', 'settled')
       .limit(1);
     
-    console.log('🔍 Order verification result:', { data, error, count: data?.length });
+    logger.debug('Order verification result:', { data, error, count: data?.length });
     
     if (error) {
-      console.error('Order verification error:', error);
+      logger.error('Order verification error:', error);
       return false;
     }
     
     const exists = data && data.length > 0;
-    console.log('🔍 Order exists:', exists);
+    logger.success('Order exists check completed:', { orderId, exists });
     return exists;
   } catch (error) {
-    console.error('Error verifying order:', error);
+    logger.error('Error verifying order:', error);
     return false;
   }
 };
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
   try {
-    console.log('🔍 Linking order to user:', orderId, user.email);
+    logger.api('/link-payment', 'Linking order to user:', { orderId, email: user.email });
     
     // ✅ STEP 1: Check if already linked to this user
     const { data: existingLink, error: existingError } = await supabase
@@ -605,7 +605,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       .limit(1);
 
     if (!existingError && existingLink?.length) {
-      console.log('✅ Payment already linked to this user');
+      logger.success('Payment already linked to this user');
       toast.success('Order sudah terhubung dengan akun Anda!');
       return existingLink[0];
     }
@@ -620,10 +620,10 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       .eq('payment_status', 'settled')
       .limit(1);
 
-    console.log('🔍 Found payments:', { payments, findError, count: payments?.length });
+    logger.debug('Found payments:', { payments, findError, count: payments?.length });
 
     if (findError) {
-      console.error('🔍 Search error:', findError);
+      logger.error('Search error:', findError);
       throw new Error('Gagal mencari order. Silakan coba lagi.');
     }
 
@@ -632,7 +632,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
     }
 
     const payment = payments[0];
-    console.log('🔍 Found payment:', payment);
+    logger.debug('Found payment:', payment);
 
     // ✅ STEP 3: Check for constraint conflict
     const { data: conflictCheck, error: conflictError } = await supabase
@@ -645,7 +645,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
     if (!conflictError && conflictCheck?.length) {
       const existing = conflictCheck[0];
       if (existing.order_id === orderId) {
-        console.log('✅ Same order already linked');
+        logger.success('Same order already linked');
         toast.success('Order sudah terhubung dengan akun Anda!');
         return payment;
       }
@@ -671,7 +671,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       .single();
 
     if (updateError) {
-      console.error('🔍 Update error:', updateError);
+      logger.error('Update error:', updateError);
       
       // ✅ ENHANCED: Handle specific constraint errors
       if (updateError.code === '23505') {
@@ -684,12 +684,12 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
     }
 
-    console.log('✅ Payment linked successfully:', updatedPayment);
+    logger.success('Payment linked successfully:', updatedPayment);
     toast.success('Order berhasil terhubung dengan akun Anda!');
     return updatedPayment;
     
   } catch (error: any) {
-    console.error('Error linking payment to user:', error);
+    logger.error('Error linking payment to user:', error);
     toast.error(error.message);
     throw error;
   }
@@ -719,7 +719,7 @@ export const getUserPaymentStatus = async (): Promise<{
 
     return { isPaid: false, paymentRecord: null, needsLinking: true };
   } catch (error) {
-    console.error('Error getting user payment status:', error);
+    logger.error('Error getting user payment status:', error);
     return { isPaid: false, paymentRecord: null, needsLinking: false };
   }
 };
@@ -730,7 +730,7 @@ export const sendMagicLink = async (
   captchaToken: string | null = null,
   allowSignup: boolean = true
 ): Promise<boolean> => {
-  console.warn('[authService] sendMagicLink is deprecated and removed');
+  logger.warn('[authService] sendMagicLink is deprecated and removed');
   toast.error('Magic link authentication tidak tersedia. Gunakan OTP.');
   return false;
 };
@@ -742,7 +742,7 @@ export const sendAuth = async (
   allowSignup: boolean = true,
   skipCaptcha: boolean = false
 ): Promise<boolean> => {
-  console.warn('[authService] sendAuth is deprecated, use sendEmailOtp directly');
+  logger.warn('[authService] sendAuth is deprecated, use sendEmailOtp directly');
   if (method === 'otp') {
     return await sendEmailOtp(email, captchaToken, allowSignup, skipCaptcha);
   } else {
@@ -754,12 +754,12 @@ export const sendAuth = async (
 // ✅ More compatibility exports
 export const onAuthStateChangeWithPaymentLinking = onAuthStateChange;
 export const handleMagicLinkCallback = async (code: string) => {
-  console.warn('[authService] handleMagicLinkCallback is deprecated and removed');
+  logger.warn('[authService] handleMagicLinkCallback is deprecated and removed');
   throw new Error('Magic link callback feature has been removed');
 };
 
 export const checkUserExists = async (email: string): Promise<boolean> => {
-  console.warn('[authService] checkUserExists is deprecated and removed');
+  logger.warn('[authService] checkUserExists is deprecated and removed');
   return true; // Assume user exists for backward compatibility
 };
 

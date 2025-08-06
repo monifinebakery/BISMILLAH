@@ -126,7 +126,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     
     try {
-      console.log('🔍 Fetching settings for user:', user.id);
+      logger.context('UserSettings', 'Fetching settings for user:', user.id);
       
       // ✅ UPDATED: Include financial_categories in select
       const { data, error } = await supabase
@@ -135,12 +135,12 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         .eq('user_id', user.id)
         .maybeSingle();
 
-      console.log('🔍 Database response:', { data, error });
+      logger.debug('Database response:', { data, error });
 
       if (error) {
-        console.error('[UserSettings] Fetch error:', error);
+        logger.error('[UserSettings] Fetch error:', error);
         if (error.code === 'PGRST116') {
-          console.log('🔍 No settings found, creating default...');
+          logger.info('No settings found, creating default...');
           await createDefaultSettings();
           return;
         }
@@ -160,7 +160,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
               ? JSON.parse(data.financial_categories) 
               : data.financial_categories;
             
-            console.log('🔍 Parsed financial categories:', parsedCategories);
+            logger.debug('Parsed financial categories:', parsedCategories);
             
             // Validate structure and use parsed data
             if (parsedCategories && typeof parsedCategories === 'object') {
@@ -170,7 +170,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
               };
             }
           } catch (parseError) {
-            console.error('Error parsing financial_categories:', parseError);
+            logger.error('Error parsing financial_categories:', parseError);
             // Use default if parsing fails
           }
         }
@@ -187,14 +187,14 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
         };
         
-        console.log('✅ Settings loaded:', loadedSettings);
+        logger.success('Settings loaded:', loadedSettings);
         setSettings(loadedSettings);
       } else {
-        console.log('🔍 No data found, creating default settings...');
+        logger.info('No data found, creating default settings...');
         await createDefaultSettings();
       }
     } catch (error) {
-      console.error('[UserSettings] Unexpected error:', error);
+      logger.error('[UserSettings] Unexpected error:', error);
       toast.error('Error memuat pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setSettings(defaultSettings);
     } finally {
@@ -207,7 +207,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user) return;
     
     try {
-      console.log('🔍 Creating default settings for user:', user.id);
+      logger.context('UserSettings', 'Creating default settings for user:', user.id);
       
       const settingsData = {
         user_id: user.id,
@@ -221,7 +221,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         updated_at: new Date().toISOString()
       };
 
-      console.log('🔍 Inserting data:', settingsData);
+      logger.debug('Inserting data:', settingsData);
 
       const { data, error } = await supabase
         .from('user_settings')
@@ -230,10 +230,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         .single();
 
       if (error) {
-        console.error('[UserSettings] Insert error:', error);
+        logger.error('[UserSettings] Insert error:', error);
         
         if (error.code === '23505') {
-          console.log('🔍 Settings already exist, fetching...');
+          logger.info('Settings already exist, fetching...');
           await fetchSettings();
           return;
         }
@@ -241,7 +241,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         toast.error('Gagal membuat pengaturan default: ' + error.message);
         setSettings(defaultSettings);
       } else {
-        console.log('✅ Default settings created:', data);
+        logger.success('Default settings created:', data);
         
         // Parse financial_categories from created data
         let financialCategories = defaultFinancialCategories;
@@ -258,7 +258,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
               };
             }
           } catch (parseError) {
-            console.error('Error parsing created financial_categories:', parseError);
+            logger.error('Error parsing created financial_categories:', parseError);
           }
         }
         
@@ -276,7 +276,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         setSettings(newSettings);
       }
     } catch (error) {
-      console.error('[UserSettings] Error in createDefaultSettings:', error);
+      logger.error('[UserSettings] Error in createDefaultSettings:', error);
       toast.error('Error membuat pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setSettings(defaultSettings);
     }
@@ -294,7 +294,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     try {
-      console.log('🔍 Saving settings:', newSettings);
+      logger.context('UserSettings', 'Saving settings:', newSettings);
       
       const updatedSettings = { 
         ...settings, 
@@ -316,10 +316,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       // ✅ Include financial_categories if provided
       if (newSettings.financialCategories) {
         dbData.financial_categories = newSettings.financialCategories;
-        console.log('🔍 Saving financial_categories:', newSettings.financialCategories);
+        logger.debug('Saving financial_categories:', newSettings.financialCategories);
       }
 
-      console.log('🔍 Database data to save:', dbData);
+      logger.debug('Database data to save:', dbData);
 
       const { data, error } = await supabase
         .from('user_settings')
@@ -331,12 +331,12 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         .single();
 
       if (error) {
-        console.error('[UserSettings] Save error:', error);
+        logger.error('[UserSettings] Save error:', error);
         toast.error('Gagal menyimpan pengaturan: ' + error.message);
         return false;
       }
 
-      console.log('✅ Settings saved to database:', data);
+      logger.success('Settings saved to database:', data);
 
       // ✅ UPDATED: Parse financial_categories from saved data
       let savedFinancialCategories = updatedSettings.financialCategories;
@@ -353,7 +353,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
             };
           }
         } catch (parseError) {
-          console.error('Error parsing saved financial_categories:', parseError);
+          logger.error('Error parsing saved financial_categories:', parseError);
         }
       }
 
@@ -369,13 +369,13 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       };
 
       setSettings(savedSettings);
-      console.log('✅ Local state updated:', savedSettings);
+      logger.success('Local state updated:', savedSettings);
 
       toast.success('Pengaturan berhasil disimpan!');
       return true;
 
     } catch (error) {
-      console.error('[UserSettings] Error in saveSettings:', error);
+      logger.error('[UserSettings] Error in saveSettings:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Gagal menyimpan pengaturan: ' + errorMessage);
       return false;

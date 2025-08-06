@@ -63,16 +63,16 @@ const PromoList = () => {
   const promosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list(queryParams),
     queryFn: async () => {
-      console.log('🔍 Fetching promos with params:', queryParams);
+      logger.debug('Fetching promos with params:', queryParams);
       const promos = await promoService.getAll(queryParams);
-      console.log('✅ Got promos:', promos?.length || 0);
+      logger.success('Got promos:', promos?.length ||);
       return promos || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
-      console.error('Failed to fetch promos:', error);
+      logger.error('Failed to fetch promos:', error);
       toast.error('Gagal memuat data promo');
     }
   });
@@ -80,7 +80,7 @@ const PromoList = () => {
   // ✅ useMutation: Delete Promo
   const deletePromoMutation = useMutation({
     mutationFn: async (id) => {
-      console.log('🗑️ Deleting promo:', id);
+      logger.info('Deleting promo:', id);
       await promoService.delete(id);
       return id;
     },
@@ -97,7 +97,7 @@ const PromoList = () => {
       setSelectedItems(prev => prev.filter(id => id !== deletedId));
     },
     onError: (error) => {
-      console.error('Delete promo error:', error);
+      logger.error('Delete promo error:', error);
       toast.error(error.message || 'Gagal menghapus promo');
     },
   });

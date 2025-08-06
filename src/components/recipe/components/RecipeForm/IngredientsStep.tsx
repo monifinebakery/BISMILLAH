@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { RECIPE_UNITS } from '../../types';
 import { formatCurrency } from '../../services/recipeUtils';
 import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
+import { logger } from '@/utils/logger';
 
 // Import warehouse related hooks/services
 import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';

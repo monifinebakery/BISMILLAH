@@ -167,9 +167,10 @@ export const logger = {
 
   /**
    * Warning logging - untuk peringatan
+   * ✅ UPDATED: Only show in development
    */
   warn: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable || ['verbose', 'info', 'warn'].includes(debugLevel))) {
+    if (hasConsole && (isDev || forceEnable)) {
       if (data !== undefined) {
         console.warn('⚠️', message, data);
       } else {
@@ -180,10 +181,11 @@ export const logger = {
 
   /**
    * Error logging - untuk error
-   * Selalu tampil di semua environment
+   * ✅ UPDATED: Only show in development, silent in production
    */
   error: (message: string, error?: any) => {
-    if (hasConsole) {
+    // ✅ CHANGED: Only show errors in development or when forced
+    if (hasConsole && (isDev || forceEnable)) {
       if (error !== undefined) {
         console.error('🚨', message, error);
       } else {
@@ -246,6 +248,21 @@ export const logger = {
   },
 
   /**
+   * ✅ ENHANCED: Production-safe error logging
+   * Only for critical errors that should never be suppressed
+   */
+  criticalError: (message: string, error?: any) => {
+    // Always log critical errors regardless of environment
+    if (hasConsole) {
+      if (error !== undefined) {
+        console.error('🚨 CRITICAL:', message, error);
+      } else {
+        console.error('🚨 CRITICAL:', message);
+      }
+    }
+  },
+
+  /**
    * ✅ NEW: Order verification specific logging
    */
   orderVerification: (message: string, data?: any) => {
@@ -257,6 +274,7 @@ export const logger = {
       }
     }
   }
+};
 };
 
 // ✅ ENHANCED: Add global logger for debugging

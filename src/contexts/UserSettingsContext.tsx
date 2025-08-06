@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // --- UPDATED INTERFACES ---
 // ✅ Support both legacy (string array) and new (object array) formats

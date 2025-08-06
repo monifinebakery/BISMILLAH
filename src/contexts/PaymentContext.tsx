@@ -1,9 +1,8 @@
-// src/contexts/PaymentContext.tsx - FIXED VERSION
+// src/contexts/PaymentContext.tsx - UPDATED VERSION
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-// ✅ FIXED: Remove deprecated imports, add new ones
-import { getUserPaymentStatus } from '@/lib/authService';
+import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService'; // ✅ Updated import path
 
 interface PaymentContextType {
   isPaid: boolean;
@@ -44,53 +43,43 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [unlinkedPaymentCount, setUnlinkedPaymentCount] = useState(0);
 
-  // ✅ FIXED: Replace deprecated autoLinkUserPayments with new logic
+  // ✅ AUTO-LINK PAYMENTS: Simplified with better error handling
   useEffect(() => {
     if (isLoading || isPaid) return;
 
-    const checkPaymentStatus = async () => {
+    const attemptAutoLink = async () => {
       try {
-        console.log('🔍 Checking payment status...');
-        const status = await getUserPaymentStatus();
-        console.log('🔍 Payment status result:', status);
-        
-        if (status.isPaid) {
-          setTimeout(() => refetch(), 1000); // Refresh if status changed
+        const linkedCount = await autoLinkUserPayments();
+        if (linkedCount > 0) {
+          setTimeout(() => refetch(), 1000); // Refresh after auto-linking
         }
       } catch (error) {
-        console.error('❌ Payment status check failed:', error);
+        console.error('Auto-link failed:', error);
       }
     };
 
-    checkPaymentStatus();
+    attemptAutoLink();
   }, [isLoading, isPaid, refetch]);
 
-  // ✅ FIXED: Replace deprecated checkUnlinkedPayments with simplified logic
+  // ✅ CHECK UNLINKED PAYMENTS: Simplified monitoring
   useEffect(() => {
     if (isLoading || isPaid) return;
 
-    const checkUnlinkedStatus = async () => {
+    const checkUnlinked = async () => {
       try {
-        const status = await getUserPaymentStatus();
-        const needsLinking = status.needsLinking && !status.isPaid;
+        const { hasUnlinked, count } = await checkUnlinkedPayments();
+        setUnlinkedPaymentCount(count);
         
-        if (needsLinking) {
-          setUnlinkedPaymentCount(1); // Simplified: 1 if needs linking, 0 if not
-          
-          // Auto-show popup if user needs linking
-          if (!showOrderPopup) {
-            setTimeout(() => setShowOrderPopup(true), 3000);
-          }
-        } else {
-          setUnlinkedPaymentCount(0);
+        // Auto-show popup if there are unlinked payments
+        if (hasUnlinked && !showOrderPopup) {
+          setTimeout(() => setShowOrderPopup(true), 3000);
         }
       } catch (error) {
-        console.error('❌ Check unlinked status failed:', error);
-        setUnlinkedPaymentCount(0);
+        console.error('Check unlinked payments failed:', error);
       }
     };
 
-    checkUnlinkedStatus();
+    checkUnlinked();
   }, [isLoading, isPaid, showOrderPopup, setShowOrderPopup]);
 
   // ✅ AUTO-SHOW ORDER POPUP: Simplified condition

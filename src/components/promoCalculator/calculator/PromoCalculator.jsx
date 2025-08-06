@@ -76,7 +76,7 @@ const PromoCalculator = () => {
   const latestPromosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
-      console.log('🔍 Fetching latest promos...');
+      logger.component('PromoCalculator', 'Fetching latest promos for dashboard...');
       const promos = await promoService.getAll({});
       const latestPromos = (promos || []).slice(0, 3);
       console.log('✅ Got latest promos:', latestPromos.length);

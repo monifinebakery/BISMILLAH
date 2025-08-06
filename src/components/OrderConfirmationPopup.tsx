@@ -58,7 +58,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setError('');
     
     try {
-      console.log('🔍 Verifying order:', orderId.trim());
+      logger.component('OrderConfirmationPopup', 'Verifying order:', orderId.trim());
       const exists = await verifyOrderExists(orderId.trim());
       console.log('🔍 Order exists:', exists);
       

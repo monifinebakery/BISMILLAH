@@ -1,6 +1,5 @@
 // src/components/recipe/dialogs/CategoryManagerDialog.tsx
 // NO DEFAULT CATEGORIES VERSION - User creates all categories
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +85,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       const categories = getCustomCategories();
       setCustomCategories(categories);
     };
-
     loadCategories();
   }, []);
 
@@ -104,7 +102,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   // Get category statistics
   const categoryStats: CategoryStats[] = React.useMemo(() => {
     const categoryGroups = new Map<string, Recipe[]>();
-    
     // Group recipes by category
     recipes.forEach(recipe => {
       if (recipe.kategoriResep?.trim()) {
@@ -112,11 +109,9 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
         categoryGroups.set(recipe.kategoriResep, [...existing, recipe]);
       }
     });
-
     return allAvailableCategories.map(categoryName => {
       const recipesInCategory = categoryGroups.get(categoryName) || [];
       const isCustom = customCategories.includes(categoryName);
-      
       return {
         name: categoryName,
         count: recipesInCategory.length,
@@ -135,29 +130,24 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   // Add new category
   const handleAddCategory = async () => {
     const trimmedName = newCategoryName.trim();
-    
     if (!isValidCategoryName(trimmedName)) {
       toast.error('Nama kategori harus antara 1-50 karakter');
       return;
     }
-
     if (categoryExists(trimmedName, allAvailableCategories)) {
       toast.error('Kategori sudah ada');
       return;
     }
-
     setIsLoading(true);
     try {
       // Add to custom categories
       const newCustomCategories = [...customCategories, trimmedName];
       saveCategories(newCustomCategories);
-      
       toast.success(`Kategori "${trimmedName}" berhasil ditambahkan`);
       setNewCategoryName('');
-      
-      console.log('Added new category:', trimmedName);
+      logger.debug('Added new category:', trimmedName); // Ganti console.log dengan logger.debug
     } catch (error) {
-      console.error('Error adding category:', error);
+      logger.error('Error adding category:', error); // Ganti console.error dengan logger.error
       toast.error('Gagal menambahkan kategori');
     } finally {
       setIsLoading(false);
@@ -167,69 +157,55 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   // Edit category name and update all recipes using it
   const handleEditCategory = async (oldName: string, newName: string) => {
     const trimmedNewName = newName.trim();
-
     if (!isValidCategoryName(trimmedNewName)) {
       toast.error('Nama kategori harus antara 1-50 karakter');
       return;
     }
-
     if (oldName === trimmedNewName) {
       setEditingCategory(null);
       return;
     }
-
     if (categoryExists(trimmedNewName, allAvailableCategories.filter(cat => cat !== oldName))) {
       toast.error('Kategori sudah ada');
       return;
     }
-
     setIsLoading(true);
     try {
-      console.log(`Editing category "${oldName}" to "${trimmedNewName}"`);
-      
+      logger.debug(`Editing category "${oldName}" to "${trimmedNewName}"`); // Ganti console.log dengan logger.debug
       // Find all recipes using this category
       const affectedRecipes = recipes.filter(recipe => recipe.kategoriResep === oldName);
-      console.log(`Found ${affectedRecipes.length} recipes using category "${oldName}"`);
-
+      logger.debug(`Found ${affectedRecipes.length} recipes using category "${oldName}"`); // Ganti console.log dengan logger.debug
       // Update all affected recipes
       if (affectedRecipes.length > 0) {
         const updatePromises = affectedRecipes.map(recipe => {
-          console.log(`Updating recipe "${recipe.namaResep}" category to "${trimmedNewName}"`);
+          logger.debug(`Updating recipe "${recipe.namaResep}" category to "${trimmedNewName}"`); // Ganti console.log dengan logger.debug
           return updateRecipe(recipe.id, { kategoriResep: trimmedNewName });
         });
-
         const results = await Promise.all(updatePromises);
         const successCount = results.filter(success => success).length;
-        
         if (successCount !== affectedRecipes.length) {
           toast.warning(`Berhasil mengubah ${successCount} dari ${affectedRecipes.length} resep`);
         } else {
-          console.log(`Successfully updated ${successCount} recipes`);
+          logger.debug(`Successfully updated ${successCount} recipes`); // Ganti console.log dengan logger.debug
         }
       }
-
       // Update custom categories list
       const newCustomCategories = customCategories.map(cat => 
         cat === oldName ? trimmedNewName : cat
       );
-      
       // If the old category was not in custom categories but is used in recipes,
       // add the new name to custom categories
       if (!customCategories.includes(oldName) && affectedRecipes.length > 0) {
         newCustomCategories.push(trimmedNewName);
       }
-      
       saveCategories(newCustomCategories);
-
       toast.success(`Kategori "${oldName}" berhasil diubah menjadi "${trimmedNewName}"`);
       setEditingCategory(null);
       setEditName('');
-
       // Refresh data to ensure UI is up to date
       setTimeout(() => refreshRecipes(), 500);
-      
     } catch (error) {
-      console.error('Error editing category:', error);
+      logger.error('Error editing category:', error); // Ganti console.error dengan logger.error
       toast.error('Gagal mengubah kategori');
     } finally {
       setIsLoading(false);
@@ -243,21 +219,17 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       toast.error('Kategori tidak dapat dihapus karena masih digunakan oleh resep');
       return;
     }
-
     setIsLoading(true);
     try {
-      console.log(`Deleting category "${categoryName}"`);
-      
+      logger.debug(`Deleting category "${categoryName}"`); // Ganti console.log dengan logger.debug
       // Remove from custom categories
       const newCustomCategories = customCategories.filter(cat => cat !== categoryName);
       saveCategories(newCustomCategories);
-
       toast.success(`Kategori "${categoryName}" berhasil dihapus`);
       setCategoryToDelete(null);
-      
-      console.log(`Successfully deleted category "${categoryName}"`);
+      logger.debug(`Successfully deleted category "${categoryName}"`); // Ganti console.log dengan logger.debug
     } catch (error) {
-      console.error('Error deleting category:', error);
+      logger.error('Error deleting category:', error); // Ganti console.error dengan logger.error
       toast.error('Gagal menghapus kategori');
     } finally {
       setIsLoading(false);
@@ -274,7 +246,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
       setCustomCategories(categories);
       toast.success('Data berhasil dimuat ulang');
     } catch (error) {
-      console.error('Error refreshing:', error);
+      logger.error('Error refreshing:', error); // Ganti console.error dengan logger.error
       toast.error('Gagal memuat ulang data');
     } finally {
       setIsLoading(false);
@@ -302,7 +274,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
         }
       }
     };
-
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, editingCategory, categoryToDelete, onOpenChange]);
@@ -323,7 +294,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-          
           {/* Header */}
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
@@ -362,10 +332,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
               </div>
             </div>
           </CardHeader>
-
           <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
             <div className="p-6 space-y-6">
-
               {/* Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border-orange-200 bg-orange-50">
@@ -381,7 +349,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -395,7 +362,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="border-green-200 bg-green-50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -410,7 +376,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </CardContent>
                 </Card>
               </div>
-
               {/* Add New Category */}
               <Card className="border-gray-200">
                 <CardHeader className="pb-4">
@@ -454,7 +419,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </p>
                 </CardContent>
               </Card>
-
               {/* Suggested Categories for new users */}
               {categoryStats.length === 0 && (
                 <Card className="border-blue-200 bg-blue-50">
@@ -490,7 +454,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </CardContent>
                 </Card>
               )}
-
               {/* Categories List */}
               <Card className="border-gray-200">
                 <CardHeader>
@@ -532,7 +495,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                         <TableBody>
                           {categoryStats.map((category) => (
                             <TableRow key={category.name} className="border-gray-100">
-                              
                               {/* Category Name */}
                               <TableCell>
                                 {editingCategory === category.name ? (
@@ -577,7 +539,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                   </div>
                                 )}
                               </TableCell>
-
                               {/* Recipe Count */}
                               <TableCell className="text-center">
                                 <Badge 
@@ -591,7 +552,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                   {category.count} resep
                                 </Badge>
                               </TableCell>
-
                               {/* Category Status */}
                               <TableCell className="text-center">
                                 <Badge 
@@ -601,7 +561,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                   User Created
                                 </Badge>
                               </TableCell>
-
                               {/* Actions */}
                               <TableCell className="text-center">
                                 <div className="flex justify-center gap-1">
@@ -618,7 +577,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       <Edit className="h-3 w-3" />
                                     </Button>
                                   )}
-                                  
                                   {/* Delete Button */}
                                   {category.canDelete && editingCategory !== category.name && (
                                     <Button
@@ -632,7 +590,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                   )}
-                                  
                                   {/* Cannot Delete Indicator */}
                                   {!category.canDelete && editingCategory !== category.name && (
                                     <div className="flex items-center gap-1 text-xs text-gray-400 px-2">
@@ -650,7 +607,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   )}
                 </CardContent>
               </Card>
-
               {/* Uncategorized Warning */}
               {uncategorizedRecipes > 0 && (
                 <Card className="border-yellow-300 bg-yellow-50">
@@ -670,7 +626,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </CardContent>
                 </Card>
               )}
-
               {/* Tips for category management */}
               <Card className="border-gray-200 bg-gray-50">
                 <CardContent className="p-4">
@@ -690,12 +645,10 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                   </div>
                 </CardContent>
               </Card>
-
             </div>
           </CardContent>
         </Card>
       </div>
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
         <AlertDialogContent>

@@ -89,14 +89,6 @@ export default defineConfig(({ mode }) => {
           drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
           legalComments: "none",
         },
-        // ✅ ADDITIONAL: Terser options for more aggressive console removal
-        terserOptions: {
-          compress: {
-            // Remove all console statements
-            drop_console: env.VITE_FORCE_LOGS !== 'true',
-            drop_debugger: true,
-          },
-        },
       }),
     },
     optimizeDeps: {

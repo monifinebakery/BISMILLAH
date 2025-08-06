@@ -35,7 +35,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
 
   // Toggle tooltip visibility
   const toggleTooltip = useCallback(() => {
-    logger.debug('Toggle tooltip clicked, current state:', showTooltip); // Ganti console.log dengan logger.debug
+    logger.debug('Toggle tooltip clicked, current state:', showTooltip);
     setShowTooltip(prev => !prev);
   }, [showTooltip]);
 

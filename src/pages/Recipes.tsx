@@ -151,9 +151,7 @@ const Recipes: React.FC = () => {
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
-      console.log('🔍 Fetching recipes...');
       const recipes = await recipeApi.getRecipes(); // ✅ Direct return
-      console.log('✅ Got recipes:', recipes?.length || 0);
       return recipes || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -165,9 +163,7 @@ const Recipes: React.FC = () => {
   const categoriesQuery = useQuery({
     queryKey: ['recipes', 'categories'],
     queryFn: async () => {
-      console.log('🔍 Fetching categories...');
       const categories = await recipeApi.getUniqueCategories(); // ✅ Direct return
-      console.log('✅ Got categories:', categories?.length || 0);
       return categories || [];
     },
     enabled: recipesQuery.isSuccess, // Only run after recipes are loaded

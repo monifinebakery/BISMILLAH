@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend, SortConfig } from '../types';
+import { logger } from '@/utils/logger';
 
 interface WarehouseTableProps {
   items: BahanBakuFrontend[];

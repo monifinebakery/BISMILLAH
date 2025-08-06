@@ -41,7 +41,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
 
   // Hide tooltip
   const hideTooltip = useCallback(() => {
-    console.log('Hide tooltip called'); // Debug log
+    logger.debug('Hide tooltip called');
     setShowTooltip(false);
   }, []);
 

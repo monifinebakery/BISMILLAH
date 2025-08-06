@@ -19,6 +19,7 @@ import PromoCard from '@/components/promoCalculator/components/PromoCard';
 import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog';
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
 import { promoService } from '@/components/promoCalculator/services/promoService';
+import { logger } from '@/utils/logger';
 
 // ✅ Query Keys - Same as PromoCalculator
 export const PROMO_QUERY_KEYS = {

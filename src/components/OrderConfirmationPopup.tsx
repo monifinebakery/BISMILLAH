@@ -60,7 +60,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     try {
       logger.component('OrderConfirmationPopup', 'Verifying order:', orderId.trim());
       const exists = await verifyOrderExists(orderId.trim());
-      console.log('🔍 Order exists:', exists);
+      logger.debug('Order verification result:', { orderId: orderId.trim(), exists });
       
       if (!exists) {
         setError('Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');

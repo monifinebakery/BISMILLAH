@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode production"
+    "build": "vite build --mode production",
     "build:dev": "vite build --mode development",
     "build:debug": "vite build --mode development --minify false",
     "build:simple": "vite build --no-minify",

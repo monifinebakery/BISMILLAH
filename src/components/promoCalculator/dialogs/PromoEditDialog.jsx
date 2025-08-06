@@ -8,6 +8,7 @@ import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { promoService } from '@/components/promoCalculator/services/promoService';
+import { logger } from '@/utils/logger';
 
 const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
   const queryClient = useQueryClient();

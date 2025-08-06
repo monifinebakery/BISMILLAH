@@ -62,7 +62,7 @@ const PromoCalculator = () => {
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
-      console.log('🔍 Fetching recipes for promo calculator...');
+      logger.component('PromoCalculator', 'Fetching recipes for promo calculator...');
       const recipes = await recipeApi.getRecipes();
       console.log('✅ Got recipes:', recipes?.length || 0);
       return recipes || [];

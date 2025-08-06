@@ -121,7 +121,7 @@ const PromoCalculator = () => {
   const savePromoMutation = useMutation({
     mutationFn: async (promoData) => {
       if (isEditMode && editPromoId) {
-        console.log('📝 Updating promo:', editPromoId);
+        logger.component('PromoCalculator', 'Updating existing promo:', editPromoId);
         return await promoService.update(editPromoId, promoData);
       } else {
         console.log('➕ Creating new promo');

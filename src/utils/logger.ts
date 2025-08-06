@@ -45,9 +45,9 @@ const isDev = (() => {
   }
 })();
 
-const debugContext = getEnvVar('VITE_DEBUG_CONTEXT', 'true') === 'true';
-const debugComponent = getEnvVar('VITE_DEBUG_COMPONENT', 'true') === 'true';
-const debugHook = getEnvVar('VITE_DEBUG_HOOK', 'true') === 'true';
+const debugContext = getEnvVar('VITE_DEBUG_CONTEXT', 'false') === 'true';
+const debugComponent = getEnvVar('VITE_DEBUG_COMPONENT', 'false') === 'true';
+const debugHook = getEnvVar('VITE_DEBUG_HOOK', 'false') === 'true';
 const debugLevel = getEnvVar('VITE_DEBUG_LEVEL', 'info');
 
 export const logger = {

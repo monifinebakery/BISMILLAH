@@ -47,6 +47,7 @@ import {
   categoryExists
 } from '../types';
 import type { Recipe } from '../types';
+import { logger } from '@/utils/logger';
 
 interface CategoryManagerDialogProps {
   isOpen: boolean;

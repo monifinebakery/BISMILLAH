@@ -58,6 +58,7 @@ import {
 // ✅ COMPONENTS: Direct imports
 import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
+import { logger } from '@/utils/logger';
 
 // ✅ CONSTANTS: Moved to top level for better performance
 const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [

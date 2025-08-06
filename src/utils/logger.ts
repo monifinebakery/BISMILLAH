@@ -46,6 +46,8 @@ const isDev = (() => {
 })();
 
 const debugContext = getEnvVar('VITE_DEBUG_CONTEXT', 'true') === 'true';
+const debugComponent = getEnvVar('VITE_DEBUG_COMPONENT', 'true') === 'true';
+const debugHook = getEnvVar('VITE_DEBUG_HOOK', 'true') === 'true';
 const debugLevel = getEnvVar('VITE_DEBUG_LEVEL', 'info');
 
 export const logger = {
@@ -56,9 +58,37 @@ export const logger = {
   context: (contextName: string, message: string, data?: any) => {
     if (isDev && debugContext) {
       if (data !== undefined) {
-        console.log(`[${contextName}]`, message, data);
+        console.log(`🔄 [${contextName}]`, message, data);
       } else {
-        console.log(`[${contextName}]`, message);
+        console.log(`🔄 [${contextName}]`, message);
+      }
+    }
+  },
+
+  /**
+   * Component logging - untuk log dari components
+   * Hanya tampil jika VITE_DEBUG_COMPONENT=true
+   */
+  component: (componentName: string, message: string, data?: any) => {
+    if (isDev && debugComponent) {
+      if (data !== undefined) {
+        console.log(`🧩 [${componentName}]`, message, data);
+      } else {
+        console.log(`🧩 [${componentName}]`, message);
+      }
+    }
+  },
+
+  /**
+   * Hook logging - untuk log dari custom hooks
+   * Hanya tampil jika VITE_DEBUG_HOOK=true
+   */
+  hook: (hookName: string, message: string, data?: any) => {
+    if (isDev && debugHook) {
+      if (data !== undefined) {
+        console.log(`🪝 [${hookName}]`, message, data);
+      } else {
+        console.log(`🪝 [${hookName}]`, message);
       }
     }
   },
@@ -127,6 +157,37 @@ export const logger = {
         console.log('✅', message, data);
       } else {
         console.log('✅', message);
+      }
+    }
+  },
+
+  /**
+   * API logging - untuk request/response API
+   * Hanya tampil jika VITE_DEBUG_API=true
+   */
+  api: (endpoint: string, message: string, data?: any) => {
+    const debugApi = getEnvVar('VITE_DEBUG_API', 'false') === 'true';
+    if (isDev && debugApi) {
+      if (data !== undefined) {
+        console.log(`🌐 [API:${endpoint}]`, message, data);
+      } else {
+        console.log(`🌐 [API:${endpoint}]`, message);
+      }
+    }
+  },
+
+  /**
+   * Performance logging - untuk performance monitoring
+   * Hanya tampil jika VITE_DEBUG_PERF=true
+   */
+  perf: (operation: string, duration: number, data?: any) => {
+    const debugPerf = getEnvVar('VITE_DEBUG_PERF', 'false') === 'true';
+    if (isDev && debugPerf) {
+      const color = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
+      if (data !== undefined) {
+        console.log(`${color} [PERF:${operation}] ${duration}ms`, data);
+      } else {
+        console.log(`${color} [PERF:${operation}] ${duration}ms`);
       }
     }
   }

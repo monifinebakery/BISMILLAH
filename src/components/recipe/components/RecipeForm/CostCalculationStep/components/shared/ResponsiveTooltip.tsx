@@ -31,7 +31,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Mobile tooltip clicked'); // Debug log
+            logger.debug('Mobile tooltip clicked');
             toggleTooltip();
           }}
           className={`cursor-pointer ${className}`}

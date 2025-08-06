@@ -1,6 +1,7 @@
 // src/components/recipe/components/RecipeForm/CostCalculationStep/hooks/useResponsiveTooltip.ts
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 
 interface UseResponsiveTooltipReturn {
   isMobile: boolean;

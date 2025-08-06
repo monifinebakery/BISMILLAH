@@ -94,7 +94,7 @@ const PromoCalculator = () => {
       if (!editPromoId) return null;
         logger.component('PromoCalculator', 'Fetching promo for editing:', editPromoId);
       const promo = await promoService.getById(editPromoId);
-      console.log('✅ Got promo for editing:', promo);
+      logger.success('Promo loaded for editing:', { id: promo?.id, name: promo?.namaPromo });
       return promo;
     },
     enabled: !!editPromoId,

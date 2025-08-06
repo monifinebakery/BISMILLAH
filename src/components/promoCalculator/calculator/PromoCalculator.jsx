@@ -16,6 +16,7 @@ import {
   Save
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // ✅ Import existing components
 import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector';

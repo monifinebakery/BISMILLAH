@@ -1,6 +1,6 @@
-// src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan PromoCard
+// src/pages/PromoList.jsx - FIXED with Logger
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import { LoadingState } from '@/components/recipe/components/shared/LoadingState
 import { promoService } from '@/components/promoCalculator/services/promoService';
 import { logger } from '@/utils/logger';
 
-// ✅ Query Keys - Same as PromoCalculator
+// ✅ Query Keys
 export const PROMO_QUERY_KEYS = {
   all: ['promos'],
   lists: () => [...PROMO_QUERY_KEYS.all, 'list'],
@@ -30,7 +30,7 @@ export const PROMO_QUERY_KEYS = {
 };
 
 const PromoList = () => {
-  const navigate = useNavigate(); // ✅ Add navigate hook
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   // Local state
@@ -48,7 +48,6 @@ const PromoList = () => {
     sortOrder: 'desc'
   });
 
-  // ✅ State untuk dialog edit
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
 
@@ -63,12 +62,12 @@ const PromoList = () => {
   const promosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list(queryParams),
     queryFn: async () => {
-      logger.debug('Fetching promos with params:', queryParams);
+      logger.api('promos', 'Fetching promos with params:', queryParams);
       const promos = await promoService.getAll(queryParams);
       logger.success('Got promos:', promos?.length || 0);
       return promos || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
@@ -102,10 +101,10 @@ const PromoList = () => {
     },
   });
 
-  // ✅ useMutation: Bulk Delete Promos
+  // ✅ useMutation: Bulk Delete Promos  
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids) => {
-      console.log('📦 Bulk deleting promos:', ids.length);
+      logger.info('Bulk deleting promos:', ids.length);
       await promoService.bulkDelete(ids);
       return ids;
     },
@@ -122,7 +121,7 @@ const PromoList = () => {
       setSelectedItems([]);
     },
     onError: (error) => {
-      console.error('Bulk delete error:', error);
+      logger.error('Bulk delete error:', error);
       toast.error(error.message || 'Gagal menghapus promo');
     },
   });
@@ -130,7 +129,7 @@ const PromoList = () => {
   // ✅ useMutation: Toggle Promo Status
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus }) => {
-      console.log('🔄 Toggling promo status:', id, newStatus);
+      logger.info('Toggling promo status:', { id, newStatus });
       const updatedPromo = await promoService.toggleStatus({ id, newStatus });
       return updatedPromo;
     },
@@ -147,7 +146,7 @@ const PromoList = () => {
       toast.success(`Promo berhasil ${updatedPromo.status === 'aktif' ? 'diaktifkan' : 'dinonaktifkan'}`);
     },
     onError: (error) => {
-      console.error('Toggle status error:', error);
+      logger.error('Toggle status error:', error);
       toast.error(error.message || 'Gagal mengubah status promo');
     },
   });
@@ -155,7 +154,7 @@ const PromoList = () => {
   // ✅ useMutation: Duplicate Promo
   const duplicatePromoMutation = useMutation({
     mutationFn: async (originalPromo) => {
-      console.log('📋 Duplicating promo:', originalPromo.id);
+      logger.info('Duplicating promo:', originalPromo.id);
       const newPromo = await promoService.duplicate(originalPromo);
       return newPromo;
     },
@@ -171,7 +170,7 @@ const PromoList = () => {
       toast.success('Promo berhasil diduplikat');
     },
     onError: (error) => {
-      console.error('Duplicate promo error:', error);
+      logger.error('Duplicate promo error:', error);
       toast.error(error.message || 'Gagal menduplikat promo');
     },
   });
@@ -189,7 +188,7 @@ const PromoList = () => {
     (duplicatePromoMutation && duplicatePromoMutation.isPending)
   ) || false;
 
-  console.log('📊 Promo Query State:', {
+  logger.component('PromoList', 'Query State:', {
     promos: (promos && promos.length) || 0,
     isLoading,
     error: (error && error.message) || null,
@@ -240,29 +239,28 @@ const PromoList = () => {
 
   // ✅ Handler untuk membuka dialog edit
   const handleEdit = (promo) => {
-    console.log('✏️ Opening edit dialog for promo:', promo.id);
+    logger.component('PromoList', 'Opening edit dialog for promo:', promo.id);
     setEditingPromo(promo);
     setIsEditDialogOpen(true);
   };
 
   // ✅ Handler setelah promo berhasil diedit
   const handleEditSuccess = (updatedPromo) => {
-    console.log('✅ Promo updated successfully in list:', updatedPromo.id);
-    // Query will be invalidated automatically by the dialog
+    logger.success('Promo updated successfully in list:', updatedPromo.id);
   };
 
   const handleView = (promo) => {
-    console.log('👁️ View promo details:', promo.id);
+    logger.component('PromoList', 'View promo details:', promo.id);
     toast.info(`Melihat detail promo: ${promo.namaPromo}`);
   };
 
   const handleDuplicate = async (promo) => {
-    console.log('📋 Duplicate promo:', promo.id);
+    logger.component('PromoList', 'Duplicate promo:', promo.id);
     await duplicatePromoMutation.mutateAsync(promo);
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Refreshing promo data...');
+    logger.component('PromoList', 'Refreshing promo data...');
     queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
     setSelectedItems([]);
     if (isEditDialogOpen) {
@@ -271,22 +269,18 @@ const PromoList = () => {
     }
   };
 
-  // ✅ Fixed: Navigate to PromoCalculator instead of using window.location.href
   const handleCreateNew = () => {
-    console.log('🚀 Navigating to PromoCalculator for new promo creation');
+    logger.component('PromoList', 'Navigating to PromoCalculator for new promo creation');
     
-    // Close dialog if open
     if (isEditDialogOpen) {
         setIsEditDialogOpen(false);
         setEditingPromo(null);
     }
     
-    // Show loading toast
     toast.info('Membuka kalkulator promo...', {
       description: 'Mengarahkan ke halaman pembuatan promo'
     });
     
-    // ✅ Use navigate instead of window.location.href for proper React Router navigation
     navigate('/promo');
   };
 
@@ -501,7 +495,7 @@ const PromoList = () => {
       <PromoEditDialog
         isOpen={isEditDialogOpen}
         onClose={() => {
-          console.log('Closing edit dialog');
+          logger.component('PromoList', 'Closing edit dialog');
           setIsEditDialogOpen(false);
           setEditingPromo(null);
         }}

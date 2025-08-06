@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { 
   linkPaymentToUser, 
   getCurrentUser, 
-  verifyOrderExists, 
-  getRecentUnlinkedOrders 
-} from '@/lib/authService'; // ✅ Updated import path
+  verifyOrderExists,
+  verifyCustomerOrder // ✅ NEW: Use RPC function
+} from '@/lib/authService';
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;
@@ -17,26 +17,19 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [recentOrders, setRecentOrders] = useState<string[]>([]);
+  // ✅ FIXED: Remove recentOrders since getRecentUnlinkedOrders is deprecated
+  // const [recentOrders, setRecentOrders] = useState<string[]>([]);
 
-  // ✅ Load recent unlinked orders for suggestions
+  // ✅ FIXED: Simplified useEffect without deprecated function
   useEffect(() => {
     if (isOpen) {
-      loadRecentOrders();
       // Reset form when popup opens
       resetForm();
     }
   }, [isOpen]);
 
-  const loadRecentOrders = async () => {
-    try {
-      const orders = await getRecentUnlinkedOrders();
-      setRecentOrders(orders);
-      console.log('Recent unlinked orders:', orders);
-    } catch (error) {
-      console.error('Error loading recent orders:', error);
-    }
-  };
+  // ✅ REMOVED: loadRecentOrders function since it uses deprecated getRecentUnlinkedOrders
+  // const loadRecentOrders = async () => { ... }
 
   // ✅ Enhanced verification with better debouncing
   useEffect(() => {
@@ -58,14 +51,19 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     
     try {
       console.log('🔍 Verifying order:', orderId.trim());
-      const exists = await verifyOrderExists(orderId.trim());
-      console.log('🔍 Order exists:', exists);
+      
+      // ✅ ENHANCED: Use new robust verification function
+      const result = await verifyOrderExists(orderId.trim());
+      console.log('🔍 Order verification result:', result);
+      
+      // Handle both boolean and object responses
+      const exists = typeof result === 'boolean' ? result : result?.exists;
       
       if (!exists) {
         setError('Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');
       }
     } catch (error) {
-      console.error('Error verifying order:', error);
+      console.error('❌ Error verifying order:', error);
       setError('Gagal memverifikasi Order ID. Silakan coba lagi.');
     } finally {
       setIsVerifying(false);
@@ -102,9 +100,25 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       }
 
       console.log('🔍 Current user:', user.email);
-      console.log('🔍 Attempting to link order:', orderId.trim());
+      console.log('🔍 Attempting to verify customer order:', orderId.trim());
 
-      // Try to link payment
+      // ✅ OPTION 1: Use RPC verification (recommended)
+      if (typeof verifyCustomerOrder === 'function') {
+        const verifyResult = await verifyCustomerOrder(user.email, orderId.trim());
+        
+        if (verifyResult.success) {
+          console.log('✅ Customer order verified successfully:', verifyResult);
+          onSuccess?.(verifyResult.data);
+          onClose();
+          resetForm();
+          return;
+        } else {
+          throw new Error(verifyResult.message);
+        }
+      }
+
+      // ✅ OPTION 2: Fallback to linkPaymentToUser
+      console.log('🔍 Using fallback linkPaymentToUser method');
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
@@ -122,6 +136,8 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         setError('Order ID tidak ditemukan dalam sistem. Pastikan Order ID benar atau hubungi admin.');
       } else if (error.message?.includes('sudah terhubung')) {
         setError('Order ini sudah terhubung dengan akun lain. Silakan hubungi admin jika ini adalah order Anda.');
+      } else if (error.message?.includes('tidak valid')) {
+        setError('Email atau Order ID tidak valid. Pastikan Anda login dengan email yang benar.');
       } else {
         setError(error.message || 'Terjadi kesalahan. Silakan coba lagi atau hubungi admin.');
       }
@@ -147,10 +163,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setOrderId(cleanValue);
   };
 
-  const selectRecentOrder = (order: string) => {
-    setOrderId(order);
-    setError('');
-  };
+  // ✅ REMOVED: selectRecentOrder function since we removed recentOrders
 
   if (!isOpen) return null;
 
@@ -163,24 +176,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           Masukkan Order ID untuk menghubungkan pembayaran ke akun Anda:
         </p>
         
-        {/* ✅ Recent orders suggestions */}
-        {recentOrders.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-500 mb-2">Order terbaru yang belum terhubung:</p>
-            <div className="flex flex-wrap gap-2">
-              {recentOrders.map((order) => (
-                <button
-                  key={order}
-                  onClick={() => selectRecentOrder(order)}
-                  className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                  disabled={isLoading}
-                >
-                  {order}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ✅ REMOVED: Recent orders suggestions section */}
         
         <div className="relative">
           <input

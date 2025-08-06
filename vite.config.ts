@@ -82,12 +82,20 @@ export default defineConfig(({ mode }) => {
       minify: "esbuild",
       sourcemap: isDev,
       
-      // ✅ ENHANCED: Conditional console removal
+      // ✅ ENHANCED: Aggressive console removal in production
       ...(isProd && {
         esbuild: {
-          // ✅ Only drop console in production if VITE_FORCE_LOGS is not true
+          // ✅ ALWAYS drop console in production (unless explicitly forced for debugging)
           drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
           legalComments: "none",
+        },
+        // ✅ ADDITIONAL: Terser options for more aggressive console removal
+        terserOptions: {
+          compress: {
+            // Remove all console statements
+            drop_console: env.VITE_FORCE_LOGS !== 'true',
+            drop_debugger: true,
+          },
         },
       }),
     },

@@ -1,6 +1,6 @@
 // src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan PromoCard
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Tambahkan ini
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,22 +16,25 @@ import {
   RefreshCw
 } from 'lucide-react';
 import PromoCard from '@/components/promoCalculator/components/PromoCard';
-import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog';
-import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
 import { promoService } from '@/components/promoCalculator/services/promoService';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils/logger'; // ✅ Import logger
+import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog';
+import LoadingState from '@/components/promoCalculator/components/shared/LoadingState';
+import ErrorState from '@/components/promoCalculator/components/shared/ErrorState';
+import EmptyState from '@/components/promoCalculator/components/shared/EmptyState';
+import BulkActionsBar from '@/components/promoCalculator/components/shared/BulkActionsBar';
 
-// ✅ Query Keys - Same as PromoCalculator
-export const PROMO_QUERY_KEYS = {
+// Query Keys
+const PROMO_QUERY_KEYS = {
   all: ['promos'],
   lists: () => [...PROMO_QUERY_KEYS.all, 'list'],
   list: (params) => [...PROMO_QUERY_KEYS.lists(), params],
-  detail: (id) => [...PROMO_QUERY_KEYS.all, 'detail', id],
 };
 
 const PromoList = () => {
-  const navigate = useNavigate(); // ✅ Gunakan hook ini
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
@@ -62,16 +65,16 @@ const PromoList = () => {
   const promosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list(queryParams),
     queryFn: async () => {
-      console.log('🔍 Fetching promos with params:', queryParams);
+      logger.debug('🔍 Fetching promos with params:', queryParams); // ✅ Ganti console.log dengan logger.debug
       const promos = await promoService.getAll(queryParams);
-      console.log('✅ Got promos:', promos?.length || 0);
+      logger.debug('✅ Got promos:', promos?.length || 0); // ✅ Ganti console.log dengan logger.debug
       return promos || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
-      console.error('Failed to fetch promos:', error);
+      logger.error('Failed to fetch promos:', error); // ✅ Ganti console.error dengan logger.error
       toast.error('Gagal memuat data promo');
     }
   });
@@ -79,7 +82,7 @@ const PromoList = () => {
   // ✅ useMutation: Delete Promo
   const deletePromoMutation = useMutation({
     mutationFn: async (id) => {
-      console.log('🗑️ Deleting promo:', id);
+      logger.debug('🗑️ Deleting promo:', id); // ✅ Ganti console.log dengan logger.debug
       await promoService.delete(id);
       return id;
     },
@@ -93,10 +96,9 @@ const PromoList = () => {
       );
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       toast.success('Promo berhasil dihapus');
-      setSelectedItems(prev => prev.filter(id => id !== deletedId));
     },
     onError: (error) => {
-      console.error('Delete promo error:', error);
+      logger.error('Delete promo error:', error); // ✅ Ganti console.error dengan logger.error
       toast.error(error.message || 'Gagal menghapus promo');
     },
   });
@@ -104,7 +106,7 @@ const PromoList = () => {
   // ✅ useMutation: Bulk Delete Promos
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids) => {
-      console.log('📦 Bulk deleting promos:', ids.length);
+      logger.debug('📦 Bulk deleting promos:', ids.length); // ✅ Ganti console.log dengan logger.debug
       await promoService.bulkDelete(ids);
       return ids;
     },
@@ -121,7 +123,7 @@ const PromoList = () => {
       setSelectedItems([]);
     },
     onError: (error) => {
-      console.error('Bulk delete error:', error);
+      logger.error('Bulk delete error:', error); // ✅ Ganti console.error dengan logger.error
       toast.error(error.message || 'Gagal menghapus promo');
     },
   });
@@ -129,7 +131,7 @@ const PromoList = () => {
   // ✅ useMutation: Toggle Promo Status
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus }) => {
-      console.log('🔄 Toggling promo status:', id, newStatus);
+      logger.debug('🔄 Toggling promo status:', id, newStatus); // ✅ Ganti console.log dengan logger.debug
       const updatedPromo = await promoService.toggleStatus({ id, newStatus });
       return updatedPromo;
     },
@@ -146,31 +148,26 @@ const PromoList = () => {
       toast.success(`Promo berhasil ${updatedPromo.status === 'aktif' ? 'diaktifkan' : 'dinonaktifkan'}`);
     },
     onError: (error) => {
-      console.error('Toggle status error:', error);
+      logger.error('Toggle status error:', error); // ✅ Ganti console.error dengan logger.error
       toast.error(error.message || 'Gagal mengubah status promo');
     },
   });
 
   // ✅ useMutation: Duplicate Promo
   const duplicatePromoMutation = useMutation({
-    mutationFn: async (originalPromo) => {
-      console.log('📋 Duplicating promo:', originalPromo.id);
-      const newPromo = await promoService.duplicate(originalPromo);
+    mutationFn: async (id) => {
+      logger.debug('📋 Duplicating promo:', id); // ✅ Ganti console.log dengan logger.debug
+      const newPromo = await promoService.duplicate(id);
       return newPromo;
     },
     onSuccess: (newPromo) => {
-      queryClient.setQueryData(
-        PROMO_QUERY_KEYS.list(queryParams),
-        (oldData) => {
-          if (!oldData) return [newPromo];
-          return [newPromo, ...oldData];
-        }
-      );
       queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
       toast.success('Promo berhasil diduplikat');
+      // ✅ Navigasi ke promo yang baru dibuat
+      navigate(`/promo/${newPromo.id}`);
     },
     onError: (error) => {
-      console.error('Duplicate promo error:', error);
+      logger.error('Duplicate promo error:', error); // ✅ Ganti console.error dengan logger.error
       toast.error(error.message || 'Gagal menduplikat promo');
     },
   });
@@ -188,7 +185,7 @@ const PromoList = () => {
     (duplicatePromoMutation && duplicatePromoMutation.isPending)
   ) || false;
 
-  console.log('📊 Promo Query State:', {
+  logger.debug('📊 Promo Query State:', { // ✅ Ganti console.log dengan logger.debug
     promos: (promos && promos.length) || 0,
     isLoading,
     error: (error && error.message) || null,
@@ -224,11 +221,7 @@ const PromoList = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedItems.length === 0) {
-      toast.error('Pilih promo yang ingin dihapus');
-      return;
-    }
-    if (window.confirm(`Yakin ingin menghapus ${selectedItems.length} promo yang dipilih?`)) {
+    if (window.confirm(`Yakin ingin menghapus ${selectedItems.length} promo?`)) {
       await bulkDeleteMutation.mutateAsync(selectedItems);
     }
   };
@@ -237,46 +230,42 @@ const PromoList = () => {
     await toggleStatusMutation.mutateAsync({ id, newStatus });
   };
 
-  // ✅ Handler untuk membuka dialog edit
+  const handleDuplicate = async (id) => {
+    await duplicatePromoMutation.mutateAsync(id);
+  };
+
   const handleEdit = (promo) => {
-    console.log('Opening edit dialog for promo:', promo.id);
     setEditingPromo(promo);
     setIsEditDialogOpen(true);
   };
 
-  // ✅ Handler setelah promo berhasil diedit
-  const handleEditSuccess = (updatedPromo) => {
-    console.log('Promo updated successfully in list:', updatedPromo.id);
-  };
-
-  const handleView = (promo) => {
-    console.log('View promo details:', promo.id);
-    toast.info(`Melihat detail promo: ${promo.namaPromo}`);
-  };
-
-  const handleDuplicate = async (promo) => {
-    console.log('Duplicate promo:', promo.id);
-    await duplicatePromoMutation.mutateAsync(promo);
-  };
-
-  const handlePaginationChange = (changes) => {
-    setPagination(prev => ({ ...prev, ...changes }));
+  const handleSaveEdit = async (updatedPromo) => {
+    try {
+      await promoService.update(updatedPromo.id, updatedPromo);
+      queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
+      toast.success('Promo berhasil diperbarui');
+      setIsEditDialogOpen(false);
+      setEditingPromo(null);
+    } catch (error) {
+      logger.error('Save edit error:', error); // ✅ Ganti console.error dengan logger.error
+      toast.error(error.message || 'Gagal memperbarui promo');
+    }
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Refreshing promo data...');
+    logger.debug('🔄 Refreshing promo data...'); // ✅ Ganti console.log dengan logger.debug
     queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
     setSelectedItems([]);
     if (isEditDialogOpen) {
-        setIsEditDialogOpen(false);
-        setEditingPromo(null);
+      setIsEditDialogOpen(false);
+      setEditingPromo(null);
     }
   };
 
   const handleCreateNew = () => {
     if (isEditDialogOpen) {
-        setIsEditDialogOpen(false);
-        setEditingPromo(null);
+      setIsEditDialogOpen(false);
+      setEditingPromo(null);
     }
     // ✅ Navigasi ke halaman utama kalkulator untuk membuat baru
     navigate('/promo');
@@ -296,210 +285,115 @@ const PromoList = () => {
   // Error State
   if (error && promos.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full shadow-xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Gagal Memuat Promo
-            </h2>
-            <p className="text-gray-600 mb-4">
-              {error.message || 'Terjadi kesalahan saat memuat data promo'}
-            </p>
-            <div className="space-y-3">
-              <Button
-                onClick={handleRefresh}
-                className="w-full bg-orange-500 hover:bg-orange-600"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Coba Lagi
-              </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="w-full"
-              >
-                Refresh Halaman
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="container mx-auto p-4 sm:p-6">
+          <ErrorState 
+            error={error}
+            onRetry={promosQuery.refetch}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+      <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Daftar Promo</h1>
-            <p className="text-gray-600 mt-1">
-              Kelola semua promo yang telah dibuat
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Daftar Promo</h1>
+            <p className="text-gray-600 mt-1">Kelola semua promo yang telah dibuat</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
-              variant="outline"
               onClick={handleRefresh}
+              variant="outline"
               disabled={isProcessing}
-              className="border-gray-300"
+              className="flex-1 sm:flex-none"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${promosQuery.isRefetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button
               onClick={handleCreateNew}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isProcessing}
+              className="bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Buat Promo
+              Buat Promo Baru
             </Button>
           </div>
         </div>
 
-        {/* Main Content Card */}
-        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-          <CardContent className="p-0">
-            {/* Filters & Search */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Cari nama promo, tipe, atau deskripsi..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                {/* Bulk Actions */}
-                {selectedItems.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
-                      {selectedItems.length} dipilih
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleBulkDelete}
-                      disabled={isProcessing}
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Hapus
-                    </Button>
-                  </div>
-                )}
-                {/* Filter Button */}
-                <Button
-                  variant="outline"
-                  className="border-gray-300"
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-                {/* Export Button */}
-                <Button
-                  variant="outline"
-                  className="border-gray-300"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
+        {/* Search and Filters */}
+        <Card className="mb-6 border-0 sm:border shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Cari promo..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              {/* Quick Stats */}
-              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-blue-600">{promos.length}</div>
-                  <div className="text-sm text-blue-700">Total Promo</div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-green-600">
-                    {promos.filter(p => p.status === 'aktif').length}
-                  </div>
-                  <div className="text-sm text-green-700">Aktif</div>
-                </div>
-                <div className="bg-red-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-red-600">
-                    {promos.filter(p => p.status === 'nonaktif').length}
-                  </div>
-                  <div className="text-sm text-red-700">Non-aktif</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-gray-600">
-                    {promos.filter(p => p.status === 'draft').length}
-                  </div>
-                  <div className="text-sm text-gray-700">Draft</div>
-                </div>
-              </div>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filter
+              </Button>
             </div>
-
-            {/* Promo Cards Grid */}
-            {promos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                {promos.map(promo => (
-                  <PromoCard
-                    key={promo.id}
-                    promo={promo}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onView={handleView}
-                    onDuplicate={handleDuplicate}
-                    onToggleStatus={handleToggleStatus}
-                    showActions={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center">
-                <div className="text-gray-400 text-4xl mb-4">🎯</div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Promo</h3>
-                <p className="text-gray-600 mb-4">Buat promo pertama Anda untuk melihat daftar di sini</p>
-                <Button
-                  onClick={handleCreateNew}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Buat Promo Pertama
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* Status Bar */}
-        {isProcessing && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                <p className="text-blue-800 font-medium">
-                  Memproses operasi...
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Bulk Actions Bar */}
+        {selectedItems.length > 0 && (
+          <BulkActionsBar
+            selectedCount={selectedItems.length}
+            onBulkDelete={handleBulkDelete}
+            isProcessing={isProcessing}
+          />
+        )}
+
+        {/* Promo List */}
+        {promos.length === 0 ? (
+          <EmptyState
+            title="Belum ada promo"
+            description="Buat promo pertama Anda untuk mulai menghitung penawaran menarik"
+            action={{
+              label: "Buat Promo Baru",
+              onClick: handleCreateNew
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {promos.map((promo) => (
+              <PromoCard
+                key={promo.id}
+                promo={promo}
+                isSelected={selectedItems.includes(promo.id)}
+                onSelect={handleSelectItem}
+                onDelete={handleDelete}
+                onToggleStatus={handleToggleStatus}
+                onDuplicate={handleDuplicate}
+                onEdit={handleEdit}
+                isProcessing={isProcessing}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Edit Dialog */}
+        {isEditDialogOpen && editingPromo && (
+          <PromoEditDialog
+            promo={editingPromo}
+            isOpen={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSave={handleSaveEdit}
+            isProcessing={isProcessing}
+          />
         )}
       </div>
-
-      {/* ✅ Promo Edit Dialog */}
-      <PromoEditDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          console.log('Closing edit dialog');
-          setIsEditDialogOpen(false);
-          setEditingPromo(null);
-        }}
-        promo={editingPromo}
-        onEditSuccess={handleEditSuccess}
-      />
     </div>
   );
 };

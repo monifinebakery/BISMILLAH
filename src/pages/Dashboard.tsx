@@ -111,7 +111,6 @@ const Dashboard = () => {
       return;
     }
 
-    console.log('Setting new date range:', newRange);
     setDateRange(newRange);
   };
 

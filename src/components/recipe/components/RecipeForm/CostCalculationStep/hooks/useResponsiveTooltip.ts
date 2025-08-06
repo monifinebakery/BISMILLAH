@@ -71,7 +71,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
     };
   }, [showTooltip]);
 
-  console.log('useResponsiveTooltip state:', { isMobile, showTooltip }); // Debug log
+  logger.debug('useResponsiveTooltip state:', { isMobile, showTooltip });
 
   return {
     isMobile,

@@ -65,7 +65,7 @@ const PromoList = () => {
     queryFn: async () => {
       logger.debug('Fetching promos with params:', queryParams);
       const promos = await promoService.getAll(queryParams);
-      logger.success('Got promos:', promos?.length ||);
+      logger.success('Got promos:', promos?.length || 0);
       return promos || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes

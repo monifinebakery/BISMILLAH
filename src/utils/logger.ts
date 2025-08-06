@@ -275,7 +275,6 @@ export const logger = {
     }
   }
 };
-};
 
 // ✅ ENHANCED: Add global logger for debugging
 if (typeof window !== 'undefined') {

@@ -92,7 +92,7 @@ const PromoCalculator = () => {
     queryKey: PROMO_QUERY_KEYS.detail(editPromoId),
     queryFn: async () => {
       if (!editPromoId) return null;
-      console.log('🔍 Fetching promo for editing:', editPromoId);
+        logger.component('PromoCalculator', 'Fetching promo for editing:', editPromoId);
       const promo = await promoService.getById(editPromoId);
       console.log('✅ Got promo for editing:', promo);
       return promo;

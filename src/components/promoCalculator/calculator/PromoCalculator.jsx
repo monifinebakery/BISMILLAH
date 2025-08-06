@@ -64,7 +64,7 @@ const PromoCalculator = () => {
     queryFn: async () => {
       logger.component('PromoCalculator', 'Fetching recipes for promo calculator...');
       const recipes = await recipeApi.getRecipes();
-      console.log('✅ Got recipes:', recipes?.length || 0);
+      logger.success('Recipes loaded for promo calculator:', { count: recipes?.length || 0 });
       return recipes || [];
     },
     staleTime: 10 * 60 * 1000,

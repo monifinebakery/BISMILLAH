@@ -102,8 +102,8 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         return;
       }
 
-      console.log('🔍 Current user:', user.email);
-      console.log('🔍 Attempting to link order:', orderId.trim());
+     logger.debug('Current user details:', { email: user.email });
+     logger.component('OrderConfirmationPopup', 'Attempting to link order:', orderId.trim());
 
       // Try to link payment
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);

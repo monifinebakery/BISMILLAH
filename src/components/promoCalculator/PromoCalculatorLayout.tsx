@@ -4,6 +4,7 @@ import { Calculator, List, ArrowLeft, Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import PromoCard from './components/PromoCard';
+import { logger } from '@/utils/logger';
 
 // Import services
 import { promoService } from './services/promoService';

@@ -55,7 +55,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Overlay clicked, hiding tooltip'); // Debug log
+                logger.debug('Overlay clicked, hiding tooltip');
                 hideTooltip();
               }}
             />

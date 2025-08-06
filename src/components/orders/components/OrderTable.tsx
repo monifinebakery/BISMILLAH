@@ -277,7 +277,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   // ✅ FIXED: Implementasi yang proper
   const handleViewDetail = (order: Order) => {
-    console.log('✅ View detail clicked for order:', order.nomorPesanan);
+    logger.component('OrderTable', 'View detail clicked for order:', order.nomorPesanan);
     if (onViewDetail) {
       onViewDetail(order);
     } else {

@@ -93,7 +93,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setError('');
     
     try {
-      console.log('🔍 Getting current user...');
+      logger.component('OrderConfirmationPopup', 'Getting current user...');
       const user = await getCurrentUser();
       
       if (!user) {

@@ -47,7 +47,6 @@ import {
   Truck,
 } from 'lucide-react';
 import { logger } from '@/utils/logger'; // ✅ Import logger
-import StatusDropdown from './StatusDropdown';
 import { formatCurrency, getFormattedTotalQuantities } from '../utils/formatters';
 import type { Purchase, PurchaseStatus } from '../types';
 

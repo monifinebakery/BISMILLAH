@@ -52,7 +52,7 @@ class RecipeErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Recipe page error:', error, errorInfo);
+    logger.error('Recipe page error:', error);
     
     if (process.env.NODE_ENV === 'production') {
       // Example: Sentry.captureException(error);
@@ -152,7 +152,9 @@ const Recipes: React.FC = () => {
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
+      logger.component('Recipes', 'Fetching recipes...');
       const recipes = await recipeApi.getRecipes(); // ✅ Direct return
+      logger.success('Recipes fetched:', { count: recipes?.length || 0 });
       return recipes || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -164,7 +166,9 @@ const Recipes: React.FC = () => {
   const categoriesQuery = useQuery({
     queryKey: ['recipes', 'categories'],
     queryFn: async () => {
+      logger.component('Recipes', 'Fetching categories...');
       const categories = await recipeApi.getUniqueCategories(); // ✅ Direct return
+      logger.success('Categories fetched:', { count: categories?.length || 0 });
       return categories || [];
     },
     enabled: recipesQuery.isSuccess, // Only run after recipes are loaded
@@ -174,7 +178,7 @@ const Recipes: React.FC = () => {
   // ✅ FIXED: useMutation for Delete Recipe - Direct API call
   const deleteRecipeMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('🗑️ Deleting recipe:', id);
+      logger.component('Recipes', 'Deleting recipe:', id);
       await recipeApi.deleteRecipe(id); // ✅ Direct call, throws on error
       return id;
     },
@@ -193,18 +197,20 @@ const Recipes: React.FC = () => {
       
       const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === deletedId);
       if (deletedRecipe) {
+        logger.success('Recipe deleted:', deletedRecipe.namaResep);
         toast.success(`Resep "${deletedRecipe.namaResep}" berhasil dihapus`);
       }
     },
     onError: (error: Error) => {
+      logger.error('Error deleting recipe:', error);
       toast.error(error.message || 'Gagal menghapus resep');
-      console.error('Error deleting recipe:', error);
     },
   });
 
   // ✅ FIXED: useMutation for Duplicate Recipe - Direct API call
   const duplicateRecipeMutation = useMutation({
     mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
+      logger.component('Recipes', 'Duplicating recipe:', { id, newName });
       const newRecipe = await recipeApi.duplicateRecipe(id, newName); // ✅ Direct return
       return newRecipe;
     },
@@ -221,18 +227,19 @@ const Recipes: React.FC = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
       
+      logger.success('Recipe duplicated:', newRecipe.namaResep);
       toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
     },
     onError: (error: Error) => {
+      logger.error('Error duplicating recipe:', error);
       toast.error(error.message || 'Gagal menduplikasi resep');
-      console.error('Error duplicating recipe:', error);
     },
   });
 
   // ✅ FIXED: useMutation for Bulk Update Recipes - Direct API calls
   const bulkUpdateRecipesMutation = useMutation({
     mutationFn: async (updates: { id: string; data: Partial<NewRecipe> }[]) => {
-      console.log('📦 Bulk updating recipes:', updates.length);
+      logger.component('Recipes', 'Bulk updating recipes:', { count: updates.length });
       const updatedRecipes = await Promise.all(
         updates.map(({ id, data }) => recipeApi.updateRecipe(id, data)) // ✅ Direct calls
       );
@@ -252,10 +259,12 @@ const Recipes: React.FC = () => {
 
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      
+      logger.success('Bulk recipe update completed:', { count: updatedRecipes.length });
     },
     onError: (error: Error) => {
+      logger.error('Error bulk updating recipes:', error);
       toast.error(error.message || 'Gagal mengupdate kategori resep');
-      console.error('Error bulk updating recipes:', error);
     },
   });
 
@@ -275,7 +284,7 @@ const Recipes: React.FC = () => {
                       bulkUpdateRecipesMutation.isPending;
 
   // ✅ Debug logging
-  console.log('📊 Recipes Query State:', {
+  logger.debug('Recipes Query State:', {
     data: recipes?.length || 0,
     isLoading,
     error,
@@ -284,21 +293,25 @@ const Recipes: React.FC = () => {
 
   // Handlers
   const handleAddRecipe = () => {
+    logger.component('Recipes', 'Add recipe clicked');
     setEditingRecipe(null);
     setIsFormOpen(true);
   };
 
   const handleEditRecipe = (recipe: Recipe) => {
+    logger.component('Recipes', 'Edit recipe clicked:', recipe.id);
     setEditingRecipe(recipe);
     setIsFormOpen(true);
   };
 
   const handleDeleteRecipe = (recipe: Recipe) => {
+    logger.component('Recipes', 'Delete recipe clicked:', { id: recipe.id, nama: recipe.namaResep });
     setSelectedRecipe(recipe);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDuplicateRecipe = (recipe: Recipe) => {
+    logger.component('Recipes', 'Duplicate recipe clicked:', { id: recipe.id, nama: recipe.namaResep });
     setSelectedRecipe(recipe);
     setIsDuplicateDialogOpen(true);
   };
@@ -333,11 +346,12 @@ const Recipes: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    console.log('🔄 Refreshing all recipe data...');
+    logger.component('Recipes', 'Refreshing all recipe data...');
     queryClient.invalidateQueries({ queryKey: ['recipes'] });
   };
 
   const handleFormSuccess = (recipe: Recipe, isEdit: boolean) => {
+    logger.success('Recipe form success:', { id: recipe.id, nama: recipe.namaResep, isEdit });
     // Form handles its own cache updates, we just need to close dialogs
     setIsFormOpen(false);
     setEditingRecipe(null);
@@ -413,7 +427,10 @@ const Recipes: React.FC = () => {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setIsCategoryDialogOpen(true)}
+                onClick={() => {
+                  logger.component('Recipes', 'Category manager opened');
+                  setIsCategoryDialogOpen(true);
+                }}
                 className="border-orange-200 text-orange-700 hover:bg-orange-50"
                 disabled={isProcessing}
               >

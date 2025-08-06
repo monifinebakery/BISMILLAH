@@ -288,7 +288,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   // ✅ ENHANCED: Follow Up dengan Template Integration
   const handleFollowUp = (order: Order) => {
-    console.log('✅ Follow up clicked for order:', order.nomorPesanan);
+    logger.component('OrderTable', 'Follow up clicked for order:', order.nomorPesanan);
     
     if (onFollowUp) {
       onFollowUp(order);

@@ -1,5 +1,4 @@
 // src/components/recipe/components/RecipeForm/index.tsx - with useQuery
-
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -17,18 +16,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
 // Form components
 import BasicInfoStep from './BasicInfoStep';
 import IngredientsStep from './IngredientsStep';
 import CostCalculationStep from './CostCalculationStep/index';
-
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
 import { RECIPE_CATEGORIES } from '../../types';
 import type { Recipe, NewRecipe, RecipeFormStep, BahanResep } from '../../types';
-
 // Query Keys
 export const RECIPE_QUERY_KEYS = {
   all: ['recipes'] as const,
@@ -37,7 +33,6 @@ export const RECIPE_QUERY_KEYS = {
   details: () => [...RECIPE_QUERY_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...RECIPE_QUERY_KEYS.details(), id] as const,
 } as const;
-
 interface RecipeFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,13 +40,11 @@ interface RecipeFormProps {
   onSuccess?: (recipe: Recipe, isEdit: boolean) => void;
   isLoading?: boolean;
 }
-
 const STEPS: { key: RecipeFormStep; title: string; description: string }[] = [
   { key: 'basic', title: 'Informasi Dasar', description: 'Nama, kategori, dan deskripsi resep' },
   { key: 'ingredients', title: 'Bahan-bahan', description: 'Daftar bahan dan takaran yang dibutuhkan' },
   { key: 'costs', title: 'Kalkulasi HPP', description: 'Biaya produksi dan margin keuntungan' },
 ];
-
 const RecipeForm: React.FC<RecipeFormProps> = ({
   isOpen,
   onOpenChange,
@@ -63,7 +56,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const queryClient = useQueryClient();
-
   // Form data state
   const [formData, setFormData] = useState<NewRecipe>({
     namaResep: '',
@@ -77,31 +69,38 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     marginKeuntunganPersen: 25,
     jumlahPcsPerPorsi: 1,
   });
-
   const isEditMode = !!initialData;
   const currentStepIndex = STEPS.findIndex(step => step.key === currentStep);
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === STEPS.length - 1;
-
   // ✅ useQuery: Create Recipe Mutation
   const createRecipeMutation = useMutation({
     mutationFn: async (data: NewRecipe) => {
-      const response = await recipeApi.createRecipe(data);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      return response.data;
+      // ✅ Perbarui: Tidak perlu membungkus dengan ApiResponse karena recipeApi sudah melempar error
+      return await recipeApi.createRecipe(data);
     },
     onSuccess: (newRecipe) => {
+      // ✅ TAMBAHKAN: Validasi data dari API
+      if (!newRecipe) {
+        const errorMsg = 'Data resep baru tidak diterima dari server';
+        logger.error('RecipeForm: No recipe data received from create API');
+        toast.error(errorMsg);
+        return;
+      }
+      if (!newRecipe.id) {
+        const errorMsg = 'Data resep baru tidak valid diterima dari server (ID hilang)';
+        logger.error('RecipeForm: Invalid recipe data received from create API (missing ID)', newRecipe);
+        toast.error(errorMsg);
+        return;
+      }
+
       // Invalidate and refetch recipes list
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
-      
       // Add to cache optimistically
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(newRecipe.id), 
         newRecipe
       );
-
       toast.success('Resep berhasil ditambahkan!');
       onSuccess?.(newRecipe, false);
       onOpenChange(false);
@@ -111,26 +110,34 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       toast.error(error.message || 'Gagal menambahkan resep');
     },
   });
-
   // ✅ useQuery: Update Recipe Mutation
   const updateRecipeMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<NewRecipe> }) => {
-      const response = await recipeApi.updateRecipe(id, data);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      return response.data;
+      // ✅ Perbarui: Tidak perlu membungkus dengan ApiResponse karena recipeApi sudah melempar error
+      return await recipeApi.updateRecipe(id, data);
     },
     onSuccess: (updatedRecipe) => {
+      // ✅ TAMBAHKAN: Validasi data dari API
+      if (!updatedRecipe) {
+        const errorMsg = 'Data resep tidak diterima dari server';
+        logger.error('RecipeForm: No recipe data received from update API');
+        toast.error(errorMsg);
+        return;
+      }
+      if (!updatedRecipe.id) {
+        const errorMsg = 'Data resep tidak valid diterima dari server (ID hilang)';
+        logger.error('RecipeForm: Invalid recipe data received from update API (missing ID)', updatedRecipe);
+        toast.error(errorMsg);
+        return;
+      }
+
       // Invalidate and refetch recipes list
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
-      
       // Update specific recipe in cache
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(updatedRecipe.id), 
         updatedRecipe
       );
-
       // Update any cached lists that contain this recipe
       queryClient.setQueriesData(
         { queryKey: RECIPE_QUERY_KEYS.lists() },
@@ -141,7 +148,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           );
         }
       );
-
       toast.success('Resep berhasil diperbarui!');
       onSuccess?.(updatedRecipe, true);
       onOpenChange(false);
@@ -151,11 +157,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       toast.error(error.message || 'Gagal memperbarui resep');
     },
   });
-
   // Check if any mutation is loading
   const isMutationLoading = createRecipeMutation.isPending || updateRecipeMutation.isPending;
   const isLoading = externalLoading || isMutationLoading;
-
   // Initialize form data
   useEffect(() => {
     if (isOpen) {
@@ -196,22 +200,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       setErrors({});
     }
   }, [isOpen, initialData]);
-
   // Update form field
   const updateField = (field: keyof NewRecipe, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
-
   // Auto-calculate HPP when relevant fields change
   useEffect(() => {
     if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
       setIsCalculating(true);
-      
       const timer = setTimeout(() => {
         try {
           const calculation = calculateHPP(
@@ -222,7 +222,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             formData.marginKeuntunganPersen || 0,
             formData.jumlahPcsPerPorsi || 1
           );
-
           setFormData(prev => ({
             ...prev,
             totalHpp: calculation.totalHPP,
@@ -237,7 +236,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           setIsCalculating(false);
         }
       }, 500);
-
       return () => clearTimeout(timer);
     }
   }, [
@@ -248,11 +246,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
   ]);
-
   // Validate current step
   const validateCurrentStep = (): boolean => {
     const stepErrors: { [key: string]: string } = {};
-
     switch (currentStep) {
       case 'basic':
         if (!formData.namaResep.trim()) {
@@ -265,7 +261,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           stepErrors.jumlahPcsPerPorsi = 'Jumlah pcs per porsi harus lebih dari 0';
         }
         break;
-
       case 'ingredients':
         if (formData.bahanResep.length === 0) {
           stepErrors.bahanResep = 'Minimal harus ada 1 bahan resep';
@@ -283,7 +278,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           });
         }
         break;
-
       case 'costs':
         if (formData.biayaTenagaKerja < 0) {
           stepErrors.biayaTenagaKerja = 'Biaya tenaga kerja tidak boleh negatif';
@@ -296,24 +290,20 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         }
         break;
     }
-
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
-
   // Navigate to next step
   const handleNext = () => {
     if (!validateCurrentStep()) {
       toast.error('Mohon perbaiki kesalahan pada form');
       return;
     }
-
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) {
       setCurrentStep(STEPS[nextIndex].key);
     }
   };
-
   // Navigate to previous step
   const handlePrevious = () => {
     const prevIndex = currentStepIndex - 1;
@@ -321,7 +311,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       setCurrentStep(STEPS[prevIndex].key);
     }
   };
-
   // ✅ Submit form with useQuery mutations
   const handleSubmit = async () => {
     // Validate all data
@@ -330,7 +319,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       toast.error(`Form tidak valid: ${validation.errors[0]}`);
       return;
     }
-
     try {
       if (isEditMode && initialData?.id) {
         // Update existing recipe
@@ -347,7 +335,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       logger.error('RecipeForm: Error in handleSubmit:', error);
     }
   };
-
   // Render step content
   const renderStepContent = () => {
     const commonProps = {
@@ -356,7 +343,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       onUpdate: updateField,
       isLoading: isLoading || isCalculating,
     };
-
     switch (currentStep) {
       case 'basic':
         return <BasicInfoStep {...commonProps} />;
@@ -368,13 +354,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         return null;
     }
   };
-
   if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white">
-        
         {/* Header */}
         <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-red-50">
           <div className="flex items-center justify-between">
@@ -395,7 +378,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
               <X className="h-4 w-4" />
             </Button>
           </div>
-
           {/* Step Progress */}
           <div className="flex items-center gap-4 mt-4">
             {STEPS.map((step, index) => (
@@ -431,18 +413,15 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             ))}
           </div>
         </CardHeader>
-
         {/* Content with Mobile-Safe Padding */}
         <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="p-6 pb-32 sm:pb-6">
             {renderStepContent()}
           </div>
         </CardContent>
-
         {/* Footer - Fixed Position for Mobile with Safe Area */}
         <div className="border-t bg-gray-50 p-4 relative sm:static fixed bottom-16 sm:bottom-0 left-0 right-0 z-60 shadow-lg sm:shadow-none">
           <div className="flex items-center justify-between max-w-4xl mx-auto">
-            
             {/* Left side - HPP Preview (on cost step) */}
             <div className="flex-1">
               {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
@@ -458,7 +437,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                 </div>
               )}
             </div>
-
             {/* Navigation buttons */}
             <div className="flex items-center gap-2 sm:gap-3">
               <Button
@@ -470,7 +448,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                 <ChevronLeft className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Sebelumnya</span>
               </Button>
-
               {isLastStep ? (
                 <Button
                   onClick={handleSubmit}
@@ -503,7 +480,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
               )}
             </div>
           </div>
-
           {/* Form errors summary - Mobile Optimized */}
           {Object.keys(errors).length > 0 && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg max-w-4xl mx-auto">
@@ -530,5 +506,4 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     </div>
   );
 };
-
 export default RecipeForm;

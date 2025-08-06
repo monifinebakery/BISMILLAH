@@ -138,7 +138,7 @@ const OrderRowActions: React.FC<{
           className="h-8 w-8 p-0" 
           onClick={(e) => {
             e.stopPropagation();
-            console.log('✅ Dropdown menu clicked for order:', order.nomorPesanan); // Debug log
+            logger.component('OrderTable', 'Dropdown menu clicked for order:', order.nomorPesanan);
           }}
         >
           <MoreHorizontal className="h-4 w-4" />

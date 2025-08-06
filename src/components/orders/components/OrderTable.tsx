@@ -117,7 +117,7 @@ const OrderRowActions: React.FC<{
       onViewDetail();
     } else {
       // ✅ FALLBACK: Show alert atau navigate ke detail page
-      console.log('View detail for order:', order.id);
+      logger.component('OrderTable', 'View detail clicked for order:', order.nomorPesanan);
       alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
     }
   };

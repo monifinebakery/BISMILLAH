@@ -1,6 +1,7 @@
 // src/components/operational-costs/services/operationalCostApi.ts
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/utils/logger';
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -17,7 +18,7 @@ import {
 const getCurrentUserId = async (): Promise<string | null> => {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
-    console.error('Error getting current user:', error);
+    logger.error('Error getting current user:', error);
     return null;
   }
   return user.id;
@@ -58,7 +59,7 @@ export const operationalCostApi = {
 
       return { data: data || [] };
     } catch (error) {
-      console.error('Error fetching costs:', error);
+      logger.error('Error fetching costs:', error);
       return { data: [], error: 'Gagal mengambil data biaya operasional' };
     }
   },
@@ -82,7 +83,7 @@ export const operationalCostApi = {
 
       return { data };
     } catch (error) {
-      console.error('Error fetching cost:', error);
+      logger.error('Error fetching cost:', error);
       return { data: null, error: 'Gagal mengambil data biaya' };
     }
   },
@@ -110,7 +111,7 @@ export const operationalCostApi = {
 
       return { data, message: 'Biaya operasional berhasil ditambahkan' };
     } catch (error) {
-      console.error('Error creating cost:', error);
+      logger.error('Error creating cost:', error);
       return { data: {} as OperationalCost, error: 'Gagal menambahkan biaya operasional' };
     }
   },
@@ -138,7 +139,7 @@ export const operationalCostApi = {
 
       return { data, message: 'Biaya operasional berhasil diperbarui' };
     } catch (error) {
-      console.error('Error updating cost:', error);
+      logger.error('Error updating cost:', error);
       return { data: {} as OperationalCost, error: 'Gagal memperbarui biaya operasional' };
     }
   },
@@ -161,7 +162,7 @@ export const operationalCostApi = {
 
       return { data: true, message: 'Biaya operasional berhasil dihapus' };
     } catch (error) {
-      console.error('Error deleting cost:', error);
+      logger.error('Error deleting cost:', error);
       return { data: false, error: 'Gagal menghapus biaya operasional' };
     }
   },
@@ -208,7 +209,7 @@ export const operationalCostApi = {
 
       return { data: summary };
     } catch (error) {
-      console.error('Error fetching cost summary:', error);
+      logger.error('Error fetching cost summary:', error);
       return { 
         data: {
           total_biaya_aktif: 0,
@@ -246,7 +247,7 @@ export const allocationApi = {
 
       return { data: data || null };
     } catch (error) {
-      console.error('Error fetching allocation settings:', error);
+      logger.error('Error fetching allocation settings:', error);
       return { data: null, error: 'Gagal mengambil pengaturan alokasi' };
     }
   },
@@ -279,7 +280,7 @@ export const allocationApi = {
 
       return { data, message: 'Pengaturan alokasi berhasil disimpan' };
     } catch (error) {
-      console.error('Error upserting allocation settings:', error);
+      logger.error('Error upserting allocation settings:', error);
       
       // ✅ Better error handling
       let errorMessage = 'Gagal menyimpan pengaturan alokasi';
@@ -311,7 +312,7 @@ export const allocationApi = {
 
       return { data: true, message: 'Pengaturan alokasi berhasil dihapus' };
     } catch (error) {
-      console.error('Error deleting allocation settings:', error);
+      logger.error('Error deleting allocation settings:', error);
       return { data: false, error: 'Gagal menghapus pengaturan alokasi' };
     }
   },
@@ -378,7 +379,7 @@ export const calculationApi = {
         }
       };
     } catch (error) {
-      console.error('Error calculating overhead:', error);
+      logger.error('Error calculating overhead:', error);
       return {
         data: {
           total_costs: 0,

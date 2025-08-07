@@ -5,6 +5,7 @@ import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.type
 import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from '../context/PurchaseContext';
+import { logger } from '@/utils/logger';
 
 interface UsePurchaseFormProps {
   mode: 'create' | 'edit';
@@ -179,7 +180,7 @@ export const usePurchaseForm = ({
         onError?.('Gagal menyimpan pembelian');
       }
     } catch (error: any) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error);
       onError?.(error.message || 'Terjadi kesalahan saat menyimpan');
     } finally {
       setIsSubmitting(false);

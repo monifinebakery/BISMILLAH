@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export const promoService = {
   // ✅ Get all promos (for useQuery)
@@ -65,7 +66,7 @@ export const promoService = {
 
       return transformedData;
     } catch (error) {
-      console.error('Error getting promos:', error);
+      logger.error('Error getting promos:', error);
       throw error;
     }
   },
@@ -100,7 +101,7 @@ export const promoService = {
         updatedAt: data.updated_at
       };
     } catch (error) {
-      console.error('Error getting promo by ID:', error);
+      logger.error('Error getting promo by ID:', error);
       throw error;
     }
   },
@@ -148,7 +149,7 @@ export const promoService = {
         updatedAt: data.updated_at
       };
     } catch (error) {
-      console.error('Error creating promo:', error);
+      logger.error('Error creating promo:', error);
       throw error;
     }
   },
@@ -197,7 +198,7 @@ export const promoService = {
         updatedAt: data.updated_at
       };
     } catch (error) {
-      console.error('Error updating promo:', error);
+      logger.error('Error updating promo:', error);
       throw error;
     }
   },
@@ -218,7 +219,7 @@ export const promoService = {
 
       return { success: true, id };
     } catch (error) {
-      console.error('Error deleting promo:', error);
+      logger.error('Error deleting promo:', error);
       throw error;
     }
   },
@@ -239,7 +240,7 @@ export const promoService = {
 
       return { success: true, deletedIds: ids };
     } catch (error) {
-      console.error('Error bulk deleting promos:', error);
+      logger.error('Error bulk deleting promos:', error);
       throw error;
     }
   },
@@ -249,7 +250,7 @@ export const promoService = {
     try {
       return await promoService.update(id, { status: newStatus });
     } catch (error) {
-      console.error('Error toggling promo status:', error);
+      logger.error('Error toggling promo status:', error);
       throw error;
     }
   },
@@ -270,7 +271,7 @@ export const promoService = {
 
       return await promoService.create(duplicatedData);
     } catch (error) {
-      console.error('Error duplicating promo:', error);
+      logger.error('Error duplicating promo:', error);
       throw error;
     }
   }

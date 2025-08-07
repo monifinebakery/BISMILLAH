@@ -91,7 +91,7 @@ const PromoCalculator = () => {
     queryKey: PROMO_QUERY_KEYS.detail(editPromoId),
     queryFn: async () => {
       if (!editPromoId) return null;
-        logger.component('PromoCalculator', 'Fetching promo for editing:', editPromoId);
+      logger.component('PromoCalculator', 'Fetching promo for editing:', editPromoId);
       const promo = await promoService.getById(editPromoId);
       logger.success('Promo loaded for editing:', { id: promo?.id, name: promo?.namaPromo });
       return promo;
@@ -144,7 +144,7 @@ const PromoCalculator = () => {
       }
     },
     onError: (error) => {
-      console.error('Save promo error:', error);
+      logger.error('Save promo error:', error);
       const action = isEditMode ? 'memperbarui' : 'menyimpan';
       toast.error(`Gagal ${action} promo: ${error.message}`);
     },
@@ -197,7 +197,7 @@ const PromoCalculator = () => {
       
       toast.success('Perhitungan promo berhasil!');
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error);
       toast.error(`Error: ${error.message}`);
     }
   };
@@ -224,7 +224,7 @@ const PromoCalculator = () => {
       tanggalSelesai: formData.tanggalSelesai || null,
     };
 
-    console.log('💾 Saving promo data:', promoDataToSave);
+    logger.context('PromoCalculator', 'Saving promo data:', promoDataToSave);
     await savePromoMutation.mutateAsync(promoDataToSave);
   };
 
@@ -233,7 +233,7 @@ const PromoCalculator = () => {
   };
 
   const handleRefreshDashboard = () => {
-    console.log('🔄 Refreshing dashboard...');
+    logger.context('PromoCalculator', 'Refreshing dashboard...');
     queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
     queryClient.invalidateQueries({ queryKey: ['recipes'] });
     toast.info('Merefresh data...');

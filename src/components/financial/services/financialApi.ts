@@ -1,5 +1,6 @@
 // src/components/financial/services/financialApi.ts
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 import { 
   FinancialTransaction, 
   CreateTransactionData, 
@@ -78,7 +79,7 @@ export const getFinancialTransactions = async (userId: string): Promise<Financia
     
     return (data || []).map(transformFromDB);
   } catch (error: any) {
-    console.error('Error fetching transactions:', error);
+    logger.error('Error fetching transactions:', error);
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 };
@@ -112,7 +113,7 @@ export const addFinancialTransaction = async (
     
     return { success: true, data: true };
   } catch (error: any) {
-    console.error('Error adding transaction:', error);
+    logger.error('Error adding transaction:', error);
     return { 
       success: false, 
       data: false, 
@@ -151,7 +152,7 @@ export const updateFinancialTransaction = async (
     
     return { success: true, data: true };
   } catch (error: any) {
-    console.error('Error updating transaction:', error);
+    logger.error('Error updating transaction:', error);
     return { 
       success: false, 
       data: false, 
@@ -174,7 +175,7 @@ export const deleteFinancialTransaction = async (
     
     return { success: true, data: true };
   } catch (error: any) {
-    console.error('Error deleting transaction:', error);
+    logger.error('Error deleting transaction:', error);
     return { 
       success: false, 
       data: false, 
@@ -202,7 +203,7 @@ export const getTransactionsByDateRange = async (
     
     return (data || []).map(transformFromDB);
   } catch (error: any) {
-    console.error('Error fetching transactions by date range:', error);
+    logger.error('Error fetching transactions by date range:', error);
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 };
@@ -229,7 +230,7 @@ export const getFinancialTransactionById = async (
     
     return data ? transformFromDB(data) : null;
   } catch (error: any) {
-    console.error('Error fetching transaction by ID:', error);
+    logger.error('Error fetching transaction by ID:', error);
     throw new Error(`Failed to fetch transaction: ${error.message}`);
   }
 };
@@ -250,7 +251,7 @@ export const bulkDeleteFinancialTransactions = async (
     
     return { success: true, data: true };
   } catch (error: any) {
-    console.error('Error bulk deleting transactions:', error);
+    logger.error('Error bulk deleting transactions:', error);
     return { 
       success: false, 
       data: false, 
@@ -311,7 +312,7 @@ export const getFinancialStats = async (
       monthlyGrowth: Math.random() * 20 - 10, // Mock growth - implement real calculation
     };
   } catch (error: any) {
-    console.error('Error getting financial stats:', error);
+    logger.error('Error getting financial stats:', error);
     throw new Error(`Failed to get stats: ${error.message}`);
   }
 };

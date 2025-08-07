@@ -1,5 +1,7 @@
 // 🛠️ Utils Index - Entry point untuk semua utilities
 
+import { logger } from '@/utils/logger';
+
 // Import individual utilities
 import { formatters } from './formatters.js';
 import { calculations } from './calculations.js';
@@ -25,7 +27,7 @@ export const storage = {
       localStorage.setItem(storage.keys.PROMO_FORM_DATA, JSON.stringify(dataToSave));
       return true;
     } catch (error) {
-      console.warn('Failed to save form data:', error);
+      logger.warn('Failed to save form data:', error);
       return false;
     }
   },
@@ -48,7 +50,7 @@ export const storage = {
       }
       return data;
     } catch (error) {
-      console.warn('Failed to load form data:', error);
+      logger.warn('Failed to load form data:', error);
       return null;
     }
   },
@@ -59,7 +61,7 @@ export const storage = {
       localStorage.removeItem(storage.keys.PROMO_FORM_DATA);
       return true;
     } catch (error) {
-      console.warn('Failed to clear form data:', error);
+      logger.warn('Failed to clear form data:', error);
       return false;
     }
   },
@@ -70,7 +72,7 @@ export const storage = {
       localStorage.setItem(storage.keys.PROMO_PREFERENCES, JSON.stringify(preferences));
       return true;
     } catch (error) {
-      console.warn('Failed to save preferences:', error);
+      logger.warn('Failed to save preferences:', error);
       return false;
     }
   },
@@ -82,7 +84,7 @@ export const storage = {
       if (!saved) return null;
       return JSON.parse(saved);
     } catch (error) {
-      console.warn('Failed to load preferences:', error);
+      logger.warn('Failed to load preferences:', error);
       return null;
     }
   },
@@ -97,7 +99,7 @@ export const storage = {
       localStorage.setItem(storage.keys.PROMO_DRAFT, JSON.stringify(dataToSave));
       return true;
     } catch (error) {
-      console.warn('Failed to save draft:', error);
+      logger.warn('Failed to save draft:', error);
       return false;
     }
   },
@@ -109,7 +111,7 @@ export const storage = {
       if (!saved) return null;
       return JSON.parse(saved);
     } catch (error) {
-      console.warn('Failed to load draft:', error);
+      logger.warn('Failed to load draft:', error);
       return null;
     }
   },
@@ -120,7 +122,7 @@ export const storage = {
       localStorage.removeItem(storage.keys.PROMO_DRAFT);
       return true;
     } catch (error) {
-      console.warn('Failed to clear draft:', error);
+      logger.warn('Failed to clear draft:', error);
       return false;
     }
   },
@@ -133,7 +135,7 @@ export const storage = {
       });
       return true;
     } catch (error) {
-      console.warn('Failed to clear all data:', error);
+      logger.warn('Failed to clear all data:', error);
       return false;
     }
   }

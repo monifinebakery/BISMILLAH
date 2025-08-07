@@ -112,10 +112,10 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
   // ✅ MEMOIZED: WhatsApp handler for template manager
   const handleSendWhatsApp = useMemo(() => 
     (message: string, order: Order) => {
-      console.log('Sending WhatsApp:', { message, order });
+      logger.context('OrderDialogs', 'Sending WhatsApp:', { message, order });
       
       if (!order.teleponPelanggan) {
-        console.warn('No phone number available for WhatsApp');
+        logger.warn('No phone number available for WhatsApp');
         return;
       }
       
@@ -129,9 +129,9 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
         // Open WhatsApp
         window.open(whatsappUrl, '_blank');
         
-        console.log('WhatsApp opened successfully');
+        logger.context('OrderDialogs', 'WhatsApp opened successfully');
       } catch (error) {
-        console.error('Error opening WhatsApp:', error);
+        logger.error('Error opening WhatsApp:', error);
       }
     }, []
   );

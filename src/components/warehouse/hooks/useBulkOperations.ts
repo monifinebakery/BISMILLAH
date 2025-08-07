@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { BahanBaku, BulkEditData } from '../types/warehouse';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface UseBulkOperationsProps {
   updateBahanBaku: (id: string, updates: Partial<BahanBaku>) => Promise<boolean>;
@@ -151,7 +152,7 @@ export const useBulkOperations = ({
 
       return successful > 0;
     } catch (error) {
-      console.error('Bulk edit error:', error);
+      logger.error('Bulk edit error:', error);
       toast.error('Terjadi kesalahan saat melakukan bulk edit');
       return false;
     } finally {
@@ -179,7 +180,7 @@ export const useBulkOperations = ({
         return false;
       }
     } catch (error) {
-      console.error('Bulk delete error:', error);
+      logger.error('Bulk delete error:', error);
       toast.error('Terjadi kesalahan saat menghapus item');
       return false;
     } finally {

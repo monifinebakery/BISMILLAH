@@ -5,6 +5,7 @@ import {
   verifyOrderExists, 
   getRecentUnlinkedOrders 
 } from '@/lib/authService'; // ✅ Updated import path
+import { logger } from '@/utils/logger';
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     try {
       const orders = await getRecentUnlinkedOrders();
       setRecentOrders(orders);
-      console.log('Recent unlinked orders:', orders);
+      logger.component('OrderConfirmationPopup', 'Recent unlinked orders loaded:', orders);
     } catch (error) {
       console.error('Error loading recent orders:', error);
     }
@@ -57,9 +58,9 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setError('');
     
     try {
-      console.log('🔍 Verifying order:', orderId.trim());
+      logger.component('OrderConfirmationPopup', 'Verifying order:', orderId.trim());
       const exists = await verifyOrderExists(orderId.trim());
-      console.log('🔍 Order exists:', exists);
+      logger.debug('Order verification result:', { orderId: orderId.trim(), exists });
       
       if (!exists) {
         setError('Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');
@@ -92,7 +93,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setError('');
     
     try {
-      console.log('🔍 Getting current user...');
+      logger.component('OrderConfirmationPopup', 'Getting current user...');
       const user = await getCurrentUser();
       
       if (!user) {
@@ -101,14 +102,14 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         return;
       }
 
-      console.log('🔍 Current user:', user.email);
-      console.log('🔍 Attempting to link order:', orderId.trim());
+     logger.debug('Current user details:', { email: user.email });
+     logger.component('OrderConfirmationPopup', 'Attempting to link order:', orderId.trim());
 
       // Try to link payment
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
-        console.log('✅ Payment linked successfully:', linkedPayment);
+        logger.success('Payment linked successfully:', linkedPayment);
         onSuccess?.(linkedPayment);
         onClose();
         resetForm();

@@ -58,6 +58,7 @@ import {
 // ✅ COMPONENTS: Direct imports
 import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
+import { logger } from '@/utils/logger';
 
 // ✅ CONSTANTS: Moved to top level for better performance
 const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
@@ -143,12 +144,12 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   // ✅ MEMOIZED: Action handlers
   const actionHandlers = useMemo(() => ({
     edit: (purchase: any) => {
-      console.log('Edit clicked for:', purchase.id);
+      logger.context('PurchaseTable', 'Edit clicked for:', purchase.id);
       onEdit(purchase);
     },
 
     delete: (purchaseId: string) => {
-      console.log('Delete clicked for:', purchaseId);
+      logger.context('PurchaseTable', 'Delete clicked for:', purchaseId);
       if (confirm('Yakin ingin menghapus pembelian ini?')) {
         if (onDelete) {
           onDelete(purchaseId);
@@ -160,11 +161,11 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     },
 
     viewDetails: (purchase: any) => {
-      console.log('View details clicked for:', purchase.id);
+      logger.context('PurchaseTable', 'View details clicked for:', purchase.id);
       if (onViewDetails) {
         onViewDetails(purchase);
       } else {
-        console.log('View details:', purchase);
+        logger.context('PurchaseTable', 'View details:', purchase);
       }
     },
 
@@ -211,7 +212,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         });
       }
     } catch (error) {
-      console.error('Status change validation failed:', error);
+      logger.error('Status change validation failed:', error);
       setEditingStatusId(null);
     }
   }, [filteredPurchases, validateStatusChange, onStatusChange]);
@@ -227,7 +228,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         setDialogState({ confirmation: initialDialogState.confirmation });
         setEditingStatusId(null);
       } catch (error) {
-        console.error('Status change failed:', error);
+        logger.error('Status change failed:', error);
       }
     },
 
@@ -279,7 +280,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         onValueChange={(value: PurchaseStatus) => handleStatusChange(purchase.id, value)}
         onOpenChange={(open) => {
           if (!open) {
-            onCancelEdit();
+            logger.debug('Edit clicked for purchase:', purchase.id);
           }
         }}
         defaultOpen={true}

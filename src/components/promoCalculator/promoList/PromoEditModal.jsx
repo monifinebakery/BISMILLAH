@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   const [formData, setFormData] = useState({

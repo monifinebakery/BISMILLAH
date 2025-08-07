@@ -1,42 +1,33 @@
 // src/components/recipe/services/recipeApi.ts - useQuery Optimized
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { Recipe, RecipeDB, NewRecipe } from '../types';
-
 // ✅ Standardized API Response Types for useQuery
 export interface ApiResponse<T> {
   data: T;
   error?: string;
 }
-
 export interface ApiError {
   message: string;
   code?: string;
   details?: any;
 }
-
 /**
  * Recipe API Service optimized for useQuery
  */
 class RecipeApiService {
   private readonly tableName = 'recipes';
-
   // ✅ Get current user ID with error handling
   private async getCurrentUserId(): Promise<string> {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
     if (error) {
       throw new Error(`Authentication error: ${error.message}`);
     }
-    
     if (!session?.user) {
       throw new Error('User not authenticated');
     }
-    
     return session.user.id;
   }
-
   // Transform database format to frontend format
   private transformFromDB = (dbItem: RecipeDB): Recipe => ({
     id: dbItem.id,
@@ -59,7 +50,6 @@ class RecipeApiService {
     hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,
     hargaJualPerPcs: Number(dbItem.harga_jual_per_pcs) || 0,
   });
-
   // Transform frontend format to database format
   private transformToDB = (recipe: Partial<NewRecipe>) => ({
     nama_resep: recipe.namaResep,
@@ -78,7 +68,6 @@ class RecipeApiService {
     hpp_per_pcs: recipe.hppPerPcs || 0,
     harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
   });
-
   /**
    * ✅ useQuery-optimized: Get all recipes
    * Automatically handles auth and throws errors for useQuery
@@ -92,38 +81,30 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Fetching recipes with filters:', filters);
-
       let query = supabase
         .from(this.tableName)
         .select('*')
         .eq('user_id', userId);
-
       // Apply filters
       if (filters?.category) {
         query = query.eq('kategori_resep', filters.category);
       }
-
       if (filters?.search) {
         query = query.or(
           `nama_resep.ilike.%${filters.search}%,kategori_resep.ilike.%${filters.search}%,deskripsi.ilike.%${filters.search}%`
         );
       }
-
       // Apply sorting
       const sortBy = filters?.sortBy || 'nama_resep';
       const ascending = (filters?.sortOrder || 'asc') === 'asc';
       query = query.order(sortBy, { ascending });
-
       const { data, error } = await query;
-
       if (error) {
         logger.error('RecipeAPI: Error fetching recipes:', error);
         throw new Error(error.message);
       }
-
       const transformedData = (data || []).map(this.transformFromDB);
       logger.debug(`RecipeAPI: Successfully fetched ${transformedData.length} recipes`);
-
       return transformedData;
     } catch (error) {
       if (error instanceof Error) {
@@ -132,7 +113,6 @@ class RecipeApiService {
       throw new Error('Unexpected error fetching recipes');
     }
   }
-
   /**
    * ✅ useQuery-optimized: Get single recipe by ID
    */
@@ -140,19 +120,16 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Fetching recipe by ID:', id);
-
       const { data, error } = await supabase
         .from(this.tableName)
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-
       if (error) {
         logger.error('RecipeAPI: Error fetching recipe by ID:', error);
         throw new Error(error.message);
       }
-
       return this.transformFromDB(data);
     } catch (error) {
       if (error instanceof Error) {
@@ -161,7 +138,6 @@ class RecipeApiService {
       throw new Error('Unexpected error fetching recipe');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Create new recipe
    */
@@ -169,7 +145,6 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Creating new recipe:', recipe.namaResep);
-
       const dbData = this.transformToDB(recipe);
       const { data, error } = await supabase
         .from(this.tableName)
@@ -182,9 +157,29 @@ class RecipeApiService {
         throw new Error(error.message);
       }
 
-      const transformedData = this.transformFromDB(data);
-      logger.debug('RecipeAPI: Successfully created recipe:', transformedData.id);
+      // ✅ TAMBAHKAN: Validasi data dari Supabase
+      if (!data) {
+        const errorMsg = 'Gagal membuat resep: Data tidak diterima dari database';
+        logger.error('RecipeAPI: No data returned from Supabase after creating recipe');
+        throw new Error(errorMsg);
+      }
+      
+      if (!data.id) {
+        const errorMsg = 'Gagal membuat resep: ID tidak ditemukan dalam data dari database';
+        logger.error('RecipeAPI: Created recipe data missing ID:', data);
+        throw new Error(errorMsg);
+      }
 
+      const transformedData = this.transformFromDB(data);
+      
+      // ✅ TAMBAHKAN: Validasi hasil transformasi
+      if (!transformedData.id) {
+        const errorMsg = 'Gagal membuat resep: ID tidak valid setelah transformasi';
+        logger.error('RecipeAPI: Transformed recipe data missing ID:', transformedData);
+        throw new Error(errorMsg);
+      }
+
+      logger.debug('RecipeAPI: Successfully created recipe:', transformedData.id);
       return transformedData;
     } catch (error) {
       if (error instanceof Error) {
@@ -193,7 +188,6 @@ class RecipeApiService {
       throw new Error('Unexpected error creating recipe');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Update existing recipe
    */
@@ -201,7 +195,6 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Updating recipe:', id);
-
       const dbUpdates = this.transformToDB(updates);
       const { data, error } = await supabase
         .from(this.tableName)
@@ -216,9 +209,29 @@ class RecipeApiService {
         throw new Error(error.message);
       }
 
-      const transformedData = this.transformFromDB(data);
-      logger.debug('RecipeAPI: Successfully updated recipe:', transformedData.id);
+      // ✅ TAMBAHKAN: Validasi data dari Supabase
+      if (!data) {
+        const errorMsg = 'Gagal memperbarui resep: Data tidak diterima dari database';
+        logger.error('RecipeAPI: No data returned from Supabase after updating recipe', { id, updates });
+        throw new Error(errorMsg);
+      }
 
+      if (!data.id) {
+        const errorMsg = 'Gagal memperbarui resep: ID tidak ditemukan dalam data dari database';
+        logger.error('RecipeAPI: Updated recipe data missing ID:', data);
+        throw new Error(errorMsg);
+      }
+
+      const transformedData = this.transformFromDB(data);
+
+      // ✅ TAMBAHKAN: Validasi hasil transformasi
+      if (!transformedData.id) {
+        const errorMsg = 'Gagal memperbarui resep: ID tidak valid setelah transformasi';
+        logger.error('RecipeAPI: Transformed recipe data missing ID:', transformedData);
+        throw new Error(errorMsg);
+      }
+
+      logger.debug('RecipeAPI: Successfully updated recipe:', transformedData.id);
       return transformedData;
     } catch (error) {
       if (error instanceof Error) {
@@ -227,7 +240,6 @@ class RecipeApiService {
       throw new Error('Unexpected error updating recipe');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Delete recipe
    */
@@ -235,18 +247,15 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Deleting recipe:', id);
-
       const { error } = await supabase
         .from(this.tableName)
         .delete()
         .eq('id', id)
         .eq('user_id', userId);
-
       if (error) {
         logger.error('RecipeAPI: Error deleting recipe:', error);
         throw new Error(error.message);
       }
-
       logger.debug('RecipeAPI: Successfully deleted recipe:', id);
     } catch (error) {
       if (error instanceof Error) {
@@ -255,7 +264,6 @@ class RecipeApiService {
       throw new Error('Unexpected error deleting recipe');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Duplicate recipe
    */
@@ -263,17 +271,14 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Duplicating recipe:', id, 'with new name:', newName);
-
       // First, get the original recipe
       const original = await this.getRecipe(id);
-      
       // Create new recipe data
       const duplicateData: NewRecipe = {
         ...original,
         namaResep: newName,
         // Remove IDs and timestamps that shouldn't be copied
       };
-
       // Create the duplicate
       return await this.createRecipe(duplicateData);
     } catch (error) {
@@ -283,7 +288,6 @@ class RecipeApiService {
       throw new Error('Unexpected error duplicating recipe');
     }
   }
-
   /**
    * ✅ useQuery-optimized: Get unique categories
    */
@@ -291,26 +295,22 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Fetching unique categories');
-
       const { data, error } = await supabase
         .from(this.tableName)
         .select('kategori_resep')
         .eq('user_id', userId)
         .not('kategori_resep', 'is', null)
         .not('kategori_resep', 'eq', '');
-
       if (error) {
         logger.error('RecipeAPI: Error fetching categories:', error);
         throw new Error(error.message);
       }
-
       // Extract unique categories
       const categories = [...new Set(
         (data || [])
           .map(item => item.kategori_resep)
           .filter(Boolean)
       )].sort();
-
       logger.debug(`RecipeAPI: Found ${categories.length} unique categories`);
       return categories;
     } catch (error) {
@@ -320,7 +320,6 @@ class RecipeApiService {
       throw new Error('Unexpected error fetching categories');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Bulk delete recipes
    */
@@ -328,18 +327,15 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Bulk deleting recipes:', ids.length);
-
       const { error } = await supabase
         .from(this.tableName)
         .delete()
         .in('id', ids)
         .eq('user_id', userId);
-
       if (error) {
         logger.error('RecipeAPI: Error bulk deleting recipes:', error);
         throw new Error(error.message);
       }
-
       logger.debug('RecipeAPI: Successfully bulk deleted recipes:', ids.length);
     } catch (error) {
       if (error instanceof Error) {
@@ -348,7 +344,6 @@ class RecipeApiService {
       throw new Error('Unexpected error bulk deleting recipes');
     }
   }
-
   /**
    * ✅ useMutation-optimized: Bulk update recipes
    */
@@ -356,13 +351,11 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Bulk updating recipes:', updates.length);
-
       const results = await Promise.all(
         updates.map(async ({ id, data }) => {
           return await this.updateRecipe(id, data);
         })
       );
-
       logger.debug('RecipeAPI: Successfully bulk updated recipes:', results.length);
       return results;
     } catch (error) {
@@ -372,7 +365,6 @@ class RecipeApiService {
       throw new Error('Unexpected error bulk updating recipes');
     }
   }
-
   /**
    * ✅ Real-time subscription for useQuery integration
    * Returns subscription cleanup function
@@ -383,7 +375,6 @@ class RecipeApiService {
     onDelete?: (id: string) => void
   ): () => void {
     logger.debug('RecipeAPI: Setting up real-time subscription');
-
     const channel = supabase
       .channel('recipes-realtime')
       .on(
@@ -395,16 +386,13 @@ class RecipeApiService {
         },
         async (payload) => {
           logger.debug('RecipeAPI: Real-time event received:', payload.eventType);
-
           try {
             // Check if the change is for current user
             const userId = await this.getCurrentUserId();
             const changeUserId = (payload.new as RecipeDB)?.user_id || (payload.old as RecipeDB)?.user_id;
-            
             if (changeUserId !== userId) {
               return; // Ignore changes for other users
             }
-
             switch (payload.eventType) {
               case 'INSERT':
                 if (payload.new && onInsert) {
@@ -430,13 +418,11 @@ class RecipeApiService {
         }
       )
       .subscribe();
-
     return () => {
       logger.debug('RecipeAPI: Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }
-
   /**
    * ✅ Health check method for debugging
    */
@@ -444,11 +430,9 @@ class RecipeApiService {
     try {
       // Check Supabase connection
       const { error: connectionError } = await supabase.from(this.tableName).select('count').limit(1);
-      
       if (connectionError) {
         return { isConnected: false, userAuthenticated: false, error: connectionError.message };
       }
-
       // Check user authentication
       try {
         await this.getCurrentUserId();
@@ -465,10 +449,8 @@ class RecipeApiService {
     }
   }
 }
-
 // Export singleton instance
 export const recipeApi = new RecipeApiService();
-
 // ✅ Export additional types for useQuery integration
 export type RecipeFilters = {
   category?: string;
@@ -476,7 +458,6 @@ export type RecipeFilters = {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 };
-
 export type BulkUpdateData = {
   id: string;
   data: Partial<NewRecipe>;

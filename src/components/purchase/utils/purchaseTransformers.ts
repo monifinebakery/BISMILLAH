@@ -2,6 +2,7 @@
 
 import { Purchase, CreatePurchaseRequest } from '../types/purchase.types';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
+import { logger } from '@/utils/logger';
 
 /**
  * Transform database purchase data to frontend Purchase type
@@ -9,7 +10,7 @@ import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
 export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   try {
     if (!dbItem || typeof dbItem !== 'object') {
-      console.error('Invalid purchase data from DB:', dbItem);
+      logger.error('Invalid purchase data from DB:', dbItem);
       throw new Error('Invalid purchase data format');
     }
 
@@ -26,7 +27,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
     };
   } catch (error) {
-    console.error('Error transforming purchase from DB:', error, dbItem);
+    logger.error('Error transforming purchase from DB:', error, dbItem);
     
     // Return safe fallback
     return {
@@ -105,7 +106,7 @@ export const transformPurchaseUpdateForDB = (
  */
 export const transformPurchasesFromDB = (dbItems: any[]): Purchase[] => {
   if (!Array.isArray(dbItems)) {
-    console.error('Expected array but got:', typeof dbItems);
+    logger.error('Expected array but got:', typeof dbItems);
     return [];
   }
 
@@ -114,7 +115,7 @@ export const transformPurchasesFromDB = (dbItems: any[]): Purchase[] => {
       try {
         return transformPurchaseFromDB(item);
       } catch (error) {
-        console.error('Error transforming individual purchase:', error, item);
+        logger.error('Error transforming individual purchase:', error, item);
         return null;
       }
     })
@@ -132,7 +133,7 @@ export const transformRealtimePayload = (payload: any): Purchase | null => {
 
     return transformPurchaseFromDB(payload.new);
   } catch (error) {
-    console.error('Error transforming realtime payload:', error, payload);
+    logger.error('Error transforming realtime payload:', error, payload);
     return null;
   }
 };

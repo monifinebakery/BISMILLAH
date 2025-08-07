@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // ✅ Dynamic hCaptcha import
 let HCaptcha: any = null;
@@ -63,7 +64,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           setHCaptchaKey(1);
         })
         .catch((error) => {
-          console.error('Failed to load hCaptcha:', error);
+          logger.error('Failed to load hCaptcha:', error);
           setHCaptchaLoaded(false);
         });
     } else if (!HCAPTCHA_ENABLED) {
@@ -182,7 +183,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         startCooldown(30);
       }
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      logger.error('Error sending OTP:', error);
       setAuthState('error');
       setError('Terjadi kesalahan saat mengirim kode OTP.');
       startCooldown(30);
@@ -220,7 +221,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         startCooldown(30);
       }
     } catch (error) {
-      console.error('Error resending OTP:', error);
+      logger.error('Error resending OTP:', error);
       setAuthState('error');
       setError('Terjadi kesalahan saat mengirim ulang kode OTP.');
       startCooldown(30);
@@ -308,7 +309,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
-      console.error('Error verifying OTP:', error);
+      logger.error('Error verifying OTP:', error);
       setAuthState('error');
       setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
       setOtp(['', '', '', '', '', '']);
@@ -380,14 +381,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     sitekey={HCAPTCHA_SITE_KEY}
                     onVerify={(token: string) => {
                       setHCaptchaToken(token);
-                      console.log('hCaptcha verified');
+                      logger.info('hCaptcha verified');
                     }}
                     onExpire={() => {
                       setHCaptchaToken(null);
-                      console.log('hCaptcha expired');
+                      logger.info('hCaptcha expired');
                     }}
                     onError={(error: any) => {
-                      console.error('hCaptcha error:', error);
+                      logger.error('hCaptcha error:', error);
                       setHCaptchaToken(null);
                       toast.error('Captcha gagal dimuat. Refresh halaman dan coba lagi.');
                     }}

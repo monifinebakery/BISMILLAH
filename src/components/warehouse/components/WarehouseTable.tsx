@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend, SortConfig } from '../types';
+import { logger } from '@/utils/logger';
 
 interface WarehouseTableProps {
   items: BahanBakuFrontend[];
@@ -73,9 +74,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // ✅ TAMBAH: Handle refresh dengan loading state
   const handleRefresh = async () => {
     if (onRefresh) {
+      logger.component('WarehouseTable', 'Refreshing data...');
       setIsRefreshing(true);
       try {
         await onRefresh();
+        logger.success('Warehouse data refreshed');
       } finally {
         setIsRefreshing(false);
       }
@@ -91,6 +94,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       newExpanded.add(itemId);
     }
     setExpandedItems(newExpanded);
+    logger.component('WarehouseTable', `Item ${itemId} ${newExpanded.has(itemId) ? 'expanded' : 'collapsed'}`);
   };
 
   // Sort icon helper
@@ -150,21 +154,26 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Debug helper for development
   const debugItem = (item: BahanBakuFrontend) => {
     if (process.env.NODE_ENV === 'development' && item.nama.includes('Daging')) {
-      console.log('=== WAREHOUSE TABLE DEBUG ===');
-      console.log('Item:', item.nama);
-      console.log('Stok:', item.stok, typeof item.stok);
-      console.log('Minimum:', item.minimum, typeof item.minimum);
-      console.log('Harga:', item.harga, typeof item.harga);
-      console.log('Stock Level:', getStockLevel(item));
-      console.log('Low Stock:', isLowStockItem(item));
-      console.log('Out of Stock:', isOutOfStockItem(item));
-      console.log('Condition stok <= minimum:', Number(item.stok) <= Number(item.minimum));
-      console.log('============================');
+      logger.debug('WAREHOUSE TABLE DEBUG:', {
+        item: item.nama,
+        stok: item.stok,
+        stokType: typeof item.stok,
+        minimum: item.minimum,
+        minimumType: typeof item.minimum,
+        harga: item.harga,
+        hargaType: typeof item.harga,
+        stockLevel: getStockLevel(item),
+        isLowStock: isLowStockItem(item),
+        isOutOfStock: isOutOfStockItem(item),
+        conditionCheck: Number(item.stok) <= Number(item.minimum)
+      });
     }
   };
 
   // ✅ TAMBAH: Enhanced empty state dengan refresh
   if (!isLoading && items.length === 0) {
+    logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
+    
     return (
       <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
         <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
@@ -212,6 +221,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   // ✅ TAMBAH: Loading state enhancement
   if (isLoading) {
+    logger.component('WarehouseTable', 'Displaying loading state', { lastUpdated: lastUpdated?.toISOString() });
+    
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8">
         <div className="flex flex-col items-center justify-center">
@@ -226,6 +237,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       </div>
     );
   }
+
+  logger.component('WarehouseTable', 'Rendering table with items:', { count: items.length, isSelectionMode });
 
   // Mobile Card View
   const MobileCardView = () => (
@@ -307,7 +320,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   {/* Selection Checkbox */}
                   {isSelectionMode && (
                     <button
-                      onClick={() => onToggleSelection(item.id)}
+                      onClick={() => {
+                        onToggleSelection(item.id);
+                        logger.component('WarehouseTable', 'Item selection toggled:', { itemId: item.id, selected: !isItemSelected });
+                      }}
                       className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors mt-1 flex-shrink-0"
                       aria-label={`${isItemSelected ? 'Deselect' : 'Select'} ${item.nama}`}
                     >
@@ -377,7 +393,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                             )}
                           </button>
                           <button
-                            onClick={() => setShowMobileActions(showMobileActions === item.id ? null : item.id)}
+                            onClick={() => {
+                              const newState = showMobileActions === item.id ? null : item.id;
+                              setShowMobileActions(newState);
+                              logger.component('WarehouseTable', 'Mobile actions toggled:', { itemId: item.id, show: !!newState });
+                            }}
                             className="p-1 rounded hover:bg-gray-100 transition-colors"
                             aria-label="Show actions"
                           >
@@ -417,6 +437,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        logger.component('WarehouseTable', 'Edit item clicked:', item.id);
                         onEdit(item);
                         setShowMobileActions(null);
                       }}
@@ -429,6 +450,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        logger.component('WarehouseTable', 'Delete item clicked:', { id: item.id, nama: item.nama });
                         onDelete(item.id, item.nama);
                         setShowMobileActions(null);
                       }}
@@ -528,7 +550,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             {isSelectionMode && (
               <th className="w-12 px-4 py-3 text-left">
                 <button
-                  onClick={onSelectAllCurrent}
+                  onClick={() => {
+                    onSelectAllCurrent();
+                    logger.component('WarehouseTable', 'Select all clicked:', { currentlyAllSelected: allCurrentSelected });
+                  }}
                   className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
                   aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
                 >
@@ -546,7 +571,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             {/* Table Headers */}
             <th className="px-4 py-3 text-left">
               <button
-                onClick={() => onSort('nama')}
+                onClick={() => {
+                  onSort('nama');
+                  logger.component('WarehouseTable', 'Sort by nama clicked');
+                }}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Nama Bahan
@@ -556,7 +584,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
             <th className="px-4 py-3 text-left">
               <button
-                onClick={() => onSort('kategori')}
+                onClick={() => {
+                  onSort('kategori');
+                  logger.component('WarehouseTable', 'Sort by kategori clicked');
+                }}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Kategori
@@ -566,7 +597,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
             <th className="px-4 py-3 text-left">
               <button
-                onClick={() => onSort('stok')}
+                onClick={() => {
+                  onSort('stok');
+                  logger.component('WarehouseTable', 'Sort by stok clicked');
+                }}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Stok
@@ -576,7 +610,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
             <th className="px-4 py-3 text-left">
               <button
-                onClick={() => onSort('harga')}
+                onClick={() => {
+                  onSort('harga');
+                  logger.component('WarehouseTable', 'Sort by harga clicked');
+                }}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Harga
@@ -586,7 +623,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
             <th className="px-4 py-3 text-left">
               <button
-                onClick={() => onSort('expiry')}
+                onClick={() => {
+                  onSort('expiry');
+                  logger.component('WarehouseTable', 'Sort by expiry clicked');
+                }}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Kadaluarsa
@@ -626,7 +666,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 {isSelectionMode && (
                   <td className="px-4 py-4">
                     <button
-                      onClick={() => onToggleSelection(item.id)}
+                      onClick={() => {
+                        onToggleSelection(item.id);
+                        logger.component('WarehouseTable', 'Desktop item selection toggled:', { itemId: item.id, selected: !isItemSelected });
+                      }}
                       className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
                       aria-label={`${isItemSelected ? 'Deselect' : 'Select'} ${item.nama}`}
                     >
@@ -739,7 +782,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onEdit(item)}
+                        onClick={() => {
+                          logger.component('WarehouseTable', 'Desktop edit item clicked:', item.id);
+                          onEdit(item);
+                        }}
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -748,7 +794,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onDelete(item.id, item.nama)}
+                        onClick={() => {
+                          logger.component('WarehouseTable', 'Desktop delete item clicked:', { id: item.id, nama: item.nama });
+                          onDelete(item.id, item.nama);
+                        }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />

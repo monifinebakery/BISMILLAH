@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Gift, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
   const [formData, setFormData] = useState({
@@ -63,7 +64,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
       const name = getRecipeProperty(recipe, 'name');
       return name && name.toLowerCase().includes(searchTerm.toLowerCase());
     } catch (error) {
-      console.error('Error filtering recipe:', error, recipe);
+      logger.error('Error filtering recipe:', error, recipe);
       return false;
     }
   }) : [];
@@ -92,7 +93,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
     try {
       onSubmit(formData);
     } catch (error) {
-      console.error('Submit error:', error);
+      logger.error('Submit error:', error);
       toast.error('Terjadi kesalahan saat menyimpan');
     }
   };
@@ -202,7 +203,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
                       </button>
                     );
                   } catch (error) {
-                    console.error('Error rendering recipe:', error, recipe);
+                    logger.error('Error rendering recipe:', error, recipe);
                     return null;
                   }
                 });
@@ -309,7 +310,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
             </div>
           );
         } catch (error) {
-          console.error('Error rendering BOGO preview:', error);
+          logger.error('Error rendering BOGO preview:', error);
           return (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-700 text-sm">Error menampilkan preview</p>

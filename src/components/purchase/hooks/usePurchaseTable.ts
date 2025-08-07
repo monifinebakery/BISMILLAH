@@ -9,6 +9,7 @@ import {
 } from '../utils/purchaseHelpers';
 import { usePurchase } from '../context/PurchaseContext';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface UsePurchaseTableProps {
   purchases: Purchase[];
@@ -154,7 +155,7 @@ export const usePurchaseTable = ({
         toast.error(`${failed} pembelian gagal dihapus`);
       }
     } catch (error) {
-      console.error('Bulk delete error:', error);
+      logger.error('Bulk delete error:', error);
       toast.error('Terjadi kesalahan saat menghapus pembelian');
     } finally {
       setIsBulkDeleting(false);
@@ -185,7 +186,7 @@ export const usePurchaseTable = ({
         toast.error(`${failed} pembelian gagal diubah statusnya`);
       }
     } catch (error) {
-      console.error('Bulk status update error:', error);
+      logger.error('Bulk status update error:', error);
       toast.error('Terjadi kesalahan saat mengubah status');
     }
   }, [selectedItems, updatePurchase]);

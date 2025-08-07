@@ -1,6 +1,7 @@
 // src/components/operational-costs/hooks/useOperationalCosts.ts
 
 import { useState, useCallback, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import { 
   OperationalCost, 
   CostFormData, 
@@ -70,7 +71,7 @@ export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationa
       }
     } catch (err) {
       setError('Gagal memuat data biaya operasional');
-      console.error('Error loading costs:', err);
+      logger.error('Error loading costs:', err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationa
     } catch (err) {
       const errorMessage = 'Gagal menambahkan biaya operasional';
       setError(errorMessage);
-      console.error('Error creating cost:', err);
+      logger.error('Error creating cost:', err);
       return { data: {} as OperationalCost, error: errorMessage };
     }
   }, []);
@@ -127,7 +128,7 @@ export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationa
     } catch (err) {
       const errorMessage = 'Gagal memperbarui biaya operasional';
       setError(errorMessage);
-      console.error('Error updating cost:', err);
+      logger.error('Error updating cost:', err);
       return { data: {} as OperationalCost, error: errorMessage };
     }
   }, []);
@@ -149,7 +150,7 @@ export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationa
     } catch (err) {
       const errorMessage = 'Gagal menghapus biaya operasional';
       setError(errorMessage);
-      console.error('Error deleting cost:', err);
+      logger.error('Error deleting cost:', err);
       return { data: false, error: errorMessage };
     }
   }, []);

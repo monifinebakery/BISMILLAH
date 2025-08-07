@@ -4,6 +4,7 @@ import { Calculator, List, ArrowLeft, Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import PromoCard from './components/PromoCard';
+import { logger } from '@/utils/logger';
 
 // Import services
 import { promoService } from './services/promoService';
@@ -11,7 +12,7 @@ import { promoService } from './services/promoService';
 // Lazy load komponen dengan path yang benar sesuai struktur folder
 const PromoCalculator = React.lazy(() => 
   import('./calculator/PromoCalculator').catch(err => {
-    console.error('Failed to load PromoCalculator:', err);
+    logger.error('Failed to load PromoCalculator:', err);
     return { 
       default: () => (
         <div className="p-8 text-center bg-red-50 border border-red-200 rounded-lg">
@@ -31,7 +32,7 @@ const PromoCalculator = React.lazy(() =>
 
 const PromoList = React.lazy(() => 
   import('./promoList/PromoList').catch(err => {
-    console.error('Failed to load PromoList:', err);
+    logger.error('Failed to load PromoList:', err);
     return { 
       default: () => (
         <div className="p-8 text-center bg-red-50 border border-red-200 rounded-lg">
@@ -66,7 +67,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Lazy loading error details:', {
+    logger.error('Lazy loading error details:', {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
@@ -150,7 +151,7 @@ const PromoCalculatorLayout = () => {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     onError: (error) => {
-      console.error('Failed to fetch promos:', error);
+      logger.error('Failed to fetch promos:', error);
     }
   });
 
@@ -217,7 +218,7 @@ const PromoCalculatorLayout = () => {
   const recentPromos = promos.slice(0, 3);
 
   const handleRetry = () => {
-    console.log('Retrying component load...');
+    logger.context('PromoCalculatorLayout', 'Retrying component load...');
     window.location.reload();
   };
 
@@ -227,7 +228,7 @@ const PromoCalculatorLayout = () => {
 
   // ✅ Promo action handlers with mutations
   const handleEditPromo = (promo) => {
-    console.log('Edit promo:', promo);
+    logger.context('PromoCalculatorLayout', 'Edit promo:', promo);
     // TODO: Implement edit functionality - could navigate to calculator with pre-filled data
   };
 
@@ -238,7 +239,7 @@ const PromoCalculatorLayout = () => {
   };
 
   const handleViewPromo = (promo) => {
-    console.log('View promo:', promo);
+    logger.context('PromoCalculatorLayout', 'View promo:', promo);
     // TODO: Implement view functionality - could show detailed modal
   };
 
@@ -252,7 +253,7 @@ const PromoCalculatorLayout = () => {
     };
     
     // TODO: Use create mutation to save duplicated promo
-    console.log('Duplicate promo:', duplicatedData);
+    logger.context('PromoCalculatorLayout', 'Duplicate promo:', duplicatedData);
   };
 
   // Enhanced Loading Component

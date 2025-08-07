@@ -2,6 +2,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
+import { logger } from '@/utils/logger';
 
 // Safe context imports with fallbacks
 let useOrderContext: any;
@@ -47,21 +48,21 @@ export const useNotificationTriggers = () => {
     const orderData = useOrderContext();
     orders = Array.isArray(orderData?.orders) ? orderData.orders : [];
   } catch (error) {
-    console.warn('Orders context not available');
+    logger.warn('Orders context not available');
   }
 
   try {
     const warehouseData = useBahanBakuContext();
     bahanBaku = Array.isArray(warehouseData?.bahanBaku) ? warehouseData.bahanBaku : [];
   } catch (error) {
-    console.warn('Warehouse context not available');
+    logger.warn('Warehouse context not available');
   }
 
   try {
     const purchaseData = usePurchaseContext();
     purchases = Array.isArray(purchaseData?.purchases) ? purchaseData.purchases : [];
   } catch (error) {
-    console.warn('Purchase context not available');
+    logger.warn('Purchase context not available');
   }
 
   // Enhanced inventory monitoring with throttling
@@ -102,7 +103,7 @@ export const useNotificationTriggers = () => {
               }, 300000);
             })
             .catch(error => {
-              console.warn('Failed to create low stock notification:', error);
+              logger.warn('Failed to create low stock notification:', error);
             });
         }
 
@@ -116,7 +117,7 @@ export const useNotificationTriggers = () => {
               }, 300000);
             })
             .catch(error => {
-              console.warn('Failed to create out of stock notification:', error);
+              logger.warn('Failed to create out of stock notification:', error);
             });
         }
 
@@ -129,7 +130,7 @@ export const useNotificationTriggers = () => {
             if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
               addNotification(createNotificationHelper.expiringSoon(nama, daysUntilExpiry))
                 .catch(error => {
-                  console.warn('Failed to create expiring notification:', error);
+                  logger.warn('Failed to create expiring notification:', error);
                 });
             }
           } catch (dateError) {
@@ -137,7 +138,7 @@ export const useNotificationTriggers = () => {
           }
         }
       } catch (itemError) {
-        console.warn('Error processing inventory item:', itemError);
+        logger.warn('Error processing inventory item:', itemError);
       }
     });
   }, [bahanBaku, addNotification]);
@@ -165,7 +166,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger order created notification:', error);
+      logger.error('Failed to trigger order created notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -184,7 +185,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger order status notification:', error);
+      logger.error('Failed to trigger order status notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -202,7 +203,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger low stock notification:', error);
+      logger.error('Failed to trigger low stock notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -216,7 +217,7 @@ export const useNotificationTriggers = () => {
       const notificationData = createNotificationHelper.systemError(errorMessage);
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger system error notification:', error);
+      logger.error('Failed to trigger system error notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -240,7 +241,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger custom notification:', error);
+      logger.error('Failed to trigger custom notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -260,7 +261,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger purchase created notification:', error);
+      logger.error('Failed to trigger purchase created notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -278,7 +279,7 @@ export const useNotificationTriggers = () => {
       );
       return await addNotification(notificationData);
     } catch (error) {
-      console.error('Failed to trigger purchase completed notification:', error);
+      logger.error('Failed to trigger purchase completed notification:', error);
       return false;
     }
   }, [addNotification]);
@@ -336,7 +337,7 @@ export const useNotificationTemplates = () => {
 
       return await addNotification(notificationData);
     } catch (error) {
-      console.error(`Failed to create notification from template '${templateName}':`, error);
+      logger.error(`Failed to create notification from template '${templateName}':`, error);
       return false;
     }
   }, [addNotification]);

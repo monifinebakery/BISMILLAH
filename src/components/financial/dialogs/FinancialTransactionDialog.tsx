@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
+import { logger } from '@/utils/logger';
 
 // ✅ UPDATED: Support both category formats
 interface CategoryObject {
@@ -98,9 +99,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   // ✅ DEBUG: Log categories to check format
   useEffect(() => {
     if (isOpen && categories) {
-      console.log('🔍 Categories received:', categories);
-      console.log('🔍 Income categories:', categories.income);
-      console.log('🔍 Expense categories:', categories.expense);
+      logger.component('FinancialTransactionDialog', 'Categories received:', categories);
+      logger.debug('Income categories:', categories.income);
+      logger.debug('Expense categories:', categories.expense);
     }
   }, [categories, isOpen]);
 

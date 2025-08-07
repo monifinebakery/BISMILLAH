@@ -72,7 +72,7 @@ const transformTransactionFromDB = (dbItem: any): FinancialTransaction => {
       updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
     };
   } catch (error) {
-    console.error('Error transforming transaction from DB:', error, dbItem);
+    logger.error('Error transforming transaction from DB:', error, dbItem);
     // Return safe fallback
     return {
       id: dbItem?.id || 'error',
@@ -118,7 +118,7 @@ const createFinancialNotification = async (
       is_archived: false
     });
   } catch (error) {
-    console.error('Error creating financial notification:', error);
+    logger.error('Error creating financial notification:', error);
   }
 };
 
@@ -157,7 +157,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         setFinancialTransactions(transactions);
         logger.context('FinancialContext', 'Loaded transactions:', transactions.length);
       } catch (error: any) {
-        console.error('Error fetching initial transactions:', error);
+        logger.error('Error fetching initial transactions:', error);
         toast.error(`Gagal memuat transaksi keuangan: ${error.message}`);
         
         await createFinancialNotification(
@@ -206,279 +206,342 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
               );
             }
           } catch (error) {
-            console.error('Real-time update error:', error);
-            toast.error('Error dalam pembaruan real-time data keuangan');
+            logger.error('Real-time update error:', error);
+            toast.error('Error dalam pembaruan real-time');
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        logger.context('FinancialContext', 'Subscription status:', status);
+      });
 
     return () => {
+      logger.context('FinancialContext', 'Unsubscribing from real-time updates');
       supabase.removeChannel(channel);
     };
   }, [user, addNotification]);
 
   // ===========================================
-  // CRUD OPERATIONS (✅ PERBAIKAN: Use API functions)
+  // TRANSACTION MANAGEMENT FUNCTIONS
   // ===========================================
 
-  const addFinancialTransaction = useCallback(async (
-    transaction: CreateTransactionData
-  ): Promise<boolean> => {
+  /**
+   * Add new financial transaction
+   */
+  const addTransaction = useCallback(async (data: CreateTransactionData): Promise<FinancialTransaction | null> => {
     if (!user) {
-      toast.error("Anda harus login untuk menambah transaksi");
-      return false;
+      toast.error('Harap login terlebih dahulu');
+      return null;
     }
 
-    // ✅ PERBAIKAN: Use API function
-    try {
-      const result = await apiAddTransaction(transaction, user.id);
-      
-      if (result.success) {
-        // Format transaction for display
-        const formatted = formatTransactionForDisplay(transaction as FinancialTransaction);
-        
-        // Activity log
-        if (addActivity && typeof addActivity === 'function') {
-          addActivity({ 
-            title: 'Transaksi Keuangan Ditambahkan', 
-            description: `${formatted.typeLabel} ${formatted.amountFormatted}`, 
-            type: 'keuangan', 
-            value: null 
-          });
-        }
-
-        // Success toast
-        toast.success('Transaksi keuangan berhasil ditambahkan!');
-
-        // Success notification
-        await createFinancialNotification(
-          addNotification,
-          'success',
-          transaction.type === 'income' ? '💰 Pemasukan Dicatat' : '💸 Pengeluaran Dicatat',
-          `${transaction.description} - ${formatted.amountFormatted}`
-        );
-
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal menambah transaksi');
-        return false;
-      }
-    } catch (error: any) {
-      console.error('Error adding transaction:', error);
-      toast.error(`Gagal menambah transaksi: ${error.message}`);
-      
-      await createFinancialNotification(
-        addNotification,
-        'error',
-        '❌ Transaksi Gagal',
-        `Gagal menambah transaksi: ${error.message}`
-      );
-      
-      return false;
-    }
-  }, [user, addActivity, addNotification]);
-
-  const updateFinancialTransaction = useCallback(async (
-    id: string, 
-    updatedTransaction: UpdateTransactionData
-  ): Promise<boolean> => {
-    if (!user) {
-      toast.error("Anda harus login untuk memperbarui transaksi");
-      return false;
-    }
-
-    if (!id || typeof id !== 'string') {
-      toast.error('ID transaksi tidak valid');
-      return false;
-    }
-
-    // ✅ PERBAIKAN: Use API function
-    try {
-      const result = await apiUpdateTransaction(id, updatedTransaction);
-      
-      if (result.success) {
-        // Success toast
-        toast.success('Transaksi keuangan berhasil diperbarui!');
-
-        // Update notification
-        await createFinancialNotification(
-          addNotification,
-          'info',
-          '📝 Transaksi Diperbarui',
-          `Transaksi "${updatedTransaction.description || 'transaksi'}" telah diperbarui`,
-          id
-        );
-
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal memperbarui transaksi');
-        return false;
-      }
-    } catch (error: any) {
-      console.error('Error updating transaction:', error);
-      toast.error(`Gagal memperbarui transaksi: ${error.message}`);
-      
-      await createFinancialNotification(
-        addNotification,
-        'error',
-        '❌ Update Gagal',
-        `Gagal memperbarui transaksi: ${error.message}`,
-        id
-      );
-      
-      return false;
-    }
-  }, [user, addNotification]);
-
-  const deleteFinancialTransaction = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
-      toast.error("Anda harus login untuk menghapus transaksi");
-      return false;
-    }
-
-    if (!id || typeof id !== 'string') {
-      toast.error('ID transaksi tidak valid');
-      return false;
-    }
-
-    const transactionToDelete = financialTransactions.find(t => t.id === id);
-    if (!transactionToDelete) {
-      toast.error('Transaksi tidak ditemukan');
-      return false;
-    }
-
-    // ✅ PERBAIKAN: Use API function
-    try {
-      const result = await apiDeleteTransaction(id);
-      
-      if (result.success) {
-        const formatted = formatTransactionForDisplay(transactionToDelete);
-        
-        // Activity log
-        if (addActivity && typeof addActivity === 'function') {
-          addActivity({ 
-            title: 'Transaksi Keuangan Dihapus', 
-            description: `${formatted.typeLabel} ${formatted.amountFormatted} dihapus`, 
-            type: 'keuangan', 
-            value: null 
-          });
-        }
-
-        // Success toast
-        toast.success('Transaksi keuangan berhasil dihapus!');
-
-        // Delete notification
-        await createFinancialNotification(
-          addNotification,
-          'warning',
-          '🗑️ Transaksi Dihapus',
-          `${formatted.typeLabel} "${transactionToDelete.description}" senilai ${formatted.amountFormatted} telah dihapus`,
-          id
-        );
-
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal menghapus transaksi');
-        return false;
-      }
-    } catch (error: any) {
-      console.error('Error deleting transaction:', error);
-      toast.error(`Gagal menghapus transaksi: ${error.message}`);
-      
-      await createFinancialNotification(
-        addNotification,
-        'error',
-        '❌ Hapus Gagal',
-        `Gagal menghapus transaksi: ${error.message}`,
-        id
-      );
-      
-      return false;
-    }
-  }, [user, financialTransactions, addActivity, addNotification]);
-
-  // ✅ TAMBAHAN: Utility functions untuk integration
-  const refreshTransactions = useCallback(async (): Promise<void> => {
-    if (!user) return;
-    
     try {
       setIsLoading(true);
-      const transactions = await getFinancialTransactions(user.id);
-      setFinancialTransactions(transactions);
+      logger.context('FinancialContext', 'Adding new transaction:', data);
+
+      // Validate transaction data
+      const validationResult = validateTransaction(data);
+      if (!validationResult.isValid) {
+        const errorMessage = validationResult.errors.join(', ');
+        toast.error(`Data tidak valid: ${errorMessage}`);
+        logger.warn('Transaction validation failed:', validationResult.errors);
+        return null;
+      }
+
+      // Call API to add transaction
+      const newTransaction = await apiAddTransaction(data);
+      
+      // ✅ PERBAIKAN: Transaction akan otomatis ditambahkan via real-time subscription
+      // Tidak perlu manual update state di sini
+
+      // Create activity log
+      if (addActivity) {
+        await addActivity({
+          type: 'financial_create',
+          description: `Menambahkan transaksi ${data.type}: ${formatTransactionForDisplay(newTransaction)}`,
+          relatedType: 'financial',
+          relatedId: newTransaction.id,
+          metadata: {
+            transactionType: data.type,
+            amount: data.amount,
+            category: data.category
+          }
+        });
+      }
+
+      // Create notification
+      await createFinancialNotification(
+        addNotification,
+        'success',
+        '💰 Transaksi Ditambahkan',
+        `${data.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} sebesar ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.amount)} berhasil ditambahkan`,
+        newTransaction.id
+      );
+
+      toast.success(`Transaksi ${data.type === 'income' ? 'pemasukan' : 'pengeluaran'} berhasil ditambahkan`);
+      logger.context('FinancialContext', 'Transaction added successfully:', newTransaction.id);
+
+      return newTransaction;
     } catch (error: any) {
-      console.error('Error refreshing transactions:', error);
-      toast.error(`Gagal memuat ulang data: ${error.message}`);
+      logger.error('Error adding transaction:', error);
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal menambahkan transaksi: ${errorMessage}`);
+      
+      await createFinancialNotification(
+        addNotification,
+        'error',
+        '❌ Error Transaksi',
+        `Gagal menambahkan transaksi: ${errorMessage}`
+      );
+
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, addActivity, addNotification]);
 
-  const getTransactionById = useCallback((id: string): FinancialTransaction | undefined => {
-    return financialTransactions.find(t => t.id === id);
+  /**
+   * Update existing transaction
+   */
+  const updateTransaction = useCallback(async (id: string, data: UpdateTransactionData): Promise<FinancialTransaction | null> => {
+    if (!user) {
+      toast.error('Harap login terlebih dahulu');
+      return null;
+    }
+
+    try {
+      setIsLoading(true);
+      logger.context('FinancialContext', 'Updating transaction:', id, data);
+
+      // Find existing transaction
+      const existingTransaction = financialTransactions.find(t => t.id === id);
+      if (!existingTransaction) {
+        toast.error('Transaksi tidak ditemukan');
+        return null;
+      }
+
+      // Validate transaction data
+      const validationResult = validateTransaction(data);
+      if (!validationResult.isValid) {
+        const errorMessage = validationResult.errors.join(', ');
+        toast.error(`Data tidak valid: ${errorMessage}`);
+        logger.warn('Transaction validation failed:', validationResult.errors);
+        return null;
+      }
+
+      // Call API to update transaction
+      const updatedTransaction = await apiUpdateTransaction(id, data);
+
+      // ✅ PERBAIKAN: Transaction akan otomatis diupdate via real-time subscription
+      // Tidak perlu manual update state di sini
+
+      // Create activity log
+      if (addActivity) {
+        await addActivity({
+          type: 'financial_update',
+          description: `Mengupdate transaksi: ${formatTransactionForDisplay(updatedTransaction)}`,
+          relatedType: 'financial',
+          relatedId: updatedTransaction.id,
+          metadata: {
+            transactionType: updatedTransaction.type,
+            amount: updatedTransaction.amount,
+            category: updatedTransaction.category,
+            previousAmount: existingTransaction.amount
+          }
+        });
+      }
+
+      // Create notification
+      await createFinancialNotification(
+        addNotification,
+        'info',
+        '📝 Transaksi Diperbarui',
+        `Transaksi ${formatTransactionForDisplay(updatedTransaction)} berhasil diperbarui`,
+        updatedTransaction.id
+      );
+
+      toast.success('Transaksi berhasil diperbarui');
+      logger.context('FinancialContext', 'Transaction updated successfully:', updatedTransaction.id);
+
+      return updatedTransaction;
+    } catch (error: any) {
+      logger.error('Error updating transaction:', error);
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal memperbarui transaksi: ${errorMessage}`);
+      
+      await createFinancialNotification(
+        addNotification,
+        'error',
+        '❌ Error Update',
+        `Gagal memperbarui transaksi: ${errorMessage}`
+      );
+
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, financialTransactions, addActivity, addNotification]);
+
+  /**
+   * Delete transaction
+   */
+  const deleteTransaction = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      toast.error('Harap login terlebih dahulu');
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      logger.context('FinancialContext', 'Deleting transaction:', id);
+
+      // Find existing transaction for logging
+      const existingTransaction = financialTransactions.find(t => t.id === id);
+      if (!existingTransaction) {
+        toast.error('Transaksi tidak ditemukan');
+        return false;
+      }
+
+      // Call API to delete transaction
+      await apiDeleteTransaction(id);
+
+      // ✅ PERBAIKAN: Transaction akan otomatis dihapus via real-time subscription
+      // Tidak perlu manual update state di sini
+
+      // Create activity log
+      if (addActivity) {
+        await addActivity({
+          type: 'financial_delete',
+          description: `Menghapus transaksi: ${formatTransactionForDisplay(existingTransaction)}`,
+          relatedType: 'financial',
+          relatedId: id,
+          metadata: {
+            transactionType: existingTransaction.type,
+            amount: existingTransaction.amount,
+            category: existingTransaction.category
+          }
+        });
+      }
+
+      // Create notification
+      await createFinancialNotification(
+        addNotification,
+        'warning',
+        '🗑️ Transaksi Dihapus',
+        `Transaksi ${formatTransactionForDisplay(existingTransaction)} telah dihapus`,
+        id
+      );
+
+      toast.success('Transaksi berhasil dihapus');
+      logger.context('FinancialContext', 'Transaction deleted successfully:', id);
+
+      return true;
+    } catch (error: any) {
+      logger.error('Error deleting transaction:', error);
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal menghapus transaksi: ${errorMessage}`);
+      
+      await createFinancialNotification(
+        addNotification,
+        'error',
+        '❌ Error Hapus',
+        `Gagal menghapus transaksi: ${errorMessage}`
+      );
+
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, financialTransactions, addActivity, addNotification]);
+
+  // ===========================================
+  // COMPUTED VALUES & UTILITIES
+  // ===========================================
+
+  /**
+   * Get transactions by type
+   */
+  const getTransactionsByType = useCallback((type: 'income' | 'expense'): FinancialTransaction[] => {
+    return financialTransactions.filter(transaction => transaction.type === type);
   }, [financialTransactions]);
 
-  const getTransactionsByDateRange = useCallback((from: Date, to: Date): FinancialTransaction[] => {
-    return financialTransactions.filter(t => {
-      const transactionDate = t.date ? new Date(t.date) : new Date();
-      return transactionDate >= from && transactionDate <= to;
+  /**
+   * Get transactions by date range
+   */
+  const getTransactionsByDateRange = useCallback((startDate: Date, endDate: Date): FinancialTransaction[] => {
+    return financialTransactions.filter(transaction => {
+      if (!transaction.date) return false;
+      const transactionDate = new Date(transaction.date);
+      return transactionDate >= startDate && transactionDate <= endDate;
     });
   }, [financialTransactions]);
 
+  /**
+   * Calculate total balance
+   */
+  const totalBalance = React.useMemo(() => {
+    return financialTransactions.reduce((total, transaction) => {
+      if (transaction.type === 'income') {
+        return total + transaction.amount;
+      } else {
+        return total - transaction.amount;
+      }
+    }, 0);
+  }, [financialTransactions]);
+
+  /**
+   * Calculate total income
+   */
+  const totalIncome = React.useMemo(() => {
+    return financialTransactions
+      .filter(t => t.type === 'income')
+      .reduce((total, t) => total + t.amount, 0);
+  }, [financialTransactions]);
+
+  /**
+   * Calculate total expenses
+   */
+  const totalExpenses = React.useMemo(() => {
+    return financialTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((total, t) => total + t.amount, 0);
+  }, [financialTransactions]);
+
   // ===========================================
-  // CONTEXT VALUE (✅ ENHANCED)
+  // CONTEXT VALUE
   // ===========================================
 
-  const value: FinancialContextType & {
-    // ✅ TAMBAHAN: Extra utilities
-    refreshTransactions: () => Promise<void>;
-    getTransactionById: (id: string) => FinancialTransaction | undefined;
-    getTransactionsByDateRange: (from: Date, to: Date) => FinancialTransaction[];
-    totalTransactions: number;
-    totalIncome: number;
-    totalExpense: number;
-    balance: number;
-  } = {
-    // Original context methods
+  const contextValue: FinancialContextType = {
+    // State
     financialTransactions,
     isLoading,
-    addFinancialTransaction,
-    updateFinancialTransaction,
-    deleteFinancialTransaction,
-    
-    // ✅ TAMBAHAN: Extra utilities
-    refreshTransactions,
-    getTransactionById,
+
+    // Actions
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+
+    // Utilities
+    getTransactionsByType,
     getTransactionsByDateRange,
-    
-    // ✅ TAMBAHAN: Computed values
-    totalTransactions: financialTransactions.length,
-    totalIncome: financialTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalExpense: financialTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0),
-    balance: financialTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0) - 
-      financialTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0),
+
+    // Computed values
+    totalBalance,
+    totalIncome,
+    totalExpenses,
   };
 
   return (
-    <FinancialContext.Provider value={value}>
+    <FinancialContext.Provider value={contextValue}>
       {children}
     </FinancialContext.Provider>
   );
 };
 
 // ===========================================
-// CUSTOM HOOK (✅ ENHANCED)
+// HOOK
 // ===========================================
 
-export const useFinancial = () => {
+export const useFinancial = (): FinancialContextType => {
   const context = useContext(FinancialContext);
   if (context === undefined) {
     throw new Error('useFinancial must be used within a FinancialProvider');
@@ -486,40 +549,4 @@ export const useFinancial = () => {
   return context;
 };
 
-// ✅ TAMBAHAN: Specialized hooks
-export const useFinancialSummary = () => {
-  const { totalIncome, totalExpense, balance, totalTransactions } = useFinancial();
-  return { totalIncome, totalExpense, balance, totalTransactions };
-};
-
-export const useFinancialTransactions = (filters?: {
-  type?: 'income' | 'expense';
-  category?: string;
-  dateRange?: { from: Date; to: Date };
-}) => {
-  const { financialTransactions, getTransactionsByDateRange } = useFinancial();
-  
-  return useMemo(() => {
-    let filtered = financialTransactions;
-    
-    if (filters?.type) {
-      filtered = filtered.filter(t => t.type === filters.type);
-    }
-    
-    if (filters?.category) {
-      filtered = filtered.filter(t => t.category === filters.category);
-    }
-    
-    if (filters?.dateRange) {
-      filtered = getTransactionsByDateRange(filters.dateRange.from, filters.dateRange.to);
-    }
-    
-    return filtered;
-  }, [financialTransactions, filters, getTransactionsByDateRange]);
-};
-
-// ===========================================
-// EXPORTS
-// ===========================================
-
-export default FinancialProvider;
+export default FinancialContext;

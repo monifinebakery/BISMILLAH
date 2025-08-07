@@ -1,6 +1,7 @@
 // src/components/recipe/components/RecipeForm/CostCalculationStep/hooks/useResponsiveTooltip.ts
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 
 interface UseResponsiveTooltipReturn {
   isMobile: boolean;
@@ -22,7 +23,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
                            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                            'ontouchstart' in window;
       setIsMobile(isMobileDevice);
-      console.log('Mobile detection:', isMobileDevice); // Debug log
+      logger.debug('Mobile detection:', isMobileDevice);
     };
     
     checkMobile();
@@ -35,19 +36,19 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
 
   // Toggle tooltip visibility
   const toggleTooltip = useCallback(() => {
-    console.log('Toggle tooltip clicked, current state:', showTooltip); // Debug log
+    logger.debug('Toggle tooltip clicked, current state:', showTooltip);
     setShowTooltip(prev => !prev);
   }, [showTooltip]);
 
   // Hide tooltip
   const hideTooltip = useCallback(() => {
-    console.log('Hide tooltip called'); // Debug log
+    logger.debug('Hide tooltip called');
     setShowTooltip(false);
   }, []);
 
   // Show tooltip for a specific duration
   const showTooltipTemporary = useCallback((duration: number = 3000) => {
-    console.log('Show tooltip temporary:', duration); // Debug log
+    logger.debug('Show tooltip temporary:', duration);
     setShowTooltip(true);
     setTimeout(() => {
       setShowTooltip(false);
@@ -71,7 +72,7 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
     };
   }, [showTooltip]);
 
-  console.log('useResponsiveTooltip state:', { isMobile, showTooltip }); // Debug log
+  logger.debug('useResponsiveTooltip state:', { isMobile, showTooltip });
 
   return {
     isMobile,

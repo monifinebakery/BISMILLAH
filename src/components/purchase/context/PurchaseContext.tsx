@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // ✅ CONSOLIDATED: Core context imports
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +15,6 @@ import { useNotification } from '@/contexts/NotificationContext';
 // ✅ CONSOLIDATED: Types and utilities
 import { Purchase, PurchaseContextType } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
-import { logger } from '@/utils/logger';
 
 // ✅ CONSOLIDATED: Transform utilities (keep existing imports)
 import {
@@ -46,7 +46,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // ✅ CONTEXTS: Keep existing context usage
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addFinancialTransaction } = useFinancial();
+  const { addTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
 
@@ -57,7 +57,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       const supplier = suppliers.find(s => s.id === supplierId);
       return supplier?.nama || 'Supplier';
     } catch (error) {
-      console.error('Error getting supplier name:', error);
+      logger.error('Error getting supplier name:', error);
       return 'Supplier';
     }
   }, [suppliers]);
@@ -72,7 +72,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   ) => {
     try {
       if (!addNotification || typeof addNotification !== 'function') {
-        console.warn('Notification function not available');
+        logger.warn('Notification function not available');
         return;
       }
 
@@ -89,7 +89,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         is_archived: false,
       });
     } catch (error) {
-      console.error('Error creating purchase notification:', error);
+      logger.error('Error creating purchase notification:', error);
     }
   }, [addNotification]);
 
@@ -123,7 +123,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     } catch (err: any) {
       const errorMessage = err.message || 'Gagal memuat data pembelian';
-      console.error('Error fetching purchases:', err);
+      logger.error('Error fetching purchases:', err);
       setError(errorMessage);
       toast.error(`Gagal memuat pembelian: ${errorMessage}`);
       
@@ -198,7 +198,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return true;
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
-      console.error('Error adding purchase:', error);
+      logger.error('Error adding purchase:', error);
       toast.error(`Gagal memproses pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
@@ -256,8 +256,8 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Handle completion status
       if (oldStatus !== 'completed' && newStatus === 'completed') {
         try {
-          if (addFinancialTransaction && typeof addFinancialTransaction === 'function') {
-            const successFinancial = await addFinancialTransaction({
+          if (addTransaction && typeof addTransaction === 'function') {
+            const successFinancial = await addTransaction({
               type: 'expense',
               category: 'Pembelian Bahan Baku',
               description: `Pembelian dari ${supplierName}`,
@@ -300,7 +300,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
           }
         } catch (financialError) {
-          console.error('Error recording financial transaction:', financialError);
+          logger.error('Error recording financial transaction:', financialError);
           toast.warning('Pembelian diperbarui, tapi ada masalah dengan pencatatan keuangan');
         }
       }
@@ -326,7 +326,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return true;
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
-      console.error('Error updating purchase:', error);
+      logger.error('Error updating purchase:', error);
       toast.error(`Gagal memperbarui pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
@@ -339,7 +339,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       return false;
     }
-  }, [user, purchases, getSupplierName, addFinancialTransaction, addActivity, createPurchaseNotification]);
+  }, [user, purchases, getSupplierName, addTransaction, addActivity, createPurchaseNotification]);
 
   // ✅ OPTIMIZED: Delete purchase with consolidated error handling
   const deletePurchase = useCallback(async (id: string): Promise<boolean> => {
@@ -397,7 +397,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return true;
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
-      console.error('Error deleting purchase:', error);
+      logger.error('Error deleting purchase:', error);
       toast.error(`Gagal menghapus pembelian: ${errorMessage}`);
 
       await createPurchaseNotification(
@@ -458,7 +458,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             );
           }
         } catch (error) {
-          console.error('Real-time update error:', error);
+          logger.error('Real-time update error:', error);
           toast.error('Error dalam pembaruan real-time data pembelian');
         }
       })

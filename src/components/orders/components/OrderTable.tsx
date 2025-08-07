@@ -22,6 +22,7 @@ import { formatDateForDisplay } from '../utils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface OrderTableProps {
   uiState: UseOrderUIReturn;
@@ -116,7 +117,7 @@ const OrderRowActions: React.FC<{
       onViewDetail();
     } else {
       // ✅ FALLBACK: Show alert atau navigate ke detail page
-      console.log('View detail for order:', order.id);
+      logger.component('OrderTable', 'View detail clicked for order:', order.nomorPesanan);
       alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
     }
   };
@@ -137,7 +138,7 @@ const OrderRowActions: React.FC<{
           className="h-8 w-8 p-0" 
           onClick={(e) => {
             e.stopPropagation();
-            console.log('✅ Dropdown menu clicked for order:', order.nomorPesanan); // Debug log
+            logger.component('OrderTable', 'Dropdown menu clicked for order:', order.nomorPesanan);
           }}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -276,7 +277,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   // ✅ FIXED: Implementasi yang proper
   const handleViewDetail = (order: Order) => {
-    console.log('✅ View detail clicked for order:', order.nomorPesanan);
     if (onViewDetail) {
       onViewDetail(order);
     } else {
@@ -287,7 +287,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   // ✅ ENHANCED: Follow Up dengan Template Integration
   const handleFollowUp = (order: Order) => {
-    console.log('✅ Follow up clicked for order:', order.nomorPesanan);
+    logger.component('OrderTable', 'Follow up clicked for order:', order.nomorPesanan);
     
     if (onFollowUp) {
       onFollowUp(order);

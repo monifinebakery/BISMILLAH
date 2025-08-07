@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 
 export interface Notification {
@@ -188,7 +189,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             .maybeSingle(); // ✅ CHANGED: .single() -> .maybeSingle()
           
           if (settingsError) {
-            console.warn('Error loading notification settings:', settingsError);
+            logger.warn('Error loading notification settings:', settingsError);
           }
           
           if (mountedRef.current) {
@@ -216,7 +217,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                   setSettings(defaultSettings);
                 }
               } catch (insertError) {
-                console.warn('Could not create default settings:', insertError);
+                logger.warn('Could not create default settings:', insertError);
                 setSettings(defaultSettings);
               }
             } else {
@@ -224,7 +225,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             }
           }
         } catch (settingsError) {
-          console.warn('Settings loading error:', settingsError);
+          logger.warn('Settings loading error:', settingsError);
           // Use defaults if settings loading fails completely
           if (mountedRef.current) {
             setSettings({
@@ -239,7 +240,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      logger.error('Error loading notifications:', error);
       if (isInitialLoad && mountedRef.current) {
         toast.error('Gagal memuat notifikasi');
       }
@@ -404,7 +405,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       
       return true;
     } catch (error) {
-      console.error('Error adding notification:', error);
+      logger.error('Error adding notification:', error);
       return false;
     }
   };
@@ -419,7 +420,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error marking as read:', error);
+      logger.error('Error marking as read:', error);
       return false;
     }
   };
@@ -437,7 +438,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       toast.success('Semua notifikasi telah dibaca');
       return true;
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      logger.error('Error marking all as read:', error);
       toast.error('Gagal menandai semua sebagai dibaca');
       return false;
     }
@@ -453,7 +454,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      logger.error('Error deleting notification:', error);
       return false;
     }
   };
@@ -468,7 +469,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error archiving notification:', error);
+      logger.error('Error archiving notification:', error);
       return false;
     }
   };
@@ -491,7 +492,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       toast.success('Semua notifikasi telah dihapus');
       return true;
     } catch (error) {
-      console.error('Error clearing all notifications:', error);
+      logger.error('Error clearing all notifications:', error);
       toast.error('Gagal menghapus semua notifikasi');
       return false;
     }
@@ -519,7 +520,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
       return true;
     } catch (error) {
-      console.error('Error updating settings:', error);
+      logger.error('Error updating settings:', error);
       toast.error('Gagal menyimpan pengaturan');
       return false;
     }

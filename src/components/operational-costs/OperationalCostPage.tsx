@@ -3,6 +3,7 @@ import { Plus, Settings, Calculator, DollarSign, AlertTriangle } from 'lucide-re
 
 // ✅ CONSOLIDATED: Context imports
 import { OperationalCostProvider, useOperationalCost } from './context';
+import { logger } from '@/utils/logger';
 
 // ✅ CONSOLIDATED: All components in single import
 import {

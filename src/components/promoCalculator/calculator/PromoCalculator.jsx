@@ -16,6 +16,7 @@ import {
   Save
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // ✅ Import existing components
 import PromoTypeSelector from '@/components/promoCalculator/calculator/PromoTypeSelector';
@@ -61,9 +62,9 @@ const PromoCalculator = () => {
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
     queryFn: async () => {
-      console.log('🔍 Fetching recipes for promo calculator...');
+      logger.debug('Fetching recipes for promo calculator...');
       const recipes = await recipeApi.getRecipes();
-      console.log('✅ Got recipes:', recipes?.length || 0);
+      logger.success('Recipes loaded for promo calculator:', recipes?.length || 0);
       return recipes || [];
     },
     staleTime: 10 * 60 * 1000,
@@ -75,10 +76,9 @@ const PromoCalculator = () => {
   const latestPromosQuery = useQuery({
     queryKey: PROMO_QUERY_KEYS.list({ limit: 3 }),
     queryFn: async () => {
-      console.log('🔍 Fetching latest promos...');
       const promos = await promoService.getAll({});
       const latestPromos = (promos || []).slice(0, 3);
-      console.log('✅ Got latest promos:', latestPromos.length);
+      logger.success('Latest promos loaded:', { count: latestPromos.length });
       return latestPromos;
     },
     staleTime: 2 * 60 * 1000,
@@ -91,9 +91,9 @@ const PromoCalculator = () => {
     queryKey: PROMO_QUERY_KEYS.detail(editPromoId),
     queryFn: async () => {
       if (!editPromoId) return null;
-      console.log('🔍 Fetching promo for editing:', editPromoId);
+      logger.component('PromoCalculator', 'Fetching promo for editing:', editPromoId);
       const promo = await promoService.getById(editPromoId);
-      console.log('✅ Got promo for editing:', promo);
+      logger.success('Promo loaded for editing:', { id: promo?.id, name: promo?.namaPromo });
       return promo;
     },
     enabled: !!editPromoId,
@@ -120,10 +120,10 @@ const PromoCalculator = () => {
   const savePromoMutation = useMutation({
     mutationFn: async (promoData) => {
       if (isEditMode && editPromoId) {
-        console.log('📝 Updating promo:', editPromoId);
+        logger.component('PromoCalculator', 'Updating existing promo:', editPromoId);
         return await promoService.update(editPromoId, promoData);
       } else {
-        console.log('➕ Creating new promo');
+        logger.component('PromoCalculator', 'Creating new promo');
         return await promoService.create(promoData);
       }
     },
@@ -144,7 +144,7 @@ const PromoCalculator = () => {
       }
     },
     onError: (error) => {
-      console.error('Save promo error:', error);
+      logger.error('Save promo error:', error);
       const action = isEditMode ? 'memperbarui' : 'menyimpan';
       toast.error(`Gagal ${action} promo: ${error.message}`);
     },
@@ -180,7 +180,7 @@ const PromoCalculator = () => {
 
   const handleFormSubmit = async (data) => {
     try {
-      console.log('📝 Form submitted with data:', data);
+      logger.component('PromoCalculator', 'Form submitted with data:', data);
       
       // Calculate promo if not already calculated
       if (!calculationResult) {
@@ -197,7 +197,7 @@ const PromoCalculator = () => {
       
       toast.success('Perhitungan promo berhasil!');
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error);
       toast.error(`Error: ${error.message}`);
     }
   };
@@ -224,7 +224,7 @@ const PromoCalculator = () => {
       tanggalSelesai: formData.tanggalSelesai || null,
     };
 
-    console.log('💾 Saving promo data:', promoDataToSave);
+    logger.context('PromoCalculator', 'Saving promo data:', promoDataToSave);
     await savePromoMutation.mutateAsync(promoDataToSave);
   };
 
@@ -233,7 +233,7 @@ const PromoCalculator = () => {
   };
 
   const handleRefreshDashboard = () => {
-    console.log('🔄 Refreshing dashboard...');
+    logger.context('PromoCalculator', 'Refreshing dashboard...');
     queryClient.invalidateQueries({ queryKey: PROMO_QUERY_KEYS.all });
     queryClient.invalidateQueries({ queryKey: ['recipes'] });
     toast.info('Merefresh data...');

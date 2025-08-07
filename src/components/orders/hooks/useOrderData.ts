@@ -85,7 +85,7 @@ export const useOrderData = (
           try {
             return transformOrderFromDB(item);
           } catch (transformError) {
-            console.error('OrderData: Error transforming individual order:', transformError, item);
+            logger.error('OrderData: Error transforming individual order:', transformError, item);
             return null;
           }
         })
@@ -362,7 +362,7 @@ export const useOrderData = (
             });
           }
         } catch (financialError) {
-          console.error('OrderData: Error adding financial transaction:', financialError);
+          logger.error('OrderData: Error adding financial transaction:', financialError);
         }
 
         if (addActivity && typeof addActivity === 'function') {
@@ -526,7 +526,7 @@ export const useOrderData = (
   const getOrdersByDateRange = useCallback((startDate: Date, endDate: Date): Order[] => {
     try {
       if (!isValidDate(startDate) || !isValidDate(endDate)) {
-        console.error('OrderData: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+        logger.error('OrderData: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
         return [];
       }
       
@@ -536,12 +536,12 @@ export const useOrderData = (
           if (!orderDate) return false;
           return orderDate >= startDate && orderDate <= endDate;
         } catch (error) {
-          console.error('OrderData: Error processing order date:', error, order);
+          logger.error('OrderData: Error processing order date:', error, order);
           return false;
         }
       });
     } catch (error) {
-      console.error('OrderData: Error in getOrdersByDateRange:', error);
+      logger.error('OrderData: Error in getOrdersByDateRange:', error);
       return [];
     }
   }, [orders]);

@@ -1,6 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 import { Purchase, CreatePurchaseRequest, PurchaseApiResponse } from '../types/purchase.types';
 import { 
   transformPurchasesFromDB, 
@@ -35,7 +36,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error fetching purchases:', error);
+      logger.error('Error fetching purchases:', error);
       return {
         data: null,
         error: error.message || 'Gagal memuat data pembelian',
@@ -66,7 +67,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error fetching purchase:', error);
+      logger.error('Error fetching purchase:', error);
       return {
         data: null,
         error: error.message || 'Gagal memuat data pembelian',
@@ -99,7 +100,7 @@ export class PurchaseApiService {
         purchaseId: data,
       };
     } catch (error: any) {
-      console.error('Error creating purchase:', error);
+      logger.error('Error creating purchase:', error);
       return {
         success: false,
         error: error.message || 'Gagal membuat pembelian',
@@ -133,7 +134,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error updating purchase:', error);
+      logger.error('Error updating purchase:', error);
       return {
         success: false,
         error: error.message || 'Gagal memperbarui pembelian',
@@ -161,7 +162,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error deleting purchase:', error);
+      logger.error('Error deleting purchase:', error);
       return {
         success: false,
         error: error.message || 'Gagal menghapus pembelian',
@@ -190,7 +191,7 @@ export class PurchaseApiService {
         results: { successful, failed },
       };
     } catch (error: any) {
-      console.error('Error bulk deleting purchases:', error);
+      logger.error('Error bulk deleting purchases:', error);
       return {
         success: false,
         error: error.message || 'Gagal menghapus pembelian',
@@ -225,7 +226,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error getting purchase stats:', error);
+      logger.error('Error getting purchase stats:', error);
       return {
         data: null,
         error: error.message || 'Gagal memuat statistik pembelian',
@@ -259,7 +260,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error fetching purchases by date range:', error);
+      logger.error('Error fetching purchases by date range:', error);
       return {
         data: null,
         error: error.message || 'Gagal memuat data pembelian',
@@ -296,7 +297,7 @@ export class PurchaseApiService {
         error: null,
       };
     } catch (error: any) {
-      console.error('Error searching purchases:', error);
+      logger.error('Error searching purchases:', error);
       return {
         data: null,
         error: error.message || 'Gagal mencari data pembelian',
@@ -349,7 +350,7 @@ export class PurchaseRealtimeService {
             callbacks.onDelete?.(payload.old.id);
           }
         } catch (error) {
-          console.error('Real-time update error:', error);
+          logger.error('Real-time update error:', error);
           callbacks.onError?.(error);
         }
       })

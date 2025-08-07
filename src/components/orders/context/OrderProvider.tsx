@@ -29,31 +29,31 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   // ✅ CONTEXTS: All required contexts
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addFinancialTransaction } = useFinancial();
+  const { addTransaction } = useFinancial();
   const { settings } = useUserSettings();
   const { addNotification } = useNotification();
 
   // ✅ MEMOIZED: Dependency check for performance
   const contextDependencies = useMemo(() => {
-    const hasAllDependencies = !!(user && addActivity && addFinancialTransaction && settings && addNotification);
+    const hasAllDependencies = !!(user && addActivity && addTransaction && settings && addNotification);
     
     logger.context('OrderProvider', 'Dependency check', {
       user: user?.id,
       hasActivity: !!addActivity,
-      hasFinancial: !!addFinancialTransaction,
+      hasFinancial: !!addTransaction,
       hasSettings: !!settings,
       hasNotification: !!addNotification,
       allReady: hasAllDependencies
     });
 
     return { hasAllDependencies, user };
-  }, [user, addActivity, addFinancialTransaction, settings, addNotification]);
+  }, [user, addActivity, addTransaction, settings, addNotification]);
 
   // ✅ OPTIMIZED: Main data hook with all dependencies
   const orderData = useOrderData(
     contextDependencies.user,
     addActivity,
-    addFinancialTransaction,
+    addTransaction,
     settings,
     addNotification
   );
@@ -63,7 +63,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
       try {
         if (!isValidDate(startDate) || !isValidDate(endDate)) {
-          console.error('OrderProvider: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+          logger.error('OrderProvider: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
           return [];
         }
         
@@ -73,12 +73,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
             if (!orderDate) return false;
             return orderDate >= startDate && orderDate <= endDate;
           } catch (error) {
-            console.error('OrderProvider: Error processing order date:', error, order);
+            logger.error('OrderProvider: Error processing order date:', error, order);
             return false;
           }
         });
       } catch (error) {
-        console.error('OrderProvider: Error in getOrdersByDateRange:', error);
+        logger.error('OrderProvider: Error in getOrdersByDateRange:', error);
         return [];
       }
     }
@@ -121,12 +121,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     logger.context('OrderProvider', 'Providing limited context - no user');
     
     const noOpAsync = async () => {
-      console.warn('OrderProvider: Operation called without user');
+      logger.warn('OrderProvider: Operation called without user');
       return false;
     };
 
     const noOpVoid = async () => {
-      console.warn('OrderProvider: Operation called without user');
+      logger.warn('OrderProvider: Operation called without user');
     };
 
     return {

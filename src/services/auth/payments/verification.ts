@@ -4,9 +4,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
 import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
-import { linkPaymentToUser } from '@/services/auth/payments/linking';
 
-// ✅ EKSPOR verifyOrderExists DI SINI
+// ✅ EKSPOR verifyOrderExists
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
     logger.api('/verify-order-exists', 'Verifying order exists:', orderId);
@@ -65,9 +64,12 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     const currentUser = await getCurrentUser();
     logger.debug('Auth status:', { isAuth, currentUserEmail: currentUser?.email });
 
+    // ✅ Tambahkan logging sebelum query
+    logger.debug('Attempting to verify order:', { email, orderId });
+
     // Check if order exists and is valid in database
     logger.api('/verify-order-exists', 'Checking order existence:', orderId);
-    const { data: orderData, error: orderError } = await supabase
+    const { data, error } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId.trim())
@@ -75,16 +77,19 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       .eq('payment_status', 'settled')
       .limit(1);
 
-    if (orderError) {
+    // ✅ Logging hasil query
+    logger.debug('Database query result:', { data, error });
+
+    if (error) {
       const result = { 
         success: false, 
         message: 'Gagal memeriksa order di database' 
       };
-      logger.error('Database query error:', orderError);
+      logger.error('Database query error:', error);
       return result;
     }
 
-    if (!orderData || orderData.length === 0) {
+    if (!data || data.length === 0) {
       const result = {
         success: false,
         message: 'Order ID tidak ditemukan atau belum dibayar'
@@ -93,8 +98,8 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       return result;
     }
 
-    const order = orderData[0];
-    logger.debug('Found order:', { 
+    const order = data[0];
+    logger.success('Found valid order:', { 
       orderId: order.order_id, 
       email: order.email, 
       isPaid: order.is_paid, 
@@ -142,6 +147,9 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       p_email: email.trim(),
       p_order_id: orderId.trim()
     });
+    
+    // ✅ Logging hasil RPC
+    logger.debug('RPC result:', { rpcData, rpcError });
     
     if (rpcError) {
       logger.error('RPC verification error:', rpcError);

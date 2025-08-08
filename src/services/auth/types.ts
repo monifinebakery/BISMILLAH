@@ -1,4 +1,4 @@
-// src/services/auth/types.ts
+// ===== 1. src/services/auth/types.ts =====
 export interface PaymentRecord {
   id: string;
   order_id: string;
@@ -18,4 +18,3 @@ export interface UserAccessStatus {
   needsOrderVerification: boolean;
   needsLinking: boolean;
   message: string;
-}

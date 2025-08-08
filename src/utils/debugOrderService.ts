@@ -216,43 +216,6 @@ export const debugOrderVerification = async (orderId: string) => {
   }
 };
 
-// ✅ AUTO-DEBUG: Function that runs automatically
-const autoDebugCheck = async () => {
-  try {
-    logger.info('🔍 Starting automatic debug check...');
-    
-    // ✅ STEP 1: Test database connection
-    logger.debug('Step 1: Testing database connection...');
-    const dbTest = await testDatabaseConnection();
-    if (!dbTest) {
-      logger.error('❌ Database connection failed - stopping auto debug');
-      return;
-    }
-    
-    // ✅ STEP 2: Check current session
-    logger.debug('Step 2: Checking current session...');
-    const session = await debugCurrentUser();
-    if (!session) {
-      logger.warn('⚠️ No active session - user might not be logged in yet');
-      return;
-    }
-    
-    // ✅ STEP 3: Test with known problematic order
-    const testOrderId = '250813BFGHUYE'; // Your problematic order
-    logger.info('Step 3: Testing problematic order:', testOrderId);
-    
-    const debugResult = await debugOrderVerification(testOrderId);
-    logger.success('🎯 Auto-debug completed with result:', debugResult);
-    
-    // ✅ STEP 4: Also test the fixed version
-    const fixedResult = await verifyOrderExistsFixed(testOrderId);
-    logger.success('✅ Fixed verification result:', fixedResult);
-    
-  } catch (error) {
-    logger.error('❌ Auto-debug check failed:', error);
-  }
-};
-
 // ✅ IMPROVED: Fixed verifyOrderExists function
 export const verifyOrderExistsFixed = async (orderId: string): Promise<boolean> => {
   try {

@@ -283,13 +283,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // Success
         toast.success('Login berhasil!');
         
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        } else {
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1000);
-        }
+       const { refetchPayment } = usePaymentContext();
+
+if (onLoginSuccess) {
+  await refetchPayment(); // ✅ trigger supaya popup bisa muncul otomatis
+  onLoginSuccess();
+} else {
+  await refetchPayment(); // ✅ tetap panggil biar context update
+  setTimeout(() => {
+    window.location.href = redirectUrl;
+  }, 1000);
+}
       } else if (result === 'expired') {
         // Expired
         setAuthState('expired');

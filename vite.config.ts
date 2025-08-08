@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
   const plugins = [
     react({
       fastRefresh: isDev,
+      // ✅ FIX: Better JSX configuration
+      jsxImportSource: '@emotion/react',
+      babel: {
+        plugins: isDev ? [] : []
+      }
     })
   ];
   
@@ -38,6 +43,8 @@ export default defineConfig(({ mode }) => {
     __PROD__: JSON.stringify(isProd),
     __MODE__: JSON.stringify(mode),
     'process.env.NODE_ENV': JSON.stringify(mode),
+    // ✅ FIX: Global scheduler polyfill
+    global: 'globalThis',
   };
   
   return {
@@ -50,6 +57,7 @@ export default defineConfig(({ mode }) => {
       strictPort: false,
       hmr: {
         overlay: true,
+        port: 24678, // Different port for HMR
       },
     },
     
@@ -58,13 +66,37 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // ✅ FIX: Explicit React aliasing to prevent scheduler conflicts
+        
+        // ✅ CRITICAL FIX: Force single React instances with absolute paths
         "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+        "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
+        "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
+        
+        // ✅ SCHEDULER FIX: Force single scheduler instance
         "scheduler": path.resolve(__dirname, "./node_modules/scheduler"),
+        "scheduler/tracing": path.resolve(__dirname, "./node_modules/scheduler/tracing"),
+        "scheduler/unstable_mock": path.resolve(__dirname, "./node_modules/scheduler/unstable_mock"),
+        
+        // ✅ Additional React-related aliases
+        "react-dom/client": path.resolve(__dirname, "./node_modules/react-dom/client"),
+        "react-dom/server": path.resolve(__dirname, "./node_modules/react-dom/server"),
       },
-      // ✅ FIX: Enhanced dedupe for scheduler issues
-      dedupe: ["react", "react-dom", "scheduler"],
+      
+      // ✅ ENHANCED: Comprehensive dedupe list
+      dedupe: [
+        "react", 
+        "react-dom", 
+        "scheduler",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react-dom/client",
+        "react-dom/server"
+      ],
+      
+      // ✅ Ensure proper module resolution
+      conditions: ['import', 'module', 'browser', 'default'],
+      mainFields: ['browser', 'module', 'main'],
     },
     
     build: {
@@ -72,10 +104,10 @@ export default defineConfig(({ mode }) => {
       
       rollupOptions: {
         output: {
-          // ✅ Smart chunking based on your dependencies
+          // ✅ Smart chunking with scheduler fix
           manualChunks: (id) => {
-            // Core React
-            if (id.includes('react') || id.includes('react-dom')) {
+            // ✅ CRITICAL: Keep React + Scheduler together
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-core';
             }
             
@@ -140,11 +172,17 @@ export default defineConfig(({ mode }) => {
           assetFileNames: isProd ? "assets/[name]-[hash].[ext]" : "assets/[name].[ext]",
         },
         
+        // ✅ Don't externalize scheduler - keep it bundled
         external: [],
         
         onwarn(warning, warn) {
           // Skip warnings in production unless requested
           if (!isDev && !env.VITE_SHOW_BUILD_WARNINGS) {
+            return;
+          }
+          
+          // ✅ Ignore scheduler warnings
+          if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes('scheduler')) {
             return;
           }
           
@@ -208,9 +246,14 @@ export default defineConfig(({ mode }) => {
     
     optimizeDeps: {
       include: [
-        // ✅ Core React (fixed for scheduler issues)
+        // ✅ CRITICAL: Core React with scheduler
+        "react",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
+        "react-dom",
+        "react-dom/client",
+        "scheduler",
+        "scheduler/tracing",
         
         // ✅ Router
         "react-router-dom",
@@ -218,7 +261,7 @@ export default defineConfig(({ mode }) => {
         // ✅ TanStack Query
         "@tanstack/react-query",
         
-        // ✅ UI Libraries based on your package.json
+        // ✅ UI Libraries
         "lucide-react",
         "clsx",
         "tailwind-merge",
@@ -252,9 +295,9 @@ export default defineConfig(({ mode }) => {
         "xlsx", // Large Excel library
       ],
       
-      // ✅ FIX: Critical for scheduler error
-      dedupe: ["react", "react-dom"],
-      force: true, // Force rebuild to clear scheduler conflicts
+      // ✅ CRITICAL: Enhanced dedupe for scheduler
+      dedupe: ["react", "react-dom", "scheduler"],
+      force: true, // Always force to clear conflicts
       
       // ✅ ESBuild options for compatibility
       esbuildOptions: {
@@ -262,6 +305,9 @@ export default defineConfig(({ mode }) => {
         define: {
           global: 'globalThis',
         },
+        // ✅ FIX: Proper JSX handling
+        jsx: 'automatic',
+        jsxDev: isDev,
       },
     },
     
@@ -285,10 +331,13 @@ export default defineConfig(({ mode }) => {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
-      // ✅ FIX: Define scheduler for compatibility
+      // ✅ SCHEDULER FIX: Proper defines
       define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
+        global: 'globalThis',
       },
+      jsx: 'automatic',
+      jsxDev: isDev,
     },
     
     // ✅ Environment-specific configurations

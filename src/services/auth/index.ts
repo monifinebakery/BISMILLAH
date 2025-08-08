@@ -7,7 +7,7 @@ export { isAuthenticated, getCurrentUser, signOut, onAuthStateChange, hasValidSe
 export { sendEmailOtp, verifyEmailOtp } from './core/otp';
 
 // Payment exports
-export { verifyOrderExists, verifyCustomerOrder } from './payments/verification';
+export { verifyOrderExists, verifyCustomerOrder } from './payments/verification'; // ✅ Pastikan ini ada
 export { linkPaymentToUser, checkUserHasPayment, debugConstraintIssue } from './payments/linking';
 export { getUserAccessStatus, hasAppAccess, getUserPaymentStatus } from './payments/access';
 

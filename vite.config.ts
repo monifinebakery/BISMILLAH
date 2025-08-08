@@ -86,11 +86,21 @@ export default defineConfig(({ mode }) => {
       
       rollupOptions: {
         output: {
-          // ✅ Smart chunking with scheduler fix
+          // ✅ FIXED: Separate React dari scheduler
           manualChunks: (id) => {
-            // ✅ CRITICAL: Keep React + Scheduler together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return 'react-core';
+            // Core React - terpisah untuk avoid conflicts
+            if (id.includes('/react/') && !id.includes('react-dom') && !id.includes('scheduler')) {
+              return 'react';
+            }
+            
+            // React DOM + Scheduler - together
+            if (id.includes('react-dom') || id.includes('scheduler')) {
+              return 'react-dom';
+            }
+            
+            // Router
+            if (id.includes('react-router')) {
+              return 'router';
             }
             
             // Radix UI components
@@ -197,8 +207,8 @@ export default defineConfig(({ mode }) => {
       // Chunk size limits
       chunkSizeWarningLimit: isProd ? 800 : 5000,
       
-      minify: isProd ? "esbuild" : false,
-      sourcemap: isDev ? true : false,
+      minify: false, // ✅ TEMP FIX: Disable minification to debug
+      sourcemap: true, // ✅ Enable sourcemap to see real function names
       
       // ✅ Production optimizations
       ...(isProd && {

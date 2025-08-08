@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { usePaymentContext } from '@/contexts/PaymentContext'; // ✅ MOVED TO TOP LEVEL
 
 // ✅ Dynamic hCaptcha import
 let HCaptcha: any = null;
@@ -39,9 +38,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   onLoginSuccess,
   redirectUrl = '/',
 }) => {
-  // ✅ FIXED: PaymentContext hook called at top level
-  const { refetchPayment } = usePaymentContext();
-
   // ✅ Simplified State Management
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -267,7 +263,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ FIXED: Verify OTP with proper hook usage and payment context integration
+  // ✅ FIXED: Verify OTP with complete logic
   const handleVerifyOtp = async () => {
     const otpCode = otp.join('');
     
@@ -283,46 +279,30 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       const result = await verifyEmailOtp(email, otpCode);
       
       if (result === true) {
-        // ✅ SUCCESS: Login berhasil
+        // Success
         toast.success('Login berhasil!');
         
-        // ✅ INTEGRATED: Trigger payment context refetch untuk auto-show popup
-        try {
-          logger.info('EmailAuth: Triggering payment refetch after successful login');
-          await refetchPayment();
-          logger.success('EmailAuth: Payment context refreshed');
-        } catch (refetchError) {
-          logger.warn('EmailAuth: Payment refetch failed, but login still successful:', refetchError);
-          // Don't block login flow if refetch fails
-        }
-
-        // ✅ CALLBACK/REDIRECT: Handle success with slight delay for context to update
         if (onLoginSuccess) {
-          // Custom callback provided
-          setTimeout(() => {
-            onLoginSuccess();
-          }, 500); // Small delay to let context update
+          onLoginSuccess();
         } else {
-          // Default redirect
           setTimeout(() => {
             window.location.href = redirectUrl;
-          }, 1000); // Longer delay for context to trigger auto-popup
+          }, 1000);
         }
-        
       } else if (result === 'expired') {
-        // ✅ EXPIRED: Token kadaluarsa
+        // Expired
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else if (result === 'rate_limited') {
-        // ✅ RATE LIMITED: Terlalu banyak percobaan
+        // Rate limited
         setAuthState('error');
         setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        // ✅ INVALID: Kode salah
+        // Invalid
         setAuthState('error');
         setError('Kode OTP tidak valid. Silakan coba lagi.');
         setOtp(['', '', '', '', '', '']);
@@ -542,15 +522,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             </div>
           )}
         </CardContent>
-        
-        <CardFooter className="pb-6">
+          
           {cooldownTime > 0 && (
-            <div className="w-full text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
+            <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
               <Clock className="inline h-3 w-3 mr-1" />
               Tunggu {cooldownTime} detik untuk mencegah spam
             </div>
           )}
-        </CardFooter>
       </Card>
     </div>
   );

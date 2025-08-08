@@ -31,6 +31,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
 
   const loadRecentOrders = async () => {
     try {
+      // ✅ UPDATED: This function is now deprecated and returns []
       const orders = await getRecentUnlinkedOrders();
       setRecentOrders(orders);
       logger.component('OrderConfirmationPopup', 'Recent unlinked orders loaded:', orders);
@@ -214,7 +215,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           Masukkan Order ID untuk menghubungkan pembayaran ke akun Anda:
         </p>
         
-        {/* ✅ Recent orders suggestions */}
+        {/* ✅ Recent orders suggestions - Will be empty due to deprecated function */}
         {recentOrders.length > 0 && (
           <div className="mb-4">
             <p className="text-sm text-gray-500 mb-2">Order terbaru yang belum terhubung:</p>
@@ -346,7 +347,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           </div>
         </div>
 
-        {/* ✅ Debug info (only in development) */}
+        {/* ✅ FIXED: Debug info using import.meta.env.DEV */}
         {import.meta.env.DEV && (
           <div className="mt-4 text-xs text-gray-400 bg-gray-100 p-2 rounded font-mono">
             <div>Order: "{orderId}" | Length: {orderId.length}</div>

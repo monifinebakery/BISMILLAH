@@ -1,4 +1,4 @@
-/ ===== 2. src/services/auth/core/session.ts - ENHANCED =====
+// ===== 2. src/services/auth/core/session.ts - ENHANCED =====
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';

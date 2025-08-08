@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { 
-  linkPaymentToUser, 
   getCurrentUser, 
   verifyOrderExists, 
   getRecentUnlinkedOrders 
-} from '@/lib/authService'; // ✅ Fixed import path
+} from '@/lib/authService';
+import { usePaymentContext } from '@/contexts/PaymentContext'; // ✅ Use context
 import { logger } from '@/utils/logger';
 
 interface OrderConfirmationPopupProps {
@@ -14,6 +14,10 @@ interface OrderConfirmationPopupProps {
 }
 
 const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmationPopupProps) => {
+  // ✅ Use payment context
+  const { linkPaymentToUser, clearError, lastError } = usePaymentContext();
+  
+  // Local state
   const [orderId, setOrderId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,27 +30,30 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     if (isOpen) {
       loadRecentOrders();
       resetForm();
+      clearError(); // Clear context errors when popup opens
     }
-  }, [isOpen]);
+  }, [isOpen, clearError]);
 
   const loadRecentOrders = async () => {
     try {
-      // ✅ UPDATED: This function is now deprecated and returns []
+      // ✅ This function is now deprecated and returns []
       const orders = await getRecentUnlinkedOrders();
       setRecentOrders(orders);
-      logger.component('OrderConfirmationPopup', 'Recent unlinked orders loaded:', orders);
+      if (import.meta.env.DEV) {
+        console.log('Recent unlinked orders loaded:', orders);
+      }
     } catch (error) {
       logger.error('Error loading recent orders:', error);
       // Don't show error to user for this, it's just a nice-to-have feature
     }
   };
 
-  // ✅ Enhanced verification with better debouncing and state management
+  // ✅ Enhanced verification with better debouncing
   useEffect(() => {
     if (orderId.trim().length >= 8) {
       const debounceTimer = setTimeout(() => {
         verifyOrder();
-      }, 800); // Increased to 800ms for better UX
+      }, 800);
 
       return () => clearTimeout(debounceTimer);
     } else {
@@ -57,7 +64,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   }, [orderId]);
 
   const verifyOrder = async () => {
-    if (isLoading) return; // Don't verify while linking
+    if (isLoading) return;
     
     setIsVerifying(true);
     setError('');
@@ -66,11 +73,10 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     try {
       logger.component('OrderConfirmationPopup', 'Verifying order:', orderId.trim());
       const exists = await verifyOrderExists(orderId.trim());
-      logger.debug('Order verification result:', { orderId: orderId.trim(), exists });
       
       if (exists) {
         setVerificationResult('valid');
-        setError(''); // Clear any previous errors
+        setError('');
       } else {
         setVerificationResult('invalid');
         setError('Order ID tidak ditemukan. Pastikan Order ID benar atau hubungi admin.');
@@ -110,26 +116,32 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       
       if (!user) {
         setError('Sesi Anda sudah berakhir. Silakan login kembali.');
-        setIsLoading(false);
         return;
       }
 
-      logger.debug('Current user details:', { email: user.email });
+      if (import.meta.env.DEV) {
+        console.log('Current user details:', { email: user.email });
+      }
+      
       logger.component('OrderConfirmationPopup', 'Attempting to link order:', orderId.trim());
 
-      // Try to link payment
-      const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
+      // ✅ Use context function instead of direct authService call
+      const success = await linkPaymentToUser(orderId.trim());
       
-      if (linkedPayment) {
-        logger.success('Payment linked successfully:', linkedPayment);
+      if (success) {
+        logger.success('Payment linked successfully via context');
         
-        // Show success message briefly
+        // Clear local error
         setError('');
         
-        // Call success callback and close
-        onSuccess?.(linkedPayment);
-        onClose();
-        resetForm();
+        // Call success callback
+        onSuccess?.(null); // We don't have payment object here, but success happened
+        
+        // Close popup (context will handle this automatically, but we can call it anyway)
+        setTimeout(() => {
+          onClose();
+          resetForm();
+        }, 500);
       }
       
     } catch (error: any) {
@@ -138,7 +150,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       // ✅ ENHANCED: Better error handling with specific messages
       if (error.message?.includes('tidak ditemukan')) {
         setError('Order ID tidak ditemukan dalam sistem. Pastikan Order ID benar dan pembayaran sudah berhasil.');
-      } else if (error.message?.includes('sudah terhubung dengan akun lain')) {
+      } else if (error.message?.includes('sudah terhubung')) {
         setError('Order ini sudah terhubung dengan akun lain. Jika ini adalah order Anda, silakan hubungi admin.');
       } else if (error.message?.includes('terdaftar dengan email lain')) {
         setError('Order ini terdaftar dengan email yang berbeda. Pastikan Anda login dengan email yang benar.');
@@ -187,11 +199,14 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setVerificationResult('unknown');
   };
 
+  // ✅ Display error from context if no local error
+  const displayError = error || lastError;
+
   // ✅ HELPER: Determine if form is ready for submission
   const isFormReady = !isLoading && 
                      !isVerifying && 
                      orderId.trim().length >= 8 && 
-                     (verificationResult === 'valid' || error.includes('Gagal memverifikasi'));
+                     (verificationResult === 'valid' || displayError?.includes('Gagal memverifikasi'));
 
   if (!isOpen) return null;
 
@@ -215,12 +230,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           Masukkan Order ID untuk menghubungkan pembayaran ke akun Anda:
         </p>
         
-        {/* ✅ Recent orders suggestions - Will be empty due to deprecated function */}
+        {/* ✅ Recent orders suggestions */}
         {recentOrders.length > 0 && (
           <div className="mb-4">
             <p className="text-sm text-gray-500 mb-2">Order terbaru yang belum terhubung:</p>
             <div className="flex flex-wrap gap-2">
-              {recentOrders.slice(0, 3).map((order) => ( // Limit to 3 suggestions
+              {recentOrders.slice(0, 3).map((order) => (
                 <button
                   key={order}
                   onClick={() => selectRecentOrder(order)}
@@ -241,7 +256,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             onChange={(e) => handleOrderIdChange(e.target.value)}
             placeholder="Contoh: 250813BFGHUYE"
             className={`w-full px-3 py-3 pr-12 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1 text-base transition-colors ${
-              error ? 'border-red-300 bg-red-50' : 
+              displayError ? 'border-red-300 bg-red-50' : 
               verificationResult === 'valid' ? 'border-green-300 bg-green-50' : 
               'border-gray-300'
             }`}
@@ -284,21 +299,21 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         </div>
         
         {/* ✅ Enhanced status messages */}
-        {error && (
+        {displayError && (
           <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
             <div className="flex items-start">
               <svg className="w-4 h-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>{error}</span>
+              <span>{displayError}</span>
             </div>
           </div>
         )}
         
-        {!error && verificationResult === 'valid' && (
+        {!displayError && verificationResult === 'valid' && (
           <div className="text-green-600 text-sm mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center">
-              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 w-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span>Order ID valid! Siap untuk dihubungkan.</span>
@@ -347,12 +362,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           </div>
         </div>
 
-        {/* ✅ FIXED: Debug info using import.meta.env.DEV */}
+        {/* ✅ Debug info */}
         {import.meta.env.DEV && (
           <div className="mt-4 text-xs text-gray-400 bg-gray-100 p-2 rounded font-mono">
             <div>Order: "{orderId}" | Length: {orderId.length}</div>
             <div>Status: {isVerifying ? 'Verifying' : verificationResult} | Loading: {isLoading ? 'Yes' : 'No'}</div>
-            <div>Form Ready: {isFormReady ? 'Yes' : 'No'}</div>
+            <div>Form Ready: {isFormReady ? 'Yes' : 'No'} | Context Error: {lastError || 'None'}</div>
           </div>
         )}
       </div>

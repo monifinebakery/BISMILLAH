@@ -76,7 +76,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
         return;
       }
 
-      console.log('Updating promo with ', data);
+      logger.info('Updating promo with ', data);
       const result = await promoService.update(promo.id, data);
 
       if (result && result.success) {
@@ -90,13 +90,13 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
         toast.error(`Gagal memperbarui promo: ${result?.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error updating promo:', error);
+      logger.error('Error updating promo:', error);
       toast.error(`Terjadi kesalahan: ${error.message || error}`);
     }
   };
 
   const onError = (errors) => {
-    console.error('Form errors:', errors);
+    logger.error('Form errors:', errors);
     toast.error('Silakan periksa kembali isian form.');
   };
 

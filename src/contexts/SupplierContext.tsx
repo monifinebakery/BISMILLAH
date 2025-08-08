@@ -1,16 +1,15 @@
 // src/contexts/SupplierContext.tsx
-// Optimized SupplierContext with proper error handling and performance optimization
+// REFACTORED VERSION - Using TanStack Query for better performance and caching
 
 import React, { 
   createContext, 
   useContext, 
-  useState, 
   useEffect, 
   ReactNode,
   useCallback,
   useMemo
 } from 'react';
-import { Supplier } from '@/types/supplier';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -22,9 +21,29 @@ import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 
-// ================================================================
-// TYPES & INTERFACES
-// ================================================================
+// ✅ USING EXISTING TYPES
+import { 
+  Supplier,
+  SupplierDbRow,
+  SupplierCreateInput,
+  SupplierUpdateInput
+} from '@/types/supplier';
+
+// ===========================================
+// QUERY KEYS - Centralized for consistency
+// ===========================================
+
+export const supplierQueryKeys = {
+  all: ['suppliers'] as const,
+  lists: () => [...supplierQueryKeys.all, 'list'] as const,
+  list: (filters?: any) => [...supplierQueryKeys.lists(), filters] as const,
+  detail: (id: string) => [...supplierQueryKeys.all, 'detail', id] as const,
+  stats: () => [...supplierQueryKeys.all, 'stats'] as const,
+} as const;
+
+// ===========================================
+// CONTEXT TYPE
+// ===========================================
 
 interface SupplierContextType {
   // State
@@ -43,33 +62,15 @@ interface SupplierContextType {
   clearError: () => void;
 }
 
-interface SupplierProviderProps {
-  children: ReactNode;
-}
-
-// Database row type
-interface SupplierDbRow {
-  id: string;
-  nama: string;
-  kontak: string;
-  email: string | null;
-  telepon: string | null;
-  alamat: string | null;
-  catatan: string | null;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// ================================================================
-// CONTEXT CREATION
-// ================================================================
+// ===========================================
+// CONTEXT SETUP
+// ===========================================
 
 const SupplierContext = createContext<SupplierContextType | undefined>(undefined);
 
-// ================================================================
+// ===========================================
 // HELPER FUNCTIONS
-// ================================================================
+// ===========================================
 
 const transformSupplierFromDB = (dbItem: SupplierDbRow): Supplier => ({
   id: dbItem.id,
@@ -80,8 +81,8 @@ const transformSupplierFromDB = (dbItem: SupplierDbRow): Supplier => ({
   alamat: dbItem.alamat || undefined,
   catatan: dbItem.catatan || undefined,
   userId: dbItem.user_id,
-  createdAt: safeParseDate(dbItem.created_at),
-  updatedAt: safeParseDate(dbItem.updated_at),
+  createdAt: safeParseDate(dbItem.created_at) || new Date(),
+  updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
 });
 
 const transformSupplierToDB = (supplier: Partial<Supplier>) => ({
@@ -93,124 +94,184 @@ const transformSupplierToDB = (supplier: Partial<Supplier>) => ({
   catatan: supplier.catatan || null,
 });
 
-// ================================================================
-// PROVIDER COMPONENT
-// ================================================================
+// ===========================================
+// API FUNCTIONS
+// ===========================================
 
-export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) => {
-  // ================================================================
-  // STATE
-  // ================================================================
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Fetch all suppliers for current user
+ */
+const fetchSuppliers = async (userId: string): Promise<Supplier[]> => {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('user_id', userId)
+    .order('nama', { ascending: true });
 
-  // ================================================================
-  // DEPENDENCIES
-  // ================================================================
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data || []).map(transformSupplierFromDB);
+};
+
+/**
+ * Create new supplier
+ */
+const createSupplier = async (
+  supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,
+  userId: string
+): Promise<Supplier> => {
+  const supplierToInsert = {
+    user_id: userId,
+    ...transformSupplierToDB(supplierData),
+  };
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert(supplierToInsert)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error('No data returned from database');
+  }
+
+  return transformSupplierFromDB(data);
+};
+
+/**
+ * Update existing supplier
+ */
+const updateSupplier = async (
+  id: string,
+  supplierData: Partial<Omit<Supplier, 'id' | 'userId'>>,
+  userId: string
+): Promise<Supplier> => {
+  const supplierToUpdate = transformSupplierToDB(supplierData);
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .update(supplierToUpdate)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error('No data returned from database');
+  }
+
+  return transformSupplierFromDB(data);
+};
+
+/**
+ * Delete supplier
+ */
+const deleteSupplier = async (id: string, userId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('suppliers')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
+// ===========================================
+// CUSTOM HOOKS FOR QUERY OPERATIONS
+// ===========================================
+
+/**
+ * Hook for fetching suppliers
+ */
+const useSuppliersQuery = (userId?: string) => {
+  return useQuery({
+    queryKey: supplierQueryKeys.list(),
+    queryFn: () => fetchSuppliers(userId!),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
+/**
+ * Hook for supplier mutations
+ */
+const useSupplierMutations = () => {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addNotification } = useNotification();
 
-  // ================================================================
-  // UTILITY METHODS
-  // ================================================================
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  // Add supplier mutation
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => 
+      createSupplier(data, user!.id),
+    onMutate: async (newSupplier) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ 
+        queryKey: supplierQueryKeys.lists() 
+      });
 
-  const getSupplierById = useCallback((id: string) => {
-    return suppliers.find(s => s.id === id);
-  }, [suppliers]);
+      // Snapshot previous value
+      const previousSuppliers = queryClient.getQueryData(supplierQueryKeys.list());
 
-  // ================================================================
-  // DATA FETCHING
-  // ================================================================
-  const fetchSuppliers = useCallback(async () => {
-    if (!user) {
-      setSuppliers([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-      
-      const { data, error: fetchError } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('nama', { ascending: true });
-
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
-
-      const transformedSuppliers = (data || []).map(transformSupplierFromDB);
-      setSuppliers(transformedSuppliers);
-      
-      logger.context('SupplierContext', `Loaded ${transformedSuppliers.length} suppliers`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      logger.error('SupplierContext - Error fetching suppliers:', err);
-      
-      toast.error(`Gagal memuat supplier: ${errorMessage}`);
-      
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal memuat data supplier: ${errorMessage}`
-      ));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, addNotification]);
-
-  const refreshSuppliers = useCallback(async () => {
-    setIsLoading(true);
-    await fetchSuppliers();
-  }, [fetchSuppliers]);
-
-  // ================================================================
-  // CRUD OPERATIONS
-  // ================================================================
-  
-  const addSupplier = useCallback(async (
-    supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
-  ): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menambahkan supplier');
-      return false;
-    }
-
-    try {
-      setError(null);
-      
-      const supplierToInsert = {
-        user_id: user.id,
-        ...transformSupplierToDB(supplierData),
+      // Optimistically update
+      const optimisticSupplier: Supplier = {
+        id: `temp-${Date.now()}`,
+        userId: user?.id || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...newSupplier,
       };
 
-      logger.context('SupplierContext', 'Adding supplier:', supplierToInsert);
+      queryClient.setQueryData(
+        supplierQueryKeys.list(),
+        (old: Supplier[] = []) => [optimisticSupplier, ...old].sort((a, b) => a.nama.localeCompare(b.nama))
+      );
+
+      return { previousSuppliers };
+    },
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousSuppliers) {
+        queryClient.setQueryData(supplierQueryKeys.list(), context.previousSuppliers);
+      }
       
-      const { data, error: insertError } = await supabase
-        .from('suppliers')
-        .insert(supplierToInsert)
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
-
-      if (data) {
-        const newSupplier = transformSupplierFromDB(data);
-        setSuppliers(prev => [newSupplier, ...prev].sort((a, b) => a.nama.localeCompare(b.nama)));
-      }
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal menambahkan supplier: ${errorMessage}`);
+      
+      addNotification(createNotificationHelper.systemError(
+        `Gagal menambahkan supplier ${variables.nama}: ${errorMessage}`
+      ));
+    },
+    onSuccess: async (newSupplier, variables) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.stats() });
 
       // Activity log
       addActivity({
         title: 'Supplier Ditambahkan',
-        description: `${supplierData.nama} telah ditambahkan`,
+        description: `${variables.nama} telah ditambahkan`,
         type: 'supplier',
         value: null
       });
@@ -218,7 +279,7 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
       // Success notification
       await addNotification({
         title: '🏢 Supplier Baru Ditambahkan!',
-        message: `${supplierData.nama} berhasil ditambahkan ke daftar supplier`,
+        message: `${variables.nama} berhasil ditambahkan ke daftar supplier`,
         type: 'success',
         icon: 'building',
         priority: 2,
@@ -228,68 +289,52 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
         is_archived: false
       });
 
-      toast.success(`${supplierData.nama} berhasil ditambahkan!`);
-      return true;
+      toast.success(`${variables.nama} berhasil ditambahkan!`);
+    }
+  });
 
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      logger.error('SupplierContext - Error in addSupplier:', err);
+  // Update supplier mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Supplier, 'id' | 'userId'>> }) => 
+      updateSupplier(id, data, user!.id),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: supplierQueryKeys.lists() });
+
+      const previousSuppliers = queryClient.getQueryData(supplierQueryKeys.list());
+
+      // Optimistically update
+      queryClient.setQueryData(
+        supplierQueryKeys.list(),
+        (old: Supplier[] = []) =>
+          old.map(supplier =>
+            supplier.id === id
+              ? { ...supplier, ...data, updatedAt: new Date() }
+              : supplier
+          ).sort((a, b) => a.nama.localeCompare(b.nama))
+      );
+
+      return { previousSuppliers };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousSuppliers) {
+        queryClient.setQueryData(supplierQueryKeys.list(), context.previousSuppliers);
+      }
       
-      toast.error(`Gagal menambahkan supplier: ${errorMessage}`);
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal memperbarui supplier: ${errorMessage}`);
       
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal menambahkan supplier ${supplierData.nama}: ${errorMessage}`
+      addNotification(createNotificationHelper.systemError(
+        `Gagal memperbarui supplier: ${errorMessage}`
       ));
-      
-      return false;
-    }
-  }, [user, addActivity, addNotification]);
-
-  const updateSupplier = useCallback(async (
-    id: string,
-    supplierData: Partial<Omit<Supplier, 'id' | 'userId'>>
-  ): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk memperbarui supplier');
-      return false;
-    }
-
-    try {
-      setError(null);
-      
-      const existingSupplier = suppliers.find(s => s.id === id);
-      if (!existingSupplier) {
-        throw new Error('Supplier tidak ditemukan');
-      }
-
-      const supplierToUpdate = transformSupplierToDB(supplierData);
-
-      logger.context('SupplierContext', 'Updating supplier:', id, supplierToUpdate);
-      
-      const { data, error: updateError } = await supabase
-        .from('suppliers')
-        .update(supplierToUpdate)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-
-      if (data) {
-        const updatedSupplier = transformSupplierFromDB(data);
-        setSuppliers(prev => 
-          prev.map(s => s.id === id ? updatedSupplier : s)
-            .sort((a, b) => a.nama.localeCompare(b.nama))
-        );
-      }
+    },
+    onSuccess: async (updatedSupplier, { data }) => {
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.stats() });
 
       // Success notification
       await addNotification({
         title: '📝 Supplier Diperbarui',
-        message: `${supplierData.nama || existingSupplier.nama} telah diperbarui`,
+        message: `${data.nama || updatedSupplier.nama} telah diperbarui`,
         type: 'info',
         icon: 'edit',
         priority: 1,
@@ -300,101 +345,103 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
       });
 
       toast.success('Supplier berhasil diperbarui!');
-      return true;
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      logger.error('SupplierContext - Error in updateSupplier:', err);
-      
-      toast.error(`Gagal memperbarui supplier: ${errorMessage}`);
-      
-      await addNotification(createNotificationHelper.systemError(
-        `Gagal memperbarui supplier: ${errorMessage}`
-      ));
-      
-      return false;
     }
-  }, [user, suppliers, addNotification]);
+  });
 
-  const deleteSupplier = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menghapus supplier');
-      return false;
-    }
+  // Delete supplier mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteSupplier(id, user!.id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: supplierQueryKeys.lists() });
 
-    try {
-      setError(null);
-      
-      const supplierToDelete = suppliers.find(s => s.id === id);
-      if (!supplierToDelete) {
-        throw new Error('Supplier tidak ditemukan');
+      const previousSuppliers = queryClient.getQueryData(supplierQueryKeys.list()) as Supplier[];
+      const supplierToDelete = previousSuppliers?.find(s => s.id === id);
+
+      // Optimistically update
+      queryClient.setQueryData(
+        supplierQueryKeys.list(),
+        (old: Supplier[] = []) => old.filter(s => s.id !== id)
+      );
+
+      return { previousSuppliers, supplierToDelete };
+    },
+    onError: (error: any, id, context) => {
+      if (context?.previousSuppliers) {
+        queryClient.setQueryData(supplierQueryKeys.list(), context.previousSuppliers);
       }
-
-      logger.context('SupplierContext', 'Deleting supplier:', id);
       
-      const { error: deleteError } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) {
-        throw new Error(deleteError.message);
-      }
-
-      setSuppliers(prev => prev.filter(s => s.id !== id));
-
-      // Activity log
-      addActivity({
-        title: 'Supplier Dihapus',
-        description: `${supplierToDelete.nama} telah dihapus`,
-        type: 'supplier',
-        value: null
-      });
-
-      // Delete notification
-      await addNotification({
-        title: '🗑️ Supplier Dihapus',
-        message: `${supplierToDelete.nama} telah dihapus dari daftar supplier`,
-        type: 'warning',
-        icon: 'trash-2',
-        priority: 2,
-        related_type: 'system',
-        action_url: '/supplier',
-        is_read: false,
-        is_archived: false
-      });
-
-      toast.success('Supplier berhasil dihapus!');
-      return true;
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      logger.error('SupplierContext - Error in deleteSupplier:', err);
-      
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
       toast.error(`Gagal menghapus supplier: ${errorMessage}`);
       
-      await addNotification(createNotificationHelper.systemError(
+      addNotification(createNotificationHelper.systemError(
         `Gagal menghapus supplier: ${errorMessage}`
       ));
-      
-      return false;
-    }
-  }, [user, suppliers, addActivity, addNotification]);
+    },
+    onSuccess: async (result, id, context) => {
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: supplierQueryKeys.stats() });
 
-  // ================================================================
-  // REALTIME SUBSCRIPTION
-  // ================================================================
+      if (context?.supplierToDelete) {
+        // Activity log
+        addActivity({
+          title: 'Supplier Dihapus',
+          description: `${context.supplierToDelete.nama} telah dihapus`,
+          type: 'supplier',
+          value: null
+        });
+
+        // Delete notification
+        await addNotification({
+          title: '🗑️ Supplier Dihapus',
+          message: `${context.supplierToDelete.nama} telah dihapus dari daftar supplier`,
+          type: 'warning',
+          icon: 'trash-2',
+          priority: 2,
+          related_type: 'system',
+          action_url: '/supplier',
+          is_read: false,
+          is_archived: false
+        });
+
+        toast.success('Supplier berhasil dihapus!');
+      }
+    }
+  });
+
+  return {
+    addMutation,
+    updateMutation,
+    deleteMutation
+  };
+};
+
+// ===========================================
+// PROVIDER COMPONENT
+// ===========================================
+
+export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch suppliers using React Query
+  const {
+    data: suppliers = [],
+    isLoading,
+    error,
+    refetch
+  } = useSuppliersQuery(user?.id);
+
+  // Get mutations
+  const { addMutation, updateMutation, deleteMutation } = useSupplierMutations();
+
+  // ===========================================
+  // REAL-TIME SUBSCRIPTION
+  // ===========================================
+
   useEffect(() => {
-    if (!user) {
-      setSuppliers([]);
-      setIsLoading(false);
-      return;
-    }
+    if (!user?.id) return;
 
-    // Initial fetch
-    fetchSuppliers();
+    logger.context('SupplierContext', 'Setting up real-time subscription for user:', user.id);
 
     // Setup realtime subscription
     const channel = supabase.channel(`realtime-suppliers-${user.id}`)
@@ -406,24 +453,13 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
       }, (payload) => {
         logger.context('SupplierContext', 'Real-time event received:', payload);
 
-        if (payload.eventType === 'INSERT' && payload.new) {
-          const newSupplier = transformSupplierFromDB(payload.new as SupplierDbRow);
-          setSuppliers(current => 
-            [newSupplier, ...current].sort((a, b) => a.nama.localeCompare(b.nama))
-          );
-        }
-        
-        if (payload.eventType === 'UPDATE' && payload.new) {
-          const updatedSupplier = transformSupplierFromDB(payload.new as SupplierDbRow);
-          setSuppliers(current => 
-            current.map(s => s.id === updatedSupplier.id ? updatedSupplier : s)
-              .sort((a, b) => a.nama.localeCompare(b.nama))
-          );
-        }
-        
-        if (payload.eventType === 'DELETE' && payload.old) {
-          setSuppliers(current => current.filter(s => s.id !== payload.old.id));
-        }
+        // Instead of manually updating state, invalidate queries
+        queryClient.invalidateQueries({
+          queryKey: supplierQueryKeys.lists()
+        });
+        queryClient.invalidateQueries({
+          queryKey: supplierQueryKeys.stats()
+        });
       })
       .subscribe();
 
@@ -432,21 +468,101 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
       logger.context('SupplierContext', 'Cleaning up real-time channel');
       supabase.removeChannel(channel);
     };
-  }, [user, fetchSuppliers]);
+  }, [user?.id, queryClient]);
 
-  // ================================================================
+  // ===========================================
+  // CONTEXT FUNCTIONS
+  // ===========================================
+
+  const addSupplier = useCallback(async (
+    supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
+  ): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk menambahkan supplier');
+      return false;
+    }
+
+    try {
+      await addMutation.mutateAsync(supplierData);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [user, addMutation]);
+
+  const updateSupplierFn = useCallback(async (
+    id: string,
+    supplierData: Partial<Omit<Supplier, 'id' | 'userId'>>
+  ): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk memperbarui supplier');
+      return false;
+    }
+
+    const existingSupplier = suppliers.find(s => s.id === id);
+    if (!existingSupplier) {
+      toast.error('Supplier tidak ditemukan');
+      return false;
+    }
+
+    try {
+      await updateMutation.mutateAsync({ id, data: supplierData });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [user, suppliers, updateMutation]);
+
+  const deleteSupplierFn = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      toast.error('Anda harus login untuk menghapus supplier');
+      return false;
+    }
+
+    const supplierToDelete = suppliers.find(s => s.id === id);
+    if (!supplierToDelete) {
+      toast.error('Supplier tidak ditemukan');
+      return false;
+    }
+
+    try {
+      await deleteMutation.mutateAsync(id);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [user, suppliers, deleteMutation]);
+
+  // ===========================================
+  // UTILITY METHODS
+  // ===========================================
+
+  const getSupplierById = useCallback((id: string) => {
+    return suppliers.find(s => s.id === id);
+  }, [suppliers]);
+
+  const refreshSuppliers = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
+  const clearError = useCallback(() => {
+    // Error handling is managed by React Query
+  }, []);
+
+  // ===========================================
   // CONTEXT VALUE
-  // ================================================================
+  // ===========================================
+
   const contextValue = useMemo<SupplierContextType>(() => ({
     // State
     suppliers,
-    isLoading,
-    error,
+    isLoading: isLoading || addMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    error: error ? (error as Error).message : null,
     
     // Actions
     addSupplier,
-    updateSupplier,
-    deleteSupplier,
+    updateSupplier: updateSupplierFn,
+    deleteSupplier: deleteSupplierFn,
     
     // Utility methods
     getSupplierById,
@@ -456,9 +572,12 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
     suppliers,
     isLoading,
     error,
+    addMutation.isPending,
+    updateMutation.isPending,
+    deleteMutation.isPending,
     addSupplier,
-    updateSupplier,
-    deleteSupplier,
+    updateSupplierFn,
+    deleteSupplierFn,
     getSupplierById,
     refreshSuppliers,
     clearError,
@@ -471,9 +590,10 @@ export const SupplierProvider: React.FC<SupplierProviderProps> = ({ children }) 
   );
 };
 
-// ================================================================
+// ===========================================
 // CUSTOM HOOK
-// ================================================================
+// ===========================================
+
 export const useSupplier = (): SupplierContextType => {
   const context = useContext(SupplierContext);
   
@@ -484,9 +604,9 @@ export const useSupplier = (): SupplierContextType => {
   return context;
 };
 
-// ================================================================
+// ===========================================
 // ADDITIONAL HOOKS FOR SPECIFIC USE CASES
-// ================================================================
+// ===========================================
 
 // Hook for getting a specific supplier
 export const useSupplierById = (id: string | undefined): Supplier | undefined => {
@@ -532,4 +652,36 @@ export const useSupplierStats = () => {
       completionRate: total > 0 ? Math.round((withEmail / total) * 100) : 0,
     };
   }, [suppliers]);
+};
+
+// ===========================================
+// ADDITIONAL HOOKS FOR REACT QUERY UTILITIES
+// ===========================================
+
+/**
+ * Hook for accessing React Query specific functions
+ */
+export const useSupplierQuery = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const invalidateSuppliers = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });
+    queryClient.invalidateQueries({ queryKey: supplierQueryKeys.stats() });
+  }, [queryClient]);
+
+  const prefetchSuppliers = useCallback(() => {
+    if (user?.id) {
+      queryClient.prefetchQuery({
+        queryKey: supplierQueryKeys.list(),
+        queryFn: () => fetchSuppliers(user.id),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [queryClient, user?.id]);
+
+  return {
+    invalidateSuppliers,
+    prefetchSuppliers,
+  };
 };

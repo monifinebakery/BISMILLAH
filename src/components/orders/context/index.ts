@@ -5,18 +5,14 @@
  * Clean context exports with no component mixing
  * Dependencies maintained at 2 for essential context functionality
  */
-
 // ✅ ESSENTIAL CONTEXT: Core context exports
 export { OrderProvider } from './OrderProvider';
 export { useOrder } from './OrderContext';
 import { logger } from '@/utils/logger';
-
 // ✅ CONTEXT COMPONENT: Default context export for advanced usage
 export { default as OrderContext } from './OrderContext';
-
 // ❌ NOT CHANGED: These are the minimal essential context exports
 // No reduction possible without breaking functionality
-
 // ✅ CONTEXT UTILITIES: Helper functions for context usage
 export const ORDERS_CONTEXT_UTILS = {
   // Context validation helper
@@ -37,11 +33,10 @@ export const ORDERS_CONTEXT_UTILS = {
   // Context debugging helper
   debugContext: (contextValue: any) => {
     if (process.env.NODE_ENV === 'development') {
-      console.group('Orders Context Debug');
-      console.log('Orders count:', contextValue?.orders?.length || 0);
-      console.log('Loading state:', contextValue?.loading || false);
-      console.log('Available methods:', Object.keys(contextValue || {}));
-      console.groupEnd();
+      logger.debug('Orders Context Debug');
+      logger.debug('Orders count:', contextValue?.orders?.length || 0);
+      logger.debug('Loading state:', contextValue?.loading || false);
+      logger.debug('Available methods:', Object.keys(contextValue || {}));
     }
   },
   
@@ -56,7 +51,6 @@ export const ORDERS_CONTEXT_UTILS = {
     };
   }
 } as const;
-
 // ✅ CONTEXT CONFIGURATION: Context-specific settings
 export const CONTEXT_CONFIG = {
   // Provider settings
@@ -80,13 +74,11 @@ export const CONTEXT_CONFIG = {
     maxRecentOrders: 1000 // Keep in memory
   }
 } as const;
-
 // ✅ CONTEXT TYPES: Re-export context types for convenience
 export type {
   OrderContextType,
   UseOrderReturn
 } from '../types';
-
 // ✅ MIGRATION HELPER: For context usage patterns
 export const ORDERS_CONTEXT_MIGRATION = {
   instructions: `

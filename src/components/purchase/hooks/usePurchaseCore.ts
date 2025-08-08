@@ -14,6 +14,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // ✅ TYPES: Keep interface minimal but extensible
 interface UsePurchaseCoreProps {
@@ -270,7 +271,7 @@ export const usePurchaseCore = ({
         
         return success;
       } catch (error) {
-        console.error('Error updating purchase status:', error);
+        logger.error('Error updating purchase status:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         toast.error(`Gagal mengubah status: ${errorMessage}`);
         return false;
@@ -299,7 +300,7 @@ export const usePurchaseCore = ({
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error deleting purchase:', error);
+        logger.error('Error deleting purchase:', error);
         return { 
           success: false, 
           error: `Terjadi kesalahan saat menghapus pembelian: ${errorMessage}` 

@@ -74,28 +74,21 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       .select('*')
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
-      .eq('payment_status', 'settled')
+      .eq(supabase.raw('LOWER(payment_status)'), 'settled') // ✅ Normalisasi case
       .limit(1);
 
     // ✅ Logging hasil query
     logger.debug('Database query result:', { data, error });
 
+    // ✅ Logging kondisi setelah query
     if (error) {
-      const result = { 
-        success: false, 
-        message: 'Gagal memeriksa order di database' 
-      };
-      logger.error('Database query error:', error);
-      return result;
+      logger.error('Order verification error:', error);
+      return { success: false, message: 'Gagal memeriksa order di database' };
     }
 
     if (!data || data.length === 0) {
-      const result = {
-        success: false,
-        message: 'Order ID tidak ditemukan atau belum dibayar'
-      };
-      logger.warn('Order not found or not paid:', result);
-      return result;
+      logger.warn('Order not found or not paid:', { orderId });
+      return { success: false, message: 'Order ID tidak ditemukan atau belum dibayar' };
     }
 
     const order = data[0];

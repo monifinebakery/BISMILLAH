@@ -1,4 +1,4 @@
-// ===== 4. src/contexts/PaymentContext.tsx - ENHANCED =====
+// src/contexts/PaymentContext.tsx - ENHANCED VERSION
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { getUserAccessStatus } from '@/services/auth';

@@ -57,7 +57,7 @@ export const CONTEXT_CONFIG = {
   provider: {
     displayName: 'OrderProvider',
     errorBoundary: true,
-    devtools: process.env.NODE_ENV === 'development'
+    devtools: import.meta.env.DEV
   },
   
   // Hook settings

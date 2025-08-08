@@ -5,28 +5,25 @@ import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => {
-  // ✅ ENHANCED: Load environment variables
+  // ✅ Load environment variables
   const env = loadEnv(mode, process.cwd(), '');
   
-  // ✅ ENHANCED: Better environment detection
+  // ✅ Environment detection
   const isDev = mode === 'development';
   const isProd = mode === 'production';
-  const isPreview = mode === 'preview';
   
-  // ✅ Debug environment loading (only in dev)
+  // ✅ Debug info (only in dev)
   if (isDev) {
     console.log(`🔍 Vite Mode: ${mode}`);
     console.log(`🔍 Environment Variables:`, {
       VITE_DEBUG_LEVEL: env.VITE_DEBUG_LEVEL,
-      VITE_DEBUG_COMPONENT: env.VITE_DEBUG_COMPONENT,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
     });
   }
   
-  // ✅ ENHANCED: Plugin configuration
+  // ✅ Plugin configuration
   const plugins = [
     react({
-      // Enable fast refresh
       fastRefresh: isDev,
     })
   ];
@@ -35,12 +32,11 @@ export default defineConfig(({ mode }) => {
     plugins.push(componentTagger());
   }
   
-  // ✅ ENHANCED: Define globals
+  // ✅ Define globals
   const define = {
     __DEV__: JSON.stringify(isDev),
     __PROD__: JSON.stringify(isProd),
     __MODE__: JSON.stringify(mode),
-    // ✅ FIXED: Remove extra asterisks
     'process.env.NODE_ENV': JSON.stringify(mode),
   };
   
@@ -50,11 +46,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
-      // ✅ ENHANCED: Better dev server configuration
-      open: false, // Don't auto-open browser
-      strictPort: false, // Allow fallback to other ports
+      open: false,
+      strictPort: false,
       hmr: {
-        overlay: true, // Show errors in overlay
+        overlay: true,
       },
     },
     
@@ -63,12 +58,13 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // ✅ ENHANCED: More specific React aliasing to fix scheduler issues
-        react: path.resolve(__dirname, "./node_modules/react"),
+        // ✅ FIX: Explicit React aliasing to prevent scheduler conflicts
+        "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+        "scheduler": path.resolve(__dirname, "./node_modules/scheduler"),
       },
-      // ✅ FIX: Enhanced dedupe to fix unstable_scheduleCallback error
-      dedupe: ["react", "react-dom", "react/jsx-runtime", "scheduler"],
+      // ✅ FIX: Enhanced dedupe for scheduler issues
+      dedupe: ["react", "react-dom", "scheduler"],
     },
     
     build: {
@@ -76,23 +72,50 @@ export default defineConfig(({ mode }) => {
       
       rollupOptions: {
         output: {
-          // ✅ ENHANCED: Better chunking strategy for performance
+          // ✅ Smart chunking based on your dependencies
           manualChunks: (id) => {
-            // Vendor chunk for node_modules
+            // Core React
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-core';
+            }
+            
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'radix-ui';
+            }
+            
+            // TanStack Query
+            if (id.includes('@tanstack/react-query')) {
+              return 'react-query';
+            }
+            
+            // Supabase
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            
+            // Chart libraries
+            if (id.includes('chart.js') || id.includes('react-chartjs-2') || id.includes('recharts')) {
+              return 'charts';
+            }
+            
+            // Icons
+            if (id.includes('lucide-react') || id.includes('react-icons') || id.includes('@radix-ui/react-icons')) {
+              return 'icons';
+            }
+            
+            // Date utilities
+            if (id.includes('date-fns')) {
+              return 'date-utils';
+            }
+            
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform')) {
+              return 'forms';
+            }
+            
+            // Other vendor libraries
             if (id.includes('node_modules')) {
-              // Split large libraries into separate chunks
-              if (id.includes('@tanstack/react-query')) {
-                return 'react-query';
-              }
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'react-vendor';
-              }
-              if (id.includes('lucide-react')) {
-                return 'icons';
-              }
-              if (id.includes('@supabase')) {
-                return 'supabase';
-              }
               return 'vendor';
             }
             
@@ -107,11 +130,11 @@ export default defineConfig(({ mode }) => {
               return 'utils';
             }
             
-            // Default chunk for everything else
+            // Main app chunk
             return 'main';
           },
           
-          // ✅ ENHANCED: Better file naming with cache busting
+          // ✅ File naming with cache busting
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js", 
           assetFileNames: isProd ? "assets/[name]-[hash].[ext]" : "assets/[name].[ext]",
@@ -120,9 +143,8 @@ export default defineConfig(({ mode }) => {
         external: [],
         
         onwarn(warning, warn) {
-          // ✅ ENHANCED: Better warning handling
+          // Skip warnings in production unless requested
           if (!isDev && !env.VITE_SHOW_BUILD_WARNINGS) {
-            // Skip warnings in production unless explicitly requested
             return;
           }
           
@@ -149,10 +171,8 @@ export default defineConfig(({ mode }) => {
             return;
           }
           
-          // Show app code warnings in dev or when explicitly requested
-          if (isAppCode && (isDev || env.VITE_SHOW_ALL_WARNINGS === 'true')) {
-            const logEntry = `${timestamp} - ${warning.code}: ${warning.message}\n`;
-            fs.appendFileSync("build-warnings.log", logEntry);
+          // Show app code warnings in dev
+          if (isAppCode && isDev) {
             console.log("⚠️  APP WARNING:", warning.code, warning.message);
             if (warning.id) console.log("   📁", warning.id);
             warn(warning);
@@ -160,82 +180,92 @@ export default defineConfig(({ mode }) => {
         },
       },
       
-      // ✅ ENHANCED: Chunk size optimization
-      chunkSizeWarningLimit: isProd ? 1000 : 5000, // Stricter limit in prod
+      // Chunk size limits
+      chunkSizeWarningLimit: isProd ? 800 : 5000,
       
       minify: isProd ? "esbuild" : false,
       sourcemap: isDev ? true : false,
       
-      // ✅ ENHANCED: Production optimizations
+      // ✅ Production optimizations
       ...(isProd && {
         esbuild: {
-          // ✅ ALWAYS drop console logs in production for security & performance
-          // Only keep them if explicitly forced for debugging (use sparingly!)
+          // Remove console logs in production (unless forced)
           drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
           legalComments: "none",
-          // ✅ ENHANCED: Additional minification
           minifyIdentifiers: true,
           minifySyntax: true,
           minifyWhitespace: true,
         },
         
-        // ✅ ENHANCED: CSS optimization
+        // CSS optimization
         cssCodeSplit: true,
         cssMinify: true,
         
-        // ✅ ENHANCED: Asset optimization
-        assetsInlineLimit: 4096, // Inline small assets
-        
-
+        // Asset optimization  
+        assetsInlineLimit: 4096,
       }),
     },
     
     optimizeDeps: {
       include: [
-        // ✅ ENHANCED: Core dependencies
-        "react",
-        "react-dom", 
+        // ✅ Core React (fixed for scheduler issues)
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
         
-        // ✅ FIX: Include scheduler to fix unstable_scheduleCallback error
-        "scheduler/tracing",
-        "scheduler",
-        
-        // ✅ ENHANCED: Router and query
+        // ✅ Router
         "react-router-dom",
+        
+        // ✅ TanStack Query
         "@tanstack/react-query",
         
-        // ✅ ENHANCED: UI dependencies
+        // ✅ UI Libraries based on your package.json
         "lucide-react",
         "clsx",
         "tailwind-merge",
+        "class-variance-authority",
         
-        // ✅ ENHANCED: Supabase
+        // ✅ Supabase
         "@supabase/supabase-js",
         
-        // ✅ ENHANCED: Date utilities
-        "date-fns",
-        "date-fns/locale",
-        
-        // ✅ ENHANCED: Utility libraries that benefit from pre-bundling
-        "lodash-es",
+        // ✅ Charts
+        "chart.js",
+        "react-chartjs-2", 
         "recharts",
+        
+        // ✅ Date utilities
+        "date-fns",
+        
+        // ✅ Form libraries
+        "react-hook-form",
+        "@hookform/resolvers",
+        "zod",
+        
+        // ✅ Other utilities
+        "sonner",
+        "cmdk",
+        "vaul",
+        "react-day-picker",
       ],
       
-      // ✅ ENHANCED: Exclude dependencies that should not be pre-bundled
+      // ✅ Exclude large libraries
       exclude: [
-        // Large libraries that are better loaded on-demand
-        "@tensorflow/tfjs",
-        "three",
+        "xlsx", // Large Excel library
       ],
       
-      // ✅ FIX: Enhanced dedupe to prevent React scheduler conflicts
-      dedupe: ["react", "react-dom", "scheduler"],
-      force: true, // Force rebuild to clear any cached scheduler conflicts
+      // ✅ FIX: Critical for scheduler error
+      dedupe: ["react", "react-dom"],
+      force: true, // Force rebuild to clear scheduler conflicts
+      
+      // ✅ ESBuild options for compatibility
+      esbuildOptions: {
+        target: "es2020",
+        define: {
+          global: 'globalThis',
+        },
+      },
     },
     
-    // ✅ ENHANCED: CSS configuration
+    // ✅ CSS configuration
     css: {
       devSourcemap: isDev,
       modules: {
@@ -243,28 +273,30 @@ export default defineConfig(({ mode }) => {
       },
     },
     
-    // ✅ ENHANCED: Preview configuration
+    // ✅ Preview configuration  
     preview: {
       port: 4173,
       strictPort: false,
       open: false,
     },
     
-    // ✅ ENHANCED: Performance configuration
+    // ✅ ESBuild global config
     esbuild: {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
+      // ✅ FIX: Define scheduler for compatibility
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
+      },
     },
     
-    // ✅ ENHANCED: Environment-specific configurations
+    // ✅ Environment-specific configurations
     ...(isDev && {
-      // Development-specific options
       clearScreen: false,
     }),
     
     ...(isProd && {
-      // Production-specific options
       logLevel: 'warn',
     }),
   };

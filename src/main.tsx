@@ -45,10 +45,6 @@ if (typeof globalThis !== 'undefined' && typeof window !== 'undefined') {
   }
 }
 
-if (import.meta.env.DEV) {
-  import('./utils/debugOrderService');
-}
-
 // ✅ FIXED: Import logger IMMEDIATELY and override BEFORE React import
 import { logger } from './utils/logger';
 

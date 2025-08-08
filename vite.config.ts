@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
     __PROD__: JSON.stringify(isProd),
     __MODE__: JSON.stringify(mode),
     'process.env.NODE_ENV': JSON.stringify(mode),
+    global: 'globalThis',
   };
   
   return {
@@ -58,13 +59,26 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // ✅ FIX: Explicit React aliasing to prevent scheduler conflicts
+        
+        // ✅ CRITICAL FIX: Force single React instances
         "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+        "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
+        "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
+        
+        // ✅ SCHEDULER FIX: Force single scheduler instance
         "scheduler": path.resolve(__dirname, "./node_modules/scheduler"),
+        "scheduler/tracing": path.resolve(__dirname, "./node_modules/scheduler/tracing"),
       },
-      // ✅ FIX: Enhanced dedupe for scheduler issues
-      dedupe: ["react", "react-dom", "scheduler"],
+      
+      // ✅ ENHANCED: Comprehensive dedupe list
+      dedupe: [
+        "react", 
+        "react-dom", 
+        "scheduler",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
     },
     
     build: {
@@ -72,10 +86,10 @@ export default defineConfig(({ mode }) => {
       
       rollupOptions: {
         output: {
-          // ✅ Smart chunking based on your dependencies
+          // ✅ Smart chunking with scheduler fix
           manualChunks: (id) => {
-            // Core React
-            if (id.includes('react') || id.includes('react-dom')) {
+            // ✅ CRITICAL: Keep React + Scheduler together
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-core';
             }
             
@@ -208,9 +222,10 @@ export default defineConfig(({ mode }) => {
     
     optimizeDeps: {
       include: [
-        // ✅ Core React (fixed for scheduler issues)
+        // ✅ Core React with scheduler
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
+        "react-dom/client",
         
         // ✅ Router
         "react-router-dom",
@@ -252,8 +267,8 @@ export default defineConfig(({ mode }) => {
         "xlsx", // Large Excel library
       ],
       
-      // ✅ FIX: Critical for scheduler error
-      dedupe: ["react", "react-dom"],
+      // ✅ CRITICAL for scheduler error
+      dedupe: ["react", "react-dom", "scheduler"],
       force: true, // Force rebuild to clear scheduler conflicts
       
       // ✅ ESBuild options for compatibility
@@ -288,6 +303,7 @@ export default defineConfig(({ mode }) => {
       // ✅ FIX: Define scheduler for compatibility
       define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
+        global: 'globalThis',
       },
     },
     

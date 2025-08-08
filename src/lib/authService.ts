@@ -391,7 +391,7 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
     const { data, error } = await supabase
       .from('user_payments')
       .select('id, order_id, is_paid, payment_status')
-      .eq('order_id', orderId.trim())
+      .eq('order_id', orderId.trim()) // ✅ Database column: order_id
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
       .limit(1);
@@ -471,7 +471,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     const { data: existingOrder, error: existingError } = await supabase
       .from('user_payments')
       .select('*')
-      .eq('order_id', orderId.trim())
+      .eq('order_id', orderId.trim()) // ✅ Database column: order_id
       .eq('email', email.trim())
       .limit(1);
 
@@ -532,7 +532,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     const { data: existingLink, error: existingError } = await supabase
       .from('user_payments')
       .select('*')
-      .eq('order_id', orderId)
+      .eq('order_id', orderId) // ✅ Database column: order_id
       .eq('user_id', user.id)
       .limit(1);
 
@@ -546,7 +546,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     const { data: payments, error: findError } = await supabase
       .from('user_payments')
       .select('*')
-      .eq('order_id', orderId)
+      .eq('order_id', orderId) // ✅ Database column: order_id
       .is('user_id', null)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')

@@ -1,33 +1,52 @@
-// src/services/auth/payments/linking.ts
+// ===== 2. src/services/auth/payments/linking.ts - ENHANCED =====
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
-import { clearSessionCache } from '@/services/auth/core/session';
+
+// ✅ Enhanced cache clearing function
+const forceRefreshCache = async () => {
+  try {
+    // Clear any React Query cache if available
+    if (typeof window !== 'undefined' && (window as any).queryClient) {
+      const queryClient = (window as any).queryClient;
+      await queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+      await queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
+    }
+    
+    // Force a small delay to ensure database propagation
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    logger.success('Cache refresh completed');
+  } catch (error) {
+    logger.warn('Cache refresh failed:', error);
+  }
+};
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<PaymentRecord> => {
   try {
     logger.api('/link-payment', 'Linking order to user:', { orderId, email: user.email });
     
-    // Check if already linked to this user
+    // ✅ STEP 1: Check if already linked to this user
     const { data: existingLink, error: existingError } = await supabase
       .from('user_payments')
       .select('*')
-      .eq('order_id', orderId)
+      .eq('order_id', orderId.trim())
       .eq('user_id', user.id)
       .limit(1);
 
     if (!existingError && existingLink?.length) {
       logger.success('Payment already linked to this user');
       toast.success('Order sudah terhubung dengan akun Anda!');
+      await forceRefreshCache();
       return existingLink[0];
     }
 
-    // Find unlinked payment
+    // ✅ STEP 2: Find unlinked payment
     const { data: payments, error: findError } = await supabase
       .from('user_payments')
       .select('*')
-      .eq('order_id', orderId)
+      .eq('order_id', orderId.trim())
       .is('user_id', null)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -43,8 +62,9 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     }
 
     const payment = payments[0];
+    logger.info('Found payment to link:', { orderId: payment.order_id, email: payment.email });
 
-    // Check for constraint conflict
+    // ✅ STEP 3: Check for constraint conflicts
     const { data: conflictCheck, error: conflictError } = await supabase
       .from('user_payments')
       .select('id, order_id')
@@ -57,20 +77,24 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       if (existing.order_id === orderId) {
         logger.success('Same order already linked');
         toast.success('Order sudah terhubung dengan akun Anda!');
+        await forceRefreshCache();
         return payment;
       }
       throw new Error(`Akun Anda sudah memiliki pembayaran dengan Order ID: ${existing.order_id}. Satu akun hanya bisa memiliki satu pembayaran aktif.`);
     }
 
-    // Update payment with user ID
+    // ✅ STEP 4: Update payment with user ID
     const updateData: any = { 
       user_id: user.id,
       updated_at: new Date().toISOString()
     };
 
+    // Update email if needed
     if (!payment.email || payment.email.trim() === '' || payment.email !== user.email) {
       updateData.email = user.email;
     }
+
+    logger.info('Updating payment with user ID:', updateData);
 
     const { data: updatedPayment, error: updateError } = await supabase
       .from('user_payments')
@@ -92,13 +116,21 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
     }
 
+    if (!updatedPayment) {
+      throw new Error('Gagal mendapatkan data pembayaran yang diperbarui');
+    }
+
     logger.success('Payment linked successfully:', {
       orderId: updatedPayment.order_id,
       userId: updatedPayment.user_id,
       email: updatedPayment.email
     });
+
     toast.success('Order berhasil terhubung dengan akun Anda!');
-    clearSessionCache();
+    
+    // ✅ Enhanced cache refresh
+    await forceRefreshCache();
+    
     return updatedPayment;
     
   } catch (error: any) {
@@ -108,6 +140,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
   }
 };
 
+// ✅ Rest of the functions remain the same
 export const checkUserHasPayment = async (email: string, userId: string): Promise<{
   hasPayment: boolean;
   payment?: any;

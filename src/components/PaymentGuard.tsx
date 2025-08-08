@@ -1,15 +1,17 @@
 import React from 'react';
-import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { PaymentProvider } from '@/contexts/PaymentContext';
+import { PaymentProvider, usePaymentContext } from '@/contexts/PaymentContext';
 import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
 
 interface PaymentGuardProps {
   children: React.ReactNode;
 }
 
-const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
-  const { paymentStatus, isLoading, isPaid } = usePaymentStatus();
+// ✅ FIXED: Inner component yang menggunakan context
+const PaymentGuardInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // ✅ NOW: Hook dipanggil di dalam PaymentProvider context
+  const { isLoading } = usePaymentContext();
 
+  // ✅ LOADING: Tampilkan loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -21,10 +23,22 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     );
   }
 
+  // ✅ RENDER: Children dengan context yang sudah ter-setup
   return (
-    <PaymentProvider>
+    <>
       {children}
       <MandatoryUpgradeModal />
+    </>
+  );
+};
+
+// ✅ FIXED: Main PaymentGuard dengan proper context structure
+const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
+  return (
+    <PaymentProvider>
+      <PaymentGuardInner>
+        {children}
+      </PaymentGuardInner>
     </PaymentProvider>
   );
 };

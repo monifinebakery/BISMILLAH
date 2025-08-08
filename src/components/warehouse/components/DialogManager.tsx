@@ -342,7 +342,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
       )}
 
       {/* ✅ TAMBAH: Debug info untuk development */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white text-xs p-2 rounded z-[100] max-w-xs">
           <div>Loaded Dialogs: {loadedDialogs.size}</div>
           <div>Failed Dialogs: {failedDialogs.size}</div>

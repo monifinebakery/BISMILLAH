@@ -1,9 +1,8 @@
-// src/hooks/usePaymentStatus.ts - FIXED FOR ORDER ID SUPPORT
-
+// src/hooks/usePaymentStatus.ts - FIXED & OPTIMIZED VERSION
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated, linkPaymentToUser } from '@/services/auth'; // ✅ Fixed import
+import { getCurrentUser, isAuthenticated, linkPaymentToUser } from '@/services/auth';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -130,33 +129,24 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 30000, // 30 seconds - shorter for better order linking UX
+    staleTime: 30000, // 30 seconds
     cacheTime: 300000, // 5 minutes
-    refetchOnWindowFocus: true, // ✅ Enable refetch on focus for order verification flow
+    refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
-      // Don't retry on auth errors
       if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
         return false;
       }
-      return failureCount < 2; // Allow more retries for better reliability
+      return failureCount < 2;
     },
   });
 
-  // ✅ ENHANCED: Real-time subscription with better error handling
+  // ✅ FIXED: Real-time subscription
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
-    let setupTimeout: NodeJS.Timeout;
 
     const setupSubscription = async () => {
       try {
-        // Cleanup existing subscription
-        if (realtimeChannel) {
-          realtimeChannel.unsubscribe();
-          supabase.removeChannel(realtimeChannel);
-          realtimeChannel = null;
-        }
-
         const isAuth = await isAuthenticated();
         if (!isAuth) return;
 
@@ -165,7 +155,7 @@ export const usePaymentStatus = () => {
 
         logger.hook('usePaymentStatus', 'Setting up realtime subscription for:', user.email);
 
-        // ✅ ENHANCED: Subscribe to both user_id and email changes
+        // ✅ FIXED: Proper subscription with email filter
         realtimeChannel = supabase
           .channel(`payment-changes-${user.id}`)
           .on(
@@ -173,35 +163,24 @@ export const usePaymentStatus = () => {
             { 
               event: '*', 
               schema: 'public', 
-              table: 'user_payments'
-              // ✅ No filter = listen to all changes, then filter in callback
+              table: 'user_payments',
+              filter: `email=eq.${user.email}` // ✅ Filter by email
             },
             (payload) => {
               const record = payload.new || payload.old;
+              logger.hook('usePaymentStatus', 'Payment change detected:', {
+                event: payload.eventType,
+                orderId: record?.order_id,
+                email: record?.email
+              });
               
-              // ✅ Check if this change affects current user
-              const affectsUser = record?.user_id === user.id || record?.email === user.email;
-              
-              if (affectsUser) {
-                logger.hook('usePaymentStatus', 'Payment change detected:', {
-                  event: payload.eventType,
-                  orderId: record?.order_id,
-                  affectsCurrentUser: affectsUser
-                });
-                
-                // ✅ Debounced invalidation
-                clearTimeout(setupTimeout);
-                setupTimeout = setTimeout(() => {
-                  queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-                }, 1000);
-              }
+              // ✅ Immediate invalidation
+              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
             }
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
               logger.success('Realtime subscription active for payment changes');
-            } else if (status === 'CHANNEL_ERROR') {
-              logger.error('Realtime subscription error');
             }
           });
       } catch (error) {
@@ -209,7 +188,6 @@ export const usePaymentStatus = () => {
       }
     };
 
-    // ✅ Immediate setup (not delayed) for better order verification UX
     setupSubscription();
 
     // Handle auth changes
@@ -227,14 +205,12 @@ export const usePaymentStatus = () => {
         if (realtimeChannel) {
           realtimeChannel.unsubscribe();
           supabase.removeChannel(realtimeChannel);
-          realtimeChannel = null;
         }
         queryClient.setQueryData(['paymentStatus'], null);
       }
     });
 
     return () => {
-      clearTimeout(setupTimeout);
       if (realtimeChannel) {
         realtimeChannel.unsubscribe();
         supabase.removeChannel(realtimeChannel);
@@ -245,40 +221,56 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ COMPUTED VALUES: Enhanced logic
+  // ✅ FIXED: Logic isPaid yang lebih benar
   const isPaid = paymentStatus?.is_paid === true && 
-                 paymentStatus?.payment_status === 'settled' &&
-                 !!paymentStatus?.user_id; // ✅ Must be linked to user
+                 paymentStatus?.payment_status === 'settled';
+                 // ✅ Tidak perlu cek user_id untuk status paid
 
-  const needsPayment = !isPaid;
-  const hasUnlinkedPayment = paymentStatus && !paymentStatus.user_id && paymentStatus.is_paid;
-  const needsOrderLinking = !isLoading && !paymentStatus && !error;
+  // ✅ NEW: Status tambahan untuk UX yang lebih baik
+  const isLinked = !!paymentStatus?.user_id; // Apakah sudah terhubung ke user
+  const hasValidPayment = paymentStatus?.is_paid === true && 
+                          paymentStatus?.payment_status === 'settled';
 
-  // ✅ ENHANCED: Debug logging for order verification
+  const needsPayment = !hasValidPayment;
+  const hasUnlinkedPayment = paymentStatus && 
+                            !paymentStatus.user_id && 
+                            paymentStatus.is_paid === true &&
+                            paymentStatus.payment_status === 'settled';
+  
+  const needsOrderLinking = !isLoading && 
+                           !hasValidPayment && 
+                           !error;
+
+  // ✅ NEW: Debug logging
   useEffect(() => {
     if (!isLoading) {
       logger.debug('Payment status computed:', {
         isPaid,
-        needsPayment,
+        isLinked,
+        hasValidPayment,
         hasUnlinkedPayment,
         needsOrderLinking,
         paymentRecord: paymentStatus?.order_id || 'none',
-        userLinked: !!paymentStatus?.user_id
+        userEmail: paymentStatus?.email || 'none',
+        userId: paymentStatus?.user_id || 'none'
       });
     }
-  }, [isPaid, hasUnlinkedPayment, needsOrderLinking, isLoading]);
+  }, [isPaid, isLinked, hasUnlinkedPayment, needsOrderLinking, isLoading, paymentStatus]);
 
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
-    isPaid,
+    isPaid: hasValidPayment, // ✅ Gunakan hasValidPayment untuk UX yang lebih jelas
     needsPayment,
     hasUnlinkedPayment,
     needsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.customer_name || null
+    userName: paymentStatus?.customer_name || null,
+    // ✅ NEW: Tambahkan status tambahan
+    isLinked,
+    hasValidPayment
   };
 };

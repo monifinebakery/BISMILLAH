@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService'; // ✅ Updated import path
-import { logger }
+import { logger } from "@/utils/logger";
 
 interface PaymentContextType {
   isPaid: boolean;

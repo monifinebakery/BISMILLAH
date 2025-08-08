@@ -64,7 +64,7 @@ export const CONTEXT_CONFIG = {
   hook: {
     displayName: 'useOrder',
     throwOnMissingProvider: true,
-    enableWarnings: process.env.NODE_ENV === 'development'
+    enableWarnings: import.meta.env.DEV
   },
   
   // Performance settings

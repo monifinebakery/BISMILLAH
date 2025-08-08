@@ -92,7 +92,11 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       throw new Error('Gagal menghubungkan order. Silakan coba lagi.');
     }
 
-    logger.success('Payment linked successfully:', updatedPayment);
+    logger.success('Payment linked successfully:', {
+      orderId: updatedPayment.order_id,
+      userId: updatedPayment.user_id,
+      email: updatedPayment.email
+    });
     toast.success('Order berhasil terhubung dengan akun Anda!');
     clearSessionCache();
     return updatedPayment;

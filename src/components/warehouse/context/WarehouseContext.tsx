@@ -93,7 +93,7 @@ const createWarehouseItem = async (item: Omit<BahanBakuFrontend, 'id' | 'created
   try {
     const service = await warehouseApi.createService('crud', {
       userId,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.MODE === 'development'
     });
     
     return await service.addBahanBaku(item);
@@ -107,7 +107,7 @@ const updateWarehouseItem = async ({ id, updates, userId }: { id: string; update
   try {
     const service = await warehouseApi.createService('crud', {
       userId,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.MODE === 'development'
     });
     
     return await service.updateBahanBaku(id, updates);
@@ -121,7 +121,7 @@ const deleteWarehouseItem = async (id: string, userId?: string): Promise<boolean
   try {
     const service = await warehouseApi.createService('crud', {
       userId,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.MODE === 'development'
     });
     
     return await service.deleteBahanBaku(id);
@@ -135,7 +135,7 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
   try {
     const service = await warehouseApi.createService('crud', {
       userId,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.MODE === 'development'
     });
     
     return await service.bulkDeleteBahanBaku(ids);

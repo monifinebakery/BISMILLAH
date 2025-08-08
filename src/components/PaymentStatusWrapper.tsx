@@ -1,6 +1,7 @@
 import { useEffect, ReactNode } from 'react';
 import { usePaymentContext } from '@/contexts/PaymentContext'; // ✅ CHANGED: Use context instead of hook
 import OrderConfirmationPopup from './OrderConfirmationPopup';
+import { logger } from '@/utils/logger'; // ✅ ADDED: Import logger
 
 interface PaymentStatusWrapperProps {
   children: ReactNode;
@@ -22,7 +23,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
 
   // ✅ ENHANCED: Auto-show popup with better logic
   useEffect(() => {
-    console.log('🔍 PaymentStatusWrapper - State Check:', {
+    logger.debug('PaymentStatusWrapper - State Check:', {
       needsOrderLinking,
       hasUnlinkedPayment,
       showOrderPopup,
@@ -32,10 +33,10 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
 
     // ✅ CONDITION 1: User has unlinked payment (higher priority)
     if (hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
-      console.log('🔄 PaymentStatusWrapper: Auto-showing popup for unlinked payment');
+      logger.info('PaymentStatusWrapper: Auto-showing popup for unlinked payment');
       
       const timer = setTimeout(() => {
-        console.log('⏰ PaymentStatusWrapper: Executing auto-show');
+        logger.success('PaymentStatusWrapper: Executing auto-show');
         setShowOrderPopup(true);
       }, 2000); // 2 seconds delay
       
@@ -44,10 +45,10 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
 
     // ✅ CONDITION 2: User needs order linking but no unlinked payment found
     if (needsOrderLinking && !hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
-      console.log('🔄 PaymentStatusWrapper: Auto-showing popup for manual linking');
+      logger.info('PaymentStatusWrapper: Auto-showing popup for manual linking');
       
       const timer = setTimeout(() => {
-        console.log('⏰ PaymentStatusWrapper: Executing fallback auto-show');
+        logger.success('PaymentStatusWrapper: Executing fallback auto-show');
         setShowOrderPopup(true);
       }, 5000); // 5 seconds delay for fallback
       
@@ -57,21 +58,21 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
 
   // ✅ ENHANCED: Handle order linked with better feedback
   const handleOrderLinked = async (payment: any) => {
-    console.log('✅ PaymentStatusWrapper: Order linked successfully:', payment);
+    logger.success('PaymentStatusWrapper: Order linked successfully:', payment);
     
     try {
       // Refresh payment status
       await refetchPayment();
-      console.log('✅ PaymentStatusWrapper: Payment status refreshed');
+      logger.success('PaymentStatusWrapper: Payment status refreshed');
     } catch (error) {
-      console.error('❌ PaymentStatusWrapper: Failed to refresh payment status:', error);
+      logger.error('PaymentStatusWrapper: Failed to refresh payment status:', error);
     }
   };
 
   // ✅ DEBUG: Add development info
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('🔍 PaymentStatusWrapper Debug Info:', {
+      logger.debug('PaymentStatusWrapper Debug Info:', {
         isPaid,
         needsPayment,
         isLoading,
@@ -134,7 +135,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
 
               <button
                 onClick={() => {
-                  console.log('🔗 Manual: User clicked connect order button');
+                  logger.info('PaymentStatusWrapper: Manual connect order button clicked');
                   setShowOrderPopup(true);
                 }}
                 className={`w-full py-2 px-4 rounded-md transition-colors ${
@@ -165,7 +166,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
         <OrderConfirmationPopup
           isOpen={showOrderPopup}
           onClose={() => {
-            console.log('❌ PaymentStatusWrapper: Popup closed (payment required screen)');
+            logger.info('PaymentStatusWrapper: Popup closed (payment required screen)');
             setShowOrderPopup(false);
           }}
           onSuccess={handleOrderLinked}
@@ -184,7 +185,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
         <OrderConfirmationPopup
           isOpen={showOrderPopup}
           onClose={() => {
-            console.log('❌ PaymentStatusWrapper: Popup closed (paid user)');
+            logger.info('PaymentStatusWrapper: Popup closed (paid user)');
             setShowOrderPopup(false);
           }}
           onSuccess={handleOrderLinked}

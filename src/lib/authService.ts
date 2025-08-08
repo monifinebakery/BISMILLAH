@@ -1,4 +1,4 @@
-// src/services/authService.ts - ENHANCED WITH PROPER ORDER VERIFICATION LOGIC
+// src/lib/authService.ts - ENHANCED WITH PROPER ORDER VERIFICATION LOGIC
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

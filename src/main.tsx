@@ -52,7 +52,20 @@ import App from './App.tsx';
 import './index.css';
 
 // ✅ STEP 1: FORCE ENABLE ALL LOGGING in development
-if (import.meta.env.DEV) {
+// Safe environment check for browser console
+const isDevelopment = (() => {
+  try {
+    return import.meta.env?.DEV || import.meta.env?.MODE === 'development';
+  } catch {
+    // Fallback for browser console
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1' ||
+           window.location.hostname.includes('dev') ||
+           !window.location.hostname.includes('.com');
+  }
+})();
+
+if (isDevelopment) {
   console.log('🔥 DEV MODE - Force enabling all logs');
   console.log('🔍 React version:', React.version);
   console.log('🔍 Scheduler available:', !!globalThis.scheduler?.unstable_scheduleCallback);

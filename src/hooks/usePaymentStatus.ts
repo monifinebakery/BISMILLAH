@@ -59,7 +59,11 @@ export const usePaymentStatus = () => {
 
       if (!linkedError && linkedPayments?.length) {
         const payment = linkedPayments[0];
-        logger.success('Found linked payment:', payment.order_id);
+        logger.success('Found linked payment:', { 
+          orderId: payment.order_id,
+          userId: payment.user_id,
+          email: payment.email
+        });
         
         return {
           ...payment,
@@ -97,7 +101,11 @@ export const usePaymentStatus = () => {
           const linkedPayment = await linkPaymentToUser(payment.order_id, user);
           
           if (linkedPayment) {
-            logger.success('Auto-linked payment successfully:', linkedPayment.order_id);
+            logger.success('Auto-linked payment successfully:', { 
+              orderId: linkedPayment.order_id,
+              userId: linkedPayment.user_id,
+              email: linkedPayment.email
+            });
             
             // Return the linked payment
             return {
@@ -222,14 +230,8 @@ export const usePaymentStatus = () => {
   }, [queryClient]);
 
   // ✅ FIXED: Logic isPaid yang lebih benar
-  const isPaid = paymentStatus?.is_paid === true && 
-                 paymentStatus?.payment_status === 'settled';
-                 // ✅ Tidak perlu cek user_id untuk status paid
-
-  // ✅ NEW: Status tambahan untuk UX yang lebih baik
-  const isLinked = !!paymentStatus?.user_id; // Apakah sudah terhubung ke user
   const hasValidPayment = paymentStatus?.is_paid === true && 
-                          paymentStatus?.payment_status === 'settled';
+                         paymentStatus?.payment_status === 'settled';
 
   const needsPayment = !hasValidPayment;
   const hasUnlinkedPayment = paymentStatus && 
@@ -245,8 +247,6 @@ export const usePaymentStatus = () => {
   useEffect(() => {
     if (!isLoading) {
       logger.debug('Payment status computed:', {
-        isPaid,
-        isLinked,
         hasValidPayment,
         hasUnlinkedPayment,
         needsOrderLinking,
@@ -255,7 +255,7 @@ export const usePaymentStatus = () => {
         userId: paymentStatus?.user_id || 'none'
       });
     }
-  }, [isPaid, isLinked, hasUnlinkedPayment, needsOrderLinking, isLoading, paymentStatus]);
+  }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLoading, paymentStatus]);
 
   return {
     paymentStatus,
@@ -270,7 +270,6 @@ export const usePaymentStatus = () => {
     setShowOrderPopup,
     userName: paymentStatus?.customer_name || null,
     // ✅ NEW: Tambahkan status tambahan
-    isLinked,
     hasValidPayment
   };
 };

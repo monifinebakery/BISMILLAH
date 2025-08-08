@@ -98,10 +98,8 @@ export default defineConfig(({ mode }) => {
               return 'react-dom';
             }
             
-            // Router
-            if (id.includes('react-router')) {
-              return 'router';
-            }
+          // ✅ TEMP: Disable manual chunks to avoid function conflicts
+          // manualChunks: undefined,
             
             // Radix UI components
             if (id.includes('@radix-ui')) {
@@ -207,8 +205,8 @@ export default defineConfig(({ mode }) => {
       // Chunk size limits
       chunkSizeWarningLimit: isProd ? 800 : 5000,
       
-      minify: false, // ✅ TEMP FIX: Disable minification to debug
-      sourcemap: true, // ✅ Enable sourcemap to see real function names
+      minify: isProd ? "esbuild" : false, // ✅ Re-enable minification
+      sourcemap: isDev ? true : false,   // ✅ Back to normal sourcemap
       
       // ✅ Production optimizations
       ...(isProd && {

@@ -1,9 +1,8 @@
-// src/services/auth/payments/access.ts
+// ===== 2. src/services/auth/payments/access.ts - FIXED =====
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { UserAccessStatus, PaymentRecord } from '@/services/auth/types';
 import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
-import { linkPaymentToUser } from './linking';
 
 export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
   try {
@@ -24,7 +23,7 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
 
     logger.info('[AccessCheck] User authenticated, checking payment status:', user.email);
 
-    // Check if user has linked payment
+    // ✅ STEP 1: Check if user has linked payment (ONLY linked payments)
     const { data: linkedPayments, error: linkedError } = await supabase
       .from('user_payments')
       .select('*')
@@ -46,9 +45,12 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
       };
     }
 
-    // User has linked payment - FULL ACCESS
+    // ✅ User has linked payment - FULL ACCESS
     if (linkedPayments && linkedPayments.length > 0) {
-      logger.success('[AccessCheck] User has valid linked payment');
+      logger.success('[AccessCheck] User has valid linked payment:', {
+        orderId: linkedPayments[0].order_id,
+        userId: linkedPayments[0].user_id
+      });
       return {
         hasAccess: true,
         isAuthenticated: true,
@@ -59,7 +61,7 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
       };
     }
 
-    // Check if there's unlinked payment with same email
+    // ✅ STEP 2: Check for unlinked payments - NO AUTO-LINK
     const { data: unlinkedPayments, error: unlinkedError } = await supabase
       .from('user_payments')
       .select('*')
@@ -71,37 +73,20 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
       .limit(1);
 
     if (!unlinkedError && unlinkedPayments && unlinkedPayments.length > 0) {
-      logger.info('[AccessCheck] Found unlinked payment for user email');
+      logger.info('[AccessCheck] Found unlinked payment for user email - NO AUTO-LINK');
       
-      // Auto-link the payment
-      try {
-        const autoLinked = await linkPaymentToUser(unlinkedPayments[0].order_id, user);
-        if (autoLinked) {
-          logger.success('[AccessCheck] Auto-linked payment successful');
-          return {
-            hasAccess: true,
-            isAuthenticated: true,
-            paymentRecord: autoLinked,
-            needsOrderVerification: false,
-            needsLinking: false,
-            message: 'Pembayaran berhasil terhubung otomatis'
-          };
-        }
-      } catch (autoLinkError) {
-        logger.warn('[AccessCheck] Auto-link failed:', autoLinkError);
-      }
-
+      // ✅ REMOVED AUTO-LINK - Let user manually link via popup
       return {
         hasAccess: false,
         isAuthenticated: true,
         paymentRecord: unlinkedPayments[0] as PaymentRecord,
         needsOrderVerification: false,
         needsLinking: true,
-        message: 'Pembayaran ditemukan, perlu menghubungkan dengan akun'
+        message: 'Pembayaran ditemukan, silakan hubungkan dengan Order ID'
       };
     }
 
-    // No payment found - need order verification
+    // ✅ STEP 3: No payment found - need order verification
     logger.info('[AccessCheck] No payment found for user');
     return {
       hasAccess: false,

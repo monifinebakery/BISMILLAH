@@ -42,7 +42,7 @@ const isDev = (() => {
     
     // Method 3: Check Node environment (fallback)
     if (typeof process !== 'undefined' && process.env) {
-      return process.env.NODE_ENV === 'development';
+      return import.meta.env.DEV
     }
     
     // Method 4: Check window location (last resort)

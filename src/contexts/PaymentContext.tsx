@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - FIXED & OPTIMIZED VERSION
+// ===== 4. src/contexts/PaymentContext.tsx - ENHANCED =====
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { getUserAccessStatus } from '@/services/auth';
@@ -13,16 +13,13 @@ interface PaymentContextType {
   previewTimeLeft: number;
   showUpgradePopup: boolean;
   setShowUpgradePopup: (show: boolean) => void;
-  // Order popup state
   needsOrderLinking: boolean;
   showOrderPopup: boolean;
   setShowOrderPopup: (show: boolean) => void;
   hasUnlinkedPayment: boolean;
   refetchPayment: () => void;
-  // Enhanced features
   hasAccess: boolean;
   accessMessage: string;
-  // NEW: Refresh access status
   refreshAccessStatus: () => Promise<void>;
 }
 
@@ -47,80 +44,55 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [hasAccess, setHasAccess] = useState(false);
   const [accessMessage, setAccessMessage] = useState('Checking access...');
 
-  // ✅ NEW: Centralized access status checker
+  // ✅ Centralized access status checker
   const refreshAccessStatus = useCallback(async () => {
     try {
+      logger.debug('PaymentContext: Refreshing access status...');
       const accessStatus = await getUserAccessStatus();
-      logger.debug('Access status check result:', accessStatus);
+      
+      logger.debug('Access status result:', {
+        hasAccess: accessStatus.hasAccess,
+        message: accessStatus.message,
+        needsOrderVerification: accessStatus.needsOrderVerification,
+        needsLinking: accessStatus.needsLinking
+      });
       
       setHasAccess(accessStatus.hasAccess);
       setAccessMessage(accessStatus.message);
       
-      // Auto-show order popup if needed
-      if (accessStatus.needsOrderVerification && !showOrderPopup && !accessStatus.hasAccess) {
-        setTimeout(() => setShowOrderPopup(true), 1000);
+      // ✅ Auto-show order popup if needed
+      if ((accessStatus.needsOrderVerification || accessStatus.needsLinking) && 
+          !accessStatus.hasAccess && 
+          !showOrderPopup) {
+        logger.info('PaymentContext: Auto-showing order popup');
+        setTimeout(() => setShowOrderPopup(true), 1500);
       }
       
     } catch (error) {
       logger.error('PaymentContext access check failed:', error);
+      setHasAccess(false);
       setAccessMessage('Error checking access');
     }
   }, [showOrderPopup, setShowOrderPopup]);
 
-  // ✅ FIXED: Access status checker with proper dependencies
+  // ✅ Refresh access when payment status changes
   useEffect(() => {
-    if (isLoading) return;
-
-    const checkAccess = async () => {
-      await refreshAccessStatus();
-    };
-
-    checkAccess();
-  }, [isLoading, refreshAccessStatus]); // Dependency lebih akurat
-
-  // ✅ FIXED: Auto-show order popup dengan kondisi yang lebih jelas
-  useEffect(() => {
-    if (!isLoading && needsOrderLinking && !showOrderPopup && !hasAccess) {
-      const timer = setTimeout(() => {
-        if (!hasAccess) { // Double check
-          setShowOrderPopup(true);
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (!isLoading) {
+      refreshAccessStatus();
     }
-  }, [needsOrderLinking, showOrderPopup, isLoading, hasAccess, setShowOrderPopup]);
+  }, [isLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
 
-  // ✅ FIXED: Free preview timer dengan kondisi yang lebih ketat
+  // ✅ Close popup when access granted
   useEffect(() => {
-    if (isLoading || !needsPayment || isPaid || showMandatoryUpgrade || hasAccess) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setPreviewTimeLeft((prev) => {
-        if (prev <= 1) {
-          setShowMandatoryUpgrade(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isLoading, needsPayment, isPaid, showMandatoryUpgrade, hasAccess]);
-
-  // ✅ FIXED: Reset logic yang lebih komprehensif
-  useEffect(() => {
-    if (isPaid || hasAccess) {
-      setShowMandatoryUpgrade(false);
-      setPreviewTimeLeft(60);
+    if (hasAccess && showOrderPopup) {
+      logger.info('PaymentContext: Access granted, closing order popup');
       setShowOrderPopup(false);
     }
-  }, [isPaid, hasAccess, setShowOrderPopup]);
+  }, [hasAccess, showOrderPopup, setShowOrderPopup]);
 
-  // ✅ NEW: Expose refresh function untuk dipakai di komponen lain
+  // ✅ Enhanced refetch function
   const enhancedRefetch = useCallback(async () => {
-    logger.info('PaymentContext: Triggering refetch');
+    logger.info('PaymentContext: Enhanced refetch triggered');
     await refetchPaymentStatus();
     await refreshAccessStatus();
   }, [refetchPaymentStatus, refreshAccessStatus]);

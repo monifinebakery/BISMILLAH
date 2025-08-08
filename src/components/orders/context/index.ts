@@ -32,7 +32,7 @@ export const ORDERS_CONTEXT_UTILS = {
   
   // Context debugging helper
   debugContext: (contextValue: any) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       logger.debug('Orders Context Debug');
       logger.debug('Orders count:', contextValue?.orders?.length || 0);
       logger.debug('Loading state:', contextValue?.loading || false);

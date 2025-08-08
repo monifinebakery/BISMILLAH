@@ -1,60 +1,20 @@
-// src/utils/logger.ts - ENHANCED VERSION FOR PAYMENT DEBUGGING
+// src/utils/logger.ts - FORCE ENABLED VERSION
 
-// ✅ Environment detection
-const getEnvVar = (name: string, defaultValue: string = ''): string => {
-  try {
-    return import.meta.env?.[name] ?? defaultValue;
-  } catch (error) {
-    console.warn(`Failed to get environment variable ${name}:`, error);
-    return defaultValue;
-  }
-};
-
-const isDev = import.meta.env?.DEV === true || import.meta.env?.MODE === 'development';
-
-// ✅ Enhanced debug flags with payment-specific options
-const debugContext = getEnvVar('VITE_DEBUG_CONTEXT', 'true') === 'true'; // Default true for payment debugging
-const debugComponent = getEnvVar('VITE_DEBUG_COMPONENT', 'true') === 'true';
-const debugHook = getEnvVar('VITE_DEBUG_HOOK', 'true') === 'true';
-const debugApi = getEnvVar('VITE_DEBUG_API', 'true') === 'true';
-const debugPerf = getEnvVar('VITE_DEBUG_PERF', 'false') === 'true';
-const debugLevel = getEnvVar('VITE_DEBUG_LEVEL', 'info');
-const debugPayment = getEnvVar('VITE_DEBUG_PAYMENT', 'true') === 'true'; // ✅ Payment-specific debug
-const forceEnable = getEnvVar('VITE_FORCE_LOGS', 'true') === 'true'; // ✅ Default true for payment debugging
+// ✅ FORCE ENABLE ALL LOGS for debugging
+const FORCE_ENABLE_ALL = true;
 
 const hasConsole = typeof console !== 'undefined';
 
-// ✅ Enhanced logger with payment flow tracking
+// ✅ Force enabled logger - all logs will show
 export const logger = {
-  /**
-   * Get environment info
-   */
-  getEnv: () => ({
-    isDev,
-    mode: import.meta.env?.MODE || 'unknown',
-    dev: import.meta.env?.DEV || false,
-  }),
-
   /**
    * Test logger
    */
   test: () => {
     if (hasConsole) {
-      console.log('🧪 Logger Test:', {
-        isDev,
-        mode: import.meta.env?.MODE,
-        dev: import.meta.env?.DEV,
-        debugFlags: {
-          context: debugContext,
-          component: debugComponent,
-          hook: debugHook,
-          api: debugApi,
-          perf: debugPerf,
-          payment: debugPayment,
-          level: debugLevel,
-          forceEnable
-        },
-        timestamp: new Date().toISOString()
+      console.log('🧪 FORCE ENABLED Logger Test:', {
+        timestamp: new Date().toISOString(),
+        forceEnabled: FORCE_ENABLE_ALL
       });
     }
   },
@@ -63,8 +23,8 @@ export const logger = {
    * Context logging
    */
   context: (contextName: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugContext) {
-      const timestamp = new Date().toISOString().slice(11, 23); // HH:MM:SS.sss
+    if (hasConsole && FORCE_ENABLE_ALL) {
+      const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔄 [${timestamp}] [${contextName}]`, message, data);
       } else {
@@ -77,7 +37,7 @@ export const logger = {
    * Component logging
    */
   component: (componentName: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugComponent) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🧩 [${timestamp}] [${componentName}]`, message, data);
@@ -91,7 +51,7 @@ export const logger = {
    * Hook logging
    */
   hook: (hookName: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugHook) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🪝 [${timestamp}] [${hookName}]`, message, data);
@@ -105,7 +65,7 @@ export const logger = {
    * Info logging
    */
   info: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && ['verbose', 'info'].includes(debugLevel)) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`ℹ️ [${timestamp}]`, message, data);
@@ -119,7 +79,7 @@ export const logger = {
    * Warning logging
    */
   warn: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable)) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.warn(`⚠️ [${timestamp}]`, message, data);
@@ -133,7 +93,7 @@ export const logger = {
    * Error logging
    */
   error: (message: string, error?: any) => {
-    if (hasConsole && (isDev || forceEnable)) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (error !== undefined) {
         console.error(`🚨 [${timestamp}]`, message, error);
@@ -147,7 +107,7 @@ export const logger = {
    * Debug logging
    */
   debug: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && ['verbose', 'debug'].includes(debugLevel)) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.debug(`🔍 [${timestamp}]`, message, data);
@@ -161,7 +121,7 @@ export const logger = {
    * Success logging
    */
   success: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable)) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`✅ [${timestamp}]`, message, data);
@@ -175,7 +135,7 @@ export const logger = {
    * API logging
    */
   api: (endpoint: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugApi) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message, data);
@@ -189,7 +149,7 @@ export const logger = {
    * Performance logging
    */
   perf: (operation: string, duration: number, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPerf) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       const color = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
       if (data !== undefined) {
@@ -215,10 +175,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Payment flow logging
+   * Payment flow logging
    */
   payment: (stage: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message, data);
@@ -229,10 +189,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Order verification logging  
+   * Order verification logging  
    */
   orderVerification: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message, data);
@@ -243,10 +203,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Access check logging
+   * Access check logging
    */
   accessCheck: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message, data);
@@ -257,10 +217,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Linking process logging
+   * Linking process logging
    */
   linking: (message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔗 [${timestamp}] [LINKING]`, message, data);
@@ -271,10 +231,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Cache operations logging
+   * Cache operations logging
    */
   cache: (operation: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message, data);
@@ -285,10 +245,10 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Flow tracking with step numbers
+   * Flow tracking with step numbers
    */
   flow: (step: number, stage: string, message: string, data?: any) => {
-    if (hasConsole && (isDev || forceEnable) && debugPayment) {
+    if (hasConsole && FORCE_ENABLE_ALL) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message, data);
@@ -299,23 +259,23 @@ export const logger = {
   }
 };
 
-// ✅ Enhanced global debug functions
+// ✅ Global debug functions
 if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
   
-  // ✅ Global debug helpers for payment flow
+  // Test immediately when loaded
+  console.log('🚀 FORCE ENABLED LOGGER LOADED!');
+  logger.test();
+  
   (window as any).__DEBUG_PAYMENT__ = {
-    test: () => logger.test(),
+    test: () => {
+      console.log('🧪 Payment debug test');
+      logger.orderVerification('Test order verification log');
+      logger.payment('TEST', 'Test payment log');
+      logger.linking('Test linking log');
+    },
     enableAll: () => {
-      console.log('🔧 Enabling all debug flags');
-      (window as any).__FORCE_DEBUG__ = true;
-    },
-    disableAll: () => {
-      console.log('🔧 Disabling debug flags');
-      (window as any).__FORCE_DEBUG__ = false;
-    },
-    paymentFlow: (message: string) => {
-      logger.payment('DEBUG', message, { timestamp: Date.now() });
+      console.log('🔧 All logs already force enabled');
     }
   };
 }

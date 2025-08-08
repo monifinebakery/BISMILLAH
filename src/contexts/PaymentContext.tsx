@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { getUserAccessStatus } from '@/lib/authService'; // ✅ Fixed import path
+import { getUserAccessStatus } from '@/services/auth'; // ✅ Fixed import path
 import { logger } from '@/utils/logger';
 
 interface PaymentContextType {

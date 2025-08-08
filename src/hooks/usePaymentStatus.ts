@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated, linkPaymentToUser } from '@/services/authService'; // ✅ Fixed import
+import { getCurrentUser, isAuthenticated, linkPaymentToUser } from '@/lib/authService'; // ✅ Fixed import
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';

@@ -1,8 +1,8 @@
-// src/hooks/usePaymentStatus.ts - OPTIMIZED & SIMPLIFIED
+// src/hooks/usePaymentStatus.ts - FIXED: Rules of Hooks Compliant
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getCurrentUser, isAuthenticated } from '@/lib/authService';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
@@ -26,7 +26,7 @@ export interface PaymentStatus {
   customer_name: string | null;
 }
 
-// ✅ OPTIMIZED: Single query function
+// ✅ FIXED: Move query function outside component to avoid recreating
 const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
   const isAuth = await isAuthenticated();
   if (!isAuth) {
@@ -40,7 +40,7 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
 
   logger.hook('usePaymentStatus', 'Fetching payment for user:', user.email);
 
-  // ✅ SINGLE QUERY: Get all payments with OR condition for better performance
+  // Single query with OR condition for better performance
   const { data: payments, error } = await supabase
     .from('user_payments')
     .select('*')
@@ -48,7 +48,7 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
     .eq('is_paid', true)
     .eq('payment_status', 'settled')
     .order('updated_at', { ascending: false })
-    .limit(5); // Get a few records to handle edge cases
+    .limit(5);
 
   if (error) {
     logger.error('Error fetching payments:', error);
@@ -60,7 +60,7 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
     return null;
   }
 
-  // ✅ PRIORITIZE: Linked payment first
+  // Prioritize linked payment first
   const linkedPayment = payments.find(p => p.user_id === user.id);
   if (linkedPayment) {
     logger.success('Found linked payment:', linkedPayment.order_id);
@@ -72,7 +72,7 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
     };
   }
 
-  // ✅ HANDLE UNLINKED: Return unlinked payment for manual linking
+  // Handle unlinked payment
   const unlinkedPayment = payments.find(p => !p.user_id && p.email === user.email);
   if (unlinkedPayment) {
     logger.success('Found unlinked payment:', unlinkedPayment.order_id);
@@ -88,25 +88,24 @@ const fetchPaymentStatus = async (): Promise<PaymentStatus | null> => {
 };
 
 export const usePaymentStatus = () => {
-  const queryClient = useQueryClient();
+  // ✅ FIXED: All hooks called at top level in same order every time
+  
+  // 1. All useState hooks first
   const [showOrderPopup, setShowOrderPopup] = useState(false);
+  
+  // 2. useQueryClient hook
+  const queryClient = useQueryClient();
 
-  // ✅ SIMPLIFIED: Main query with better error handling
-  const { 
-    data: paymentStatus, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery<PaymentStatus | null, Error>({
+  // 3. useQuery hook - always called
+  const queryResult = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: fetchPaymentStatus,
     enabled: true,
-    staleTime: 60000, // 1 minute - reasonable for payment status
-    gcTime: 300000, // 5 minutes
-    refetchOnWindowFocus: false, // Reduce unnecessary refetches
+    staleTime: 60000,
+    gcTime: 300000,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     retry: (failureCount, error) => {
-      // ✅ SMART RETRY: Don't retry on auth or validation errors
       const message = error?.message?.toLowerCase() || '';
       if (
         message.includes('session') || 
@@ -122,7 +121,12 @@ export const usePaymentStatus = () => {
     },
   });
 
-  // ✅ OPTIMIZED: Lightweight realtime subscription
+  // 4. Destructure query result
+  const { data: paymentStatus, isLoading, error, refetch } = queryResult;
+
+  // ✅ FIXED: All useEffect hooks in consistent order - no conditional effects
+  
+  // Effect 1: Realtime subscription setup - always runs
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -136,7 +140,13 @@ export const usePaymentStatus = () => {
 
         logger.hook('usePaymentStatus', 'Setting up realtime for user:', user.email);
 
-        // ✅ FOCUSED SUBSCRIPTION: Only relevant changes
+        // Cleanup existing channel
+        if (channel) {
+          await supabase.removeChannel(channel);
+          channel = null;
+        }
+
+        // Setup new channel
         channel = supabase
           .channel(`payments-${user.id}`)
           .on(
@@ -178,10 +188,10 @@ export const usePaymentStatus = () => {
       }
     };
 
-    // ✅ DELAYED SETUP: After initial load
+    // Delayed setup for better performance
     const timer = setTimeout(setupRealtime, 2000);
 
-    // ✅ AUTH LISTENER: Handle sign in/out
+    // Auth state change handler
     authSubscription = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         logger.hook('usePaymentStatus', 'Auth changed:', event);
@@ -201,6 +211,7 @@ export const usePaymentStatus = () => {
       }
     );
 
+    // Cleanup function
     return () => {
       clearTimeout(timer);
       if (channel) {
@@ -212,24 +223,34 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ COMPUTED VALUES: Clear and predictable
-  const isPaid = Boolean(
-    paymentStatus?.is_paid === true && 
-    paymentStatus?.payment_status === 'settled' &&
-    paymentStatus?.user_id // Must be linked
-  );
-  
-  const hasUnlinkedPayment = Boolean(
-    paymentStatus && 
-    !paymentStatus.user_id && 
-    paymentStatus.is_paid === true && 
-    paymentStatus.payment_status === 'settled'
-  );
-  
-  const needsPayment = !isPaid && !isLoading && !hasUnlinkedPayment;
-  const needsOrderLinking = hasUnlinkedPayment;
+  // Effect 2: Debug logging - always runs (conditions inside)
+  useEffect(() => {
+    if (!import.meta.env.DEV || isLoading) {
+      return;
+    }
 
-  // ✅ MANUAL LINKING: Simplified function for order popup
+    const isPaid = Boolean(
+      paymentStatus?.is_paid === true && 
+      paymentStatus?.payment_status === 'settled' &&
+      paymentStatus?.user_id
+    );
+
+    const hasUnlinkedPayment = Boolean(
+      paymentStatus && 
+      !paymentStatus.user_id && 
+      paymentStatus.is_paid === true && 
+      paymentStatus.payment_status === 'settled'
+    );
+
+    logger.debug('Payment Status Computed:', {
+      isPaid,
+      hasUnlinkedPayment,
+      orderId: paymentStatus?.order_id,
+      isLinked: Boolean(paymentStatus?.user_id)
+    });
+  }, [paymentStatus, isLoading]);
+
+  // ✅ FIXED: useCallback for functions that might be passed as props
   const linkPaymentToUser = useCallback(async (orderId: string): Promise<boolean> => {
     try {
       const user = await getCurrentUser();
@@ -237,7 +258,6 @@ export const usePaymentStatus = () => {
 
       logger.hook('usePaymentStatus', 'Attempting to link order:', orderId);
 
-      // ✅ SAFE UPDATE: Only update if payment exists and is unlinked
       const { data, error } = await supabase
         .from('user_payments')
         .update({ 
@@ -261,8 +281,6 @@ export const usePaymentStatus = () => {
       }
 
       logger.success('Payment linked successfully:', orderId);
-      
-      // ✅ IMMEDIATE REFRESH: Update the cache
       queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
       
       return true;
@@ -272,32 +290,46 @@ export const usePaymentStatus = () => {
     }
   }, [queryClient]);
 
-  // ✅ DEBUG INFO: Only in development
-  useEffect(() => {
-    if (import.meta.env.DEV && !isLoading) {
-      logger.debug('Payment Status:', {
-        isPaid,
-        hasUnlinkedPayment,
-        needsPayment,
-        orderId: paymentStatus?.order_id,
-        isLinked: Boolean(paymentStatus?.user_id)
-      });
-    }
-  }, [isPaid, hasUnlinkedPayment, paymentStatus?.order_id, isLoading]);
+  // ✅ FIXED: useMemo for computed values to prevent unnecessary recalculations
+  const computedValues = useMemo(() => {
+    const isPaid = Boolean(
+      paymentStatus?.is_paid === true && 
+      paymentStatus?.payment_status === 'settled' &&
+      paymentStatus?.user_id
+    );
+    
+    const hasUnlinkedPayment = Boolean(
+      paymentStatus && 
+      !paymentStatus.user_id && 
+      paymentStatus.is_paid === true && 
+      paymentStatus.payment_status === 'settled'
+    );
+    
+    const needsPayment = !isPaid && !isLoading && !hasUnlinkedPayment;
+    const needsOrderLinking = hasUnlinkedPayment;
 
+    return {
+      isPaid,
+      hasUnlinkedPayment,
+      needsPayment,
+      needsOrderLinking
+    };
+  }, [paymentStatus, isLoading]);
+
+  // ✅ FIXED: Return object with consistent structure
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
     
-    // Status flags
-    isPaid,
-    needsPayment,
-    hasUnlinkedPayment,
-    needsOrderLinking,
+    // Computed status flags
+    isPaid: computedValues.isPaid,
+    needsPayment: computedValues.needsPayment,
+    hasUnlinkedPayment: computedValues.hasUnlinkedPayment,
+    needsOrderLinking: computedValues.needsOrderLinking,
     
-    // Order popup
+    // Order popup state
     showOrderPopup,
     setShowOrderPopup,
     linkPaymentToUser,

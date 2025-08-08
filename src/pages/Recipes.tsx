@@ -54,7 +54,7 @@ class RecipeErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error('Recipe page error:', error);
     
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // Example: Sentry.captureException(error);
     }
   }

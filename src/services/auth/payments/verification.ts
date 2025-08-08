@@ -1,4 +1,37 @@
 // src/services/auth/payments/verification.ts
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
+import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
+import { linkPaymentToUser } from '@/services/auth/payments/linking';
+
+// ✅ EKSPOR verifyOrderExists DI SINI
+export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
+  try {
+    logger.api('/verify-order-exists', 'Verifying order exists:', orderId);
+    
+    const { data, error } = await supabase
+      .from('user_payments')
+      .select('id, order_id, is_paid, payment_status')
+      .eq('order_id', orderId.trim())
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .limit(1);
+    
+    if (error) {
+      logger.error('Order verification error:', error);
+      return false;
+    }
+    
+    const exists = data && data.length > 0;
+    logger.success('Order exists check completed:', { orderId, exists });
+    return exists;
+  } catch (error) {
+    logger.error('Error verifying order:', error);
+    return false;
+  }
+};
 
 export const verifyCustomerOrder = async (email: string, orderId: string): Promise<{
   success: boolean;

@@ -1,76 +1,19 @@
-// src/utils/logger.ts - ENHANCED VERSION
+// src/utils/logger.ts - VITE-ONLY VERSION
 
-// Safe environment variable access for browser
+// ✅ Gunakan import.meta.env secara eksklusif untuk Vite
 const getEnvVar = (name: string, defaultValue: string = ''): string => {
   try {
-    // Try Vite's import.meta.env first (recommended for Vite)
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      return import.meta.env[name] || defaultValue;
-    }
-    
-    // Fallback to process.env if available
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env[name] || defaultValue;
-    }
-    
-    // Check build-time defined variables
-    if (typeof __DEV__ !== 'undefined') {
-      if (name === 'NODE_ENV') {
-        return __DEV__ ? 'development' : 'production';
-      }
-    }
-    
-    return defaultValue;
+    return import.meta.env?.[name] ?? defaultValue;
   } catch (error) {
     console.warn(`Failed to get environment variable ${name}:`, error);
     return defaultValue;
   }
 };
 
-// ✅ ENHANCED: Better environment detection
-const isDev = (() => {
-  try {
-    // Method 1: Check build-time define
-    if (typeof __DEV__ !== 'undefined') {
-      return __DEV__;
-    }
-    
-    // Method 2: Check Vite environment
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      return import.meta.env.DEV === true || import.meta.env.MODE === 'development';
-    }
-    
-    // Method 3: ✅ FIXED: Proper fallback check
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.NODE_ENV === 'development';
-    }
-    
-    // Method 4: Check window location (last resort)
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('dev');
-    }
-    
-    // Default to false for production safety
-    return false;
-  } catch (error) {
-    console.warn('Failed to detect environment:', error);
-    return false;
-  }
-})();
+// ✅ Deteksi lingkungan development hanya dengan import.meta.env
+const isDev = import.meta.env?.DEV === true || import.meta.env?.MODE === 'development';
 
-// ✅ ENHANCED: Runtime environment info
-const getEnvironmentInfo = () => {
-  return {
-    isDev,
-    mode: getEnvVar('MODE', 'unknown'),
-    nodeEnv: getEnvVar('NODE_ENV', 'unknown'),
-    viteMode: typeof import.meta !== 'undefined' ? import.meta.env?.MODE : 'unknown',
-    viteDev: typeof import.meta !== 'undefined' ? import.meta.env?.DEV : 'unknown',
-  };
-};
-
-// Debug flags
+// Debug flags - hanya dari import.meta.env
 const debugContext = getEnvVar('VITE_DEBUG_CONTEXT', 'false') === 'true';
 const debugComponent = getEnvVar('VITE_DEBUG_COMPONENT', 'false') === 'true';
 const debugHook = getEnvVar('VITE_DEBUG_HOOK', 'false') === 'true';
@@ -78,26 +21,31 @@ const debugApi = getEnvVar('VITE_DEBUG_API', 'false') === 'true';
 const debugPerf = getEnvVar('VITE_DEBUG_PERF', 'false') === 'true';
 const debugLevel = getEnvVar('VITE_DEBUG_LEVEL', 'info');
 
-// ✅ ENHANCED: Force enable in development
+// ✅ Force enable logs
 const forceEnable = getEnvVar('VITE_FORCE_LOGS', 'false') === 'true';
 
-// ✅ ENHANCED: Console check
+// ✅ Cek console
 const hasConsole = typeof console !== 'undefined';
 
 export const logger = {
   /**
-   * ✅ NEW: Get environment info for debugging
+   * Get environment info
    */
-  getEnv: () => getEnvironmentInfo(),
-  
+  getEnv: () => ({
+    isDev,
+    mode: import.meta.env?.MODE || 'unknown',
+    dev: import.meta.env?.DEV || false,
+  }),
+
   /**
-   * ✅ NEW: Test logger to see if it's working
+   * Test logger
    */
   test: () => {
     if (hasConsole) {
       console.log('🧪 Logger Test:', {
         isDev,
-        environment: getEnvironmentInfo(),
+        mode: import.meta.env?.MODE,
+        dev: import.meta.env?.DEV,
         debugFlags: {
           context: debugContext,
           component: debugComponent,
@@ -106,15 +54,13 @@ export const logger = {
           perf: debugPerf,
           level: debugLevel,
           forceEnable
-        },
-        hasConsole,
-        timestamp: new Date().toISOString()
+        }
       });
     }
   },
 
   /**
-   * Context logging - untuk log dari context providers
+   * Context logging
    */
   context: (contextName: string, message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugContext) {
@@ -127,7 +73,7 @@ export const logger = {
   },
 
   /**
-   * Component logging - untuk log dari components
+   * Component logging
    */
   component: (componentName: string, message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugComponent) {
@@ -140,7 +86,7 @@ export const logger = {
   },
 
   /**
-   * Hook logging - untuk log dari custom hooks
+   * Hook logging
    */
   hook: (hookName: string, message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugHook) {
@@ -153,7 +99,7 @@ export const logger = {
   },
 
   /**
-   * Info logging - untuk informasi umum
+   * Info logging
    */
   info: (message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && ['verbose', 'info'].includes(debugLevel)) {
@@ -166,8 +112,7 @@ export const logger = {
   },
 
   /**
-   * Warning logging - untuk peringatan
-   * ✅ UPDATED: Only show in development
+   * Warning logging
    */
   warn: (message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable)) {
@@ -180,11 +125,9 @@ export const logger = {
   },
 
   /**
-   * Error logging - untuk error
-   * ✅ UPDATED: Only show in development, silent in production
+   * Error logging
    */
   error: (message: string, error?: any) => {
-    // ✅ CHANGED: Only show errors in development or when forced
     if (hasConsole && (isDev || forceEnable)) {
       if (error !== undefined) {
         console.error('🚨', message, error);
@@ -195,7 +138,7 @@ export const logger = {
   },
 
   /**
-   * Debug logging - untuk debugging detail
+   * Debug logging
    */
   debug: (message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugLevel === 'verbose') {
@@ -208,7 +151,7 @@ export const logger = {
   },
 
   /**
-   * Success logging - untuk operasi berhasil
+   * Success logging
    */
   success: (message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable)) {
@@ -221,7 +164,7 @@ export const logger = {
   },
 
   /**
-   * API logging - untuk request/response API
+   * API logging
    */
   api: (endpoint: string, message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugApi) {
@@ -234,7 +177,7 @@ export const logger = {
   },
 
   /**
-   * Performance logging - untuk performance monitoring
+   * Performance logging
    */
   perf: (operation: string, duration: number, data?: any) => {
     if (hasConsole && (isDev || forceEnable) && debugPerf) {
@@ -248,11 +191,9 @@ export const logger = {
   },
 
   /**
-   * ✅ ENHANCED: Production-safe error logging
-   * Only for critical errors that should never be suppressed
+   * Critical error logging
    */
   criticalError: (message: string, error?: any) => {
-    // Always log critical errors regardless of environment
     if (hasConsole) {
       if (error !== undefined) {
         console.error('🚨 CRITICAL:', message, error);
@@ -263,7 +204,7 @@ export const logger = {
   },
 
   /**
-   * ✅ NEW: Order verification specific logging
+   * Order verification logging
    */
   orderVerification: (message: string, data?: any) => {
     if (hasConsole && (isDev || forceEnable)) {
@@ -276,7 +217,7 @@ export const logger = {
   }
 };
 
-// ✅ ENHANCED: Add global logger for debugging
+// Tambahkan ke window untuk debugging
 if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
 }

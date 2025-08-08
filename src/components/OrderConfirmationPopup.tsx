@@ -1,13 +1,12 @@
-// src/components/popups/OrderConfirmationPopup.tsx
+// src/components/popups/OrderConfirmationPopup.tsx - ENHANCED VERSION
 import { useState, useEffect } from 'react';
 import { 
   linkPaymentToUser, 
   getCurrentUser, 
-  verifyCustomerOrder, // ✅ Gunakan verifyCustomerOrder yang lebih lengkap
-  getRecentUnlinkedOrders 
-} from '@/services/auth'; // ✅ Updated import path sesuai struktur baru
+  verifyCustomerOrder 
+} from '@/services/auth';
 import { logger } from '@/utils/logger';
-import { usePaymentContext } from '@/contexts/PaymentContext'; // ✅ Untuk refresh status pembayaran
+import { usePaymentContext } from '@/contexts/PaymentContext';
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;
@@ -20,41 +19,28 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{success: boolean; message: string} | null>(null); // ✅ Untuk hasil verifikasi lengkap
-  const [recentOrders, setRecentOrders] = useState<string[]>([]);
+  const [verificationResult, setVerificationResult] = useState<{success: boolean; message: string; data?: any} | null>(null);
 
-  const { refetchPayment } = usePaymentContext(); // ✅ Untuk refresh status setelah linking
+  const { refetchPayment, refreshAccessStatus } = usePaymentContext();
 
-  // ✅ Load recent unlinked orders for suggestions
+  // ✅ Reset form when popup opens
   useEffect(() => {
     if (isOpen) {
-      loadRecentOrders();
-      // Reset form when popup opens
       resetForm();
     }
   }, [isOpen]);
 
-  const loadRecentOrders = async () => {
-    try {
-      const orders = await getRecentUnlinkedOrders();
-      setRecentOrders(orders);
-      logger.component('OrderConfirmationPopup', 'Recent unlinked orders loaded:', orders);
-    } catch (error) {
-      logger.error('Error loading recent orders:', error);
-    }
-  };
-
-  // ✅ Enhanced verification with better debouncing
+  // ✅ Enhanced verification with debouncing
   useEffect(() => {
-    if (orderId.trim().length >= 8) { // Lowered minimum to 8 characters
+    if (orderId.trim().length >= 8) {
       const debounceTimer = setTimeout(() => {
         verifyOrder();
-      }, 500); // 500ms debounce
+      }, 500);
 
       return () => clearTimeout(debounceTimer);
     } else {
       setError('');
-      setVerificationResult(null); // ✅ Reset hasil verifikasi
+      setVerificationResult(null);
       setIsVerifying(false);
     }
   }, [orderId]);
@@ -71,13 +57,21 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         return;
       }
 
-      logger.component('OrderConfirmationPopup', 'Verifying order for user:', { email: user.email, orderId: orderId.trim() });
-      // ✅ Gunakan verifyCustomerOrder yang lebih lengkap
+      logger.component('OrderConfirmationPopup', 'Verifying order for user:', { 
+        email: user.email, 
+        orderId: orderId.trim() 
+      });
+
       const result = await verifyCustomerOrder(user.email, orderId.trim());
       logger.debug('Order verification result:', result);
       
       if (result.success) {
-        setVerificationResult({ success: true, message: result.message || 'Order ID valid! Siap untuk dihubungkan.' });
+        setVerificationResult({ 
+          success: true, 
+          message: result.message || 'Order ID valid! Siap untuk dihubungkan.',
+          data: result.data
+        });
+        setError('');
       } else {
         setError(result.message || 'Order ID tidak ditemukan. Silakan periksa kembali atau hubungi admin.');
         setVerificationResult(null);
@@ -102,23 +96,21 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       return;
     }
 
-    // Jangan lanjut jika masih verifying
     if (isVerifying) {
-       setError('Mohon tunggu verifikasi selesai.');
-       return;
+      setError('Mohon tunggu verifikasi selesai.');
+      return;
     }
 
-    // Jangan lanjut jika verifikasi gagal
     if (!verificationResult?.success) {
-       setError('Silakan verifikasi Order ID terlebih dahulu.');
-       return;
+      setError('Silakan verifikasi Order ID terlebih dahulu.');
+      return;
     }
 
     setIsLoading(true);
     setError('');
     
     try {
-      logger.component('OrderConfirmationPopup', 'Getting current user...');
+      logger.component('OrderConfirmationPopup', 'Starting payment linking process');
       const user = await getCurrentUser();
       
       if (!user) {
@@ -127,29 +119,54 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         return;
       }
 
-      logger.debug('Current user details:', { email: user.email });
+      logger.debug('Current user details:', { email: user.email, userId: user.id });
       logger.component('OrderConfirmationPopup', 'Attempting to link order:', orderId.trim());
 
-      // Try to link payment
+      // ✅ Enhanced linking with better error handling
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
-        logger.success('Payment linked successfully:', linkedPayment);
-        // ✅ Refresh status pembayaran di context
+        logger.success('✅ Payment linked successfully in popup:', {
+          orderId: linkedPayment.order_id,
+          userId: linkedPayment.user_id,
+          email: linkedPayment.email
+        });
+
+        // ✅ Enhanced refresh sequence
+        logger.info('Triggering context refresh...');
+        
+        // First refresh payment status
         await refetchPayment();
+        
+        // Then refresh access status
+        await refreshAccessStatus();
+        
+        // Wait a bit more for state propagation
+        setTimeout(async () => {
+          await refreshAccessStatus();
+          logger.info('Final access status refresh completed');
+        }, 1000);
+
+        // ✅ Success callbacks
         onSuccess?.(linkedPayment);
-        onClose();
-        resetForm();
+        
+        // ✅ Auto-close popup after short delay
+        setTimeout(() => {
+          onClose();
+          resetForm();
+        }, 500);
       }
       
     } catch (error: any) {
-      logger.error('❌ Error linking payment:', error);
+      logger.error('❌ Error linking payment in popup:', error);
       
-      // More specific error handling
+      // ✅ Enhanced error handling
       if (error.message?.includes('tidak ditemukan')) {
         setError('Order ID tidak ditemukan dalam sistem. Pastikan Order ID benar atau hubungi admin.');
       } else if (error.message?.includes('sudah terhubung')) {
         setError('Order ini sudah terhubung dengan akun lain. Silakan hubungi admin jika ini adalah order Anda.');
+      } else if (error.message?.includes('sudah memiliki pembayaran')) {
+        setError('Akun Anda sudah memiliki pembayaran aktif. Silakan hubungi admin jika ini adalah order baru Anda.');
       } else {
         setError(error.message || 'Terjadi kesalahan. Silakan coba lagi atau hubungi admin.');
       }
@@ -161,7 +178,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   const resetForm = () => {
     setOrderId('');
     setError('');
-    setVerificationResult(null); // ✅ Reset hasil verifikasi
+    setVerificationResult(null);
     setIsVerifying(false);
   };
 
@@ -176,12 +193,6 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setOrderId(cleanValue);
   };
 
-  const selectRecentOrder = (order: string) => {
-    setOrderId(order);
-    setError('');
-    setVerificationResult(null); // ✅ Reset hasil verifikasi saat memilih order
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -193,25 +204,6 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           Masukkan Order ID untuk menghubungkan pembayaran ke akun Anda:
         </p>
         
-        {/* ✅ Recent orders suggestions */}
-        {recentOrders.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-500 mb-2">Order terbaru yang belum terhubung:</p>
-            <div className="flex flex-wrap gap-2">
-              {recentOrders.map((order) => (
-                <button
-                  key={order}
-                  onClick={() => selectRecentOrder(order)}
-                  className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                  disabled={isLoading}
-                >
-                  {order}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        
         <div className="relative">
           <input
             type="text"
@@ -220,7 +212,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             placeholder="Contoh: 250803GKWROPN"
             className={`w-full px-3 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1 text-base ${
               error ? 'border-red-300 bg-red-50' : 
-              verificationResult?.success ? 'border-green-300 bg-green-50' : // ✅ Warna hijau jika verifikasi sukses
+              verificationResult?.success ? 'border-green-300 bg-green-50' :
               'border-gray-300'
             }`}
             disabled={isLoading}
@@ -236,7 +228,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           )}
           
           {/* ✅ Success indicator */}
-          {verificationResult?.success && !isVerifying && ( // ✅ Gunakan verificationResult
+          {verificationResult?.success && !isVerifying && (
             <div className="absolute right-3 top-3">
               <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
                 <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,7 +256,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           </div>
         )}
         
-        {/* ✅ Success state preview - menggunakan verificationResult */}
+        {/* ✅ Success state preview */}
         {verificationResult?.success && (
           <div className="text-green-600 text-sm mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center">
@@ -273,6 +265,11 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
               </svg>
               <span>{verificationResult.message}</span>
             </div>
+            {verificationResult.data?.order_id && (
+              <div className="mt-2 text-xs text-green-700">
+                Order ID: {verificationResult.data.order_id}
+              </div>
+            )}
           </div>
         )}
         
@@ -287,13 +284,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           
           <button
             onClick={handleConfirmOrder}
-            // ✅ Kondisi disabled diperbarui
             disabled={
               isLoading || 
               !orderId.trim() || 
               orderId.length < 8 || 
               isVerifying || 
-              !verificationResult?.success // ✅ Hanya aktif jika verifikasi sukses
+              !verificationResult?.success
             }
             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
@@ -324,9 +320,9 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         </div>
 
         {/* ✅ Debug info (only in development) */}
-       {import.meta.env.DEV && (
+        {import.meta.env.DEV && (
           <div className="mt-4 text-xs text-gray-400 bg-gray-100 p-2 rounded font-mono">
-            Debug: Order="{orderId}" | Length={orderId.length} | Verifying={isVerifying ? 'Yes' : 'No'} | Verified={verificationResult?.success ? 'Yes' : 'No'}
+            Debug: Order="{orderId}" | Length={orderId.length} | Verifying={isVerifying ? 'Yes' : 'No'} | Verified={verificationResult?.success ? 'Yes' : 'No'} | Loading={isLoading ? 'Yes' : 'No'}
           </div>
         )}
       </div>

@@ -28,8 +28,6 @@ export default defineConfig(({ mode }) => {
     react({
       // Enable fast refresh
       fastRefresh: isDev,
-      // Enable JSX transform
-      jsxImportSource: "@emotion/react",
     })
   ];
   

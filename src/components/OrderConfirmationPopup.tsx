@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyCustomerOrder, linkPaymentToUser } from '@/services/auth/payments';
+import { verifyCustomerOrder, linkPaymentToUser } from '@/services/auth';
 import { logger } from '@/utils/logger';
 
 interface OrderConfirmationPopupProps {

@@ -153,7 +153,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   // Debug helper for development
   const debugItem = (item: BahanBakuFrontend) => {
-    if (process.env.NODE_ENV === 'development' && item.nama.includes('Daging')) {
+    if (import.meta.env.DEV && item.nama.includes('Daging')) {
       logger.debug('WAREHOUSE TABLE DEBUG:', {
         item: item.nama,
         stok: item.stok,

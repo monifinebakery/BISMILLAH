@@ -1,8 +1,157 @@
-// src/hooks/usePaymentStatus.ts - FIXED & OPTIMIZED VERSION
+// ===== 1. src/services/auth/types.ts =====
+export interface PaymentRecord {
+  id: string;
+  order_id: string;
+  email: string;
+  user_id?: string;
+  is_paid: boolean;
+  payment_status: string;
+  amount?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserAccessStatus {
+  hasAccess: boolean;
+  isAuthenticated: boolean;
+  paymentRecord: PaymentRecord | null;
+  needsOrderVerification: boolean;
+  needsLinking: boolean;
+  message: string;
+}
+
+// ===== 2. src/services/auth/payments/access.ts - FIXED =====
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
+import { UserAccessStatus, PaymentRecord } from '@/services/auth/types';
+import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
+
+export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
+  try {
+    const isAuth = await isAuthenticated();
+    const user = await getCurrentUser();
+
+    // Not authenticated - need login
+    if (!isAuth || !user) {
+      return {
+        hasAccess: false,
+        isAuthenticated: false,
+        paymentRecord: null,
+        needsOrderVerification: true,
+        needsLinking: false,
+        message: 'Silakan login terlebih dahulu'
+      };
+    }
+
+    logger.info('[AccessCheck] User authenticated, checking payment status:', user.email);
+
+    // ✅ STEP 1: Check if user has linked payment (ONLY linked payments)
+    const { data: linkedPayments, error: linkedError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (linkedError) {
+      logger.error('[AccessCheck] Error checking linked payments:', linkedError);
+      return {
+        hasAccess: false,
+        isAuthenticated: true,
+        paymentRecord: null,
+        needsOrderVerification: true,
+        needsLinking: false,
+        message: 'Terjadi kesalahan saat memeriksa status pembayaran'
+      };
+    }
+
+    // ✅ User has linked payment - FULL ACCESS
+    if (linkedPayments && linkedPayments.length > 0) {
+      logger.success('[AccessCheck] User has valid linked payment:', {
+        orderId: linkedPayments[0].order_id,
+        userId: linkedPayments[0].user_id
+      });
+      return {
+        hasAccess: true,
+        isAuthenticated: true,
+        paymentRecord: linkedPayments[0],
+        needsOrderVerification: false,
+        needsLinking: false,
+        message: 'Akses penuh tersedia'
+      };
+    }
+
+    // ✅ STEP 2: Check for unlinked payments - NO AUTO-LINK
+    const { data: unlinkedPayments, error: unlinkedError } = await supabase
+      .from('user_payments')
+      .select('*')
+      .eq('email', user.email)
+      .is('user_id', null)
+      .eq('is_paid', true)
+      .eq('payment_status', 'settled')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!unlinkedError && unlinkedPayments && unlinkedPayments.length > 0) {
+      logger.info('[AccessCheck] Found unlinked payment for user email - NO AUTO-LINK');
+      
+      // ✅ REMOVED AUTO-LINK - Let user manually link via popup
+      return {
+        hasAccess: false,
+        isAuthenticated: true,
+        paymentRecord: unlinkedPayments[0] as PaymentRecord,
+        needsOrderVerification: false,
+        needsLinking: true,
+        message: 'Pembayaran ditemukan, silakan hubungkan dengan Order ID'
+      };
+    }
+
+    // ✅ STEP 3: No payment found - need order verification
+    logger.info('[AccessCheck] No payment found for user');
+    return {
+      hasAccess: false,
+      isAuthenticated: true,
+      paymentRecord: null,
+      needsOrderVerification: true,
+      needsLinking: false,
+      message: 'Silakan verifikasi Order ID untuk mendapatkan akses'
+    };
+
+  } catch (error) {
+    logger.error('[AccessCheck] Unexpected error:', error);
+    return {
+      hasAccess: false,
+      isAuthenticated: false,
+      paymentRecord: null,
+      needsOrderVerification: true,
+      needsLinking: false,
+      message: 'Terjadi kesalahan sistem'
+    };
+  }
+};
+
+export const hasAppAccess = async (): Promise<boolean> => {
+  const status = await getUserAccessStatus();
+  return status.hasAccess;
+};
+
+// Backward compatibility export
+export const getUserPaymentStatus = async () => {
+  const status = await getUserAccessStatus();
+  return {
+    isPaid: status.hasAccess,
+    paymentRecord: status.paymentRecord,
+    needsLinking: status.needsLinking
+  };
+};
+
+// ===== 3. src/hooks/usePaymentStatus.ts - FIXED =====
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, isAuthenticated, linkPaymentToUser } from '@/services/auth';
+import { getCurrentUser, isAuthenticated } from '@/services/auth';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -32,7 +181,6 @@ export const usePaymentStatus = () => {
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
     queryFn: async (): Promise<PaymentStatus | null> => {
-      // ✅ FAST: Quick auth check
       const isAuth = await isAuthenticated();
       if (!isAuth) {
         logger.hook('usePaymentStatus', 'User not authenticated');
@@ -47,7 +195,7 @@ export const usePaymentStatus = () => {
 
       logger.hook('usePaymentStatus', 'Checking payment for user:', user.email);
 
-      // ✅ STEP 1: Check for already linked payments (fastest)
+      // ✅ STEP 1: Check for LINKED payments only
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
         .select('*')
@@ -77,12 +225,12 @@ export const usePaymentStatus = () => {
         logger.error('Error checking linked payments:', linkedError);
       }
 
-      // ✅ STEP 2: Check for unlinked payments by email
+      // ✅ STEP 2: Check for UNLINKED payments - NO AUTO-LINK
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
         .select('*')
-        .eq('email', user.email) // ✅ Match by email (from order verification)
-        .is('user_id', null) // ✅ Only unlinked payments
+        .eq('email', user.email)
+        .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
         .order('updated_at', { ascending: false })
@@ -90,42 +238,18 @@ export const usePaymentStatus = () => {
 
       if (!unlinkedError && unlinkedPayments?.length) {
         const payment = unlinkedPayments[0];
-        logger.success('Found unlinked payment for email:', { 
+        logger.success('Found unlinked payment (NO AUTO-LINK):', { 
           orderId: payment.order_id, 
           email: payment.email 
         });
         
-        // ✅ AUTO-LINK: Try to link the payment to current user
-        try {
-          logger.info('Attempting to auto-link payment to user');
-          const linkedPayment = await linkPaymentToUser(payment.order_id, user);
-          
-          if (linkedPayment) {
-            logger.success('Auto-linked payment successfully:', { 
-              orderId: linkedPayment.order_id,
-              userId: linkedPayment.user_id,
-              email: linkedPayment.email
-            });
-            
-            // Return the linked payment
-            return {
-              ...linkedPayment,
-              created_at: safeParseDate(linkedPayment.created_at),
-              updated_at: safeParseDate(linkedPayment.updated_at),
-              payment_date: safeParseDate(linkedPayment.payment_date),
-            };
-          }
-        } catch (autoLinkError) {
-          logger.warn('Auto-link failed, returning unlinked payment:', autoLinkError);
-          
-          // Return unlinked payment if auto-link fails
-          return {
-            ...payment,
-            created_at: safeParseDate(payment.created_at),
-            updated_at: safeParseDate(payment.updated_at),
-            payment_date: safeParseDate(payment.payment_date),
-          };
-        }
+        // ✅ FIXED: Return unlinked payment without auto-linking
+        return {
+          ...payment,
+          created_at: safeParseDate(payment.created_at),
+          updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
+        };
       }
 
       if (unlinkedError) {
@@ -137,7 +261,7 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 30000, // 30 seconds
+    staleTime: 10000, // 10 seconds - more frequent updates
     cacheTime: 300000, // 5 minutes
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
@@ -148,7 +272,7 @@ export const usePaymentStatus = () => {
     },
   });
 
-  // ✅ FIXED: Real-time subscription
+  // ✅ Real-time subscription with better filtering
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -163,7 +287,6 @@ export const usePaymentStatus = () => {
 
         logger.hook('usePaymentStatus', 'Setting up realtime subscription for:', user.email);
 
-        // ✅ FIXED: Proper subscription with email filter
         realtimeChannel = supabase
           .channel(`payment-changes-${user.id}`)
           .on(
@@ -172,18 +295,22 @@ export const usePaymentStatus = () => {
               event: '*', 
               schema: 'public', 
               table: 'user_payments',
-              filter: `email=eq.${user.email}` // ✅ Filter by email
+              filter: `email=eq.${user.email}`
             },
             (payload) => {
               const record = payload.new || payload.old;
               logger.hook('usePaymentStatus', 'Payment change detected:', {
                 event: payload.eventType,
                 orderId: record?.order_id,
-                email: record?.email
+                email: record?.email,
+                userId: record?.user_id
               });
               
-              // ✅ Immediate invalidation
+              // ✅ Force immediate refetch
               queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+              setTimeout(() => {
+                queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
+              }, 500);
             }
           )
           .subscribe((status) => {
@@ -229,47 +356,49 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ FIXED: Logic isPaid yang lebih benar
+  // ✅ FIXED: Accurate payment status logic
+  const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
+  
   const hasValidPayment = paymentStatus?.is_paid === true && 
-                         paymentStatus?.payment_status === 'settled';
+                         paymentStatus?.payment_status === 'settled' &&
+                         isLinkedToCurrentUser;
 
-  const needsPayment = !hasValidPayment;
   const hasUnlinkedPayment = paymentStatus && 
-                            !paymentStatus.user_id && 
+                            (!paymentStatus.user_id) && 
                             paymentStatus.is_paid === true &&
                             paymentStatus.payment_status === 'settled';
   
-  const needsOrderLinking = !isLoading && 
-                           !hasValidPayment && 
-                           !error;
+  const needsPayment = !hasValidPayment;
+  const needsOrderLinking = !isLoading && hasUnlinkedPayment;
 
-  // ✅ NEW: Debug logging
+  // ✅ Debug logging
   useEffect(() => {
     if (!isLoading) {
       logger.debug('Payment status computed:', {
         hasValidPayment,
         hasUnlinkedPayment,
         needsOrderLinking,
+        isLinkedToCurrentUser,
         paymentRecord: paymentStatus?.order_id || 'none',
         userEmail: paymentStatus?.email || 'none',
         userId: paymentStatus?.user_id || 'none'
       });
     }
-  }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLoading, paymentStatus]);
+  }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus]);
 
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
-    isPaid: hasValidPayment, // ✅ Gunakan hasValidPayment untuk UX yang lebih jelas
+    isPaid: hasValidPayment, // ✅ Only true if linked AND paid
     needsPayment,
     hasUnlinkedPayment,
     needsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
     userName: paymentStatus?.customer_name || null,
-    // ✅ NEW: Tambahkan status tambahan
-    hasValidPayment
+    hasValidPayment,
+    isLinkedToCurrentUser
   };
 };

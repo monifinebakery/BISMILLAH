@@ -843,6 +843,13 @@ export const sendMagicLink = async (
   allowSignup: boolean = true
 ): Promise<boolean> => {
   logger.warn('[authService] sendMagicLink is deprecated and removed');
+// ✅ DEPRECATED MAGIC LINK FUNCTIONS - For backward compatibility
+export const sendMagicLink = async (
+  email: string, 
+  captchaToken: string | null = null,
+  allowSignup: boolean = true
+): Promise<boolean> => {
+  logger.warn('[authService] sendMagicLink is deprecated and removed');
   toast.error('Magic link authentication tidak tersedia. Gunakan OTP.');
   return false;
 };

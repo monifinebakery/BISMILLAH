@@ -76,21 +76,50 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         orderId: orderId.trim() 
       });
       
+      // ✅ Tambahkan logging lebih detail
+      logger.debug('Calling verifyCustomerOrder with:', { 
+        email: user.email, 
+        orderId: orderId.trim(),
+        timestamp: new Date().toISOString()
+      });
+      
       const result = await verifyCustomerOrder(user.email, orderId.trim());
-      logger.debug('Order verification result:', result);
+      
+      // ✅ Logging hasil yang lebih komprehensif
+      logger.debug('Order verification FULL result:', {
+        result,
+        orderId: orderId.trim(),
+        userEmail: user.email,
+        timestamp: new Date().toISOString()
+      });
       
       if (result.success) {
+        logger.success('Order verification SUCCESS:', { 
+          message: result.message,
+          orderId: orderId.trim(),
+          hasData: !!result.data
+        });
+        
         setVerificationResult({ 
           success: true, 
           message: result.message || 'Order ID valid! Siap untuk dihubungkan.' 
         });
       } else {
+        logger.warn('Order verification FAILED:', { 
+          message: result.message,
+          orderId: orderId.trim()
+        });
+        
         setError(result.message || 'Order ID tidak valid. Silakan periksa kembali.');
         setVerificationResult(null);
       }
       
     } catch (error) {
-      logger.error('Error verifying order:', error);
+      logger.error('Error verifying order:', {
+        error,
+        orderId: orderId.trim(),
+        timestamp: new Date().toISOString()
+      });
       setError('Gagal memverifikasi Order ID. Silakan coba lagi.');
       setVerificationResult(null);
     } finally {
@@ -138,7 +167,11 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
-        logger.success('Payment linked successfully:', linkedPayment);
+        logger.success('Payment linked successfully:', {
+          orderId: linkedPayment.order_id,
+          userId: linkedPayment.user_id,
+          email: linkedPayment.email
+        });
         await refetchPayment();
         onSuccess?.(linkedPayment);
         handleClose(); // ✅ Pastikan handleClose dipanggil dengan benar

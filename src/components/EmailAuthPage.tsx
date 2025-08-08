@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService';
+import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

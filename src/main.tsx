@@ -65,7 +65,10 @@ const isDevelopment = (() => {
   }
 })();
 
-if (isDevelopment) {
+// ✅ STEP 1: FORCE ENABLE ALL LOGGING - Always enable in development
+const FORCE_ENABLE_LOGGING = true; // Change to false for production
+
+if (FORCE_ENABLE_LOGGING) {
   console.log('🔥 DEV MODE - Force enabling all logs');
   console.log('🔍 React version:', React.version);
   console.log('🔍 Scheduler available:', !!globalThis.scheduler?.unstable_scheduleCallback);

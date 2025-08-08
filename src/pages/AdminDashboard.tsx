@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
 // import { supabase } from '@/integrations/supabase/client'; // TIDAK DIPERLUKAN LAGI UNTUK DATA ADMIN
 import { toast } from 'sonner';
-import { getCurrentSession } from '@/lib/authService'; // Untuk mendapatkan token auth
+import { getCurrentSession } from '@/services/auth'; // Untuk mendapatkan token auth
 
 // URL Edge Function API Admin Anda
 // PASTIKAN INI ADALAH URL YANG BENAR UNTUK EDGE FUNCTION ADMIN ANDA!

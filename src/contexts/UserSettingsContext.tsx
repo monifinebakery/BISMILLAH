@@ -1,26 +1,11 @@
 // src/contexts/UserSettingsContext.tsx
-// 🔧 UPDATED - Added Financial Categories JSONB Support
+// 🔧 UPDATED - Removed recipe_categories and financial_categories
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
-// --- UPDATED INTERFACES ---
-// ✅ Support both legacy (string array) and new (object array) formats
-interface FinancialCategory {
-  id: string;
-  name: string;
-  type: 'income' | 'expense';
-  color: string;
-  isDefault: boolean;
-}
-
-interface FinancialCategories {
-  income: (string | FinancialCategory)[]; // Support both formats
-  expense: (string | FinancialCategory)[];
-}
 
 export interface UserSettings {
   businessName: string;
@@ -32,8 +17,7 @@ export interface UserSettings {
     lowStock: boolean;
     newOrder: boolean;
   };
-  financialCategories: FinancialCategories;
-  recipeCategories: string[];
+  // recipeCategories dan financialCategories dihapus
   updatedAt?: string;
 }
 
@@ -45,56 +29,6 @@ interface UserSettingsContextType {
   refreshSettings: () => Promise<void>; // ✅ Force refresh from database
 }
 
-// ✅ UPDATED: Default categories with new object structure
-const defaultFinancialCategories: FinancialCategories = {
-  income: [
-    {
-      id: 'income_penjualan_produk',
-      name: 'Penjualan Produk',
-      type: 'income',
-      color: '#10b981',
-      isDefault: false
-    },
-    {
-      id: 'income_pendapatan_jasa',
-      name: 'Pendapatan Jasa',
-      type: 'income',
-      color: '#3b82f6',
-      isDefault: false
-    }
-  ],
-  expense: [
-    {
-      id: 'expense_bahan_baku',
-      name: 'Pembelian Bahan Baku',
-      type: 'expense',
-      color: '#ef4444',
-      isDefault: false
-    },
-    {
-      id: 'expense_gaji',
-      name: 'Gaji',
-      type: 'expense',
-      color: '#f59e0b',
-      isDefault: false
-    },
-    {
-      id: 'expense_sewa',
-      name: 'Sewa',
-      type: 'expense',
-      color: '#8b5cf6',
-      isDefault: false
-    },
-    {
-      id: 'expense_marketing',
-      name: 'Marketing',
-      type: 'expense',
-      color: '#ec4899',
-      isDefault: false
-    }
-  ]
-};
-
 const defaultSettings: UserSettings = {
   businessName: 'Bisnis Anda',
   ownerName: 'Nama Anda',
@@ -105,8 +39,7 @@ const defaultSettings: UserSettings = {
     lowStock: true,
     newOrder: true,
   },
-  financialCategories: defaultFinancialCategories,
-  recipeCategories: ['Makanan Utama', 'Minuman', 'Dessert'],
+  // recipeCategories dan financialCategories dihapus dari default
 };
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
@@ -116,31 +49,43 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ✅ VALIDASI USER ID
+  const isValidUserId = useCallback((userId: string | undefined): boolean => {
+    if (!userId) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(userId);
+  }, []);
+
   const fetchSettings = useCallback(async () => {
-    if (!user) {
+    // ✅ Validasi user object lebih ketat
+    if (!user || !isValidUserId(user.id)) {
+      logger.context('UserSettings', 'No valid user found or user ID invalid, using default settings', {
+        hasUser: !!user,
+        userId: user?.id,
+        userEmail: user?.email
+      });
       setSettings(defaultSettings);
       setIsLoading(false);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      logger.context('UserSettings', 'Fetching settings for user:', user.id);
-      
-      // ✅ UPDATED: Include financial_categories in select
+      logger.context('UserSettings', 'Fetching settings for user:', { userId: user.id, userEmail: user.email });
+
       const { data, error } = await supabase
         .from('user_settings')
-        .select('*') // This will include financial_categories JSONB column
+        .select('*') // Hapus financial_categories dan recipe_categories dari select jika tidak digunakan
         .eq('user_id', user.id)
         .maybeSingle();
 
-      logger.debug('Database response:', { data, error });
+      logger.debug('Database response for user settings:', { data, error });
 
       if (error) {
         logger.error('[UserSettings] Fetch error:', error);
-        if (error.code === 'PGRST116') {
-          logger.info('No settings found, creating default...');
+        if (error.code === 'PGRST116') { // No rows returned
+          logger.info('No settings found for user, creating default...', { userId: user.id });
           await createDefaultSettings();
           return;
         }
@@ -150,78 +95,57 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (data) {
-        // ✅ UPDATED: Parse financial_categories from JSONB
-        let financialCategories = defaultFinancialCategories;
-        
-        if (data.financial_categories) {
-          try {
-            // Parse JSONB data
-            const parsedCategories = typeof data.financial_categories === 'string' 
-              ? JSON.parse(data.financial_categories) 
-              : data.financial_categories;
-            
-            logger.debug('Parsed financial categories:', parsedCategories);
-            
-            // Validate structure and use parsed data
-            if (parsedCategories && typeof parsedCategories === 'object') {
-              financialCategories = {
-                income: parsedCategories.income || [],
-                expense: parsedCategories.expense || []
-              };
-            }
-          } catch (parseError) {
-            logger.error('Error parsing financial_categories:', parseError);
-            // Use default if parsing fails
-          }
-        }
-
-        const loadedSettings: UserSettings = { 
+        const loadedSettings: UserSettings = {
           ...defaultSettings,
-          // Map database fields to our interface
           businessName: data.business_name || data.businessName || defaultSettings.businessName,
           ownerName: data.owner_name || data.ownerName || defaultSettings.ownerName,
           email: data.email || user.email || defaultSettings.email,
           phone: data.phone || defaultSettings.phone,
           address: data.address || defaultSettings.address,
-          financialCategories: financialCategories, // ✅ Include parsed categories
+          // Hapus financialCategories dan recipeCategories
           updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
         };
-        
-        logger.success('Settings loaded:', loadedSettings);
+
+        logger.success('Settings loaded for user:', { userId: user.id, settings: loadedSettings });
         setSettings(loadedSettings);
       } else {
-        logger.info('No data found, creating default settings...');
+        logger.info('No data found for user, creating default settings...', { userId: user.id });
         await createDefaultSettings();
       }
     } catch (error) {
-      logger.error('[UserSettings] Unexpected error:', error);
+      logger.error('[UserSettings] Unexpected error during fetch:', error);
       toast.error('Error memuat pengaturan: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setSettings(defaultSettings);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isValidUserId]);
 
-  // ✅ UPDATED: Create default settings with financial_categories
   const createDefaultSettings = async () => {
-    if (!user) return;
-    
+    // ✅ Validasi user object lebih ketat sebelum operasi database
+    if (!user || !isValidUserId(user.id)) {
+      logger.warn('[UserSettings] Cannot create default settings: No valid user ID');
+      toast.error('Gagal membuat pengaturan: User tidak valid.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      logger.context('UserSettings', 'Creating default settings for user:', user.id);
-      
+      logger.context('UserSettings', 'Creating default settings for user:', { userId: user.id, userEmail: user.email });
+
       const settingsData = {
-        user_id: user.id,
+        user_id: user.id, // ✅ Gunakan user.id yang sudah divalidasi
         business_name: defaultSettings.businessName,
         owner_name: defaultSettings.ownerName,
-        email: user.email || '',
+        email: user.email || '', // ✅ Gunakan email dari user object
         phone: defaultSettings.phone,
         address: defaultSettings.address,
-        financial_categories: defaultFinancialCategories, // ✅ Include default categories
+        // Hapus financial_categories dan recipe_categories
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      logger.debug('Inserting data:', settingsData);
+      logger.debug('Attempting to insert default settings for user:', { userId: user.id, settingsData });
 
       const { data, error } = await supabase
         .from('user_settings')
@@ -230,38 +154,32 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         .single();
 
       if (error) {
-        logger.error('[UserSettings] Insert error:', error);
-        
-        if (error.code === '23505') {
-          logger.info('Settings already exist, fetching...');
-          await fetchSettings();
+        logger.error('[UserSettings] Insert error for user:', { userId: user.id, error });
+        // ✅ Tangani error secara lebih spesifik
+        if (error.code === '23505') { // Unique violation
+          logger.info('Settings already exist for user, fetching...', { userId: user.id });
+          await fetchSettings(); // Coba fetch ulang
           return;
+        } else if (error.code === '23503') { // Foreign key violation
+          logger.criticalError('[UserSettings] Foreign key constraint violation for user:', {
+            userId: user.id,
+            errorMessage: error.message,
+            hint: 'Pastikan user.id ada di tabel auth.users'
+          });
+          toast.error('Gagal membuat pengaturan: User ID tidak valid di database. Silakan hubungi admin.');
+        } else if (error.code === '403') { // Forbidden
+          logger.criticalError('[UserSettings] 403 Forbidden error for user:', {
+            userId: user.id,
+            errorMessage: error.message
+          });
+          toast.error('Gagal membuat pengaturan: Akses ditolak. Silakan coba login ulang.');
+        } else {
+          toast.error('Gagal membuat pengaturan: ' + error.message);
         }
-        
-        toast.error('Gagal membuat pengaturan default: ' + error.message);
         setSettings(defaultSettings);
       } else {
-        logger.success('Default settings created:', data);
-        
-        // Parse financial_categories from created data
-        let financialCategories = defaultFinancialCategories;
-        if (data.financial_categories) {
-          try {
-            const parsed = typeof data.financial_categories === 'string' 
-              ? JSON.parse(data.financial_categories) 
-              : data.financial_categories;
-            
-            if (parsed && typeof parsed === 'object') {
-              financialCategories = {
-                income: parsed.income || [],
-                expense: parsed.expense || []
-              };
-            }
-          } catch (parseError) {
-            logger.error('Error parsing created financial_categories:', parseError);
-          }
-        }
-        
+        logger.success('Default settings created for user:', { userId: user.id, data });
+
         const newSettings: UserSettings = {
           ...defaultSettings,
           businessName: data.business_name || defaultSettings.businessName,
@@ -269,10 +187,10 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           email: data.email || defaultSettings.email,
           phone: data.phone || defaultSettings.phone,
           address: data.address || defaultSettings.address,
-          financialCategories: financialCategories,
+          // Hapus financialCategories dan recipeCategories
           updatedAt: data.updated_at || new Date().toISOString()
         };
-        
+
         setSettings(newSettings);
       }
     } catch (error) {
@@ -286,76 +204,68 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
     fetchSettings();
   }, [fetchSettings]);
 
-  // ✅ UPDATED: Save settings with financial_categories support
   const saveSettings = async (newSettings: Partial<UserSettings>): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menyimpan pengaturan.');
+    // ✅ Validasi user object lebih ketat
+    if (!user || !isValidUserId(user.id)) {
+      toast.error('Anda harus login dengan akun yang valid untuk menyimpan pengaturan.');
       return false;
     }
 
     try {
-      logger.context('UserSettings', 'Saving settings:', newSettings);
-      
-      const updatedSettings = { 
-        ...settings, 
+      logger.context('UserSettings', 'Saving settings for user:', { userId: user.id, newSettings });
+
+      const updatedSettings = {
+        ...settings,
         ...newSettings,
         updatedAt: new Date().toISOString()
       };
 
-      // ✅ UPDATED: Include financial_categories in database update
       const dbData: any = {
-        user_id: user.id,
+        user_id: user.id, // ✅ Gunakan user.id yang sudah divalidasi
         business_name: updatedSettings.businessName,
         owner_name: updatedSettings.ownerName,
         email: updatedSettings.email,
         phone: updatedSettings.phone,
         address: updatedSettings.address,
+        // Hapus recipe_categories dan financial_categories
         updated_at: updatedSettings.updatedAt
       };
 
-      // ✅ Include financial_categories if provided
-      if (newSettings.financialCategories) {
-        dbData.financial_categories = newSettings.financialCategories;
-        logger.debug('Saving financial_categories:', newSettings.financialCategories);
-      }
+      // Hapus bagian financial_categories
 
-      logger.debug('Database data to save:', dbData);
+      logger.debug('Database data to save for user:', { userId: user.id, dbData });
 
       const { data, error } = await supabase
         .from('user_settings')
-        .upsert(dbData, { 
+        .upsert(dbData, {
           onConflict: 'user_id',
-          ignoreDuplicates: false 
+          ignoreDuplicates: false
         })
         .select()
         .single();
 
       if (error) {
-        logger.error('[UserSettings] Save error:', error);
-        toast.error('Gagal menyimpan pengaturan: ' + error.message);
+        logger.error('[UserSettings] Save error for user:', { userId: user.id, error });
+        // ✅ Tangani error secara lebih spesifik
+        if (error.code === '23503') { // Foreign key violation
+          logger.criticalError('[UserSettings] Foreign key constraint violation on save for user:', {
+            userId: user.id,
+            errorMessage: error.message
+          });
+          toast.error('Gagal menyimpan pengaturan: User ID tidak valid. Silakan hubungi admin.');
+        } else if (error.code === '403') { // Forbidden
+          logger.criticalError('[UserSettings] 403 Forbidden error on save for user:', {
+            userId: user.id,
+            errorMessage: error.message
+          });
+          toast.error('Gagal menyimpan pengaturan: Akses ditolak. Silakan coba login ulang.');
+        } else {
+          toast.error('Gagal menyimpan pengaturan: ' + error.message);
+        }
         return false;
       }
 
-      logger.success('Settings saved to database:', data);
-
-      // ✅ UPDATED: Parse financial_categories from saved data
-      let savedFinancialCategories = updatedSettings.financialCategories;
-      if (data.financial_categories) {
-        try {
-          const parsed = typeof data.financial_categories === 'string' 
-            ? JSON.parse(data.financial_categories) 
-            : data.financial_categories;
-          
-          if (parsed && typeof parsed === 'object') {
-            savedFinancialCategories = {
-              income: parsed.income || [],
-              expense: parsed.expense || []
-            };
-          }
-        } catch (parseError) {
-          logger.error('Error parsing saved financial_categories:', parseError);
-        }
-      }
+      logger.success('Settings saved to database for user:', { userId: user.id, data });
 
       const savedSettings: UserSettings = {
         ...updatedSettings,
@@ -364,36 +274,34 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         email: data.email,
         phone: data.phone || '',
         address: data.address || '',
-        financialCategories: savedFinancialCategories, // ✅ Include parsed categories
+        // Hapus financialCategories dan recipeCategories
         updatedAt: data.updated_at
       };
 
       setSettings(savedSettings);
-      logger.success('Local state updated:', savedSettings);
+      logger.success('Local state updated for user:', { userId: user.id, savedSettings });
 
       toast.success('Pengaturan berhasil disimpan!');
       return true;
 
     } catch (error) {
-      logger.error('[UserSettings] Error in saveSettings:', error);
+      logger.error('[UserSettings] Error in saveSettings for user:', { userId: user.id, error });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Gagal menyimpan pengaturan: ' + errorMessage);
       return false;
     }
   };
 
-  // ✅ NEW: Force refresh from database
   const refreshSettings = async () => {
     await fetchSettings();
   };
 
-  // ✅ NEW: Alias for backward compatibility
   const updateSettings = saveSettings;
 
   return (
-    <UserSettingsContext.Provider value={{ 
-      settings, 
-      saveSettings, 
+    <UserSettingsContext.Provider value={{
+      settings,
+      saveSettings,
       updateSettings,
       isLoading,
       refreshSettings

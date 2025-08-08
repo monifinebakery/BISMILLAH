@@ -1,10 +1,11 @@
+// src/components/auth/EmailAuthPage.tsx - OPTIMIZED VERSION
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { sendEmailOtp, verifyEmailOtp } from '@/lib/authService';
+import { sendEmailOtp, verifyEmailOtp } from '@/services/auth'; // ✅ Sudah benar
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -160,7 +161,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError('');
 
     try {
-      // ✅ FIXED: Use correct parameter order for authService
+      // ✅ FIXED: Use correct parameter order for authService (SUDAH BENAR!)
       const success = await sendEmailOtp(
         email,                                    // email (required)
         HCAPTCHA_ENABLED ? hCaptchaToken : null, // captchaToken  
@@ -202,7 +203,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(['', '', '', '', '', '']);
 
     try {
-      // ✅ FIXED: Skip captcha for resend (better UX)
+      // ✅ FIXED: Skip captcha for resend (better UX) (SUDAH BENAR!)
       const success = await sendEmailOtp(
         email,  // email
         null,   // captchaToken (skip for resend)
@@ -263,7 +264,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ FIXED: Verify OTP with complete logic
+  // ✅ FIXED: Verify OTP with complete logic (SUDAH BENAR!)
   const handleVerifyOtp = async () => {
     const otpCode = otp.join('');
     
@@ -522,13 +523,16 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             </div>
           )}
         </CardContent>
-          
-          {cooldownTime > 0 && (
+        
+        {/* Cooldown Message */}
+        {cooldownTime > 0 && (
+          <div className="px-6 pb-6">
             <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
               <Clock className="inline h-3 w-3 mr-1" />
               Tunggu {cooldownTime} detik untuk mencegah spam
             </div>
-          )}
+          </div>
+        )}
       </Card>
     </div>
   );

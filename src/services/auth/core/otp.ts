@@ -1,10 +1,9 @@
-// src/services/auth/core/otp.ts
+// ===== 4. src/services/auth/core/otp.ts - ENHANCED =====
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
-import { clearSessionCache } from '@/services/auth/core/session';
-import { cleanupAuthState } from '@/lib/authUtils';
+import { clearSessionCache } from './session'; // ✅ Import from session.ts
 
 export const sendEmailOtp = async (
   email: string, 
@@ -18,19 +17,15 @@ export const sendEmailOtp = async (
       return false;
     }
 
-    try { 
-      cleanupAuthState(); 
-    } catch (e) {
-      // Ignore cleanup errors
-    }
+    // ✅ Clear session cache before sending OTP
     clearSessionCache();
-
+    
     logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
     const otpOptions: any = {
       shouldCreateUser: allowSignup,
     };
-
+    
     if (!skipCaptcha && captchaToken?.trim()) {
       otpOptions.captchaToken = captchaToken;
       logger.debug('Using captcha token for OTP');
@@ -49,13 +44,14 @@ export const sendEmailOtp = async (
         toast.info('Mencoba untuk pengguna terdaftar...');
         return await sendEmailOtp(email, captchaToken, false, skipCaptcha);
       }
-
+      
       const errorMsg = getErrorMessage(error);
       toast.error(errorMsg);
       return false;
     }
 
     logger.success('OTP sent successfully:', { hasData: !!data });
+    toast.success('Kode OTP telah dikirim ke email Anda');
     return true;
     
   } catch (error) {
@@ -87,7 +83,6 @@ export const verifyEmailOtp = async (
     }
 
     logger.debug('Verifying OTP:', { email, tokenLength: cleanToken.length });
-
     const startTime = Date.now();
     
     const { data, error } = await supabase.auth.verifyOtp({
@@ -105,6 +100,7 @@ export const verifyEmailOtp = async (
       const errorMsg = error.message?.toLowerCase() || '';
       
       if (errorMsg.includes('expired') || errorMsg.includes('token has expired')) {
+        toast.error('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         return 'expired';
       }
       
@@ -114,6 +110,7 @@ export const verifyEmailOtp = async (
       }
       
       if (errorMsg.includes('invalid')) {
+        toast.error('Kode OTP tidak valid. Silakan periksa kembali.');
         return false;
       }
       
@@ -128,7 +125,10 @@ export const verifyEmailOtp = async (
         email: data.user.email,
         duration: `${duration}ms`
       });
+      
+      // ✅ Clear cache and force refresh for new session
       clearSessionCache();
+      toast.success('Login berhasil!');
       return true;
     } else {
       logger.warn('OTP verified but no session created');

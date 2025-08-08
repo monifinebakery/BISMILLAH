@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - FIXED: Rules of Hooks Compliant
+// src/contexts/PaymentContext.tsx - FIXED: Complete with OrderConfirmationPopup Integration
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
@@ -24,6 +24,8 @@ interface PaymentContextType {
   // Error handling
   lastError: string | null;
   clearError: () => void;
+  // Manual linking function
+  linkPaymentToUser: (orderId: string) => Promise<boolean>;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -51,24 +53,50 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     showOrderPopup,
     setShowOrderPopup,
     hasUnlinkedPayment,
-    refetch
+    refetch,
+    linkPaymentToUser: hookLinkFunction
   } = paymentHookResult;
 
   // ✅ FIXED: All useEffect hooks in consistent order
   
-  // Effect 1: Order popup logic - always runs, conditions inside
+  // Effect 1: Auto-show order popup logic - always runs, conditions inside
   useEffect(() => {
-    if (!needsOrderLinking || showOrderPopup || isPaid || isLoading) {
-      return; // Early return inside effect is OK
+    // ✅ DEBUG: Log all relevant states
+    if (import.meta.env.DEV) {
+      console.log('PaymentContext Debug - Auto Popup Check:', {
+        hasUnlinkedPayment,
+        needsOrderLinking,
+        showOrderPopup,
+        isPaid,
+        isLoading,
+        paymentStatus: paymentStatus ? 'exists' : 'null'
+      });
     }
 
-    const timer = setTimeout(() => {
-      logger.info('PaymentContext: Showing order popup for unlinking');
-      setShowOrderPopup(true);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [needsOrderLinking, showOrderPopup, isPaid, isLoading, setShowOrderPopup]);
+    // ✅ SIMPLIFIED: Show popup if there's unlinked payment
+    if (hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
+      logger.info('PaymentContext: Auto-showing order popup for unlinked payment');
+      
+      const timer = setTimeout(() => {
+        console.log('⏰ Auto-showing OrderConfirmationPopup');
+        setShowOrderPopup(true);
+      }, 3000); // 3 seconds delay
+      
+      return () => clearTimeout(timer);
+    }
+
+    // ✅ ALTERNATIVE: Also show if needsOrderLinking is true (no payment found case)
+    if (needsOrderLinking && !hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
+      logger.info('PaymentContext: Auto-showing order popup for order linking');
+      
+      const timer = setTimeout(() => {
+        console.log('⏰ Auto-showing OrderConfirmationPopup (no payment)');
+        setShowOrderPopup(true);
+      }, 5000); // 5 seconds delay for this case
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasUnlinkedPayment, needsOrderLinking, showOrderPopup, isPaid, isLoading, setShowOrderPopup, paymentStatus]);
 
   // Effect 2: Preview timer - always runs, conditions inside
   useEffect(() => {
@@ -106,6 +134,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPreviewTimeLeft(60);
     setUnlinkedPaymentCount(0);
     setLastError(null);
+    setShowOrderPopup(false); // ✅ Also close popup when paid
   }, [isPaid]);
 
   // Effect 4: Error handling from payment status - always runs
@@ -136,6 +165,31 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // ✅ ENHANCED: Wrapper for linkPaymentToUser with context updates
+  const handleLinkPaymentToUser = async (orderId: string): Promise<boolean> => {
+    try {
+      setLastError(null);
+      logger.info('PaymentContext: Linking payment via context');
+      
+      const result = await hookLinkFunction(orderId);
+      
+      if (result) {
+        // Success - close popup and refresh
+        setShowOrderPopup(false);
+        setTimeout(() => {
+          handleRefetchPayment();
+        }, 1000);
+      }
+      
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to link payment';
+      logger.error('PaymentContext: Link payment failed', { error: errorMessage });
+      setLastError(errorMessage);
+      throw error;
+    }
+  };
+
   // ✅ FIXED: useMemo for context value to prevent unnecessary rerenders
   const contextValue = useMemo<PaymentContextType>(() => ({
     isPaid: isPaid || false,
@@ -153,7 +207,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refetchPayment: handleRefetchPayment,
     unlinkedPaymentCount,
     lastError,
-    clearError
+    clearError,
+    linkPaymentToUser: handleLinkPaymentToUser
   }), [
     isPaid,
     isLoading,
@@ -167,8 +222,26 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setShowOrderPopup,
     hasUnlinkedPayment,
     unlinkedPaymentCount,
-    lastError
+    lastError,
+    hookLinkFunction
   ]);
+
+  // ✅ DEBUG: Development logging
+  useEffect(() => {
+    if (import.meta.env.DEV && !isLoading) {
+      console.log('🔍 PaymentContext Current State:', {
+        isPaid,
+        hasUnlinkedPayment,
+        needsOrderLinking,
+        showOrderPopup,
+        paymentStatus: paymentStatus ? {
+          orderId: paymentStatus.order_id,
+          userId: paymentStatus.user_id,
+          isPaid: paymentStatus.is_paid
+        } : null
+      });
+    }
+  }, [isPaid, hasUnlinkedPayment, needsOrderLinking, showOrderPopup, paymentStatus, isLoading]);
 
   return (
     <PaymentContext.Provider value={contextValue}>

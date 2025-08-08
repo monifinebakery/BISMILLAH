@@ -563,14 +563,14 @@ export const getRecentUnlinkedOrders = async (): Promise<string[]> => {
   return [];
 };
 
-// ✅ ORDER VERIFICATION FUNCTIONS - KEEP THESE
+// ✅ FIXED: Verify order exists function
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
     logger.api('/verify-order-exists', 'Verifying order exists:', orderId);
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('id, order_id, is_paid, payment_status')
+      .select('id, order_id, is_paid, payment_status, user_id, email')
       .eq('order_id', orderId)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -584,6 +584,16 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
     }
     
     const exists = data && data.length > 0;
+    
+    if (exists) {
+      const payment = data[0];
+      logger.debug('Order details:', {
+        orderId: payment.order_id,
+        hasUserId: !!payment.user_id,
+        email: payment.email
+      });
+    }
+    
     logger.success('Order exists check completed:', { orderId, exists });
     return exists;
   } catch (error) {
@@ -592,6 +602,7 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   }
 };
 
+// ✅ COMPLETELY FIXED: Link payment to user function
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<any> => {
   try {
     logger.api('/link-payment', 'Linking order to user:', { orderId, email: user.email });
@@ -610,56 +621,72 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
       return existingLink[0];
     }
 
-    // ✅ STEP 2: Find unlinked payment
-    const { data: payments, error: findError } = await supabase
+    // ✅ STEP 2: Find the payment - check if it exists at all first
+    const { data: allPayments, error: findError } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId)
-      .is('user_id', null)  // Only unlinked payments
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
-      .limit(1);
+      .limit(5); // Get up to 5 to see all possibilities
 
-    logger.debug('Found payments:', { payments, findError, count: payments?.length });
+    logger.debug('Found all payments for order:', { allPayments, findError, count: allPayments?.length });
 
     if (findError) {
       logger.error('Search error:', findError);
       throw new Error('Gagal mencari order. Silakan coba lagi.');
     }
 
-    if (!payments || payments.length === 0) {
-      throw new Error('Order ID tidak ditemukan, belum dibayar, atau sudah terhubung dengan akun lain.');
+    if (!allPayments || allPayments.length === 0) {
+      throw new Error('Order ID tidak ditemukan atau belum dibayar. Pastikan Order ID benar dan pembayaran sudah berhasil.');
     }
 
-    const payment = payments[0];
-    logger.debug('Found payment:', payment);
+    // ✅ STEP 3: Check payment ownership status
+    const payment = allPayments[0];
+    logger.debug('Payment details:', {
+      orderId: payment.order_id,
+      hasUserId: !!payment.user_id,
+      currentUserId: payment.user_id,
+      targetUserId: user.id,
+      email: payment.email,
+      targetEmail: user.email
+    });
 
-    // ✅ STEP 3: Check for constraint conflict
+    // ✅ STEP 3a: If payment has user_id but not this user
+    if (payment.user_id && payment.user_id !== user.id) {
+      throw new Error(`Order ini sudah terhubung dengan akun lain. Jika ini adalah order Anda, silakan hubungi admin dengan Order ID: ${orderId}`);
+    }
+
+    // ✅ STEP 3b: If payment has no user_id, check email match for security
+    if (!payment.user_id) {
+      // If payment has email, it should match the user's email for security
+      if (payment.email && payment.email !== user.email) {
+        throw new Error(`Order ini terdaftar dengan email lain (${payment.email}). Pastikan Anda login dengan email yang benar untuk order ini.`);
+      }
+    }
+
+    // ✅ STEP 4: Check for constraint conflict (user already has another payment)
     const { data: conflictCheck, error: conflictError } = await supabase
       .from('user_payments')
       .select('id, order_id')
       .eq('email', user.email)
       .eq('user_id', user.id)
+      .neq('order_id', orderId) // Different order
       .limit(1);
 
     if (!conflictError && conflictCheck?.length) {
       const existing = conflictCheck[0];
-      if (existing.order_id === orderId) {
-        logger.success('Same order already linked');
-        toast.success('Order sudah terhubung dengan akun Anda!');
-        return payment;
-      }
-      throw new Error(`Akun Anda sudah memiliki pembayaran dengan Order ID: ${existing.order_id}. Satu akun hanya bisa memiliki satu pembayaran aktif.`);
+      throw new Error(`Akun Anda sudah memiliki pembayaran aktif dengan Order ID: ${existing.order_id}. Satu akun hanya bisa memiliki satu pembayaran aktif.`);
     }
 
-    // ✅ STEP 4: Safe update - only update user_id, keep existing email
+    // ✅ STEP 5: Safe update
     const updateData: any = { 
       user_id: user.id,
       updated_at: new Date().toISOString()
     };
 
-    // Only update email if it's currently null, empty, or different
-    if (!payment.email || payment.email.trim() === '' || payment.email !== user.email) {
+    // Update email if it's different or null
+    if (!payment.email || payment.email !== user.email) {
       updateData.email = user.email;
     }
 
@@ -673,7 +700,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
     if (updateError) {
       logger.error('Update error:', updateError);
       
-      // ✅ ENHANCED: Handle specific constraint errors
+      // ✅ Handle specific constraint errors
       if (updateError.code === '23505') {
         if (updateError.message.includes('user_payments_email_user_unique')) {
           throw new Error('Akun Anda sudah memiliki pembayaran aktif. Satu akun hanya bisa memiliki satu pembayaran.');
@@ -690,7 +717,14 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<any
     
   } catch (error: any) {
     logger.error('Error linking payment to user:', error);
-    toast.error(error.message);
+    
+    // Only show toast for generic errors, not specific business logic errors
+    if (!error.message?.includes('sudah terhubung') && 
+        !error.message?.includes('terdaftar dengan email lain') && 
+        !error.message?.includes('sudah memiliki pembayaran')) {
+      toast.error(error.message);
+    }
+    
     throw error;
   }
 };

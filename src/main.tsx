@@ -1,45 +1,72 @@
+// ✅ SCHEDULER POLYFILL - Must be FIRST before any React imports
+if (typeof globalThis !== 'undefined' && typeof window !== 'undefined') {
+  // Ensure globalThis.scheduler exists
+  if (!globalThis.scheduler) {
+    globalThis.scheduler = {};
+  }
+  
+  // Polyfill missing scheduler methods
+  const scheduler = globalThis.scheduler;
+  
+  if (!scheduler.unstable_scheduleCallback) {
+    scheduler.unstable_scheduleCallback = function(priority, callback, options) {
+      const timeoutId = setTimeout(callback, 0);
+      return { id: timeoutId };
+    };
+  }
+  
+  if (!scheduler.unstable_cancelCallback) {
+    scheduler.unstable_cancelCallback = function(callbackNode) {
+      if (callbackNode && callbackNode.id) {
+        clearTimeout(callbackNode.id);
+      }
+    };
+  }
+  
+  if (!scheduler.unstable_shouldYield) {
+    scheduler.unstable_shouldYield = function() {
+      return false;
+    };
+  }
+  
+  if (!scheduler.unstable_requestPaint) {
+    scheduler.unstable_requestPaint = function() {};
+  }
+  
+  if (!scheduler.unstable_now) {
+    scheduler.unstable_now = function() {
+      return performance.now ? performance.now() : Date.now();
+    };
+  }
+  
+  // Also add to window for compatibility
+  if (!window.scheduler) {
+    window.scheduler = scheduler;
+  }
+}
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 
-// ✅ SCHEDULER POLYFILL - Fix unstable_scheduleCallback error
-// Must be after imports but before React rendering
-if (typeof window !== 'undefined') {
-  // Fix React scheduler conflicts
-  if (!(window as any).scheduler) {
-    (window as any).scheduler = {};
-  }
-  
-  if (!(window as any).scheduler.unstable_scheduleCallback) {
-    (window as any).scheduler.unstable_scheduleCallback = function(
-      priority: any, 
-      callback: () => void,
-      options?: any
-    ) {
-      return setTimeout(callback, 0);
-    };
-  }
-  
-  if (!(window as any).scheduler.unstable_cancelCallback) {
-    (window as any).scheduler.unstable_cancelCallback = function(id: any) {
-      clearTimeout(id);
-    };
-  }
-
-  if (!(window as any).scheduler.unstable_shouldYield) {
-    (window as any).scheduler.unstable_shouldYield = function() {
-      return false;
-    };
-  }
-
-  if (!(window as any).scheduler.unstable_requestPaint) {
-    (window as any).scheduler.unstable_requestPaint = function() {};
-  }
+// ✅ Debug info for development
+if (import.meta.env.DEV) {
+  console.log('🔍 React version:', React.version);
+  console.log('🔍 Scheduler available:', !!globalThis.scheduler?.unstable_scheduleCallback);
 }
 
-createRoot(document.getElementById("root")!).render(
+// ✅ Ensure root element exists
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element with id 'root' not found");
+}
+
+// ✅ Create and render app
+const root = createRoot(rootElement);
+
+root.render(
   <React.StrictMode>
     <Router>
       <App />

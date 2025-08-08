@@ -1,13 +1,13 @@
-// src/components/popups/OrderConfirmationPopup.tsx - FIXED & ENHANCED VERSION
+// src/components/popups/OrderConfirmationPopup.tsx - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { 
   linkPaymentToUser, 
   getCurrentUser, 
-  verifyCustomerOrder, // ✅ Gunakan verifyCustomerOrder yang lebih lengkap
+  verifyCustomerOrder,
   getRecentUnlinkedOrders 
 } from '@/services/auth';
 import { logger } from '@/utils/logger';
-import { usePaymentContext } from '@/contexts/PaymentContext'; // ✅ Tambahkan ini
+import { usePaymentContext } from '@/contexts/PaymentContext';
 
 interface OrderConfirmationPopupProps {
   isOpen: boolean;
@@ -20,12 +20,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{success: boolean; message: string} | null>(null); // ✅ NEW
+  const [verificationResult, setVerificationResult] = useState<{success: boolean; message: string} | null>(null);
   const [recentOrders, setRecentOrders] = useState<string[]>([]);
   
-  const { refetchPayment } = usePaymentContext(); // ✅ Gunakan context untuk refresh
+  const { refetchPayment } = usePaymentContext();
 
-  // ✅ Load recent unlinked orders for suggestions
+  // ✅ Load recent unlinked orders
   useEffect(() => {
     if (isOpen) {
       loadRecentOrders();
@@ -43,11 +43,11 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     }
   };
 
-  // ✅ ENHANCED: Verification with user context
+  // ✅ Verification with user context
   useEffect(() => {
     if (orderId.trim().length >= 8) {
       const debounceTimer = setTimeout(() => {
-        verifyOrderWithUser(); // ✅ Gunakan fungsi yang lebih lengkap
+        verifyOrderWithUser();
       }, 500);
 
       return () => clearTimeout(debounceTimer);
@@ -58,7 +58,6 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     }
   }, [orderId]);
 
-  // ✅ NEW: Enhanced verification that checks user ownership
   const verifyOrderWithUser = async () => {
     setIsVerifying(true);
     setError('');
@@ -77,7 +76,6 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         orderId: orderId.trim() 
       });
       
-      // ✅ Gunakan verifyCustomerOrder yang lebih lengkap
       const result = await verifyCustomerOrder(user.email, orderId.trim());
       logger.debug('Order verification result:', result);
       
@@ -111,13 +109,11 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       return;
     }
 
-    // Jangan lanjut jika masih verifying
     if (isVerifying) {
       setError('Mohon tunggu verifikasi selesai');
       return;
     }
 
-    // Jangan lanjut jika verifikasi gagal
     if (!verificationResult?.success) {
       setError('Silakan verifikasi Order ID terlebih dahulu');
       return;
@@ -139,24 +135,18 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       logger.debug('Current user details:', { email: user.email });
       logger.component('OrderConfirmationPopup', 'Attempting to link order:', orderId.trim());
 
-      // ✅ Link payment
       const linkedPayment = await linkPaymentToUser(orderId.trim(), user);
       
       if (linkedPayment) {
         logger.success('Payment linked successfully:', linkedPayment);
-        
-        // ✅ REFRESH PAYMENT STATUS DI CONTEXT
-        await refetchPayment(); // ✅ INI YANG PENTING!
-        
+        await refetchPayment();
         onSuccess?.(linkedPayment);
-        onClose();
-        resetForm();
+        handleClose(); // ✅ Pastikan handleClose dipanggil dengan benar
       }
       
     } catch (error: any) {
       logger.error('❌ Error linking payment:', error);
       
-      // Error handling yang lebih spesifik
       if (error.message?.includes('tidak ditemukan')) {
         setError('Order ID tidak ditemukan dalam sistem. Pastikan Order ID benar.');
       } else if (error.message?.includes('sudah terhubung')) {
@@ -169,6 +159,12 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ✅ DEFINISIKAN handleClose DENGAN JELAS
+  const handleClose = () => {
+    onClose();
+    resetForm();
   };
 
   const resetForm = () => {
@@ -189,6 +185,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
     setVerificationResult(null);
   };
 
+  // ✅ Jangan render apa pun jika popup tidak terbuka
   if (!isOpen) return null;
 
   return (
@@ -271,7 +268,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           </div>
         )}
         
-        {/* ✅ SUCCESS STATE DENGAN INFO TAMBAHAN */}
+        {/* Success state */}
         {verificationResult?.success && (
           <div className="text-green-600 text-sm mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center">
@@ -287,6 +284,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         )}
         
         <div className="flex gap-3">
+          {/* ✅ Gunakan handleClose yang sudah didefinisikan */}
           <button
             onClick={handleClose}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700 font-medium"
@@ -302,7 +300,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
               !orderId.trim() || 
               orderId.length < 8 || 
               isVerifying || 
-              !verificationResult?.success // ✅ Hanya enable jika verifikasi sukses
+              !verificationResult?.success
             }
             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
@@ -332,7 +330,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           </div>
         </div>
 
-        {/* Debug info (only in development) */}
+        {/* Debug info */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 text-xs text-gray-400 bg-gray-100 p-2 rounded font-mono">
             Debug: Order="{orderId}" | Length={orderId.length} | 

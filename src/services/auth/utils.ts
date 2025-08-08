@@ -1,4 +1,4 @@
-// src/services/auth/utils.ts
+// ===== 1. src/services/auth/utils.ts - FIXED =====
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { ERROR_MESSAGES } from './config';
@@ -13,9 +13,4 @@ export const getErrorMessage = (error: any): string => {
   )?.[1] || error.message || 'Terjadi kesalahan yang tidak diketahui';
   
   return message;
-};
-
-export const clearSessionCache = () => {
-  // This will be implemented in session.ts
-  // Placeholder to maintain backward compatibility
 };

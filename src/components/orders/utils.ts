@@ -6,6 +6,7 @@
  */
 
 import { Order, NewOrder } from './types';
+import { logger } from '@/utils/logger';
 
 // ✅ DATE UTILITIES: Optimized with better error handling
 export const isValidDate = (date: any): boolean => {
@@ -59,7 +60,7 @@ export const formatDateForDisplay = (date: Date | string | null): string => {
 // ✅ DATA TRANSFORMERS: Optimized with better fallbacks
 export const transformOrderFromDB = (dbItem: any): Order => {
   if (!dbItem || typeof dbItem !== 'object') {
-    console.error('Invalid order data from database:', dbItem);
+    logger.error('Invalid order data from database:', dbItem);
     return createFallbackOrder(dbItem?.id);
   }
 
@@ -83,7 +84,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
     };
   } catch (error) {
-    console.error('Error transforming order from DB:', error, dbItem);
+    logger.error('Error transforming order from DB:', error, dbItem);
     return createFallbackOrder(dbItem?.id);
   }
 };
@@ -120,7 +121,7 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
     
     return dbData;
   } catch (error) {
-    console.error('Error transforming order to DB:', error, data);
+    logger.error('Error transforming order to DB:', error, data);
     
     // ✅ SAFE FALLBACK: Minimal valid data
     return {

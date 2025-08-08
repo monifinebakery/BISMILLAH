@@ -45,6 +45,13 @@ if (typeof globalThis !== 'undefined' && typeof window !== 'undefined') {
   }
 }
 
+// Di main.tsx, setelah import logger
+if (import.meta.env.DEV) {
+  // ✅ Direct import
+  import('@/utils/debugOrderService');
+  console.log('🔧 Debug service import initiated');
+}
+
 // ✅ FIXED: Import logger IMMEDIATELY and override BEFORE React import
 import { logger } from './utils/logger';
 

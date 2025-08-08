@@ -5,10 +5,9 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
-
-// ✅ Import context providers
 import { UserSettingsProvider } from './contexts/UserSettingsContext';
 import { PaymentProvider } from './contexts/PaymentContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // ✅ Simple scheduler polyfill (if needed)
 if (typeof globalThis !== 'undefined' && !globalThis.scheduler) {
@@ -32,19 +31,21 @@ const root = createRoot(rootElement);
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <AuthProvider>
-        <UserSettingsProvider>
-          <PaymentProvider>
-            <App />
-          </PaymentProvider>
-        </UserSettingsProvider>
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <UserSettingsProvider>
+            <PaymentProvider>
+              <App />
+            </PaymentProvider>
+          </UserSettingsProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 
-// ✅ Optional: Add global debug functions (but keep them simple)
+// ✅ Optional: Add global debug functions
 if (import.meta.env.DEV) {
   (window as any).testLogger = () => {
     console.log('🧪 Logger test available in dev mode');

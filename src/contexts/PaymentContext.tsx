@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - FIXED: Complete with OrderConfirmationPopup Integration
+// src/contexts/PaymentContext.tsx - SIMPLIFIED: Auto-show popup logic
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
@@ -39,6 +39,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [unlinkedPaymentCount, setUnlinkedPaymentCount] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [hasAutoShownPopup, setHasAutoShownPopup] = useState(false); // ✅ NEW: Track if popup was auto-shown
 
   // 2. Then custom hooks (always called in same order)
   const paymentHookResult = usePaymentStatus();
@@ -57,46 +58,64 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     linkPaymentToUser: hookLinkFunction
   } = paymentHookResult;
 
-  // ✅ FIXED: All useEffect hooks in consistent order
-  
-  // Effect 1: Auto-show order popup logic - always runs, conditions inside
+  // ✅ SIMPLIFIED: Auto-show popup logic - single effect with clear conditions
   useEffect(() => {
-    // ✅ DEBUG: Log all relevant states
-    if (import.meta.env.DEV) {
-      console.log('PaymentContext Debug - Auto Popup Check:', {
-        hasUnlinkedPayment,
-        needsOrderLinking,
-        showOrderPopup,
-        isPaid,
-        isLoading,
-        paymentStatus: paymentStatus ? 'exists' : 'null'
-      });
-    }
+    // ✅ CLEAR CONDITIONS: Only auto-show once when there's unlinked payment
+    const shouldAutoShow = hasUnlinkedPayment && 
+                          !showOrderPopup && 
+                          !isPaid && 
+                          !isLoading &&
+                          !hasAutoShownPopup;
 
-    // ✅ SIMPLIFIED: Show popup if there's unlinked payment
-    if (hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
+    if (shouldAutoShow) {
       logger.info('PaymentContext: Auto-showing order popup for unlinked payment');
+      console.log('🔄 Auto-showing OrderConfirmationPopup - Unlinked payment detected');
       
       const timer = setTimeout(() => {
-        console.log('⏰ Auto-showing OrderConfirmationPopup');
+        console.log('⏰ Executing auto-show OrderConfirmationPopup');
         setShowOrderPopup(true);
+        setHasAutoShownPopup(true); // ✅ Mark as auto-shown to prevent repeated shows
       }, 3000); // 3 seconds delay
       
       return () => clearTimeout(timer);
     }
 
-    // ✅ ALTERNATIVE: Also show if needsOrderLinking is true (no payment found case)
-    if (needsOrderLinking && !hasUnlinkedPayment && !showOrderPopup && !isPaid && !isLoading) {
-      logger.info('PaymentContext: Auto-showing order popup for order linking');
+    // ✅ FALLBACK: Show if no payment at all and user needs linking (after longer delay)
+    const shouldShowFallback = needsOrderLinking && 
+                              !hasUnlinkedPayment && 
+                              !showOrderPopup && 
+                              !isPaid && 
+                              !isLoading &&
+                              !hasAutoShownPopup;
+
+    if (shouldShowFallback) {
+      logger.info('PaymentContext: Auto-showing order popup for manual linking');
+      console.log('🔄 Auto-showing OrderConfirmationPopup - Manual linking needed');
       
       const timer = setTimeout(() => {
-        console.log('⏰ Auto-showing OrderConfirmationPopup (no payment)');
+        console.log('⏰ Executing fallback auto-show OrderConfirmationPopup');
         setShowOrderPopup(true);
-      }, 5000); // 5 seconds delay for this case
+        setHasAutoShownPopup(true);
+      }, 8000); // 8 seconds delay for fallback
       
       return () => clearTimeout(timer);
     }
-  }, [hasUnlinkedPayment, needsOrderLinking, showOrderPopup, isPaid, isLoading, setShowOrderPopup, paymentStatus]);
+  }, [
+    hasUnlinkedPayment, 
+    needsOrderLinking, 
+    showOrderPopup, 
+    isPaid, 
+    isLoading, 
+    hasAutoShownPopup,
+    setShowOrderPopup
+  ]);
+
+  // ✅ RESET: Reset auto-show tracker when payment status changes
+  useEffect(() => {
+    if (isPaid || (!hasUnlinkedPayment && !needsOrderLinking)) {
+      setHasAutoShownPopup(false); // Reset for next time
+    }
+  }, [isPaid, hasUnlinkedPayment, needsOrderLinking]);
 
   // Effect 2: Preview timer - always runs, conditions inside
   useEffect(() => {
@@ -134,7 +153,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPreviewTimeLeft(60);
     setUnlinkedPaymentCount(0);
     setLastError(null);
-    setShowOrderPopup(false); // ✅ Also close popup when paid
+    setShowOrderPopup(false); // ✅ Close popup when paid
+    setHasAutoShownPopup(false); // ✅ Reset auto-show tracker
   }, [isPaid]);
 
   // Effect 4: Error handling from payment status - always runs
@@ -171,11 +191,13 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setLastError(null);
       logger.info('PaymentContext: Linking payment via context');
       
+      // ✅ FIXED: Use the hook function directly (now it exists)
       const result = await hookLinkFunction(orderId);
       
       if (result) {
         // Success - close popup and refresh
         setShowOrderPopup(false);
+        setHasAutoShownPopup(true); // ✅ Mark as handled
         setTimeout(() => {
           handleRefetchPayment();
         }, 1000);
@@ -226,14 +248,15 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     hookLinkFunction
   ]);
 
-  // ✅ DEBUG: Development logging
+  // ✅ DEBUG: Development logging with auto-show status
   useEffect(() => {
     if (import.meta.env.DEV && !isLoading) {
-      console.log('🔍 PaymentContext Current State:', {
+      console.log('🔍 PaymentContext State Debug:', {
         isPaid,
         hasUnlinkedPayment,
         needsOrderLinking,
         showOrderPopup,
+        hasAutoShownPopup, // ✅ Include auto-show status in debug
         paymentStatus: paymentStatus ? {
           orderId: paymentStatus.order_id,
           userId: paymentStatus.user_id,
@@ -241,7 +264,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } : null
       });
     }
-  }, [isPaid, hasUnlinkedPayment, needsOrderLinking, showOrderPopup, paymentStatus, isLoading]);
+  }, [isPaid, hasUnlinkedPayment, needsOrderLinking, showOrderPopup, hasAutoShownPopup, paymentStatus, isLoading]);
 
   return (
     <PaymentContext.Provider value={contextValue}>

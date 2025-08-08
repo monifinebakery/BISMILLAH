@@ -1,7 +1,8 @@
 // src/contexts/RecipeContext.tsx
-// UPDATED: Uses new recipeApi methods (no fetchRecipes, addRecipe, etc.)
+// REFACTORED VERSION - Using TanStack Query for better performance and caching
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { logger } from '@/utils/logger';
@@ -11,6 +12,24 @@ import { recipeApi } from '@/components/recipe/services/recipeApi';
 import { calculateHPP, validateRecipeData } from '@/components/recipe/services/recipeUtils';
 import { getAllAvailableCategories } from '@/components/recipe/types';
 import type { Recipe, NewRecipe, HPPCalculationResult, BahanResep } from '@/components/recipe/types';
+
+// ===========================================
+// QUERY KEYS - Centralized for consistency
+// ===========================================
+
+export const recipeQueryKeys = {
+  all: ['recipes'] as const,
+  lists: () => [...recipeQueryKeys.all, 'list'] as const,
+  list: (filters?: any) => [...recipeQueryKeys.lists(), filters] as const,
+  details: () => [...recipeQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...recipeQueryKeys.details(), id] as const,
+  categories: () => [...recipeQueryKeys.all, 'categories'] as const,
+  stats: () => [...recipeQueryKeys.all, 'stats'] as const,
+} as const;
+
+// ===========================================
+// CONTEXT TYPE
+// ===========================================
 
 interface RecipeContextType {
   // State
@@ -60,57 +79,297 @@ interface RecipeContextType {
   clearError: () => void;
 }
 
+// ===========================================
+// CONTEXT SETUP
+// ===========================================
+
 const RecipeContext = createContext<RecipeContextType | undefined>(undefined);
+
+// ===========================================
+// CUSTOM HOOKS FOR QUERY OPERATIONS
+// ===========================================
+
+/**
+ * Hook for fetching recipes
+ */
+const useRecipesQuery = (userId?: string) => {
+  return useQuery({
+    queryKey: recipeQueryKeys.list(),
+    queryFn: () => recipeApi.getRecipes(),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
+/**
+ * Hook for recipe mutations
+ */
+const useRecipeMutations = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Add recipe mutation
+  const addMutation = useMutation({
+    mutationFn: (data: NewRecipe) => recipeApi.createRecipe(data),
+    onMutate: async (newRecipe) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ 
+        queryKey: recipeQueryKeys.lists() 
+      });
+
+      // Snapshot previous value
+      const previousRecipes = queryClient.getQueryData(recipeQueryKeys.list());
+
+      // Optimistically update
+      const optimisticRecipe: Recipe = {
+        id: `temp-${Date.now()}`,
+        userId: user?.id || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...newRecipe,
+      };
+
+      queryClient.setQueryData(
+        recipeQueryKeys.list(),
+        (old: Recipe[] = []) => [optimisticRecipe, ...old].sort((a, b) => a.namaResep.localeCompare(b.namaResep))
+      );
+
+      return { previousRecipes };
+    },
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousRecipes) {
+        queryClient.setQueryData(recipeQueryKeys.list(), context.previousRecipes);
+      }
+      
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal menambahkan resep: ${errorMessage}`);
+    },
+    onSuccess: (newRecipe, variables) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+
+      toast.success('Resep berhasil ditambahkan!');
+      logger.debug('RecipeContext: Successfully added recipe:', newRecipe.id);
+    }
+  });
+
+  // Update recipe mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<NewRecipe> }) => 
+      recipeApi.updateRecipe(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: recipeQueryKeys.lists() });
+
+      const previousRecipes = queryClient.getQueryData(recipeQueryKeys.list());
+
+      // Optimistically update
+      queryClient.setQueryData(
+        recipeQueryKeys.list(),
+        (old: Recipe[] = []) =>
+          old.map(recipe =>
+            recipe.id === id
+              ? { ...recipe, ...data, updatedAt: new Date() }
+              : recipe
+          )
+      );
+
+      return { previousRecipes };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousRecipes) {
+        queryClient.setQueryData(recipeQueryKeys.list(), context.previousRecipes);
+      }
+      
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal memperbarui resep: ${errorMessage}`);
+    },
+    onSuccess: (updatedRecipe) => {
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+
+      toast.success('Resep berhasil diperbarui!');
+      logger.debug('RecipeContext: Successfully updated recipe:', updatedRecipe.id);
+    }
+  });
+
+  // Delete recipe mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => recipeApi.deleteRecipe(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: recipeQueryKeys.lists() });
+
+      const previousRecipes = queryClient.getQueryData(recipeQueryKeys.list()) as Recipe[];
+      const recipeToDelete = previousRecipes?.find(r => r.id === id);
+
+      // Optimistically update
+      queryClient.setQueryData(
+        recipeQueryKeys.list(),
+        (old: Recipe[] = []) => old.filter(r => r.id !== id)
+      );
+
+      return { previousRecipes, recipeToDelete };
+    },
+    onError: (error: any, id, context) => {
+      if (context?.previousRecipes) {
+        queryClient.setQueryData(recipeQueryKeys.list(), context.previousRecipes);
+      }
+      
+      const errorMessage = error.message || 'Terjadi kesalahan sistem';
+      toast.error(`Gagal menghapus resep: ${errorMessage}`);
+    },
+    onSuccess: (result, id, context) => {
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+
+      if (context?.recipeToDelete) {
+        toast.success(`Resep "${context.recipeToDelete.namaResep}" berhasil dihapus`);
+      } else {
+        toast.success('Resep berhasil dihapus');
+      }
+      
+      logger.debug('RecipeContext: Successfully deleted recipe:', id);
+    }
+  });
+
+  // Duplicate recipe mutation
+  const duplicateMutation = useMutation({
+    mutationFn: ({ id, newName }: { id: string; newName: string }) => 
+      recipeApi.duplicateRecipe(id, newName),
+    onSuccess: (duplicatedRecipe, { newName }) => {
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+
+      toast.success(`Resep "${newName}" berhasil diduplikasi`);
+      logger.debug('RecipeContext: Successfully duplicated recipe:', duplicatedRecipe.id);
+    },
+    onError: (error: any) => {
+      const errorMessage = error.message || 'Gagal menduplikasi resep';
+      toast.error(errorMessage);
+    }
+  });
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => recipeApi.bulkDeleteRecipes(ids),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: recipeQueryKeys.lists() });
+
+      const previousRecipes = queryClient.getQueryData(recipeQueryKeys.list()) as Recipe[];
+
+      // Optimistically update
+      queryClient.setQueryData(
+        recipeQueryKeys.list(),
+        (old: Recipe[] = []) => old.filter(r => !ids.includes(r.id))
+      );
+
+      return { previousRecipes };
+    },
+    onError: (error: any, ids, context) => {
+      if (context?.previousRecipes) {
+        queryClient.setQueryData(recipeQueryKeys.list(), context.previousRecipes);
+      }
+      
+      const errorMessage = error.message || 'Gagal menghapus resep';
+      toast.error(errorMessage);
+    },
+    onSuccess: (result, ids) => {
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+
+      toast.success(`${ids.length} resep berhasil dihapus`);
+      logger.debug('RecipeContext: Successfully bulk deleted recipes:', ids.length);
+    }
+  });
+
+  return {
+    addMutation,
+    updateMutation,
+    deleteMutation,
+    duplicateMutation,
+    bulkDeleteMutation
+  };
+};
+
+// ===========================================
+// PROVIDER COMPONENT
+// ===========================================
 
 export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  
-  // State
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  // Clear error
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  // Fetch recipes using React Query
+  const {
+    data: recipes = [],
+    isLoading,
+    error,
+    refetch
+  } = useRecipesQuery(user?.id);
 
-  // ✅ UPDATED: Load recipes using new recipeApi.getRecipes()
-  const loadRecipes = useCallback(async () => {
-    if (!user?.id) {
-      setRecipes([]);
-      setIsLoading(false);
-      return;
-    }
+  // Get mutations
+  const {
+    addMutation,
+    updateMutation,
+    deleteMutation,
+    duplicateMutation,
+    bulkDeleteMutation
+  } = useRecipeMutations();
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      logger.debug('RecipeContext: Loading recipes for user:', user.id);
-      
-      // ✅ Use new recipeApi.getRecipes() method
-      const recipesData = await recipeApi.getRecipes();
-      
-      setRecipes(recipesData);
-      logger.debug(`RecipeContext: Loaded ${recipesData.length} recipes`);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load recipes';
-      setError(errorMessage);
-      logger.error('RecipeContext: Error loading recipes:', error);
-      toast.error(`Gagal memuat resep: ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
+  // ===========================================
+  // REAL-TIME SUBSCRIPTION
+  // ===========================================
 
-  // Refresh recipes
-  const refreshRecipes = useCallback(async () => {
-    await loadRecipes();
-  }, [loadRecipes]);
+  useEffect(() => {
+    if (!user?.id) return;
 
-  // ✅ UPDATED: Add new recipe using new recipeApi.createRecipe()
+    logger.debug('RecipeContext: Setting up real-time subscription for user:', user.id);
+    
+    const unsubscribe = recipeApi.setupRealtimeSubscription(
+      // onInsert
+      () => {
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+      },
+      // onUpdate
+      () => {
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+      },
+      // onDelete
+      () => {
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+        queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+      }
+    );
+
+    return () => {
+      logger.debug('RecipeContext: Cleaning up real-time subscription');
+      unsubscribe();
+    };
+  }, [user?.id, queryClient]);
+
+  // ===========================================
+  // CONTEXT FUNCTIONS
+  // ===========================================
+
   const addRecipe = useCallback(async (recipeData: NewRecipe): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -121,123 +380,92 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const validation = validateRecipeData(recipeData);
     if (!validation.isValid) {
       const errorMessage = `Data resep tidak valid: ${validation.errors.join(', ')}`;
-      setError(errorMessage);
       toast.error(errorMessage);
       return false;
+    }
+
+    // Calculate HPP if not provided
+    let finalRecipeData = { ...recipeData };
+    if (!finalRecipeData.totalHpp || !finalRecipeData.hppPerPorsi) {
+      const calculation = calculateHPP(
+        finalRecipeData.bahanResep || [],
+        finalRecipeData.jumlahPorsi || 1,
+        finalRecipeData.biayaTenagaKerja || 0,
+        finalRecipeData.biayaOverhead || 0,
+        finalRecipeData.marginKeuntunganPersen || 0,
+        finalRecipeData.jumlahPcsPerPorsi || 1
+      );
+
+      finalRecipeData = {
+        ...finalRecipeData,
+        totalHpp: calculation.totalHPP,
+        hppPerPorsi: calculation.hppPerPorsi,
+        hargaJualPorsi: calculation.hargaJualPorsi,
+        hppPerPcs: calculation.hppPerPcs,
+        hargaJualPerPcs: calculation.hargaJualPerPcs,
+      };
     }
 
     try {
-      setError(null);
-      logger.debug('RecipeContext: Adding recipe:', recipeData.namaResep);
-
-      // Calculate HPP if not provided
-      let finalRecipeData = { ...recipeData };
-      if (!finalRecipeData.totalHpp || !finalRecipeData.hppPerPorsi) {
-        const calculation = calculateHPP(
-          finalRecipeData.bahanResep || [],
-          finalRecipeData.jumlahPorsi || 1,
-          finalRecipeData.biayaTenagaKerja || 0,
-          finalRecipeData.biayaOverhead || 0,
-          finalRecipeData.marginKeuntunganPersen || 0,
-          finalRecipeData.jumlahPcsPerPorsi || 1
-        );
-
-        finalRecipeData = {
-          ...finalRecipeData,
-          totalHpp: calculation.totalHPP,
-          hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: calculation.hargaJualPorsi,
-          hppPerPcs: calculation.hppPerPcs,
-          hargaJualPerPcs: calculation.hargaJualPerPcs,
-        };
-      }
-
-      // ✅ Use new recipeApi.createRecipe() method
-      const newRecipe = await recipeApi.createRecipe(finalRecipeData);
-
-      // Add to local state
-      setRecipes(prev => [newRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
-      toast.success('Resep berhasil ditambahkan!');
-      logger.debug('RecipeContext: Successfully added recipe:', newRecipe.id);
+      await addMutation.mutateAsync(finalRecipeData);
       return true;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menambahkan resep';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      logger.error('RecipeContext: Error adding recipe:', error);
       return false;
     }
-  }, [user?.id]);
+  }, [user?.id, addMutation]);
 
-  // ✅ UPDATED: Update existing recipe using new recipeApi.updateRecipe()
   const updateRecipe = useCallback(async (id: string, updates: Partial<NewRecipe>): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
       return false;
     }
 
+    // Recalculate HPP if relevant data changed
+    let finalUpdates = { ...updates };
+    const existingRecipe = recipes.find(r => r.id === id);
+    
+    if (existingRecipe && (
+      updates.bahanResep !== undefined ||
+      updates.jumlahPorsi !== undefined ||
+      updates.biayaTenagaKerja !== undefined ||
+      updates.biayaOverhead !== undefined ||
+      updates.marginKeuntunganPersen !== undefined ||
+      updates.jumlahPcsPerPorsi !== undefined
+    )) {
+      const bahanResep = updates.bahanResep ?? existingRecipe.bahanResep;
+      const jumlahPorsi = updates.jumlahPorsi ?? existingRecipe.jumlahPorsi;
+      const biayaTenagaKerja = updates.biayaTenagaKerja ?? existingRecipe.biayaTenagaKerja;
+      const biayaOverhead = updates.biayaOverhead ?? existingRecipe.biayaOverhead;
+      const marginKeuntunganPersen = updates.marginKeuntunganPersen ?? existingRecipe.marginKeuntunganPersen;
+      const jumlahPcsPerPorsi = updates.jumlahPcsPerPorsi ?? existingRecipe.jumlahPcsPerPorsi;
+
+      const calculation = calculateHPP(
+        bahanResep,
+        jumlahPorsi,
+        biayaTenagaKerja,
+        biayaOverhead,
+        marginKeuntunganPersen,
+        jumlahPcsPerPorsi
+      );
+
+      finalUpdates = {
+        ...finalUpdates,
+        totalHpp: calculation.totalHPP,
+        hppPerPorsi: calculation.hppPerPorsi,
+        hargaJualPorsi: calculation.hargaJualPorsi,
+        hppPerPcs: calculation.hppPerPcs,
+        hargaJualPerPcs: calculation.hargaJualPerPcs,
+      };
+    }
+
     try {
-      setError(null);
-      logger.debug('RecipeContext: Updating recipe:', id);
-
-      // Recalculate HPP if relevant data changed
-      let finalUpdates = { ...updates };
-      const existingRecipe = recipes.find(r => r.id === id);
-      
-      if (existingRecipe && (
-        updates.bahanResep !== undefined ||
-        updates.jumlahPorsi !== undefined ||
-        updates.biayaTenagaKerja !== undefined ||
-        updates.biayaOverhead !== undefined ||
-        updates.marginKeuntunganPersen !== undefined ||
-        updates.jumlahPcsPerPorsi !== undefined
-      )) {
-        const bahanResep = updates.bahanResep ?? existingRecipe.bahanResep;
-        const jumlahPorsi = updates.jumlahPorsi ?? existingRecipe.jumlahPorsi;
-        const biayaTenagaKerja = updates.biayaTenagaKerja ?? existingRecipe.biayaTenagaKerja;
-        const biayaOverhead = updates.biayaOverhead ?? existingRecipe.biayaOverhead;
-        const marginKeuntunganPersen = updates.marginKeuntunganPersen ?? existingRecipe.marginKeuntunganPersen;
-        const jumlahPcsPerPorsi = updates.jumlahPcsPerPorsi ?? existingRecipe.jumlahPcsPerPorsi;
-
-        const calculation = calculateHPP(
-          bahanResep,
-          jumlahPorsi,
-          biayaTenagaKerja,
-          biayaOverhead,
-          marginKeuntunganPersen,
-          jumlahPcsPerPorsi
-        );
-
-        finalUpdates = {
-          ...finalUpdates,
-          totalHpp: calculation.totalHPP,
-          hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: calculation.hargaJualPorsi,
-          hppPerPcs: calculation.hppPerPcs,
-          hargaJualPerPcs: calculation.hargaJualPerPcs,
-        };
-      }
-
-      // ✅ Use new recipeApi.updateRecipe() method
-      const updatedRecipe = await recipeApi.updateRecipe(id, finalUpdates);
-
-      // Update local state
-      setRecipes(prev => prev.map(r => r.id === id ? updatedRecipe : r));
-      toast.success('Resep berhasil diperbarui!');
-      logger.debug('RecipeContext: Successfully updated recipe:', updatedRecipe.id);
+      await updateMutation.mutateAsync({ id, data: finalUpdates });
       return true;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Gagal memperbarui resep';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      logger.error('RecipeContext: Error updating recipe:', error);
       return false;
     }
-  }, [user?.id, recipes]);
+  }, [user?.id, recipes, updateMutation]);
 
-  // ✅ UPDATED: Delete recipe using new recipeApi.deleteRecipe()
   const deleteRecipe = useCallback(async (id: string): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -245,34 +473,13 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     try {
-      setError(null);
-      const recipeToDelete = recipes.find(r => r.id === id);
-      if (!recipeToDelete) {
-        toast.error('Resep tidak ditemukan');
-        return false;
-      }
-
-      logger.debug('RecipeContext: Deleting recipe:', id);
-      
-      // ✅ Use new recipeApi.deleteRecipe() method
-      await recipeApi.deleteRecipe(id);
-
-      // Remove from local state
-      setRecipes(prev => prev.filter(r => r.id !== id));
-      toast.success(`Resep "${recipeToDelete.namaResep}" berhasil dihapus`);
-      logger.debug('RecipeContext: Successfully deleted recipe:', id);
+      await deleteMutation.mutateAsync(id);
       return true;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      logger.error('RecipeContext: Error deleting recipe:', error);
       return false;
     }
-  }, [user?.id, recipes]);
+  }, [user?.id, deleteMutation]);
 
-  // ✅ UPDATED: Duplicate recipe using new recipeApi.duplicateRecipe()
   const duplicateRecipe = useCallback(async (id: string, newName: string): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -280,34 +487,13 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     try {
-      setError(null);
-      const originalRecipe = recipes.find(r => r.id === id);
-      if (!originalRecipe) {
-        toast.error('Resep tidak ditemukan');
-        return false;
-      }
-
-      logger.debug('RecipeContext: Duplicating recipe:', id, 'with name:', newName);
-
-      // ✅ Use new recipeApi.duplicateRecipe() method
-      const duplicatedRecipe = await recipeApi.duplicateRecipe(id, newName);
-
-      // Add to local state
-      setRecipes(prev => [duplicatedRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep)));
-      toast.success(`Resep "${newName}" berhasil diduplikasi`);
-      logger.debug('RecipeContext: Successfully duplicated recipe:', duplicatedRecipe.id);
+      await duplicateMutation.mutateAsync({ id, newName });
       return true;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menduplikasi resep';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      logger.error('RecipeContext: Error duplicating recipe:', error);
       return false;
     }
-  }, [user?.id, recipes]);
+  }, [user?.id, duplicateMutation]);
 
-  // ✅ UPDATED: Bulk delete recipes using new recipeApi.bulkDeleteRecipes()
   const bulkDeleteRecipes = useCallback(async (ids: string[]): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
@@ -320,26 +506,16 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     try {
-      setError(null);
-      logger.debug('RecipeContext: Bulk deleting recipes:', ids);
-
-      // ✅ Use new recipeApi.bulkDeleteRecipes() method
-      await recipeApi.bulkDeleteRecipes(ids);
-
-      // Remove from local state
-      setRecipes(prev => prev.filter(r => !ids.includes(r.id)));
-      toast.success(`${ids.length} resep berhasil dihapus`);
-      logger.debug('RecipeContext: Successfully bulk deleted recipes:', ids.length);
+      await bulkDeleteMutation.mutateAsync(ids);
       return true;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus resep';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      logger.error('RecipeContext: Error bulk deleting recipes:', error);
       return false;
     }
-  }, [user?.id]);
+  }, [user?.id, bulkDeleteMutation]);
+
+  // ===========================================
+  // UTILITY FUNCTIONS
+  // ===========================================
 
   // Search recipes
   const searchRecipes = useCallback((query: string): Recipe[] => {
@@ -362,7 +538,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return recipes.filter(recipe => recipe.kategoriResep === category);
   }, [recipes]);
 
-  // ✅ Get unique categories using helper function
+  // Get unique categories
   const getUniqueCategories = useCallback((): string[] => {
     return getAllAvailableCategories(recipes);
   }, [recipes]);
@@ -412,44 +588,26 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, [recipes, getUniqueCategories]);
 
-  // Load recipes on mount and user change
-  useEffect(() => {
-    loadRecipes();
-  }, [loadRecipes]);
+  // Refresh recipes
+  const refreshRecipes = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
-  // ✅ UPDATED: Setup real-time subscription with new recipeApi method
-  useEffect(() => {
-    if (!user?.id) return;
+  // Clear error
+  const clearError = useCallback(() => {
+    // Error handling is managed by React Query, but we keep this for interface compatibility
+  }, []);
 
-    logger.debug('RecipeContext: Setting up real-time subscription for user:', user.id);
-    
-    const unsubscribe = recipeApi.setupRealtimeSubscription(
-      (newRecipe) => {
-        setRecipes(prev => {
-          const exists = prev.find(r => r.id === newRecipe.id);
-          if (exists) return prev;
-          return [newRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep));
-        });
-      },
-      (updatedRecipe) => {
-        setRecipes(prev => prev.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
-      },
-      (deletedId) => {
-        setRecipes(prev => prev.filter(r => r.id !== deletedId));
-      }
-    );
-
-    return () => {
-      logger.debug('RecipeContext: Cleaning up real-time subscription');
-      unsubscribe();
-    };
-  }, [user?.id]);
+  // ===========================================
+  // CONTEXT VALUE
+  // ===========================================
 
   const value: RecipeContextType = {
     // State
     recipes,
-    isLoading,
-    error,
+    isLoading: isLoading || addMutation.isPending || updateMutation.isPending || 
+               deleteMutation.isPending || duplicateMutation.isPending || bulkDeleteMutation.isPending,
+    error: error ? (error as Error).message : null,
 
     // CRUD Operations
     addRecipe,
@@ -482,6 +640,10 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
+// ===========================================
+// HOOK
+// ===========================================
+
 export const useRecipe = () => {
   const context = useContext(RecipeContext);
   if (context === undefined) {
@@ -489,3 +651,35 @@ export const useRecipe = () => {
   }
   return context;
 };
+
+// ===========================================
+// ADDITIONAL HOOKS FOR REACT QUERY UTILITIES
+// ===========================================
+
+/**
+ * Hook for accessing React Query specific functions
+ */
+export const useRecipeQuery = () => {
+  const queryClient = useQueryClient();
+
+  const invalidateRecipes = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: recipeQueryKeys.lists() });
+    queryClient.invalidateQueries({ queryKey: recipeQueryKeys.categories() });
+    queryClient.invalidateQueries({ queryKey: recipeQueryKeys.stats() });
+  }, [queryClient]);
+
+  const prefetchRecipes = useCallback(() => {
+    queryClient.prefetchQuery({
+      queryKey: recipeQueryKeys.list(),
+      queryFn: () => recipeApi.getRecipes(),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient]);
+
+  return {
+    invalidateRecipes,
+    prefetchRecipes,
+  };
+};
+
+export default RecipeContext;

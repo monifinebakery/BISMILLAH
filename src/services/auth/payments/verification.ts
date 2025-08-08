@@ -1,11 +1,10 @@
-// src/services/auth/payments/verification.ts
+// ===== 1. src/services/auth/payments/verification.ts - FIXED =====
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
 import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
 
-// ✅ EKSPOR verifyOrderExists
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
   try {
     logger.api('/verify-order-exists', 'Verifying order exists:', orderId);
@@ -15,7 +14,7 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
       .select('id, order_id, is_paid, payment_status')
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
-      .eq('payment_status', 'settled') // ✅ Gunakan eq langsung
+      .eq('payment_status', 'settled') // ✅ Consistent with other files
       .limit(1);
     
     if (error) {
@@ -64,23 +63,19 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     const currentUser = await getCurrentUser();
     logger.debug('Auth status:', { isAuth, currentUserEmail: currentUser?.email });
 
-    // ✅ Tambahkan logging sebelum query
     logger.debug('Attempting to verify order:', { email, orderId });
 
-    // Check if order exists and is valid in database
-    logger.api('/verify-order-exists', 'Checking order existence:', orderId);
+    // ✅ FIXED: Use consistent query with other files
     const { data, error } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
-      .ilike('payment_status', 'settled') // ✅ Ganti supabase.raw dengan ilike
+      .eq('payment_status', 'settled') // ✅ Changed from ilike to eq for consistency
       .limit(1);
 
-    // ✅ Logging hasil query
     logger.debug('Database query result:', { data, error });
 
-    // ✅ Logging kondisi setelah query
     if (error) {
       logger.error('Order verification error:', error);
       return { success: false, message: 'Gagal memeriksa order di database' };
@@ -123,7 +118,6 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
 
     // Check email match
     if (order.email && order.email.toLowerCase() === email.toLowerCase()) {
-      // Email matches - this is the user's order
       const result = {
         success: true,
         message: 'Order ditemukan dan sesuai dengan email Anda',
@@ -134,55 +128,20 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       return result;
     }
 
-    // Try RPC verification (fallback)
-    logger.api('/verify-payment-robust', 'Trying RPC verification:', { email, orderId });
-    const { data: rpcData, error: rpcError } = await supabase.rpc('verify_payment_robust', {
-      p_email: email.trim(),
-      p_order_id: orderId.trim()
-    });
-    
-    // ✅ Logging hasil RPC
-    logger.debug('RPC result:', { rpcData, rpcError });
-    
-    if (rpcError) {
-      logger.error('RPC verification error:', rpcError);
-      // Still return the database-found order if it exists
-      if (order) {
-        return {
-          success: true,
-          message: 'Order ditemukan, siap untuk dihubungkan',
-          data: order,
-          needsAuth: true
-        };
-      }
-      return { 
-        success: false, 
-        message: getErrorMessage(rpcError) || 'Gagal memverifikasi order' 
+    // ✅ SIMPLIFIED: Skip RPC fallback for now - just use direct database result
+    if (order) {
+      return {
+        success: true,
+        message: 'Order ditemukan, siap untuk dihubungkan',
+        data: order,
+        needsAuth: true
       };
     }
 
-    const rpcResult = rpcData || { success: false, message: 'No response from server' };
-    logger.debug('RPC result:', rpcResult);
-    
-    if (rpcResult.success) {
-      logger.success('RPC verification successful:', rpcResult);
-      return {
-        ...rpcResult,
-        needsAuth: true
-      };
-    } else {
-      logger.warn('RPC verification failed:', rpcResult.message);
-      // Even if RPC fails, if we found the order in DB, still show it
-      if (order) {
-        return {
-          success: true,
-          message: 'Order ditemukan, siap untuk dihubungkan',
-          data: order,
-          needsAuth: true
-        };
-      }
-      return rpcResult;
-    }
+    return { 
+      success: false, 
+      message: 'Order tidak ditemukan atau tidak sesuai dengan email' 
+    };
     
   } catch (error: any) {
     logger.error('Unexpected error in verifyCustomerOrder:', error);

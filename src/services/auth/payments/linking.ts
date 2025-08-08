@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
-import { clearSessionCache } from './core/session'; // ✅ FIXED: Import from session.ts, not utils.ts
+import { clearSessionCache } from '../core/session'; // ✅ FIXED: Import from session.ts, not utils.ts
 
 // ✅ Enhanced cache clearing function
 const forceRefreshCache = async () => {

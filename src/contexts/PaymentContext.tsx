@@ -1,8 +1,9 @@
-// src/contexts/PaymentContext.tsx - UPDATED VERSION
+// src/contexts/PaymentContext.tsx - FIXED VERSION
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService'; // ✅ Updated import path
+// ✅ REMOVED: Deprecated imports
+// import { autoLinkUserPayments, checkUnlinkedPayments } from '@/lib/authService';
 import { logger } from "@/utils/logger";
 
 interface PaymentContextType {
@@ -22,6 +23,9 @@ interface PaymentContextType {
   refetchPayment: () => void;
   // Enhanced features
   unlinkedPaymentCount: number;
+  // ✅ NEW: Error handling
+  lastError: string | null;
+  clearError: () => void;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -43,70 +47,33 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [previewTimeLeft, setPreviewTimeLeft] = useState(60);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [unlinkedPaymentCount, setUnlinkedPaymentCount] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
 
-  // ✅ DEPRECATED FUNCTIONS: These functions are now deprecated in authService
-  // They return empty results but don't cause errors
-  useEffect(() => {
-    if (isLoading || isPaid) return;
-
-    const attemptAutoLink = async () => {
-      try {
-        // ✅ UPDATED: This function now returns 0 (deprecated) but won't error
-        const linkedCount = await autoLinkUserPayments();
-        if (linkedCount > 0) {
-          setTimeout(() => refetch(), 1000);
-        }
-      } catch (error) {
-        // ✅ SAFE: Log but don't break the app
-        if (import.meta.env.DEV) {
-          console.error('Auto-link failed (deprecated):', error);
-        }
-      }
-    };
-
-    attemptAutoLink();
-  }, [isLoading, isPaid, refetch]);
-
-  // ✅ UPDATED: Check unlinked payments with deprecated function
-  useEffect(() => {
-    if (isLoading || isPaid) return;
-
-    const checkUnlinked = async () => {
-      try {
-        // ✅ UPDATED: This function now returns {hasUnlinked: false, count: 0} (deprecated)
-        const { hasUnlinked, count } = await checkUnlinkedPayments();
-        setUnlinkedPaymentCount(count);
-        
-        // Auto-show popup if there are unlinked payments
-        if (hasUnlinked && !showOrderPopup) {
-          setTimeout(() => setShowOrderPopup(true), 3000);
-        }
-      } catch (error) {
-        // ✅ SAFE: Log but don't break the app
-        if (import.meta.env.DEV) {
-          console.error('Check unlinked payments failed (deprecated):', error);
-        }
-      }
-    };
-
-    checkUnlinked();
-  }, [isLoading, isPaid, showOrderPopup, setShowOrderPopup]);
-
-  // ✅ AUTO-SHOW ORDER POPUP: Simplified condition
+  // ✅ REMOVED: Deprecated auto-link functionality
+  // The autoLinkUserPayments function is deprecated and should be handled
+  // through the main payment flow instead
+  
+  // ✅ SIMPLIFIED: Order popup logic without deprecated functions
   useEffect(() => {
     if (needsOrderLinking && !showOrderPopup && !isPaid && !isLoading) {
-      const timer = setTimeout(() => setShowOrderPopup(true), 2000);
+      const timer = setTimeout(() => {
+        logger.info('PaymentContext: Showing order popup for unlinking');
+        setShowOrderPopup(true);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [needsOrderLinking, showOrderPopup, isPaid, isLoading, setShowOrderPopup]);
 
-  // ✅ FREE PREVIEW TIMER: Simplified logic
+  // ✅ IMPROVED: Free preview timer with better error handling
   useEffect(() => {
     if (isLoading || !needsPayment || isPaid || showMandatoryUpgrade) return;
 
+    logger.info('PaymentContext: Starting preview timer', { previewTimeLeft });
+    
     const interval = setInterval(() => {
       setPreviewTimeLeft((prev) => {
         if (prev <= 1) {
+          logger.warn('PaymentContext: Preview time expired, showing mandatory upgrade');
           setShowMandatoryUpgrade(true);
           return 0;
         }
@@ -114,35 +81,71 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      logger.info('PaymentContext: Clearing preview timer');
+      clearInterval(interval);
+    };
   }, [isLoading, needsPayment, showMandatoryUpgrade, isPaid]);
 
-  // ✅ RESET ON PAYMENT: Simplified reset logic
+  // ✅ IMPROVED: Reset on payment with logging
   useEffect(() => {
     if (isPaid) {
+      logger.info('PaymentContext: Payment detected, resetting state');
       setShowMandatoryUpgrade(false);
       setPreviewTimeLeft(60);
       setUnlinkedPaymentCount(0);
+      setLastError(null);
     }
   }, [isPaid]);
 
+  // ✅ NEW: Error handling from payment status
+  useEffect(() => {
+    if (paymentStatus?.error) {
+      const errorMessage = paymentStatus.error;
+      logger.error('PaymentContext: Payment status error', { error: errorMessage });
+      setLastError(errorMessage);
+    }
+  }, [paymentStatus]);
+
+  // ✅ NEW: Clear error function
+  const clearError = () => {
+    setLastError(null);
+  };
+
+  // ✅ IMPROVED: Enhanced refetch with error clearing
+  const handleRefetchPayment = async () => {
+    try {
+      setLastError(null);
+      logger.info('PaymentContext: Refetching payment status');
+      await refetch();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh payment status';
+      logger.error('PaymentContext: Refetch failed', { error: errorMessage });
+      setLastError(errorMessage);
+    }
+  };
+
+  const contextValue: PaymentContextType = {
+    isPaid,
+    isLoading,
+    paymentStatus,
+    needsPayment,
+    showMandatoryUpgrade,
+    previewTimeLeft,
+    showUpgradePopup,
+    setShowUpgradePopup,
+    needsOrderLinking,
+    showOrderPopup,
+    setShowOrderPopup,
+    hasUnlinkedPayment,
+    refetchPayment: handleRefetchPayment,
+    unlinkedPaymentCount,
+    lastError,
+    clearError
+  };
+
   return (
-    <PaymentContext.Provider value={{
-      isPaid,
-      isLoading,
-      paymentStatus,
-      needsPayment,
-      showMandatoryUpgrade,
-      previewTimeLeft,
-      showUpgradePopup,
-      setShowUpgradePopup,
-      needsOrderLinking,
-      showOrderPopup,
-      setShowOrderPopup,
-      hasUnlinkedPayment,
-      refetchPayment: refetch,
-      unlinkedPaymentCount
-    }}>
+    <PaymentContext.Provider value={contextValue}>
       {children}
     </PaymentContext.Provider>
   );

@@ -69,7 +69,7 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
   try {
     const service = await warehouseApi.createService('crud', {
       userId,
-      enableDebugLogs: enableDebugLogs: import.meta.env.DEV
+      enableDebugLogs: enableDebugLogs: import.meta.env.MODE === 'development'
     });
     
     const items = await service.fetchBahanBaku();

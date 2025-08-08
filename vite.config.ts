@@ -63,11 +63,12 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // ✅ ENHANCED: More specific React aliasing
+        // ✅ ENHANCED: More specific React aliasing to fix scheduler issues
         react: path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
-      dedupe: ["react", "react-dom"],
+      // ✅ FIX: Enhanced dedupe to fix unstable_scheduleCallback error
+      dedupe: ["react", "react-dom", "react/jsx-runtime", "scheduler"],
     },
     
     build: {
@@ -197,6 +198,10 @@ export default defineConfig(({ mode }) => {
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
         
+        // ✅ FIX: Include scheduler to fix unstable_scheduleCallback error
+        "scheduler/tracing",
+        "scheduler",
+        
         // ✅ ENHANCED: Router and query
         "react-router-dom",
         "@tanstack/react-query",
@@ -225,8 +230,9 @@ export default defineConfig(({ mode }) => {
         "three",
       ],
       
-      dedupe: ["react", "react-dom"],
-      force: isDev, // Force re-bundle in dev, use cache in prod
+      // ✅ FIX: Enhanced dedupe to prevent React scheduler conflicts
+      dedupe: ["react", "react-dom", "scheduler"],
+      force: true, // Force rebuild to clear any cached scheduler conflicts
     },
     
     // ✅ ENHANCED: CSS configuration

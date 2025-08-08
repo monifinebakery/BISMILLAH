@@ -32,7 +32,7 @@ export const ORDERS_CONTEXT_UTILS = {
   
   // Context debugging helper
   debugContext: (contextValue: any) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       logger.debug('Orders Context Debug');
       logger.debug('Orders count:', contextValue?.orders?.length || 0);
       logger.debug('Loading state:', contextValue?.loading || false);
@@ -57,14 +57,14 @@ export const CONTEXT_CONFIG = {
   provider: {
     displayName: 'OrderProvider',
     errorBoundary: true,
-    devtools: process.env.NODE_ENV === 'development'
+    devtools: import.meta.env.DEV
   },
   
   // Hook settings
   hook: {
     displayName: 'useOrder',
     throwOnMissingProvider: true,
-    enableWarnings: process.env.NODE_ENV === 'development'
+    enableWarnings: import.meta.env.DEV
   },
   
   // Performance settings

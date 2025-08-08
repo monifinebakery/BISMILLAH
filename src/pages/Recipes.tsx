@@ -54,7 +54,7 @@ class RecipeErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error('Recipe page error:', error);
     
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // Example: Sentry.captureException(error);
     }
   }
@@ -112,7 +112,7 @@ const DefaultErrorFallback: React.FC<{ error: Error; resetError: () => void }> =
           </Button>
         </div>
         
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <details className="mt-4 text-left">
             <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
               Debug Info (Development)

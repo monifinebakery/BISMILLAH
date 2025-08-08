@@ -49,7 +49,7 @@ const fetchCategories = async (): Promise<string[]> => {
     
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.DEV
     });
     
     const items = await service.fetchBahanBaku();
@@ -67,7 +67,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
     
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.DEV
     });
     
     const items = await service.fetchBahanBaku();

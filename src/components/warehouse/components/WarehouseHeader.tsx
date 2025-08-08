@@ -32,7 +32,7 @@ const fetchWarehouseStats = async () => {
     
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.DEV
     });
     
     const items = await service.fetchBahanBaku();
@@ -74,7 +74,7 @@ const fetchWarehouseAlerts = async () => {
     
     const service = await warehouseApi.createService('alert', {
       userId: user?.id,
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.DEV
     });
     
     // Get alert data (implementation depends on your alert service)

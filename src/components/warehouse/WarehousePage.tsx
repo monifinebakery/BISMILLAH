@@ -46,7 +46,7 @@ const getCrudService = async () => {
       onError: (error: string) => {
         logger.error('Warehouse API Error:', error);
       },
-      enableDebugLogs: process.env.NODE_ENV === 'development'
+      enableDebugLogs: import.meta.env.DEV
     });
   }
   return crudService;

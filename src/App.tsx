@@ -189,8 +189,8 @@ const WarehouseErrorBoundary = ({ children }: { children: React.ReactNode }) => 
             Terjadi error saat memuat data warehouse. Hal ini mungkin karena masalah koneksi atau server.
           </p>
           
-          {/* Show error details in development */}
-          {process.env.NODE_ENV === 'development' && error && (
+          {/* ✅ FIXED: Show error details using import.meta.env.DEV */}
+          {import.meta.env.DEV && (
             <details className="text-left bg-gray-100 p-4 rounded mb-4 max-w-full overflow-auto">
               <summary className="cursor-pointer font-medium text-red-600 mb-2">
                 Error Details (Development Only)
@@ -509,8 +509,8 @@ const App = () => {
             </Routes>
           </Suspense>
           
-          {/* ✅ ENHANCED: React Query DevTools hanya di development */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* ✅ FIXED: React Query DevTools using import.meta.env.DEV */}
+          {import.meta.env.DEV && (
             <ReactQueryDevtools 
               initialIsOpen={false} 
               position="bottom-right"

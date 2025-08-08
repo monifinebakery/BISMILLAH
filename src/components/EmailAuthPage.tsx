@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { usePaymentContext } from '@/contexts/PaymentContext';
 
 // ✅ Dynamic hCaptcha import
 let HCaptcha: any = null;

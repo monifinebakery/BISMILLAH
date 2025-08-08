@@ -43,30 +43,36 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [unlinkedPaymentCount, setUnlinkedPaymentCount] = useState(0);
 
-  // ✅ AUTO-LINK PAYMENTS: Simplified with better error handling
+  // ✅ DEPRECATED FUNCTIONS: These functions are now deprecated in authService
+  // They return empty results but don't cause errors
   useEffect(() => {
     if (isLoading || isPaid) return;
 
     const attemptAutoLink = async () => {
       try {
+        // ✅ UPDATED: This function now returns 0 (deprecated) but won't error
         const linkedCount = await autoLinkUserPayments();
         if (linkedCount > 0) {
-          setTimeout(() => refetch(), 1000); // Refresh after auto-linking
+          setTimeout(() => refetch(), 1000);
         }
       } catch (error) {
-        console.error('Auto-link failed:', error);
+        // ✅ SAFE: Log but don't break the app
+        if (import.meta.env.DEV) {
+          console.error('Auto-link failed (deprecated):', error);
+        }
       }
     };
 
     attemptAutoLink();
   }, [isLoading, isPaid, refetch]);
 
-  // ✅ CHECK UNLINKED PAYMENTS: Simplified monitoring
+  // ✅ UPDATED: Check unlinked payments with deprecated function
   useEffect(() => {
     if (isLoading || isPaid) return;
 
     const checkUnlinked = async () => {
       try {
+        // ✅ UPDATED: This function now returns {hasUnlinked: false, count: 0} (deprecated)
         const { hasUnlinked, count } = await checkUnlinkedPayments();
         setUnlinkedPaymentCount(count);
         
@@ -75,7 +81,10 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setTimeout(() => setShowOrderPopup(true), 3000);
         }
       } catch (error) {
-        console.error('Check unlinked payments failed:', error);
+        // ✅ SAFE: Log but don't break the app
+        if (import.meta.env.DEV) {
+          console.error('Check unlinked payments failed (deprecated):', error);
+        }
       }
     };
 

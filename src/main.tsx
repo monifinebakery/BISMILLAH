@@ -9,7 +9,7 @@ import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserSettingsProvider } from './contexts/UserSettingsContext';
 import { PaymentProvider } from './contexts/PaymentContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 
 // ✅ Create QueryClient inline (no separate file needed)
 const queryClient = new QueryClient({

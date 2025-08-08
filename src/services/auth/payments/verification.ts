@@ -15,7 +15,7 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
       .select('id, order_id, is_paid, payment_status')
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
-      .eq('payment_status', 'settled')
+      .eq('payment_status', 'settled') // ✅ Gunakan eq langsung
       .limit(1);
     
     if (error) {
@@ -74,7 +74,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       .select('*')
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
-      .eq(supabase.raw('LOWER(payment_status)'), 'settled') // ✅ Normalisasi case
+      .ilike('payment_status', 'settled') // ✅ Ganti supabase.raw dengan ilike
       .limit(1);
 
     // ✅ Logging hasil query

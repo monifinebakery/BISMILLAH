@@ -1,17 +1,22 @@
-// ===== 2. src/services/auth/payments/linking.ts - ENHANCED =====
+// src/services/auth/payments/linking.ts - FINAL FIXED VERSION
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
+import { clearSessionCache } from './core/session'; // ✅ FIXED: Import from session.ts, not utils.ts
 
 // ✅ Enhanced cache clearing function
 const forceRefreshCache = async () => {
   try {
-    // Clear any React Query cache if available
+    // Clear session cache first
+    clearSessionCache();
+    
+    // Clear React Query cache if available
     if (typeof window !== 'undefined' && (window as any).queryClient) {
       const queryClient = (window as any).queryClient;
       await queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
       await queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
+      logger.debug('React Query cache refreshed');
     }
     
     // Force a small delay to ensure database propagation
@@ -120,7 +125,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       throw new Error('Gagal mendapatkan data pembayaran yang diperbarui');
     }
 
-    logger.success('Payment linked successfully:', {
+    logger.success('✅ Payment linked successfully:', {
       orderId: updatedPayment.order_id,
       userId: updatedPayment.user_id,
       email: updatedPayment.email

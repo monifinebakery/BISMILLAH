@@ -190,7 +190,7 @@ const WarehouseErrorBoundary = ({ children }: { children: React.ReactNode }) => 
           </p>
           
           {/* Show error details in development */}
-          {process.env.NODE_ENV === 'development' && error && (
+          {import.meta.env.MODE === 'development' && (
             <details className="text-left bg-gray-100 p-4 rounded mb-4 max-w-full overflow-auto">
               <summary className="cursor-pointer font-medium text-red-600 mb-2">
                 Error Details (Development Only)

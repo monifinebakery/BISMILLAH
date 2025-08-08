@@ -299,7 +299,7 @@ export const usePaymentStatus = () => {
 
   // ✅ PERFORMANCE: Only log significant changes
   useEffect(() => {
-    if (!isLoading && process.env.NODE_ENV === 'development') {
+    if (!isLoading && import.meta.env.DEV) {
       logger.debug('Payment status computed:', {
         isPaid,
         needsPayment,

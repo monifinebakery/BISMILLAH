@@ -1,26 +1,11 @@
 // src/contexts/UserSettingsContext.tsx
-// 🔧 UPDATED - Added Financial Categories JSONB Support and Improved Error Handling
+// 🔧 UPDATED - Removed recipe_categories and financial_categories
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
-// --- UPDATED INTERFACES ---
-// ✅ Support both legacy (string array) and new (object array) formats
-interface FinancialCategory {
-  id: string;
-  name: string;
-  type: 'income' | 'expense';
-  color: string;
-  isDefault: boolean;
-}
-
-interface FinancialCategories {
-  income: (string | FinancialCategory)[];
-  expense: (string | FinancialCategory)[];
-}
 
 export interface UserSettings {
   businessName: string;
@@ -32,8 +17,7 @@ export interface UserSettings {
     lowStock: boolean;
     newOrder: boolean;
   };
-  financialCategories: FinancialCategories;
-  recipeCategories: string[];
+  // recipeCategories dan financialCategories dihapus
   updatedAt?: string;
 }
 
@@ -45,56 +29,6 @@ interface UserSettingsContextType {
   refreshSettings: () => Promise<void>; // ✅ Force refresh from database
 }
 
-// ✅ UPDATED: Default categories with new object structure
-const defaultFinancialCategories: FinancialCategories = {
-  income: [
-    {
-      id: 'income_penjualan_produk',
-      name: 'Penjualan Produk',
-      type: 'income',
-      color: '#10b981',
-      isDefault: true
-    },
-    {
-      id: 'income_pendapatan_jasa',
-      name: 'Pendapatan Jasa',
-      type: 'income',
-      color: '#3b82f6',
-      isDefault: true
-    }
-  ],
-  expense: [
-    {
-      id: 'expense_bahan_baku',
-      name: 'Pembelian Bahan Baku',
-      type: 'expense',
-      color: '#ef4444',
-      isDefault: true
-    },
-    {
-      id: 'expense_gaji',
-      name: 'Gaji',
-      type: 'expense',
-      color: '#f59e0b',
-      isDefault: true
-    },
-    {
-      id: 'expense_sewa',
-      name: 'Sewa',
-      type: 'expense',
-      color: '#8b5cf6',
-      isDefault: true
-    },
-    {
-      id: 'expense_marketing',
-      name: 'Marketing',
-      type: 'expense',
-      color: '#ec4899',
-      isDefault: true
-    }
-  ]
-};
-
 const defaultSettings: UserSettings = {
   businessName: 'Bisnis Anda',
   ownerName: 'Nama Anda',
@@ -105,8 +39,7 @@ const defaultSettings: UserSettings = {
     lowStock: true,
     newOrder: true,
   },
-  financialCategories: defaultFinancialCategories,
-  recipeCategories: ['Makanan Utama', 'Minuman', 'Dessert'],
+  // recipeCategories dan financialCategories dihapus dari default
 };
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
@@ -143,7 +76,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const { data, error } = await supabase
         .from('user_settings')
-        .select('*')
+        .select('*') // Hapus financial_categories dan recipe_categories dari select jika tidak digunakan
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -162,27 +95,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (data) {
-        let financialCategories = defaultFinancialCategories;
-
-        if (data.financial_categories) {
-          try {
-            const parsedCategories = typeof data.financial_categories === 'string'
-              ? JSON.parse(data.financial_categories)
-              : data.financial_categories;
-
-            logger.debug('Parsed financial categories:', parsedCategories);
-
-            if (parsedCategories && typeof parsedCategories === 'object') {
-              financialCategories = {
-                income: parsedCategories.income || [],
-                expense: parsedCategories.expense || []
-              };
-            }
-          } catch (parseError) {
-            logger.error('Error parsing financial_categories:', parseError);
-          }
-        }
-
         const loadedSettings: UserSettings = {
           ...defaultSettings,
           businessName: data.business_name || data.businessName || defaultSettings.businessName,
@@ -190,8 +102,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           email: data.email || user.email || defaultSettings.email,
           phone: data.phone || defaultSettings.phone,
           address: data.address || defaultSettings.address,
-          financialCategories: financialCategories,
-          recipeCategories: data.recipe_categories || defaultSettings.recipeCategories,
+          // Hapus financialCategories dan recipeCategories
           updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
         };
 
@@ -229,8 +140,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         email: user.email || '', // ✅ Gunakan email dari user object
         phone: defaultSettings.phone,
         address: defaultSettings.address,
-        financial_categories: defaultFinancialCategories,
-        recipe_categories: defaultSettings.recipeCategories,
+        // Hapus financial_categories dan recipe_categories
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -269,24 +179,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         setSettings(defaultSettings);
       } else {
         logger.success('Default settings created for user:', { userId: user.id, data });
-        
-        let financialCategories = defaultFinancialCategories;
-        if (data.financial_categories) {
-          try {
-            const parsed = typeof data.financial_categories === 'string'
-              ? JSON.parse(data.financial_categories)
-              : data.financial_categories;
-
-            if (parsed && typeof parsed === 'object') {
-              financialCategories = {
-                income: parsed.income || [],
-                expense: parsed.expense || []
-              };
-            }
-          } catch (parseError) {
-            logger.error('Error parsing created financial_categories:', parseError);
-          }
-        }
 
         const newSettings: UserSettings = {
           ...defaultSettings,
@@ -295,8 +187,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           email: data.email || defaultSettings.email,
           phone: data.phone || defaultSettings.phone,
           address: data.address || defaultSettings.address,
-          financialCategories: financialCategories,
-          recipeCategories: data.recipe_categories || defaultSettings.recipeCategories,
+          // Hapus financialCategories dan recipeCategories
           updatedAt: data.updated_at || new Date().toISOString()
         };
 
@@ -336,15 +227,11 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         email: updatedSettings.email,
         phone: updatedSettings.phone,
         address: updatedSettings.address,
-        recipe_categories: updatedSettings.recipeCategories,
+        // Hapus recipe_categories dan financial_categories
         updated_at: updatedSettings.updatedAt
       };
 
-      // ✅ Include financial_categories if provided
-      if (newSettings.financialCategories) {
-        dbData.financial_categories = newSettings.financialCategories;
-        logger.debug('Saving financial_categories:', newSettings.financialCategories);
-      }
+      // Hapus bagian financial_categories
 
       logger.debug('Database data to save for user:', { userId: user.id, dbData });
 
@@ -380,24 +267,6 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       logger.success('Settings saved to database for user:', { userId: user.id, data });
 
-      let savedFinancialCategories = updatedSettings.financialCategories;
-      if (data.financial_categories) {
-        try {
-          const parsed = typeof data.financial_categories === 'string'
-            ? JSON.parse(data.financial_categories)
-            : data.financial_categories;
-
-          if (parsed && typeof parsed === 'object') {
-            savedFinancialCategories = {
-              income: parsed.income || [],
-              expense: parsed.expense || []
-            };
-          }
-        } catch (parseError) {
-          logger.error('Error parsing saved financial_categories:', parseError);
-        }
-      }
-
       const savedSettings: UserSettings = {
         ...updatedSettings,
         businessName: data.business_name,
@@ -405,8 +274,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
         email: data.email,
         phone: data.phone || '',
         address: data.address || '',
-        financialCategories: savedFinancialCategories,
-        recipeCategories: data.recipe_categories || defaultSettings.recipeCategories,
+        // Hapus financialCategories dan recipeCategories
         updatedAt: data.updated_at
       };
 

@@ -40,9 +40,9 @@ const isDev = (() => {
       return import.meta.env.DEV === true || import.meta.env.MODE === 'development';
     }
     
-    // Method 3: Check Node environment (fallback)
+    // Method 3: ✅ FIXED: Proper fallback check
     if (typeof process !== 'undefined' && process.env) {
-      return import.meta.env.DEV
+      return process.env.NODE_ENV === 'development';
     }
     
     // Method 4: Check window location (last resort)
@@ -55,7 +55,7 @@ const isDev = (() => {
     return false;
   } catch (error) {
     console.warn('Failed to detect environment:', error);
-    return false; // ✅ CHANGED: Default to production for safety
+    return false;
   }
 })();
 

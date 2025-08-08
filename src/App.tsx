@@ -510,7 +510,7 @@ const App = () => {
           </Suspense>
           
           {/* ✅ ENHANCED: React Query DevTools hanya di development */}
-          {import.meta.env.MODE === 'development' && (
+          {import.meta.env.DEV && (
             <ReactQueryDevtools 
               initialIsOpen={false} 
               position="bottom-right"

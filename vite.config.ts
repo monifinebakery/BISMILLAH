@@ -32,13 +32,18 @@ export default defineConfig(({ mode }) => {
     plugins.push(componentTagger());
   }
   
-  // ✅ Define globals
+  // ✅ Define globals - UPDATED for import.meta.env compatibility
   const define = {
+    // ✅ Custom build-time constants
     __DEV__: JSON.stringify(isDev),
     __PROD__: JSON.stringify(isProd),
     __MODE__: JSON.stringify(mode),
-    'process.env.NODE_ENV': JSON.stringify(mode),
+    
+    // ✅ Global polyfills
     global: 'globalThis',
+    
+    // ✅ REMOVED: process.env.NODE_ENV (let import.meta.env handle this)
+    // We'll migrate code to use import.meta.env instead
   };
   
   return {
@@ -97,9 +102,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-dom';
             }
-            
-          // ✅ TEMP: Disable manual chunks to avoid function conflicts
-          // manualChunks: undefined,
             
             // Radix UI components
             if (id.includes('@radix-ui')) {
@@ -205,8 +207,8 @@ export default defineConfig(({ mode }) => {
       // Chunk size limits
       chunkSizeWarningLimit: isProd ? 800 : 5000,
       
-      minify: isProd ? "esbuild" : false, // ✅ Re-enable minification
-      sourcemap: isDev ? true : false,   // ✅ Back to normal sourcemap
+      minify: isProd ? "esbuild" : false,
+      sourcemap: isDev ? true : false,
       
       // ✅ Production optimizations
       ...(isProd && {
@@ -241,7 +243,7 @@ export default defineConfig(({ mode }) => {
         // ✅ TanStack Query
         "@tanstack/react-query",
         
-        // ✅ UI Libraries based on your package.json
+        // ✅ UI Libraries
         "lucide-react",
         "clsx",
         "tailwind-merge",
@@ -303,14 +305,13 @@ export default defineConfig(({ mode }) => {
       open: false,
     },
     
-    // ✅ ESBuild global config
+    // ✅ ESBuild global config - UPDATED
     esbuild: {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
-      // ✅ FIX: Define scheduler for compatibility
+      // ✅ SIMPLIFIED: Remove process.env.NODE_ENV define
       define: {
-        'process.env.NODE_ENV': JSON.stringify(mode),
         global: 'globalThis',
       },
     },

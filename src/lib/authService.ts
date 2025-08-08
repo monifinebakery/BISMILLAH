@@ -843,6 +843,7 @@ export const sendMagicLink = async (
   allowSignup: boolean = true
 ): Promise<boolean> => {
   logger.warn('[authService] sendMagicLink is deprecated and removed');
+  
 // ✅ DEPRECATED MAGIC LINK FUNCTIONS - For backward compatibility
 export const sendMagicLink = async (
   email: string, 

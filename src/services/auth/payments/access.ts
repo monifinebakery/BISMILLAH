@@ -1,4 +1,4 @@
-// ===== 2. src/services/auth/payments/access.ts - FIXED =====
+// src/services/auth/payments/access.ts - FIXED VERSION
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { UserAccessStatus, PaymentRecord } from '@/services/auth/types';

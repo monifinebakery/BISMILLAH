@@ -1,4 +1,4 @@
-// src/components/recipe/components/RecipeForm/CostCalculationStep/utils/calculations.ts
+// src/components/recipe/components/RecipeForm/CostCalculationStep/utils/calculations.ts - FIXED
 
 import { logger } from '@/utils/logger';
 import type { CostCalculationData, CostBreakdown, ProfitAnalysis } from './types';
@@ -75,7 +75,7 @@ export const calculateCostBreakdown = (data: CostCalculationData): CostBreakdown
 };
 
 /**
- * Calculate profit analysis
+ * Calculate profit analysis - FIXED VERSION
  */
 export const calculateProfitAnalysis = (
   costBreakdown: CostBreakdown,
@@ -88,13 +88,17 @@ export const calculateProfitAnalysis = (
   });
   
   const marginPercent = data.marginKeuntunganPersen || 0;
-  const marginAmount = costBreakdown.totalProductionCost * marginPercent / 100;
   
-  const sellingPricePerPortion = costBreakdown.costPerPortion + (marginAmount / data.jumlahPorsi);
-  const sellingPricePerPiece = costBreakdown.costPerPiece + (marginAmount / data.jumlahPorsi / (data.jumlahPcsPerPorsi || 1));
+  // ✅ FIXED: Calculate margin per portion, not from total
+  const marginPerPortion = costBreakdown.costPerPortion * marginPercent / 100;
+  const marginAmount = marginPerPortion * data.jumlahPorsi; // Total margin for all portions
   
-  const profitPerPortion = sellingPricePerPortion - costBreakdown.costPerPortion;
-  const profitPerPiece = sellingPricePerPiece - costBreakdown.costPerPiece;
+  // ✅ FIXED: Simple addition, no division needed
+  const sellingPricePerPortion = costBreakdown.costPerPortion + marginPerPortion;
+  const sellingPricePerPiece = costBreakdown.costPerPiece + (marginPerPortion / (data.jumlahPcsPerPorsi || 1));
+  
+  const profitPerPortion = marginPerPortion; // This is the profit
+  const profitPerPiece = marginPerPortion / (data.jumlahPcsPerPorsi || 1);
   
   const profitabilityLevel: ProfitAnalysis['profitabilityLevel'] = 
     marginPercent >= 30 ? 'high' : 
@@ -111,6 +115,16 @@ export const calculateProfitAnalysis = (
 
   const duration = performance.now() - startTime;
   logger.perf('calculateProfitAnalysis', duration, analysis);
+  
+  // Debug logging to help track the issue
+  logger.debug('Profit analysis calculation details:', {
+    costPerPortion: costBreakdown.costPerPortion,
+    marginPercent,
+    marginPerPortion,
+    marginAmount,
+    sellingPricePerPortion,
+    profitPerPortion
+  });
   
   if (profitabilityLevel === 'low') {
     logger.warn('Low profitability detected', { 
@@ -231,4 +245,25 @@ export const validateCostData = (data: CostCalculationData) => {
   }
 
   return errors;
+};
+
+/**
+ * Debug helper function to test calculations
+ */
+export const debugCalculations = (data: CostCalculationData) => {
+  console.log('=== DEBUG CALCULATIONS ===');
+  console.log('Input data:', data);
+  
+  const costBreakdown = calculateCostBreakdown(data);
+  console.log('Cost breakdown:', costBreakdown);
+  
+  const profitAnalysis = calculateProfitAnalysis(costBreakdown, data);
+  console.log('Profit analysis:', profitAnalysis);
+  
+  // Manual verification
+  const expectedMarginPerPortion = costBreakdown.costPerPortion * (data.marginKeuntunganPersen || 0) / 100;
+  console.log('Expected margin per portion:', expectedMarginPerPortion);
+  console.log('Actual margin amount:', profitAnalysis.marginAmount);
+  
+  return { costBreakdown, profitAnalysis };
 };

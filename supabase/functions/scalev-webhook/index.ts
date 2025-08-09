@@ -12,10 +12,11 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// ✅ SIMPLIFIED AUTO-LINKING: Only link if there's exactly one recent user
+// ✅ FIXED: Only link user_id, preserve original email
 async function attemptUserLinking(paymentData, orderId) {
   try {
     console.log('🔍 Attempting auto-link for paid payment...');
+    console.log('🔍 Current payment email:', paymentData.email);
     
     // Strategy 1: Look for users who recently signed up (within 1 hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -33,9 +34,16 @@ async function attemptUserLinking(paymentData, orderId) {
       // Only auto-link if there's exactly ONE recent user (high confidence)
       if (recentUsers.length === 1) {
         const userToLink = recentUsers[0];
+        const originalEmail = paymentData.email; // 🔧 PRESERVE original email
+        
         paymentData.user_id = userToLink.id;
-        paymentData.email = userToLink.email || 'linked@auto.com';
+        paymentData.auth_email = userToLink.email; // Store auth email separately
+        // 🔧 FIXED: DON'T overwrite user input email
+        // paymentData.email = userToLink.email || 'linked@auto.com'; // ❌ REMOVED
+        
         console.log(`✅ Auto-linked to recent user: ${userToLink.id}`);
+        console.log(`📧 Preserved user input email: ${originalEmail}`);
+        console.log(`🔐 Auth email stored separately: ${userToLink.email}`);
         return;
       } else if (recentUsers.length > 1) {
         console.log('⚠️ Multiple recent users found, cannot auto-link safely');
@@ -60,9 +68,14 @@ async function attemptUserLinking(paymentData, orderId) {
       
       if (uniqueUsers.length === 1) {
         const userToLink = recentPayments[0];
+        const originalEmail = paymentData.email; // 🔧 PRESERVE original email
+        
         paymentData.user_id = userToLink.user_id;
-        paymentData.email = userToLink.email;
+        // 🔧 FIXED: DON'T overwrite user input email
+        // paymentData.email = userToLink.email; // ❌ REMOVED
+        
         console.log(`✅ Auto-linked based on recent payment pattern: ${userToLink.user_id}`);
+        console.log(`📧 Preserved user input email: ${originalEmail}`);
         return;
       }
     }
@@ -77,7 +90,7 @@ async function attemptUserLinking(paymentData, orderId) {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🎯 SIMPLE: ORDER_ID + STATUS ONLY (NO EMAIL COMPLEXITY)');
+  console.log('🎯 FIXED: PRESERVE USER INPUT EMAIL');
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -121,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { data: existingPayment, error: findError } = await supabase
       .from('user_payments')
-      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
       .eq('order_id', orderId)
       .maybeSingle();
     
@@ -156,7 +169,27 @@ const handler = async (req: Request): Promise<Response> => {
         // ✅ AUTO-LINK: Only if payment becomes paid AND no user_id yet
         if (!existingPayment.user_id) {
           console.log('🔗 Payment now paid but no user_id, attempting auto-link...');
-          await attemptUserLinking(updateData, orderId);
+          console.log('🔗 Current email to preserve:', existingPayment.email);
+          
+          // 🔧 FIXED: Create temp object with existing email to preserve it
+          const tempPaymentData = {
+            email: existingPayment.email // Preserve existing email
+          };
+          
+          await attemptUserLinking(tempPaymentData, orderId);
+          
+          // Only apply user_id and auth_email if linking succeeded
+          if (tempPaymentData.user_id) {
+            updateData.user_id = tempPaymentData.user_id;
+            if (tempPaymentData.auth_email) {
+              updateData.auth_email = tempPaymentData.auth_email;
+            }
+            console.log('🔗 Applied auto-link results:', {
+              user_id: updateData.user_id,
+              auth_email: updateData.auth_email,
+              preserved_email: existingPayment.email
+            });
+          }
         } else {
           console.log('👤 Payment already has user_id:', existingPayment.user_id);
         }
@@ -180,7 +213,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from('user_payments')
           .update(updateData)
           .eq('order_id', orderId)
-          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
           .single();
         
         if (updateError) {
@@ -201,7 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
         user_id: null, // Start as unlinked
         order_id: orderId,
         pg_reference_id: pgReferenceId,
-        email: 'unlinked@payment.com', // Placeholder (not used for matching)
+        email: 'unlinked@payment.com', // 🔧 Default placeholder, will be updated by auto-link
         payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
         is_paid: paymentStatus === 'paid'
       };
@@ -210,6 +243,11 @@ const handler = async (req: Request): Promise<Response> => {
       if (paymentStatus === 'paid') {
         console.log('🔗 New paid payment, attempting auto-link...');
         await attemptUserLinking(newPaymentData, orderId);
+        
+        // 🔧 FIXED: If no email was set during linking, keep placeholder
+        if (!newPaymentData.email || newPaymentData.email === 'unlinked@payment.com') {
+          newPaymentData.email = 'unlinked@payment.com';
+        }
       } else {
         console.log('⏳ New unpaid payment, will remain unlinked until paid');
       }
@@ -219,7 +257,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: newPayment, error: createError } = await supabase
         .from('user_payments')
         .insert(newPaymentData)
-        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
+        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
         .single();
       
       if (createError) {
@@ -242,7 +280,11 @@ const handler = async (req: Request): Promise<Response> => {
       operation: operationType,
       data: finalRecord,
       auto_linked: isLinked,
-      requires_manual_linking: !isLinked && finalRecord.is_paid
+      requires_manual_linking: !isLinked && finalRecord.is_paid,
+      email_preservation: {
+        user_input_email: finalRecord.email,
+        auth_email: finalRecord.auth_email || null
+      }
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

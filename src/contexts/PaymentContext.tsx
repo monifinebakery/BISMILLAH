@@ -141,7 +141,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         logger.debug('PaymentContext: Auth state changed:', { 
           event, 
           userEmail: session?.user?.email,
-          hasSession: !!session 
+          hasSession: !!session,
+          currentPath: window.location.pathname
         });
         
         if (event === 'SIGNED_IN' && session?.user) {
@@ -151,14 +152,37 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
             logger.debug('PaymentContext: User signed in, user set:', { 
               email: user?.email 
             });
+            
+            // ✅ REDIRECT: Auto redirect after successful sign in
+            if (window.location.pathname === '/auth') {
+              logger.info('PaymentContext: Redirecting to dashboard after sign in');
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 1000); // 1 second delay to ensure state is set
+            }
+            
           } catch (error) {
             // Fallback to session user
             setCurrentUser(session.user);
             logger.debug('PaymentContext: Fallback to session user:', session.user.email);
+            
+            // ✅ REDIRECT: Also redirect on fallback success
+            if (window.location.pathname === '/auth') {
+              logger.info('PaymentContext: Redirecting to dashboard (fallback)');
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 1000);
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           logger.debug('PaymentContext: User signed out');
+          
+          // ✅ REDIRECT: Redirect to auth page when signed out
+          if (window.location.pathname !== '/auth') {
+            logger.info('PaymentContext: Redirecting to auth after sign out');
+            window.location.href = '/auth';
+          }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           logger.debug('PaymentContext: Token refreshed, updating user');
           setCurrentUser(session.user);

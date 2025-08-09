@@ -1,4 +1,4 @@
-// ===== App.tsx - Updated with correct promo routing =====
+// ===== App.tsx - Updated with webhook auto-linking integration =====
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
@@ -26,6 +26,9 @@ import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
+
+// ✅ NEW: Webhook Auto-Linking components
+import AutoLinkingPopup from "@/components/popups/AutoLinkingPopup";
 
 // ✅ CONSOLIDATED: Utilities grouped
 import { supabase } from "@/integrations/supabase/client";
@@ -227,7 +230,7 @@ const WarehouseErrorBoundary = ({ children }: { children: React.ReactNode }) => 
   </ErrorBoundary>
 );
 
-// ✅ ENHANCED: App layout dengan warehouse optimizations
+// ✅ ENHANCED: App layout dengan webhook auto-linking integration
 const AppLayout = () => {
   const isMobile = useIsMobile();
   const { 
@@ -236,11 +239,22 @@ const AppLayout = () => {
     setShowOrderPopup,
     refetchPayment,
     unlinkedPaymentCount,
-    needsOrderLinking
+    needsOrderLinking,
+    currentUser,
+    // ✅ NEW: Auto-linking state from PaymentContext
+    unlinkedPayments,
+    showAutoLinkPopup,
+    setShowAutoLinkPopup,
+    autoLinkCount
   } = usePaymentContext();
 
   const handleOrderLinked = (payment: any) => {
     console.log('✅ Order linked successfully:', payment);
+    refetchPayment();
+  };
+
+  const handleAutoLinked = (payments: any[]) => {
+    console.log('✅ Auto-linked payments:', payments);
     refetchPayment();
   };
 
@@ -272,6 +286,30 @@ const AppLayout = () => {
     );
   };
 
+  // ✅ NEW: Auto-link indicator for webhook-detected payments
+  const renderAutoLinkIndicator = (isMobileVersion = false) => {
+    if (!currentUser || autoLinkCount === 0) return null;
+
+    const baseClasses = isMobileVersion
+      ? "text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded"
+      : "text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-md transition-colors";
+
+    const buttonText = isMobileVersion
+      ? `🔗 ${autoLinkCount}`
+      : `🔗 Auto (${autoLinkCount})`;
+
+    return (
+      <button
+        onClick={() => setShowAutoLinkPopup(true)}
+        className={`${baseClasses} relative animate-pulse`}
+        title={`${autoLinkCount} webhook payments ready for auto-linking`}
+      >
+        <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+        {buttonText}
+      </button>
+    );
+  };
+
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -283,6 +321,7 @@ const AppLayout = () => {
             {isPaid && <PaymentStatusIndicator />}
             <NotificationBell />
             <MobileExportButton />
+            {renderAutoLinkIndicator(true)}
             {renderOrderLinkButton(true)}
           </div>
         </header>
@@ -298,10 +337,21 @@ const AppLayout = () => {
           </div>
         )}
         
+        {/* ✅ EXISTING: Manual Order ID linking popup */}
         <OrderConfirmationPopup
           isOpen={showOrderPopup}
           onClose={() => setShowOrderPopup(false)}
           onSuccess={handleOrderLinked}
+        />
+
+        {/* ✅ NEW: Webhook Auto-linking popup */}
+        <AutoLinkingPopup
+          isOpen={showAutoLinkPopup}
+          onClose={() => setShowAutoLinkPopup(false)}
+          unlinkedPayments={unlinkedPayments}
+          currentUser={currentUser}
+          supabaseClient={supabase}
+          onSuccess={handleAutoLinked}
         />
       </div>
     );
@@ -319,6 +369,7 @@ const AppLayout = () => {
               <PaymentStatusIndicator />
               <DateTimeDisplay />
               <NotificationBell />
+              {renderAutoLinkIndicator(false)}
               {renderOrderLinkButton(false)}
             </div>
           </header>
@@ -329,10 +380,21 @@ const AppLayout = () => {
           </main>
         </SidebarInset>
         
+        {/* ✅ EXISTING: Manual Order ID linking popup */}
         <OrderConfirmationPopup
           isOpen={showOrderPopup}
           onClose={() => setShowOrderPopup(false)}
           onSuccess={handleOrderLinked}
+        />
+
+        {/* ✅ NEW: Webhook Auto-linking popup */}
+        <AutoLinkingPopup
+          isOpen={showAutoLinkPopup}
+          onClose={() => setShowAutoLinkPopup(false)}
+          unlinkedPayments={unlinkedPayments}
+          currentUser={currentUser}
+          supabaseClient={supabase}
+          onSuccess={handleAutoLinked}
         />
       </div>
     </SidebarProvider>

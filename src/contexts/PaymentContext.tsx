@@ -1,10 +1,13 @@
-// src/contexts/PaymentContext.tsx - ENHANCED VERSION
+// src/contexts/PaymentContext.tsx - ENHANCED VERSION with Auto-Linking
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { getUserAccessStatus } from '@/services/auth';
+import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
+import { getUserAccessStatus, getCurrentUser } from '@/services/auth';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface PaymentContextType {
+  // ✅ EXISTING: Original payment context
   isPaid: boolean;
   isLoading: boolean;
   paymentStatus: any;
@@ -21,11 +24,28 @@ interface PaymentContextType {
   hasAccess: boolean;
   accessMessage: string;
   refreshAccessStatus: () => Promise<void>;
+  
+  // ✅ NEW: Auto-linking webhook payments
+  currentUser: any;
+  unlinkedPayments: any[];
+  showAutoLinkPopup: boolean;
+  setShowAutoLinkPopup: (show: boolean) => void;
+  autoLinkCount: number;
+  autoLinkLoading: boolean;
+  autoLinkError: string | null;
+  refetchUnlinkedPayments: () => void;
+  
+  // ✅ ENHANCED: Combined counts for UI
+  unlinkedPaymentCount: number; // Original manual linking count
+  totalUnlinkedCount: number;   // Total of manual + auto counts
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
 export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // ✅ EXISTING: Original payment status hook
   const { 
     paymentStatus, 
     isLoading, 
@@ -38,13 +58,64 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refetch: refetchPaymentStatus
   } = usePaymentStatus();
   
+  // ✅ NEW: Auto-linking webhook payments hook
+  const {
+    unlinkedPayments,
+    isLoading: autoLinkLoading,
+    error: autoLinkError,
+    showAutoLinkPopup,
+    setShowAutoLinkPopup,
+    refetch: refetchUnlinkedPayments,
+    unlinkedCount: autoLinkCount
+  } = useUnlinkedPayments(supabase, currentUser);
+  
+  // ✅ EXISTING: Original state
   const [showMandatoryUpgrade, setShowMandatoryUpgrade] = useState(false);
   const [previewTimeLeft, setPreviewTimeLeft] = useState(60);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [accessMessage, setAccessMessage] = useState('Checking access...');
 
-  // ✅ Centralized access status checker
+  // ✅ NEW: Get current user on mount
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+        logger.debug('PaymentContext: Current user loaded:', { 
+          email: user?.email, 
+          id: user?.id 
+        });
+      } catch (error) {
+        logger.error('PaymentContext: Failed to load current user:', error);
+        setCurrentUser(null);
+      }
+    };
+
+    loadCurrentUser();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = await getCurrentUser();
+          setCurrentUser(user);
+          logger.debug('PaymentContext: User signed in, user set:', { 
+            email: user?.email 
+          });
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          logger.debug('PaymentContext: User signed out');
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // ✅ EXISTING: Centralized access status checker
   const refreshAccessStatus = useCallback(async () => {
     try {
       logger.debug('PaymentContext: Refreshing access status...');
@@ -60,11 +131,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setHasAccess(accessStatus.hasAccess);
       setAccessMessage(accessStatus.message);
       
-      // ✅ Auto-show order popup if needed
+      // ✅ ENHANCED: Auto-show order popup if needed (but not auto-link popup)
       if ((accessStatus.needsOrderVerification || accessStatus.needsLinking) && 
           !accessStatus.hasAccess && 
           !showOrderPopup) {
-        logger.info('PaymentContext: Auto-showing order popup');
+        logger.info('PaymentContext: Auto-showing manual order popup');
         setTimeout(() => setShowOrderPopup(true), 1500);
       }
       
@@ -75,14 +146,14 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [showOrderPopup, setShowOrderPopup]);
 
-  // ✅ Refresh access when payment status changes
+  // ✅ EXISTING: Refresh access when payment status changes
   useEffect(() => {
     if (!isLoading) {
       refreshAccessStatus();
     }
   }, [isLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
 
-  // ✅ Close popup when access granted
+  // ✅ EXISTING: Close popup when access granted
   useEffect(() => {
     if (hasAccess && showOrderPopup) {
       logger.info('PaymentContext: Access granted, closing order popup');
@@ -90,15 +161,54 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [hasAccess, showOrderPopup, setShowOrderPopup]);
 
-  // ✅ Enhanced refetch function
+  // ✅ NEW: Auto-close auto-link popup when no more unlinked payments
+  useEffect(() => {
+    if (autoLinkCount === 0 && showAutoLinkPopup) {
+      logger.info('PaymentContext: No more auto-link payments, closing popup');
+      setShowAutoLinkPopup(false);
+    }
+  }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
+
+  // ✅ ENHANCED: Enhanced refetch function
   const enhancedRefetch = useCallback(async () => {
     logger.info('PaymentContext: Enhanced refetch triggered');
     await refetchPaymentStatus();
+    await refetchUnlinkedPayments();
     await refreshAccessStatus();
-  }, [refetchPaymentStatus, refreshAccessStatus]);
+  }, [refetchPaymentStatus, refetchUnlinkedPayments, refreshAccessStatus]);
+
+  // ✅ NEW: Calculate combined counts
+  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0; // Original manual count
+  const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
+
+  // ✅ NEW: Log state changes for debugging
+  useEffect(() => {
+    logger.debug('PaymentContext state update:', {
+      isPaid,
+      hasAccess,
+      needsOrderLinking,
+      hasUnlinkedPayment,
+      autoLinkCount,
+      unlinkedPaymentCount,
+      totalUnlinkedCount,
+      showOrderPopup,
+      showAutoLinkPopup
+    });
+  }, [
+    isPaid, 
+    hasAccess, 
+    needsOrderLinking, 
+    hasUnlinkedPayment, 
+    autoLinkCount, 
+    unlinkedPaymentCount, 
+    totalUnlinkedCount,
+    showOrderPopup,
+    showAutoLinkPopup
+  ]);
 
   return (
     <PaymentContext.Provider value={{
+      // ✅ EXISTING: Original context values
       isPaid,
       isLoading,
       paymentStatus,
@@ -114,7 +224,21 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       refetchPayment: enhancedRefetch,
       hasAccess,
       accessMessage,
-      refreshAccessStatus
+      refreshAccessStatus,
+      
+      // ✅ NEW: Auto-linking webhook payments
+      currentUser,
+      unlinkedPayments,
+      showAutoLinkPopup,
+      setShowAutoLinkPopup,
+      autoLinkCount,
+      autoLinkLoading,
+      autoLinkError,
+      refetchUnlinkedPayments,
+      
+      // ✅ ENHANCED: Combined counts
+      unlinkedPaymentCount,
+      totalUnlinkedCount
     }}>
       {children}
     </PaymentContext.Provider>

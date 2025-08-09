@@ -37,13 +37,20 @@ async function attemptUserLinking(paymentData, orderId) {
         const originalEmail = paymentData.email; // 🔧 PRESERVE original email
         
         paymentData.user_id = userToLink.id;
-        paymentData.auth_email = userToLink.email; // Store auth email separately
-        // 🔧 FIXED: DON'T overwrite user input email
-        // paymentData.email = userToLink.email || 'linked@auto.com'; // ❌ REMOVED
+        
+        // 🔧 ENHANCED: Better auth email handling
+        const authEmail = userToLink.email || userToLink.email_address || userToLink.user_metadata?.email || null;
+        if (authEmail) {
+          paymentData.auth_email = authEmail;
+          console.log(`🔐 Auth email found: ${authEmail}`);
+        } else {
+          console.log(`⚠️ No auth email found for user: ${userToLink.id}`);
+          console.log('👤 User object:', JSON.stringify(userToLink, null, 2));
+        }
         
         console.log(`✅ Auto-linked to recent user: ${userToLink.id}`);
         console.log(`📧 Preserved user input email: ${originalEmail}`);
-        console.log(`🔐 Auth email stored separately: ${userToLink.email}`);
+        console.log(`🔐 Auth email: ${authEmail || 'NOT_FOUND'}`);
         return;
       } else if (recentUsers.length > 1) {
         console.log('⚠️ Multiple recent users found, cannot auto-link safely');
@@ -181,9 +188,8 @@ const handler = async (req: Request): Promise<Response> => {
           // Only apply user_id and auth_email if linking succeeded
           if (tempPaymentData.user_id) {
             updateData.user_id = tempPaymentData.user_id;
-            if (tempPaymentData.auth_email) {
-              updateData.auth_email = tempPaymentData.auth_email;
-            }
+            // 🔧 ENHANCED: Always try to set auth_email, even if null
+            updateData.auth_email = tempPaymentData.auth_email || null;
             console.log('🔗 Applied auto-link results:', {
               user_id: updateData.user_id,
               auth_email: updateData.auth_email,

@@ -194,3 +194,4 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   );
 };
 
+export default StatsGrid;

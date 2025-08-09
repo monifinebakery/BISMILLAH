@@ -1,4 +1,5 @@
-// hooks/useDashboardData.ts
+// hooks/useDashboardData.ts - Enhanced with Trend Calculation
+
 import { useMemo, useState, useEffect } from 'react';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
@@ -14,6 +15,13 @@ interface DateRange {
   to: string;
 }
 
+interface TrendData {
+  type: 'up' | 'down' | 'flat';
+  percentage: number;
+  previousValue?: number;
+  period?: string;
+}
+
 interface DashboardStats {
   revenue: number;
   orders: number;
@@ -22,6 +30,12 @@ interface DashboardStats {
     name: string;
     usageCount: number;
   };
+  trends?: {
+    revenue?: TrendData;
+    orders?: TrendData;
+    profit?: TrendData;
+    mostUsedIngredient?: TrendData;
+  };
 }
 
 interface ProductSale {
@@ -29,7 +43,49 @@ interface ProductSale {
   name: string;
   quantity: number;
   revenue?: number;
+  profit?: number;
+  marginPercent?: number;
 }
+
+// 📊 Helper function to calculate previous period
+const getPreviousPeriod = (dateRange: DateRange): DateRange => {
+  const fromDate = new Date(dateRange.from);
+  const toDate = new Date(dateRange.to);
+  const diffTime = toDate.getTime() - fromDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const previousTo = new Date(fromDate);
+  previousTo.setDate(previousTo.getDate() - 1);
+  
+  const previousFrom = new Date(previousTo);
+  previousFrom.setDate(previousFrom.getDate() - diffDays + 1);
+
+  return {
+    from: previousFrom.toISOString().split('T')[0],
+    to: previousTo.toISOString().split('T')[0]
+  };
+};
+
+// 📈 Helper function to calculate trend
+const calculateTrend = (current: number, previous: number, label: string = 'periode sebelumnya'): TrendData => {
+  if (previous === 0) {
+    return {
+      type: current > 0 ? 'up' : 'flat',
+      percentage: current > 0 ? 100 : 0,
+      previousValue: previous,
+      period: label
+    };
+  }
+
+  const percentageChange = ((current - previous) / previous) * 100;
+  
+  return {
+    type: percentageChange > 1 ? 'up' : percentageChange < -1 ? 'down' : 'flat',
+    percentage: Math.abs(percentageChange),
+    previousValue: previous,
+    period: label
+  };
+};
 
 export const useDashboardData = (dateRange: DateRange) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -51,8 +107,13 @@ export const useDashboardData = (dateRange: DateRange) => {
     return () => clearTimeout(loadingTimeout);
   }, [activitiesLoading]);
 
-  // 🔄 Filtered Data with Error Handling
-  const filteredData = useMemo(() => {
+  // 📅 Previous Period Calculation
+  const previousPeriod = useMemo(() => {
+    return getPreviousPeriod(dateRange);
+  }, [dateRange]);
+
+  // 🔄 Current Period Data
+  const currentData = useMemo(() => {
     try {
       const filteredOrders = dateRange?.from && dateRange?.to 
         ? filterByDateRange(orders, dateRange, 'tanggal') 
@@ -64,30 +125,40 @@ export const useDashboardData = (dateRange: DateRange) => {
 
       return { filteredOrders, filteredActivities };
     } catch (err) {
-      logger.error('Dashboard - Data filtering error:', err);
+      logger.error('Dashboard - Current data filtering error:', err);
       setError('Gagal memproses data dashboard');
       return { filteredOrders: [], filteredActivities: [] };
     }
   }, [orders, activities, dateRange]);
 
-  // 🧑‍🍳 Most Used Ingredient Calculation
-  const mostUsedIngredient = useMemo(() => {
+  // 📊 Previous Period Data
+  const previousData = useMemo(() => {
     try {
-      const { filteredOrders } = filteredData;
+      const previousOrders = filterByDateRange(orders, previousPeriod, 'tanggal');
+      const previousActivities = filterByDateRange(activities, previousPeriod, 'timestamp');
+
+      return { filteredOrders: previousOrders, filteredActivities: previousActivities };
+    } catch (err) {
+      logger.error('Dashboard - Previous data filtering error:', err);
+      return { filteredOrders: [], filteredActivities: [] };
+    }
+  }, [orders, activities, previousPeriod]);
+
+  // 🧑‍🍳 Most Used Ingredient Calculation (Current)
+  const currentMostUsedIngredient = useMemo(() => {
+    try {
+      const { filteredOrders } = currentData;
       const ingredientUsage: Record<string, number> = {};
       
-      // Count ingredient usage from filtered orders
       filteredOrders.forEach(order => {
         order?.items?.forEach(item => {
           if (!item?.namaBarang) return;
           
-          // Find recipe for this product
           const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
           if (!recipe?.bahanBaku) return;
           
           const quantity = Number(item.quantity) || 0;
           
-          // Count each ingredient usage based on order quantity
           recipe.bahanBaku.forEach(ingredient => {
             if (!ingredient?.namaBahan) return;
             
@@ -99,7 +170,6 @@ export const useDashboardData = (dateRange: DateRange) => {
         });
       });
       
-      // Find most used ingredient
       const sortedIngredients = Object.entries(ingredientUsage)
         .sort(([,a], [,b]) => b - a);
       
@@ -110,28 +180,69 @@ export const useDashboardData = (dateRange: DateRange) => {
       const [name, usageCount] = sortedIngredients[0];
       return { name, usageCount };
     } catch (err) {
-      logger.error('Dashboard - Most used ingredient error:', err);
+      logger.error('Dashboard - Current most used ingredient error:', err);
       return { name: '', usageCount: 0 };
     }
-  }, [filteredData, recipes]);
+  }, [currentData, recipes]);
 
-  // 📊 Stats Calculation
-  const stats: DashboardStats = useMemo(() => {
+  // 🧑‍🍳 Most Used Ingredient Calculation (Previous)
+  const previousMostUsedIngredient = useMemo(() => {
     try {
-      const { filteredOrders } = filteredData;
+      const { filteredOrders } = previousData;
+      const ingredientUsage: Record<string, number> = {};
+      
+      filteredOrders.forEach(order => {
+        order?.items?.forEach(item => {
+          if (!item?.namaBarang) return;
+          
+          const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
+          if (!recipe?.bahanBaku) return;
+          
+          const quantity = Number(item.quantity) || 0;
+          
+          recipe.bahanBaku.forEach(ingredient => {
+            if (!ingredient?.namaBahan) return;
+            
+            if (!ingredientUsage[ingredient.namaBahan]) {
+              ingredientUsage[ingredient.namaBahan] = 0;
+            }
+            ingredientUsage[ingredient.namaBahan] += quantity;
+          });
+        });
+      });
+      
+      const sortedIngredients = Object.entries(ingredientUsage)
+        .sort(([,a], [,b]) => b - a);
+      
+      if (sortedIngredients.length === 0) {
+        return { name: '', usageCount: 0 };
+      }
+      
+      const [name, usageCount] = sortedIngredients[0];
+      return { name, usageCount };
+    } catch (err) {
+      logger.error('Dashboard - Previous most used ingredient error:', err);
+      return { name: '', usageCount: 0 };
+    }
+  }, [previousData, recipes]);
+
+  // 📊 Current Stats Calculation
+  const currentStats = useMemo(() => {
+    try {
+      const { filteredOrders } = currentData;
       
       const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
-      const profit = revenue * 0.3; // 30% profit estimate
+      const profit = revenue * 0.3;
 
       return {
         revenue,
         orders: ordersCount,
         profit,
-        mostUsedIngredient
+        mostUsedIngredient: currentMostUsedIngredient
       };
     } catch (err) {
-      logger.error('Dashboard - Stats calculation error:', err);
+      logger.error('Dashboard - Current stats calculation error:', err);
       return { 
         revenue: 0, 
         orders: 0, 
@@ -139,12 +250,67 @@ export const useDashboardData = (dateRange: DateRange) => {
         mostUsedIngredient: { name: '', usageCount: 0 } 
       };
     }
-  }, [filteredData, mostUsedIngredient]);
+  }, [currentData, currentMostUsedIngredient]);
+
+  // 📊 Previous Stats Calculation
+  const previousStats = useMemo(() => {
+    try {
+      const { filteredOrders } = previousData;
+      
+      const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
+      const ordersCount = filteredOrders.length;
+      const profit = revenue * 0.3;
+
+      return {
+        revenue,
+        orders: ordersCount,
+        profit,
+        mostUsedIngredient: previousMostUsedIngredient
+      };
+    } catch (err) {
+      logger.error('Dashboard - Previous stats calculation error:', err);
+      return { 
+        revenue: 0, 
+        orders: 0, 
+        profit: 0, 
+        mostUsedIngredient: { name: '', usageCount: 0 } 
+      };
+    }
+  }, [previousData, previousMostUsedIngredient]);
+
+  // 📈 Calculate Trends
+  const trends = useMemo(() => {
+    try {
+      const periodLabel = `periode sebelumnya`;
+      
+      return {
+        revenue: calculateTrend(currentStats.revenue, previousStats.revenue, periodLabel),
+        orders: calculateTrend(currentStats.orders, previousStats.orders, periodLabel),
+        profit: calculateTrend(currentStats.profit, previousStats.profit, periodLabel),
+        mostUsedIngredient: calculateTrend(
+          currentMostUsedIngredient.usageCount, 
+          previousMostUsedIngredient.usageCount, 
+          periodLabel
+        )
+      };
+    } catch (err) {
+      logger.error('Dashboard - Trends calculation error:', err);
+      return {};
+    }
+  }, [currentStats, previousStats, currentMostUsedIngredient, previousMostUsedIngredient]);
+
+  // 📊 Final Stats with Trends
+  const stats: DashboardStats = useMemo(() => {
+    return {
+      ...currentStats,
+      trends
+    };
+  }, [currentStats, trends]);
 
   // 🏆 Best Selling Products
   const bestSellingProducts: ProductSale[] = useMemo(() => {
     try {
-      const { filteredOrders } = filteredData;
+      const { filteredOrders } = currentData;
       const productSales: Record<string, { quantity: number; revenue: number; key: string }> = {};
       
       filteredOrders.forEach((order, orderIndex) => {
@@ -169,15 +335,17 @@ export const useDashboardData = (dateRange: DateRange) => {
           id: data.key,
           name,
           quantity: data.quantity,
-          revenue: data.revenue
+          revenue: data.revenue,
+          profit: data.revenue * 0.3, // Estimated profit
+          marginPercent: 30 // Default margin
         }))
-        .sort((a, b) => b.quantity - a.quantity)
+        .sort((a, b) => b.revenue - a.revenue) // Sort by revenue instead of quantity
         .slice(0, 20);
     } catch (err) {
       logger.error('Dashboard - Best selling products error:', err);
       return [];
     }
-  }, [filteredData]);
+  }, [currentData]);
 
   // 📉 Worst Selling Products
   const worstSellingProducts: ProductSale[] = useMemo(() => {
@@ -212,31 +380,13 @@ export const useDashboardData = (dateRange: DateRange) => {
   // 📝 Recent Activities (Limited)
   const recentActivities = useMemo(() => {
     try {
-      const { filteredActivities } = filteredData;
-      return filteredActivities.slice(0, 50); // Limit for performance
+      const { filteredActivities } = currentData;
+      return filteredActivities.slice(0, 50);
     } catch (err) {
       logger.error('Dashboard - Recent activities error:', err);
       return [];
     }
-  }, [filteredData]);
-
-  // 👋 Greeting Function
-  const greeting = useMemo(() => {
-    try {
-      const jam = new Date().getHours();
-      let sapaan = "datang";
-      if (jam >= 4 && jam < 11) sapaan = "pagi";
-      else if (jam >= 11 && jam < 15) sapaan = "siang";
-      else if (jam >= 15 && jam < 19) sapaan = "sore";
-      else sapaan = "malam";
-      
-      const ownerName = settings?.ownerName;
-      return ownerName ? `Selamat ${sapaan}, Kak ${ownerName}` : `Selamat ${sapaan}`;
-    } catch (err) {
-      logger.error('Dashboard - Greeting error:', err);
-      return "Selamat datang";
-    }
-  }, [settings?.ownerName]);
+  }, [currentData]);
 
   return {
     // Data
@@ -245,15 +395,14 @@ export const useDashboardData = (dateRange: DateRange) => {
     worstSellingProducts,
     criticalStock,
     recentActivities,
-    greeting,
     
     // States
     isLoading,
     error,
     
     // Raw data (for components that need it)
-    orders: filteredData.filteredOrders,
-    activities: filteredData.filteredActivities,
+    orders: currentData.filteredOrders,
+    activities: currentData.filteredActivities,
     settings
   };
 };

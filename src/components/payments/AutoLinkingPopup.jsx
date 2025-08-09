@@ -1,6 +1,7 @@
-// src/components/popups/AutoLinkingPopup.tsx
+// src/components/popups/AutoLinkingPopup.tsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, User, CheckCircle, AlertCircle, Loader2, Zap } from 'lucide-react';
+import { X, User, CheckCircle, AlertCircle, Loader2, Zap } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface AutoLinkingPopupProps {
   isOpen: boolean;
@@ -26,14 +27,23 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const [linkingResults, setLinkingResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
 
-  // Reset state when popup opens
+  // ✅ FIXED: Reset state when popup opens
   useEffect(() => {
     if (isOpen) {
       setSelectedPayments([]);
       setLinkingResults([]);
       setShowResults(false);
+      logger.debug('AutoLinkingPopup: Reset state, showing', unlinkedPayments.length, 'payments');
     }
-  }, [isOpen]);
+  }, [isOpen, unlinkedPayments.length]);
+
+  // ✅ FIXED: Auto-select all payments by default
+  useEffect(() => {
+    if (isOpen && unlinkedPayments.length > 0 && selectedPayments.length === 0) {
+      setSelectedPayments([...unlinkedPayments]);
+      logger.debug('AutoLinkingPopup: Auto-selected all payments');
+    }
+  }, [isOpen, unlinkedPayments, selectedPayments.length]);
 
   const handlePaymentToggle = (payment: any) => {
     setSelectedPayments(prev => {
@@ -46,36 +56,62 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     });
   };
 
+  const handleSelectAll = () => {
+    if (selectedPayments.length === unlinkedPayments.length) {
+      setSelectedPayments([]);
+    } else {
+      setSelectedPayments([...unlinkedPayments]);
+    }
+  };
+
+  // ✅ FIXED: Enhanced auto-linking with better error handling
   const handleAutoLinkPayments = async () => {
-    if (!currentUser || selectedPayments.length === 0 || !supabaseClient) return;
+    if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
+      logger.error('AutoLinkingPopup: Missing requirements for linking');
+      return;
+    }
 
     setIsLinking(true);
     const results: any[] = [];
 
     try {
+      logger.info('AutoLinkingPopup: Starting auto-link for', selectedPayments.length, 'payments');
+
       for (const payment of selectedPayments) {
         try {
+          logger.debug('AutoLinkingPopup: Linking payment', payment.order_id);
+
           const { data, error } = await supabaseClient
             .from('user_payments')
             .update({
               user_id: currentUser.id,
               auth_email: currentUser.email,
               linked_at: new Date().toISOString(),
-              // Preserve original email from webhook
-              email: payment.email // Don't overwrite this
+              // ✅ FIXED: Preserve original email from webhook
+              // Don't overwrite the email field as it contains the original webhook email
             })
             .eq('order_id', payment.order_id)
+            .eq('user_id', null) // ✅ SAFETY: Only update if still unlinked
             .select()
             .single();
 
-          if (error) throw error;
+          if (error) {
+            logger.error('AutoLinkingPopup: Database error for', payment.order_id, error);
+            throw error;
+          }
 
+          if (!data) {
+            throw new Error('Payment not found or already linked');
+          }
+
+          logger.success('AutoLinkingPopup: Successfully linked', payment.order_id);
           results.push({
             order_id: payment.order_id,
             success: true,
             data
           });
         } catch (error: any) {
+          logger.error('AutoLinkingPopup: Failed to link', payment.order_id, error);
           results.push({
             order_id: payment.order_id,
             success: false,
@@ -87,14 +123,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
       setLinkingResults(results);
       setShowResults(true);
 
-      // Callback for successful links
+      // ✅ FIXED: Enhanced success callback
       const successfulPayments = results.filter(r => r.success).map(r => r.data);
-      if (successfulPayments.length > 0 && onSuccess) {
-        onSuccess(successfulPayments);
+      if (successfulPayments.length > 0) {
+        logger.success('AutoLinkingPopup: Successfully linked', successfulPayments.length, 'payments');
+        if (onSuccess) {
+          onSuccess(successfulPayments);
+        }
       }
 
     } catch (error) {
-      console.error('Auto-linking error:', error);
+      logger.error('AutoLinkingPopup: General linking error:', error);
     } finally {
       setIsLinking(false);
     }
@@ -108,15 +147,20 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
+  // ✅ FIXED: Don't render if not open
   if (!isOpen) return null;
 
   return (
@@ -130,16 +174,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Auto-Link Detected Payments
+                Auto-Link Pembayaran Terdeteksi
               </h2>
               <p className="text-sm text-gray-500">
-                Connect webhook-detected payments to your account
+                Hubungkan pembayaran webhook ke akun Anda
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={isLinking}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -158,7 +203,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                       {currentUser?.email || 'Current User'}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Auto-detected payments akan dihubungkan ke akun ini
+                      Pembayaran akan dihubungkan ke akun ini
                     </p>
                   </div>
                 </div>
@@ -180,13 +225,21 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 </div>
               ) : (
                 <>
-                  <div className="mb-4">
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      Pembayaran Terdeteksi Webhook ({unlinkedPayments.length})
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Pembayaran ini terdeteksi otomatis oleh sistem webhook namun perlu dihubungkan ke akun Anda
-                    </p>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">
+                        Pembayaran Terdeteksi Webhook ({unlinkedPayments.length})
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Pembayaran ini terdeteksi otomatis oleh sistem webhook
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleSelectAll}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      {selectedPayments.length === unlinkedPayments.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
+                    </button>
                   </div>
 
                   <div className="space-y-3">
@@ -206,8 +259,9 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                               <input
                                 type="checkbox"
                                 checked={selectedPayments.some(p => p.order_id === payment.order_id)}
-                                onChange={() => {}}
+                                onChange={() => handlePaymentToggle(payment)}
                                 className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                onClick={(e) => e.stopPropagation()}
                               />
                               <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
                                 {payment.order_id}
@@ -220,13 +274,13 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                                 {payment.is_paid ? 'PAID' : 'PENDING'}
                               </span>
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                AUTO-DETECTED
+                                WEBHOOK
                               </span>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-500">Email Webhook:</span>
+                                <span className="text-gray-500">Email:</span>
                                 <span className="ml-2 font-medium">
                                   {payment.email === 'unlinked@payment.com' || payment.email === 'pending@webhook.com' 
                                     ? 'Auto-generated' 
@@ -268,7 +322,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   Hasil Auto-Linking
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {linkingResults.filter(r => r.success).length} dari {linkingResults.length} pembayaran berhasil dihubungkan secara otomatis
+                  {linkingResults.filter(r => r.success).length} dari {linkingResults.length} pembayaran berhasil dihubungkan
                 </p>
               </div>
 
@@ -292,11 +346,11 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                         </div>
                         {result.success ? (
                           <p className="text-sm text-green-700">
-                            Berhasil dihubungkan secara otomatis ke akun Anda
+                            Berhasil dihubungkan ke akun Anda
                           </p>
                         ) : (
                           <p className="text-sm text-red-700">
-                            Auto-link gagal: {result.error}
+                            Gagal: {result.error}
                           </p>
                         )}
                       </div>
@@ -314,13 +368,14 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
                 {selectedPayments.length > 0 && (
-                  `${selectedPayments.length} pembayaran dipilih untuk auto-linking`
+                  `${selectedPayments.length} dari ${unlinkedPayments.length} pembayaran dipilih`
                 )}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={isLinking}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                 >
                   Batal
                 </button>
@@ -331,12 +386,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 >
                   {isLinking && <Loader2 className="w-4 h-4 animate-spin" />}
                   <Zap className="w-4 h-4" />
-                  Auto-Link {selectedPayments.length > 0 && `${selectedPayments.length} `}Pembayaran
+                  {isLinking ? 'Menghubungkan...' : `Hubungkan ${selectedPayments.length} Pembayaran`}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                {linkingResults.filter(r => r.success).length > 0 && (
+                  `${linkingResults.filter(r => r.success).length} pembayaran berhasil dihubungkan`
+                )}
+              </div>
               <button
                 onClick={handleClose}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

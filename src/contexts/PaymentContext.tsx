@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - SIMPLIFIED (Uses AuthContext)
+/ src/contexts/PaymentContext.tsx - SIMPLIFIED (Uses AuthContext)
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext'; // ✅ Import AuthContext
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';

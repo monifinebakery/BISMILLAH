@@ -138,7 +138,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        logger.debug('PaymentContext: Auth state changed:', event);
+        logger.debug('PaymentContext: Auth state changed:', { 
+          event, 
+          userEmail: session?.user?.email,
+          hasSession: !!session 
+        });
         
         if (event === 'SIGNED_IN' && session?.user) {
           try {
@@ -155,6 +159,9 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           logger.debug('PaymentContext: User signed out');
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          logger.debug('PaymentContext: Token refreshed, updating user');
+          setCurrentUser(session.user);
         }
       }
     );

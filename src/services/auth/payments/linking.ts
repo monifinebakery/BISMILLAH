@@ -26,7 +26,33 @@ const forceRefreshCache = async () => {
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<PaymentRecord> => {
   try {
-    logger.api('/link-payment', 'Linking order to user:', { orderId, email: user.email });
+    // ✅ ENHANCED: Validate user object with better error messages
+    if (!user) {
+      throw new Error('User not authenticated. Please login first.');
+    }
+    
+    if (!user.id || user.id === 'null' || user.id === null || user.id === undefined) {
+      // Try to get fresh user
+      const { getCurrentUserValidated } = await import('@/services/auth/core/authentication');
+      try {
+        const freshUser = await getCurrentUserValidated();
+        user = freshUser; // Use fresh user
+        logger.info('Got fresh user for linking:', { id: freshUser.id, email: freshUser.email });
+      } catch (freshError) {
+        throw new Error('Invalid user session. Please logout and login again.');
+      }
+    }
+    
+    if (!user.email) {
+      throw new Error('User email is missing. Please logout and login again.');
+    }
+    
+    logger.api('/link-payment', 'Linking order to user:', { 
+      orderId, 
+      email: user.email, 
+      userId: user.id,
+      userType: typeof user.id
+    });
     
     // ✅ STEP 1: Check if already linked to this user
     const { data: existingLink, error: existingError } = await supabase

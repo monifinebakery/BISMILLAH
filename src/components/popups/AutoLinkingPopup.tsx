@@ -1,4 +1,4 @@
-// src/components/popups/AutoLinkingPopup.tsx - FIXED with UUID Sanitization
+// src/components/popups/AutoLinkingPopup.tsx - SIMPLIFIED (removed auth_email and linked_at)
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -13,7 +13,7 @@ interface AutoLinkingPopupProps {
   onSuccess?: (payments: any[]) => void;
 }
 
-// ✅ NEW: UUID Sanitization function (same as linking.ts)
+// ✅ UUID Sanitization function
 const sanitizeUserId = (userId: any): string | null => {
   if (userId === null || 
       userId === undefined || 
@@ -137,7 +137,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ FIXED: Auto-linking with UUID sanitization
+  // ✅ SIMPLIFIED: Auto-linking (removed auth_email and linked_at)
   const handleAutoLinkPayments = async () => {
     if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
       logger.error('AutoLinkingPopup: Missing requirements for linking');
@@ -174,11 +174,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         try {
           logger.debug('AutoLinkingPopup: Linking payment', payment.order_id, 'to user ID:', sanitizedUserId);
 
-          // ✅ FIXED: Use sanitized user ID in update
+          // ✅ SIMPLIFIED: Only user_id, email, and updated_at
           const updateData = {
-            user_id: sanitizedUserId, // ✅ FIXED: Use sanitized ID
-            auth_email: currentUser.email,
-            linked_at: new Date().toISOString(),
+            user_id: sanitizedUserId,
+            email: currentUser.email,
             updated_at: new Date().toISOString()
           };
 
@@ -337,7 +336,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
   if (!isOpen) return null;
 
-  // ✅ ENHANCED: Show user ID debug info in development
+  // ✅ Show user ID debug info in development
   const showDebugInfo = import.meta.env.DEV && currentUser;
 
   return (
@@ -432,7 +431,6 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 </div>
               </div>
 
-              {/* Rest of the component remains the same... */}
               {unlinkedPayments.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />

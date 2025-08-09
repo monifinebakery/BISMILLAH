@@ -1,3 +1,4 @@
+// Enhanced webhook - Extract email from payment gateway payload
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -12,92 +13,120 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// ✅ FIXED: Only link user_id, preserve original email
-async function attemptUserLinking(paymentData, orderId) {
+// ✅ ENHANCED: Extract email from various payload structures
+function extractEmailFromPayload(payload) {
+  const possibleEmailFields = [
+    'email',
+    'customer_email', 
+    'user_email',
+    'payer_email',
+    'billing_email',
+    'customer.email',
+    'payer.email',
+    'billing.email',
+    'customer_details.email',
+    'billing_details.email'
+  ];
+
+  for (const field of possibleEmailFields) {
+    // Support nested object access (e.g., 'customer.email')
+    const value = field.includes('.') 
+      ? field.split('.').reduce((obj, key) => obj?.[key], payload)
+      : payload[field];
+      
+    if (value && typeof value === 'string' && value.includes('@')) {
+      console.log(`📧 Found email in field '${field}':`, value);
+      return value.toLowerCase().trim();
+    }
+  }
+
+  console.log('⚠️ No email found in payload');
+  console.log('📦 Available fields:', Object.keys(payload));
+  return null;
+}
+
+// ✅ ENHANCED: Better auto-linking with email
+async function attemptUserLinking(paymentData, orderId, extractedEmail) {
   try {
-    console.log('🔍 Attempting auto-link for paid payment...');
-    console.log('🔍 Current payment email:', paymentData.email);
+    console.log('🔍 Enhanced auto-link attempt...');
+    console.log('🔍 Extracted email:', extractedEmail);
     
-    // Strategy 1: Look for users who recently signed up (within 1 hour)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    
-    const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
-    
-    if (!usersError && authData?.users) {
-      // Filter users created in the last hour
-      const recentUsers = authData.users.filter(user => 
-        user.created_at > oneHourAgo
-      );
+    let linkedUser = null;
+
+    // ✅ STRATEGY 1: Direct email match (highest priority)
+    if (extractedEmail) {
+      console.log('🔍 Looking for user with exact email match...');
       
-      console.log(`📊 Found ${recentUsers.length} users created in last hour`);
+      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
       
-      // Only auto-link if there's exactly ONE recent user (high confidence)
-      if (recentUsers.length === 1) {
-        const userToLink = recentUsers[0];
-        const originalEmail = paymentData.email; // 🔧 PRESERVE original email
+      if (!usersError && authData?.users) {
+        const matchingUser = authData.users.find(user => 
+          user.email?.toLowerCase() === extractedEmail.toLowerCase()
+        );
         
-        paymentData.user_id = userToLink.id;
-        
-        // 🔧 ENHANCED: Better auth email handling
-        const authEmail = userToLink.email || userToLink.email_address || userToLink.user_metadata?.email || null;
-        if (authEmail) {
-          paymentData.auth_email = authEmail;
-          console.log(`🔐 Auth email found: ${authEmail}`);
-        } else {
-          console.log(`⚠️ No auth email found for user: ${userToLink.id}`);
-          console.log('👤 User object:', JSON.stringify(userToLink, null, 2));
+        if (matchingUser) {
+          linkedUser = matchingUser;
+          console.log(`✅ Found exact email match: ${matchingUser.id}`);
         }
-        
-        console.log(`✅ Auto-linked to recent user: ${userToLink.id}`);
-        console.log(`📧 Preserved user input email: ${originalEmail}`);
-        console.log(`🔐 Auth email: ${authEmail || 'NOT_FOUND'}`);
-        return;
-      } else if (recentUsers.length > 1) {
-        console.log('⚠️ Multiple recent users found, cannot auto-link safely');
-      } else {
-        console.log('⚠️ No recent users found for auto-linking');
       }
     }
-    
-    // Strategy 2: Look for unlinked payments from same time period (fallback)
-    const { data: recentPayments, error: paymentsError } = await supabase
-      .from('user_payments')
-      .select('user_id, email, created_at')
-      .not('user_id', 'is', null)
-      .not('email', 'eq', 'pending@webhook.com')
-      .gte('created_at', oneHourAgo)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
-    if (!paymentsError && recentPayments && recentPayments.length > 0) {
-      // Check if all recent payments belong to the same user
-      const uniqueUsers = [...new Set(recentPayments.map(p => p.user_id))];
+
+    // ✅ STRATEGY 2: Recent user fallback (if no email match)
+    if (!linkedUser) {
+      console.log('🔍 No email match, trying recent user strategy...');
       
-      if (uniqueUsers.length === 1) {
-        const userToLink = recentPayments[0];
-        const originalEmail = paymentData.email; // 🔧 PRESERVE original email
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (!usersError && authData?.users) {
+        const recentUsers = authData.users.filter(user => 
+          user.created_at > oneHourAgo
+        );
         
-        paymentData.user_id = userToLink.user_id;
-        // 🔧 FIXED: DON'T overwrite user input email
-        // paymentData.email = userToLink.email; // ❌ REMOVED
+        console.log(`📊 Found ${recentUsers.length} users created in last hour`);
         
-        console.log(`✅ Auto-linked based on recent payment pattern: ${userToLink.user_id}`);
-        console.log(`📧 Preserved user input email: ${originalEmail}`);
-        return;
+        // Only auto-link if there's exactly ONE recent user
+        if (recentUsers.length === 1) {
+          linkedUser = recentUsers[0];
+          console.log(`✅ Auto-linked to recent user: ${linkedUser.id}`);
+        }
       }
     }
+
+    // ✅ APPLY LINKING if user found
+    if (linkedUser) {
+      paymentData.user_id = linkedUser.id;
+      
+      // ✅ ENHANCED: Set both emails properly
+      if (extractedEmail) {
+        paymentData.email = extractedEmail; // Real email from payment
+        paymentData.auth_email = linkedUser.email || extractedEmail;
+      } else {
+        paymentData.email = linkedUser.email || 'unlinked@payment.com';
+        paymentData.auth_email = linkedUser.email;
+      }
+      
+      console.log(`🔗 Linking results:`, {
+        user_id: paymentData.user_id,
+        email: paymentData.email,
+        auth_email: paymentData.auth_email,
+        strategy: extractedEmail ? 'email_match' : 'recent_user'
+      });
+      
+      return true;
+    }
     
-    // No auto-linking possible - will remain unlinked for manual popup linking
-    console.log('⚠️ Could not auto-link safely - will require manual linking');
+    console.log('⚠️ Could not auto-link - will require manual linking');
+    return false;
     
   } catch (error) {
     console.error('❌ Error during auto-linking:', error);
-    // Continue without linking - better than failing the webhook
+    return false;
   }
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🎯 FIXED: PRESERVE USER INPUT EMAIL');
+  console.log('🎯 ENHANCED: EMAIL EXTRACTION + AUTO-LINKING');
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -109,9 +138,10 @@ const handler = async (req: Request): Promise<Response> => {
     
     const payloadData = payload.data || payload;
     
-    // ✅ STEP 1: Extract only essential data
+    // ✅ STEP 1: Extract essential data + email
     const orderId = payloadData.order_id;
     const paymentStatus = payloadData.payment_status;
+    const extractedEmail = extractEmailFromPayload(payloadData); // ✅ NEW
     const pgReferenceId = payloadData.pg_reference_id || 
                          payloadData.reference_id ||
                          payloadData.reference ||
@@ -121,6 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('📋 Essential data extracted:');
     console.log('- Order ID:', orderId);
     console.log('- Payment Status:', paymentStatus);
+    console.log('- Extracted Email:', extractedEmail || 'NOT_FOUND');
     console.log('- PG Reference ID:', pgReferenceId);
     
     // ✅ VALIDATION: Must have order_id
@@ -129,7 +160,9 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(JSON.stringify({
         success: false,
         error: 'order_id is required',
-        available_fields: Object.keys(payloadData)
+        available_fields: Object.keys(payloadData),
+        email_extraction_attempted: true,
+        found_email: !!extractedEmail
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -152,6 +185,8 @@ const handler = async (req: Request): Promise<Response> => {
     
     let finalRecord;
     let operationType;
+    let autoLinkAttempted = false;
+    let autoLinkSuccess = false;
     
     if (existingPayment) {
       // ✅ UPDATE EXISTING RECORD
@@ -160,6 +195,15 @@ const handler = async (req: Request): Promise<Response> => {
       operationType = 'UPDATE';
       
       const updateData = {};
+      
+      // ✅ ENHANCED: Update email if we extracted one and current is placeholder
+      if (extractedEmail && 
+          (!existingPayment.email || 
+           existingPayment.email.includes('@payment.com') || 
+           existingPayment.email.includes('@webhook.com'))) {
+        updateData.email = extractedEmail;
+        console.log('📧 Updating email to extracted value');
+      }
       
       // Update pg_reference_id if not set
       if (pgReferenceId && !existingPayment.pg_reference_id) {
@@ -175,29 +219,21 @@ const handler = async (req: Request): Promise<Response> => {
         
         // ✅ AUTO-LINK: Only if payment becomes paid AND no user_id yet
         if (!existingPayment.user_id) {
-          console.log('🔗 Payment now paid but no user_id, attempting auto-link...');
-          console.log('🔗 Current email to preserve:', existingPayment.email);
+          console.log('🔗 Payment now paid but no user_id, attempting enhanced auto-link...');
+          autoLinkAttempted = true;
           
-          // 🔧 FIXED: Create temp object with existing email to preserve it
           const tempPaymentData = {
-            email: existingPayment.email // Preserve existing email
+            email: updateData.email || existingPayment.email
           };
           
-          await attemptUserLinking(tempPaymentData, orderId);
+          autoLinkSuccess = await attemptUserLinking(tempPaymentData, orderId, extractedEmail);
           
-          // Only apply user_id and auth_email if linking succeeded
-          if (tempPaymentData.user_id) {
+          if (autoLinkSuccess) {
             updateData.user_id = tempPaymentData.user_id;
-            // 🔧 ENHANCED: Always try to set auth_email, even if null
-            updateData.auth_email = tempPaymentData.auth_email || null;
-            console.log('🔗 Applied auto-link results:', {
-              user_id: updateData.user_id,
-              auth_email: updateData.auth_email,
-              preserved_email: existingPayment.email
-            });
+            updateData.email = tempPaymentData.email;
+            updateData.auth_email = tempPaymentData.auth_email;
+            console.log('🔗 Applied enhanced auto-link results');
           }
-        } else {
-          console.log('👤 Payment already has user_id:', existingPayment.user_id);
         }
       } else if (paymentStatus === 'unpaid') {
         updateData.payment_status = 'pending';
@@ -237,25 +273,20 @@ const handler = async (req: Request): Promise<Response> => {
       operationType = 'CREATE';
       
       const newPaymentData = {
-        user_id: null, // Start as unlinked
+        user_id: null,
         order_id: orderId,
         pg_reference_id: pgReferenceId,
-        email: 'unlinked@payment.com', // 🔧 Default placeholder, will be updated by auto-link
+        email: extractedEmail || 'unlinked@payment.com', // ✅ Use extracted email
         payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
-        is_paid: paymentStatus === 'paid'
+        is_paid: paymentStatus === 'paid',
+        auth_email: null
       };
       
       // ✅ AUTO-LINK: Only if payment is paid
       if (paymentStatus === 'paid') {
-        console.log('🔗 New paid payment, attempting auto-link...');
-        await attemptUserLinking(newPaymentData, orderId);
-        
-        // 🔧 FIXED: If no email was set during linking, keep placeholder
-        if (!newPaymentData.email || newPaymentData.email === 'unlinked@payment.com') {
-          newPaymentData.email = 'unlinked@payment.com';
-        }
-      } else {
-        console.log('⏳ New unpaid payment, will remain unlinked until paid');
+        console.log('🔗 New paid payment, attempting enhanced auto-link...');
+        autoLinkAttempted = true;
+        autoLinkSuccess = await attemptUserLinking(newPaymentData, orderId, extractedEmail);
       }
       
       console.log('📝 Creating new payment:', newPaymentData);
@@ -275,9 +306,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('✅ Create success');
     }
 
-    // ✅ STEP 3: Return success response with linking status
+    // ✅ STEP 3: Return enhanced response
     const isLinked = !!finalRecord.user_id;
-    console.log('🎉 Webhook completed successfully');
+    console.log('🎉 Enhanced webhook completed successfully');
     console.log('Final record:', finalRecord);
     
     return new Response(JSON.stringify({
@@ -287,9 +318,17 @@ const handler = async (req: Request): Promise<Response> => {
       data: finalRecord,
       auto_linked: isLinked,
       requires_manual_linking: !isLinked && finalRecord.is_paid,
-      email_preservation: {
-        user_input_email: finalRecord.email,
+      email_extraction: {
+        attempted: true,
+        found: !!extractedEmail,
+        extracted_email: extractedEmail || null,
+        final_email: finalRecord.email,
         auth_email: finalRecord.auth_email || null
+      },
+      auto_linking: {
+        attempted: autoLinkAttempted,
+        success: autoLinkSuccess,
+        strategy: autoLinkSuccess ? (extractedEmail ? 'email_match' : 'recent_user') : null
       }
     }), {
       status: 200,
@@ -297,11 +336,11 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error('❌ WEBHOOK ERROR:', error.message);
+    console.error('❌ ENHANCED WEBHOOK ERROR:', error.message);
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Webhook failed',
+      error: 'Enhanced webhook failed',
       details: error.message
     }), {
       status: 500,

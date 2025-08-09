@@ -1,0 +1,30 @@
+// src/components/layout/index.ts
+export { AppLayout } from './AppLayout';
+export { MobileLayout } from './MobileLayout';
+export { DesktopLayout } from './DesktopLayout';
+
+// src/components/loaders/index.ts
+export { AppLoader } from './AppLoader';
+export { AppError } from './AppError';
+
+// src/components/popups/index.ts
+export { default as AutoLinkingPopup } from './AutoLinkingPopup';
+export { default as OrderConfirmationPopup } from './OrderConfirmationPopup';
+
+// src/config/index.ts
+export { AppRouter } from './routes';
+export { queryClient } from './queryClient';
+
+// src/types/app.ts
+export interface AppLayoutProps {
+  isPaid: boolean;
+  renderOrderLinkButton: (isMobile?: boolean) => React.ReactNode;
+  renderAutoLinkIndicator: (isMobile?: boolean) => React.ReactNode;
+  children: React.ReactNode;
+}
+
+export interface RouteWrapperProps {
+  children: React.ReactNode;
+  title?: string;
+  specialErrorBoundary?: React.ComponentType<{ children: React.ReactNode }>;
+}

@@ -1,5 +1,5 @@
 // src/hooks/useAppLayout.ts - Layout Logic Hook
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { logger } from "@/utils/logger";
 
 interface UseAppLayoutProps {
@@ -53,15 +53,11 @@ export const useAppLayout = ({
       ? unlinkedPaymentCount > 0 ? `Link (${unlinkedPaymentCount})` : "Link Order"
       : unlinkedPaymentCount > 0 ? `Hubungkan Order (${unlinkedPaymentCount})` : "Hubungkan Order";
 
-    return (
-      <button
-        onClick={() => setShowOrderPopup(true)}
-        className={`${baseClasses} ${urgentClasses}`}
-        title={unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"}
-      >
-        {buttonText}
-      </button>
-    );
+    return React.createElement('button', {
+      onClick: () => setShowOrderPopup(true),
+      className: `${baseClasses} ${urgentClasses}`,
+      title: unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"
+    }, buttonText);
   }, [isPaid, needsOrderLinking, unlinkedPaymentCount, setShowOrderPopup]);
 
   const renderAutoLinkIndicator = useCallback((isMobileVersion = false) => {
@@ -75,16 +71,17 @@ export const useAppLayout = ({
       ? `🔗 ${autoLinkCount}`
       : `🔗 Auto (${autoLinkCount})`;
 
-    return (
-      <button
-        onClick={() => setShowAutoLinkPopup(true)}
-        className={`${baseClasses} relative animate-pulse`}
-        title={`${autoLinkCount} webhook payments ready for auto-linking`}
-      >
-        <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-        {buttonText}
-      </button>
-    );
+    return React.createElement('button', {
+      onClick: () => setShowAutoLinkPopup(true),
+      className: `${baseClasses} relative animate-pulse`,
+      title: `${autoLinkCount} webhook payments ready for auto-linking`
+    }, [
+      React.createElement('span', {
+        key: 'indicator',
+        className: "absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"
+      }),
+      buttonText
+    ]);
   }, [currentUser, autoLinkCount, setShowAutoLinkPopup]);
 
   return {

@@ -8,7 +8,7 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 import { AppLoader } from "@/components/loaders";
 import { AutoLinkingPopup } from "@/components/popups";
-// import OrderConfirmationPopup from "@/components/OrderConfirmationPopup"; // coba dimatiin sek
+import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 

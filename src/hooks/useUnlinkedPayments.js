@@ -47,7 +47,7 @@ export const useUnlinkedPayments = (
 
       // Filter out payments that look like they need manual Order ID input
       // vs. payments that were auto-detected by webhook
-      const webhookDetectedPayments = (data || []).filter(payment => {
+      const webhookDetectedPayments = (data || []).filter((payment: any) => {
         // These are likely webhook-detected if they have:
         // 1. A pg_reference_id (from payment gateway)
         // 2. Auto-generated email or specific webhook email patterns
@@ -59,7 +59,7 @@ export const useUnlinkedPayments = (
           payment.email.includes('@payment.com') ||
           payment.email.includes('@webhook.com')
         );
-        const isRecent = new Date() - new Date(payment.created_at) < 24 * 60 * 60 * 1000; // 24 hours
+        const isRecent = new Date().getTime() - new Date(payment.created_at).getTime() < 24 * 60 * 60 * 1000; // 24 hours
         
         const isWebhookPayment = hasPaymentReference || hasWebhookEmail || isRecent;
         
@@ -143,7 +143,7 @@ export const useUnlinkedPayments = (
             
             if (hasPaymentReference || hasWebhookEmail) {
               logger.info('useUnlinkedPayments: New webhook payment detected:', newPayment.order_id);
-              setUnlinkedPayments(prev => [newPayment, ...prev]);
+              setUnlinkedPayments((prev: any[]) => [newPayment, ...prev]);
               if (currentUser) {
                 setShowAutoLinkPopup(true);
               }
@@ -152,15 +152,15 @@ export const useUnlinkedPayments = (
             if (payload.new.user_id) {
               // Payment got linked - remove from unlinked list
               logger.info('useUnlinkedPayments: Payment linked, removing from list:', payload.new.order_id);
-              setUnlinkedPayments(prev => 
-                prev.filter(p => p.order_id !== payload.new.order_id)
+              setUnlinkedPayments((prev: any[]) => 
+                prev.filter((p: any) => p.order_id !== payload.new.order_id)
               );
             } else if (payload.new.is_paid && !payload.old.is_paid) {
               // Payment became paid but still unlinked
               const updatedPayment = payload.new;
               logger.info('useUnlinkedPayments: Payment became paid:', updatedPayment.order_id);
-              setUnlinkedPayments(prev => {
-                const exists = prev.find(p => p.order_id === updatedPayment.order_id);
+              setUnlinkedPayments((prev: any[]) => {
+                const exists = prev.find((p: any) => p.order_id === updatedPayment.order_id);
                 if (!exists) {
                   return [updatedPayment, ...prev];
                 }

@@ -1,4 +1,4 @@
-// src/hooks/useAppLayout.ts - Layout Logic Hook
+// src/hooks/useAppLayout.tsx - Layout Logic Hook
 import React, { useCallback } from 'react';
 import { logger } from "@/utils/logger";
 
@@ -53,11 +53,15 @@ export const useAppLayout = ({
       ? unlinkedPaymentCount > 0 ? `Link (${unlinkedPaymentCount})` : "Link Order"
       : unlinkedPaymentCount > 0 ? `Hubungkan Order (${unlinkedPaymentCount})` : "Hubungkan Order";
 
-    return React.createElement('button', {
-      onClick: () => setShowOrderPopup(true),
-      className: `${baseClasses} ${urgentClasses}`,
-      title: unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"
-    }, buttonText);
+    return (
+      <button
+        onClick={() => setShowOrderPopup(true)}
+        className={`${baseClasses} ${urgentClasses}`}
+        title={unlinkedPaymentCount > 0 ? `${unlinkedPaymentCount} pembayaran menunggu untuk dihubungkan` : "Hubungkan pembayaran Anda"}
+      >
+        {buttonText}
+      </button>
+    );
   }, [isPaid, needsOrderLinking, unlinkedPaymentCount, setShowOrderPopup]);
 
   const renderAutoLinkIndicator = useCallback((isMobileVersion = false) => {
@@ -71,17 +75,16 @@ export const useAppLayout = ({
       ? `🔗 ${autoLinkCount}`
       : `🔗 Auto (${autoLinkCount})`;
 
-    return React.createElement('button', {
-      onClick: () => setShowAutoLinkPopup(true),
-      className: `${baseClasses} relative animate-pulse`,
-      title: `${autoLinkCount} webhook payments ready for auto-linking`
-    }, [
-      React.createElement('span', {
-        key: 'indicator',
-        className: "absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"
-      }),
-      buttonText
-    ]);
+    return (
+      <button
+        onClick={() => setShowAutoLinkPopup(true)}
+        className={`${baseClasses} relative animate-pulse`}
+        title={`${autoLinkCount} webhook payments ready for auto-linking`}
+      >
+        <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+        {buttonText}
+      </button>
+    );
   }, [currentUser, autoLinkCount, setShowAutoLinkPopup]);
 
   return {

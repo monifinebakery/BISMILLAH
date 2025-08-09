@@ -20,12 +20,20 @@ const DashboardHeader: React.FC<Props> = ({
   greeting, 
   isMobile 
 }) => {
-  // 🕐 Get current time for enhanced greeting
-  const currentTime = React.useMemo(() => {
-    return new Date().toLocaleTimeString('id-ID', { 
+  // 🕐 Get current time and date for mobile
+  const currentDateTime = React.useMemo(() => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('id-ID', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
+    const date = now.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    return { time, date };
   }, []);
 
   return (
@@ -47,13 +55,20 @@ const DashboardHeader: React.FC<Props> = ({
               </h1>
             </div>
             
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="flex flex-col gap-2">
               <p className="text-lg text-gray-700 font-medium">
                 {greeting}
               </p>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Clock className="h-4 w-4" />
-                <span>{currentTime}</span>
+              {/* 📅🕐 Date & Time - Mobile Only */}
+              <div className="flex flex-col gap-1 sm:hidden">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>{currentDateTime.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Clock className="h-4 w-4" />
+                  <span>{currentDateTime.time}</span>
+                </div>
               </div>
             </div>
           </div>

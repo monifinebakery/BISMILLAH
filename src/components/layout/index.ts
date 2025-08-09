@@ -4,8 +4,8 @@ export { MobileLayout } from './MobileLayout';
 export { DesktopLayout } from './DesktopLayout';
 
 // src/components/loaders/index.ts
-export { AppLoader } from './AppLoader';
-export { AppError } from './AppError';
+export { AppLoader } from '../loaders/AppLoader';
+export { AppError } from '../loaders/AppError';
 
 // src/components/popups/index.ts
 export { default as AutoLinkingPopup } from './AutoLinkingPopup';

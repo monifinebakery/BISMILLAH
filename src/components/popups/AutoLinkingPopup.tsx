@@ -1,7 +1,8 @@
-// src/components/popups/AutoLinkingPopup.tsx - FIXED VERSION
-import React, { useState, useEffect } from 'react';
-import { X, User, CheckCircle, AlertCircle, Loader2, Zap } from 'lucide-react';
+// src/components/popups/AutoLinkingPopup.tsx - ENHANCED with Auto-Retry & Logout
+import React, { useState, useEffect, useRef } from 'react';
+import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AutoLinkingPopupProps {
   isOpen: boolean;
@@ -26,6 +27,13 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const [isLinking, setIsLinking] = useState(false);
   const [linkingResults, setLinkingResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
+  
+  // ✅ NEW: Auto-retry state
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [autoRetryTimer, setAutoRetryTimer] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // ✅ FIXED: Reset state when popup opens
   useEffect(() => {
@@ -33,6 +41,8 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
       setSelectedPayments([]);
       setLinkingResults([]);
       setShowResults(false);
+      setIsDismissed(false);
+      setAutoRetryTimer(0);
       logger.debug('AutoLinkingPopup: Reset state, showing', unlinkedPayments.length, 'payments');
     }
   }, [isOpen, unlinkedPayments.length]);
@@ -44,6 +54,51 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
       logger.debug('AutoLinkingPopup: Auto-selected all payments');
     }
   }, [isOpen, unlinkedPayments, selectedPayments.length]);
+
+  // ✅ NEW: Auto-retry popup logic
+  useEffect(() => {
+    if (!isOpen && !isDismissed && unlinkedPayments.length > 0 && !showResults) {
+      logger.debug('AutoLinkingPopup: Setting up auto-retry in 10 seconds');
+      
+      // Start countdown
+      setAutoRetryTimer(10);
+      countdownIntervalRef.current = setInterval(() => {
+        setAutoRetryTimer(prev => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Set retry timer
+      retryIntervalRef.current = setTimeout(() => {
+        if (!isDismissed) {
+          logger.info('AutoLinkingPopup: Auto-reopening popup after 10 seconds');
+          onClose(); // This will trigger popup to reopen since isOpen will become true
+        }
+      }, 10000);
+    }
+
+    return () => {
+      if (retryIntervalRef.current) {
+        clearTimeout(retryIntervalRef.current);
+        retryIntervalRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [isOpen, isDismissed, unlinkedPayments.length, showResults, onClose]);
+
+  // ✅ NEW: Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (retryIntervalRef.current) clearTimeout(retryIntervalRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
 
   const handlePaymentToggle = (payment: any) => {
     setSelectedPayments(prev => {
@@ -64,7 +119,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ FIXED: Enhanced auto-linking with better error handling
+  // ✅ ENHANCED: Auto-linking with better error handling
   const handleAutoLinkPayments = async () => {
     if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
       logger.error('AutoLinkingPopup: Missing requirements for linking');
@@ -87,8 +142,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               user_id: currentUser.id,
               auth_email: currentUser.email,
               linked_at: new Date().toISOString(),
-              // ✅ FIXED: Preserve original email from webhook
-              // Don't overwrite the email field as it contains the original webhook email
+              updated_at: new Date().toISOString()
             })
             .eq('order_id', payment.order_id)
             .eq('user_id', null) // ✅ SAFETY: Only update if still unlinked
@@ -130,6 +184,8 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         if (onSuccess) {
           onSuccess(successfulPayments);
         }
+        // ✅ Stop auto-retry on success
+        setIsDismissed(true);
       }
 
     } catch (error) {
@@ -139,11 +195,40 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  const handleClose = () => {
+  // ✅ NEW: Enhanced close with dismiss option
+  const handleClose = (dismiss = false) => {
+    if (dismiss) {
+      setIsDismissed(true);
+      logger.debug('AutoLinkingPopup: Dismissed - will not auto-retry');
+    }
+    
     setSelectedPayments([]);
     setLinkingResults([]);
     setShowResults(false);
     onClose();
+  };
+
+  // ✅ NEW: Logout handler
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      logger.info('AutoLinkingPopup: User requested logout');
+      
+      await supabase.auth.signOut();
+      
+      // Clear all state
+      setIsDismissed(true);
+      handleClose(true);
+      
+      // Show success message
+      alert('✅ Successfully logged out. You can now login with a different account.');
+      
+    } catch (error) {
+      logger.error('AutoLinkingPopup: Logout failed:', error);
+      alert('❌ Logout failed: ' + error.message);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -160,7 +245,39 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ FIXED: Don't render if not open
+  // ✅ NEW: Show countdown when popup is closed but will retry
+  if (!isOpen && autoRetryTimer > 0 && !isDismissed && unlinkedPayments.length > 0) {
+    return (
+      <div className="fixed bottom-4 right-4 bg-white border border-orange-300 rounded-lg p-4 shadow-lg max-w-sm z-50">
+        <div className="flex items-center gap-3 mb-3">
+          <Clock className="w-5 h-5 text-orange-600" />
+          <div>
+            <p className="font-medium text-gray-900">Auto-Link Reminder</p>
+            <p className="text-sm text-gray-600">
+              Popup will reopen in {autoRetryTimer}s
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => onClose()}
+            className="flex-1 px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600"
+          >
+            Open Now
+          </button>
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+          >
+            Stop Reminders
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ FIXED: Don't render main popup if not open
   if (!isOpen) return null;
 
   return (
@@ -181,31 +298,72 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            disabled={isLinking}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          
+          {/* ✅ NEW: Enhanced header buttons */}
+          <div className="flex items-center gap-2">
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              disabled={isLinking || isLoggingOut}
+              className="p-2 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 text-red-600"
+              title="Logout and login with different account"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5" />
+              )}
+            </button>
+            
+            {/* Close button */}
+            <button
+              onClick={() => handleClose(false)}
+              disabled={isLinking}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              title="Close (will reopen in 10 seconds)"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           {!showResults ? (
             /* Payment Selection */
             <div className="p-6">
+              {/* ✅ NEW: Auto-retry info banner */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <p className="text-sm text-blue-700">
+                    <strong>Auto-Retry:</strong> This popup will reappear every 10 seconds until you link payments or click "Dismiss Permanently".
+                  </p>
+                </div>
+              </div>
+
               {/* User Info */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {currentUser?.email || 'Current User'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Pembayaran akan dihubungkan ke akun ini
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {currentUser?.email || 'Current User'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Pembayaran akan dihubungkan ke akun ini
+                      </p>
+                    </div>
                   </div>
+                  
+                  {/* ✅ NEW: Logout button in user info */}
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLinking || isLoggingOut}
+                    className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                  >
+                    {isLoggingOut ? 'Logging out...' : 'Wrong account? Logout'}
+                  </button>
                 </div>
               </div>
 
@@ -362,31 +520,45 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           )}
         </div>
 
-        {/* Footer */}
+        {/* ✅ ENHANCED: Footer with more options */}
         <div className="border-t border-gray-200 p-6">
           {!showResults ? (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
+            <div className="space-y-3">
+              {/* Selection info */}
+              <div className="text-sm text-gray-500 text-center">
                 {selectedPayments.length > 0 && (
                   `${selectedPayments.length} dari ${unlinkedPayments.length} pembayaran dipilih`
                 )}
               </div>
+              
+              {/* Action buttons */}
               <div className="flex gap-3">
                 <button
-                  onClick={handleClose}
+                  onClick={() => handleClose(false)}
                   disabled={isLinking}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  title="Close temporarily (will reopen in 10s)"
                 >
-                  Batal
+                  Tutup Sementara
                 </button>
+                
+                <button
+                  onClick={() => handleClose(true)}
+                  disabled={isLinking}
+                  className="flex-1 px-4 py-2 text-red-700 hover:bg-red-50 border border-red-300 rounded-lg transition-colors disabled:opacity-50"
+                  title="Dismiss permanently (won't reopen automatically)"
+                >
+                  Batal Permanen
+                </button>
+                
                 <button
                   onClick={handleAutoLinkPayments}
                   disabled={selectedPayments.length === 0 || isLinking}
-                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="flex-1 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isLinking && <Loader2 className="w-4 h-4 animate-spin" />}
                   <Zap className="w-4 h-4" />
-                  {isLinking ? 'Menghubungkan...' : `Hubungkan ${selectedPayments.length} Pembayaran`}
+                  {isLinking ? 'Menghubungkan...' : `Hubungkan ${selectedPayments.length}`}
                 </button>
               </div>
             </div>
@@ -398,7 +570,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 )}
               </div>
               <button
-                onClick={handleClose}
+                onClick={() => handleClose(true)}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 Selesai

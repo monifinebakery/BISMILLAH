@@ -1,4 +1,4 @@
-// src/services/auth/payments/verification.ts - DEBUG VERSION
+// src/services/auth/payments/verification.ts - FIXED VERSION
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -74,56 +74,8 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       inputEmail: email
     });
 
-    // ✅ DEBUG: Check if order exists at all
-    logger.orderVerification('🔍 Step 1: Checking if order exists in database', { orderId });
-    
-    const { data: allOrders, error: allOrdersError } = await supabase
-      .from('user_payments')
-      .select('*')
-      .eq('order_id', orderId.trim());
-    
-    logger.orderVerification('📊 All orders with this ID', { 
-      orderId,
-      allOrders,
-      allOrdersError,
-      count: allOrders?.length || 0
-    });
-
-    // ✅ DEBUG: Check paid orders
-    logger.orderVerification('🔍 Step 2: Checking paid orders', { orderId });
-    
-    const { data: paidOrders, error: paidOrdersError } = await supabase
-      .from('user_payments')
-      .select('*')
-      .eq('order_id', orderId.trim())
-      .eq('is_paid', true);
-    
-    logger.orderVerification('📊 Paid orders with this ID', { 
-      orderId,
-      paidOrders,
-      paidOrdersError,
-      count: paidOrders?.length || 0
-    });
-
-    // ✅ DEBUG: Check settled orders
-    logger.orderVerification('🔍 Step 3: Checking settled orders', { orderId });
-    
-    const { data: settledOrders, error: settledOrdersError } = await supabase
-      .from('user_payments')
-      .select('*')
-      .eq('order_id', orderId.trim())
-      .eq('is_paid', true)
-      .eq('payment_status', 'settled');
-    
-    logger.orderVerification('📊 Settled orders with this ID', { 
-      orderId,
-      settledOrders,
-      settledOrdersError,
-      count: settledOrders?.length || 0
-    });
-
-    // Main verification query
-    logger.orderVerification('🔍 Step 4: Main verification query', { email, orderId });
+    // ✅ FIXED: Main verification query (check order exists and is valid)
+    logger.orderVerification('🔍 Main verification query', { email, orderId });
     
     const { data, error } = await supabase
       .from('user_payments')
@@ -147,24 +99,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     }
 
     if (!data || data.length === 0) {
-      logger.orderVerification('❌ No valid order found', { 
-        orderId,
-        hasAllOrders: allOrders?.length > 0,
-        hasPaidOrders: paidOrders?.length > 0,
-        hasSettledOrders: settledOrders?.length > 0
-      });
-      
-      // Provide more specific error message
-      if (allOrders?.length > 0) {
-        const order = allOrders[0];
-        if (!order.is_paid) {
-          return { success: false, message: 'Order ditemukan tapi belum dibayar' };
-        }
-        if (order.payment_status !== 'settled') {
-          return { success: false, message: `Order ditemukan tapi status pembayaran: ${order.payment_status}` };
-        }
-      }
-      
+      logger.orderVerification('❌ No valid order found', { orderId });
       return { success: false, message: 'Order ID tidak ditemukan atau belum dibayar' };
     }
 
@@ -176,10 +111,10 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       isPaid: order.is_paid, 
       status: order.payment_status,
       userId: order.user_id,
-      emailMatch: order.email?.toLowerCase() === email.toLowerCase()
+      isUnlinked: !order.user_id
     });
 
-    // Check if already linked to current user
+    // ✅ FIXED: Check if already linked to current user
     if (order.user_id && isAuth && currentUser) {
       if (order.user_id === currentUser.id) {
         const result = {
@@ -200,38 +135,119 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       }
     }
 
-    // Check email match
-    logger.orderVerification('🔍 Checking email match', {
+    // ✅ FIXED: Enhanced email validation with auth_email support
+    logger.orderVerification('🔍 Checking email match and unlinked status', {
       orderEmail: order.email,
+      authEmail: order.auth_email,
       inputEmail: email,
-      orderEmailLower: order.email?.toLowerCase(),
-      inputEmailLower: email.toLowerCase(),
-      match: order.email?.toLowerCase() === email.toLowerCase()
+      isUnlinked: !order.user_id,
+      isWebhookEmail: order.email?.includes('@payment.com') || order.email?.includes('@webhook.com')
     });
 
-    if (order.email && order.email.toLowerCase() === email.toLowerCase()) {
+    // ✅ CASE 1: Order is unlinked (user_id = null) 
+    if (!order.user_id) {
+      // For unlinked orders, check multiple email sources
+      
+      // Check if it's a webhook/system generated email
+      const isSystemEmail = order.email && (
+        order.email.includes('@payment.com') ||
+        order.email.includes('@webhook.com') ||
+        order.email === 'unlinked@payment.com' ||
+        order.email === 'pending@webhook.com'
+      );
+
+      // ✅ ENHANCED: Check auth_email first (from webhook auto-linking)
+      if (order.auth_email && order.auth_email.toLowerCase() === email.toLowerCase()) {
+        const result = {
+          success: true,
+          message: 'Order ditemukan dan sesuai dengan email Anda (via auth_email)',
+          data: order,
+          needsAuth: isAuth ? false : true
+        };
+        logger.orderVerification('✅ Auth email match for unlinked order', result);
+        return result;
+      }
+
+      // ✅ Check main email field  
+      if (order.email && order.email.toLowerCase() === email.toLowerCase()) {
+        const result = {
+          success: true,
+          message: 'Order ditemukan dan sesuai dengan email Anda',
+          data: order,
+          needsAuth: isAuth ? false : true
+        };
+        logger.orderVerification('✅ Main email match for unlinked order', result);
+        return result;
+      }
+
+      // ✅ For system emails, allow linking if user is authenticated
+      if (isSystemEmail && isAuth && currentUser) {
+        // Additional check: if auth_email exists, it must match current user
+        if (order.auth_email && currentUser.email && 
+            order.auth_email.toLowerCase() !== currentUser.email.toLowerCase()) {
+          const result = {
+            success: false,
+            message: `Order ini sudah terkait dengan email ${order.auth_email}. Silakan login dengan email yang sesuai.`
+          };
+          logger.orderVerification('❌ Auth email mismatch with current user', result);
+          return result;
+        }
+
+        const result = {
+          success: true,
+          message: 'Order ditemukan dan dapat dihubungkan ke akun Anda',
+          data: order,
+          needsAuth: false
+        };
+        logger.orderVerification('✅ System email - allow authenticated user linking', result);
+        return result;
+      }
+
+      // ✅ For system emails without auth, require login
+      if (isSystemEmail && !isAuth) {
+        const result = {
+          success: true,
+          message: 'Order ditemukan. Silakan login untuk menghubungkan.',
+          data: order,
+          needsAuth: true
+        };
+        logger.orderVerification('⚠️ System email - require login', result);
+        return result;
+      }
+
+      // ✅ For unlinked orders with different emails, allow with warning if authenticated
+      if (isAuth && currentUser) {
+        const result = {
+          success: true,
+          message: 'Order ditemukan. Pastikan ini adalah order Anda sebelum menghubungkan.',
+          data: order,
+          needsAuth: false
+        };
+        logger.orderVerification('⚠️ Email mismatch but allowing authenticated user', result);
+        return result;
+      }
+
+      // ✅ Not authenticated, different email
       const result = {
-        success: true,
-        message: 'Order ditemukan dan sesuai dengan email Anda',
-        data: order,
-        needsAuth: isAuth ? false : true
+        success: false,
+        message: 'Email tidak sesuai dengan order ini. Silakan gunakan email yang benar atau login dengan akun yang sesuai.'
       };
-      logger.orderVerification('✅ Email match successful', result);
+      logger.orderVerification('❌ Email mismatch, not authenticated', result);
       return result;
     }
 
-    // If we reach here, order exists but email doesn't match
-    logger.orderVerification('❌ Order found but email mismatch', {
+    // ✅ CASE 2: Order is already linked but not to current user
+    logger.orderVerification('❌ Order is linked to different user', {
       orderId,
       orderEmail: order.email,
       inputEmail: email,
-      orderEmailLower: order.email?.toLowerCase(),
-      inputEmailLower: email.toLowerCase()
+      orderUserId: order.user_id,
+      currentUserId: currentUser?.id
     });
 
     return { 
       success: false, 
-      message: `Order ditemukan tapi email tidak sesuai. Order email: ${order.email}, Input email: ${email}` 
+      message: 'Order ini sudah terhubung dengan akun lain. Silakan hubungi admin jika ini adalah order Anda.' 
     };
     
   } catch (error: any) {

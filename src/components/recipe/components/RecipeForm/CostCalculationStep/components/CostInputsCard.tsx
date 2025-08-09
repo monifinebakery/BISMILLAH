@@ -44,33 +44,6 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
     onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
   });
 
-  const laborTooltipContent = (
-    <div className="space-y-2">
-      <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
-      <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
-      
-      <div className="border-t border-gray-700 pt-2">
-        <p className="text-red-300">❌ Bukan termasuk:</p>
-        <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
-        <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
-      </div>
-      
-      <div className="border-t border-gray-700 pt-2">
-        <p className="text-green-300">✅ Yang dihitung:</p>
-        <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
-        <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
-      </div>
-      
-      <div className="border-t border-gray-700 pt-2">
-        <p className="font-medium text-blue-300">📊 Formula:</p>
-        <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
-          (Total Gaji Bulanan Staf Produksi) ÷<br/>
-          (Total Porsi Diproduksi per Bulan)
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="xl:col-span-2 space-y-6">
       
@@ -318,7 +291,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             </p>
           </div>
 
-          {/* Profit Margin */}
+          {/* Profit Margin - ENHANCED VERSION */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-gray-500" />
@@ -356,6 +329,22 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
               </ResponsiveTooltip>
             </Label>
+            
+            {/* 🚨 WARNING ALERT - Show when margin is empty */}
+            {(!data.marginKeuntunganPersen || data.marginKeuntunganPersen === 0) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-800">
+                    Margin keuntungan belum diisi!
+                  </span>
+                </div>
+                <p className="text-xs text-amber-700 mt-1">
+                  Silakan masukkan persentase margin yang diinginkan untuk menghitung harga jual.
+                </p>
+              </div>
+            )}
+            
             <div className="relative">
               <Input
                 type="number"
@@ -364,20 +353,63 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 step="0.1"
                 value={data.marginKeuntunganPersen || ''}
                 onChange={(e) => onUpdate('marginKeuntunganPersen', parseFloat(e.target.value) || 0)}
-                placeholder="25"
-                className={`pr-8 ${errors.marginKeuntunganPersen ? 'border-red-300 focus:border-red-500' : ''}`}
+                placeholder="Contoh: 25"
+                className={`pr-8 ${
+                  errors.marginKeuntunganPersen ? 'border-red-300 focus:border-red-500' : 
+                  (!data.marginKeuntunganPersen || data.marginKeuntunganPersen === 0) ? 'border-amber-300 focus:border-amber-500' : 
+                  'border-green-300 focus:border-green-500'
+                }`}
                 disabled={isLoading}
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                 %
               </span>
             </div>
+            
             {errors.marginKeuntunganPersen && (
               <p className="text-sm text-red-600">{errors.marginKeuntunganPersen}</p>
             )}
-            <p className="text-xs text-gray-500">
-              Persentase keuntungan yang diinginkan dari total biaya produksi
-            </p>
+            
+            {/* 🔧 ENHANCED HELP TEXT */}
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500">
+                Persentase keuntungan yang diinginkan dari total biaya produksi
+              </p>
+              
+              {/* Quick Suggestion Buttons */}
+              <div className="flex gap-1 flex-wrap items-center">
+                <p className="text-xs text-gray-400 mr-2">Coba:</p>
+                {[15, 20, 25, 30, 35].map((percent) => (
+                  <button
+                    key={percent}
+                    type="button"
+                    onClick={() => onUpdate('marginKeuntunganPersen', percent)}
+                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                    disabled={isLoading}
+                  >
+                    {percent}%
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Current Margin Status */}
+            {data.marginKeuntunganPersen && data.marginKeuntunganPersen > 0 && (
+              <div className={`text-xs p-2 rounded-lg border ${
+                data.marginKeuntunganPersen >= 30 ? 'bg-green-50 text-green-700 border-green-200' :
+                data.marginKeuntunganPersen >= 15 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                'bg-red-50 text-red-700 border-red-200'
+              }`}>
+                <div className="flex items-center gap-1">
+                  {data.marginKeuntunganPersen >= 30 ? 
+                    <>✅ <span className="font-medium">Margin sangat baik!</span> Sustainable untuk jangka panjang.</> :
+                   data.marginKeuntunganPersen >= 15 ? 
+                    <>⚠️ <span className="font-medium">Margin cukup wajar</span> untuk industri F&B.</> :
+                    <>❌ <span className="font-medium">Margin terlalu rendah</span>, pertimbangkan untuk dinaikkan.</>
+                  }
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

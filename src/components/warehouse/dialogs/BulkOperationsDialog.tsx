@@ -163,8 +163,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedItemsData.slice(0, 10).map((item) => {
-                  // ✅ Use updated helper functions
-                  const stockLevel = warehouseUtils.getStockLevel(item);
+                  // ✅ Fixed: Use formatStockLevel instead of getStockLevel
+                  const stockLevel = warehouseUtils.formatStockLevel(item.stok, item.minimum);
                   
                   return (
                     <div key={item.id} className="flex items-center gap-2 text-sm">
@@ -373,17 +373,17 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                       )}
                     </span>
                   </div>
-                  {/* ✅ Additional analytics */}
+                  {/* ✅ Fixed: Use correct utility functions */}
                   <div>
                     <span className="text-gray-600">Item Stok Rendah:</span>
                     <span className="font-medium ml-2 text-yellow-600">
-                      {selectedItemsData.filter(item => warehouseUtils.isLowStockItem(item)).length}
+                      {warehouseUtils.getLowStockItems(selectedItemsData).length}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Item Akan Kadaluarsa:</span>
                     <span className="font-medium ml-2 text-red-600">
-                      {selectedItemsData.filter(item => warehouseUtils.isExpiringItem(item)).length}
+                      {warehouseUtils.getExpiringItems(selectedItemsData, 30).length}
                     </span>
                   </div>
                 </div>

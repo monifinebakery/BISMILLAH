@@ -1,28 +1,27 @@
-// src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx - Optimized Dependencies (9 → 6)
+// src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx - FIXED
 
 import React from 'react';
 import { Calculator } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
-// ✅ CONSOLIDATED: Component imports grouped
+// Component imports
 import { CostInputsCard } from './components/CostInputsCard';
 import { ResultsCard } from './components/ResultsCard';
 import { SummaryGrid } from './components/SummaryGrid';
 import { BreakdownChart } from './components/BreakdownChart';
 import { CostValidationAlert } from './components/shared/ValidationAlert';
 
-// ✅ CONSOLIDATED: Hook imports grouped  
+// Hook imports
 import { useCostCalculation } from './hooks/useCostCalculation';
 import { useOverheadManagement } from './hooks/useOverheadManagement';
 
-// ✅ CONSOLIDATED: Utility imports grouped
+// Utility imports
 import { calculateIngredientCost } from './utils/calculations';
 import { formatCurrency } from './utils/formatters';
 
-// ✅ KEEP: Types import
+// Types
 import type { NewRecipe, RecipeFormStepProps } from '../../types';
-
-// ❌ REMOVED: None - keeping individual imports to avoid creating new barrel files
-// All imports are necessary for the component functionality
+import type { CostCalculationData } from './utils/types';
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
 
@@ -33,15 +32,32 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   isLoading = false,
 }) => {
   
-  // Debug: Check data structure
-  console.log('CostCalculationStep data:', data);
-  console.log('Recipe ingredients:', data.bahanResep);
-  
-  // Calculate ingredient cost with enhanced function
-  const ingredientCost = calculateIngredientCost(data.bahanResep || []);
-  console.log('Calculated ingredient cost:', ingredientCost);
+  // 🔧 FIX: Transform NewRecipe data to CostCalculationData format
+  const costCalculationData: CostCalculationData = {
+    bahanResep: data.bahanResep || [],
+    jumlahPorsi: data.jumlahPorsi || 1,
+    jumlahPcsPerPorsi: data.jumlahPcsPerPorsi || 1,
+    biayaTenagaKerja: data.biayaTenagaKerja || 0,
+    biayaOverhead: data.biayaOverhead || 0,
+    marginKeuntunganPersen: data.marginKeuntunganPersen || 0, // 🎯 KEY FIX!
+  };
 
-  // Main cost calculation hook
+  // 🐛 DEBUG: Log the transformation
+  logger.debug('CostCalculationStep data transformation', {
+    originalData: data,
+    transformedData: costCalculationData,
+    marginKeuntunganPersen: {
+      original: data.marginKeuntunganPersen,
+      transformed: costCalculationData.marginKeuntunganPersen,
+      type: typeof costCalculationData.marginKeuntunganPersen
+    }
+  });
+
+  // Calculate ingredient cost with enhanced function
+  const ingredientCost = calculateIngredientCost(costCalculationData.bahanResep);
+  logger.debug('Calculated ingredient cost', { ingredientCost });
+
+  // 🔧 FIX: Main cost calculation hook with correct data format
   const {
     costBreakdown,
     profitAnalysis,
@@ -49,25 +65,34 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     validationErrors,
     totalRevenue,
     isDataValid,
-  } = useCostCalculation(data);
+  } = useCostCalculation(costCalculationData); // ✅ Use transformed data
 
   // Override ingredient cost with our enhanced calculation
   costBreakdown.ingredientCost = ingredientCost;
   costBreakdown.totalProductionCost = ingredientCost + costBreakdown.laborCost + costBreakdown.overheadCost;
-  costBreakdown.costPerPortion = data.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / data.jumlahPorsi : 0;
-  costBreakdown.costPerPiece = data.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / data.jumlahPcsPerPorsi : 0;
+  costBreakdown.costPerPortion = costCalculationData.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / costCalculationData.jumlahPorsi : 0;
+  costBreakdown.costPerPiece = costCalculationData.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / costCalculationData.jumlahPcsPerPorsi : 0;
 
   // Overhead management for auto-calculation
   const overheadManagement = useOverheadManagement({
     ingredientCost: costBreakdown.ingredientCost,
-    jumlahPorsi: data.jumlahPorsi,
-    currentOverheadCost: data.biayaOverhead,
+    jumlahPorsi: costCalculationData.jumlahPorsi,
+    currentOverheadCost: costCalculationData.biayaOverhead,
     onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
   });
 
   // Combine validation errors
   const allErrors = { ...errors, ...validationErrors };
   const hasValidationErrors = Object.keys(allErrors).length > 0 || !!overheadManagement.error;
+
+  // 🐛 FINAL DEBUG LOG
+  logger.debug('CostCalculationStep final values', {
+    costBreakdown,
+    profitAnalysis,
+    marginAmount: profitAnalysis.marginAmount,
+    isMarginZero: profitAnalysis.marginAmount === 0,
+    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen
+  });
 
   return (
     <div className="space-y-6">
@@ -84,6 +109,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           Tentukan biaya produksi dan margin keuntungan untuk resep Anda
         </p>
       </div>
+
+
 
       {/* Main Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -102,9 +129,9 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           <ResultsCard
             costBreakdown={costBreakdown}
             profitAnalysis={profitAnalysis}
-            jumlahPorsi={data.jumlahPorsi}
-            jumlahPcsPerPorsi={data.jumlahPcsPerPorsi}
-            marginKeuntunganPersen={data.marginKeuntunganPersen || 0}
+            jumlahPorsi={costCalculationData.jumlahPorsi}
+            jumlahPcsPerPorsi={costCalculationData.jumlahPcsPerPorsi}
+            marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen}
             isUsingAutoOverhead={overheadManagement.isUsingAutoOverhead}
             overheadCalculation={overheadManagement.overheadCalculation}
           />
@@ -117,8 +144,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         profitAnalysis={profitAnalysis}
         breakEvenPoint={breakEvenPoint}
         totalRevenue={totalRevenue}
-        jumlahPorsi={data.jumlahPorsi}
-        marginKeuntunganPersen={data.marginKeuntunganPersen || 0}
+        jumlahPorsi={costCalculationData.jumlahPorsi}
+        marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen}
       />
 
       {/* Cost Breakdown Chart */}
@@ -131,7 +158,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
       {overheadManagement.isUsingAutoOverhead && overheadManagement.overheadCalculation && (
         <OverheadDetailsCard
           overheadCalculation={overheadManagement.overheadCalculation}
-          jumlahPorsi={data.jumlahPorsi}
+          jumlahPorsi={costCalculationData.jumlahPorsi}
         />
       )}
 
@@ -149,7 +176,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   );
 };
 
-// ✅ KEEP: Overhead Details Card Component (existing logic)
+// Overhead Details Card Component (existing logic)
 interface OverheadDetailsCardProps {
   overheadCalculation: any;
   jumlahPorsi: number;

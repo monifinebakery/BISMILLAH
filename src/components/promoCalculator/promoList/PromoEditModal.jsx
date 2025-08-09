@@ -5,10 +5,10 @@ import { logger } from '@/utils/logger';
 
 const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    namaPromo: '', // ✅ Changed from nama_promo to match service
+    namaPromo: '',
     status: 'aktif',
-    tanggalMulai: '', // ✅ Changed from tanggal_mulai to match service
-    tanggalSelesai: '', // ✅ Changed from tanggal_selesai to match service
+    tanggalMulai: '',
+    tanggalSelesai: '',
     deskripsi: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +16,11 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   // ✅ Reset form when promo changes
   useEffect(() => {
     if (promo) {
-      console.log('📝 Setting form data for promo:', promo);
+      logger.component('PromoEditModal', 'Setting form data for promo', { 
+        promoId: promo.id,
+        promoName: promo.namaPromo || promo.nama_promo 
+      });
+      
       setFormData({
         namaPromo: promo.namaPromo || promo.nama_promo || '',
         status: promo.status || 'aktif',
@@ -30,6 +34,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   // ✅ Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
+      logger.component('PromoEditModal', 'Modal closed, resetting form');
       setFormData({
         namaPromo: '',
         status: 'aktif',
@@ -44,21 +49,22 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!promo) {
-      console.error('❌ No promo data available');
+      logger.error('No promo data available for editing');
       toast.error('Data promo tidak tersedia');
       return;
     }
 
     // Validation
     if (!formData.namaPromo.trim()) {
+      logger.warn('Form validation failed: empty promo name');
       toast.error('Nama promo tidak boleh kosong');
       return;
     }
 
-    console.log('📝 Submitting form data:', {
+    logger.component('PromoEditModal', 'Submitting form data', {
       promoId: promo.id,
       formData,
-      originalPromo: promo
+      hasOriginalPromo: !!promo
     });
 
     setIsLoading(true);
@@ -66,11 +72,11 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
       // Call onSave from parent (PromoList)
       await onSave(formData);
       
-      console.log('✅ Form submitted successfully');
+      logger.success('Promo form submitted successfully', { promoId: promo.id });
       // Modal will be closed by parent on success
       
     } catch (error) {
-      console.error('❌ Error in modal submit:', error);
+      logger.error('Error in promo modal submit', error);
       toast.error(`Gagal memperbarui promo: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -78,16 +84,27 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
   };
 
   const handleInputChange = (field, value) => {
+    logger.ui('PromoEditModal', `field-change:${field}`, { field, value });
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleClose = () => {
-    if (isLoading) return; // Prevent closing while saving
+    if (isLoading) {
+      logger.warn('Attempted to close modal while saving');
+      return; // Prevent closing while saving
+    }
+    logger.component('PromoEditModal', 'Modal close requested');
     onClose();
   };
 
   // Don't render if not open
   if (!isOpen) return null;
+
+  logger.component('PromoEditModal', 'Rendering modal', { 
+    hasPromo: !!promo, 
+    isLoading,
+    formDataValid: !!formData.namaPromo.trim()
+  });
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

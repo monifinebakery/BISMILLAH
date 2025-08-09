@@ -23,14 +23,13 @@ interface WarehouseContextType {
  * - Pagination
  * - Dialog management
  * - Event handlers
- * - Bulk operations (lazy loaded)
+ * - Bulk operations (built-in, not lazy loaded to avoid hook violations)
  * 
  * Updated to use BahanBakuFrontend consistently
  * Total Size: ~8KB (lightweight but comprehensive)
  */
 export const useWarehouseCore = (context: WarehouseContextType) => {
   const hookId = useRef(`useWarehouseCore-${Date.now()}`);
-  const [bulkModule, setBulkModule] = useState<any>(null);
 
   // === SELECTION STATE ===
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -64,25 +63,8 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   });
   const [editingItem, setEditingItem] = useState<BahanBakuFrontend | null>(null);  // ✅ Updated
 
-  // === LAZY LOAD BULK OPERATIONS ===
-  useEffect(() => {
-    if (selectedItems.length > 0 && !bulkModule) {
-      logger.debug(`[${hookId.current}] 📦 Loading bulk operations...`);
-      
-      import('./useWarehouseBulk').then(module => {
-        const bulk = module.useWarehouseBulk({
-          updateBahanBaku: context.updateBahanBaku,
-          bulkDeleteBahanBaku: context.bulkDeleteBahanBaku || (() => Promise.resolve(false)),
-          selectedItems,
-          clearSelection: () => setSelectedItems([]),
-        });
-        setBulkModule(bulk);
-        logger.debug(`[${hookId.current}] ✅ Bulk operations loaded`);
-      }).catch(err => {
-        logger.error(`[${hookId.current}] ❌ Failed to load bulk operations:`, err);
-      });
-    }
-  }, [selectedItems.length, bulkModule, context]);
+  // === BULK OPERATIONS STATE ===
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   // === COMPUTED VALUES ===
   
@@ -272,6 +254,113 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     }));
   }, []);
 
+  // === BULK OPERATIONS (Built-in to avoid hook violations) ===
+  const handleBulkEdit = useCallback(async (updates: Partial<BahanBakuFrontend>) => {
+    if (selectedItems.length === 0) return false;
+    
+    setIsBulkProcessing(true);
+    logger.debug(`[${hookId.current}] 🔄 Starting bulk edit for ${selectedItems.length} items`);
+    
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Process items one by one for now (can be optimized with actual bulk API)
+      for (const id of selectedItems) {
+        try {
+          const success = await context.updateBahanBaku(id, updates);
+          if (success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          logger.warn(`[${hookId.current}] Failed to update item ${id}:`, error);
+          errorCount++;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} item berhasil diperbarui!`);
+      }
+      
+      if (errorCount > 0) {
+        toast.error(`${errorCount} item gagal diperbarui`);
+      }
+      
+      // Clear selection after successful bulk operation
+      clearSelection();
+      
+      logger.debug(`[${hookId.current}] ✅ Bulk edit completed: ${successCount} success, ${errorCount} errors`);
+      return successCount > 0;
+      
+    } catch (error) {
+      logger.error(`[${hookId.current}] ❌ Bulk edit operation failed:`, error);
+      toast.error('Operasi edit massal gagal');
+      return false;
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  }, [selectedItems, context.updateBahanBaku, clearSelection]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedItems.length === 0) return false;
+    
+    setIsBulkProcessing(true);
+    logger.debug(`[${hookId.current}] 🗑️ Starting bulk delete for ${selectedItems.length} items`);
+    
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Use bulk delete if available, otherwise fall back to individual deletes
+      if (context.bulkDeleteBahanBaku) {
+        const success = await context.bulkDeleteBahanBaku(selectedItems);
+        if (success) {
+          successCount = selectedItems.length;
+        } else {
+          errorCount = selectedItems.length;
+        }
+      } else {
+        // Fallback: Delete items one by one
+        for (const id of selectedItems) {
+          try {
+            const success = await context.deleteBahanBaku(id);
+            if (success) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+          } catch (error) {
+            logger.warn(`[${hookId.current}] Failed to delete item ${id}:`, error);
+            errorCount++;
+          }
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} item berhasil dihapus!`);
+      }
+      
+      if (errorCount > 0) {
+        toast.error(`${errorCount} item gagal dihapus`);
+      }
+      
+      // Clear selection after successful bulk operation
+      clearSelection();
+      
+      logger.debug(`[${hookId.current}] ✅ Bulk delete completed: ${successCount} success, ${errorCount} errors`);
+      return successCount > 0;
+      
+    } catch (error) {
+      logger.error(`[${hookId.current}] ❌ Bulk delete operation failed:`, error);
+      toast.error('Operasi hapus massal gagal');
+      return false;
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  }, [selectedItems, context.deleteBahanBaku, context.bulkDeleteBahanBaku, clearSelection]);
+
   // === FILTER FUNCTIONS ===
   const resetFilters = useCallback(() => {
     setSearchTerm('');
@@ -303,6 +392,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       isPageSelected,
       isPagePartiallySelected,
       toggleSelectionMode,
+      clearSelection, // ✅ Added for compatibility
     },
 
     // Filters
@@ -350,11 +440,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       sort: handleSort,
     },
 
-    // Bulk Operations (lazy loaded)
-    bulk: bulkModule || {
-      isProcessing: false,
-      bulkEdit: async () => false,
-      bulkDelete: async () => false,
+    // Bulk Operations (built-in)
+    bulk: {
+      isProcessing: isBulkProcessing,
+      bulkEdit: handleBulkEdit,
+      bulkDelete: handleBulkDelete,
     },
   };
 };

@@ -1,4 +1,4 @@
-// pages/Dashboard.tsx - Enhanced with Balanced Layout
+// pages/Dashboard.tsx - Updated to use new trends data
 
 import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -15,11 +15,11 @@ const CriticalStock = lazy(() => import('@/components/dashboard/CriticalStock'))
 const RecentActivities = lazy(() => import('@/components/dashboard/RecentActivities'));
 const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSellingProducts'));
 
-// 📦 Enhanced Loading Component with different sizes
+// 📦 Enhanced Loading Component
 const SectionLoader = ({ height = "h-32", className = "" }) => (
-  <div className={`${height} ${className} bg-white rounded-lg shadow-sm border border-gray-100 animate-pulse flex items-center justify-center`}>
+  <div className={`${height} ${className} bg-white rounded-lg shadow-sm border border-gray-100 flex items-center justify-center`}>
     <div className="flex items-center space-x-2">
-      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+      <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
       <span className="text-gray-400 text-sm">Memuat...</span>
     </div>
   </div>
@@ -62,7 +62,7 @@ const Dashboard = () => {
   const { ownerName } = settings;
   const isMobile = useIsMobile();
 
-  // 🔄 Data Fetching
+  // 🔄 Data Fetching with Trends
   const {
     stats,
     bestSellingProducts,
@@ -113,12 +113,12 @@ const Dashboard = () => {
     );
   }
 
-  // 🔄 Loading state untuk settings dan initial load
+  // 🔄 Loading state
   if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
           <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
         </div>
@@ -162,8 +162,8 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* 📊 Stats Grid */}
-            <Suspense fallback={<SectionLoader height="h-24" className="mb-6" />}>
+            {/* 📊 Stats Grid with Trends */}
+            <Suspense fallback={<SectionLoader height="h-32" className="mb-6" />}>
               <div className="mb-6">
                 <StatsGrid 
                   stats={stats}
@@ -178,12 +178,11 @@ const Dashboard = () => {
             </Suspense>
           </div>
 
-          {/* 📈 Main Content Grid - ENHANCED LAYOUT */}
+          {/* 📈 Main Content Grid */}
           <div className="space-y-8">
             
             {/* First Row: Best Selling + Recent Activities */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              {/* Best Selling Products - Takes 2 columns on xl screens */}
               <div className="xl:col-span-2">
                 <Suspense fallback={<SectionLoader height="h-80" />}>
                   <BestSellingProducts
@@ -195,7 +194,6 @@ const Dashboard = () => {
                 </Suspense>
               </div>
 
-              {/* Recent Activities - Takes 1 column */}
               <div className="xl:col-span-1">
                 <Suspense fallback={<SectionLoader height="h-80" />}>
                   <RecentActivities
@@ -210,7 +208,6 @@ const Dashboard = () => {
 
             {/* Second Row: Critical Stock + Worst Selling */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Critical Stock */}
               <div>
                 <Suspense fallback={<SectionLoader height="h-64" />}>
                   <CriticalStock
@@ -220,7 +217,6 @@ const Dashboard = () => {
                 </Suspense>
               </div>
 
-              {/* Worst Selling Products */}
               <div>
                 <Suspense fallback={<SectionLoader height="h-64" />}>
                   <WorstSellingProducts
@@ -232,18 +228,6 @@ const Dashboard = () => {
                 </Suspense>
               </div>
             </div>
-
-            {/* Optional: Third Row for Future Components */}
-            {/* 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                // Revenue Chart or Sales Trends
-              </div>
-              <div className="lg:col-span-1">
-                // Quick Insights or Notifications
-              </div>
-            </div>
-            */}
           </div>
 
           {/* 📱 Mobile Bottom Spacer */}

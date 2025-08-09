@@ -1,4 +1,4 @@
-// src/components/popups/AutoLinkingPopup.tsx - SIMPLIFIED (removed auth_email and linked_at)
+// src/components/popups/AutoLinkingPopup.tsx - DEBUG VERSION
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -137,7 +137,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ SIMPLIFIED: Auto-linking (removed auth_email and linked_at)
+  // ✅ ENHANCED DEBUG VERSION
   const handleAutoLinkPayments = async () => {
     if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
       logger.error('AutoLinkingPopup: Missing requirements for linking');
@@ -174,6 +174,41 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         try {
           logger.debug('AutoLinkingPopup: Linking payment', payment.order_id, 'to user ID:', sanitizedUserId);
 
+          // ✅ DEBUG: First check if payment exists and is unlinked
+          const { data: checkData, error: checkError } = await supabaseClient
+            .from('user_payments')
+            .select('*')
+            .eq('order_id', payment.order_id);
+
+          logger.debug('AutoLinkingPopup: Pre-update check:', {
+            order_id: payment.order_id,
+            checkData,
+            checkError,
+            dataLength: checkData?.length || 0
+          });
+
+          if (checkError) {
+            logger.error('AutoLinkingPopup: Pre-update check error:', checkError);
+            throw new Error(`Pre-check failed: ${checkError.message}`);
+          }
+
+          if (!checkData || checkData.length === 0) {
+            throw new Error('Payment not found in database');
+          }
+
+          const existingPayment = checkData[0];
+          logger.debug('AutoLinkingPopup: Existing payment:', {
+            order_id: existingPayment.order_id,
+            current_user_id: existingPayment.user_id,
+            current_email: existingPayment.email,
+            is_paid: existingPayment.is_paid,
+            payment_status: existingPayment.payment_status
+          });
+
+          if (existingPayment.user_id !== null) {
+            throw new Error(`Payment already linked to user: ${existingPayment.user_id}`);
+          }
+
           // ✅ SIMPLIFIED: Only user_id, email, and updated_at
           const updateData = {
             user_id: sanitizedUserId,
@@ -183,13 +218,21 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
           logger.debug('AutoLinkingPopup: Update data:', updateData);
 
-          const { data, error } = await supabaseClient
+          // ✅ DEBUG: Enhanced update with better conditions
+          const { data, error, count } = await supabaseClient
             .from('user_payments')
             .update(updateData)
             .eq('order_id', payment.order_id)
-            .eq('user_id', null) // ✅ SAFETY: Only update if still unlinked
-            .select()
-            .single();
+            .is('user_id', null) // ✅ SAFETY: Only update if still unlinked
+            .select('*');
+
+          logger.debug('AutoLinkingPopup: Update result:', {
+            order_id: payment.order_id,
+            data,
+            error,
+            count,
+            dataLength: data?.length || 0
+          });
 
           if (error) {
             logger.error('AutoLinkingPopup: Database error for', payment.order_id, error);
@@ -199,23 +242,53 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               logger.error('AutoLinkingPopup: UUID syntax error:', {
                 sanitizedUserId,
                 updateData,
-                originalUserId: currentUser.id
+                originalUserId: currentUser.id,
+                errorDetails: error
               });
               throw new Error('Invalid user ID format detected. Please logout and login again.');
             }
             
-            throw error;
+            if (error.code === '23505') {
+              logger.error('AutoLinkingPopup: Constraint violation:', error);
+              throw new Error('Constraint violation - payment may already be linked');
+            }
+            
+            if (error.code === '42501') {
+              logger.error('AutoLinkingPopup: Permission denied:', error);
+              throw new Error('Permission denied - check RLS policies');
+            }
+            
+            throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
           }
 
-          if (!data) {
-            throw new Error('Payment not found or already linked');
+          if (!data || data.length === 0) {
+            // ✅ DEBUG: Check why no rows were updated
+            const { data: recheckData } = await supabaseClient
+              .from('user_payments')
+              .select('*')
+              .eq('order_id', payment.order_id);
+
+            logger.debug('AutoLinkingPopup: Recheck after failed update:', {
+              order_id: payment.order_id,
+              recheckData,
+              wasAlreadyLinked: recheckData?.[0]?.user_id !== null
+            });
+
+            if (recheckData?.[0]?.user_id !== null) {
+              throw new Error('Payment was linked by another process');
+            } else {
+              throw new Error('No rows updated - payment may not exist or conditions not met');
+            }
           }
 
+          const updatedPayment = data[0];
           logger.success('AutoLinkingPopup: Successfully linked', payment.order_id, 'to user:', sanitizedUserId);
+          logger.debug('AutoLinkingPopup: Updated payment data:', updatedPayment);
+          
           results.push({
             order_id: payment.order_id,
             success: true,
-            data
+            data: updatedPayment
           });
         } catch (error: any) {
           logger.error('AutoLinkingPopup: Failed to link', payment.order_id, error);
@@ -342,7 +415,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
+        {/* Header with Enhanced Debug Info */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-100 rounded-lg">
@@ -350,19 +423,24 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Auto-Link Pembayaran Terdeteksi
+                Auto-Link Pembayaran Terdeteksi (DEBUG)
               </h2>
               <p className="text-sm text-gray-500">
                 Hubungkan pembayaran webhook ke akun Anda
               </p>
               
-              {/* ✅ DEBUG: Show user ID validation in dev */}
+              {/* ✅ ENHANCED DEBUG: Show detailed user info */}
               {showDebugInfo && (
-                <div className="text-xs mt-1">
-                  <span className={`font-mono ${currentUser.id === 'null' ? 'text-red-600 bg-red-100' : 'text-green-600'}`}>
-                    ID: {currentUser.id} ({typeof currentUser.id})
-                  </span>
-                  {currentUser.id === 'null' && <span className="text-red-600 ml-2">⚠️ STRING NULL!</span>}
+                <div className="text-xs mt-2 bg-gray-100 p-2 rounded">
+                  <div className="font-mono">
+                    <div className={`${currentUser.id === 'null' ? 'text-red-600' : 'text-green-600'}`}>
+                      <strong>User ID:</strong> {currentUser.id} ({typeof currentUser.id})
+                    </div>
+                    <div><strong>Email:</strong> {currentUser.email}</div>
+                    <div><strong>Sanitized:</strong> {sanitizeUserId(currentUser.id) || 'NULL'}</div>
+                    <div><strong>UUID Valid:</strong> {sanitizeUserId(currentUser.id) ? '✅' : '❌'}</div>
+                  </div>
+                  {currentUser.id === 'null' && <div className="text-red-600 font-bold mt-1">⚠️ STRING NULL DETECTED!</div>}
                 </div>
               )}
             </div>
@@ -393,15 +471,16 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           </div>
         </div>
 
+        {/* Rest of component stays the same but with debug styling */}
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           {!showResults ? (
             <div className="p-6">
-              {/* Auto-retry info banner */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              {/* Enhanced debug banner */}
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <p className="text-sm text-blue-700">
-                    <strong>Auto-Retry:</strong> This popup will reappear every 10 seconds until you link payments or click "Dismiss Permanently".
+                  <Clock className="w-4 h-4 text-yellow-600" />
+                  <p className="text-sm text-yellow-700">
+                    <strong>DEBUG MODE:</strong> Enhanced logging enabled. Check console for detailed debug info.
                   </p>
                 </div>
               </div>
@@ -435,14 +514,6 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                   <p className="text-gray-600">Tidak ada pembayaran webhook yang terdeteksi</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Semua pembayaran webhook sudah terhubung!
-                  </p>
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      💡 <strong>Punya pembayaran baru?</strong> Gunakan tombol "Hubungkan Pembayaran" untuk menghubungkan pembayaran dengan Order ID secara manual.
-                    </p>
-                  </div>
                 </div>
               ) : (
                 <>
@@ -497,6 +568,12 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                                 WEBHOOK
                               </span>
+                              {/* Debug info */}
+                              {showDebugInfo && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  USER_ID: {payment.user_id || 'NULL'}
+                                </span>
+                              )}
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -540,7 +617,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             <div className="p-6">
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">
-                  Hasil Auto-Linking
+                  Hasil Auto-Linking (DEBUG)
                 </h3>
                 <p className="text-sm text-gray-500">
                   {linkingResults.filter(r => r.success).length} dari {linkingResults.length} pembayaran berhasil dihubungkan
@@ -570,9 +647,16 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                             Berhasil dihubungkan ke akun Anda
                           </p>
                         ) : (
-                          <p className="text-sm text-red-700">
-                            Gagal: {result.error}
-                          </p>
+                          <div>
+                            <p className="text-sm text-red-700">
+                              Gagal: {result.error}
+                            </p>
+                            {showDebugInfo && (
+                              <p className="text-xs text-red-600 mt-1 font-mono">
+                                Check console for detailed error info
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

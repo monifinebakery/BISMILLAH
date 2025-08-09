@@ -1,4 +1,4 @@
-// src/services/auth/payments/verification.ts - FIXED VERSION
+// src/services/auth/payments/verification.ts - SIMPLIFIED VERSION (removed auth_email)
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -74,7 +74,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       inputEmail: email
     });
 
-    // ✅ FIXED: Main verification query (check order exists and is valid)
+    // ✅ SIMPLIFIED: Main verification query (check order exists and is valid)
     logger.orderVerification('🔍 Main verification query', { email, orderId });
     
     const { data, error } = await supabase
@@ -114,7 +114,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       isUnlinked: !order.user_id
     });
 
-    // ✅ FIXED: Check if already linked to current user
+    // ✅ SIMPLIFIED: Check if already linked to current user
     if (order.user_id && isAuth && currentUser) {
       if (order.user_id === currentUser.id) {
         const result = {
@@ -135,10 +135,9 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       }
     }
 
-    // ✅ FIXED: Enhanced email validation with auth_email support
+    // ✅ SIMPLIFIED: Email validation (only check main email field)
     logger.orderVerification('🔍 Checking email match and unlinked status', {
       orderEmail: order.email,
-      authEmail: order.auth_email,
       inputEmail: email,
       isUnlinked: !order.user_id,
       isWebhookEmail: order.email?.includes('@payment.com') || order.email?.includes('@webhook.com')
@@ -146,8 +145,6 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
 
     // ✅ CASE 1: Order is unlinked (user_id = null) 
     if (!order.user_id) {
-      // For unlinked orders, check multiple email sources
-      
       // Check if it's a webhook/system generated email
       const isSystemEmail = order.email && (
         order.email.includes('@payment.com') ||
@@ -156,19 +153,7 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
         order.email === 'pending@webhook.com'
       );
 
-      // ✅ ENHANCED: Check auth_email first (from webhook auto-linking)
-      if (order.auth_email && order.auth_email.toLowerCase() === email.toLowerCase()) {
-        const result = {
-          success: true,
-          message: 'Order ditemukan dan sesuai dengan email Anda (via auth_email)',
-          data: order,
-          needsAuth: isAuth ? false : true
-        };
-        logger.orderVerification('✅ Auth email match for unlinked order', result);
-        return result;
-      }
-
-      // ✅ Check main email field  
+      // ✅ SIMPLIFIED: Check main email field only
       if (order.email && order.email.toLowerCase() === email.toLowerCase()) {
         const result = {
           success: true,
@@ -176,23 +161,12 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
           data: order,
           needsAuth: isAuth ? false : true
         };
-        logger.orderVerification('✅ Main email match for unlinked order', result);
+        logger.orderVerification('✅ Email match for unlinked order', result);
         return result;
       }
 
       // ✅ For system emails, allow linking if user is authenticated
       if (isSystemEmail && isAuth && currentUser) {
-        // Additional check: if auth_email exists, it must match current user
-        if (order.auth_email && currentUser.email && 
-            order.auth_email.toLowerCase() !== currentUser.email.toLowerCase()) {
-          const result = {
-            success: false,
-            message: `Order ini sudah terkait dengan email ${order.auth_email}. Silakan login dengan email yang sesuai.`
-          };
-          logger.orderVerification('❌ Auth email mismatch with current user', result);
-          return result;
-        }
-
         const result = {
           success: true,
           message: 'Order ditemukan dan dapat dihubungkan ke akun Anda',

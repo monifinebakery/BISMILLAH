@@ -16,6 +16,8 @@ const App = () => {
   useEffect(() => {
     const handleAuthRedirect = async () => {
       try {
+        logger.debug('App: Checking auth redirect, current path:', window.location.pathname);
+        
         // Check for auth tokens in URL (from OTP/magic link)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -24,26 +26,22 @@ const App = () => {
         if (accessToken) {
           logger.debug('App: Auth tokens found in URL, processing...');
           
-          // Let Supabase handle the auth
-          const { data: { session }, error } = await supabase.auth.getSession();
+          // Clean URL first
+          window.history.replaceState({}, document.title, window.location.pathname);
           
-          if (session && !error) {
-            logger.success('App: Auth successful, redirecting to app...');
-            
-            // Clean URL and redirect to main app
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // Small delay to ensure auth state is set
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 500);
-            
-            return;
-          }
+          // Let auth state change handler in PaymentContext handle the redirect
+          return;
+        }
+        
+        // Check if user is already logged in but on auth page
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && window.location.pathname === '/auth') {
+          logger.debug('App: User already logged in, redirecting to dashboard');
+          window.location.href = '/';
+          return;
         }
         
         // Handle other auth-related URLs
-        const { data: { session } } = await supabase.auth.getSession();
         if (!session && window.location.hash.includes("access_token")) {
           logger.debug('App: Access token found but no session, reloading...');
           window.location.reload();

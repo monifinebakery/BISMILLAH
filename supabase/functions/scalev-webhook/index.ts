@@ -1,4 +1,4 @@
-// Enhanced webhook - Extract email from payment gateway payload
+// SIMPLIFIED webhook - Removed auth_email, simplified auto-linking
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -13,7 +13,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// ✅ ENHANCED: Extract email from various payload structures
+// ✅ Extract email from various payload structures
 function extractEmailFromPayload(payload) {
   const possibleEmailFields = [
     'email',
@@ -41,92 +41,47 @@ function extractEmailFromPayload(payload) {
   }
 
   console.log('⚠️ No email found in payload');
-  console.log('📦 Available fields:', Object.keys(payload));
   return null;
 }
 
-// ✅ ENHANCED: Better auto-linking with email
-async function attemptUserLinking(paymentData, orderId, extractedEmail) {
+// ✅ SIMPLIFIED: Only auto-link by exact email match
+async function attemptSimpleEmailLinking(extractedEmail, orderId) {
   try {
-    console.log('🔍 Enhanced auto-link attempt...');
-    console.log('🔍 Extracted email:', extractedEmail);
+    if (!extractedEmail) {
+      console.log('⚠️ No email to attempt linking');
+      return null;
+    }
+
+    console.log('🔍 Attempting simple email linking for:', extractedEmail);
     
-    let linkedUser = null;
-
-    // ✅ STRATEGY 1: Direct email match (highest priority)
-    if (extractedEmail) {
-      console.log('🔍 Looking for user with exact email match...');
-      
-      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (!usersError && authData?.users) {
-        const matchingUser = authData.users.find(user => 
-          user.email?.toLowerCase() === extractedEmail.toLowerCase()
-        );
-        
-        if (matchingUser) {
-          linkedUser = matchingUser;
-          console.log(`✅ Found exact email match: ${matchingUser.id}`);
-        }
-      }
-    }
-
-    // ✅ STRATEGY 2: Recent user fallback (if no email match)
-    if (!linkedUser) {
-      console.log('🔍 No email match, trying recent user strategy...');
-      
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (!usersError && authData?.users) {
-        const recentUsers = authData.users.filter(user => 
-          user.created_at > oneHourAgo
-        );
-        
-        console.log(`📊 Found ${recentUsers.length} users created in last hour`);
-        
-        // Only auto-link if there's exactly ONE recent user
-        if (recentUsers.length === 1) {
-          linkedUser = recentUsers[0];
-          console.log(`✅ Auto-linked to recent user: ${linkedUser.id}`);
-        }
-      }
-    }
-
-    // ✅ APPLY LINKING if user found
-    if (linkedUser) {
-      paymentData.user_id = linkedUser.id;
-      
-      // ✅ ENHANCED: Set both emails properly
-      if (extractedEmail) {
-        paymentData.email = extractedEmail; // Real email from payment
-        paymentData.auth_email = linkedUser.email || extractedEmail;
-      } else {
-        paymentData.email = linkedUser.email || 'unlinked@payment.com';
-        paymentData.auth_email = linkedUser.email;
-      }
-      
-      console.log(`🔗 Linking results:`, {
-        user_id: paymentData.user_id,
-        email: paymentData.email,
-        auth_email: paymentData.auth_email,
-        strategy: extractedEmail ? 'email_match' : 'recent_user'
-      });
-      
-      return true;
-    }
+    // Find user with exact email match
+    const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
     
-    console.log('⚠️ Could not auto-link - will require manual linking');
-    return false;
+    if (usersError || !authData?.users) {
+      console.log('❌ Could not fetch users:', usersError);
+      return null;
+    }
+
+    const matchingUser = authData.users.find(user => 
+      user.email?.toLowerCase() === extractedEmail.toLowerCase()
+    );
+    
+    if (matchingUser) {
+      console.log(`✅ Found exact email match: ${matchingUser.id}`);
+      return matchingUser.id;
+    }
+
+    console.log('⚠️ No user found with email:', extractedEmail);
+    return null;
     
   } catch (error) {
-    console.error('❌ Error during auto-linking:', error);
-    return false;
+    console.error('❌ Error during email linking:', error);
+    return null;
   }
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🎯 ENHANCED: EMAIL EXTRACTION + AUTO-LINKING');
+  console.log('🎯 SIMPLIFIED WEBHOOK: EMAIL EXTRACTION + SIMPLE AUTO-LINKING');
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -138,10 +93,10 @@ const handler = async (req: Request): Promise<Response> => {
     
     const payloadData = payload.data || payload;
     
-    // ✅ STEP 1: Extract essential data + email
+    // ✅ STEP 1: Extract essential data
     const orderId = payloadData.order_id;
     const paymentStatus = payloadData.payment_status;
-    const extractedEmail = extractEmailFromPayload(payloadData); // ✅ NEW
+    const extractedEmail = extractEmailFromPayload(payloadData);
     const pgReferenceId = payloadData.pg_reference_id || 
                          payloadData.reference_id ||
                          payloadData.reference ||
@@ -160,9 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(JSON.stringify({
         success: false,
         error: 'order_id is required',
-        available_fields: Object.keys(payloadData),
-        email_extraction_attempted: true,
-        found_email: !!extractedEmail
+        available_fields: Object.keys(payloadData)
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -174,7 +127,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { data: existingPayment, error: findError } = await supabase
       .from('user_payments')
-      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
+      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
       .eq('order_id', orderId)
       .maybeSingle();
     
@@ -186,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
     let finalRecord;
     let operationType;
     let autoLinkAttempted = false;
-    let autoLinkSuccess = false;
+    let autoLinkedUserId = null;
     
     if (existingPayment) {
       // ✅ UPDATE EXISTING RECORD
@@ -196,7 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       const updateData = {};
       
-      // ✅ ENHANCED: Update email if we extracted one and current is placeholder
+      // ✅ Update email if we extracted one and current is placeholder
       if (extractedEmail && 
           (!existingPayment.email || 
            existingPayment.email.includes('@payment.com') || 
@@ -217,22 +170,15 @@ const handler = async (req: Request): Promise<Response> => {
         updateData.is_paid = true;
         console.log('💰 MARKING AS PAID');
         
-        // ✅ AUTO-LINK: Only if payment becomes paid AND no user_id yet
-        if (!existingPayment.user_id) {
-          console.log('🔗 Payment now paid but no user_id, attempting enhanced auto-link...');
+        // ✅ SIMPLIFIED AUTO-LINK: Only if payment becomes paid AND no user_id yet
+        if (!existingPayment.user_id && extractedEmail) {
+          console.log('🔗 Payment now paid but no user_id, attempting simple auto-link...');
           autoLinkAttempted = true;
+          autoLinkedUserId = await attemptSimpleEmailLinking(extractedEmail, orderId);
           
-          const tempPaymentData = {
-            email: updateData.email || existingPayment.email
-          };
-          
-          autoLinkSuccess = await attemptUserLinking(tempPaymentData, orderId, extractedEmail);
-          
-          if (autoLinkSuccess) {
-            updateData.user_id = tempPaymentData.user_id;
-            updateData.email = tempPaymentData.email;
-            updateData.auth_email = tempPaymentData.auth_email;
-            console.log('🔗 Applied enhanced auto-link results');
+          if (autoLinkedUserId) {
+            updateData.user_id = autoLinkedUserId;
+            console.log('🔗 Auto-linked to user:', autoLinkedUserId);
           }
         }
       } else if (paymentStatus === 'unpaid') {
@@ -255,7 +201,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from('user_payments')
           .update(updateData)
           .eq('order_id', orderId)
-          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
+          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
           .single();
         
         if (updateError) {
@@ -276,17 +222,21 @@ const handler = async (req: Request): Promise<Response> => {
         user_id: null,
         order_id: orderId,
         pg_reference_id: pgReferenceId,
-        email: extractedEmail || 'unlinked@payment.com', // ✅ Use extracted email
+        email: extractedEmail || 'unlinked@payment.com',
         payment_status: paymentStatus === 'paid' ? 'settled' : 'pending',
-        is_paid: paymentStatus === 'paid',
-        auth_email: null
+        is_paid: paymentStatus === 'paid'
       };
       
-      // ✅ AUTO-LINK: Only if payment is paid
-      if (paymentStatus === 'paid') {
-        console.log('🔗 New paid payment, attempting enhanced auto-link...');
+      // ✅ SIMPLIFIED AUTO-LINK: Only if payment is paid and we have email
+      if (paymentStatus === 'paid' && extractedEmail) {
+        console.log('🔗 New paid payment, attempting simple auto-link...');
         autoLinkAttempted = true;
-        autoLinkSuccess = await attemptUserLinking(newPaymentData, orderId, extractedEmail);
+        autoLinkedUserId = await attemptSimpleEmailLinking(extractedEmail, orderId);
+        
+        if (autoLinkedUserId) {
+          newPaymentData.user_id = autoLinkedUserId;
+          console.log('🔗 Auto-linked new payment to user:', autoLinkedUserId);
+        }
       }
       
       console.log('📝 Creating new payment:', newPaymentData);
@@ -294,7 +244,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: newPayment, error: createError } = await supabase
         .from('user_payments')
         .insert(newPaymentData)
-        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, auth_email')
+        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
         .single();
       
       if (createError) {
@@ -306,9 +256,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('✅ Create success');
     }
 
-    // ✅ STEP 3: Return enhanced response
+    // ✅ STEP 3: Return simplified response
     const isLinked = !!finalRecord.user_id;
-    console.log('🎉 Enhanced webhook completed successfully');
+    console.log('🎉 Simplified webhook completed successfully');
     console.log('Final record:', finalRecord);
     
     return new Response(JSON.stringify({
@@ -319,16 +269,14 @@ const handler = async (req: Request): Promise<Response> => {
       auto_linked: isLinked,
       requires_manual_linking: !isLinked && finalRecord.is_paid,
       email_extraction: {
-        attempted: true,
         found: !!extractedEmail,
         extracted_email: extractedEmail || null,
-        final_email: finalRecord.email,
-        auth_email: finalRecord.auth_email || null
+        final_email: finalRecord.email
       },
       auto_linking: {
         attempted: autoLinkAttempted,
-        success: autoLinkSuccess,
-        strategy: autoLinkSuccess ? (extractedEmail ? 'email_match' : 'recent_user') : null
+        success: !!autoLinkedUserId,
+        linked_user_id: autoLinkedUserId
       }
     }), {
       status: 200,
@@ -336,11 +284,11 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error('❌ ENHANCED WEBHOOK ERROR:', error.message);
+    console.error('❌ SIMPLIFIED WEBHOOK ERROR:', error.message);
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Enhanced webhook failed',
+      error: 'Simplified webhook failed',
       details: error.message
     }), {
       status: 500,

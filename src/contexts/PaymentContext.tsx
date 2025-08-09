@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - ENHANCED VERSION with Auto-Linking
+// src/contexts/PaymentContext.tsx - OPTIMIZED VERSION with Debug
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
@@ -36,19 +36,20 @@ interface PaymentContextType {
   refetchUnlinkedPayments: () => void;
   
   // ✅ ENHANCED: Combined counts for UI
-  unlinkedPaymentCount: number; // Original manual linking count
-  totalUnlinkedCount: number;   // Total of manual + auto counts
+  unlinkedPaymentCount: number;
+  totalUnlinkedCount: number;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
 export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true); // ✅ NEW: Track user loading
   
   // ✅ EXISTING: Original payment status hook
   const { 
     paymentStatus, 
-    isLoading, 
+    isLoading: paymentLoading, 
     isPaid, 
     needsPayment,
     needsOrderLinking,
@@ -58,7 +59,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refetch: refetchPaymentStatus
   } = usePaymentStatus();
   
-  // ✅ NEW: Auto-linking webhook payments hook
+  // ✅ OPTIMIZED: Only initialize auto-linking when user is ready
   const {
     unlinkedPayments,
     isLoading: autoLinkLoading,
@@ -67,7 +68,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setShowAutoLinkPopup,
     refetch: refetchUnlinkedPayments,
     unlinkedCount: autoLinkCount
-  } = useUnlinkedPayments(supabase, currentUser);
+  } = useUnlinkedPayments(supabase, userLoading ? null : currentUser); // ✅ KEY: Pass null while loading
   
   // ✅ EXISTING: Original state
   const [showMandatoryUpgrade, setShowMandatoryUpgrade] = useState(false);
@@ -75,12 +76,24 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [accessMessage, setAccessMessage] = useState('Checking access...');
+  const [accessLoading, setAccessLoading] = useState(true); // ✅ NEW: Track access loading
 
-  // ✅ NEW: Get current user on mount
+  // ✅ OPTIMIZED: Get current user with timeout
   useEffect(() => {
     const loadCurrentUser = async () => {
+      setUserLoading(true);
+      
       try {
-        const user = await getCurrentUser();
+        logger.debug('PaymentContext: Loading current user...');
+        
+        // ✅ ADD TIMEOUT to prevent infinite loading
+        const userPromise = getCurrentUser();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('User loading timeout')), 10000) // 10 second timeout
+        );
+        
+        const user = await Promise.race([userPromise, timeoutPromise]) as any;
+        
         setCurrentUser(user);
         logger.debug('PaymentContext: Current user loaded:', { 
           email: user?.email, 
@@ -89,6 +102,19 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } catch (error) {
         logger.error('PaymentContext: Failed to load current user:', error);
         setCurrentUser(null);
+        
+        // ✅ FALLBACK: Try to get user from session directly
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            setCurrentUser(session.user);
+            logger.debug('PaymentContext: Fallback user from session:', session.user.email);
+          }
+        } catch (sessionError) {
+          logger.error('PaymentContext: Fallback session failed:', sessionError);
+        }
+      } finally {
+        setUserLoading(false);
       }
     };
 
@@ -97,12 +123,20 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        logger.debug('PaymentContext: Auth state changed:', event);
+        
         if (event === 'SIGNED_IN' && session?.user) {
-          const user = await getCurrentUser();
-          setCurrentUser(user);
-          logger.debug('PaymentContext: User signed in, user set:', { 
-            email: user?.email 
-          });
+          try {
+            const user = await getCurrentUser();
+            setCurrentUser(user);
+            logger.debug('PaymentContext: User signed in, user set:', { 
+              email: user?.email 
+            });
+          } catch (error) {
+            // Fallback to session user
+            setCurrentUser(session.user);
+            logger.debug('PaymentContext: Fallback to session user:', session.user.email);
+          }
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           logger.debug('PaymentContext: User signed out');
@@ -115,11 +149,22 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
-  // ✅ EXISTING: Centralized access status checker
+  // ✅ OPTIMIZED: Centralized access status checker with timeout
   const refreshAccessStatus = useCallback(async () => {
+    if (userLoading) return; // ✅ Don't check access while user is loading
+    
+    setAccessLoading(true);
+    
     try {
       logger.debug('PaymentContext: Refreshing access status...');
-      const accessStatus = await getUserAccessStatus();
+      
+      // ✅ ADD TIMEOUT for access status
+      const accessPromise = getUserAccessStatus();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Access status timeout')), 8000) // 8 second timeout
+      );
+      
+      const accessStatus = await Promise.race([accessPromise, timeoutPromise]) as any;
       
       logger.debug('Access status result:', {
         hasAccess: accessStatus.hasAccess,
@@ -131,10 +176,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setHasAccess(accessStatus.hasAccess);
       setAccessMessage(accessStatus.message);
       
-      // ✅ ENHANCED: Auto-show order popup if needed (but not auto-link popup)
+      // ✅ OPTIMIZED: Only auto-show popup if really needed
       if ((accessStatus.needsOrderVerification || accessStatus.needsLinking) && 
           !accessStatus.hasAccess && 
-          !showOrderPopup) {
+          !showOrderPopup &&
+          !paymentLoading) { // ✅ Don't show while payment is loading
         logger.info('PaymentContext: Auto-showing manual order popup');
         setTimeout(() => setShowOrderPopup(true), 1500);
       }
@@ -143,15 +189,17 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       logger.error('PaymentContext access check failed:', error);
       setHasAccess(false);
       setAccessMessage('Error checking access');
+    } finally {
+      setAccessLoading(false);
     }
-  }, [showOrderPopup, setShowOrderPopup]);
+  }, [userLoading, showOrderPopup, setShowOrderPopup, paymentLoading]);
 
-  // ✅ EXISTING: Refresh access when payment status changes
+  // ✅ OPTIMIZED: Only refresh access when payment status is ready
   useEffect(() => {
-    if (!isLoading) {
+    if (!paymentLoading && !userLoading) {
       refreshAccessStatus();
     }
-  }, [isLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
+  }, [paymentLoading, userLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
 
   // ✅ EXISTING: Close popup when access granted
   useEffect(() => {
@@ -169,48 +217,57 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
 
-  // ✅ ENHANCED: Enhanced refetch function
+  // ✅ ENHANCED: Enhanced refetch function with better sequencing
   const enhancedRefetch = useCallback(async () => {
     logger.info('PaymentContext: Enhanced refetch triggered');
-    await refetchPaymentStatus();
-    await refetchUnlinkedPayments();
-    await refreshAccessStatus();
+    
+    try {
+      // Refetch in sequence, not parallel to avoid conflicts
+      await refetchPaymentStatus();
+      await refetchUnlinkedPayments();
+      await refreshAccessStatus();
+    } catch (error) {
+      logger.error('PaymentContext: Enhanced refetch failed:', error);
+    }
   }, [refetchPaymentStatus, refetchUnlinkedPayments, refreshAccessStatus]);
 
   // ✅ NEW: Calculate combined counts
-  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0; // Original manual count
+  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0;
   const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
 
-  // ✅ NEW: Log state changes for debugging
+  // ✅ OPTIMIZED: Combined loading state
+  const isLoading = paymentLoading || userLoading || accessLoading;
+
+  // ✅ DEBUG: Log state changes
   useEffect(() => {
     logger.debug('PaymentContext state update:', {
+      isLoading,
+      paymentLoading,
+      userLoading,
+      accessLoading,
       isPaid,
       hasAccess,
-      needsOrderLinking,
-      hasUnlinkedPayment,
+      currentUserEmail: currentUser?.email,
       autoLinkCount,
-      unlinkedPaymentCount,
-      totalUnlinkedCount,
-      showOrderPopup,
-      showAutoLinkPopup
+      totalUnlinkedCount
     });
   }, [
+    isLoading,
+    paymentLoading, 
+    userLoading,
+    accessLoading,
     isPaid, 
     hasAccess, 
-    needsOrderLinking, 
-    hasUnlinkedPayment, 
+    currentUser?.email,
     autoLinkCount, 
-    unlinkedPaymentCount, 
-    totalUnlinkedCount,
-    showOrderPopup,
-    showAutoLinkPopup
+    totalUnlinkedCount
   ]);
 
   return (
     <PaymentContext.Provider value={{
       // ✅ EXISTING: Original context values
       isPaid,
-      isLoading,
+      isLoading, // ✅ OPTIMIZED: Combined loading state
       paymentStatus,
       needsPayment,
       showMandatoryUpgrade,

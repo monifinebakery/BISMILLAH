@@ -1,14 +1,16 @@
-// contexts/AppProviders.tsx - Temporary Fallback (use original structure)
+// src/contexts/AppProviders.tsx - UPDATED with Race Condition Fix
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Import semua context provider dengan path yang konsisten
+// ✅ UPDATED: Import enhanced AuthProvider (no race condition)
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
+
+// ✅ UPDATED: Import enhanced PaymentProvider (now uses AuthContext)
 import { PaymentProvider } from './PaymentContext';
 
 // ✅ NEW: Import PromoProvider
@@ -33,48 +35,55 @@ interface AppProvidersProps {
 }
 
 /**
- * ⚡ FALLBACK AppProviders - Original structure to fix error
- * Using original nesting until we identify the FinancialProvider issue
+ * ✅ ENHANCED AppProviders - Fixed Race Condition
+ * Key changes:
+ * 1. AuthProvider is now the MASTER auth state (single source of truth)
+ * 2. PaymentProvider immediately follows AuthProvider (no conflicts)
+ * 3. All auth redirects handled centrally in AuthContext
+ * 4. No duplicate auth listeners or state management
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
     <>
-      {/* 1. Foundation Layer - Core authentication & system */}
+      {/* 1. Foundation Layer - MASTER AUTH STATE (Enhanced, no race condition) */}
       <AuthProvider>
-        {/* 2. Core Services Layer - Essential app services */}
-        <NotificationProvider>
-          <UserSettingsProvider>
-            <ActivityProvider>
-              
-              {/* 3. Business Logic Layer - Financial & payment systems */}
-              <FinancialProvider>
-                <PaymentProvider>
+        
+        {/* 2. Payment Layer - IMMEDIATELY after auth (uses AuthContext) */}
+        <PaymentProvider>
+          
+          {/* 3. Core Services Layer - Essential app services */}
+          <NotificationProvider>
+            <UserSettingsProvider>
+              <ActivityProvider>
+                
+                {/* 4. Business Logic Layer - Financial systems */}
+                <FinancialProvider>
                   
-                  {/* 4. Core Business Entities - Main data providers */}
+                  {/* 5. Core Business Entities - Main data providers */}
                   {/* ⚡ WAREHOUSE: Enhanced modular context */}
                   <BahanBakuProvider>
                     <SupplierProvider>
                       
-                      {/* 5. Complex Business Logic - Recipe management */}
+                      {/* 6. Complex Business Logic - Recipe management */}
                       <RecipeProvider>
                         
-                        {/* 6. Asset & Operations - Business operations */}
+                        {/* 7. Asset & Operations - Business operations */}
                         <AssetProvider>
                           <PurchaseProvider>
                             <OrderProvider>
                               
-                              {/* 7. Cost Management - Operational costs for HPP calculation */}
+                              {/* 8. Cost Management - Operational costs for HPP calculation */}
                               {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
                               <OperationalCostProvider>
                                 
-                                {/* 8. Advanced Features - Enhanced capabilities */}
+                                {/* 9. Advanced Features - Enhanced capabilities */}
                                 {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
                                 <PromoProvider>
                                   <FollowUpTemplateProvider>
                                     
-                                    {/* 9. Application Layer - Final app content */}
+                                    {/* 10. Application Layer - Final app content */}
                                     {children}
                                     
                                   </FollowUpTemplateProvider>
@@ -86,11 +95,11 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                       </RecipeProvider>
                     </SupplierProvider>
                   </BahanBakuProvider>
-                </PaymentProvider>
-              </FinancialProvider>
-            </ActivityProvider>
-          </UserSettingsProvider>
-        </NotificationProvider>
+                </FinancialProvider>
+              </ActivityProvider>
+            </UserSettingsProvider>
+          </NotificationProvider>
+        </PaymentProvider>
       </AuthProvider>
       
       {/* Global UI Components - Enhanced notifications */}

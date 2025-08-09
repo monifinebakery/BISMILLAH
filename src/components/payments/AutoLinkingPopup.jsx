@@ -1,18 +1,29 @@
+// src/components/popups/AutoLinkingPopup.tsx
 import React, { useState, useEffect } from 'react';
 import { X, CreditCard, User, CheckCircle, AlertCircle, Loader2, Zap } from 'lucide-react';
 
+interface AutoLinkingPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+  unlinkedPayments?: any[];
+  currentUser?: any;
+  supabaseClient?: any;
+  onSuccess?: (payments: any[]) => void;
+}
+
 // AutoLinkingPopup - For webhook-detected payments that need user linking
 // This complements OrderConfirmationPopup which handles manual Order ID input
-const AutoLinkingPopup = ({ 
+const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({ 
   isOpen, 
   onClose, 
   unlinkedPayments = [],
   currentUser,
-  supabaseClient 
+  supabaseClient,
+  onSuccess
 }) => {
-  const [selectedPayments, setSelectedPayments] = useState([]);
+  const [selectedPayments, setSelectedPayments] = useState<any[]>([]);
   const [isLinking, setIsLinking] = useState(false);
-  const [linkingResults, setLinkingResults] = useState([]);
+  const [linkingResults, setLinkingResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
 
   // Reset state when popup opens
@@ -24,7 +35,7 @@ const AutoLinkingPopup = ({
     }
   }, [isOpen]);
 
-  const handlePaymentToggle = (payment) => {
+  const handlePaymentToggle = (payment: any) => {
     setSelectedPayments(prev => {
       const isSelected = prev.some(p => p.order_id === payment.order_id);
       if (isSelected) {
@@ -36,10 +47,10 @@ const AutoLinkingPopup = ({
   };
 
   const handleAutoLinkPayments = async () => {
-    if (!currentUser || selectedPayments.length === 0) return;
+    if (!currentUser || selectedPayments.length === 0 || !supabaseClient) return;
 
     setIsLinking(true);
-    const results = [];
+    const results: any[] = [];
 
     try {
       for (const payment of selectedPayments) {
@@ -64,7 +75,7 @@ const AutoLinkingPopup = ({
             success: true,
             data
           });
-        } catch (error) {
+        } catch (error: any) {
           results.push({
             order_id: payment.order_id,
             success: false,
@@ -75,6 +86,13 @@ const AutoLinkingPopup = ({
 
       setLinkingResults(results);
       setShowResults(true);
+
+      // Callback for successful links
+      const successfulPayments = results.filter(r => r.success).map(r => r.data);
+      if (successfulPayments.length > 0 && onSuccess) {
+        onSuccess(successfulPayments);
+      }
+
     } catch (error) {
       console.error('Auto-linking error:', error);
     } finally {
@@ -89,15 +107,7 @@ const AutoLinkingPopup = ({
     onClose();
   };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return 'Amount not available';
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR'
-    }).format(amount);
-  };
-
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('id-ID', {
       day: '2-digit',
       month: 'short',
@@ -148,7 +158,7 @@ const AutoLinkingPopup = ({
                       {currentUser?.email || 'Current User'}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Auto-detected payments will be linked to this account
+                      Auto-detected payments akan dihubungkan ke akun ini
                     </p>
                   </div>
                 </div>
@@ -158,13 +168,13 @@ const AutoLinkingPopup = ({
               {unlinkedPayments.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                  <p className="text-gray-600">No auto-detected payments found</p>
+                  <p className="text-gray-600">Tidak ada pembayaran webhook yang terdeteksi</p>
                   <p className="text-sm text-gray-400 mt-1">
-                    All webhook payments are already linked!
+                    Semua pembayaran webhook sudah terhubung!
                   </p>
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-700">
-                      💡 <strong>Have a new payment?</strong> Use the "Hubungkan Pembayaran" button to manually link a payment with Order ID.
+                      💡 <strong>Punya pembayaran baru?</strong> Gunakan tombol "Hubungkan Pembayaran" untuk menghubungkan pembayaran dengan Order ID secara manual.
                     </p>
                   </div>
                 </div>
@@ -172,10 +182,10 @@ const AutoLinkingPopup = ({
                 <>
                   <div className="mb-4">
                     <h3 className="font-medium text-gray-900 mb-2">
-                      Webhook-Detected Payments ({unlinkedPayments.length})
+                      Pembayaran Terdeteksi Webhook ({unlinkedPayments.length})
                     </h3>
                     <p className="text-sm text-gray-500">
-                      These payments were automatically detected by our webhook system but need to be linked to your account
+                      Pembayaran ini terdeteksi otomatis oleh sistem webhook namun perlu dihubungkan ke akun Anda
                     </p>
                   </div>
 
@@ -216,7 +226,7 @@ const AutoLinkingPopup = ({
                             
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-500">Webhook Email:</span>
+                                <span className="text-gray-500">Email Webhook:</span>
                                 <span className="ml-2 font-medium">
                                   {payment.email === 'unlinked@payment.com' || payment.email === 'pending@webhook.com' 
                                     ? 'Auto-generated' 
@@ -230,7 +240,7 @@ const AutoLinkingPopup = ({
                                 </span>
                               </div>
                               <div>
-                                <span className="text-gray-500">Detected:</span>
+                                <span className="text-gray-500">Terdeteksi:</span>
                                 <span className="ml-2">
                                   {formatDate(payment.created_at)}
                                 </span>
@@ -255,15 +265,15 @@ const AutoLinkingPopup = ({
             <div className="p-6">
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">
-                  Auto-Linking Results
+                  Hasil Auto-Linking
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {linkingResults.filter(r => r.success).length} of {linkingResults.length} payments auto-linked successfully
+                  {linkingResults.filter(r => r.success).length} dari {linkingResults.length} pembayaran berhasil dihubungkan secara otomatis
                 </p>
               </div>
 
               <div className="space-y-3">
-                {linkingResults.map((result, index) => (
+                {linkingResults.map((result) => (
                   <div
                     key={result.order_id}
                     className={`border rounded-lg p-4 ${
@@ -282,11 +292,11 @@ const AutoLinkingPopup = ({
                         </div>
                         {result.success ? (
                           <p className="text-sm text-green-700">
-                            Successfully auto-linked to your account
+                            Berhasil dihubungkan secara otomatis ke akun Anda
                           </p>
                         ) : (
                           <p className="text-sm text-red-700">
-                            Auto-link failed: {result.error}
+                            Auto-link gagal: {result.error}
                           </p>
                         )}
                       </div>
@@ -304,7 +314,7 @@ const AutoLinkingPopup = ({
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
                 {selectedPayments.length > 0 && (
-                  `${selectedPayments.length} payment${selectedPayments.length !== 1 ? 's' : ''} selected for auto-linking`
+                  `${selectedPayments.length} pembayaran dipilih untuk auto-linking`
                 )}
               </div>
               <div className="flex gap-3">
@@ -312,7 +322,7 @@ const AutoLinkingPopup = ({
                   onClick={handleClose}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   onClick={handleAutoLinkPayments}
@@ -321,7 +331,7 @@ const AutoLinkingPopup = ({
                 >
                   {isLinking && <Loader2 className="w-4 h-4 animate-spin" />}
                   <Zap className="w-4 h-4" />
-                  Auto-Link {selectedPayments.length > 0 && `${selectedPayments.length} `}Payment{selectedPayments.length !== 1 ? 's' : ''}
+                  Auto-Link {selectedPayments.length > 0 && `${selectedPayments.length} `}Pembayaran
                 </button>
               </div>
             </div>
@@ -331,7 +341,7 @@ const AutoLinkingPopup = ({
                 onClick={handleClose}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                Done
+                Selesai
               </button>
             </div>
           )}

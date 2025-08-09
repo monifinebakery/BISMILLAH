@@ -1,6 +1,8 @@
-// components/dashboard/DashboardHeader.tsx
+// components/dashboard/DashboardHeader.tsx - Simplified Clean Version
+
 import React, { lazy, Suspense } from 'react';
 import { formatDateRange, parseDate } from '@/utils/unifiedDateUtils';
+import { Calendar, BarChart3, Clock } from 'lucide-react';
 
 // 🚀 Lazy load DateRangePicker (heavy component)
 const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
@@ -18,47 +20,83 @@ const DashboardHeader: React.FC<Props> = ({
   greeting, 
   isMobile 
 }) => {
-  // 📅 Convert ISO strings to Date objects for display
-  const displayRange = React.useMemo(() => {
-    const from = parseDate(dateRange.from);
-    const to = parseDate(dateRange.to);
-    return formatDateRange(from, to);
-  }, [dateRange]);
+  // 🕐 Get current time and date for mobile
+  const currentDateTime = React.useMemo(() => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('id-ID', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const date = now.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    return { time, date };
+  }, []);
 
   return (
-    <div className="flex flex-col space-y-4 mb-6">
-      {/* 🏠 Main Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-md text-gray-600 mt-1">
-            {greeting}
-          </p>
-        </div>
+    <div className="w-full">
+      {/* 🌟 Content Container - Simplified */}
+      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border-2 border-orange-100 rounded-2xl p-6 sm:p-8 mb-8">
         
-        {/* 📅 Date Range Picker with Suspense */}
-        <div className="w-full sm:w-auto">
-          <Suspense 
-            fallback={
-              <div className="w-full sm:w-[320px] h-10 bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Memuat kalender...</span>
+        {/* 🏠 Main Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          
+          {/* 👋 Title & Greeting Section */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
+                <BarChart3 className="h-6 w-6 text-white" />
               </div>
-            }
-          >
-            <DateRangePicker
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-              isMobile={isMobile}
-            />
-          </Suspense>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
+                Dashboard
+              </h1>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <p className="text-lg text-gray-700 font-medium">
+                {greeting}
+              </p>
+              {/* 📅🕐 Date & Time - Mobile Only */}
+              <div className="flex flex-col gap-1 sm:hidden">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>{currentDateTime.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Clock className="h-4 w-4" />
+                  <span>{currentDateTime.time}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 📅 Date Range Picker Section */}
+          <div className="w-full lg:w-auto">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-orange-500" />
+                Pilih Periode Analisis
+              </label>
+              
+              <Suspense 
+                fallback={
+                  <div className="w-full lg:w-[320px] h-12 bg-gray-100 rounded-xl border-2 border-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 text-sm">Memuat kalender...</span>
+                  </div>
+                }
+              >
+                <DateRangePicker
+                  dateRange={dateRange}
+                  onDateRangeChange={setDateRange}
+                  isMobile={isMobile}
+                />
+              </Suspense>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* 📊 Period Info */}
-      <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-        <span className="font-medium">Periode yang dipilih:</span> {displayRange}
       </div>
     </div>
   );

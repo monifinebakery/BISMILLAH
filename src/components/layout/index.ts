@@ -8,7 +8,7 @@ export { AppLoader } from '../loaders/AppLoader';
 export { AppError } from '../loaders/AppError';
 
 // src/components/popups/index.ts
-export { default as AutoLinkingPopup } from './AutoLinkingPopup';
+export { default as AutoLinkingPopup } from '../popups/AutoLinkingPopup';
 // NOTE: OrderConfirmationPopup stays at @/components/OrderConfirmationPopup
 
 // src/config/index.ts

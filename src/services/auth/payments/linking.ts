@@ -1,11 +1,11 @@
-// src/services/auth/payments/linking.ts - FIXED with UUID Sanitization
+// src/services/auth/payments/linking.ts - SIMPLIFIED (removed auth_email and linked_at)
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
 import { clearSessionCache } from '../core/session';
 
-// ✅ NEW: UUID Sanitization function
+// ✅ UUID Sanitization function
 const sanitizeUserId = (userId: any): string | null => {
   // Handle various "null" representations
   if (userId === null || 
@@ -158,12 +158,11 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       throw new Error(`Akun Anda sudah memiliki pembayaran dengan Order ID: ${existing.order_id}. Satu akun hanya bisa memiliki satu pembayaran aktif.`);
     }
 
-    // ✅ STEP 4: Update payment with user ID + linked_at (FIXED)
+    // ✅ STEP 4: Update payment (SIMPLIFIED - removed auth_email and linked_at)
     const now = new Date().toISOString();
     const updateData: any = { 
-      user_id: finalUserId, // ✅ FIXED: Use sanitized ID
-      updated_at: now,
-      linked_at: now
+      user_id: finalUserId, // ✅ Use sanitized ID
+      updated_at: now
     };
 
     // ✅ Enhanced email handling
@@ -173,12 +172,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
         payment.email.includes('@webhook.com')) {
       updateData.email = user.email;
       logger.info('Updating email to user email');
-    }
-
-    // ✅ Set auth_email if not already set
-    if (!payment.auth_email) {
-      updateData.auth_email = user.email;
-      logger.info('Setting auth_email to user email');
     }
 
     logger.info('Updating payment with sanitized user ID:', {
@@ -224,9 +217,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     logger.success('✅ Payment linked successfully:', {
       orderId: updatedPayment.order_id,
       userId: updatedPayment.user_id,
-      email: updatedPayment.email,
-      authEmail: updatedPayment.auth_email,
-      linkedAt: updatedPayment.linked_at
+      email: updatedPayment.email
     });
 
     toast.success('Order berhasil terhubung dengan akun Anda!');
@@ -242,7 +233,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
   }
 };
 
-// ✅ FIXED: Enhanced function to get linking history
+// ✅ SIMPLIFIED: Get linking history (removed linked_at reference)
 export const getPaymentLinkingHistory = async (userId: string) => {
   try {
     const sanitizedUserId = sanitizeUserId(userId);
@@ -253,10 +244,10 @@ export const getPaymentLinkingHistory = async (userId: string) => {
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('order_id, email, linked_at, created_at')
-      .eq('user_id', sanitizedUserId) // ✅ FIXED: Use sanitized ID
-      .not('linked_at', 'is', null)
-      .order('linked_at', { ascending: false });
+      .select('order_id, email, created_at')
+      .eq('user_id', sanitizedUserId) // ✅ Use sanitized ID
+      .not('user_id', 'is', null) // ✅ SIMPLIFIED: Check user_id instead of linked_at
+      .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Error getting linking history:', error);
@@ -270,7 +261,7 @@ export const getPaymentLinkingHistory = async (userId: string) => {
   }
 };
 
-// ✅ FIXED: Rest of the functions with sanitization
+// ✅ FIXED: Check user has payment with sanitization
 export const checkUserHasPayment = async (email: string, userId: string): Promise<{
   hasPayment: boolean;
   payment?: any;
@@ -286,7 +277,7 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
       .from('user_payments')
       .select('*')
       .eq('email', email)
-      .eq('user_id', sanitizedUserId) // ✅ FIXED: Use sanitized ID
+      .eq('user_id', sanitizedUserId) // ✅ Use sanitized ID
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
       .limit(1);
@@ -322,7 +313,7 @@ export const debugConstraintIssue = async (email: string, userId: string) => {
       .select('*')
       .eq('email', email);
     
-    // ✅ FIXED: Use sanitized ID if valid, otherwise skip user query
+    // ✅ Use sanitized ID if valid, otherwise skip user query
     let userPayments = null;
     if (sanitizedUserId) {
       const { data } = await supabase

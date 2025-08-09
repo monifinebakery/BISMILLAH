@@ -12,8 +12,8 @@ export { default as AutoLinkingPopup } from '../popups/AutoLinkingPopup';
 // NOTE: OrderConfirmationPopup stays at @/components/OrderConfirmationPopup
 
 // src/config/index.ts
-export { AppRouter } from './routes';
-export { queryClient } from './queryClient';
+export { AppRouter } from '@/config/routes';
+export { queryClient } from '@/config/queryClient';
 
 // src/types/app.ts
 import React from 'react';

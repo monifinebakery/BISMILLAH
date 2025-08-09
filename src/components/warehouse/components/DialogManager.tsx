@@ -1,4 +1,4 @@
-// ===== 1. UPDATE DialogManager.tsx dengan useQuery =====
+// ===== FIXED DialogManager.tsx dengan proper handler fallbacks =====
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 // ✅ TAMBAH: Import useQuery dan mutation utilities
@@ -86,7 +86,7 @@ class DialogErrorBoundary extends React.Component<
   }
 }
 
-// Types
+// ✅ UPDATED: Simplified Types with fallback support
 interface DialogManagerProps {
   dialogs: {
     states: Record<string, boolean>;
@@ -100,11 +100,11 @@ interface DialogManagerProps {
     editSave: (updates: any) => Promise<void>;
     delete: (id: string, nama: string) => Promise<void>;
     sort: (key: string) => void;
-    // ✅ TAMBAH: Enhanced handlers dengan useQuery support
-    create: (item: any) => Promise<void>;
-    update: (id: string, item: any) => Promise<void>;
-    bulkDelete: (ids: string[]) => Promise<void>;
-    bulkUpdate: (items: { id: string; data: any }[]) => Promise<void>;
+    // ✅ FIXED: Optional handlers with fallbacks
+    create?: (item: any) => Promise<void>;
+    update?: (id: string, item: any) => Promise<void>;
+    bulkDelete?: (ids: string[]) => Promise<void>;
+    bulkUpdate?: (items: { id: string; data: any }[]) => Promise<void>;
   };
   context: any;
   selection: any;
@@ -114,9 +114,10 @@ interface DialogManagerProps {
 }
 
 /**
- * ✅ ENHANCED: Dialog Manager Component dengan useQuery integration
+ * ✅ FIXED: Dialog Manager Component dengan proper handler fallbacks
  * 
  * Features:
+ * - Graceful handling of missing handlers
  * - QueryClient integration untuk cache management
  * - Enhanced error handling dengan retry logic
  * - Performance monitoring untuk dialog loading
@@ -171,17 +172,25 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     });
   };
 
-  // ✅ TAMBAH: Enhanced handlers dengan cache invalidation
+  // ✅ FIXED: Enhanced handlers dengan proper fallbacks
   const enhancedHandlers = {
-    ...handlers,
-    
     // Enhanced save handler dengan cache management
     handleSave: async (data: any, isEdit: boolean = false) => {
       try {
         if (isEdit && dialogs.editingItem) {
-          await handlers.update(dialogs.editingItem.id, data);
+          // ✅ Use editSave if update is not available
+          if (handlers.update) {
+            await handlers.update(dialogs.editingItem.id, data);
+          } else {
+            await handlers.editSave(data);
+          }
         } else {
-          await handlers.create(data);
+          // ✅ Use create if available, otherwise throw error
+          if (handlers.create) {
+            await handlers.create(data);
+          } else {
+            throw new Error('Create handler not available');
+          }
         }
         
         // ✅ Smart cache invalidation
@@ -197,18 +206,50 @@ const DialogManager: React.FC<DialogManagerProps> = ({
       }
     },
 
-    // Enhanced bulk operations dengan cache management
+    // ✅ FIXED: Enhanced bulk operations dengan fallback logic
     handleBulkOperation: async (operation: 'edit' | 'delete', data?: any) => {
       try {
         if (operation === 'delete') {
           const selectedIds = Array.from(selection.selectedItems);
-          await handlers.bulkDelete(selectedIds);
+          
+          // ✅ Fallback: Use individual delete if bulkDelete not available
+          if (handlers.bulkDelete) {
+            await handlers.bulkDelete(selectedIds);
+          } else {
+            // Fallback: Delete items one by one
+            for (const id of selectedIds) {
+              const item = context.bahanBaku?.find((item: any) => item.id === id);
+              if (item) {
+                await handlers.delete(id, item.nama || 'Item');
+              }
+            }
+          }
           
           logger.debug(`[${pageId}] ✅ Bulk deleted ${selectedIds.length} items`);
+          
         } else if (operation === 'edit' && data) {
           const selectedIds = Array.from(selection.selectedItems);
-          const updateItems = selectedIds.map(id => ({ id, data }));
-          await handlers.bulkUpdate(updateItems);
+          
+          // ✅ Fallback: Use individual editSave if bulkUpdate not available
+          if (handlers.bulkUpdate) {
+            const updateItems = selectedIds.map(id => ({ id, data }));
+            await handlers.bulkUpdate(updateItems);
+          } else {
+            // Fallback: Update items one by one
+            for (const id of selectedIds) {
+              const item = context.bahanBaku?.find((item: any) => item.id === id);
+              if (item) {
+                const updatedItem = { ...item, ...data };
+                if (handlers.update) {
+                  await handlers.update(id, data);
+                } else {
+                  // Set editing item and use editSave
+                  dialogs.setEditingItem(item);
+                  await handlers.editSave(data);
+                }
+              }
+            }
+          }
           
           logger.debug(`[${pageId}] ✅ Bulk updated ${selectedIds.length} items`);
         }
@@ -222,7 +263,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
       }
     },
 
-    // Enhanced import handler
+    // ✅ FIXED: Enhanced import handler dengan fallback
     handleImport: async (items: any[]) => {
       try {
         // Import items satu per satu dengan progress tracking
@@ -231,7 +272,11 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         
         for (const item of items) {
           try {
-            await handlers.create(item);
+            if (handlers.create) {
+              await handlers.create(item);
+            } else {
+              throw new Error('Create handler not available for import');
+            }
             successCount++;
           } catch (error) {
             errorCount++;
@@ -286,15 +331,21 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               onClose={() => {
                 dialogs.close('bulkEdit');
                 dialogs.close('bulkDelete');
+                selection.clearSelection?.(); // ✅ Clear selection after closing
               }}
               operation={dialogs.states.bulkEdit ? 'edit' : 'delete'}
-              selectedItems={selection.selectedItems || new Set()}
+              selectedItems={Array.from(selection.selectedItems || [])} // ✅ Convert Set to Array
               selectedItemsData={Array.from(selection.selectedItems || []).map((id: string) => 
                 context.bahanBaku?.find((item: any) => item.id === id)
               ).filter(Boolean)}
               onConfirm={async (data) => {
                 const operation = dialogs.states.bulkEdit ? 'edit' : 'delete';
                 await enhancedHandlers.handleBulkOperation(operation, data);
+                
+                // ✅ Close dialogs and clear selection after successful operation
+                dialogs.close('bulkEdit');
+                dialogs.close('bulkDelete');
+                selection.clearSelection?.();
               }}
               isProcessing={bulk?.isProcessing || false}
               availableCategories={filters.availableCategories || []}
@@ -347,6 +398,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
           <div>Loaded Dialogs: {loadedDialogs.size}</div>
           <div>Failed Dialogs: {failedDialogs.size}</div>
           <div>Active: {Object.values(dialogs.states).filter(Boolean).length}</div>
+          <div>Handlers: {Object.keys(handlers).join(', ')}</div>
         </div>
       )}
     </>

@@ -1,4 +1,4 @@
-// src/hooks/useUnlinkedPayments.ts - FIXED VERSION
+// src/hooks/useUnlinkedPayments.ts - SIMPLIFIED VERSION (removed auth_email)
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/utils/logger';
 
@@ -21,17 +21,17 @@ export const useUnlinkedPayments = (
   const [error, setError] = useState<string | null>(null);
   const [showAutoLinkPopup, setShowAutoLinkPopup] = useState(false);
   
-  // ✅ FIX: Use refs to avoid circular dependencies
+  // ✅ Use refs to avoid circular dependencies
   const currentUserRef = useRef(currentUser);
   const supabaseClientRef = useRef(supabaseClient);
   
-  // ✅ FIX: Update refs when values change
+  // ✅ Update refs when values change
   useEffect(() => {
     currentUserRef.current = currentUser;
     supabaseClientRef.current = supabaseClient;
   }, [currentUser, supabaseClient]);
 
-  // ✅ FIXED: Stable fetch function without dependencies in useCallback
+  // ✅ SIMPLIFIED: Fetch function without auth_email
   const fetchUnlinkedPayments = useCallback(async () => {
     const client = supabaseClientRef.current;
     const user = currentUserRef.current;
@@ -49,13 +49,13 @@ export const useUnlinkedPayments = (
     try {
       logger.debug('useUnlinkedPayments: Fetching webhook payments for user:', user.email);
       
-      // ✅ ENHANCED: Better query with timeout
+      // ✅ SIMPLIFIED: Query without auth_email
       const fetchPromise = client
         .from('user_payments')
         .select('*')
         .is('user_id', null)
         .eq('is_paid', true)
-        .eq('payment_status', 'settled') // ✅ ADDED: Only settled payments
+        .eq('payment_status', 'settled')
         .neq('email', 'pending@webhook.com')
         .order('created_at', { ascending: false })
         .limit(10);
@@ -73,7 +73,7 @@ export const useUnlinkedPayments = (
 
       logger.debug('useUnlinkedPayments: Raw unlinked payments:', data?.length || 0);
 
-      // ✅ ENHANCED: Better webhook detection logic
+      // ✅ SIMPLIFIED: Better webhook detection without auth_email
       const webhookDetectedPayments = (data || []).filter((payment: any) => {
         // Check for webhook patterns
         const hasPaymentReference = payment.pg_reference_id && payment.pg_reference_id.trim() !== '';
@@ -85,13 +85,12 @@ export const useUnlinkedPayments = (
           payment.email.includes('@webhook.com')
         );
         
-        // Check if auth_email matches current user (could be auto-linked to this user)
-        const authEmailMatch = payment.auth_email && 
-                              user.email && 
-                              payment.auth_email.toLowerCase() === user.email.toLowerCase();
+        // ✅ SIMPLIFIED: Check if email matches current user (could be auto-linked to this user)
+        const emailMatch = payment.email && 
+                          user.email && 
+                          payment.email.toLowerCase() === user.email.toLowerCase();
         
-        // ✅ ENHANCED: Include auth_email matches
-        const isWebhookPayment = hasPaymentReference || hasWebhookEmail || authEmailMatch;
+        const isWebhookPayment = hasPaymentReference || hasWebhookEmail || emailMatch;
         
         // Only check recent if no other indicators
         let isRecentUnlinked = false;
@@ -111,7 +110,7 @@ export const useUnlinkedPayments = (
             order_id: payment.order_id,
             hasPaymentReference,
             hasWebhookEmail,
-            authEmailMatch,
+            emailMatch,
             isRecentUnlinked
           });
         }
@@ -123,11 +122,11 @@ export const useUnlinkedPayments = (
 
       setUnlinkedPayments(webhookDetectedPayments);
       
-      // ✅ OPTIMIZED: Auto-show popup logic
+      // ✅ Auto-show popup logic
       if (webhookDetectedPayments.length > 0 && user) {
         logger.info('useUnlinkedPayments: Found', webhookDetectedPayments.length, 'unlinked payments');
         
-        // ✅ DELAY popup to avoid blocking initial load
+        // ✅ Delay popup to avoid blocking initial load
         setTimeout(() => {
           setShowAutoLinkPopup(true);
         }, 2000);
@@ -136,7 +135,7 @@ export const useUnlinkedPayments = (
     } catch (err: any) {
       logger.error('useUnlinkedPayments: Error fetching unlinked payments:', err);
       
-      // ✅ ENHANCED: Better error handling
+      // ✅ Better error handling
       if (err.message?.includes('Auth session missing')) {
         setError('Authentication required');
       } else if (err.message?.includes('timeout')) {
@@ -149,14 +148,14 @@ export const useUnlinkedPayments = (
     } finally {
       setIsLoading(false);
     }
-  }, []); // ✅ FIX: Empty dependency array, use refs instead
+  }, []); // ✅ Empty dependency array, use refs instead
 
-  // ✅ FIXED: Simplified effect for fetching
+  // ✅ Simplified effect for fetching
   useEffect(() => {
     if (currentUser && supabaseClient) {
       logger.debug('useUnlinkedPayments: User available, scheduling fetch');
       
-      // ✅ DELAY initial fetch to not block app startup
+      // ✅ Delay initial fetch to not block app startup
       const timer = setTimeout(() => {
         fetchUnlinkedPayments();
       }, 1000);
@@ -172,7 +171,7 @@ export const useUnlinkedPayments = (
     }
   }, [currentUser?.id, currentUser?.email, supabaseClient, fetchUnlinkedPayments]);
 
-  // ✅ FIXED: Real-time subscription with better cleanup
+  // ✅ SIMPLIFIED: Real-time subscription without auth_email
   useEffect(() => {
     if (!supabaseClient || !currentUser) return;
 
@@ -183,7 +182,7 @@ export const useUnlinkedPayments = (
 
     try {
       subscription = supabaseClient
-        .channel(`webhook-payments-${currentUser.id}`) // ✅ UNIQUE: User-specific channel
+        .channel(`webhook-payments-${currentUser.id}`)
         .on(
           'postgres_changes',
           {
@@ -193,7 +192,7 @@ export const useUnlinkedPayments = (
             filter: 'user_id=is.null'
           },
           (payload: any) => {
-            if (!mounted) return; // ✅ FIX: Check if still mounted
+            if (!mounted) return;
             
             logger.debug('useUnlinkedPayments: Real-time change:', {
               event: payload.eventType,
@@ -204,29 +203,29 @@ export const useUnlinkedPayments = (
               if (payload.eventType === 'INSERT' && payload.new?.is_paid && payload.new?.payment_status === 'settled') {
                 const newPayment = payload.new;
                 
-                // Quick webhook detection
+                // ✅ SIMPLIFIED: Quick webhook detection without auth_email
                 const hasPaymentReference = newPayment.pg_reference_id && newPayment.pg_reference_id.trim() !== '';
                 const hasWebhookEmail = newPayment.email && (
                   newPayment.email === 'unlinked@payment.com' ||
                   newPayment.email.includes('@payment.com') ||
                   newPayment.email.includes('@webhook.com')
                 );
-                const authEmailMatch = newPayment.auth_email && 
-                                     currentUser.email && 
-                                     newPayment.auth_email.toLowerCase() === currentUser.email.toLowerCase();
+                const emailMatch = newPayment.email && 
+                                 currentUser.email && 
+                                 newPayment.email.toLowerCase() === currentUser.email.toLowerCase();
                 
-                if (hasPaymentReference || hasWebhookEmail || authEmailMatch) {
+                if (hasPaymentReference || hasWebhookEmail || emailMatch) {
                   logger.info('useUnlinkedPayments: New webhook payment detected:', newPayment.order_id);
                   
                   setUnlinkedPayments((prev: any[]) => {
-                    // ✅ FIX: Avoid duplicates
+                    // ✅ Avoid duplicates
                     const exists = prev.some(p => p.order_id === newPayment.order_id);
                     if (exists) return prev;
                     
                     return [newPayment, ...prev.slice(0, 9)]; // Keep max 10
                   });
                   
-                  // ✅ DELAY popup for real-time updates
+                  // ✅ Delay popup for real-time updates
                   setTimeout(() => {
                     if (mounted) {
                       setShowAutoLinkPopup(true);
@@ -270,7 +269,7 @@ export const useUnlinkedPayments = (
     };
   }, [supabaseClient, currentUser?.id, currentUser?.email]);
 
-  // ✅ FIXED: Auto-close popup logic
+  // ✅ Auto-close popup logic
   useEffect(() => {
     if (unlinkedPayments.length === 0 && showAutoLinkPopup) {
       logger.debug('useUnlinkedPayments: No more payments, auto-closing popup');
@@ -278,7 +277,7 @@ export const useUnlinkedPayments = (
     }
   }, [unlinkedPayments.length, showAutoLinkPopup]);
 
-  // ✅ DEBUG: Improved logging
+  // ✅ DEBUG: Simplified logging
   useEffect(() => {
     if (import.meta.env.DEV) {
       logger.debug('useUnlinkedPayments state:', {

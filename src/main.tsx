@@ -1,4 +1,4 @@
-// src/main.tsx - ENHANCED VERSION WITH NEW LOGGER
+// src/main.tsx - FIXED (Remove Duplicate Providers)
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -6,9 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import App from './App.tsx';
 import './index.css';
-import { AuthProvider } from './contexts/AuthContext';
-import { UserSettingsProvider } from './contexts/UserSettingsContext';
-import { PaymentProvider } from './contexts/PaymentContext';
+// ❌ REMOVED: Individual providers (already in AppProviders)
+// import { AuthProvider } from './contexts/AuthContext';
+// import { UserSettingsProvider } from './contexts/UserSettingsContext';
+// import { PaymentProvider } from './contexts/PaymentContext';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from '@/utils/logger';
 
@@ -84,18 +85,14 @@ const root = createRoot(rootElement);
 
 logger.debug('Starting React render process');
 
+// ✅ FIXED: Only QueryClient and Router here, all other providers in AppProviders
 root.render(
   <React.StrictMode>
     <EnhancedErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <Router>
-          <AuthProvider>
-            <UserSettingsProvider>
-              <PaymentProvider>
-                <App />
-              </PaymentProvider>
-            </UserSettingsProvider>
-          </AuthProvider>
+          {/* ✅ FIXED: App contains AppProviders with all context providers */}
+          <App />
         </Router>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
@@ -139,7 +136,6 @@ if (import.meta.env.DEV) {
 
 // ✅ Performance monitoring in development
 if (import.meta.env.DEV && 'performance' in window) {
-  // Monitor key performance metrics
   window.addEventListener('load', () => {
     setTimeout(() => {
       const perfData = performance.getEntriesByType('navigation')[0] as any;

@@ -28,7 +28,7 @@ import MobileExportButton from "@/components/MobileExportButton";
 import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 
 // ✅ NEW: Webhook Auto-Linking components
-import AutoLinkingPopup from "@/components/popups/AutoLinkingPopup";
+import AutoLinkingPopup from "@/components/payments/AutoLinkingPopup";
 
 // ✅ CONSOLIDATED: Utilities grouped
 import { supabase } from "@/integrations/supabase/client";

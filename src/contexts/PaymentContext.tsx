@@ -86,10 +86,10 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         logger.debug('PaymentContext: Loading current user...');
         
-        // ✅ ADD TIMEOUT to prevent infinite loading
+        // ✅ REDUCED TIMEOUT: 5 seconds instead of 10
         const userPromise = getCurrentUser();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('User loading timeout')), 10000) // 10 second timeout
+          setTimeout(() => reject(new Error('User loading timeout')), 5000) // 5 second timeout
         );
         
         const user = await Promise.race([userPromise, timeoutPromise]) as any;
@@ -101,17 +101,32 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       } catch (error) {
         logger.error('PaymentContext: Failed to load current user:', error);
-        setCurrentUser(null);
         
-        // ✅ FALLBACK: Try to get user from session directly
+        // ✅ ENHANCED FALLBACK: Try multiple approaches
         try {
+          // Fallback 1: Get user from session directly
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             setCurrentUser(session.user);
-            logger.debug('PaymentContext: Fallback user from session:', session.user.email);
+            logger.debug('PaymentContext: Fallback 1 - user from session:', session.user.email);
+            return;
           }
-        } catch (sessionError) {
-          logger.error('PaymentContext: Fallback session failed:', sessionError);
+          
+          // Fallback 2: Try getUser() method
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (user && !userError) {
+            setCurrentUser(user);
+            logger.debug('PaymentContext: Fallback 2 - user from getUser():', user.email);
+            return;
+          }
+          
+          // Fallback 3: If all fails, set null but don't block app
+          logger.warn('PaymentContext: All fallbacks failed, setting user to null');
+          setCurrentUser(null);
+          
+        } catch (fallbackError) {
+          logger.error('PaymentContext: All fallbacks failed:', fallbackError);
+          setCurrentUser(null);
         }
       } finally {
         setUserLoading(false);

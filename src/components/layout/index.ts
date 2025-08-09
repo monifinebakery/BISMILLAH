@@ -9,13 +9,15 @@ export { AppError } from './AppError';
 
 // src/components/popups/index.ts
 export { default as AutoLinkingPopup } from './AutoLinkingPopup';
-export { default as OrderConfirmationPopup } from './OrderConfirmationPopup';
+// NOTE: OrderConfirmationPopup stays at @/components/OrderConfirmationPopup
 
 // src/config/index.ts
 export { AppRouter } from './routes';
 export { queryClient } from './queryClient';
 
 // src/types/app.ts
+import React from 'react';
+
 export interface AppLayoutProps {
   isPaid: boolean;
   renderOrderLinkButton: (isMobile?: boolean) => React.ReactNode;

@@ -1,4 +1,4 @@
-// src/hooks/usePaymentStatus.ts - FIXED VERSION (NO AUTO-LINK)
+// src/hooks/usePaymentStatus.ts - ENHANCED VERSION with Auth Email
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ export interface PaymentStatus {
   order_id: string | null;
   pg_reference_id: string | null;
   email: string | null;
+  auth_email: string | null; // ✅ NEW: Support auth_email
   payment_status: string | null;
   is_paid: boolean;
   created_at: Date | undefined;
@@ -61,7 +62,8 @@ export const usePaymentStatus = () => {
         logger.success('Found linked payment:', { 
           orderId: payment.order_id,
           userId: payment.user_id,
-          email: payment.email
+          email: payment.email,
+          authEmail: payment.auth_email
         });
         
         return {
@@ -76,25 +78,28 @@ export const usePaymentStatus = () => {
         logger.error('Error checking linked payments:', linkedError);
       }
 
-      // ✅ STEP 2: Check for UNLINKED payments - NO AUTO-LINK
+      // ✅ STEP 2: Check for UNLINKED payments - Enhanced with auth_email
+      logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
+      
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
         .select('*')
-        .eq('email', user.email)
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
+        .or(`email.eq.${user.email},auth_email.eq.${user.email}`) // ✅ Check both emails
         .order('updated_at', { ascending: false })
         .limit(1);
 
       if (!unlinkedError && unlinkedPayments?.length) {
         const payment = unlinkedPayments[0];
-        logger.success('Found unlinked payment (NO AUTO-LINK):', { 
+        logger.success('Found unlinked payment via email/auth_email:', { 
           orderId: payment.order_id, 
-          email: payment.email 
+          email: payment.email,
+          authEmail: payment.auth_email,
+          matchedVia: payment.email === user.email ? 'email' : 'auth_email'
         });
         
-        // ✅ FIXED: Return unlinked payment without auto-linking
         return {
           ...payment,
           created_at: safeParseDate(payment.created_at),
@@ -107,12 +112,42 @@ export const usePaymentStatus = () => {
         logger.error('Error checking unlinked payments:', unlinkedError);
       }
 
-      // ✅ STEP 3: No payments found
+      // ✅ STEP 3: Fallback - Check system emails that might be linked to user
+      logger.hook('usePaymentStatus', 'Checking system email payments...');
+      
+      const { data: systemPayments, error: systemError } = await supabase
+        .from('user_payments')
+        .select('*')
+        .is('user_id', null)
+        .eq('is_paid', true)
+        .eq('payment_status', 'settled')
+        .in('email', ['unlinked@payment.com', 'pending@webhook.com'])
+        .eq('auth_email', user.email) // ✅ Match by auth_email for system emails
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (!systemError && systemPayments?.length) {
+        const payment = systemPayments[0];
+        logger.success('Found system email payment via auth_email:', { 
+          orderId: payment.order_id, 
+          email: payment.email,
+          authEmail: payment.auth_email
+        });
+        
+        return {
+          ...payment,
+          created_at: safeParseDate(payment.created_at),
+          updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
+        };
+      }
+
+      // ✅ STEP 4: No payments found
       logger.hook('usePaymentStatus', 'No payment found for user');
       return null;
     },
     enabled: true,
-    staleTime: 10000, // 10 seconds - more frequent updates
+    staleTime: 10000, // 10 seconds
     cacheTime: 300000, // 5 minutes
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
@@ -123,7 +158,7 @@ export const usePaymentStatus = () => {
     },
   });
 
-  // ✅ Real-time subscription with better filtering
+  // ✅ Enhanced real-time subscription
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -136,7 +171,7 @@ export const usePaymentStatus = () => {
         const user = await getCurrentUser();
         if (!user) return;
 
-        logger.hook('usePaymentStatus', 'Setting up realtime subscription for:', user.email);
+        logger.hook('usePaymentStatus', 'Setting up enhanced realtime subscription for:', user.email);
 
         realtimeChannel = supabase
           .channel(`payment-changes-${user.id}`)
@@ -146,7 +181,8 @@ export const usePaymentStatus = () => {
               event: '*', 
               schema: 'public', 
               table: 'user_payments',
-              filter: `email=eq.${user.email}`
+              // ✅ Enhanced filter: user_id OR email OR auth_email
+              filter: `or(user_id.eq.${user.id},email.eq.${user.email},auth_email.eq.${user.email})`
             },
             (payload) => {
               const record = payload.new || payload.old;
@@ -154,6 +190,7 @@ export const usePaymentStatus = () => {
                 event: payload.eventType,
                 orderId: record?.order_id,
                 email: record?.email,
+                authEmail: record?.auth_email,
                 userId: record?.user_id
               });
               
@@ -166,11 +203,13 @@ export const usePaymentStatus = () => {
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              logger.success('Realtime subscription active for payment changes');
+              logger.success('Enhanced realtime subscription active for payment changes');
+            } else if (status === 'SUBSCRIPTION_ERROR') {
+              logger.error('Realtime subscription failed');
             }
           });
       } catch (error) {
-        logger.error('Error setting up payment subscription:', error);
+        logger.error('Error setting up enhanced payment subscription:', error);
       }
     };
 
@@ -207,7 +246,7 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ FIXED: Accurate payment status logic
+  // ✅ Enhanced payment status logic
   const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
   
   const hasValidPayment = paymentStatus?.is_paid === true && 
@@ -222,17 +261,19 @@ export const usePaymentStatus = () => {
   const needsPayment = !hasValidPayment;
   const needsOrderLinking = !isLoading && hasUnlinkedPayment;
 
-  // ✅ Debug logging
+  // ✅ Enhanced debug logging
   useEffect(() => {
     if (!isLoading) {
-      logger.debug('Payment status computed:', {
+      logger.debug('Enhanced payment status computed:', {
         hasValidPayment,
         hasUnlinkedPayment,
         needsOrderLinking,
         isLinkedToCurrentUser,
         paymentRecord: paymentStatus?.order_id || 'none',
         userEmail: paymentStatus?.email || 'none',
-        userId: paymentStatus?.user_id || 'none'
+        authEmail: paymentStatus?.auth_email || 'none',
+        userId: paymentStatus?.user_id || 'none',
+        emailMatch: paymentStatus?.email ? 'email' : (paymentStatus?.auth_email ? 'auth_email' : 'none')
       });
     }
   }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus]);

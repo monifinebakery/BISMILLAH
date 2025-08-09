@@ -88,7 +88,7 @@ const TrendIndicator: React.FC<{
   };
 
   return (
-    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium ${getTrendColor()} ${className}`}>
+    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${getTrendColor()} ${className}`}>
       {getTrendIcon()}
       <span>{formatPercentage(trend.percentage)}</span>
     </div>
@@ -134,29 +134,32 @@ const StatCard: React.FC<{
       <CardContent className="p-4 sm:p-6">
         {/* 🏷️ Header dengan Icon dan Trend */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            {/* 🎨 Icon with Outline Design */}
+          {/* 🎨 Icon dengan Label */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="border-2 border-orange-200 p-2.5 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
               <div className={`h-5 w-5 ${iconColor}`}>
                 {icon}
               </div>
             </div>
             
-            {/* 📈 Label dengan Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-medium truncate">
                   {label}
                 </p>
                 {tooltip && (
-                  <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors" />
+                  <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0" />
                 )}
               </div>
             </div>
           </div>
           
           {/* 📊 Trend Indicator */}
-          <TrendIndicator trend={trend} />
+          {trend && (
+            <div className="flex-shrink-0 ml-2">
+              <TrendIndicator trend={trend} />
+            </div>
+          )}
         </div>
         
         {/* 💰 Value */}
@@ -170,21 +173,12 @@ const StatCard: React.FC<{
           )}
         </div>
         
-        {/* 📝 Description & Trend Details */}
-        <div className="space-y-1">
-          {description && (
-            <p className="text-xs text-gray-500 truncate">
-              {description}
-            </p>
-          )}
-          
-          {/* Trend Period Info */}
-          {trend && trend.period && (
-            <p className="text-xs text-gray-400">
-              vs {trend.period}
-            </p>
-          )}
-        </div>
+        {/* 📝 Description Only */}
+        {description && (
+          <p className="text-xs text-gray-500 truncate">
+            {description}
+          </p>
+        )}
 
         {/* Hover Accent */}
         <div className="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-orange-100 transition-colors duration-300 pointer-events-none"></div>

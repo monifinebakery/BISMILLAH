@@ -1,4 +1,4 @@
-// src/hooks/usePaymentStatus.ts - FIXED VERSION (NO AUTO-LINK)
+// src/hooks/usePaymentStatus.ts - SIMPLIFIED VERSION (removed auth_email)
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
@@ -76,25 +76,26 @@ export const usePaymentStatus = () => {
         logger.error('Error checking linked payments:', linkedError);
       }
 
-      // ✅ STEP 2: Check for UNLINKED payments - NO AUTO-LINK
+      // ✅ STEP 2: Check for UNLINKED payments (SIMPLIFIED - only by email)
+      logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
+      
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
         .select('*')
-        .eq('email', user.email)
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
+        .eq('email', user.email) // ✅ SIMPLIFIED: Only check email field
         .order('updated_at', { ascending: false })
         .limit(1);
 
       if (!unlinkedError && unlinkedPayments?.length) {
         const payment = unlinkedPayments[0];
-        logger.success('Found unlinked payment (NO AUTO-LINK):', { 
+        logger.success('Found unlinked payment via email:', { 
           orderId: payment.order_id, 
-          email: payment.email 
+          email: payment.email
         });
         
-        // ✅ FIXED: Return unlinked payment without auto-linking
         return {
           ...payment,
           created_at: safeParseDate(payment.created_at),
@@ -112,7 +113,7 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 10000, // 10 seconds - more frequent updates
+    staleTime: 10000, // 10 seconds
     cacheTime: 300000, // 5 minutes
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
@@ -123,7 +124,7 @@ export const usePaymentStatus = () => {
     },
   });
 
-  // ✅ Real-time subscription with better filtering
+  // ✅ Simplified real-time subscription
   useEffect(() => {
     let realtimeChannel: RealtimeChannel | null = null;
     let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
@@ -146,7 +147,8 @@ export const usePaymentStatus = () => {
               event: '*', 
               schema: 'public', 
               table: 'user_payments',
-              filter: `email=eq.${user.email}`
+              // ✅ SIMPLIFIED: user_id OR email only
+              filter: `or(user_id.eq.${user.id},email.eq.${user.email})`
             },
             (payload) => {
               const record = payload.new || payload.old;
@@ -167,6 +169,8 @@ export const usePaymentStatus = () => {
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
               logger.success('Realtime subscription active for payment changes');
+            } else if (status === 'SUBSCRIPTION_ERROR') {
+              logger.error('Realtime subscription failed');
             }
           });
       } catch (error) {
@@ -207,7 +211,7 @@ export const usePaymentStatus = () => {
     };
   }, [queryClient]);
 
-  // ✅ FIXED: Accurate payment status logic
+  // ✅ Simplified payment status logic
   const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
   
   const hasValidPayment = paymentStatus?.is_paid === true && 
@@ -222,7 +226,7 @@ export const usePaymentStatus = () => {
   const needsPayment = !hasValidPayment;
   const needsOrderLinking = !isLoading && hasUnlinkedPayment;
 
-  // ✅ Debug logging
+  // ✅ Simplified debug logging
   useEffect(() => {
     if (!isLoading) {
       logger.debug('Payment status computed:', {

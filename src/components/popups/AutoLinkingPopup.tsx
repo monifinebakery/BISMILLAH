@@ -1,4 +1,4 @@
-// src/components/popups/AutoLinkingPopup.tsx - ENHANCED with Auto-Retry & Logout
+// src/components/popups/AutoLinkingPopup.tsx - FIXED with UUID Sanitization
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -13,8 +13,28 @@ interface AutoLinkingPopupProps {
   onSuccess?: (payments: any[]) => void;
 }
 
-// AutoLinkingPopup - For webhook-detected payments that need user linking
-// This complements OrderConfirmationPopup which handles manual Order ID input
+// ✅ NEW: UUID Sanitization function (same as linking.ts)
+const sanitizeUserId = (userId: any): string | null => {
+  if (userId === null || 
+      userId === undefined || 
+      userId === 'null' || 
+      userId === 'undefined' || 
+      userId === '' ||
+      userId === 'NULL') {
+    return null;
+  }
+  
+  if (typeof userId === 'string' && userId.length > 0) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(userId)) {
+      return userId;
+    }
+  }
+  
+  logger.warn('AutoLinkingPopup: Invalid user ID detected:', { userId, type: typeof userId });
+  return null;
+};
+
 const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({ 
   isOpen, 
   onClose, 
@@ -28,14 +48,14 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const [linkingResults, setLinkingResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   
-  // ✅ NEW: Auto-retry state
+  // Auto-retry state
   const [isDismissed, setIsDismissed] = useState(false);
   const [autoRetryTimer, setAutoRetryTimer] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ FIXED: Reset state when popup opens
+  // Reset state when popup opens
   useEffect(() => {
     if (isOpen) {
       setSelectedPayments([]);
@@ -47,7 +67,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   }, [isOpen, unlinkedPayments.length]);
 
-  // ✅ FIXED: Auto-select all payments by default
+  // Auto-select all payments by default
   useEffect(() => {
     if (isOpen && unlinkedPayments.length > 0 && selectedPayments.length === 0) {
       setSelectedPayments([...unlinkedPayments]);
@@ -55,12 +75,11 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   }, [isOpen, unlinkedPayments, selectedPayments.length]);
 
-  // ✅ NEW: Auto-retry popup logic
+  // Auto-retry popup logic
   useEffect(() => {
     if (!isOpen && !isDismissed && unlinkedPayments.length > 0 && !showResults) {
       logger.debug('AutoLinkingPopup: Setting up auto-retry in 10 seconds');
       
-      // Start countdown
       setAutoRetryTimer(10);
       countdownIntervalRef.current = setInterval(() => {
         setAutoRetryTimer(prev => {
@@ -71,11 +90,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         });
       }, 1000);
 
-      // Set retry timer
       retryIntervalRef.current = setTimeout(() => {
         if (!isDismissed) {
           logger.info('AutoLinkingPopup: Auto-reopening popup after 10 seconds');
-          onClose(); // This will trigger popup to reopen since isOpen will become true
+          onClose();
         }
       }, 10000);
     }
@@ -92,7 +110,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     };
   }, [isOpen, isDismissed, unlinkedPayments.length, showResults, onClose]);
 
-  // ✅ NEW: Cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (retryIntervalRef.current) clearTimeout(retryIntervalRef.current);
@@ -119,10 +137,30 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ ENHANCED: Auto-linking with better error handling
+  // ✅ FIXED: Auto-linking with UUID sanitization
   const handleAutoLinkPayments = async () => {
     if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
       logger.error('AutoLinkingPopup: Missing requirements for linking');
+      return;
+    }
+
+    // ✅ CRITICAL: Validate and sanitize user ID before any operations
+    const sanitizedUserId = sanitizeUserId(currentUser.id);
+    
+    if (!sanitizedUserId) {
+      logger.error('AutoLinkingPopup: Invalid current user ID:', {
+        originalId: currentUser.id,
+        type: typeof currentUser.id,
+        email: currentUser.email
+      });
+      
+      alert('❌ Invalid user session. Please logout and login again.');
+      return;
+    }
+
+    if (!currentUser.email) {
+      logger.error('AutoLinkingPopup: Missing user email');
+      alert('❌ User email missing. Please logout and login again.');
       return;
     }
 
@@ -130,20 +168,25 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     const results: any[] = [];
 
     try {
-      logger.info('AutoLinkingPopup: Starting auto-link for', selectedPayments.length, 'payments');
+      logger.info('AutoLinkingPopup: Starting auto-link for', selectedPayments.length, 'payments with sanitized user ID:', sanitizedUserId);
 
       for (const payment of selectedPayments) {
         try {
-          logger.debug('AutoLinkingPopup: Linking payment', payment.order_id);
+          logger.debug('AutoLinkingPopup: Linking payment', payment.order_id, 'to user ID:', sanitizedUserId);
+
+          // ✅ FIXED: Use sanitized user ID in update
+          const updateData = {
+            user_id: sanitizedUserId, // ✅ FIXED: Use sanitized ID
+            auth_email: currentUser.email,
+            linked_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          logger.debug('AutoLinkingPopup: Update data:', updateData);
 
           const { data, error } = await supabaseClient
             .from('user_payments')
-            .update({
-              user_id: currentUser.id,
-              auth_email: currentUser.email,
-              linked_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('order_id', payment.order_id)
             .eq('user_id', null) // ✅ SAFETY: Only update if still unlinked
             .select()
@@ -151,6 +194,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
           if (error) {
             logger.error('AutoLinkingPopup: Database error for', payment.order_id, error);
+            
+            // ✅ ENHANCED: Better error detection
+            if (error.message?.includes('invalid input syntax for type uuid')) {
+              logger.error('AutoLinkingPopup: UUID syntax error:', {
+                sanitizedUserId,
+                updateData,
+                originalUserId: currentUser.id
+              });
+              throw new Error('Invalid user ID format detected. Please logout and login again.');
+            }
+            
             throw error;
           }
 
@@ -158,7 +212,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             throw new Error('Payment not found or already linked');
           }
 
-          logger.success('AutoLinkingPopup: Successfully linked', payment.order_id);
+          logger.success('AutoLinkingPopup: Successfully linked', payment.order_id, 'to user:', sanitizedUserId);
           results.push({
             order_id: payment.order_id,
             success: true,
@@ -177,25 +231,32 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
       setLinkingResults(results);
       setShowResults(true);
 
-      // ✅ FIXED: Enhanced success callback
       const successfulPayments = results.filter(r => r.success).map(r => r.data);
       if (successfulPayments.length > 0) {
         logger.success('AutoLinkingPopup: Successfully linked', successfulPayments.length, 'payments');
         if (onSuccess) {
           onSuccess(successfulPayments);
         }
-        // ✅ Stop auto-retry on success
         setIsDismissed(true);
+      }
+
+      // ✅ ENHANCED: Show specific error for UUID issues
+      const uuidErrors = results.filter(r => !r.success && r.error.includes('Invalid user ID'));
+      if (uuidErrors.length > 0) {
+        alert('❌ UUID validation failed. Please logout and login again to fix user session.');
       }
 
     } catch (error) {
       logger.error('AutoLinkingPopup: General linking error:', error);
+      
+      if (error.message?.includes('Invalid user ID')) {
+        alert('❌ User session issue detected. Please logout and login again.');
+      }
     } finally {
       setIsLinking(false);
     }
   };
 
-  // ✅ NEW: Enhanced close with dismiss option
   const handleClose = (dismiss = false) => {
     if (dismiss) {
       setIsDismissed(true);
@@ -208,7 +269,6 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     onClose();
   };
 
-  // ✅ NEW: Logout handler
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
@@ -216,11 +276,9 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
       
       await supabase.auth.signOut();
       
-      // Clear all state
       setIsDismissed(true);
       handleClose(true);
       
-      // Show success message
       alert('✅ Successfully logged out. You can now login with a different account.');
       
     } catch (error) {
@@ -245,7 +303,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     }
   };
 
-  // ✅ NEW: Show countdown when popup is closed but will retry
+  // Show countdown when popup is closed but will retry
   if (!isOpen && autoRetryTimer > 0 && !isDismissed && unlinkedPayments.length > 0) {
     return (
       <div className="fixed bottom-4 right-4 bg-white border border-orange-300 rounded-lg p-4 shadow-lg max-w-sm z-50">
@@ -277,8 +335,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     );
   }
 
-  // ✅ FIXED: Don't render main popup if not open
   if (!isOpen) return null;
+
+  // ✅ ENHANCED: Show user ID debug info in development
+  const showDebugInfo = import.meta.env.DEV && currentUser;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -296,12 +356,20 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               <p className="text-sm text-gray-500">
                 Hubungkan pembayaran webhook ke akun Anda
               </p>
+              
+              {/* ✅ DEBUG: Show user ID validation in dev */}
+              {showDebugInfo && (
+                <div className="text-xs mt-1">
+                  <span className={`font-mono ${currentUser.id === 'null' ? 'text-red-600 bg-red-100' : 'text-green-600'}`}>
+                    ID: {currentUser.id} ({typeof currentUser.id})
+                  </span>
+                  {currentUser.id === 'null' && <span className="text-red-600 ml-2">⚠️ STRING NULL!</span>}
+                </div>
+              )}
             </div>
           </div>
           
-          {/* ✅ NEW: Enhanced header buttons */}
           <div className="flex items-center gap-2">
-            {/* Logout button */}
             <button
               onClick={handleLogout}
               disabled={isLinking || isLoggingOut}
@@ -315,7 +383,6 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               )}
             </button>
             
-            {/* Close button */}
             <button
               onClick={() => handleClose(false)}
               disabled={isLinking}
@@ -329,9 +396,8 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           {!showResults ? (
-            /* Payment Selection */
             <div className="p-6">
-              {/* ✅ NEW: Auto-retry info banner */}
+              {/* Auto-retry info banner */}
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-blue-600" />
@@ -356,7 +422,6 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                     </div>
                   </div>
                   
-                  {/* ✅ NEW: Logout button in user info */}
                   <button
                     onClick={handleLogout}
                     disabled={isLinking || isLoggingOut}
@@ -367,7 +432,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 </div>
               </div>
 
-              {/* Unlinked Payments */}
+              {/* Rest of the component remains the same... */}
               {unlinkedPayments.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
@@ -520,18 +585,16 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           )}
         </div>
 
-        {/* ✅ ENHANCED: Footer with more options */}
+        {/* Footer */}
         <div className="border-t border-gray-200 p-6">
           {!showResults ? (
             <div className="space-y-3">
-              {/* Selection info */}
               <div className="text-sm text-gray-500 text-center">
                 {selectedPayments.length > 0 && (
                   `${selectedPayments.length} dari ${unlinkedPayments.length} pembayaran dipilih`
                 )}
               </div>
               
-              {/* Action buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={() => handleClose(false)}
@@ -553,8 +616,9 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 
                 <button
                   onClick={handleAutoLinkPayments}
-                  disabled={selectedPayments.length === 0 || isLinking}
+                  disabled={selectedPayments.length === 0 || isLinking || sanitizeUserId(currentUser?.id) === null}
                   className="flex-1 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  title={sanitizeUserId(currentUser?.id) === null ? 'Invalid user ID - please logout and login again' : ''}
                 >
                   {isLinking && <Loader2 className="w-4 h-4 animate-spin" />}
                   <Zap className="w-4 h-4" />

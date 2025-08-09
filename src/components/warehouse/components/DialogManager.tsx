@@ -86,7 +86,7 @@ class DialogErrorBoundary extends React.Component<
   }
 }
 
-// ✅ UPDATED: Simplified Types with fallback support
+// ✅ UPDATED: Simplified Types without problematic bulk handlers
 interface DialogManagerProps {
   dialogs: {
     states: Record<string, boolean>;
@@ -103,13 +103,11 @@ interface DialogManagerProps {
     // ✅ FIXED: Optional handlers with fallbacks
     create?: (item: any) => Promise<void>;
     update?: (id: string, item: any) => Promise<void>;
-    bulkDelete?: (ids: string[]) => Promise<void>;
-    bulkUpdate?: (items: { id: string; data: any }[]) => Promise<void>;
   };
   context: any;
   selection: any;
   filters: any;
-  bulk: any;
+  bulk: any; // ✅ Use the bulk object from core hook
   pageId: string;
 }
 
@@ -206,56 +204,28 @@ const DialogManager: React.FC<DialogManagerProps> = ({
       }
     },
 
-    // ✅ FIXED: Enhanced bulk operations dengan fallback logic
+    // ✅ FIXED: Use the bulk operations from the core hook
     handleBulkOperation: async (operation: 'edit' | 'delete', data?: any) => {
       try {
+        let success = false;
+        
         if (operation === 'delete') {
-          const selectedIds = Array.from(selection.selectedItems);
-          
-          // ✅ Fallback: Use individual delete if bulkDelete not available
-          if (handlers.bulkDelete) {
-            await handlers.bulkDelete(selectedIds);
-          } else {
-            // Fallback: Delete items one by one
-            for (const id of selectedIds) {
-              const item = context.bahanBaku?.find((item: any) => item.id === id);
-              if (item) {
-                await handlers.delete(id, item.nama || 'Item');
-              }
-            }
-          }
-          
-          logger.debug(`[${pageId}] ✅ Bulk deleted ${selectedIds.length} items`);
+          // Use the built-in bulk delete from the core hook
+          success = await bulk.bulkDelete();
+          logger.debug(`[${pageId}] ✅ Bulk delete operation completed`);
           
         } else if (operation === 'edit' && data) {
-          const selectedIds = Array.from(selection.selectedItems);
-          
-          // ✅ Fallback: Use individual editSave if bulkUpdate not available
-          if (handlers.bulkUpdate) {
-            const updateItems = selectedIds.map(id => ({ id, data }));
-            await handlers.bulkUpdate(updateItems);
-          } else {
-            // Fallback: Update items one by one
-            for (const id of selectedIds) {
-              const item = context.bahanBaku?.find((item: any) => item.id === id);
-              if (item) {
-                const updatedItem = { ...item, ...data };
-                if (handlers.update) {
-                  await handlers.update(id, data);
-                } else {
-                  // Set editing item and use editSave
-                  dialogs.setEditingItem(item);
-                  await handlers.editSave(data);
-                }
-              }
-            }
-          }
-          
-          logger.debug(`[${pageId}] ✅ Bulk updated ${selectedIds.length} items`);
+          // Use the built-in bulk edit from the core hook
+          success = await bulk.bulkEdit(data);
+          logger.debug(`[${pageId}] ✅ Bulk edit operation completed`);
         }
         
-        // ✅ Comprehensive cache invalidation untuk bulk operations
-        queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+        if (success) {
+          // ✅ Comprehensive cache invalidation untuk bulk operations
+          queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+        }
+        
+        return success;
         
       } catch (error) {
         logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, error);
@@ -340,12 +310,14 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               ).filter(Boolean)}
               onConfirm={async (data) => {
                 const operation = dialogs.states.bulkEdit ? 'edit' : 'delete';
-                await enhancedHandlers.handleBulkOperation(operation, data);
+                const success = await enhancedHandlers.handleBulkOperation(operation, data);
                 
                 // ✅ Close dialogs and clear selection after successful operation
-                dialogs.close('bulkEdit');
-                dialogs.close('bulkDelete');
-                selection.clearSelection?.();
+                if (success) {
+                  dialogs.close('bulkEdit');
+                  dialogs.close('bulkDelete');
+                  selection.clearSelection?.();
+                }
               }}
               isProcessing={bulk?.isProcessing || false}
               availableCategories={filters.availableCategories || []}

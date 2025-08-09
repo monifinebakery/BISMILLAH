@@ -12,18 +12,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 
 const App = () => {
-  // ✅ Handle auth redirect on app start
+  // ✅ Enhanced auth redirect handling
   useEffect(() => {
     const handleAuthRedirect = async () => {
       try {
+        // Check for auth tokens in URL (from OTP/magic link)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        if (accessToken) {
+          logger.debug('App: Auth tokens found in URL, processing...');
+          
+          // Let Supabase handle the auth
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session && !error) {
+            logger.success('App: Auth successful, redirecting to app...');
+            
+            // Clean URL and redirect to main app
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Small delay to ensure auth state is set
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+            
+            return;
+          }
+        }
+        
+        // Handle other auth-related URLs
         const { data: { session } } = await supabase.auth.getSession();
         if (!session && window.location.hash.includes("access_token")) {
+          logger.debug('App: Access token found but no session, reloading...');
           window.location.reload();
         }
       } catch (error) {
         logger.error('Auth redirect error:', error);
       }
     };
+    
     handleAuthRedirect();
   }, []);
 

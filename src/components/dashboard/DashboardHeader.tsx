@@ -1,4 +1,4 @@
-// components/dashboard/DashboardHeader.tsx - Enhanced Beautiful Design
+// components/dashboard/DashboardHeader.tsx - Clean Design No Animations Full Width
 
 import React, { lazy, Suspense } from 'react';
 import { formatDateRange, parseDate } from '@/utils/unifiedDateUtils';
@@ -45,19 +45,12 @@ const DashboardHeader: React.FC<Props> = ({
   }, [dateRange]);
 
   return (
-    <div className="relative">
-      {/* 🎨 Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-red-50 rounded-2xl"></div>
-      
-      {/* 🌟 Content Container */}
-      <div className="relative bg-white/80 backdrop-blur-sm border-2 border-orange-100 rounded-2xl p-6 sm:p-8 mb-8 shadow-sm">
-        
-        {/* ✨ Decorative Elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-orange-100 to-transparent rounded-2xl opacity-50"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-red-100 to-transparent rounded-2xl opacity-30"></div>
+    <div className="w-full">
+      {/* 🌟 Content Container - Full Width */}
+      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border-2 border-orange-100 rounded-2xl p-6 sm:p-8 mb-8">
         
         {/* 📋 Header Content */}
-        <div className="relative z-10">
+        <div className="w-full">
           
           {/* 🏠 Main Header Section */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6">
@@ -65,10 +58,10 @@ const DashboardHeader: React.FC<Props> = ({
             {/* 👋 Title & Greeting Section */}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl shadow-lg">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
                   <BarChart3 className="h-6 w-6 text-white" />
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
                   Dashboard
                 </h1>
               </div>
@@ -94,30 +87,23 @@ const DashboardHeader: React.FC<Props> = ({
                 
                 <Suspense 
                   fallback={
-                    <div className="w-full lg:w-[320px] h-12 bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse rounded-xl border-2 border-gray-200 flex items-center justify-center">
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
-                        <span className="text-gray-500 text-sm">Memuat kalender...</span>
-                      </div>
+                    <div className="w-full lg:w-[320px] h-12 bg-gray-100 rounded-xl border-2 border-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Memuat kalender...</span>
                     </div>
                   }
                 >
-                  <div className="relative">
-                    <DateRangePicker
-                      dateRange={dateRange}
-                      onDateRangeChange={setDateRange}
-                      isMobile={isMobile}
-                    />
-                    {/* ✨ Subtle glow effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-200 to-red-200 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
-                  </div>
+                  <DateRangePicker
+                    dateRange={dateRange}
+                    onDateRangeChange={setDateRange}
+                    isMobile={isMobile}
+                  />
                 </Suspense>
               </div>
             </div>
           </div>
           
-          {/* 📊 Period Info & Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 📊 Period Info & Stats - Full Width Grid */}
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             
             {/* 📅 Current Period */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-4">
@@ -170,11 +156,6 @@ const DashboardHeader: React.FC<Props> = ({
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* 🌊 Animated Border */}
-        <div className="absolute inset-0 rounded-2xl">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-200 via-red-200 to-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
         </div>
       </div>
     </div>

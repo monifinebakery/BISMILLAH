@@ -110,17 +110,6 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </p>
       </div>
 
-      {/* 🔧 DEBUG DISPLAY - REMOVE AFTER FIXING */}
-      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-        <h3 className="font-bold text-yellow-800 mb-2">🐛 Debug Info (Remove after fixing)</h3>
-        <div className="text-sm space-y-1">
-          <p><strong>Original marginKeuntunganPersen:</strong> {data.marginKeuntunganPersen} (type: {typeof data.marginKeuntunganPersen})</p>
-          <p><strong>Transformed marginKeuntunganPersen:</strong> {costCalculationData.marginKeuntunganPersen} (type: {typeof costCalculationData.marginKeuntunganPersen})</p>
-          <p><strong>Profit Analysis marginAmount:</strong> {profitAnalysis.marginAmount}</p>
-          <p><strong>Cost per Portion:</strong> {costBreakdown.costPerPortion}</p>
-        </div>
-      </div>
-
       {/* Main Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         

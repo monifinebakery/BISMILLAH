@@ -1,4 +1,5 @@
-// pages/Dashboard.tsx
+// pages/Dashboard.tsx - Enhanced with Balanced Layout
+
 import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
@@ -14,12 +15,12 @@ const CriticalStock = lazy(() => import('@/components/dashboard/CriticalStock'))
 const RecentActivities = lazy(() => import('@/components/dashboard/RecentActivities'));
 const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSellingProducts'));
 
-// 📦 Loading Component
-const SectionLoader = ({ height = "h-32" }) => (
-  <div className={`${height} bg-white rounded-lg shadow-md animate-pulse flex items-center justify-center`}>
+// 📦 Enhanced Loading Component with different sizes
+const SectionLoader = ({ height = "h-32", className = "" }) => (
+  <div className={`${height} ${className} bg-white rounded-lg shadow-sm border border-gray-100 animate-pulse flex items-center justify-center`}>
     <div className="flex items-center space-x-2">
-      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-      <span className="text-gray-500">Memuat...</span>
+      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+      <span className="text-gray-400 text-sm">Memuat...</span>
     </div>
   </div>
 );
@@ -31,7 +32,7 @@ const getDefaultDateRange = () => {
   thirtyDaysAgo.setDate(today.getDate() - 30);
   
   return {
-    from: thirtyDaysAgo.toISOString().split('T')[0], // Format: YYYY-MM-DD
+    from: thirtyDaysAgo.toISOString().split('T')[0],
     to: today.toISOString().split('T')[0]
   };
 };
@@ -48,21 +49,20 @@ const getGreeting = (ownerName?: string) => {
 };
 
 const Dashboard = () => {
-  // 🎛️ State Management - Fixed initialization
+  // 🎛️ State Management
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
-  
   const [pagination, setPagination] = useState({
     products: 1,
-    activities: 1
+    activities: 1,
+    worstProducts: 1
   });
 
-  // 👤 Get settings from context (includes ownerName)
+  // 👤 Get settings from context
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
   const { ownerName } = settings;
-
   const isMobile = useIsMobile();
 
-  // 🔄 Data Fetching dengan Custom Hook
+  // 🔄 Data Fetching
   const {
     stats,
     bestSellingProducts,
@@ -73,36 +73,16 @@ const Dashboard = () => {
     error
   } = useDashboardData(dateRange);
 
-  // 👋 Greeting message dengan ownerName
+  // 👋 Greeting message
   const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
-
-  // 📊 Dashboard Header Props
-  const headerProps = useMemo(() => ({
-    dateRange,
-    setDateRange,
-    greeting,
-    isMobile
-  }), [dateRange, greeting, isMobile]);
-
-  // 📊 Computed values yang ringan
-  const dashboardProps = useMemo(() => ({
-    dateRange,
-    setDateRange,
-    pagination,
-    setPagination,
-    isMobile,
-    ...stats
-  }), [dateRange, pagination, isMobile, stats]);
 
   // 🛡️ Safe date range handler
   const handleDateRangeChange = (newRange: { from: string; to: string }) => {
-    // Validate that both dates exist and are valid
     if (!newRange || !newRange.from || !newRange.to) {
       console.error('Invalid date range provided:', newRange);
       return;
     }
 
-    // Validate date format (basic check)
     const fromDate = new Date(newRange.from);
     const toDate = new Date(newRange.to);
     
@@ -117,15 +97,16 @@ const Dashboard = () => {
   // ⚠️ Error State
   if (error) {
     return (
-      <div className="p-8 text-center">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-red-800 text-lg font-semibold mb-2">Terjadi Kesalahan</h2>
-          <p className="text-red-600 mb-4">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md w-full text-center">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h2 className="text-red-800 text-xl font-semibold mb-3">Terjadi Kesalahan</h2>
+          <p className="text-red-600 mb-6 leading-relaxed">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
           >
-            Muat Ulang
+            Muat Ulang Dashboard
           </button>
         </div>
       </div>
@@ -135,10 +116,11 @@ const Dashboard = () => {
   // 🔄 Loading state untuk settings dan initial load
   if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat dashboard...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
+          <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
         </div>
       </div>
     );
@@ -146,89 +128,126 @@ const Dashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-        {/* 🏠 Header - Always loaded with all required props */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <DashboardHeader 
-            dateRange={dateRange}
-            setDateRange={handleDateRangeChange}
-            greeting={greeting}
-            isMobile={isMobile}
-          />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           
-          {/* 👤 Owner Name Quick Setting - Show if default name */}
-          {(!ownerName || ownerName === 'Nama Anda') && (
-            <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
-              <span className="text-amber-700">💡 Tip:</span>
-              <input
-                type="text"
-                placeholder="Masukkan nama Anda..."
-                className="bg-transparent border-none outline-none placeholder-amber-500 w-32"
-                onKeyPress={async (e) => {
-                  if (e.key === 'Enter') {
-                    const name = (e.target as HTMLInputElement).value.trim();
-                    if (name) {
-                      await saveSettings({ ownerName: name });
-                    }
-                  }
-                }}
+          {/* 🏠 Header Section */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <DashboardHeader 
+                dateRange={dateRange}
+                setDateRange={handleDateRangeChange}
+                greeting={greeting}
+                isMobile={isMobile}
               />
+              
+              {/* 👤 Owner Name Quick Setting */}
+              {(!ownerName || ownerName === 'Nama Anda') && (
+                <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm shadow-sm">
+                  <span className="text-amber-700 font-medium">💡</span>
+                  <input
+                    type="text"
+                    placeholder="Masukkan nama Anda..."
+                    className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
+                    onKeyPress={async (e) => {
+                      if (e.key === 'Enter') {
+                        const name = (e.target as HTMLInputElement).value.trim();
+                        if (name) {
+                          await saveSettings({ ownerName: name });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* 📊 Stats Grid - High priority, suspend dengan timeout singkat */}
-        <Suspense fallback={<SectionLoader height="h-24" />}>
-          <StatsGrid 
-            stats={stats}
-            isLoading={isLoading}
-          />
-        </Suspense>
-
-        {/* ⚡ Quick Actions - Medium priority */}
-        <Suspense fallback={<SectionLoader height="h-20" />}>
-          <QuickActions />
-        </Suspense>
-
-        {/* 📈 Main Content Grid - Lower priority */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {/* Left Column */}
-          <div className="space-y-6">
-            <Suspense fallback={<SectionLoader height="h-64" />}>
-              <BestSellingProducts
-                products={bestSellingProducts}
-                pagination={pagination.products}
-                onPageChange={(page) => setPagination(prev => ({ ...prev, products: page }))}
-                isLoading={isLoading}
-              />
+            {/* 📊 Stats Grid */}
+            <Suspense fallback={<SectionLoader height="h-24" className="mb-6" />}>
+              <div className="mb-6">
+                <StatsGrid 
+                  stats={stats}
+                  isLoading={isLoading}
+                />
+              </div>
             </Suspense>
 
-            <Suspense fallback={<SectionLoader height="h-48" />}>
-              <CriticalStock
-                items={criticalStock}
-                isLoading={isLoading}
-              />
+            {/* ⚡ Quick Actions */}
+            <Suspense fallback={<SectionLoader height="h-20" />}>
+              <QuickActions />
             </Suspense>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            <Suspense fallback={<SectionLoader height="h-64" />}>
-              <RecentActivities
-                activities={recentActivities}
-                pagination={pagination.activities}
-                onPageChange={(page) => setPagination(prev => ({ ...prev, activities: page }))}
-                isLoading={isLoading}
-              />
-            </Suspense>
+          {/* 📈 Main Content Grid - ENHANCED LAYOUT */}
+          <div className="space-y-8">
+            
+            {/* First Row: Best Selling + Recent Activities */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {/* Best Selling Products - Takes 2 columns on xl screens */}
+              <div className="xl:col-span-2">
+                <Suspense fallback={<SectionLoader height="h-80" />}>
+                  <BestSellingProducts
+                    products={bestSellingProducts}
+                    pagination={pagination.products}
+                    onPageChange={(page) => setPagination(prev => ({ ...prev, products: page }))}
+                    isLoading={isLoading}
+                  />
+                </Suspense>
+              </div>
 
-            <Suspense fallback={<SectionLoader height="h-48" />}>
-              <WorstSellingProducts
-                products={worstSellingProducts}
-                isLoading={isLoading}
-              />
-            </Suspense>
+              {/* Recent Activities - Takes 1 column */}
+              <div className="xl:col-span-1">
+                <Suspense fallback={<SectionLoader height="h-80" />}>
+                  <RecentActivities
+                    activities={recentActivities}
+                    pagination={pagination.activities}
+                    onPageChange={(page) => setPagination(prev => ({ ...prev, activities: page }))}
+                    isLoading={isLoading}
+                  />
+                </Suspense>
+              </div>
+            </div>
+
+            {/* Second Row: Critical Stock + Worst Selling */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Critical Stock */}
+              <div>
+                <Suspense fallback={<SectionLoader height="h-64" />}>
+                  <CriticalStock
+                    items={criticalStock}
+                    isLoading={isLoading}
+                  />
+                </Suspense>
+              </div>
+
+              {/* Worst Selling Products */}
+              <div>
+                <Suspense fallback={<SectionLoader height="h-64" />}>
+                  <WorstSellingProducts
+                    products={worstSellingProducts}
+                    pagination={pagination.worstProducts}
+                    onPageChange={(page) => setPagination(prev => ({ ...prev, worstProducts: page }))}
+                    isLoading={isLoading}
+                  />
+                </Suspense>
+              </div>
+            </div>
+
+            {/* Optional: Third Row for Future Components */}
+            {/* 
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                // Revenue Chart or Sales Trends
+              </div>
+              <div className="lg:col-span-1">
+                // Quick Insights or Notifications
+              </div>
+            </div>
+            */}
           </div>
+
+          {/* 📱 Mobile Bottom Spacer */}
+          <div className="h-8 sm:h-0" aria-hidden="true"></div>
         </div>
       </div>
     </ErrorBoundary>

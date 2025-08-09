@@ -110,6 +110,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </p>
       </div>
 
+
+
       {/* Main Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         

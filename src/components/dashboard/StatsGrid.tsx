@@ -1,4 +1,4 @@
-/ components/dashboard/StatsGrid.tsx - Enhanced with Outline Design
+// components/dashboard/StatsGrid.tsx - Enhanced with Outline Design
 
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";

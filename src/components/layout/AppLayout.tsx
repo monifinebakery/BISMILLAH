@@ -48,12 +48,12 @@ export const AppLayout = () => {
     autoLinkCount
   });
 
-  // ✅ Force ready after 15 seconds to prevent infinite loading
+  // ✅ Force ready after 10 seconds (reduced from 15)
   useEffect(() => {
     const timer = setTimeout(() => {
-      logger.warn('AppLayout: Forcing ready after 15 seconds timeout');
+      logger.warn('AppLayout: Forcing ready after 10 seconds timeout');
       setForceReady(true);
-    }, 15000);
+    }, 10000); // Reduced to 10 seconds
     
     return () => clearTimeout(timer);
   }, []);

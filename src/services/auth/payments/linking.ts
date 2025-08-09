@@ -1,9 +1,34 @@
-// src/services/auth/payments/linking.ts - ENHANCED with linked_at
+// src/services/auth/payments/linking.ts - FIXED with UUID Sanitization
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
 import { clearSessionCache } from '../core/session';
+
+// ✅ NEW: UUID Sanitization function
+const sanitizeUserId = (userId: any): string | null => {
+  // Handle various "null" representations
+  if (userId === null || 
+      userId === undefined || 
+      userId === 'null' || 
+      userId === 'undefined' || 
+      userId === '' ||
+      userId === 'NULL') {
+    return null;
+  }
+  
+  // Ensure it's a valid UUID string
+  if (typeof userId === 'string' && userId.length > 0) {
+    // Basic UUID validation (36 chars with hyphens)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(userId)) {
+      return userId;
+    }
+  }
+  
+  logger.warn('Invalid user ID detected:', { userId, type: typeof userId });
+  return null;
+};
 
 // ✅ Enhanced cache clearing function
 const forceRefreshCache = async () => {
@@ -26,40 +51,63 @@ const forceRefreshCache = async () => {
 
 export const linkPaymentToUser = async (orderId: string, user: any): Promise<PaymentRecord> => {
   try {
-    // ✅ ENHANCED: Validate user object with better error messages
+    // ✅ ENHANCED: Validate user object with sanitization
     if (!user) {
       throw new Error('User not authenticated. Please login first.');
     }
     
-    if (!user.id || user.id === 'null' || user.id === null || user.id === undefined) {
+    // ✅ CRITICAL: Sanitize user ID before any operations
+    const sanitizedUserId = sanitizeUserId(user.id);
+    
+    if (!sanitizedUserId) {
+      logger.error('Invalid user ID detected:', { 
+        originalId: user.id, 
+        type: typeof user.id,
+        email: user.email 
+      });
+      
       // Try to get fresh user
-      const { getCurrentUserValidated } = await import('@/services/auth/core/authentication');
       try {
+        const { getCurrentUserValidated } = await import('@/services/auth/core/authentication');
         const freshUser = await getCurrentUserValidated();
+        const freshUserId = sanitizeUserId(freshUser.id);
+        
+        if (!freshUserId) {
+          throw new Error('Fresh user also has invalid ID');
+        }
+        
         user = freshUser; // Use fresh user
-        logger.info('Got fresh user for linking:', { id: freshUser.id, email: freshUser.email });
+        logger.info('Got fresh user with valid ID:', { id: freshUserId, email: freshUser.email });
       } catch (freshError) {
+        logger.error('Fresh user fetch failed:', freshError);
         throw new Error('Invalid user session. Please logout and login again.');
       }
+    }
+    
+    // ✅ Re-sanitize after potential fresh user fetch
+    const finalUserId = sanitizeUserId(user.id);
+    if (!finalUserId) {
+      throw new Error('Unable to get valid user ID. Please logout and login again.');
     }
     
     if (!user.email) {
       throw new Error('User email is missing. Please logout and login again.');
     }
     
-    logger.api('/link-payment', 'Linking order to user:', { 
+    logger.api('/link-payment', 'Linking order to user with sanitized ID:', { 
       orderId, 
       email: user.email, 
-      userId: user.id,
+      originalUserId: user.id,
+      sanitizedUserId: finalUserId,
       userType: typeof user.id
     });
     
-    // ✅ STEP 1: Check if already linked to this user
+    // ✅ STEP 1: Check if already linked to this user (FIXED)
     const { data: existingLink, error: existingError } = await supabase
       .from('user_payments')
       .select('*')
       .eq('order_id', orderId.trim())
-      .eq('user_id', user.id)
+      .eq('user_id', finalUserId) // ✅ FIXED: Use sanitized ID
       .limit(1);
 
     if (!existingError && existingLink?.length) {
@@ -91,12 +139,12 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     const payment = payments[0];
     logger.info('Found payment to link:', { orderId: payment.order_id, email: payment.email });
 
-    // ✅ STEP 3: Check for constraint conflicts
+    // ✅ STEP 3: Check for constraint conflicts (FIXED)
     const { data: conflictCheck, error: conflictError } = await supabase
       .from('user_payments')
       .select('id, order_id')
       .eq('email', user.email)
-      .eq('user_id', user.id)
+      .eq('user_id', finalUserId) // ✅ FIXED: Use sanitized ID
       .limit(1);
 
     if (!conflictError && conflictCheck?.length) {
@@ -110,12 +158,12 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       throw new Error(`Akun Anda sudah memiliki pembayaran dengan Order ID: ${existing.order_id}. Satu akun hanya bisa memiliki satu pembayaran aktif.`);
     }
 
-    // ✅ STEP 4: Update payment with user ID + linked_at
+    // ✅ STEP 4: Update payment with user ID + linked_at (FIXED)
     const now = new Date().toISOString();
     const updateData: any = { 
-      user_id: user.id,
+      user_id: finalUserId, // ✅ FIXED: Use sanitized ID
       updated_at: now,
-      linked_at: now // ✅ NEW: Track when payment was linked
+      linked_at: now
     };
 
     // ✅ Enhanced email handling
@@ -133,7 +181,11 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       logger.info('Setting auth_email to user email');
     }
 
-    logger.info('Updating payment with user ID and linked_at:', updateData);
+    logger.info('Updating payment with sanitized user ID:', {
+      updateData,
+      originalUserId: user.id,
+      sanitizedUserId: finalUserId
+    });
 
     const { data: updatedPayment, error: updateError } = await supabase
       .from('user_payments')
@@ -144,6 +196,16 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
 
     if (updateError) {
       logger.error('Update error:', updateError);
+      
+      // ✅ ENHANCED: Better error detection
+      if (updateError.message?.includes('invalid input syntax for type uuid')) {
+        logger.error('UUID syntax error with sanitized ID:', {
+          finalUserId,
+          updateData,
+          originalUserId: user.id
+        });
+        throw new Error('Invalid user ID format. Please logout and login again.');
+      }
       
       if (updateError.code === '23505') {
         if (updateError.message.includes('user_payments_email_user_unique')) {
@@ -180,13 +242,19 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
   }
 };
 
-// ✅ Enhanced function to get linking history
+// ✅ FIXED: Enhanced function to get linking history
 export const getPaymentLinkingHistory = async (userId: string) => {
   try {
+    const sanitizedUserId = sanitizeUserId(userId);
+    if (!sanitizedUserId) {
+      logger.error('Invalid userId for linking history:', userId);
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('user_payments')
       .select('order_id, email, linked_at, created_at')
-      .eq('user_id', userId)
+      .eq('user_id', sanitizedUserId) // ✅ FIXED: Use sanitized ID
       .not('linked_at', 'is', null)
       .order('linked_at', { ascending: false });
 
@@ -202,17 +270,23 @@ export const getPaymentLinkingHistory = async (userId: string) => {
   }
 };
 
-// Rest of the functions...
+// ✅ FIXED: Rest of the functions with sanitization
 export const checkUserHasPayment = async (email: string, userId: string): Promise<{
   hasPayment: boolean;
   payment?: any;
 }> => {
   try {
+    const sanitizedUserId = sanitizeUserId(userId);
+    if (!sanitizedUserId) {
+      logger.error('Invalid userId for payment check:', userId);
+      return { hasPayment: false };
+    }
+    
     const { data, error } = await supabase
       .from('user_payments')
       .select('*')
       .eq('email', email)
-      .eq('user_id', userId)
+      .eq('user_id', sanitizedUserId) // ✅ FIXED: Use sanitized ID
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
       .limit(1);
@@ -234,23 +308,36 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
 
 export const debugConstraintIssue = async (email: string, userId: string) => {
   try {
-    logger.debug('DEBUG: Checking constraint for:', { email, userId });
+    const sanitizedUserId = sanitizeUserId(userId);
+    
+    logger.debug('DEBUG: Checking constraint for:', { 
+      email, 
+      originalUserId: userId, 
+      sanitizedUserId,
+      userIdType: typeof userId
+    });
     
     const { data: emailPayments } = await supabase
       .from('user_payments')
       .select('*')
       .eq('email', email);
     
-    const { data: userPayments } = await supabase
-      .from('user_payments')
-      .select('*')
-      .eq('user_id', userId);
+    // ✅ FIXED: Use sanitized ID if valid, otherwise skip user query
+    let userPayments = null;
+    if (sanitizedUserId) {
+      const { data } = await supabase
+        .from('user_payments')
+        .select('*')
+        .eq('user_id', sanitizedUserId);
+      userPayments = data;
+    }
     
     logger.debug('DEBUG Results:', {
       emailPayments: emailPayments?.length || 0,
       userPayments: userPayments?.length || 0,
       emailPaymentDetails: emailPayments,
-      userPaymentDetails: userPayments
+      userPaymentDetails: userPayments,
+      sanitizedUserId
     });
     
     return { emailPayments, userPayments };

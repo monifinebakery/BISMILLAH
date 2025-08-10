@@ -16,6 +16,18 @@ export const activityQueryKeys = {
   stats: (userId?: string) => [...activityQueryKeys.all, 'stats', userId] as const,
 } as const;
 
+// ===== DATABASE TYPES =====
+interface DatabaseActivity {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  type: string;
+  value: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
 // ===== API FUNCTIONS =====
 const activityApi = {
   async getActivities(userId: string): Promise<Activity[]> {
@@ -36,9 +48,12 @@ const activityApi = {
 
   async createActivity(activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>, userId: string): Promise<Activity> {
     const activityToInsert = {
-      ...activityData,
+      title: activityData.title,
+      description: activityData.description,
+      type: activityData.type,
       value: activityData.value ?? null,
       user_id: userId,
+      // created_at and updated_at will be handled by database defaults
     };
 
     const { data, error } = await supabase
@@ -57,16 +72,16 @@ const activityApi = {
 };
 
 // ===== HELPER FUNCTIONS =====
-const transformActivityFromDB = (dbItem: any): Activity => ({
+const transformActivityFromDB = (dbItem: DatabaseActivity): Activity => ({
   id: dbItem.id,
   title: dbItem.title,
   description: dbItem.description,
   type: dbItem.type,
   value: dbItem.value,
-  timestamp: safeParseDate(dbItem.created_at),
-  userId: dbItem.user_id,
-  createdAt: safeParseDate(dbItem.created_at),
-  updatedAt: safeParseDate(dbItem.updated_at),
+  timestamp: safeParseDate(dbItem.created_at), // Map created_at to timestamp for backward compatibility
+  userId: dbItem.user_id, // Map user_id to userId
+  createdAt: safeParseDate(dbItem.created_at), // Map created_at to createdAt
+  updatedAt: safeParseDate(dbItem.updated_at), // Map updated_at to updatedAt
 });
 
 // ===== CUSTOM HOOKS =====

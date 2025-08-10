@@ -62,7 +62,7 @@ const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, Invoic
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/Settings")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/MenuPage")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/PaymentSuccessPage")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/InvoicePage"))
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/invoice/InvoicePage"))
 ];
 
 // ✅ Route wrapper with error boundary

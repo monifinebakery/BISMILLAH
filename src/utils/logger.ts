@@ -1,272 +1,312 @@
-// src/utils/logger.ts - FORCE ENABLED VERSION
+// src/utils/logger.ts — environment-aware logger (dev fixed + preview aware)
 
-// ✅ FORCE ENABLE ALL LOGS for debugging
-const FORCE_ENABLE_ALL = true;
+// ✅ Early environment snapshot (aman dieksekusi saat module load)
+console.log('🔍 Environment Check:', {
+  VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
+  VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
+  MODE: import.meta.env.MODE,
+  PROD: import.meta.env.PROD,
+  DEV: import.meta.env.DEV,
+  NODE_ENV: import.meta.env.NODE_ENV,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
+});
+
+// ----------------------
+// Config & helpers
+// ----------------------
+
+// Raw → normalized level
+type Level = 'debug' | 'warn' | 'error';
+const normalizeLevel = (raw?: string): Level => {
+  const v = String(raw || 'error').toLowerCase().trim();
+  if (v === 'debug' || v === 'warn' || v === 'error') return v;
+  // map 'verbose' / 'info' / lainnya → 'debug'
+  return 'debug';
+};
+
+const forceLogsEnabled = String(import.meta.env.VITE_FORCE_LOGS || '').toLowerCase() === 'true';
+const debugLevel: Level = normalizeLevel(import.meta.env.VITE_DEBUG_LEVEL);
+
+// rank utk cek izin level
+const levelRank: Record<Level, number> = { debug: 0, warn: 1, error: 2 };
+const allowInfoLike = levelRank[debugLevel] <= levelRank.debug; // info/debug only
+const allowWarnLike = levelRank[debugLevel] <= levelRank.warn;  // warn & debug
+
+// ----------------------
+// Host guards
+// ----------------------
+
+// ✅ Production host list (ketat, bukan includes sembarangan)
+const PROD_HOSTS = new Set<string>([
+  'kalkulator.monifine.my.id',
+  'www.kalkulator.monifine.my.id',
+]);
+
+const isProductionHostname = (hostname: string): boolean => {
+  return PROD_HOSTS.has(hostname);
+};
+
+// ✅ Dev/preview host list (override agar log nyala pada build produksi di preview)
+const ENV_DEV_HOSTS = String(import.meta.env.VITE_DEV_HOSTS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// default: semua *.netlify.app (kecuali prod host di atas) dianggap dev/preview
+const isPreviewHostname = (hostname: string): boolean => {
+  if (ENV_DEV_HOSTS.length > 0) return ENV_DEV_HOSTS.includes(hostname);
+  return hostname.endsWith('netlify.app');
+};
+
+// ✅ Optional blacklist host dari .env (comma separated)
+// contoh: VITE_DISABLE_LOGS_ON_HOSTS=staging.monifine.my.id,preview.monifine.my.id
+const disableLogsHosts = String(import.meta.env.VITE_DISABLE_LOGS_ON_HOSTS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// ----------------------
+// Final decision
+// ----------------------
+const getShouldLog = () => {
+  // 1) Vite dev server → selalu nyala
+  if (import.meta.env.DEV) return true;
+
+  // 2) Paksa via env → nyala di mana saja (kecuali nanti ketemu drop console saat build prod)
+  if (forceLogsEnabled) return true;
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+
+    // 3) Host yang memang kita matikan via env
+    if (disableLogsHosts.includes(hostname)) return false;
+
+    // 4) Preview/dev host (Netlify preview, dsb) → nyala
+    if (isPreviewHostname(hostname) && !isProductionHostname(hostname)) return true;
+
+    // 5) Production host → mati
+    if (isProductionHostname(hostname)) return false;
+  }
+
+  // 6) Default non-dev, non-forced → mati
+  return false;
+};
+
+console.log('🔧 Logger Config:', {
+  isDevelopmentMode: import.meta.env.DEV,
+  forceLogsEnabled,
+  debugLevel,
+  SHOULD_LOG: getShouldLog(),
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
+});
 
 const hasConsole = typeof console !== 'undefined';
 
-// ✅ Force enabled logger - all logs will show
+// ----------------------
+// Public logger API
+// ----------------------
 export const logger = {
-  /**
-   * Test logger
-   */
+  /** Sanity test */
   test: () => {
     if (hasConsole) {
-      console.log('🧪 FORCE ENABLED Logger Test:', {
+      console.log('🧪 Logger Test:', {
         timestamp: new Date().toISOString(),
-        forceEnabled: FORCE_ENABLE_ALL
+        shouldLog: getShouldLog(),
+        isDevelopmentMode: import.meta.env.DEV,
+        forceLogsEnabled,
+        debugLevel
       });
     }
   },
 
-  /**
-   * Context logging
-   */
+  /** Context logs (umum) */
   context: (contextName: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔄 [${timestamp}] [${contextName}]`, message, data);
-      } else {
-        console.log(`🔄 [${timestamp}] [${contextName}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🔄 [${t}] [${contextName}]`, message, data)
+        : console.log(`🔄 [${t}] [${contextName}]`, message);
     }
   },
 
-  /**
-   * Component logging
-   */
+  /** Component logs (umum) */
   component: (componentName: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🧩 [${timestamp}] [${componentName}]`, message, data);
-      } else {
-        console.log(`🧩 [${timestamp}] [${componentName}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🧩 [${t}] [${componentName}]`, message, data)
+        : console.log(`🧩 [${t}] [${componentName}]`, message);
     }
   },
 
-  /**
-   * Hook logging
-   */
+  /** Hook logs (umum) */
   hook: (hookName: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🪝 [${timestamp}] [${hookName}]`, message, data);
-      } else {
-        console.log(`🪝 [${timestamp}] [${hookName}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🪝 [${t}] [${hookName}]`, message, data)
+        : console.log(`🪝 [${t}] [${hookName}]`, message);
     }
   },
 
-  /**
-   * Info logging
-   */
+  /** Info (hanya saat level debug) */
   info: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`ℹ️ [${timestamp}]`, message, data);
-      } else {
-        console.log(`ℹ️ [${timestamp}]`, message);
-      }
+    if (hasConsole && getShouldLog() && allowInfoLike) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`ℹ️ [${t}]`, message, data)
+        : console.log(`ℹ️ [${t}]`, message);
     }
   },
 
-  /**
-   * Warning logging
-   */
+  /** Warning (hanya saat level debug/warn) */
   warn: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.warn(`⚠️ [${timestamp}]`, message, data);
-      } else {
-        console.warn(`⚠️ [${timestamp}]`, message);
-      }
+    if (hasConsole && getShouldLog() && allowWarnLike) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.warn(`⚠️ [${t}]`, message, data)
+        : console.warn(`⚠️ [${t}]`, message);
     }
   },
 
-  /**
-   * Error logging
-   */
+  /** Error selalu tampil (note: di prod build bisa hilang karena esbuild.drop) */
   error: (message: string, error?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (error !== undefined) {
-        console.error(`🚨 [${timestamp}]`, message, error);
-      } else {
-        console.error(`🚨 [${timestamp}]`, message);
-      }
+    if (hasConsole) {
+      const t = new Date().toISOString().slice(11, 23);
+      error !== undefined
+        ? console.error(`🚨 [${t}]`, message, error)
+        : console.error(`🚨 [${t}]`, message);
     }
   },
 
-  /**
-   * Debug logging
-   */
+  /** Debug (hanya saat level debug) */
   debug: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.debug(`🔍 [${timestamp}]`, message, data);
-      } else {
-        console.debug(`🔍 [${timestamp}]`, message);
-      }
+    if (hasConsole && getShouldLog() && allowInfoLike) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.debug(`🔍 [${t}]`, message, data)
+        : console.debug(`🔍 [${t}]`, message);
     }
   },
 
-  /**
-   * Success logging
-   */
+  /** Success (umum) */
   success: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`✅ [${timestamp}]`, message, data);
-      } else {
-        console.log(`✅ [${timestamp}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`✅ [${t}]`, message, data)
+        : console.log(`✅ [${t}]`, message);
     }
   },
 
-  /**
-   * API logging
-   */
+  /** API trace (umum) */
   api: (endpoint: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message, data);
-      } else {
-        console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🌐 [${t}] [API:${endpoint}]`, message, data)
+        : console.log(`🌐 [${t}] [API:${endpoint}]`, message);
     }
   },
 
-  /**
-   * Performance logging
-   */
+  /** Performance trace (umum) */
   perf: (operation: string, duration: number, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      const color = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
-      if (data !== undefined) {
-        console.log(`${color} [${timestamp}] [PERF:${operation}] ${duration}ms`, data);
-      } else {
-        console.log(`${color} [${timestamp}] [PERF:${operation}] ${duration}ms`);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      const icon = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
+      data !== undefined
+        ? console.log(`${icon} [${t}] [PERF:${operation}] ${duration}ms`, data)
+        : console.log(`${icon} [${t}] [PERF:${operation}] ${duration}ms`);
     }
   },
 
-  /**
-   * Critical error logging
-   */
+  /** Critical error (selalu tampil) */
   criticalError: (message: string, error?: any) => {
     if (hasConsole) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (error !== undefined) {
-        console.error(`🚨 [${timestamp}] CRITICAL:`, message, error);
-      } else {
-        console.error(`🚨 [${timestamp}] CRITICAL:`, message);
-      }
+      const t = new Date().toISOString().slice(11, 23);
+      error !== undefined
+        ? console.error(`🚨 [${t}] CRITICAL:`, message, error)
+        : console.error(`🚨 [${t}] CRITICAL:`, message);
     }
   },
 
-  /**
-   * Payment flow logging
-   */
+  /** Payment flow (umum) */
   payment: (stage: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message, data);
-      } else {
-        console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`💳 [${t}] [PAYMENT:${stage}]`, message, data)
+        : console.log(`💳 [${t}] [PAYMENT:${stage}]`, message);
     }
   },
 
-  /**
-   * Order verification logging  
-   */
+  /** Order verification (umum) */
   orderVerification: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message, data);
-      } else {
-        console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🎫 [${t}] [ORDER-VERIFY]`, message, data)
+        : console.log(`🎫 [${t}] [ORDER-VERIFY]`, message);
     }
   },
 
-  /**
-   * Access check logging
-   */
+  /** Access check (umum) */
   accessCheck: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message, data);
-      } else {
-        console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🔐 [${t}] [ACCESS-CHECK]`, message, data)
+        : console.log(`🔐 [${t}] [ACCESS-CHECK]`, message);
     }
   },
 
-  /**
-   * Linking process logging
-   */
+  /** Linking (umum) */
   linking: (message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔗 [${timestamp}] [LINKING]`, message, data);
-      } else {
-        console.log(`🔗 [${timestamp}] [LINKING]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🔗 [${t}] [LINKING]`, message, data)
+        : console.log(`🔗 [${t}] [LINKING]`, message);
     }
   },
 
-  /**
-   * Cache operations logging
-   */
+  /** Cache ops (umum) */
   cache: (operation: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message, data);
-      } else {
-        console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🗄️ [${t}] [CACHE:${operation}]`, message, data)
+        : console.log(`🗄️ [${t}] [CACHE:${operation}]`, message);
     }
   },
 
-  /**
-   * Flow tracking with step numbers
-   */
+  /** Flow steps (umum) */
   flow: (step: number, stage: string, message: string, data?: any) => {
-    if (hasConsole && FORCE_ENABLE_ALL) {
-      const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message, data);
-      } else {
-        console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message);
-      }
+    if (hasConsole && getShouldLog()) {
+      const t = new Date().toISOString().slice(11, 23);
+      data !== undefined
+        ? console.log(`🔄 [${t}] [FLOW-${step}:${stage}]`, message, data)
+        : console.log(`🔄 [${t}] [FLOW-${step}:${stage}]`, message);
     }
   }
 };
 
-// ✅ Global debug functions
+// ----------------------
+// Global debug helpers (browser only)
+// ----------------------
 if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
-  
+
   // Test immediately when loaded
-  console.log('🚀 FORCE ENABLED LOGGER LOADED!');
-  logger.test();
-  
+  if (getShouldLog()) {
+    console.log('🚀 Logger loaded! Environment:', {
+      isDevelopmentMode: import.meta.env.DEV,
+      SHOULD_LOG: getShouldLog(),
+      level: debugLevel
+    });
+    logger.test();
+  }
+
   (window as any).__DEBUG_PAYMENT__ = {
     test: () => {
       console.log('🧪 Payment debug test');
@@ -274,8 +314,16 @@ if (typeof window !== 'undefined') {
       logger.payment('TEST', 'Test payment log');
       logger.linking('Test linking log');
     },
-    enableAll: () => {
-      console.log('🔧 All logs already force enabled');
+    status: () => {
+      console.log('🔧 Current logger status:', {
+        SHOULD_LOG: getShouldLog(),
+        isDevelopmentMode: import.meta.env.DEV,
+        forceLogsEnabled,
+        level: debugLevel
+      });
+    },
+    forceEnableHint: () => {
+      console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true (or build with custom mode).');
     }
   };
 }

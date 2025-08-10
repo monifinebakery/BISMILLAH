@@ -1,12 +1,12 @@
-// contexts/NotificationContext.tsx - PRODUCTION READY VERSION
-// Clean, optimized, and error-free - FIXED PGRST116 ERROR
-
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+// contexts/NotificationContext.tsx - REFACTORED with React Query
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 
+// ===== TYPES =====
 export interface Notification {
   id: string;
   user_id: string;
@@ -52,9 +52,211 @@ interface NotificationContextType {
   clearAllNotifications: () => Promise<boolean>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+// ===== QUERY KEYS =====
+export const notificationQueryKeys = {
+  all: ['notifications'] as const,
+  lists: () => [...notificationQueryKeys.all, 'list'] as const,
+  list: (userId?: string) => [...notificationQueryKeys.lists(), userId] as const,
+  settings: (userId?: string) => [...notificationQueryKeys.all, 'settings', userId] as const,
+  counts: (userId?: string) => [...notificationQueryKeys.all, 'counts', userId] as const,
+} as const;
 
-// Enhanced deduplication with memory cleanup
+// ===== API FUNCTIONS =====
+const notificationApi = {
+  async getNotifications(userId: string): Promise<Notification[]> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      logger.error('NotificationAPI: Error fetching notifications:', error);
+      throw new Error('Gagal memuat notifikasi: ' + error.message);
+    }
+
+    return data || [];
+  },
+
+  async getSettings(userId: string): Promise<NotificationSettings> {
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      logger.warn('NotificationAPI: Error loading settings:', error);
+    }
+    
+    // Return default settings if none found
+    if (!data) {
+      const defaultSettings = {
+        user_id: userId,
+        push_notifications: true,
+        inventory_alerts: true,
+        order_alerts: true,
+        financial_alerts: true
+      };
+
+      // Try to create default settings
+      try {
+        const { data: newSettings, error: insertError } = await supabase
+          .from('notification_settings')
+          .insert(defaultSettings)
+          .select()
+          .maybeSingle();
+        
+        if (!insertError && newSettings) {
+          return newSettings;
+        }
+      } catch (insertError) {
+        logger.warn('NotificationAPI: Could not create default settings:', insertError);
+      }
+      
+      return defaultSettings;
+    }
+    
+    return data;
+  },
+
+  async createNotification(userId: string, notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Notification> {
+    // Check for recent duplicates
+    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+    const { data: existingNotifications } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('title', notificationData.title)
+      .gte('created_at', oneMinuteAgo)
+      .limit(1);
+
+    if (existingNotifications && existingNotifications.length > 0) {
+      throw new Error('Duplicate notification detected');
+    }
+    
+    const dataToInsert = {
+      ...notificationData,
+      user_id: userId,
+      is_read: notificationData.is_read ?? false,
+      is_archived: notificationData.is_archived ?? false
+    };
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(dataToInsert)
+      .select()
+      .single();
+    
+    if (error) {
+      logger.error('NotificationAPI: Error creating notification:', error);
+      throw new Error('Gagal menambahkan notifikasi: ' + error.message);
+    }
+    
+    return data;
+  },
+
+  async markAsRead(notificationId: string): Promise<Notification> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true, updated_at: new Date().toISOString() })
+      .eq('id', notificationId)
+      .select()
+      .single();
+    
+    if (error) {
+      logger.error('NotificationAPI: Error marking as read:', error);
+      throw new Error('Gagal menandai sebagai dibaca');
+    }
+    
+    return data;
+  },
+
+  async markAllAsRead(userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+    
+    if (error) {
+      logger.error('NotificationAPI: Error marking all as read:', error);
+      throw new Error('Gagal menandai semua sebagai dibaca');
+    }
+    
+    return true;
+  },
+
+  async deleteNotification(notificationId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+    
+    if (error) {
+      logger.error('NotificationAPI: Error deleting notification:', error);
+      throw new Error('Gagal menghapus notifikasi');
+    }
+    
+    return true;
+  },
+
+  async archiveNotification(notificationId: string): Promise<Notification> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_archived: true, updated_at: new Date().toISOString() })
+      .eq('id', notificationId)
+      .select()
+      .single();
+    
+    if (error) {
+      logger.error('NotificationAPI: Error archiving notification:', error);
+      throw new Error('Gagal mengarsipkan notifikasi');
+    }
+    
+    return data;
+  },
+
+  async clearAllNotifications(userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      logger.error('NotificationAPI: Error clearing all notifications:', error);
+      throw new Error('Gagal menghapus semua notifikasi');
+    }
+    
+    return true;
+  },
+
+  async updateSettings(userId: string, currentSettings: NotificationSettings | null, newSettings: Partial<NotificationSettings>): Promise<NotificationSettings> {
+    const settingsToUpdate = {
+      user_id: userId,
+      ...currentSettings,
+      ...newSettings,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .upsert(settingsToUpdate)
+      .select()
+      .maybeSingle();
+    
+    if (error) {
+      logger.error('NotificationAPI: Error updating settings:', error);
+      throw new Error('Gagal menyimpan pengaturan');
+    }
+    
+    return data || settingsToUpdate;
+  }
+};
+
+// ===== UTILITY CLASS =====
 class NotificationDeduplicator {
   private cache = new Map<string, number>();
   private readonly ttl = 30000; // 30 seconds TTL
@@ -62,16 +264,13 @@ class NotificationDeduplicator {
 
   private cleanup() {
     const now = Date.now();
-    let expiredCount = 0;
     
     for (const [key, timestamp] of this.cache.entries()) {
       if (now - timestamp > this.ttl) {
         this.cache.delete(key);
-        expiredCount++;
       }
     }
 
-    // If still too large, remove oldest entries
     if (this.cache.size > this.maxSize) {
       const entries = Array.from(this.cache.entries())
         .sort((a, b) => a[1] - b[1])
@@ -111,253 +310,398 @@ class NotificationDeduplicator {
   }
 }
 
-export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [urgentCount, setUrgentCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [settings, setSettings] = useState<NotificationSettings | null>(null);
-  
-  const { user } = useAuth();
-  
-  // Enhanced protection refs
-  const deduplicatorRef = useRef(new NotificationDeduplicator());
-  const lastLoadTimeRef = useRef<number>(0);
-  const loadingRef = useRef<boolean>(false);
-  const subscriptionRef = useRef<any>(null);
-  const mountedRef = useRef<boolean>(true);
-  
-  // Throttled loading with error handling
-  const loadNotifications = useCallback(async (isInitialLoad = false) => {
-    if (!user || !mountedRef.current) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setUrgentCount(0);
-      setIsLoading(false);
-      return;
-    }
+// ===== CUSTOM HOOKS =====
 
-    // Throttling check
-    const now = Date.now();
-    if (!isInitialLoad && now - lastLoadTimeRef.current < 2000) {
-      return;
-    }
+/**
+ * Hook for fetching notifications with React Query
+ */
+const useNotificationsQuery = (userId?: string) => {
+  return useQuery({
+    queryKey: notificationQueryKeys.list(userId),
+    queryFn: () => notificationApi.getNotifications(userId!),
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
 
-    // Prevent concurrent loads
-    if (loadingRef.current) {
-      return;
-    }
+/**
+ * Hook for fetching notification settings
+ */
+const useNotificationSettingsQuery = (userId?: string) => {
+  return useQuery({
+    queryKey: notificationQueryKeys.settings(userId),
+    queryFn: () => notificationApi.getSettings(userId!),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
 
-    loadingRef.current = true;
-    if (isInitialLoad) setIsLoading(true);
+/**
+ * Hook for notification mutations
+ */
+const useNotificationMutations = (userId?: string) => {
+  const queryClient = useQueryClient();
 
-    try {
-      // Fetch recent notifications only
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-        .limit(50);
+  // Add notification mutation
+  const addMutation = useMutation({
+    mutationFn: (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => 
+      notificationApi.createNotification(userId!, notificationData),
+    onMutate: async (newNotification) => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
 
-      if (error) throw error;
-      if (!mountedRef.current) return;
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
 
-      const notificationsData = data || [];
-      
-      // Simple deduplication by ID
-      const uniqueNotifications = notificationsData.filter((notification, index, arr) => 
-        arr.findIndex(n => n.id === notification.id) === index
+      // Optimistic update
+      const optimisticNotification: Notification = {
+        id: `temp-${Date.now()}`,
+        user_id: userId || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...newNotification,
+      };
+
+      queryClient.setQueryData(
+        notificationQueryKeys.list(userId),
+        (old: Notification[] = []) => [optimisticNotification, ...old].slice(0, 50)
       );
 
-      const unread = uniqueNotifications.filter(n => !n.is_read).length;
-      const urgent = uniqueNotifications.filter(n => !n.is_read && n.priority >= 4).length;
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
       
-      setNotifications(uniqueNotifications);
-      setUnreadCount(unread);
-      setUrgentCount(urgent);
-      lastLoadTimeRef.current = now;
-
-      // ✅ FIXED: Load settings on initial load only - USING maybeSingle()
-      if (isInitialLoad) {
-        try {
-          const { data: settingsData, error: settingsError } = await supabase
-            .from('notification_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle(); // ✅ CHANGED: .single() -> .maybeSingle()
-          
-          if (settingsError) {
-            logger.warn('Error loading notification settings:', settingsError);
-          }
-          
-          if (mountedRef.current) {
-            // If no settings found (data is null), create default settings
-            if (!settingsData) {
-              const defaultSettings = {
-                user_id: user.id,
-                push_notifications: true,
-                inventory_alerts: true,
-                order_alerts: true,
-                financial_alerts: true
-              };
-              
-              // Try to create default settings
-              try {
-                const { data: newSettings, error: insertError } = await supabase
-                  .from('notification_settings')
-                  .insert(defaultSettings)
-                  .select()
-                  .maybeSingle(); // ✅ ALSO FIXED: Use maybeSingle() here too
-                
-                if (!insertError && newSettings) {
-                  setSettings(newSettings);
-                } else {
-                  setSettings(defaultSettings);
-                }
-              } catch (insertError) {
-                logger.warn('Could not create default settings:', insertError);
-                setSettings(defaultSettings);
-              }
-            } else {
-              setSettings(settingsData);
-            }
-          }
-        } catch (settingsError) {
-          logger.warn('Settings loading error:', settingsError);
-          // Use defaults if settings loading fails completely
-          if (mountedRef.current) {
-            setSettings({
-              user_id: user.id,
-              push_notifications: true,
-              inventory_alerts: true,
-              order_alerts: true,
-              financial_alerts: true
-            });
-          }
-        }
+      // Only show error if it's not a duplicate
+      if (!error.message?.includes('Duplicate')) {
+        logger.error('NotificationContext: Add mutation error:', error);
       }
+    },
+    onSuccess: (newNotification, variables) => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.list(userId) });
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
 
-    } catch (error) {
-      logger.error('Error loading notifications:', error);
-      if (isInitialLoad && mountedRef.current) {
-        toast.error('Gagal memuat notifikasi');
-      }
-    } finally {
-      loadingRef.current = false;
-      if (isInitialLoad && mountedRef.current) setIsLoading(false);
+      logger.debug('NotificationContext: Notification added successfully:', newNotification.id);
     }
-  }, [user]);
+  });
 
-  // Initial load effect
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: (notificationId: string) => notificationApi.markAsRead(notificationId),
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
+
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
+
+      // Optimistic update
+      queryClient.setQueryData(
+        notificationQueryKeys.list(userId),
+        (old: Notification[] = []) =>
+          old.map(notification =>
+            notification.id === notificationId
+              ? { ...notification, is_read: true, updated_at: new Date().toISOString() }
+              : notification
+          )
+      );
+
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
+      
+      logger.error('NotificationContext: Mark as read error:', error);
+      toast.error('Gagal menandai sebagai dibaca');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+    }
+  });
+
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => notificationApi.markAllAsRead(userId!),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
+
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
+
+      // Optimistic update
+      queryClient.setQueryData(
+        notificationQueryKeys.list(userId),
+        (old: Notification[] = []) =>
+          old.map(notification => ({ ...notification, is_read: true, updated_at: new Date().toISOString() }))
+      );
+
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
+      
+      logger.error('NotificationContext: Mark all as read error:', error);
+      toast.error('Gagal menandai semua sebagai dibaca');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+      toast.success('Semua notifikasi telah dibaca');
+    }
+  });
+
+  // Delete notification mutation
+  const deleteMutation = useMutation({
+    mutationFn: (notificationId: string) => notificationApi.deleteNotification(notificationId),
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
+
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
+
+      // Optimistic update
+      queryClient.setQueryData(
+        notificationQueryKeys.list(userId),
+        (old: Notification[] = []) => old.filter(notification => notification.id !== notificationId)
+      );
+
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
+      
+      logger.error('NotificationContext: Delete error:', error);
+      toast.error('Gagal menghapus notifikasi');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+    }
+  });
+
+  // Archive notification mutation
+  const archiveMutation = useMutation({
+    mutationFn: (notificationId: string) => notificationApi.archiveNotification(notificationId),
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
+
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
+
+      // Optimistic update (remove from list since we don't show archived)
+      queryClient.setQueryData(
+        notificationQueryKeys.list(userId),
+        (old: Notification[] = []) => old.filter(notification => notification.id !== notificationId)
+      );
+
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
+      
+      logger.error('NotificationContext: Archive error:', error);
+      toast.error('Gagal mengarsipkan notifikasi');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+    }
+  });
+
+  // Clear all notifications mutation
+  const clearAllMutation = useMutation({
+    mutationFn: () => notificationApi.clearAllNotifications(userId!),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.list(userId) });
+
+      const previousNotifications = queryClient.getQueryData(notificationQueryKeys.list(userId));
+
+      // Optimistic update
+      queryClient.setQueryData(notificationQueryKeys.list(userId), []);
+
+      return { previousNotifications };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(notificationQueryKeys.list(userId), context.previousNotifications);
+      }
+      
+      logger.error('NotificationContext: Clear all error:', error);
+      toast.error('Gagal menghapus semua notifikasi');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+      toast.success('Semua notifikasi telah dihapus');
+    }
+  });
+
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: (newSettings: Partial<NotificationSettings>) => {
+      const currentSettings = queryClient.getQueryData(notificationQueryKeys.settings(userId)) as NotificationSettings | null;
+      return notificationApi.updateSettings(userId!, currentSettings, newSettings);
+    },
+    onMutate: async (newSettings) => {
+      await queryClient.cancelQueries({ queryKey: notificationQueryKeys.settings(userId) });
+
+      const previousSettings = queryClient.getQueryData(notificationQueryKeys.settings(userId));
+
+      // Optimistic update
+      if (previousSettings) {
+        queryClient.setQueryData(
+          notificationQueryKeys.settings(userId),
+          { ...previousSettings, ...newSettings, updated_at: new Date().toISOString() }
+        );
+      }
+
+      return { previousSettings };
+    },
+    onError: (error: any, variables, context) => {
+      if (context?.previousSettings) {
+        queryClient.setQueryData(notificationQueryKeys.settings(userId), context.previousSettings);
+      }
+      
+      logger.error('NotificationContext: Update settings error:', error);
+      toast.error('Gagal menyimpan pengaturan');
+    },
+    onSuccess: () => {
+      toast.success('Pengaturan notifikasi berhasil disimpan');
+    }
+  });
+
+  return {
+    addMutation,
+    markAsReadMutation,
+    markAllAsReadMutation,
+    deleteMutation,
+    archiveMutation,
+    clearAllMutation,
+    updateSettingsMutation
+  };
+};
+
+// ===== CONTEXT SETUP =====
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+// ===== PROVIDER COMPONENT =====
+export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id;
+  
+  // Refs for deduplication and state management
+  const deduplicatorRef = useRef(new NotificationDeduplicator());
+  const mountedRef = useRef<boolean>(true);
+
+  // ✅ Fetch notifications using React Query
+  const {
+    data: notifications = [],
+    isLoading,
+    error,
+    refetch
+  } = useNotificationsQuery(userId);
+
+  // ✅ Fetch settings using React Query
+  const {
+    data: settings = null
+  } = useNotificationSettingsQuery(userId);
+
+  // ✅ Get mutations
+  const {
+    addMutation,
+    markAsReadMutation,
+    markAllAsReadMutation,
+    deleteMutation,
+    archiveMutation,
+    clearAllMutation,
+    updateSettingsMutation
+  } = useNotificationMutations(userId);
+
+  // ===== COMPUTED VALUES =====
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const urgentCount = notifications.filter(n => !n.is_read && n.priority >= 4).length;
+
+  // ===== REAL-TIME SUBSCRIPTION =====
   useEffect(() => {
-    mountedRef.current = true;
-    deduplicatorRef.current.clear();
-    loadNotifications(true);
+    if (!userId || !mountedRef.current) return;
+
+    logger.debug('NotificationContext: Setting up real-time subscription for user:', userId);
     
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [user, loadNotifications]);
-
-  // Real-time subscription with cleanup
-  useEffect(() => {
-    if (!user || !mountedRef.current) return;
-
-    // Clean up existing subscription
-    if (subscriptionRef.current) {
-      supabase.removeChannel(subscriptionRef.current);
-      subscriptionRef.current = null;
-    }
-
     const channel = supabase
-      .channel(`notifications-${user.id}-${Date.now()}`)
+      .channel(`notifications-${userId}-${Date.now()}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user.id}`
+        filter: `user_id=eq.${userId}`
       }, (payload) => {
         if (!mountedRef.current) return;
         
+        logger.debug('NotificationContext: Real-time event detected:', payload.eventType, payload.new?.id || payload.old?.id);
+        
+        // ✅ RACE CONDITION FIX: Use invalidateQueries instead of direct state manipulation
+        queryClient.invalidateQueries({ 
+          queryKey: notificationQueryKeys.list(userId) 
+        });
+        
+        queryClient.invalidateQueries({ 
+          queryKey: notificationQueryKeys.counts(userId) 
+        });
+
+        // ✅ Handle new notifications for toast
         if (payload.eventType === 'INSERT') {
           const newNotification = payload.new as Notification;
           const notificationKey = deduplicatorRef.current.generateKey(newNotification);
           
-          // Check deduplication
-          if (!deduplicatorRef.current.shouldAllow(notificationKey)) {
-            return;
+          // Show toast if enabled and not duplicate
+          if (settings?.push_notifications !== false && deduplicatorRef.current.shouldAllow(`toast_${notificationKey}`)) {
+            toast.info(newNotification.title, {
+              description: newNotification.message,
+              duration: newNotification.priority >= 4 ? 8000 : 4000
+            });
           }
-          
-          // Update state
-          setNotifications(prev => {
-            const exists = prev.find(n => n.id === newNotification.id);
-            if (exists) return prev;
-            
-            return [newNotification, ...prev].slice(0, 50);
-          });
-          
-          // Update counts
-          if (!newNotification.is_read) {
-            setUnreadCount(prev => prev + 1);
-            if (newNotification.priority >= 4) {
-              setUrgentCount(prev => prev + 1);
-            }
-          }
-          
-          // Show toast if enabled
-          if (settings?.push_notifications !== false) {
-            const toastKey = `toast_${notificationKey}`;
-            if (deduplicatorRef.current.shouldAllow(toastKey)) {
-              toast.info(newNotification.title, {
-                description: newNotification.message,
-                duration: newNotification.priority >= 4 ? 8000 : 4000
-              });
-            }
-          }
-          
-        } else if (payload.eventType === 'UPDATE') {
-          const updatedNotification = payload.new as Notification;
-          
-          setNotifications(prev => {
-            const updated = prev.map(n => n.id === updatedNotification.id ? updatedNotification : n);
-            
-            // Recalculate counts
-            const unread = updated.filter(n => !n.is_read).length;
-            const urgent = updated.filter(n => !n.is_read && n.priority >= 4).length;
-            setUnreadCount(unread);
-            setUrgentCount(urgent);
-            
-            return updated;
-          });
-          
-        } else if (payload.eventType === 'DELETE') {
-          setNotifications(prev => {
-            const filtered = prev.filter(n => n.id !== payload.old.id);
-            const unread = filtered.filter(n => !n.is_read).length;
-            const urgent = filtered.filter(n => !n.is_read && n.priority >= 4).length;
-            setUnreadCount(unread);
-            setUrgentCount(urgent);
-            return filtered;
-          });
         }
+
+        // ✅ Optional: Trigger background refetch for immediate updates
+        queryClient.refetchQueries({ 
+          queryKey: notificationQueryKeys.list(userId),
+          type: 'active' 
+        });
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          subscriptionRef.current = channel;
+          logger.success('NotificationContext: Successfully subscribed to real-time updates');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          logger.error('NotificationContext: Subscription error/timeout:', status);
         }
       });
 
     return () => {
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
+      logger.debug('NotificationContext: Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
     };
-  }, [user, settings?.push_notifications]);
+  }, [userId, queryClient, settings?.push_notifications]);
 
-  // Periodic cleanup
+  // ===== COMPONENT MOUNT/UNMOUNT TRACKING =====
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    return () => {
+      mountedRef.current = false;
+      deduplicatorRef.current.clear();
+    };
+  }, []);
+
+  // ===== PERIODIC CLEANUP =====
   useEffect(() => {
     const cleanup = setInterval(() => {
       if (mountedRef.current) {
@@ -368,174 +712,105 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return () => clearInterval(cleanup);
   }, []);
 
-  // Enhanced addNotification with error handling
-  const addNotification = async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
-    if (!user || !mountedRef.current) return false;
+  // ===== CONTEXT FUNCTIONS =====
+  const addNotification = useCallback(async (notificationData: Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
+    if (!userId || !mountedRef.current) return false;
     
+    // Check deduplication
+    const notificationKey = deduplicatorRef.current.generateKey(notificationData);
+    if (!deduplicatorRef.current.shouldAllow(notificationKey)) {
+      return true; // Return true to avoid error handling for duplicates
+    }
+
     try {
-      // Check deduplication
-      const notificationKey = deduplicatorRef.current.generateKey(notificationData);
-      if (!deduplicatorRef.current.shouldAllow(notificationKey)) {
-        return true; // Return true to avoid error handling
-      }
-
-      // Database duplicate check (recent only)
-      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-      const { data: existingNotifications } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('title', notificationData.title)
-        .gte('created_at', oneMinuteAgo)
-        .limit(1);
-
-      if (existingNotifications && existingNotifications.length > 0) {
-        return true; // Skip duplicate
-      }
-      
-      const dataToInsert = {
-        ...notificationData,
-        user_id: user.id,
-        is_read: notificationData.is_read ?? false,
-        is_archived: notificationData.is_archived ?? false
-      };
-      
-      const { error } = await supabase.from('notifications').insert(dataToInsert);
-      if (error) throw error;
-      
+      await addMutation.mutateAsync(notificationData);
       return true;
     } catch (error) {
-      logger.error('Error adding notification:', error);
+      // Error already handled in mutation
       return false;
     }
-  };
+  }, [userId, addMutation]);
 
-  const markAsRead = async (notificationId: string): Promise<boolean> => {
+  const markAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, updated_at: new Date().toISOString() })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
+      await markAsReadMutation.mutateAsync(notificationId);
       return true;
     } catch (error) {
-      logger.error('Error marking as read:', error);
       return false;
     }
-  };
+  }, [markAsReadMutation]);
 
-  const markAllAsRead = async (): Promise<boolean> => {
-    if (!user) return false;
+  const markAllAsRead = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      
-      if (error) throw error;
-      toast.success('Semua notifikasi telah dibaca');
+      await markAllAsReadMutation.mutateAsync();
       return true;
     } catch (error) {
-      logger.error('Error marking all as read:', error);
-      toast.error('Gagal menandai semua sebagai dibaca');
       return false;
     }
-  };
+  }, [userId, markAllAsReadMutation]);
 
-  const deleteNotification = async (notificationId: string): Promise<boolean> => {
+  const deleteNotification = useCallback(async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-      
-      if (error) throw error;
+      await deleteMutation.mutateAsync(notificationId);
       return true;
     } catch (error) {
-      logger.error('Error deleting notification:', error);
       return false;
     }
-  };
+  }, [deleteMutation]);
 
-  const archiveNotification = async (notificationId: string): Promise<boolean> => {
+  const archiveNotification = useCallback(async (notificationId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_archived: true, updated_at: new Date().toISOString() })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
+      await archiveMutation.mutateAsync(notificationId);
       return true;
     } catch (error) {
-      logger.error('Error archiving notification:', error);
       return false;
     }
-  };
+  }, [archiveMutation]);
 
-  const clearAllNotifications = async (): Promise<boolean> => {
-    if (!user) return false;
+  const clearAllNotifications = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      setNotifications([]);
-      setUnreadCount(0);
-      setUrgentCount(0);
+      await clearAllMutation.mutateAsync();
       deduplicatorRef.current.clear();
-      
-      toast.success('Semua notifikasi telah dihapus');
       return true;
     } catch (error) {
-      logger.error('Error clearing all notifications:', error);
-      toast.error('Gagal menghapus semua notifikasi');
       return false;
     }
-  };
+  }, [userId, clearAllMutation]);
 
-  // ✅ FIXED: updateSettings also uses maybeSingle() for upsert
-  const updateSettings = async (newSettings: Partial<NotificationSettings>): Promise<boolean> => {
-    if (!user) return false;
+  const updateSettings = useCallback(async (newSettings: Partial<NotificationSettings>): Promise<boolean> => {
+    if (!userId) return false;
     try {
-      const { data, error } = await supabase
-        .from('notification_settings')
-        .upsert({ 
-          user_id: user.id, 
-          ...settings, 
-          ...newSettings,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .maybeSingle(); // ✅ CHANGED: .single() -> .maybeSingle()
-      
-      if (error) throw error;
-      if (mountedRef.current && data) {
-        setSettings(data);
-        toast.success('Pengaturan notifikasi berhasil disimpan');
-      }
+      await updateSettingsMutation.mutateAsync(newSettings);
       return true;
     } catch (error) {
-      logger.error('Error updating settings:', error);
-      toast.error('Gagal menyimpan pengaturan');
       return false;
     }
-  };
+  }, [userId, updateSettingsMutation]);
 
   const refreshNotifications = useCallback(async () => {
+    logger.debug('NotificationContext: Manual refresh requested');
     deduplicatorRef.current.clear();
-    await loadNotifications(true);
-  }, [loadNotifications]);
+    await refetch();
+  }, [refetch]);
 
+  // ===== ERROR HANDLING =====
+  useEffect(() => {
+    if (error) {
+      logger.error('NotificationContext: Query error:', error);
+      // Don't show toast on initial load errors to avoid noise
+    }
+  }, [error]);
+
+  // ===== CONTEXT VALUE =====
   const value: NotificationContextType = {
     notifications,
     unreadCount,
     urgentCount,
-    isLoading,
+    isLoading: isLoading || addMutation.isPending || markAsReadMutation.isPending || 
+               markAllAsReadMutation.isPending || deleteMutation.isPending || 
+               archiveMutation.isPending || clearAllMutation.isPending || updateSettingsMutation.isPending,
     settings,
     addNotification,
     markAsRead,
@@ -554,6 +829,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   );
 };
 
+// ===== CUSTOM HOOK =====
 export const useNotification = () => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
@@ -561,3 +837,33 @@ export const useNotification = () => {
   }
   return context;
 };
+
+// ===== ADDITIONAL HOOKS FOR REACT QUERY UTILITIES =====
+
+/**
+ * Hook for accessing React Query specific functions
+ */
+export const useNotificationUtils = () => {
+  const queryClient = useQueryClient();
+
+  const invalidateNotifications = useCallback((userId?: string) => {
+    queryClient.invalidateQueries({ queryKey: notificationQueryKeys.list(userId) });
+    queryClient.invalidateQueries({ queryKey: notificationQueryKeys.counts(userId) });
+    queryClient.invalidateQueries({ queryKey: notificationQueryKeys.settings(userId) });
+  }, [queryClient]);
+
+  const prefetchNotifications = useCallback((userId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: notificationQueryKeys.list(userId),
+      queryFn: () => notificationApi.getNotifications(userId),
+      staleTime: 30 * 1000,
+    });
+  }, [queryClient]);
+
+  return {
+    invalidateNotifications,
+    prefetchNotifications,
+  };
+};
+
+export default NotificationContext;

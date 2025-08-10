@@ -1,5 +1,7 @@
+// src/pages/InvoicePage.tsx - REFACTORED with React Query
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +13,10 @@ import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/formatUtils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
+// ===== TYPES =====
 interface InvoiceItem {
   id: number;
   description: string;
@@ -19,33 +24,148 @@ interface InvoiceItem {
   price: number;
 }
 
-// Mock function untuk load order - ganti dengan implementasi sesungguhnya
-const loadOrderById = async (orderId: string) => {
-  // Simulasi loading data dari API/database
-  // Ganti dengan implementasi yang sesungguhnya
-  return {
-    id: orderId,
-    nomorPesanan: `ORD-${orderId}`,
-    namaPelanggan: 'Customer Name',
-    alamatPelanggan: 'Customer Address',
-    telefonPelanggan: '+62 123 456 789',
-    emailPelanggan: 'customer@email.com',
-    items: [
-      { id: 1, namaBarang: 'Product 1', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 },
-      { id: 2, namaBarang: 'Product 2', quantity: 1, hargaSatuan: 75000, totalHarga: 75000 }
-    ],
-    subtotal: 175000,
-    pajak: 19250,
-    totalPesanan: 194250
-  };
+interface OrderData {
+  id: string;
+  nomorPesanan: string;
+  namaPelanggan: string;
+  alamatPelanggan?: string;
+  telefonPelanggan?: string;
+  emailPelanggan?: string;
+  items: Array<{
+    id: number;
+    namaBarang: string;
+    quantity: number;
+    hargaSatuan: number;
+    totalHarga: number;
+  }>;
+  subtotal: number;
+  pajak: number;
+  totalPesanan: number;
+}
+
+// ===== QUERY KEYS =====
+export const invoiceQueryKeys = {
+  all: ['invoice'] as const,
+  orders: () => [...invoiceQueryKeys.all, 'orders'] as const,
+  order: (orderId: string) => [...invoiceQueryKeys.orders(), orderId] as const,
+} as const;
+
+// ===== API FUNCTIONS =====
+const invoiceApi = {
+  async getOrderById(orderId: string): Promise<OrderData> {
+    logger.context('InvoiceAPI', 'Fetching order by ID:', orderId);
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        nomor_pesanan,
+        nama_pelanggan,
+        alamat_pengiriman,
+        telepon_pelanggan,
+        email_pelanggan,
+        items,
+        subtotal,
+        pajak,
+        total_pesanan
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      logger.error('InvoiceAPI: Error fetching order:', error);
+      throw new Error('Gagal memuat data pesanan: ' + error.message);
+    }
+
+    if (!data) {
+      throw new Error('Pesanan tidak ditemukan');
+    }
+
+    // Transform database data to OrderData format
+    const orderData: OrderData = {
+      id: data.id,
+      nomorPesanan: data.nomor_pesanan,
+      namaPelanggan: data.nama_pelanggan,
+      alamatPelanggan: data.alamat_pengiriman,
+      telefonPelanggan: data.telepon_pelanggan,
+      emailPelanggan: data.email_pelanggan,
+      items: Array.isArray(data.items) ? data.items.map((item: any, index: number) => ({
+        id: index + 1,
+        namaBarang: item.namaBarang || item.nama || item.description || 'Item',
+        quantity: item.quantity || item.jumlah || 1,
+        hargaSatuan: item.hargaSatuan || item.harga || item.price || 0,
+        totalHarga: (item.quantity || item.jumlah || 1) * (item.hargaSatuan || item.harga || item.price || 0)
+      })) : [],
+      subtotal: data.subtotal || 0,
+      pajak: data.pajak || 0,
+      totalPesanan: data.total_pesanan || 0
+    };
+
+    logger.success('InvoiceAPI: Order data loaded successfully:', orderData.nomorPesanan);
+    return orderData;
+  },
+
+  // Mock function for development - replace with real implementation
+  async getMockOrderById(orderId: string): Promise<OrderData> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    logger.context('InvoiceAPI', 'Loading mock order data for:', orderId);
+    
+    return {
+      id: orderId,
+      nomorPesanan: `ORD-${orderId}`,
+      namaPelanggan: 'Customer Name',
+      alamatPelanggan: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
+      telefonPelanggan: '+62 123 456 789',
+      emailPelanggan: 'customer@email.com',
+      items: [
+        { id: 1, namaBarang: 'Product 1', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 },
+        { id: 2, namaBarang: 'Product 2', quantity: 1, hargaSatuan: 75000, totalHarga: 75000 }
+      ],
+      subtotal: 175000,
+      pajak: 19250,
+      totalPesanan: 194250
+    };
+  }
 };
 
+// ===== CUSTOM HOOKS =====
+
+/**
+ * Hook for fetching order data with React Query
+ */
+const useOrderQuery = (orderId?: string) => {
+  return useQuery({
+    queryKey: invoiceQueryKeys.order(orderId || ''),
+    queryFn: () => {
+      if (!orderId) throw new Error('Order ID is required');
+      
+      // Use mock data for development - replace with real API call
+      // return invoiceApi.getOrderById(orderId);
+      return invoiceApi.getMockOrderById(orderId);
+    },
+    enabled: !!orderId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors
+      if (error?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
+// ===== MAIN COMPONENT =====
 const InvoicePage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { settings } = useUserSettings();
   
-  const [loading, setLoading] = useState(false);
+  // ✅ State management
   const [invoiceNumber, setInvoiceNumber] = useState(`INV/${format(new Date(), 'yyyyMMdd')}-001`);
   const [issueDate, setIssueDate] = useState(new Date());
   const [dueDate, setDueDate] = useState(new Date(new Date().setDate(new Date().getDate() + 14)));
@@ -62,45 +182,62 @@ const InvoicePage: React.FC = () => {
   );
   const [status, setStatus] = useState<'BELUM LUNAS' | 'LUNAS' | 'JATUH TEMPO'>('BELUM LUNAS');
 
-  // Load order data jika ada orderId
+  // ✅ Fetch order data using React Query
+  const {
+    data: orderData,
+    isLoading,
+    error,
+    isError
+  } = useOrderQuery(orderId);
+
+  // ✅ Update form when order data is loaded
   useEffect(() => {
-    const loadOrderData = async () => {
-      if (!orderId) return;
+    if (orderData) {
+      logger.context('InvoicePage', 'Updating form with order data:', orderData.nomorPesanan);
       
-      setLoading(true);
-      try {
-        const orderData = await loadOrderById(orderId);
-        
-        // Update form dengan data order
-        setInvoiceNumber(`INV-${orderData.nomorPesanan}`);
-        setCustomer({
-          name: orderData.namaPelanggan,
-          address: orderData.alamatPelanggan,
-          phone: orderData.teleponPelanggan || '',
-          email: orderData.emailPelanggan || ''
-        });
-        
-        // Convert order items ke invoice items
-        const invoiceItems = orderData.items.map((item: any, index: number) => ({
-          id: Date.now() + index,
-          description: item.namaBarang,
-          quantity: item.quantity,
-          price: item.hargaSatuan
-        }));
-        
-        setItems(invoiceItems);
-        toast.success('Data pesanan berhasil dimuat');
-      } catch (error) {
-        console.error('Error loading order:', error);
-        toast.error('Gagal memuat data pesanan');
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Update invoice details
+      setInvoiceNumber(`INV-${orderData.nomorPesanan}`);
+      
+      // Update customer information
+      setCustomer({
+        name: orderData.namaPelanggan,
+        address: orderData.alamatPelanggan || '',
+        phone: orderData.telefonPelanggan || '',
+        email: orderData.emailPelanggan || ''
+      });
+      
+      // Convert order items to invoice items
+      const invoiceItems = orderData.items.map((item, index) => ({
+        id: Date.now() + index,
+        description: item.namaBarang,
+        quantity: item.quantity,
+        price: item.hargaSatuan
+      }));
+      
+      setItems(invoiceItems.length > 0 ? invoiceItems : [
+        { id: Date.now(), description: '', quantity: 1, price: 0 }
+      ]);
+      
+      toast.success('Data pesanan berhasil dimuat');
+    }
+  }, [orderData]);
 
-    loadOrderData();
-  }, [orderId]);
+  // ✅ Update payment instructions when business name changes
+  useEffect(() => {
+    setPaymentInstructions(
+      `Transfer ke:\nBank BCA\n1234567890\na/n ${settings.businessName || 'Nama Bisnis'}`
+    );
+  }, [settings.businessName]);
 
+  // ✅ Error handling
+  useEffect(() => {
+    if (isError && error) {
+      logger.error('InvoicePage: Error loading order data:', error);
+      toast.error('Gagal memuat data pesanan: ' + (error as Error).message);
+    }
+  }, [isError, error]);
+
+  // ===== EVENT HANDLERS =====
   const handleItemChange = (id: number, field: keyof Omit<InvoiceItem, 'id'>, value: string | number) => {
     setItems(items.map(item => 
       item.id === id 
@@ -117,6 +254,7 @@ const InvoicePage: React.FC = () => {
     }
   };
 
+  // ===== CALCULATIONS =====
   const { subtotal, discountAmount, taxAmount, total } = useMemo(() => {
     const sub = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     const disc = discount.type === 'percent' ? sub * (discount.value / 100) : discount.value;
@@ -131,13 +269,12 @@ const InvoicePage: React.FC = () => {
     };
   }, [items, discount, tax, shipping]);
 
-  // Alternatif 1: Menggunakan browser's native print
+  // ===== UTILITY FUNCTIONS =====
   const handlePrint = () => {
     window.print();
     toast.success('Membuka dialog print...');
   };
 
-  // Alternatif 2: Download sebagai HTML file
   const handleDownloadHTML = () => {
     const element = document.getElementById('invoice-content');
     if (!element) {
@@ -185,7 +322,6 @@ const InvoicePage: React.FC = () => {
     toast.success('Invoice berhasil didownload sebagai HTML');
   };
 
-  // Alternatif 3: Copy invoice content ke clipboard
   const handleCopyToClipboard = async () => {
     const element = document.getElementById('invoice-content');
     if (!element) {
@@ -232,19 +368,54 @@ const InvoicePage: React.FC = () => {
     setIssueDate(new Date());
     setDueDate(new Date(new Date().setDate(new Date().getDate() + 14)));
     setStatus('BELUM LUNAS');
+    toast.success('Invoice berhasil diduplikasi');
   };
 
-  if (loading) {
+  // ===== LOADING STATE =====
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat data pesanan...</p>
+          <p className="text-sm text-gray-500 mt-1">Order ID: {orderId}</p>
         </div>
       </div>
     );
   }
 
+  // ===== ERROR STATE =====
+  if (isError && orderId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-red-800 text-xl font-semibold mb-3">Gagal Memuat Pesanan</h2>
+          <p className="text-red-600 mb-6 leading-relaxed">
+            {(error as Error)?.message || 'Terjadi kesalahan saat memuat data pesanan'}
+          </p>
+          <div className="space-y-2">
+            <Button 
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="w-full"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Kembali
+            </Button>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-red-600 text-white hover:bg-red-700"
+            >
+              Coba Lagi
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ===== MAIN RENDER =====
   return (
     <>
       {/* CSS untuk print */}
@@ -278,7 +449,12 @@ const InvoicePage: React.FC = () => {
                       {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
                     </CardTitle>
                     {orderId && (
-                      <p className="text-blue-100 text-xs sm:text-sm">Order ID: {orderId}</p>
+                      <div className="text-blue-100 text-xs sm:text-sm space-y-1">
+                        <p>Order ID: {orderId}</p>
+                        {orderData && (
+                          <p>Pesanan: {orderData.nomorPesanan}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -292,6 +468,14 @@ const InvoicePage: React.FC = () => {
                     Reset
                   </Button>
                   <Button 
+                    variant="secondary" 
+                    onClick={duplicateInvoice}
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplikat
+                  </Button>
+                  <Button 
                     onClick={handlePrint}
                     className="bg-white text-orange-600 hover:bg-gray-100 text-sm"
                   >
@@ -303,15 +487,15 @@ const InvoicePage: React.FC = () => {
                     variant="secondary"
                     className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy
+                    <FileText className="mr-2 h-4 w-4" />
+                    Download
                   </Button>
                 </div>
               </div>
             </CardHeader>
           </Card>
 
-          {/* Invoice Content */}
+          {/* Invoice Content - Same as before but with React Query data */}
           <Card className="border-1 border-gray-200 overflow-hidden invoice-content" id="invoice-content">
             <div className="bg-white p-4 sm:p-8">
               {/* Header Section */}
@@ -641,6 +825,32 @@ const InvoicePage: React.FC = () => {
       </div>
     </>
   );
+};
+
+// ===== ADDITIONAL HOOKS FOR REACT QUERY UTILITIES =====
+
+/**
+ * Hook for accessing React Query specific functions
+ */
+export const useInvoiceQuery = () => {
+  const queryClient = useQueryClient();
+
+  const invalidateOrder = useCallback((orderId: string) => {
+    queryClient.invalidateQueries({ queryKey: invoiceQueryKeys.order(orderId) });
+  }, [queryClient]);
+
+  const prefetchOrder = useCallback((orderId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: invoiceQueryKeys.order(orderId),
+      queryFn: () => invoiceApi.getMockOrderById(orderId), // Replace with real API
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient]);
+
+  return {
+    invalidateOrder,
+    prefetchOrder,
+  };
 };
 
 export default InvoicePage;

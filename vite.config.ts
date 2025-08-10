@@ -21,6 +21,15 @@ export default defineConfig(({ mode }) => {
     });
   }
   
+  // ✅ Debug build environment (only during build)
+  if (isProd) {
+    console.log('🔧 PRODUCTION BUILD - Environment Check:', {
+      mode,
+      VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
+      shouldKeepLogs: env.VITE_FORCE_LOGS === 'true'
+    });
+  }
+  
   // ✅ Plugin configuration
   const plugins = [
     react({
@@ -210,11 +219,15 @@ export default defineConfig(({ mode }) => {
       minify: isProd ? "esbuild" : false,
       sourcemap: isDev ? true : false,
       
-      // ✅ Production optimizations
+      // ✅ Production optimizations - FIXED CONSOLE LOG REMOVAL
       ...(isProd && {
         esbuild: {
-          // Remove console logs in production (unless forced)
-          drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
+          // ✅ STRATEGY 1: Force remove ALL console logs in production
+          drop: ["console", "debugger"],
+          
+          // ✅ STRATEGY 2: Conditional removal (uncomment to use instead of above)
+          // drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
+          
           legalComments: "none",
           minifyIdentifiers: true,
           minifySyntax: true,

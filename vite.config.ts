@@ -219,21 +219,8 @@ export default defineConfig(({ mode }) => {
       minify: isProd ? "esbuild" : false,
       sourcemap: isDev ? true : false,
       
-      // ✅ Production optimizations - FIXED CONSOLE LOG REMOVAL
+      // ✅ Production optimizations - MOVED to global esbuild config
       ...(isProd && {
-        esbuild: {
-          // ✅ STRATEGY 1: Force remove ALL console logs in production
-          drop: ["console", "debugger"],
-          
-          // ✅ STRATEGY 2: Conditional removal (uncomment to use instead of above)
-          // drop: env.VITE_FORCE_LOGS === 'true' ? ["debugger"] : ["console", "debugger"],
-          
-          legalComments: "none",
-          minifyIdentifiers: true,
-          minifySyntax: true,
-          minifyWhitespace: true,
-        },
-        
         // CSS optimization
         cssCodeSplit: true,
         cssMinify: true,
@@ -318,11 +305,19 @@ export default defineConfig(({ mode }) => {
       open: false,
     },
     
-    // ✅ ESBuild global config - UPDATED
+    // ✅ ESBuild global config - MERGED with production config
     esbuild: {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
+      // ✅ MERGED: Console dropping + global config
+      ...(isProd && {
+        drop: ["console", "debugger"],
+        legalComments: "none",
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+      }),
       // ✅ SIMPLIFIED: Remove process.env.NODE_ENV define
       define: {
         global: 'globalThis',

@@ -11,10 +11,10 @@ import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { useAuth } from '@/contexts/AuthContext';
 
-// ✅ FIXED: Import modular asset hooks instead of old context
+// ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
 import { useAssetQuery } from "@/components/assets";
+import { useAuth } from '@/contexts/AuthContext';
 
 // --- Import Export Functions ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -33,7 +33,7 @@ const MobileExportButton = () => {
   const { orders } = useOrder();
   const { financialTransactions } = useFinancial();
   
-  // ✅ FIXED: Use modular asset hook
+  // ✅ RESTORED: Use modular asset hook (nested QueryClient fixed)
   const { assets, isLoading: assetsLoading } = useAssetQuery({ 
     userId: user?.id,
     enableRealtime: false // No need for realtime in export
@@ -53,7 +53,7 @@ const MobileExportButton = () => {
       hppResults,
       activities,
       orders,
-      assets,
+      assets, // Will be empty array during debug
       financialTransactions,
     };
     

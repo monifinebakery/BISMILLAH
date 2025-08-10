@@ -320,7 +320,7 @@ if (typeof window !== 'undefined') {
   
   // Test immediately when loaded
   if (getShouldLog()) {
-    console.log('🚀 Logger loaded! Environment:', { isDevelopment: getIsDevelopment(), SHOULD_LOG: getShouldLog() });
+    console.log('🚀 Logger loaded! Environment:', { isDevelopmentMode, SHOULD_LOG: getShouldLog() });
     logger.test();
   }
   

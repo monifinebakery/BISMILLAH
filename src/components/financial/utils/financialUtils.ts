@@ -2,6 +2,7 @@
 // Modular Financial Utilities with proper TypeScript types
 
 import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { logger } from '@/utils/logger';
 
 // ===========================================
 // TYPES
@@ -57,7 +58,7 @@ export const filterByDateRange = <T extends Record<string, any>>(
     const toDate = dateRange.to ? safeParseDate(dateRange.to) : fromDate;
 
     if (!fromDate) {
-      console.warn('Invalid from date in filterByDateRange');
+      logger.warn('Invalid from date in filterByDateRange');
       return [];
     }
 
@@ -75,7 +76,7 @@ export const filterByDateRange = <T extends Record<string, any>>(
       return itemTime >= fromTime && itemTime <= toTime;
     });
   } catch (error) {
-    console.error('Error in filterByDateRange:', error);
+    logger.error('Error in filterByDateRange:', error);
     return [];
   }
 };

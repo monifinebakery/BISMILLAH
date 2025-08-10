@@ -56,9 +56,11 @@ const PromoFullCalculator = React.lazy(() =>
     .catch(() => ({ default: () => <div>PromoFullCalculator not found</div> }))
 );
 
-// ✅ FIXED: Asset Management - Use AssetPage with proper modular import
+// ✅ FIXED: Asset Management - Use AssetPage (no nested QueryClient)
 const AssetPage = React.lazy(() => 
-  import(/* webpackChunkName: "assets" */ "@/components/assets/AssetPage")
+  import(/* webpackChunkName: "assets" */ "@/components/assets/AssetPage").then(module => ({
+    default: module.AssetPage
+  }))
 );
 
 // ✅ Other misc components
@@ -249,7 +251,7 @@ export const AppRouter = () => (
       <Route path="invoice" element={<InvoicePage />} />
       <Route path="laporan" element={<FinancialReportPage />} />
       
-      {/* ✅ FIXED: Asset Management with proper error boundary and RouteWrapper */}
+      {/* ✅ FIXED: Asset Management without nested QueryClient */}
       <Route 
         path="aset" 
         element={

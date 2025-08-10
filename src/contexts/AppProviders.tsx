@@ -1,4 +1,4 @@
-// src/contexts/AppProviders.tsx - UPDATED with Race Condition Fix
+// src/contexts/AppProviders.tsx - UPDATED with Modular Assets
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -22,7 +22,10 @@ import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseConte
 
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
-import { AssetProvider } from '@/components/assets';
+
+// ❌ REMOVED: AssetProvider - no longer needed with modular approach
+// import { AssetProvider } from '@/components/assets';
+
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
@@ -35,12 +38,13 @@ interface AppProvidersProps {
 }
 
 /**
- * ✅ ENHANCED AppProviders - Fixed Race Condition
+ * ✅ ENHANCED AppProviders - Fixed Race Condition & Modular Assets
  * Key changes:
  * 1. AuthProvider is now the MASTER auth state (single source of truth)
  * 2. PaymentProvider immediately follows AuthProvider (no conflicts)
  * 3. All auth redirects handled centrally in AuthContext
  * 4. No duplicate auth listeners or state management
+ * 5. ✅ REMOVED AssetProvider - assets now use React Query with modular hooks
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
@@ -69,29 +73,28 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                       {/* 6. Complex Business Logic - Recipe management */}
                       <RecipeProvider>
                         
-                        {/* 7. Asset & Operations - Business operations */}
-                        <AssetProvider>
-                          <PurchaseProvider>
-                            <OrderProvider>
+                        {/* 7. Operations & Purchases - Business operations */}
+                        {/* ✅ ASSETS: Now handled by React Query hooks in components */}
+                        <PurchaseProvider>
+                          <OrderProvider>
+                            
+                            {/* 8. Cost Management - Operational costs for HPP calculation */}
+                            {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
+                            <OperationalCostProvider>
                               
-                              {/* 8. Cost Management - Operational costs for HPP calculation */}
-                              {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
-                              <OperationalCostProvider>
-                                
-                                {/* 9. Advanced Features - Enhanced capabilities */}
-                                {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
-                                <PromoProvider>
-                                  <FollowUpTemplateProvider>
-                                    
-                                    {/* 10. Application Layer - Final app content */}
-                                    {children}
-                                    
-                                  </FollowUpTemplateProvider>
-                                </PromoProvider>
-                              </OperationalCostProvider>
-                            </OrderProvider>
-                          </PurchaseProvider>
-                        </AssetProvider>
+                              {/* 9. Advanced Features - Enhanced capabilities */}
+                              {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
+                              <PromoProvider>
+                                <FollowUpTemplateProvider>
+                                  
+                                  {/* 10. Application Layer - Final app content */}
+                                  {children}
+                                  
+                                </FollowUpTemplateProvider>
+                              </PromoProvider>
+                            </OperationalCostProvider>
+                          </OrderProvider>
+                        </PurchaseProvider>
                       </RecipeProvider>
                     </SupplierProvider>
                   </BahanBakuProvider>

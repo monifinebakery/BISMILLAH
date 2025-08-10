@@ -1,14 +1,14 @@
-// src/components/orders/hooks/index.ts - Optimized Dependencies (menggunakan hook Anda)
+// src/components/orders/hooks/index.ts - Optimized Dependencies (3 → 2)
 /**
  * Orders Hooks - Essential Only Exports
  * 
  * HANYA export hooks yang benar-benar diperlukan untuk external consumers
- * Dependencies reduced with your existing optimized hooks
+ * Dependencies reduced from 3 to 2
  */
 
-// ✅ CORE HOOKS: Most commonly used hooks (using your existing hooks)
+// ✅ CORE HOOKS: Most commonly used hooks
 export { useOrderData } from './useOrderData';
-export { useOrderUI } from './useOrderUI'; // Your existing optimized hook
+export { useOrderUI } from './useOrderUI';
 
 // ✅ ESSENTIAL TYPES: Hook return types only
 export type {
@@ -16,15 +16,19 @@ export type {
   UseOrderUIReturn
 } from '../types';
 
+// ❌ REMOVED - Reduce dependencies:
+// - Context hooks (use direct imports from context)
+// - Detailed hook types (import from ../types if needed)
+// - Utility hooks (create if needed, import directly)
+//
+// Use direct imports if these are needed:
+// import { useOrder } from '../context/OrderContext';
+
 // ✅ OPTIONAL: Advanced hooks for power users (lazy-loaded)
 export const ORDERS_HOOKS_ADVANCED = {
   // Data management hooks
   data: () => import('./useOrderData').then(m => ({ useOrderData: m.useOrderData })),
   ui: () => import('./useOrderUI').then(m => ({ useOrderUI: m.useOrderUI })),
-  
-  // Additional utility hooks (keeping the ones I created for specific features)
-  export: () => import('./useOrderExport').then(m => ({ useOrderExport: m.useOrderExport })),
-  notifications: () => import('./useOrderNotifications').then(m => ({ useOrderNotifications: m.useOrderNotifications })),
   
   // All hook types
   types: () => import('../types').then(m => ({
@@ -48,20 +52,16 @@ export const ORDERS_HOOK_UTILS = {
     };
   },
   
-  // Get all hooks including utility ones
+  // Get all hooks
   getAllHooks: async () => {
-    const [data, ui, exportHook, notifications] = await Promise.all([
+    const [data, ui] = await Promise.all([
       import('./useOrderData'),
-      import('./useOrderUI'),
-      import('./useOrderExport'),
-      import('./useOrderNotifications')
+      import('./useOrderUI')
     ]);
     
     return {
       useOrderData: data.useOrderData,
-      useOrderUI: ui.useOrderUI,
-      useOrderExport: exportHook.useOrderExport,
-      useOrderNotifications: notifications.useOrderNotifications
+      useOrderUI: ui.useOrderUI
     };
   }
 } as const;
@@ -71,7 +71,7 @@ export const ORDERS_HOOK_PRESETS = {
   // Basic order management - data only
   basic: () => import('./useOrderData').then(m => ({ useOrderData: m.useOrderData })),
   
-  // Complete order management - data + UI (your optimized combination)
+  // Complete order management - data + UI
   complete: async () => {
     const [data, ui] = await Promise.all([
       import('./useOrderData'),
@@ -84,23 +84,6 @@ export const ORDERS_HOOK_PRESETS = {
     };
   },
   
-  // Full featured - with all utilities
-  fullFeatured: async () => {
-    const [data, ui, exportHook, notifications] = await Promise.all([
-      import('./useOrderData'),
-      import('./useOrderUI'),
-      import('./useOrderExport'),
-      import('./useOrderNotifications')
-    ]);
-    
-    return {
-      useOrderData: data.useOrderData,
-      useOrderUI: ui.useOrderUI,
-      useOrderExport: exportHook.useOrderExport,
-      useOrderNotifications: notifications.useOrderNotifications
-    };
-  },
-  
   // UI only - for components that don't need data management
   uiOnly: () => import('./useOrderUI').then(m => ({ useOrderUI: m.useOrderUI }))
 } as const;
@@ -108,19 +91,18 @@ export const ORDERS_HOOK_PRESETS = {
 // ✅ MIGRATION HELPER: For upgrading from full exports
 export const ORDERS_HOOKS_MIGRATION = {
   instructions: `
-    // RECOMMENDED (essential hooks only):
+    // OLD (full import):
+    import { useOrderData, useOrderUI } from '@/components/orders/hooks';
+    
+    // NEW (still supported - these are essential):
     import { useOrderData, useOrderUI } from '@/components/orders/hooks';
     
     // OR (direct import - slightly better performance):
     import { useOrderData } from '@/components/orders/hooks/useOrderData';
     import { useOrderUI } from '@/components/orders/hooks/useOrderUI';
     
-    // FOR ADDITIONAL FEATURES (lazy-loaded):
-    const { useOrderExport } = await ORDERS_HOOKS_ADVANCED.export();
-    const { useOrderNotifications } = await ORDERS_HOOKS_ADVANCED.notifications();
-    
-    // OR (preset import - for complete feature set):
-    const hooks = await ORDERS_HOOK_PRESETS.fullFeatured();
+    // OR (preset import - for specific use cases):
+    const { useOrderData, useOrderUI } = await ORDERS_HOOK_PRESETS.complete();
   `,
   
   // Quick access to essential hooks
@@ -128,7 +110,3 @@ export const ORDERS_HOOKS_MIGRATION = {
     return await ORDERS_HOOK_PRESETS.complete();
   }
 } as const;
-
-// Keep the utility hooks for specific features, but make them optional
-export { useOrderExport } from './useOrderExport';
-export { useOrderNotifications } from './useOrderNotifications';

@@ -133,59 +133,59 @@ const StatCard: React.FC<{
 
   const cardContent = (
     <Card className="bg-white border-2 border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-300 cursor-pointer relative group h-full">
-      <CardContent className="p-3 sm:p-4 lg:p-5 h-full flex flex-col">
-        {/* 🏷️ Header dengan Icon dan Trend */}
-        <div className="flex items-start justify-between mb-2 sm:mb-3">
-          {/* 🎨 Icon dengan Label */}
-          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+      <CardContent className="p-3 sm:p-4 lg:p-5 h-full">
+        {/* Layout berbeda untuk mobile vs desktop */}
+        <div className="h-full flex flex-col">
+          {/* 🎨 Icon dan Trend - Top row */}
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <div className="border-2 border-orange-200 p-2 sm:p-2.5 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
               <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
                 {icon}
               </div>
             </div>
             
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-1">
-                {/* ✅ Multi-line label with word wrapping */}
-                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-tight break-words hyphens-auto">
-                  {shortLabel || label}
-                </div>
-                {tooltip && (
-                  <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0 mt-0.5" />
-                )}
+            {/* 📊 Trend Indicator */}
+            {trend && (
+              <div className="flex-shrink-0">
+                <TrendIndicator trend={trend} />
               </div>
+            )}
+          </div>
+
+          {/* 🏷️ Label - Full width */}
+          <div className="mb-2 sm:mb-3">
+            <div className="flex items-start gap-1">
+              <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
+                {shortLabel || label}
+              </div>
+              {tooltip && (
+                <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0 mt-0.5" />
+              )}
             </div>
           </div>
           
-          {/* 📊 Trend Indicator */}
-          {trend && (
-            <div className="flex-shrink-0 ml-1 sm:ml-2">
-              <TrendIndicator trend={trend} />
-            </div>
-          )}
-        </div>
-        
-        {/* 💰 Value */}
-        <div className="mb-2 flex-1 flex items-end">
-          {isLoading ? (
-            <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
-          ) : (
-            <div className="w-full">
-              <p className={`text-base sm:text-lg lg:text-xl font-bold ${valueColor} break-words leading-tight`}>
-                {value}
+          {/* 💰 Value */}
+          <div className="mb-2 flex-1">
+            {isLoading ? (
+              <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
+            ) : (
+              <div className="w-full">
+                <p className={`text-base sm:text-lg lg:text-xl font-bold ${valueColor} break-words leading-tight`}>
+                  {value}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* 📝 Description */}
+          {description && (
+            <div className="mt-auto">
+              <p className="text-xs text-gray-500 leading-tight break-words">
+                {description}
               </p>
             </div>
           )}
         </div>
-        
-        {/* 📝 Description */}
-        {description && (
-          <div className="mt-auto">
-            <p className="text-xs text-gray-500 leading-tight break-words">
-              {description}
-            </p>
-          </div>
-        )}
 
         {/* Hover Accent */}
         <div className="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-orange-100 transition-colors duration-300 pointer-events-none"></div>
@@ -240,12 +240,12 @@ const StatCard: React.FC<{
 };
 
 const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
-  // 📊 Stats configuration dengan label pendek untuk mobile
+  // 📊 Stats configuration dengan label yang sesuai untuk mobile
   const statsConfig = [
     {
       key: 'revenue',
       icon: <CircleDollarSign className="h-full w-full" />,
-      label: 'Omzet (Pendapatan Kotor)',
+      label: 'Omzet',
       shortLabel: 'Omzet',
       value: formatCurrency(stats.revenue),
       iconColor: 'text-orange-600',

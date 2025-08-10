@@ -1,4 +1,242 @@
-// src/components/orders/context/OrderProvider.tsx - FULLY FIXED with React Query
+// src/components/orders/context/OrderProvider.tsx - Updated dengan types yang sudah ada
+import React, { ReactNode, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/logger';
+
+// ✅ CONSOLIDATED: Context imports
+import OrderContext from './OrderContext';
+import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
+
+// ✅ CONSOLIDATED: External contexts (grouped)
+import { useAuth } from '@/contexts/AuthContext';
+import { useActivity } from '@/contexts/ActivityContext';
+import { useFinancial } from '@/components/financial/contexts/FinancialContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useNotification } from '@/contexts/NotificationContext';
+
+// ✅ ESSENTIAL: React Query version of order data hook
+import { useOrderData, orderQueryKeys } from '../hooks/useOrderData';
+import type { Order, OrderStatus, OrderItem } from '../types';
+import { safeParseDate, isValidDate, calculateRecipeStats } from '../utils';
+
+interface OrderProviderProps {
+  children: ReactNode;
+}
+
+export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
+  // ✅ CONTEXTS: All required contexts
+  const { user } = useAuth();
+  const { addActivity } = useActivity();
+  const { addTransaction } = useFinancial();
+  const { settings } = useUserSettings();
+  const { addNotification } = useNotification();
+  const queryClient = useQueryClient();
+
+  // ✅ MEMOIZED: Dependency check for performance
+  const contextDependencies = useMemo(() => {
+    const hasAllDependencies = !!(user && addActivity && addTransaction && settings && addNotification);
+    
+    logger.context('OrderProvider', 'Dependency check', {
+      user: user?.id,
+      hasActivity: !!addActivity,
+      hasFinancial: !!addTransaction,
+      hasSettings: !!settings,
+      hasNotification: !!addNotification,
+      allReady: hasAllDependencies
+    });
+
+    return { hasAllDependencies, user };
+  }, [user, addActivity, addTransaction, settings, addNotification]);
+
+  // ✅ REFACTORED: Main data hook with React Query
+  const orderData = useOrderData(
+    contextDependencies.user,
+    addActivity,
+    addTransaction,
+    settings,
+    addNotification
+  );
+
+  // ✅ MEMOIZED: Enhanced utility methods dengan recipe integration
+  const utilityMethods = useMemo(() => ({
+    getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
+      try {
+        if (!isValidDate(startDate) || !isValidDate(endDate)) {
+          logger.error('OrderProvider: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+          return [];
+        }
+        
+        return orderData.orders.filter(order => {
+          try {
+            const orderDate = safeParseDate(order.createdAt);
+            if (!orderDate) return false;
+            return orderDate >= startDate && orderDate <= endDate;
+          } catch (error) {
+            logger.error('OrderProvider: Error processing order date:', error, order);
+            return false;
+          }
+        });
+      } catch (error) {
+        logger.error('OrderProvider: Error in getOrdersByDateRange:', error);
+        return [];
+      }
+    },
+
+    // ✅ NEW: React Query specific utilities
+    invalidateOrders: () => {
+      if (user?.id) {
+        logger.debug('OrderProvider: Invalidating order queries');
+        queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: orderQueryKeys.stat(user.id) });
+      }
+    },
+
+    prefetchOrders: () => {
+      if (user?.id) {
+        logger.debug('OrderProvider: Prefetching orders for user:', user.id);
+        queryClient.prefetchQuery({
+          queryKey: orderQueryKeys.list(user.id),
+          queryFn: () => import('../api/orderApi').then(({ orderApi }) => orderApi.getOrders(user.id)),
+          staleTime: 5 * 60 * 1000, // 5 minutes
+        });
+      }
+    },
+
+    // ✅ NEW: Get cached order without triggering a fetch
+    getCachedOrderById: (id: string): Order | undefined => {
+      if (!user?.id) return undefined;
+      const cachedOrders = queryClient.getQueryData(orderQueryKeys.list(user.id)) as Order[] | undefined;
+      return cachedOrders?.find(order => order.id === id);
+    },
+
+    // ✅ ENHANCED: Get order statistics dengan recipe analytics
+    getOrderStats: () => {
+      const orders = orderData.orders;
+      const now = new Date();
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+      const thisMonthOrders = orders.filter(order => {
+        const orderDate = safeParseDate(order.createdAt);
+        return orderDate && orderDate >= thisMonth;
+      });
+
+      const lastMonthOrders = orders.filter(order => {
+        const orderDate = safeParseDate(order.createdAt);
+        return orderDate && orderDate >= lastMonth && orderDate < thisMonth;
+      });
+
+      const completedOrders = orders.filter(order => order.status === 'completed');
+      const pendingOrders = orders.filter(order => order.status === 'pending');
+
+      // ✅ RECIPE ANALYTICS: Calculate recipe stats
+      const allRecipeItems = orders.flatMap(order => 
+        order.items.filter(item => item.isFromRecipe)
+      );
+      const totalRecipeRevenue = allRecipeItems.reduce((sum, item) => sum + item.total, 0);
+      const recipeOrdersCount = orders.filter(order => 
+        order.items.some(item => item.isFromRecipe)
+      ).length;
+
+      return {
+        total: orders.length,
+        thisMonth: thisMonthOrders.length,
+        lastMonth: lastMonthOrders.length,
+        completed: completedOrders.length,
+        pending: pendingOrders.length,
+        totalRevenue: completedOrders.reduce((sum, order) => sum + (order.totalPesanan || 0), 0),
+        averageOrderValue: completedOrders.length > 0 
+          ? completedOrders.reduce((sum, order) => sum + (order.totalPesanan || 0), 0) / completedOrders.length 
+          : 0,
+        
+        // ✅ RECIPE STATS: Additional recipe analytics
+        recipeOrdersCount,
+        totalRecipeRevenue,
+        averageRecipeOrderValue: recipeOrdersCount > 0 ? totalRecipeRevenue / recipeOrdersCount : 0,
+        recipeItemsCount: allRecipeItems.length
+      };
+    },
+
+    // ✅ RECIPE UTILITIES: Recipe-specific helper methods
+    getOrdersByRecipe: (recipeId: string): Order[] => {
+      return orderData.orders.filter(order =>
+        order.items.some(item => item.recipeId === recipeId)
+      );
+    },
+
+    getRecipePopularity: () => {
+      const recipeMap = new Map<string, {
+        recipeId: string;
+        recipeName: string;
+        orderCount: number;
+        totalQuantity: number;
+        totalRevenue: number;
+      }>();
+
+      orderData.orders.forEach(order => {
+        order.items
+          .filter(item => item.isFromRecipe && item.recipeId)
+          .forEach(item => {
+            const key = item.recipeId!;
+            const existing = recipeMap.get(key);
+            
+            if (existing) {
+              existing.orderCount += 1;
+              existing.totalQuantity += item.quantity;
+              existing.totalRevenue += item.total;
+            } else {
+              recipeMap.set(key, {
+                recipeId: item.recipeId!,
+                recipeName: item.name,
+                orderCount: 1,
+                totalQuantity: item.quantity,
+                totalRevenue: item.total
+              });
+            }
+          });
+      });
+
+      return Array.from(recipeMap.values())
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+    }
+  }), [orderData.orders, queryClient, user?.id]);
+
+  // ✅ MEMOIZED: Enhanced context value dengan recipe integration
+  const contextValue = useMemo(() => {
+    const baseValue = {
+      // Core data
+      orders: orderData.orders,
+      loading: orderData.loading,
+      
+      // CRUD operations (now with React Query optimistic updates)
+      addOrder: orderData.addOrder,
+      updateOrder: orderData.updateOrder,
+      deleteOrder: orderData.deleteOrder,
+      
+      // Enhanced features
+      isConnected: orderData.isConnected,
+      refreshData: orderData.refreshData,
+      getOrderById: orderData.getOrderById,
+      getOrdersByStatus: orderData.getOrdersByStatus,
+      getOrdersByDateRange: utilityMethods.getOrdersByDateRange,
+      bulkUpdateStatus: orderData.bulkUpdateStatus,
+      bulkDeleteOrders: orderData.bulkDeleteOrders,
+
+      // ✅ NEW: React Query specific features
+      invalidateOrders: utilityMethods.invalidateOrders,
+      prefetchOrders: utilityMethods.prefetchOrders,
+      getCachedOrderById: utilityMethods.getCachedOrderById,
+      getOrderStats: utilityMethods.getOrderStats,
+
+      // ✅ RECIPE FEATURES: Recipe-specific methods
+      getOrdersByRecipe: utilityMethods.getOrdersByRecipe,
+      getRecipePopularity: utilityMethods.getRecipePopularity,
+
+      // ✅ NEW: Query state information
+      queryInfo: {
+        isFetching: orderData.loading,
+        isError: false, // This would come from the query if we expose it
+        lastUpdated: orderData.orders.length > 0 ? new Date() :// src/components/orders/context/OrderProvider.tsx - FULLY FIXED with React Query
 import React, { ReactNode, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';

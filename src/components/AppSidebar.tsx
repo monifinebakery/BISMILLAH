@@ -46,7 +46,7 @@ import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
 import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
 
-// ✅ FIXED: Import modular asset hooks
+// ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -75,7 +75,7 @@ export function AppSidebar() {
   const { promos } = usePromo();
   const { state: operationalCostState } = useOperationalCost();
   
-  // ✅ FIXED: Use modular asset hook
+  // ✅ RESTORED: Use modular asset hook (nested QueryClient fixed)
   const { assets, isLoading: assetsLoading } = useAssetQuery({ 
     userId: user?.id,
     enableRealtime: false // No need for realtime in sidebar

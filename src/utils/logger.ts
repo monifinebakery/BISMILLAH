@@ -10,23 +10,37 @@ console.log('🔍 Environment Check:', {
   NODE_ENV: import.meta.env.NODE_ENV
 });
 
-// Environment detection
-const isDevelopment = import.meta.env.MODE === 'development' || 
-                     import.meta.env.DEV === true ||
-                     !import.meta.env.PROD;
-
+// Environment detection - SAFE for build time
 const forceLogsEnabled = import.meta.env.VITE_FORCE_LOGS === 'true';
 const debugLevel = import.meta.env.VITE_DEBUG_LEVEL || 'error';
 
-// Only enable logs in development OR when explicitly forced
-const SHOULD_LOG = isDevelopment || forceLogsEnabled;
+// Runtime detection function
+const getIsDevelopment = () => {
+  if (typeof window === 'undefined') return false;
+  
+  const isNetlifyDev = window.location.hostname.includes('dev') ||
+                      window.location.hostname.includes('--');
+  const isLocalDev = window.location.hostname === 'localhost' ||
+                    window.location.hostname.includes('127.0.0.1') ||
+                    window.location.port === '8080';
+
+  return import.meta.env.MODE === 'development' || 
+         import.meta.env.DEV === true ||
+         isNetlifyDev ||
+         isLocalDev;
+};
+
+// Get SHOULD_LOG dynamically
+const getShouldLog = () => {
+  return getIsDevelopment() || forceLogsEnabled;
+};
 
 console.log('🔧 Logger Config:', {
-  isDevelopment,
+  isDevelopment: getIsDevelopment(),
   forceLogsEnabled, 
   debugLevel,
-  SHOULD_LOG,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown'
+  SHOULD_LOG: getShouldLog(),
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
 });
 
 const hasConsole = typeof console !== 'undefined';
@@ -40,8 +54,8 @@ export const logger = {
     if (hasConsole) {
       console.log('🧪 Logger Test:', {
         timestamp: new Date().toISOString(),
-        shouldLog: SHOULD_LOG,
-        isDevelopment,
+        shouldLog: getShouldLog(),
+        isDevelopment: getIsDevelopment(),
         forceLogsEnabled
       });
     }
@@ -51,7 +65,7 @@ export const logger = {
    * Context logging
    */
   context: (contextName: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔄 [${timestamp}] [${contextName}]`, message, data);
@@ -65,7 +79,7 @@ export const logger = {
    * Component logging
    */
   component: (componentName: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🧩 [${timestamp}] [${componentName}]`, message, data);
@@ -79,7 +93,7 @@ export const logger = {
    * Hook logging
    */
   hook: (hookName: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🪝 [${timestamp}] [${hookName}]`, message, data);
@@ -93,7 +107,7 @@ export const logger = {
    * Info logging
    */
   info: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`ℹ️ [${timestamp}]`, message, data);
@@ -107,7 +121,7 @@ export const logger = {
    * Warning logging
    */
   warn: (message: string, data?: any) => {
-    if (hasConsole && (SHOULD_LOG || debugLevel === 'warn' || debugLevel === 'error')) {
+    if (hasConsole && (getShouldLog() || debugLevel === 'warn' || debugLevel === 'error')) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.warn(`⚠️ [${timestamp}]`, message, data);
@@ -135,7 +149,7 @@ export const logger = {
    * Debug logging
    */
   debug: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG && debugLevel === 'debug') {
+    if (hasConsole && getShouldLog() && debugLevel === 'debug') {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.debug(`🔍 [${timestamp}]`, message, data);
@@ -149,7 +163,7 @@ export const logger = {
    * Success logging
    */
   success: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`✅ [${timestamp}]`, message, data);
@@ -163,7 +177,7 @@ export const logger = {
    * API logging
    */
   api: (endpoint: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message, data);
@@ -177,7 +191,7 @@ export const logger = {
    * Performance logging
    */
   perf: (operation: string, duration: number, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       const color = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
       if (data !== undefined) {
@@ -206,7 +220,7 @@ export const logger = {
    * Payment flow logging
    */
   payment: (stage: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message, data);
@@ -220,7 +234,7 @@ export const logger = {
    * Order verification logging  
    */
   orderVerification: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message, data);
@@ -234,7 +248,7 @@ export const logger = {
    * Access check logging
    */
   accessCheck: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message, data);
@@ -248,7 +262,7 @@ export const logger = {
    * Linking process logging
    */
   linking: (message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔗 [${timestamp}] [LINKING]`, message, data);
@@ -262,7 +276,7 @@ export const logger = {
    * Cache operations logging
    */
   cache: (operation: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message, data);
@@ -276,7 +290,7 @@ export const logger = {
    * Flow tracking with step numbers
    */
   flow: (step: number, stage: string, message: string, data?: any) => {
-    if (hasConsole && SHOULD_LOG) {
+    if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
       if (data !== undefined) {
         console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message, data);
@@ -292,8 +306,8 @@ if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
   
   // Test immediately when loaded
-  if (SHOULD_LOG) {
-    console.log('🚀 Logger loaded! Environment:', { isDevelopment, SHOULD_LOG });
+  if (getShouldLog()) {
+    console.log('🚀 Logger loaded! Environment:', { isDevelopment: getIsDevelopment(), SHOULD_LOG: getShouldLog() });
     logger.test();
   }
   
@@ -305,7 +319,7 @@ if (typeof window !== 'undefined') {
       logger.linking('Test linking log');
     },
     enableAll: () => {
-      console.log('🔧 Current logger status:', { SHOULD_LOG, isDevelopment, forceLogsEnabled });
+      console.log('🔧 Current logger status:', { SHOULD_LOG: getShouldLog(), isDevelopment: getIsDevelopment(), forceLogsEnabled });
     },
     forceEnable: () => {
       console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true in your .env file');

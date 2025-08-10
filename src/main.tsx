@@ -1,4 +1,5 @@
 // src/main.tsx - FIXED (Remove Duplicate Providers)
+import './utils/force-debug';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';

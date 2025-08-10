@@ -1,87 +1,57 @@
 // src/utils/logger.ts - Environment-aware version
 
-// ✅ Debug environment variables first
+// ✅ Debug environment variables first - ENHANCED DEBUG
 console.log('🔍 Environment Check:', {
   VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
   VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
   MODE: import.meta.env.MODE,
   PROD: import.meta.env.PROD,
   DEV: import.meta.env.DEV,
-  NODE_ENV: import.meta.env.NODE_ENV
+  NODE_ENV: import.meta.env.NODE_ENV,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
 });
 
 // Environment detection - SAFE for build time
 const forceLogsEnabled = import.meta.env.VITE_FORCE_LOGS === 'true';
 const debugLevel = import.meta.env.VITE_DEBUG_LEVEL || 'error';
 
-// Runtime detection function
-const getIsDevelopment = () => {
-  if (typeof window === 'undefined') return false;
-  
-  // Debug hostname detection
-  const hostname = window.location.hostname;
-  const hasDevInHostname = hostname.includes('dev');
-  const hasDoubleHyphen = hostname.includes('--');
-  const isLocalhost = hostname === 'localhost' || hostname.includes('127.0.0.1');
-  const hasDevPort = window.location.port === '8080';
-  
-  console.log('🔍 Hostname Analysis:', {
-    hostname,
-    hasDevInHostname,
-    hasDoubleHyphen,
-    isLocalhost,
-    hasDevPort,
-    MODE: import.meta.env.MODE,
-    DEV: import.meta.env.DEV
-  });
-  
-  const isNetlifyDev = hasDevInHostname || hasDoubleHyphen;
-  const isLocalDev = isLocalhost || hasDevPort;
+// ✅ SIMPLIFIED: Force enable berdasarkan VITE_FORCE_LOGS di development
+const isDevelopmentMode = import.meta.env.MODE === 'development';
+const shouldLogBasedOnEnv = isDevelopmentMode || forceLogsEnabled;
 
-  return import.meta.env.MODE === 'development' || 
-         import.meta.env.DEV === true ||
-         isNetlifyDev ||
-         isLocalDev;
-};
-
-// Get SHOULD_LOG dynamically
+// Get SHOULD_LOG dynamically - SIMPLIFIED
 const getShouldLog = () => {
   // ✅ PRODUCTION SAFETY: Force disable untuk domain production
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const isProductionDomain = hostname.includes('monifine.my.id') || 
-                              hostname.includes('kalkulator.') ||
-                              (!hostname.includes('localhost') && 
-                               !hostname.includes('dev') && 
-                               !hostname.includes('--'));
+                              hostname.includes('kalkulator.');
     
     if (isProductionDomain) {
+      console.log('🚫 PRODUCTION DOMAIN DETECTED - Logs disabled');
       return false; // Force disable di production
     }
   }
   
-  const devByHostname = getIsDevelopment();
-  const forceEnabled = forceLogsEnabled;
+  // ✅ SIMPLE: Prioritas ke environment variables
+  const result = shouldLogBasedOnEnv;
   
-  // Development domain detection
-  const isDevDomain = typeof window !== 'undefined' && 
-                     (window.location.hostname.includes('dev3--') ||
-                      window.location.hostname.includes('localhost'));
-  
-  console.log('🔧 Should Log Analysis:', {
-    devByHostname,
-    forceEnabled,
-    isDevDomain,
-    finalResult: devByHostname || forceEnabled || isDevDomain
+  console.log('🔧 Should Log Decision:', {
+    isDevelopmentMode,
+    forceLogsEnabled,
+    shouldLogBasedOnEnv,
+    finalResult: result,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
   });
   
-  return devByHostname || forceEnabled || isDevDomain;
+  return result;
 };
 
 console.log('🔧 Logger Config:', {
-  isDevelopment: getIsDevelopment(),
+  isDevelopmentMode,
   forceLogsEnabled, 
   debugLevel,
+  shouldLogBasedOnEnv,
   SHOULD_LOG: getShouldLog(),
   hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
 });
@@ -98,7 +68,7 @@ export const logger = {
       console.log('🧪 Logger Test:', {
         timestamp: new Date().toISOString(),
         shouldLog: getShouldLog(),
-        isDevelopment: getIsDevelopment(),
+        isDevelopmentMode,
         forceLogsEnabled
       });
     }
@@ -362,7 +332,7 @@ if (typeof window !== 'undefined') {
       logger.linking('Test linking log');
     },
     enableAll: () => {
-      console.log('🔧 Current logger status:', { SHOULD_LOG: getShouldLog(), isDevelopment: getIsDevelopment(), forceLogsEnabled });
+      console.log('🔧 Current logger status:', { SHOULD_LOG: getShouldLog(), isDevelopmentMode, forceLogsEnabled });
     },
     forceEnable: () => {
       console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true in your .env file');

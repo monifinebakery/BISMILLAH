@@ -46,12 +46,27 @@ const getIsDevelopment = () => {
 
 // Get SHOULD_LOG dynamically
 const getShouldLog = () => {
+  // ✅ PRODUCTION SAFETY: Force disable untuk domain production
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isProductionDomain = hostname.includes('monifine.my.id') || 
+                              hostname.includes('kalkulator.') ||
+                              (!hostname.includes('localhost') && 
+                               !hostname.includes('dev') && 
+                               !hostname.includes('--'));
+    
+    if (isProductionDomain) {
+      return false; // Force disable di production
+    }
+  }
+  
   const devByHostname = getIsDevelopment();
   const forceEnabled = forceLogsEnabled;
   
-  // TEMPORARY: Force enable untuk domain dev3--
+  // Development domain detection
   const isDevDomain = typeof window !== 'undefined' && 
-                     window.location.hostname.includes('dev3--');
+                     (window.location.hostname.includes('dev3--') ||
+                      window.location.hostname.includes('localhost'));
   
   console.log('🔧 Should Log Analysis:', {
     devByHostname,

@@ -1,4 +1,4 @@
-/ src/components/invoice/templates/InvoiceTemplate.tsx
+// src/components/invoice/templates/InvoiceTemplate.tsx
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { 

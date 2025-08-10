@@ -22,7 +22,7 @@ import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseConte
 
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
-import { AssetProvider } from './AssetContext';
+import { AssetProvider } from '@/components/assets';
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';

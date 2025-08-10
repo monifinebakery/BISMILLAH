@@ -18,11 +18,25 @@ const debugLevel = import.meta.env.VITE_DEBUG_LEVEL || 'error';
 const getIsDevelopment = () => {
   if (typeof window === 'undefined') return false;
   
-  const isNetlifyDev = window.location.hostname.includes('dev') ||
-                      window.location.hostname.includes('--');
-  const isLocalDev = window.location.hostname === 'localhost' ||
-                    window.location.hostname.includes('127.0.0.1') ||
-                    window.location.port === '8080';
+  // Debug hostname detection
+  const hostname = window.location.hostname;
+  const hasDevInHostname = hostname.includes('dev');
+  const hasDoubleHyphen = hostname.includes('--');
+  const isLocalhost = hostname === 'localhost' || hostname.includes('127.0.0.1');
+  const hasDevPort = window.location.port === '8080';
+  
+  console.log('🔍 Hostname Analysis:', {
+    hostname,
+    hasDevInHostname,
+    hasDoubleHyphen,
+    isLocalhost,
+    hasDevPort,
+    MODE: import.meta.env.MODE,
+    DEV: import.meta.env.DEV
+  });
+  
+  const isNetlifyDev = hasDevInHostname || hasDoubleHyphen;
+  const isLocalDev = isLocalhost || hasDevPort;
 
   return import.meta.env.MODE === 'development' || 
          import.meta.env.DEV === true ||
@@ -32,7 +46,21 @@ const getIsDevelopment = () => {
 
 // Get SHOULD_LOG dynamically
 const getShouldLog = () => {
-  return getIsDevelopment() || forceLogsEnabled;
+  const devByHostname = getIsDevelopment();
+  const forceEnabled = forceLogsEnabled;
+  
+  // TEMPORARY: Force enable untuk domain dev3--
+  const isDevDomain = typeof window !== 'undefined' && 
+                     window.location.hostname.includes('dev3--');
+  
+  console.log('🔧 Should Log Analysis:', {
+    devByHostname,
+    forceEnabled,
+    isDevDomain,
+    finalResult: devByHostname || forceEnabled || isDevDomain
+  });
+  
+  return devByHostname || forceEnabled || isDevDomain;
 };
 
 console.log('🔧 Logger Config:', {

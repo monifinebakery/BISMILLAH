@@ -63,7 +63,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
 
   const handleViewCost = (cost: OperationalCost) => {
     setSelectedCost(cost);
-    console.log('View cost:', cost);
+    logger.info('View cost:', cost);
   };
 
   // Handle allocation settings

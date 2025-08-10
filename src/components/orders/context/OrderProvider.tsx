@@ -1,4 +1,4 @@
-// src/components/orders/context/OrderProvider.tsx - REFACTORED with React Query
+// src/components/orders/context/OrderProvider.tsx - FULLY FIXED with React Query
 import React, { ReactNode, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
@@ -16,7 +16,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 
 // ✅ ESSENTIAL: React Query version of order data hook
 import { useOrderData, orderQueryKeys } from '../hooks/useOrderData';
-import type { Order } from '../types';
+import type { Order, OrderStatus } from '../types';
 import { safeParseDate, isValidDate } from '../utils';
 
 interface OrderProviderProps {
@@ -68,7 +68,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         
         return orderData.orders.filter(order => {
           try {
-            const orderDate = safeParseDate(order.tanggal);
+            const orderDate = safeParseDate(order.createdAt);
             if (!orderDate) return false;
             return orderDate >= startDate && orderDate <= endDate;
           } catch (error) {
@@ -84,9 +84,11 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
     // ✅ NEW: React Query specific utilities
     invalidateOrders: () => {
-      logger.debug('OrderProvider: Invalidating order queries');
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.stats(user?.id) });
+      if (user?.id) {
+        logger.debug('OrderProvider: Invalidating order queries');
+        queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: orderQueryKeys.stat(user.id) });
+      }
     },
 
     prefetchOrders: () => {
@@ -94,6 +96,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         logger.debug('OrderProvider: Prefetching orders for user:', user.id);
         queryClient.prefetchQuery({
           queryKey: orderQueryKeys.list(user.id),
+          queryFn: () => import('../hooks/useOrderData').then(({ orderApi }) => orderApi.getOrders(user.id)),
           staleTime: 5 * 60 * 1000, // 5 minutes
         });
       }
@@ -101,7 +104,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
     // ✅ NEW: Get cached order without triggering a fetch
     getCachedOrderById: (id: string): Order | undefined => {
-      const cachedOrders = queryClient.getQueryData(orderQueryKeys.list(user?.id)) as Order[] | undefined;
+      if (!user?.id) return undefined;
+      const cachedOrders = queryClient.getQueryData(orderQueryKeys.list(user.id)) as Order[] | undefined;
       return cachedOrders?.find(order => order.id === id);
     },
 
@@ -113,12 +117,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
       const thisMonthOrders = orders.filter(order => {
-        const orderDate = safeParseDate(order.tanggal);
+        const orderDate = safeParseDate(order.createdAt);
         return orderDate && orderDate >= thisMonth;
       });
 
       const lastMonthOrders = orders.filter(order => {
-        const orderDate = safeParseDate(order.tanggal);
+        const orderDate = safeParseDate(order.createdAt);
         return orderDate && orderDate >= lastMonth && orderDate < thisMonth;
       });
 
@@ -136,6 +140,11 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
           ? completedOrders.reduce((sum, order) => sum + (order.totalPesanan || 0), 0) / completedOrders.length 
           : 0
       };
+    },
+
+    // ✅ NEW: Enhanced getOrdersByStatus dengan type safety
+    getOrdersByStatusTyped: (status: OrderStatus): Order[] => {
+      return orderData.orders.filter(order => order.status === status);
     }
   }), [orderData.orders, queryClient, user?.id]);
 
@@ -171,7 +180,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         isFetching: orderData.loading,
         isError: false, // This would come from the query if we expose it
         lastUpdated: orderData.orders.length > 0 ? new Date() : null,
-        cacheStatus: 'fresh', // This would come from React Query
+        cacheStatus: orderData.isConnected ? 'fresh' : 'stale' as const,
       }
     };
 
@@ -190,21 +199,21 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   const limitedContextValue = useMemo(() => {
     logger.context('OrderProvider', 'Providing limited context - no user');
     
-    const noOpAsync = async () => {
+    const noOpAsync = async (): Promise<boolean> => {
       logger.warn('OrderProvider: Operation called without user');
       return false;
     };
 
-    const noOpVoid = async () => {
+    const noOpVoid = async (): Promise<void> => {
       logger.warn('OrderProvider: Operation called without user');
     };
 
-    const noOpSync = () => {
+    const noOpSync = (): Order | undefined => {
       logger.warn('OrderProvider: Sync operation called without user');
       return undefined;
     };
 
-    const noOpArray = () => {
+    const noOpArray = (): Order[] => {
       logger.warn('OrderProvider: Array operation called without user');
       return [];
     };
@@ -243,7 +252,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         isFetching: false,
         isError: false,
         lastUpdated: null,
-        cacheStatus: 'idle',
+        cacheStatus: 'idle' as const,
       }
     };
   }, []);
@@ -278,46 +287,21 @@ export const useOrderQuery = () => {
   const { user } = useAuth();
 
   const invalidateOrders = React.useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
-    queryClient.invalidateQueries({ queryKey: orderQueryKeys.stats(user?.id) });
+    if (user?.id) {
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.stat(user.id) });
+    }
   }, [queryClient, user?.id]);
 
   const prefetchOrders = React.useCallback(() => {
     if (user?.id) {
       queryClient.prefetchQuery({
         queryKey: orderQueryKeys.list(user.id),
+        queryFn: () => import('../hooks/useOrderData').then(({ orderApi }) => orderApi.getOrders(user.id)),
         staleTime: 5 * 60 * 1000,
       });
     }
   }, [queryClient, user?.id]);
 
   const getCachedOrders = React.useCallback((): Order[] => {
-    return queryClient.getQueryData(orderQueryKeys.list(user?.id)) as Order[] || [];
-  }, [queryClient, user?.id]);
-
-  const getCachedOrderById = React.useCallback((id: string): Order | undefined => {
-    const orders = getCachedOrders();
-    return orders.find(order => order.id === id);
-  }, [getCachedOrders]);
-
-  const getQueryState = React.useCallback(() => {
-    const queryState = queryClient.getQueryState(orderQueryKeys.list(user?.id));
-    return {
-      isFetching: queryState?.isFetching || false,
-      isError: queryState?.isError || false,
-      isLoading: queryState?.isLoading || false,
-      lastUpdated: queryState?.dataUpdatedAt ? new Date(queryState.dataUpdatedAt) : null,
-      status: queryState?.status || 'idle',
-    };
-  }, [queryClient, user?.id]);
-
-  return {
-    invalidateOrders,
-    prefetchOrders,
-    getCachedOrders,
-    getCachedOrderById,
-    getQueryState,
-  };
-};
-
-export default OrderProvider;
+    if (!user?.

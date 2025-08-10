@@ -334,7 +334,7 @@ export const useUserSettings = () => {
 /**
  * Hook for accessing React Query specific functions
  */
-export const useUserSettingsQuery = () => {
+export const useUserSettingsUtils = () => {
   const queryClient = useQueryClient();
 
   const invalidateSettings = useCallback((userId?: string) => {

@@ -1,6 +1,6 @@
-// src/utils/logger.ts - Environment-aware version
+// src/utils/logger.ts - Environment-aware logger (fixed dev logs)
 
-// ✅ Debug environment variables first - ENHANCED DEBUG
+// ✅ Early environment snapshot (safe to run at module load)
 console.log('🔍 Environment Check:', {
   VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
   VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
@@ -11,47 +11,62 @@ console.log('🔍 Environment Check:', {
   hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
 });
 
-// Environment detection - SAFE for build time
+// 🔧 Config via env
 const forceLogsEnabled = import.meta.env.VITE_FORCE_LOGS === 'true';
 const debugLevel = import.meta.env.VITE_DEBUG_LEVEL || 'error';
 
-// ✅ SIMPLIFIED: Force enable berdasarkan VITE_FORCE_LOGS di development
-const isDevelopmentMode = import.meta.env.MODE === 'development';
-const shouldLogBasedOnEnv = isDevelopmentMode || forceLogsEnabled;
+// ✅ Production host guard (lebih ketat, bukan includes sembarangan)
+const PROD_HOSTS = new Set<string>([
+  'monifine.my.id',
+  'www.monifine.my.id',
+  'kalkulator.monifine.my.id',
+]);
 
-// Get SHOULD_LOG dynamically - SIMPLIFIED
+const isProductionHostname = (hostname: string): boolean => {
+  // tandai semua subdomain *.monifine.my.id sebagai production
+  if (hostname === 'monifine.my.id' || hostname === 'www.monifine.my.id') return true;
+  if (hostname.endsWith('.monifine.my.id')) return true;
+  if (PROD_HOSTS.has(hostname)) return true;
+  return false;
+};
+
+// ✅ Optional blacklist host dari .env (comma separated), contoh:
+// VITE_DISABLE_LOGS_ON_HOSTS=staging.monifine.my.id,preview.monifine.my.id
+const disableLogsHosts = String(import.meta.env.VITE_DISABLE_LOGS_ON_HOSTS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// ✅ Final decision maker
 const getShouldLog = () => {
-  // ✅ PRODUCTION SAFETY: Force disable untuk domain production
+  // 1) Dev SELALU nyala
+  if (import.meta.env.DEV) return true;
+
+  // 2) Kalau force lewat env, nyalakan meskipun production
+  if (forceLogsEnabled) return true;
+
+  // 3) Production domains: matikan
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    const isProductionDomain = hostname.includes('monifine.my.id') || 
-                              hostname.includes('kalkulator.');
-    
-    if (isProductionDomain) {
-      console.log('🚫 PRODUCTION DOMAIN DETECTED - Logs disabled');
-      return false; // Force disable di production
+
+    if (disableLogsHosts.includes(hostname)) {
+      // host sengaja dimatikan via env
+      return false;
+    }
+
+    if (isProductionHostname(hostname)) {
+      return false;
     }
   }
-  
-  // ✅ SIMPLE: Prioritas ke environment variables
-  const result = shouldLogBasedOnEnv;
-  
-  console.log('🔧 Should Log Decision:', {
-    isDevelopmentMode,
-    forceLogsEnabled,
-    shouldLogBasedOnEnv,
-    finalResult: result,
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
-  });
-  
-  return result;
+
+  // 4) Default non-dev, non-forced → mati
+  return false;
 };
 
 console.log('🔧 Logger Config:', {
-  isDevelopmentMode,
-  forceLogsEnabled, 
+  isDevelopmentMode: import.meta.env.DEV,
+  forceLogsEnabled,
   debugLevel,
-  shouldLogBasedOnEnv,
   SHOULD_LOG: getShouldLog(),
   hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
 });
@@ -60,270 +75,183 @@ const hasConsole = typeof console !== 'undefined';
 
 // ✅ Environment-aware logger
 export const logger = {
-  /**
-   * Test logger
-   */
   test: () => {
     if (hasConsole) {
       console.log('🧪 Logger Test:', {
         timestamp: new Date().toISOString(),
         shouldLog: getShouldLog(),
-        isDevelopmentMode,
+        isDevelopmentMode: import.meta.env.DEV,
         forceLogsEnabled
       });
     }
   },
 
-  /**
-   * Context logging
-   */
   context: (contextName: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔄 [${timestamp}] [${contextName}]`, message, data);
-      } else {
-        console.log(`🔄 [${timestamp}] [${contextName}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🔄 [${timestamp}] [${contextName}]`, message, data)
+        : console.log(`🔄 [${timestamp}] [${contextName}]`, message);
     }
   },
 
-  /**
-   * Component logging
-   */
   component: (componentName: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🧩 [${timestamp}] [${componentName}]`, message, data);
-      } else {
-        console.log(`🧩 [${timestamp}] [${componentName}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🧩 [${timestamp}] [${componentName}]`, message, data)
+        : console.log(`🧩 [${timestamp}] [${componentName}]`, message);
     }
   },
 
-  /**
-   * Hook logging
-   */
   hook: (hookName: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🪝 [${timestamp}] [${hookName}]`, message, data);
-      } else {
-        console.log(`🪝 [${timestamp}] [${hookName}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🪝 [${timestamp}] [${hookName}]`, message, data)
+        : console.log(`🪝 [${timestamp}] [${hookName}]`, message);
     }
   },
 
-  /**
-   * Info logging
-   */
   info: (message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`ℹ️ [${timestamp}]`, message, data);
-      } else {
-        console.log(`ℹ️ [${timestamp}]`, message);
-      }
+      data !== undefined
+        ? console.log(`ℹ️ [${timestamp}]`, message, data)
+        : console.log(`ℹ️ [${timestamp}]`, message);
     }
   },
 
-  /**
-   * Warning logging
-   */
   warn: (message: string, data?: any) => {
     if (hasConsole && (getShouldLog() || debugLevel === 'warn' || debugLevel === 'error')) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.warn(`⚠️ [${timestamp}]`, message, data);
-      } else {
-        console.warn(`⚠️ [${timestamp}]`, message);
-      }
+      data !== undefined
+        ? console.warn(`⚠️ [${timestamp}]`, message, data)
+        : console.warn(`⚠️ [${timestamp}]`, message);
     }
   },
 
-  /**
-   * Error logging - Always show errors
-   */
+  // ❗️Error selalu tampil di dev. Di production, konsol bisa terhapus oleh esbuild.drop.
   error: (message: string, error?: any) => {
     if (hasConsole) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (error !== undefined) {
-        console.error(`🚨 [${timestamp}]`, message, error);
-      } else {
-        console.error(`🚨 [${timestamp}]`, message);
-      }
+      error !== undefined
+        ? console.error(`🚨 [${timestamp}]`, message, error)
+        : console.error(`🚨 [${timestamp}]`, message);
     }
   },
 
-  /**
-   * Debug logging
-   */
   debug: (message: string, data?: any) => {
     if (hasConsole && getShouldLog() && debugLevel === 'debug') {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.debug(`🔍 [${timestamp}]`, message, data);
-      } else {
-        console.debug(`🔍 [${timestamp}]`, message);
-      }
+      data !== undefined
+        ? console.debug(`🔍 [${timestamp}]`, message, data)
+        : console.debug(`🔍 [${timestamp}]`, message);
     }
   },
 
-  /**
-   * Success logging
-   */
   success: (message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`✅ [${timestamp}]`, message, data);
-      } else {
-        console.log(`✅ [${timestamp}]`, message);
-      }
+      data !== undefined
+        ? console.log(`✅ [${timestamp}]`, message, data)
+        : console.log(`✅ [${timestamp}]`, message);
     }
   },
 
-  /**
-   * API logging
-   */
   api: (endpoint: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message, data);
-      } else {
-        console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message, data)
+        : console.log(`🌐 [${timestamp}] [API:${endpoint}]`, message);
     }
   },
 
-  /**
-   * Performance logging
-   */
   perf: (operation: string, duration: number, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      const color = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
-      if (data !== undefined) {
-        console.log(`${color} [${timestamp}] [PERF:${operation}] ${duration}ms`, data);
-      } else {
-        console.log(`${color} [${timestamp}] [PERF:${operation}] ${duration}ms`);
-      }
+      const icon = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
+      data !== undefined
+        ? console.log(`${icon} [${timestamp}] [PERF:${operation}] ${duration}ms`, data)
+        : console.log(`${icon} [${timestamp}] [PERF:${operation}] ${duration}ms`);
     }
   },
 
-  /**
-   * Critical error logging - Always show
-   */
   criticalError: (message: string, error?: any) => {
     if (hasConsole) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (error !== undefined) {
-        console.error(`🚨 [${timestamp}] CRITICAL:`, message, error);
-      } else {
-        console.error(`🚨 [${timestamp}] CRITICAL:`, message);
-      }
+      error !== undefined
+        ? console.error(`🚨 [${timestamp}] CRITICAL:`, message, error)
+        : console.error(`🚨 [${timestamp}] CRITICAL:`, message);
     }
   },
 
-  /**
-   * Payment flow logging
-   */
   payment: (stage: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message, data);
-      } else {
-        console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message);
-      }
+      data !== undefined
+        ? console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message, data)
+        : console.log(`💳 [${timestamp}] [PAYMENT:${stage}]`, message);
     }
   },
 
-  /**
-   * Order verification logging  
-   */
   orderVerification: (message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message, data);
-      } else {
-        console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message);
-      }
+      data !== undefined
+        ? console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message, data)
+        : console.log(`🎫 [${timestamp}] [ORDER-VERIFY]`, message);
     }
   },
 
-  /**
-   * Access check logging
-   */
   accessCheck: (message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message, data);
-      } else {
-        console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message);
-      }
+      data !== undefined
+        ? console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message, data)
+        : console.log(`🔐 [${timestamp}] [ACCESS-CHECK]`, message);
     }
   },
 
-  /**
-   * Linking process logging
-   */
   linking: (message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔗 [${timestamp}] [LINKING]`, message, data);
-      } else {
-        console.log(`🔗 [${timestamp}] [LINKING]`, message);
-      }
+      data !== undefined
+        ? console.log(`🔗 [${timestamp}] [LINKING]`, message, data)
+        : console.log(`🔗 [${timestamp}] [LINKING]`, message);
     }
   },
 
-  /**
-   * Cache operations logging
-   */
   cache: (operation: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message, data);
-      } else {
-        console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message, data)
+        : console.log(`🗄️ [${timestamp}] [CACHE:${operation}]`, message);
     }
   },
 
-  /**
-   * Flow tracking with step numbers
-   */
   flow: (step: number, stage: string, message: string, data?: any) => {
     if (hasConsole && getShouldLog()) {
       const timestamp = new Date().toISOString().slice(11, 23);
-      if (data !== undefined) {
-        console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message, data);
-      } else {
-        console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message);
-      }
+      data !== undefined
+        ? console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message, data)
+        : console.log(`🔄 [${timestamp}] [FLOW-${step}:${stage}]`, message);
     }
   }
 };
 
-// ✅ Global debug functions (only in development)
+// ✅ Global debug helpers (browser only)
 if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
-  
+
   // Test immediately when loaded
   if (getShouldLog()) {
-    console.log('🚀 Logger loaded! Environment:', { isDevelopmentMode, SHOULD_LOG: getShouldLog() });
+    console.log('🚀 Logger loaded! Environment:', { isDevelopmentMode: import.meta.env.DEV, SHOULD_LOG: getShouldLog() });
     logger.test();
   }
-  
+
   (window as any).__DEBUG_PAYMENT__ = {
     test: () => {
       console.log('🧪 Payment debug test');
@@ -332,7 +260,7 @@ if (typeof window !== 'undefined') {
       logger.linking('Test linking log');
     },
     enableAll: () => {
-      console.log('🔧 Current logger status:', { SHOULD_LOG: getShouldLog(), isDevelopmentMode, forceLogsEnabled });
+      console.log('🔧 Current logger status:', { SHOULD_LOG: getShouldLog(), isDevelopmentMode: import.meta.env.DEV, forceLogsEnabled });
     },
     forceEnable: () => {
       console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true in your .env file');

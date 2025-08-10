@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
   // ✅ Environment detection
   const isDev = mode === 'development';
   const isProd = mode === 'production';
+  
+  // ✅ Check if logs should be kept in production
+  const shouldKeepLogs = env.VITE_FORCE_LOGS === 'true';
+  const shouldDropConsole = isProd && !shouldKeepLogs;
 
   // ✅ Debug info (only in dev)
   if (isDev) {
@@ -26,7 +30,8 @@ export default defineConfig(({ mode }) => {
     console.log('🔧 PRODUCTION BUILD - Environment Check:', {
       mode,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
-      shouldKeepLogs: env.VITE_FORCE_LOGS === 'true'
+      shouldKeepLogs,
+      willDropConsole: shouldDropConsole
     });
   }
 
@@ -290,13 +295,21 @@ export default defineConfig(({ mode }) => {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
-      // ⛳️ ONLY prod: drop console/debugger
-      ...(isProd && {
+      // ⛳️ CONDITIONAL: only drop console if not forced to keep logs
+      ...(shouldDropConsole && {
         drop: ["console", "debugger"],
         legalComments: "none",
         minifyIdentifiers: true,
         minifySyntax: true,
         minifyWhitespace: true,
+      }),
+      // ✅ When keeping logs in production, still minify but preserve console
+      ...(isProd && shouldKeepLogs && {
+        legalComments: "none",
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+        // Don't drop console when VITE_FORCE_LOGS=true
       }),
       define: {
         global: 'globalThis',

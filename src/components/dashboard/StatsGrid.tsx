@@ -146,15 +146,9 @@ const StatCard: React.FC<{
             
             <div className="min-w-0 flex-1">
               <div className="flex items-start gap-1">
-                {/* ✅ Multi-line label dengan responsive text */}
-                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-tight">
-                  {/* Mobile: Show short label, Desktop: Show full label */}
-                  <span className="block sm:hidden">
-                    {shortLabel || label}
-                  </span>
-                  <span className="hidden sm:block">
-                    {label}
-                  </span>
+                {/* ✅ Multi-line label with word wrapping */}
+                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-tight break-words hyphens-auto">
+                  {shortLabel || label}
                 </div>
                 {tooltip && (
                   <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0 mt-0.5" />
@@ -252,7 +246,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       key: 'revenue',
       icon: <CircleDollarSign className="h-full w-full" />,
       label: 'Omzet (Pendapatan Kotor)',
-      shortLabel: 'Omzet', // ✅ Label pendek untuk mobile
+      shortLabel: 'Omzet',
       value: formatCurrency(stats.revenue),
       iconColor: 'text-orange-600',
       trend: stats.trends?.revenue,
@@ -262,7 +256,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       key: 'orders',
       icon: <Package className="h-full w-full" />,
       label: 'Total Pesanan',
-      shortLabel: 'Pesanan', // ✅ Label pendek untuk mobile
+      shortLabel: 'Total Pesanan',
       value: stats.orders.toLocaleString('id-ID'),
       iconColor: 'text-orange-600',
       trend: stats.trends?.orders,
@@ -272,7 +266,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       key: 'profit',
       icon: <Calculator className="h-full w-full" />,
       label: 'Estimasi Laba Bersih',
-      shortLabel: 'Laba Bersih', // ✅ Label pendek untuk mobile
+      shortLabel: 'Estimasi Laba Bersih',
       value: formatCurrency(stats.profit),
       description: '(Estimasi 30%)',
       iconColor: 'text-orange-600',
@@ -283,7 +277,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       key: 'mostUsedIngredient',
       icon: <ChefHat className="h-full w-full" />,
       label: 'Bahan Paling Sering Dipakai',
-      shortLabel: 'Bahan Populer', // ✅ Label pendek untuk mobile
+      shortLabel: 'Bahan Paling Sering Dipakai',
       value: stats.mostUsedIngredient?.name || 'Belum ada data',
       description: stats.mostUsedIngredient?.usageCount 
         ? `Dipakai ${stats.mostUsedIngredient.usageCount}x` 

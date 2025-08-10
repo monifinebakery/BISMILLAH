@@ -14,6 +14,7 @@ import {
 import { operationalCostApi, allocationApi, calculationApi } from '../services';
 import { transformCostsToSummary } from '../utils/costTransformers';
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 // Query Keys
 export const OPERATIONAL_COST_QUERY_KEYS = {
@@ -348,7 +349,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
       dispatch({ type: 'SET_OVERHEAD_CALCULATION', payload: data });
     } catch (error) {
-      console.error('Error calculating overhead:', error);
+      logger.error('Error calculating overhead:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Gagal menghitung overhead' });
     } finally {
       setLoading('overhead', false);
@@ -388,7 +389,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('🔐 Auth error:', error);
+          logger.error('🔐 Auth error:', error);
           if (mounted) {
             dispatch({ type: 'SET_AUTH_STATE', payload: false });
             dispatch({ type: 'SET_ERROR', payload: 'Gagal memverifikasi autentikasi' });
@@ -402,7 +403,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
           dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
         }
       } catch (error) {
-        console.error('🔐 Error initializing auth:', error);
+        logger.error('🔐 Error initializing auth:', error);
         if (mounted) {
           dispatch({ type: 'SET_AUTH_STATE', payload: false });
         }

@@ -58,7 +58,7 @@ const PromoFullCalculator = React.lazy(() =>
 
 const [NotFound, AssetManagement, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/NotFound")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/AssetManagement")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/assets/AssetManagement")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/Settings")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/MenuPage")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/PaymentSuccessPage")),

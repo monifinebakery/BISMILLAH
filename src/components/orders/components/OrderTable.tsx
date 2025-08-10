@@ -335,3 +335,168 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat pesanan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (uiState.currentOrders.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <EmptyState
+          hasFilters={uiState.hasActiveFilters}
+          onAddFirst={onNewOrder}
+          onClearFilters={uiState.clearFilters}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          {/* Table Header */}
+          <thead className="bg-gray-50">
+            <tr>
+              {uiState.isSelectionMode && (
+                <th className="w-12 px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={uiState.allCurrentSelected}
+                    ref={input => {
+                      if (input) input.indeterminate = uiState.someCurrentSelected;
+                    }}
+                    onChange={handleToggleSelectAll}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                </th>
+              )}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                No. Pesanan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pelanggan
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tanggal
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+
+          {/* Table Body */}
+          <tbody className="bg-white divide-y divide-gray-200">
+            {uiState.currentOrders.map((order) => (
+              <tr 
+                key={order.id}
+                className={`
+                  hover:bg-gray-50 cursor-pointer transition-colors duration-150
+                  ${uiState.selectedOrderIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
+                  ${uiState.isSelectionMode ? 'hover:bg-orange-50' : ''}
+                `}
+                onClick={(e) => handleRowClick(order, e)}
+              >
+                {/* Selection Checkbox */}
+                {uiState.isSelectionMode && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <OrderRowSelect
+                      isSelected={uiState.selectedOrderIds.includes(order.id)}
+                      onToggle={(forceValue) => uiState.toggleSelectOrder(order.id, forceValue)}
+                      orderId={order.id}
+                    />
+                  </td>
+                )}
+
+                {/* Order Number */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
+                    <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
+                  </div>
+                </td>
+
+                {/* Customer Info */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
+                    {order.teleponPelanggan && (
+                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    )}
+                    {order.emailPelanggan && (
+                      <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Date */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Total Amount */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.totalPesanan)}</div>
+                    {order.items.length > 0 && (
+                      <div className="text-xs text-gray-500">
+                        {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <StatusBadge
+                    status={order.status}
+                    onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+                    disabled={order.status === 'completed' || order.status === 'cancelled'}
+                  />
+                </td>
+
+                {/* Actions */}
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <OrderRowActions
+                    order={order}
+                    onEdit={() => onEditOrder(order)}
+                    onDelete={() => onDeleteOrder(order.id)}
+                    onFollowUp={() => handleFollowUp(order)} // ✅ FIXED: Pass handler
+                    onViewDetail={() => handleViewDetail(order)} // ✅ FIXED: Pass handler
+                    disabled={uiState.isSelectionMode}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default OrderTable;

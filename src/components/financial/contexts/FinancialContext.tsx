@@ -12,7 +12,7 @@ import {
   FinancialContextType,
   CreateTransactionData,
   UpdateTransactionData
-} from '@/types/financial';
+} from '../types/financial';
 
 // Hook imports (clean dependencies)
 import { 

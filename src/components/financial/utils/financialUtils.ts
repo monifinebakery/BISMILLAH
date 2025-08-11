@@ -9,7 +9,7 @@ import {
   ValidationResult,
   CreateTransactionData,
   UpdateTransactionData
-} from '@/types/financial';
+} from '../types/financial';
 
 // ===========================================
 // ✅ FILTERING FUNCTIONS (Pure)

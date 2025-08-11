@@ -1,6 +1,6 @@
-// src/components/orders/context/OrderProvider.tsx - FINAL FIX: No Conditional Hooks
+// src/components/orders/context/OrderProvider.tsx - DEBUG VERSION
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo, useEffect } from 'react';
 import { logger } from '@/utils/logger';
 
 // Context imports
@@ -24,24 +24,61 @@ interface OrderProviderProps {
 }
 
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
-  // ✅ FIXED: ALL HOOKS CALLED UNCONDITIONALLY AT TOP LEVEL
-  const { user } = useAuth();
-  const { addActivity } = useActivity();
-  const { addTransaction } = useFinancial();
-  const { settings } = useUserSettings();
-  const { addNotification } = useNotification();
+  // ✅ DEBUG: Detailed logging for each context
+  const authContext = useAuth();
+  const activityContext = useActivity();
+  const financialContext = useFinancial();
+  const settingsContext = useUserSettings();
+  const notificationContext = useNotification();
 
-  // ✅ FIXED: ALWAYS call useOrderData with all parameters
-  // Pass the actual values, useOrderData will handle null checks internally
+  // Extract values
+  const { user } = authContext || {};
+  const { addActivity } = activityContext || {};
+  const { addTransaction } = financialContext || {};
+  const { settings } = settingsContext || {};
+  const { addNotification } = notificationContext || {};
+
+  // ✅ DEBUG: Log each context state
+  useEffect(() => {
+    logger.debug('OrderProvider', 'Context states:', {
+      authContext: {
+        exists: !!authContext,
+        user: user?.id || 'no_user',
+        userEmail: user?.email || 'no_email'
+      },
+      activityContext: {
+        exists: !!activityContext,
+        hasAddActivity: !!addActivity,
+        addActivityType: typeof addActivity
+      },
+      financialContext: {
+        exists: !!financialContext,
+        hasAddTransaction: !!addTransaction,
+        addTransactionType: typeof addTransaction
+      },
+      settingsContext: {
+        exists: !!settingsContext,
+        hasSettings: !!settings,
+        settingsType: typeof settings
+      },
+      notificationContext: {
+        exists: !!notificationContext,
+        hasAddNotification: !!addNotification,
+        addNotificationType: typeof addNotification
+      }
+    });
+  }, [authContext, activityContext, financialContext, settingsContext, notificationContext, user, addActivity, addTransaction, settings, addNotification]);
+
+  // ✅ ALWAYS call useOrderData with all parameters
   const orderData = useOrderData(
-    user,           // Always pass user (can be null)
-    addActivity,    // Always pass addActivity (can be null)
-    addTransaction, // Always pass addTransaction (can be null)
-    settings,       // Always pass settings (can be null)
-    addNotification // Always pass addNotification (can be null)
+    user,
+    addActivity,
+    addTransaction,
+    settings,
+    addNotification
   );
 
-  // ✅ DEPENDENCY CHECK: Moved after hooks
+  // ✅ DEPENDENCY CHECK: Enhanced debugging
   const contextDependencies = useMemo(() => {
     const hasUser = !!user;
     const hasActivity = !!addActivity;
@@ -51,14 +88,37 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     
     const hasAllDependencies = hasUser && hasActivity && hasFinancial && hasSettings && hasNotification;
     
+    // ✅ DETAILED LOGGING: Which dependencies are missing
+    const missingDependencies = [];
+    if (!hasUser) missingDependencies.push('user');
+    if (!hasActivity) missingDependencies.push('activity');
+    if (!hasFinancial) missingDependencies.push('financial');
+    if (!hasSettings) missingDependencies.push('settings');
+    if (!hasNotification) missingDependencies.push('notification');
+    
     logger.context('OrderProvider', 'Dependency check', {
-      user: user?.id || 'not_ready',
+      user: user?.id || 'MISSING',
       hasActivity,
       hasFinancial,
       hasSettings,
       hasNotification,
-      allReady: hasAllDependencies
+      allReady: hasAllDependencies,
+      missingDependencies,
+      readyCount: [hasUser, hasActivity, hasFinancial, hasSettings, hasNotification].filter(Boolean).length,
+      totalCount: 5
     });
+
+    // ✅ WARNING: If stuck loading for too long
+    if (!hasAllDependencies) {
+      logger.warn('OrderProvider', 'Some dependencies still not ready:', {
+        missing: missingDependencies,
+        authContextExists: !!authContext,
+        activityContextExists: !!activityContext,
+        financialContextExists: !!financialContext,
+        settingsContextExists: !!settingsContext,
+        notificationContextExists: !!notificationContext
+      });
+    }
 
     return { 
       hasAllDependencies, 
@@ -67,9 +127,10 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       hasActivity,
       hasFinancial, 
       hasSettings,
-      hasNotification
+      hasNotification,
+      missingDependencies
     };
-  }, [user, addActivity, addTransaction, settings, addNotification]);
+  }, [user, addActivity, addTransaction, settings, addNotification, authContext, activityContext, financialContext, settingsContext, notificationContext]);
 
   // ✅ UTILITY METHODS: With dependency checks
   const utilityMethods = useMemo(() => ({
@@ -106,15 +167,17 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   const contextValue = useMemo(() => {
     // If contexts not ready, provide loading state
     if (!contextDependencies.hasAllDependencies) {
-      logger.context('OrderProvider', 'Providing loading context - dependencies not ready');
+      logger.context('OrderProvider', 'Providing loading context - dependencies not ready', {
+        missing: contextDependencies.missingDependencies
+      });
       
       const noOpAsync = async () => {
-        logger.warn('OrderProvider: Operation called before contexts ready');
+        logger.warn('OrderProvider: Operation called before contexts ready, missing:', contextDependencies.missingDependencies);
         return false;
       };
 
       const noOpVoid = async () => {
-        logger.warn('OrderProvider: Operation called before contexts ready');
+        logger.warn('OrderProvider: Operation called before contexts ready, missing:', contextDependencies.missingDependencies);
       };
 
       return {
@@ -131,6 +194,15 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         getOrdersByStatus: () => [],
         getOrdersByDateRange: () => [],
         contextReady: false,
+        // ✅ DEBUG INFO: Add debug info to context
+        debugInfo: {
+          missingDependencies: contextDependencies.missingDependencies,
+          hasUser: contextDependencies.hasUser,
+          hasActivity: contextDependencies.hasActivity,
+          hasFinancial: contextDependencies.hasFinancial,
+          hasSettings: contextDependencies.hasSettings,
+          hasNotification: contextDependencies.hasNotification
+        }
       };
     }
 
@@ -156,19 +228,40 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       
       // Context state
       contextReady: true,
+      debugInfo: {
+        allReady: true,
+        orderCount: orderData.orders.length
+      }
     };
 
-    logger.context('OrderProvider', 'Providing full context - all ready', {
+    logger.success('OrderProvider', 'Providing full context - all ready!', {
       orderCount: orderData.orders.length,
       loading: baseValue.loading,
       connected: baseValue.isConnected
     });
 
     return baseValue;
-  }, [orderData, utilityMethods, contextDependencies.hasAllDependencies]);
+  }, [orderData, utilityMethods, contextDependencies.hasAllDependencies, contextDependencies.missingDependencies]);
 
-  // ✅ NO LOADING FALLBACK: Just provide limited context and render children
-  // The loading state will be handled by individual components that need the data
+  // ✅ TIMEOUT WARNING: Warn if loading too long
+  useEffect(() => {
+    if (!contextDependencies.hasAllDependencies) {
+      const timeout = setTimeout(() => {
+        logger.error('OrderProvider', '🚨 CONTEXTS STILL NOT READY AFTER 10 SECONDS!', {
+          missing: contextDependencies.missingDependencies,
+          troubleshooting: {
+            checkAuthProvider: 'Is AuthProvider wrapping the app?',
+            checkActivityProvider: 'Is ActivityProvider wrapping the app?',
+            checkFinancialProvider: 'Is FinancialProvider wrapping the app?',
+            checkSettingsProvider: 'Is UserSettingsProvider wrapping the app?',
+            checkNotificationProvider: 'Is NotificationProvider wrapping the app?'
+          }
+        });
+      }, 10000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [contextDependencies.hasAllDependencies, contextDependencies.missingDependencies]);
 
   // ✅ ALWAYS RENDER: Let individual components handle loading states
   return (

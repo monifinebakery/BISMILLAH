@@ -1,10 +1,9 @@
 // src/components/financial/index.ts
+// ✅ FIXED - Clean Barrel Export with Correct Paths for Existing Structure
+
 /**
- * ✅ CLEAN FINANCIAL MODULE - Optimized Barrel Export
- * 
- * Dependencies reduced from 12 to 5
- * No circular dependencies, clean imports only
- * Updated to use new refactored structure
+ * Financial Module - Clean Barrel Export
+ * Dependencies reduced and optimized for existing structure
  */
 
 // ===========================================
@@ -13,25 +12,34 @@
 export { default as FinancialReportPage } from './FinancialReportPage';
 
 // ===========================================
-// ✅ ESSENTIAL CONTEXT (Minimal)
+// ✅ ESSENTIAL CONTEXT
 // ===========================================
 export { 
   FinancialProvider, 
-  useFinancial,
-  useFinancialQuery 
+  useFinancial
 } from './contexts/FinancialContext';
 
 // ===========================================
-// ✅ CONSOLIDATED HOOKS (Single import)
+// ✅ CONSOLIDATED HOOKS (From existing structure)
 // ===========================================
-export { 
-  useFinancialReportPage,
-  useFinancialDashboard,
-  useTransactionManagement
-} from './hooks/useFinancialPage';
+export { useFinancialCore } from './hooks/useFinancialCore';
 
-// Alternative: Keep useFinancialCore name for backward compatibility
-export { useFinancialReportPage as useFinancialCore } from './hooks/useFinancialPage';
+// Individual hooks for flexibility
+export { 
+  useFinancialData,
+  useFilteredTransactions,
+  useTransactionOperations,
+  useCategoryData,
+  useRecentTransactions,
+  useTransactionSearch,
+  useBatchOperations
+} from './hooks/useFinancialContext';
+
+export {
+  useFinancialChartData,
+  usePagination,
+  useFinancialForm
+} from './hooks/useFinancialData';
 
 // ===========================================
 // ✅ ESSENTIAL TYPES ONLY
@@ -42,8 +50,17 @@ export type {
   CreateTransactionData,
   UpdateTransactionData,
   FinancialSummary,
-  DateRange
+  DateRange,
+  ValidationResult,
+  FinancialCategories
 } from './types/financial';
+
+// Chart-specific types
+export type {
+  ChartDataPoint,
+  CategoryData,
+  FinancialChartData
+} from './hooks/useFinancialData';
 
 // ===========================================
 // ✅ ESSENTIAL UTILITIES (Pure functions)
@@ -52,15 +69,35 @@ export {
   calculateFinancialSummary,
   validateTransaction,
   formatCurrency,
-  filterByDateRange
+  formatDate,
+  filterByDateRange,
+  calculateTotalIncome,
+  calculateTotalExpense,
+  groupByCategory,
+  groupByType,
+  calculateCategoryTotals
 } from './utils/financialCalculations';
+
+// ===========================================
+// ✅ QUICK ACCESS CONSTANTS
+// ===========================================
+export { 
+  DEFAULT_FINANCIAL_CATEGORIES,
+  TRANSACTION_TYPE_LABELS,
+  CHART_COLORS
+} from './types/financial';
 
 // ===========================================
 // ✅ OPTIONAL: Advanced imports for power users
 // ===========================================
 export const FINANCIAL_ADVANCED = {
   // Lazy-loaded modules to avoid bundling everything
-  hooks: () => import('./hooks/useFinancialHooks'),
+  hooks: {
+    context: () => import('./hooks/useFinancialContext'),
+    data: () => import('./hooks/useFinancialData'),
+    core: () => import('./hooks/useFinancialCore')
+  },
+  
   calculations: () => import('./utils/financialCalculations'),
   api: () => import('./services/financialApi'),
   types: () => import('./types/financial'),
@@ -68,32 +105,8 @@ export const FINANCIAL_ADVANCED = {
   // Component modules (if they exist)
   components: () => import('./components').catch(() => null),
   dialogs: () => import('./dialogs').catch(() => null),
-  charts: () => import('./charts').catch(() => null),
-  
-  // Constants and configurations
-  constants: () => import('./types/financial').then(m => ({
-    DEFAULT_FINANCIAL_CATEGORIES: m.DEFAULT_FINANCIAL_CATEGORIES,
-    TRANSACTION_TYPE_LABELS: m.TRANSACTION_TYPE_LABELS,
-    CHART_COLORS: m.CHART_COLORS
-  }))
+  constants: () => import('./constants').catch(() => null)
 } as const;
-
-// ===========================================
-// ✅ QUICK ACCESS CONSTANTS (Most used)
-// ===========================================
-export { 
-  DEFAULT_FINANCIAL_CATEGORIES,
-  TRANSACTION_TYPE_LABELS 
-} from './types/financial';
-
-// ===========================================
-// ❌ REMOVED (To reduce dependencies):
-// ===========================================
-// - Individual component exports (use direct imports)
-// - Multiple individual hooks (consolidated into useFinancialPage)
-// - Detailed type exports (import from @/types/financial directly)
-// - Non-essential utilities (import directly if needed)
-// - Complex re-exports that create circular dependencies
 
 // ===========================================
 // 📝 USAGE EXAMPLES:
@@ -101,19 +114,30 @@ export {
 /*
 // ✅ RECOMMENDED USAGE:
 
-// For pages:
-import { useFinancialReportPage } from '@/components/financial';
+// For pages (consolidated hook):
+import { useFinancialCore } from '@/components/financial';
 
-// For components:
-import { useFinancial, FinancialTransaction } from '@/components/financial';
+// For specific functionality:
+import { useFinancialData, useTransactionOperations } from '@/components/financial';
+
+// For context:
+import { useFinancial, FinancialProvider } from '@/components/financial';
 
 // For utilities:
-import { calculateFinancialSummary } from '@/components/financial';
+import { calculateFinancialSummary, validateTransaction } from '@/components/financial';
+
+// For types:
+import type { FinancialTransaction, DateRange } from '@/components/financial';
 
 // For advanced usage:
 import { FINANCIAL_ADVANCED } from '@/components/financial';
-const hooks = await FINANCIAL_ADVANCED.hooks();
-
-// For backward compatibility:
-import { useFinancialCore } from '@/components/financial'; // → useFinancialReportPage
+const contextHooks = await FINANCIAL_ADVANCED.hooks.context();
 */
+
+// ===========================================
+// ❌ REMOVED (To reduce dependencies):
+// ===========================================
+// - Complex re-exports that create circular dependencies
+// - Non-essential component exports (use direct imports)
+// - Detailed type exports that aren't commonly used
+// - Utilities that aren't essential for most use cases

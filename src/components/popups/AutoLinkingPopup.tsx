@@ -1,4 +1,4 @@
-// src/components/popups/AutoLinkingPopup.tsx - DEBUG VERSION
+// src/components/popups/AutoLinkingPopup.tsx - FIXED JSX SYNTAX
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -471,20 +471,11 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           </div>
         </div>
 
-        {/* Rest of component stays the same but with debug styling */}
-        <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+        {/* Main Content */}
+        <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
           {!showResults ? (
-            <div className="p-6">
-              {/* Enhanced debug banner */}
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-yellow-600" />
-                  <p className="text-sm text-yellow-700">
-                    <strong>DEBUG MODE:</strong> Enhanced logging enabled. Check console for detailed debug info.
-                  </p>
-                </div>
-              </div>
-
+            /* Payment Selection */
+            <>
               {/* User Info */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -611,10 +602,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   </div>
                 </>
               )}
-            </div>
+            </>
           ) : (
             /* Results Display */
-            <div className="p-6">
+            <>
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">
                   Hasil Auto-Linking (DEBUG)
@@ -663,7 +654,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
         </div>
 

@@ -50,8 +50,8 @@ const CategoryManagementDialog = React.lazy(() =>
   }))
 );
 
-const DateRangeSelector = React.lazy(() => 
-  import('./components/DateRangeSelector').catch(() => ({
+const DateRangePicker = React.lazy(() => 
+  import('@/ui/DateRangePicker').catch(() => ({
     default: ({ dateRange, onDateRangeChange }: any) => (
       <div className="p-2 text-sm text-gray-500">Date picker tidak tersedia</div>
     )

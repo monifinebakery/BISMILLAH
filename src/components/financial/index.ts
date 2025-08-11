@@ -84,7 +84,7 @@ export const FINANCIAL_ADVANCED = {
 export { 
   DEFAULT_FINANCIAL_CATEGORIES,
   TRANSACTION_TYPE_LABELS 
-} from '@/types/financial';
+} from './types/financial';
 
 // ===========================================
 // ❌ REMOVED (To reduce dependencies):

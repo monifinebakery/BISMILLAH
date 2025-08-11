@@ -167,27 +167,10 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     return baseValue;
   }, [orderData, utilityMethods, contextDependencies.hasAllDependencies]);
 
-  // ✅ LOADING COMPONENT: Simple loading fallback
-  if (!contextDependencies.hasAllDependencies) {
-    return (
-      <FollowUpTemplateProvider>
-        <OrderContext.Provider value={contextValue}>
-          <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Memuat Order System</h3>
-                <p className="text-sm text-gray-600">Menginisialisasi sistem pesanan...</p>
-              </div>
-            </div>
-          </div>
-          {children}
-        </OrderContext.Provider>
-      </FollowUpTemplateProvider>
-    );
-  }
+  // ✅ NO LOADING FALLBACK: Just provide limited context and render children
+  // The loading state will be handled by individual components that need the data
 
-  // ✅ NORMAL RENDER: All contexts ready
+  // ✅ ALWAYS RENDER: Let individual components handle loading states
   return (
     <FollowUpTemplateProvider>
       <OrderContext.Provider value={contextValue}>

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { startOfMonth, endOfDay } from 'date-fns';
 
 // Type imports only
-import { DateRange } from '@/types/financial';
+import { DateRange } from '../types/financial';
 
 // Clean hook imports
 import {

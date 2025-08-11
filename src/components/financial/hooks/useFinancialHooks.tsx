@@ -31,7 +31,7 @@ import {
   searchTransactions,
   sortTransactions,
   calculateStats
-} from '@/utils/financialCalculations';
+} from '../utils/financialCalculations';
 
 // API imports
 import {

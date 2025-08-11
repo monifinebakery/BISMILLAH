@@ -1,4 +1,4 @@
-// src/components/orders/components/OrdersPage.tsx - Optimized Dependencies (8 → 6) + Logger
+// src/components/orders/components/OrdersPage.tsx - Optimized Dependencies (8 → 6) + Logger + Context Debugger
 
 import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
@@ -18,6 +18,9 @@ import type { Order, NewOrder } from '../types';
 // ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
 import { logger } from '@/utils/logger';
+
+// ✅ DEBUG: Context debugger for development
+import ContextDebugger from '@/components/debug/ContextDebugger';
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
@@ -365,6 +368,9 @@ const OrdersPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
+      {/* ✅ DEBUG: Context debugger - only in development */}
+      {import.meta.env.DEV && <ContextDebugger />}
+      
       {/* ✅ ENHANCED: Header with template integration info */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">

@@ -39,7 +39,7 @@ import {
   addFinancialTransaction,
   updateFinancialTransaction,
   deleteFinancialTransaction
-} from '@/services/financialApi';
+} from '../services/financialApi';
 
 // Context imports
 import { useAuth } from '@/contexts/AuthContext';

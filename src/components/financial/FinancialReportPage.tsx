@@ -315,7 +315,7 @@ const FinancialReportPage: React.FC = () => {
               
               <div className="w-full sm:w-auto sm:min-w-[280px]">
                 <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
-                  <DateRangeSelector 
+                  <DateRangePicker
                     dateRange={dateRange} 
                     onDateRangeChange={setDateRange}
                     isMobile={isMobile}

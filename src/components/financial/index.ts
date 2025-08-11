@@ -53,7 +53,7 @@ export {
   validateTransaction,
   formatCurrency,
   filterByDateRange
-} from '@/utils/financialCalculations';
+} from './utils/financialCalculations';
 
 // ===========================================
 // ✅ OPTIONAL: Advanced imports for power users

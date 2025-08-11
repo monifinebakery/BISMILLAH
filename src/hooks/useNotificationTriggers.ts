@@ -1,168 +1,37 @@
-// hooks/useNotificationTriggers.ts - PRODUCTION READY
-import { useEffect, useCallback, useRef } from 'react';
+// src/hooks/useNotificationTriggers.ts
+// ✅ CLEAN TRIGGERS - No circular dependencies, simple logic
+
+import { useCallback } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { logger } from '@/utils/logger';
 
-// Safe context imports with fallbacks
-let useOrderContext: any;
-let useBahanBakuContext: any;
-let usePurchaseContext: any;
-
-try {
-  const orderModule = require('@/components/orders/context/OrderContext');
-  useOrderContext = orderModule.useOrder || (() => ({ orders: [] }));
-} catch {
-  useOrderContext = () => ({ orders: [] });
-}
-
-try {
-  const warehouseModule = require('@/components/warehouse/context/WarehouseContext');
-  useBahanBakuContext = warehouseModule.useBahanBaku || (() => ({ bahanBaku: [] }));
-} catch {
-  useBahanBakuContext = () => ({ bahanBaku: [] });
-}
-
-try {
-  const purchaseModule = require('@/components/purchase/context/PurchaseContext');
-  usePurchaseContext = purchaseModule.usePurchase || (() => ({ purchases: [] }));
-} catch {
-  usePurchaseContext = () => ({ purchases: [] });
-}
-
 /**
- * Hook to automatically create notifications based on system events
- * Enhanced with proper error handling and deduplication
+ * Simple hook for triggering notifications
+ * No complex context imports or circular dependencies
  */
 export const useNotificationTriggers = () => {
   const { addNotification } = useNotification();
-  const lastCheckRef = useRef<Record<string, number>>({});
-  const processedItemsRef = useRef<Set<string>>(new Set());
 
-  // Safe context usage with error handling
-  let orders: any[] = [];
-  let bahanBaku: any[] = [];
-  let purchases: any[] = [];
+  // ===========================================
+  // ✅ ORDER TRIGGERS
+  // ===========================================
 
-  try {
-    const orderData = useOrderContext();
-    orders = Array.isArray(orderData?.orders) ? orderData.orders : [];
-  } catch (error) {
-    logger.warn('Orders context not available');
-  }
-
-  try {
-    const warehouseData = useBahanBakuContext();
-    bahanBaku = Array.isArray(warehouseData?.bahanBaku) ? warehouseData.bahanBaku : [];
-  } catch (error) {
-    logger.warn('Warehouse context not available');
-  }
-
-  try {
-    const purchaseData = usePurchaseContext();
-    purchases = Array.isArray(purchaseData?.purchases) ? purchaseData.purchases : [];
-  } catch (error) {
-    logger.warn('Purchase context not available');
-  }
-
-  // Enhanced inventory monitoring with throttling
-  useEffect(() => {
-    if (!bahanBaku.length) return;
-
-    const now = Date.now();
-    const lastInventoryCheck = lastCheckRef.current.inventory || 0;
-
-    // Throttle inventory checks to every 30 seconds
-    if (now - lastInventoryCheck < 30000) return;
-
-    lastCheckRef.current.inventory = now;
-
-    // Process each item safely
-    bahanBaku.forEach((item) => {
-      if (!item || typeof item !== 'object') return;
-
-      const itemId = item.id || item.nama || 'unknown';
-      const itemKey = `inventory_${itemId}`;
-
-      // Skip if already processed recently
-      if (processedItemsRef.current.has(itemKey)) return;
-
-      try {
-        const stok = Number(item.stok) || 0;
-        const minimum = Number(item.minimum) || 0;
-        const nama = String(item.nama || 'Item Tidak Dikenal');
-
-        // Check for low stock
-        if (stok <= minimum && stok > 0) {
-          addNotification(createNotificationHelper.lowStock(nama, stok, minimum))
-            .then(() => {
-              processedItemsRef.current.add(itemKey);
-              // Remove from processed after 5 minutes
-              setTimeout(() => {
-                processedItemsRef.current.delete(itemKey);
-              }, 300000);
-            })
-            .catch(error => {
-              logger.warn('Failed to create low stock notification:', error);
-            });
-        }
-
-        // Check for out of stock
-        if (stok === 0) {
-          addNotification(createNotificationHelper.outOfStock(nama))
-            .then(() => {
-              processedItemsRef.current.add(`${itemKey}_out`);
-              setTimeout(() => {
-                processedItemsRef.current.delete(`${itemKey}_out`);
-              }, 300000);
-            })
-            .catch(error => {
-              logger.warn('Failed to create out of stock notification:', error);
-            });
-        }
-
-        // Check for expiring items
-        if (item.expiry) {
-          try {
-            const expiryDate = new Date(item.expiry);
-            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
-              addNotification(createNotificationHelper.expiringSoon(nama, daysUntilExpiry))
-                .catch(error => {
-                  logger.warn('Failed to create expiring notification:', error);
-                });
-            }
-          } catch (dateError) {
-            // Invalid date format, skip
-          }
-        }
-      } catch (itemError) {
-        logger.warn('Error processing inventory item:', itemError);
-      }
-    });
-  }, [bahanBaku, addNotification]);
-
-  // Cleanup processed items periodically
-  useEffect(() => {
-    const cleanup = setInterval(() => {
-      processedItemsRef.current.clear();
-    }, 600000); // Every 10 minutes
-
-    return () => clearInterval(cleanup);
-  }, []);
-
-  // Manual trigger functions with error handling
-  const triggerOrderCreated = useCallback(async (orderId: string, orderNumber: string, customerName: string) => {
+  const triggerOrderCreated = useCallback(async (
+    orderId: string, 
+    orderNumber: string, 
+    customerName: string = 'Pelanggan'
+  ): Promise<boolean> => {
     try {
       if (!orderId || !orderNumber) {
-        throw new Error('Missing required order information');
+        logger.warn('Missing order information for notification');
+        return false;
       }
       
       const notificationData = createNotificationHelper.orderCreated(
         orderId, 
         orderNumber, 
-        customerName || 'Pelanggan'
+        customerName
       );
       return await addNotification(notificationData);
     } catch (error) {
@@ -171,17 +40,23 @@ export const useNotificationTriggers = () => {
     }
   }, [addNotification]);
 
-  const triggerOrderStatusChanged = useCallback(async (orderId: string, orderNumber: string, oldStatus: string, newStatus: string) => {
+  const triggerOrderStatusChanged = useCallback(async (
+    orderId: string, 
+    orderNumber: string, 
+    oldStatus: string, 
+    newStatus: string
+  ): Promise<boolean> => {
     try {
-      if (!orderId || !orderNumber) {
-        throw new Error('Missing required order information');
+      if (!orderId || !orderNumber || !newStatus) {
+        logger.warn('Missing order status information for notification');
+        return false;
       }
       
       const notificationData = createNotificationHelper.orderStatusChanged(
         orderId, 
         orderNumber, 
-        oldStatus || '', 
-        newStatus || ''
+        oldStatus || 'Unknown', 
+        newStatus
       );
       return await addNotification(notificationData);
     } catch (error) {
@@ -190,10 +65,19 @@ export const useNotificationTriggers = () => {
     }
   }, [addNotification]);
 
-  const triggerLowStock = useCallback(async (itemName: string, currentStock: number, minStock: number) => {
+  // ===========================================
+  // ✅ INVENTORY TRIGGERS
+  // ===========================================
+
+  const triggerLowStock = useCallback(async (
+    itemName: string, 
+    currentStock: number, 
+    minStock: number = 0
+  ): Promise<boolean> => {
     try {
       if (!itemName) {
-        throw new Error('Item name is required');
+        logger.warn('Missing item name for low stock notification');
+        return false;
       }
       
       const notificationData = createNotificationHelper.lowStock(
@@ -208,49 +92,53 @@ export const useNotificationTriggers = () => {
     }
   }, [addNotification]);
 
-  const triggerSystemError = useCallback(async (errorMessage: string) => {
+  const triggerOutOfStock = useCallback(async (itemName: string): Promise<boolean> => {
     try {
-      if (!errorMessage) {
-        throw new Error('Error message is required');
+      if (!itemName) {
+        logger.warn('Missing item name for out of stock notification');
+        return false;
       }
       
-      const notificationData = createNotificationHelper.systemError(errorMessage);
+      const notificationData = createNotificationHelper.outOfStock(itemName);
       return await addNotification(notificationData);
     } catch (error) {
-      logger.error('Failed to trigger system error notification:', error);
+      logger.error('Failed to trigger out of stock notification:', error);
       return false;
     }
   }, [addNotification]);
 
-  const triggerCustomNotification = useCallback(async (
-    title: string, 
-    message: string, 
-    type: 'info' | 'success' | 'warning' | 'error' = 'info', 
-    priority: 1 | 2 | 3 | 4 = 2
-  ) => {
+  const triggerExpiringSoon = useCallback(async (
+    itemName: string, 
+    daysLeft: number
+  ): Promise<boolean> => {
     try {
-      if (!title || !message) {
-        throw new Error('Title and message are required');
+      if (!itemName || daysLeft < 0) {
+        logger.warn('Invalid data for expiring notification');
+        return false;
       }
-
-      const notificationData = createNotificationHelper.custom(
-        title,
-        message,
-        type,
-        priority
-      );
+      
+      const notificationData = createNotificationHelper.expiringSoon(itemName, daysLeft);
       return await addNotification(notificationData);
     } catch (error) {
-      logger.error('Failed to trigger custom notification:', error);
+      logger.error('Failed to trigger expiring notification:', error);
       return false;
     }
   }, [addNotification]);
 
-  // Purchase notification triggers
-  const triggerPurchaseCreated = useCallback(async (purchaseId: string, supplierName: string, totalValue: number, itemCount: number) => {
+  // ===========================================
+  // ✅ PURCHASE TRIGGERS
+  // ===========================================
+
+  const triggerPurchaseCreated = useCallback(async (
+    purchaseId: string, 
+    supplierName: string, 
+    totalValue: number = 0, 
+    itemCount: number = 0
+  ): Promise<boolean> => {
     try {
       if (!purchaseId || !supplierName) {
-        throw new Error('Missing required purchase information');
+        logger.warn('Missing purchase information for notification');
+        return false;
       }
       
       const notificationData = createNotificationHelper.purchaseCreated(
@@ -266,10 +154,15 @@ export const useNotificationTriggers = () => {
     }
   }, [addNotification]);
 
-  const triggerPurchaseCompleted = useCallback(async (purchaseId: string, supplierName: string, totalValue: number) => {
+  const triggerPurchaseCompleted = useCallback(async (
+    purchaseId: string, 
+    supplierName: string, 
+    totalValue: number = 0
+  ): Promise<boolean> => {
     try {
       if (!purchaseId || !supplierName) {
-        throw new Error('Missing required purchase information');
+        logger.warn('Missing purchase information for notification');
+        return false;
       }
       
       const notificationData = createNotificationHelper.purchaseCompleted(
@@ -284,55 +177,206 @@ export const useNotificationTriggers = () => {
     }
   }, [addNotification]);
 
+  // ===========================================
+  // ✅ FINANCIAL TRIGGERS
+  // ===========================================
+
+  const triggerFinancialTransaction = useCallback(async (
+    type: 'income' | 'expense',
+    amount: number,
+    description: string = 'Transaksi keuangan'
+  ): Promise<boolean> => {
+    try {
+      if (!type || amount <= 0) {
+        logger.warn('Invalid financial transaction data for notification');
+        return false;
+      }
+      
+      const notificationData = createNotificationHelper.financialTransactionAdded(
+        type,
+        Number(amount),
+        description
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger financial transaction notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // ===========================================
+  // ✅ SYSTEM TRIGGERS
+  // ===========================================
+
+  const triggerSystemError = useCallback(async (errorMessage: string): Promise<boolean> => {
+    try {
+      if (!errorMessage) {
+        logger.warn('Missing error message for system notification');
+        return false;
+      }
+      
+      const notificationData = createNotificationHelper.systemError(errorMessage);
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger system error notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerBackupSuccess = useCallback(async (): Promise<boolean> => {
+    try {
+      const notificationData = createNotificationHelper.backupSuccess();
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger backup success notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerBackupFailed = useCallback(async (reason: string = 'Unknown error'): Promise<boolean> => {
+    try {
+      const notificationData = createNotificationHelper.backupFailed(reason);
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger backup failed notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // ===========================================
+  // ✅ USER TRIGGERS
+  // ===========================================
+
+  const triggerWelcome = useCallback(async (userName: string = 'User'): Promise<boolean> => {
+    try {
+      const notificationData = createNotificationHelper.welcome(userName);
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger welcome notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  const triggerDailySummary = useCallback(async (
+    ordersCount: number = 0, 
+    revenue: number = 0
+  ): Promise<boolean> => {
+    try {
+      const notificationData = createNotificationHelper.dailySummary(
+        Number(ordersCount) || 0,
+        Number(revenue) || 0
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger daily summary notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // ===========================================
+  // ✅ CUSTOM TRIGGER
+  // ===========================================
+
+  const triggerCustomNotification = useCallback(async (
+    title: string, 
+    message: string, 
+    type: 'info' | 'success' | 'warning' | 'error' = 'info', 
+    priority: 1 | 2 | 3 | 4 = 2
+  ): Promise<boolean> => {
+    try {
+      if (!title || !message) {
+        logger.warn('Missing title or message for custom notification');
+        return false;
+      }
+
+      const notificationData = createNotificationHelper.custom(
+        title,
+        message,
+        type,
+        priority
+      );
+      return await addNotification(notificationData);
+    } catch (error) {
+      logger.error('Failed to trigger custom notification:', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // ===========================================
+  // ✅ RETURN ALL TRIGGERS
+  // ===========================================
+
   return {
-    // Manual triggers
+    // Order triggers
     triggerOrderCreated,
     triggerOrderStatusChanged,
+    
+    // Inventory triggers
     triggerLowStock,
-    triggerSystemError,
-    triggerCustomNotification,
+    triggerOutOfStock,
+    triggerExpiringSoon,
+    
+    // Purchase triggers
     triggerPurchaseCreated,
     triggerPurchaseCompleted,
     
-    // Stats
-    stats: {
-      ordersCount: orders.length,
-      inventoryCount: bahanBaku.length,
-      purchasesCount: purchases.length,
-      lowStockCount: bahanBaku.filter(item => {
-        try {
-          return Number(item?.stok) <= Number(item?.minimum);
-        } catch {
-          return false;
-        }
-      }).length
-    }
+    // Financial triggers
+    triggerFinancialTransaction,
+    
+    // System triggers
+    triggerSystemError,
+    triggerBackupSuccess,
+    triggerBackupFailed,
+    
+    // User triggers
+    triggerWelcome,
+    triggerDailySummary,
+    
+    // Custom trigger
+    triggerCustomNotification
   };
 };
 
-// Simplified notification templates hook
+// ===========================================
+// ✅ SIMPLE NOTIFICATION TEMPLATES HOOK
+// ===========================================
+
 export const useNotificationTemplates = () => {
   const { addNotification } = useNotification();
 
-  const createFromTemplate = useCallback(async (templateName: string, ...args: any[]) => {
+  const createFromTemplate = useCallback(async (
+    templateName: string, 
+    ...args: any[]
+  ): Promise<boolean> => {
     try {
       let notificationData;
 
       switch (templateName) {
         case 'welcome':
-          notificationData = createNotificationHelper.welcome(args[0]);
+          notificationData = createNotificationHelper.welcome(args[0] || 'User');
           break;
         case 'dailySummary':
-          notificationData = createNotificationHelper.dailySummary(args[0] || 0, args[1] || 0);
+          notificationData = createNotificationHelper.dailySummary(
+            args[0] || 0, 
+            args[1] || 0
+          );
           break;
         case 'backupSuccess':
           notificationData = createNotificationHelper.backupSuccess();
           break;
         case 'backupFailed':
-          notificationData = createNotificationHelper.backupFailed(args[0] || 'Unknown error');
+          notificationData = createNotificationHelper.backupFailed(
+            args[0] || 'Unknown error'
+          );
+          break;
+        case 'systemError':
+          notificationData = createNotificationHelper.systemError(
+            args[0] || 'System error occurred'
+          );
           break;
         default:
-          throw new Error(`Template '${templateName}' not found`);
+          logger.warn(`Unknown template: ${templateName}`);
+          return false;
       }
 
       return await addNotification(notificationData);
@@ -343,32 +387,41 @@ export const useNotificationTemplates = () => {
   }, [addNotification]);
 
   return {
-    createFromTemplate,
-    addNotification
+    createFromTemplate
   };
 };
 
-// Simple notification statistics
+// ===========================================
+// ✅ SIMPLE NOTIFICATION STATS HOOK
+// ===========================================
+
 export const useNotificationStats = () => {
   const { notifications, unreadCount, urgentCount } = useNotification();
 
+  // Simple stats calculation
   const stats = {
     total: notifications.length,
     unread: unreadCount,
     urgent: urgentCount,
     read: notifications.length - unreadCount,
+    
+    // By type
     byType: {
       info: notifications.filter(n => n.type === 'info').length,
       success: notifications.filter(n => n.type === 'success').length,
       warning: notifications.filter(n => n.type === 'warning').length,
       error: notifications.filter(n => n.type === 'error').length
     },
+    
+    // By priority
     byPriority: {
       low: notifications.filter(n => n.priority === 1).length,
       normal: notifications.filter(n => n.priority === 2).length,
       high: notifications.filter(n => n.priority === 3).length,
       urgent: notifications.filter(n => n.priority === 4).length
     },
+    
+    // Recent notifications (last hour)
     recent: notifications.filter(n => {
       try {
         const notificationTime = new Date(n.created_at).getTime();

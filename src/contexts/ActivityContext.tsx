@@ -1,5 +1,5 @@
 // src/contexts/ActivityContext.tsx - REFACTORED with React Query & Fixed Real-time Issues
-import React, { createContext, useContext, useEffect, ReactNode, useCallback, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useRef, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Activity } from '@/types/activity'; 

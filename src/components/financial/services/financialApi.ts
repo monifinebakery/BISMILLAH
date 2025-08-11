@@ -9,7 +9,7 @@ import {
   CreateTransactionData, 
   UpdateTransactionData,
   FinancialApiResponse
-} from '@/types/financial';
+} from '../types/financial';
 
 // ===========================================
 // ✅ DATABASE INTERFACE

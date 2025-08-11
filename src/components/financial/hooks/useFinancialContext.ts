@@ -1,5 +1,5 @@
 // src/components/financial/hooks/useFinancialContext.ts
-// Separated context hooks for better organization
+// ✅ FIXED - No circular dependencies, correct imports
 
 import { useCallback, useMemo } from 'react';
 import { useFinancial } from '../contexts/FinancialContext';
@@ -15,10 +15,10 @@ import {
   calculateFinancialSummary,
   groupByCategory,
   groupByType
-} from '../utils/financialUtils'; // Asumsi ada folder utils
+} from '../utils/financialCalculations'; // ✅ FIXED: Changed from financialUtils
 
 // ===========================================
-// ENHANCED FINANCIAL HOOKS
+// ✅ ENHANCED FINANCIAL HOOKS
 // ===========================================
 
 /**
@@ -275,7 +275,7 @@ export const useTransactionSearch = () => {
 };
 
 // ===========================================
-// BATCH OPERATIONS HOOK
+// ✅ BATCH OPERATIONS HOOK
 // ===========================================
 
 /**
@@ -315,7 +315,7 @@ export const useBatchOperations = () => {
 };
 
 // ===========================================
-// COMBINED EXPORT
+// ✅ COMBINED EXPORT
 // ===========================================
 
 export const FinancialContextHooks = {

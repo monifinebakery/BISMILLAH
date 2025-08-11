@@ -1,8 +1,10 @@
-// 🎯 Updated FollowUpTemplateContext dengan Items Support
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// 🎯 Fixed FollowUpTemplateContext dengan React Query - No fetch loops
+import React, { createContext, useContext, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
+import { logger } from '@/utils/logger';
 
 interface FollowUpTemplate {
   id?: string;
@@ -22,6 +24,13 @@ interface FollowUpTemplateContextType {
   getTemplate: (status: string) => string;
   resetToDefaults: () => void;
 }
+
+// ✅ Query Keys
+const followUpTemplateQueryKeys = {
+  all: ['followup-templates'] as const,
+  lists: () => [...followUpTemplateQueryKeys.all, 'list'] as const,
+  list: (userId?: string) => [...followUpTemplateQueryKeys.lists(), userId] as const,
+} as const;
 
 // ✅ ENHANCED: Default templates dengan items support
 const DEFAULT_TEMPLATES = {
@@ -82,146 +91,252 @@ Total: {{totalPesanan}}
 Terima kasih atas pengertiannya.`
 };
 
+// ✅ API Functions
+const fetchTemplates = async (userId: string): Promise<Record<string, string>> => {
+  logger.info('🔄 Fetching follow-up templates for user:', userId);
+  
+  const { data, error } = await supabase
+    .from('followup_templates')
+    .select('*')
+    .eq('user_id', userId);
+  
+  if (error) {
+    logger.error('❌ Error fetching templates:', error);
+    throw new Error(error.message);
+  }
+  
+  // Start with default templates
+  const templatesMap = { ...DEFAULT_TEMPLATES };
+  
+  // Override with user's custom templates
+  if (data && data.length > 0) {
+    data.forEach(template => {
+      templatesMap[template.status] = template.template;
+    });
+  }
+  
+  logger.success('✅ Templates fetched successfully:', Object.keys(templatesMap).length, 'templates');
+  return templatesMap;
+};
+
+const saveTemplate = async (userId: string, status: string, template: string): Promise<FollowUpTemplate> => {
+  logger.info('🔄 Saving template:', status);
+  
+  const { data, error } = await supabase
+    .from('followup_templates')
+    .upsert({
+      user_id: userId,
+      status: status,
+      template: template,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,status'
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    logger.error('❌ Error saving template:', error);
+    throw new Error(error.message);
+  }
+  
+  logger.success('✅ Template saved successfully:', status);
+  return data;
+};
+
+const saveAllTemplates = async (userId: string, templatesData: Record<string, string>): Promise<FollowUpTemplate[]> => {
+  logger.info('🔄 Saving all templates:', Object.keys(templatesData).length, 'templates');
+  
+  const templateEntries = Object.entries(templatesData).map(([status, template]) => ({
+    user_id: userId,
+    status: status,
+    template: template,
+    updated_at: new Date().toISOString()
+  }));
+
+  const { data, error } = await supabase
+    .from('followup_templates')
+    .upsert(templateEntries, {
+      onConflict: 'user_id,status'
+    })
+    .select();
+  
+  if (error) {
+    logger.error('❌ Error saving all templates:', error);
+    throw new Error(error.message);
+  }
+  
+  logger.success('✅ All templates saved successfully');
+  return data;
+};
+
 const FollowUpTemplateContext = createContext<FollowUpTemplateContextType | undefined>(undefined);
 
-export const FollowUpTemplateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [templates, setTemplates] = useState<Record<string, string>>(DEFAULT_TEMPLATES);
-  const [isLoading, setIsLoading] = useState(false);
+export const FollowUpTemplateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Load templates from database
-  const loadTemplates = async () => {
-    if (!user) {
-      setTemplates(DEFAULT_TEMPLATES);
-      return;
-    }
+  logger.debug('🔍 FollowUpTemplateProvider rendered', {
+    userId: user?.id,
+    timestamp: new Date().toISOString()
+  });
 
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('followup_templates')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      // Start with default templates
-      const templatesMap = { ...DEFAULT_TEMPLATES };
-      
-      // Override with user's custom templates
-      if (data && data.length > 0) {
-        data.forEach(template => {
-          templatesMap[template.status] = template.template;
-        });
+  // ✅ useQuery for fetching templates
+  const {
+    data: templates = DEFAULT_TEMPLATES,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: followUpTemplateQueryKeys.list(user?.id),
+    queryFn: () => fetchTemplates(user!.id),
+    enabled: !!user?.id,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
       }
-      
-      setTemplates(templatesMap);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      toast.error('Gagal memuat template WhatsApp');
-      // Use default templates on error
-      setTemplates(DEFAULT_TEMPLATES);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  // Save single template
-  const saveTemplate = async (status: string, template: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menyimpan template');
-      return false;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('followup_templates')
-        .upsert({
-          user_id: user.id,
-          status: status,
-          template: template,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,status'
-        });
+  // ✅ Mutations for CRUD operations
+  const saveTemplateMutation = useMutation({
+    mutationFn: ({ status, template }: { status: string; template: string }) => 
+      saveTemplate(user!.id, status, template),
+    onSuccess: (data, { status }) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: followUpTemplateQueryKeys.lists() });
       
-      if (error) throw error;
-      
-      // Update local state
-      setTemplates(prev => ({
-        ...prev,
-        [status]: template
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Error saving template:', error);
+      logger.info('🎉 Save template mutation success');
+    },
+    onError: (error: Error, { status }) => {
+      logger.error('❌ Save template mutation error:', error.message);
       toast.error(`Gagal menyimpan template untuk status ${status}`);
-      return false;
-    }
-  };
+    },
+  });
 
-  // Save all templates at once
-  const saveAllTemplates = async (templatesData: Record<string, string>): Promise<boolean> => {
+  const saveAllTemplatesMutation = useMutation({
+    mutationFn: (templatesData: Record<string, string>) => 
+      saveAllTemplates(user!.id, templatesData),
+    onSuccess: (data) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: followUpTemplateQueryKeys.lists() });
+      
+      toast.success('Semua template berhasil disimpan!');
+      logger.info('🎉 Save all templates mutation success');
+    },
+    onError: (error: Error) => {
+      logger.error('❌ Save all templates mutation error:', error.message);
+      toast.error('Gagal menyimpan template');
+    },
+  });
+
+  // ✅ Real-time subscription using useEffect (stable dependencies)
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    logger.info('🔄 Setting up real-time subscription for follow-up templates');
+
+    const channel = supabase
+      .channel(`realtime-followup-templates-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'followup_templates',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        logger.info('📡 Real-time follow-up template event received:', payload.eventType);
+
+        // Invalidate queries to refetch fresh data
+        queryClient.invalidateQueries({ queryKey: followUpTemplateQueryKeys.lists() });
+      })
+      .subscribe();
+
+    return () => {
+      logger.debug('🧹 Cleaning up follow-up template real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]); // ✅ Stable dependencies only
+
+  // ✅ Context action functions using mutations
+  const loadTemplates = useCallback(async (): Promise<void> => {
+    logger.info('🔄 Manual reload templates requested');
+    await refetch();
+  }, [refetch]);
+
+  const saveTemplateAction = useCallback(async (status: string, template: string): Promise<boolean> => {
     if (!user) {
+      logger.warn('🔐 Save template attempted without authentication');
       toast.error('Anda harus login untuk menyimpan template');
       return false;
     }
 
-    setIsLoading(true);
     try {
-      const templateEntries = Object.entries(templatesData).map(([status, template]) => ({
-        user_id: user.id,
-        status: status,
-        template: template,
-        updated_at: new Date().toISOString()
-      }));
-
-      const { error } = await supabase
-        .from('followup_templates')
-        .upsert(templateEntries, {
-          onConflict: 'user_id,status'
-        });
-      
-      if (error) throw error;
-      
-      // Update local state
-      setTemplates(templatesData);
-      toast.success('Semua template berhasil disimpan!');
+      await saveTemplateMutation.mutateAsync({ status, template });
       return true;
     } catch (error) {
-      console.error('Error saving templates:', error);
-      toast.error('Gagal menyimpan template');
+      logger.error('❌ Save template failed:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [user, saveTemplateMutation]);
 
-  // Get template for specific status
-  const getTemplate = (status: string): string => {
+  const saveAllTemplatesAction = useCallback(async (templatesData: Record<string, string>): Promise<boolean> => {
+    if (!user) {
+      logger.warn('🔐 Save all templates attempted without authentication');
+      toast.error('Anda harus login untuk menyimpan template');
+      return false;
+    }
+
+    try {
+      await saveAllTemplatesMutation.mutateAsync(templatesData);
+      return true;
+    } catch (error) {
+      logger.error('❌ Save all templates failed:', error);
+      return false;
+    }
+  }, [user, saveAllTemplatesMutation]);
+
+  // ✅ Utility functions
+  const getTemplate = useCallback((status: string): string => {
     return templates[status] || DEFAULT_TEMPLATES[status] || '';
-  };
+  }, [templates]);
 
-  // Reset to default templates
-  const resetToDefaults = () => {
-    setTemplates({ ...DEFAULT_TEMPLATES });
-  };
+  const resetToDefaults = useCallback(() => {
+    // Reset to defaults by updating local query cache
+    queryClient.setQueryData(
+      followUpTemplateQueryKeys.list(user?.id),
+      DEFAULT_TEMPLATES
+    );
+    logger.info('🔄 Templates reset to defaults');
+  }, [queryClient, user?.id]);
 
-  // Load templates when user changes
-  useEffect(() => {
-    loadTemplates();
-  }, [user]);
+  // ✅ Handle query error
+  React.useEffect(() => {
+    if (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('❌ Template query error:', errorMessage);
+      toast.error('Gagal memuat template WhatsApp');
+    }
+  }, [error]);
 
+  // ✅ Context value with enhanced state from useQuery
   const value: FollowUpTemplateContextType = {
     templates,
-    isLoading,
+    isLoading: isLoading || saveTemplateMutation.isPending || saveAllTemplatesMutation.isPending,
     loadTemplates,
-    saveTemplate,
-    saveAllTemplates,
+    saveTemplate: saveTemplateAction,
+    saveAllTemplates: saveAllTemplatesAction,
     getTemplate,
     resetToDefaults,
   };
+
+  logger.debug('🎯 FollowUpTemplateContext value prepared:', {
+    templatesCount: Object.keys(templates).length,
+    isLoading: value.isLoading,
+    hasError: !!error
+  });
 
   return (
     <FollowUpTemplateContext.Provider value={value}>
@@ -240,7 +355,7 @@ export const useFollowUpTemplate = () => {
 
 // ✅ ENHANCED: Hook untuk memproses template dengan data order + items support
 export const useProcessTemplate = () => {
-  const processTemplate = (template: string, orderData: any): string => {
+  const processTemplate = useCallback((template: string, orderData: any): string => {
     if (!orderData || !template) return template;
     
     // ✅ ENHANCED: Generate items list dalam berbagai format
@@ -311,7 +426,7 @@ export const useProcessTemplate = () => {
       );
 
     return processedTemplate;
-  };
+  }, []);
 
   return { processTemplate };
 };

@@ -19,7 +19,7 @@ import {
   useFinancialData, 
   useFinancialOperations,
   financialQueryKeys
-} from '@/hooks/useFinancialHooks';
+} from '../hooks/useFinancialHooks';
 
 // Context imports
 import { useAuth } from '@/contexts/AuthContext';

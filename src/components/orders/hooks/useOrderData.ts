@@ -15,6 +15,18 @@ export const useOrderData = (
   settings: any,
   addNotification: any
 ): UseOrderDataReturn => {
+  
+  // ✅ EARLY VALIDATION: Check if all dependencies are ready
+  const hasAllDependencies = !!(user && addActivity && addFinancialTransaction && settings && addNotification);
+  
+  logger.context('useOrderData', 'Hook called with dependencies:', {
+    hasUser: !!user,
+    hasActivity: !!addActivity,
+    hasFinancial: !!addFinancialTransaction,
+    hasSettings: !!settings,
+    hasNotification: !!addNotification,
+    allReady: hasAllDependencies
+  });
   // ===== STATE HOOKS =====
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +86,7 @@ export const useOrderData = (
 
   // ===== FETCH ORDERS =====
   const fetchOrders = useCallback(async () => {
-    if (!user || !isMountedRef.current) {
+    if (!hasAllDependencies || !user || !isMountedRef.current) {
       setOrders([]);
       setLoading(false);
       return;
@@ -157,8 +169,8 @@ export const useOrderData = (
 
   // ✅ ENHANCED: Improved subscription setup with safety checks
   const setupSubscription = useCallback(() => {
-    if (!user || !isMountedRef.current) {
-      logger.context('OrderData', 'Cannot setup subscription: no user or component unmounted');
+    if (!hasAllDependencies || !user || !isMountedRef.current) {
+      logger.context('OrderData', 'Cannot setup subscription: dependencies not ready or component unmounted');
       setupInProgressRef.current = false;
       return;
     }
@@ -318,8 +330,8 @@ export const useOrderData = (
 
   // ===== CRUD OPERATIONS =====
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk membuat pesanan');
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
       return false;
     }
 

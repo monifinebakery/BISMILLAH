@@ -1,5 +1,5 @@
-// src/components/layout/AppLayout.tsx - Main Layout Controller
-import React, { useState, useEffect } from 'react';
+// src/components/layout/AppLayout.tsx - FIXED: No infinite loops
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePaymentContext } from "@/contexts/PaymentContext";
@@ -16,6 +16,10 @@ export const AppLayout = () => {
   const isMobile = useIsMobile();
   const [forceReady, setForceReady] = useState(false);
   
+  // ✅ Use ref to prevent infinite loops
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const lastLogRef = useRef<number>(0);
+  
   const { 
     isPaid, 
     isLoading,
@@ -30,7 +34,7 @@ export const AppLayout = () => {
     setShowAutoLinkPopup,
     autoLinkCount,
   } = usePaymentContext();
-
+  
   const {
     handleOrderLinked,
     handleAutoLinked,
@@ -48,28 +52,52 @@ export const AppLayout = () => {
     autoLinkCount
   });
 
-  // ✅ Force ready after 10 seconds (reduced from 15)
+  // ✅ SIMPLIFIED: Only one timeout effect, no recursive dependencies
   useEffect(() => {
-    const timer = setTimeout(() => {
-      logger.warn('AppLayout: Forcing ready after 10 seconds timeout');
-      setForceReady(true);
-    }, 10000); // Reduced to 10 seconds
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ✅ Debug loading state
-  useEffect(() => {
-    if (isLoading) {
-      logger.debug('AppLayout: Loading state active, time:', new Date().toISOString());
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  }, [isLoading]);
+    
+    // Only set timeout if actually loading
+    if (isLoading && !forceReady) {
+      logger.debug('AppLayout: Starting 10 second timeout for loading state');
+      
+      timeoutRef.current = setTimeout(() => {
+        logger.warn('AppLayout: Forcing ready after 10 seconds timeout');
+        setForceReady(true);
+      }, 10000);
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isLoading, forceReady]); // ✅ MINIMAL dependencies
 
-  // ✅ Show loading screen only if really loading and not force ready
+  // ✅ THROTTLED debug logging (max once per 2 seconds)
+  useEffect(() => {
+    const now = Date.now();
+    
+    if (now - lastLogRef.current > 2000) { // Throttle to 2 seconds
+      lastLogRef.current = now;
+      
+      logger.debug('AppLayout: State update', {
+        isLoading,
+        forceReady,
+        isPaid
+      });
+    }
+  }, [isLoading, forceReady, isPaid]);
+
+  // ✅ Show loading screen - SIMPLE condition
   if (isLoading && !forceReady) {
     return <AppLoader title="Mengecek status pembayaran..." />;
   }
 
+  // ✅ Simple layout props
   const layoutProps = {
     isPaid,
     renderOrderLinkButton,
@@ -79,7 +107,7 @@ export const AppLayout = () => {
 
   return (
     <>
-      {/* ✅ Render appropriate layout based on device */}
+      {/* ✅ Render layout */}
       {isMobile ? (
         <MobileLayout {...layoutProps} />
       ) : (
@@ -92,7 +120,6 @@ export const AppLayout = () => {
         onClose={() => setShowOrderPopup(false)}
         onSuccess={handleOrderLinked}
       />
-
       <AutoLinkingPopup
         isOpen={showAutoLinkPopup}
         onClose={() => setShowAutoLinkPopup(false)}

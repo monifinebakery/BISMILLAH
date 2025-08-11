@@ -1,6 +1,6 @@
-// src/components/purchase/context/PurchaseContext.tsx - Optimized Dependencies & Performance
+// src/components/purchase/context/PurchaseContext.tsx - Fixed Real-time Subscription Spam
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -31,17 +31,20 @@ import {
   getStatusDisplayText,
 } from '../utils/purchaseHelpers';
 
-// ❌ NO CHANGES: Keep existing structure but optimize internally
-
 // ✅ OPTIMIZED: Context creation
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
-// ✅ OPTIMIZED: Provider component with better performance
+// ✅ OPTIMIZED: Provider component with fixed real-time subscription
 export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // ✅ STATE: Keep existing state structure
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ REFS: For subscription management
+  const channelRef = useRef<any>(null);
+  const currentUserRef = useRef<any>(null);
+  const setupTimeoutRef = useRef<NodeJS.Timeout>();
 
   // ✅ CONTEXTS: Keep existing context usage
   const { user } = useAuth();
@@ -72,7 +75,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   ) => {
     try {
       if (!addNotification || typeof addNotification !== 'function') {
-        logger.warn('Notification function not available');
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Notification function not available');
+        }
         return;
       }
 
@@ -119,7 +124,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (data) {
         const transformedPurchases = transformPurchasesFromDB(data);
         setPurchases(transformedPurchases);
-        logger.context('PurchaseContext', 'Loaded purchases:', transformedPurchases.length);
+        if (process.env.NODE_ENV === 'development') {
+          logger.context('PurchaseContext', 'Loaded purchases:', transformedPurchases.length);
+        }
       }
     } catch (err: any) {
       const errorMessage = err.message || 'Gagal memuat data pembelian';
@@ -417,57 +424,118 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     fetchPurchases();
   }, [fetchPurchases]);
 
-  // ✅ OPTIMIZED: Real-time subscription with better error handling
+  // ✅ FIXED: Real-time subscription - no more spam!
   useEffect(() => {
-    if (!user) return;
+    let mounted = true;
 
-    const channel = supabase
-      .channel(`realtime-purchases-${user.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'purchases',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        try {
-          if (payload.eventType === 'INSERT' && payload.new) {
-            const newPurchase = transformRealtimePayload(payload);
-            if (newPurchase) {
-              setPurchases(current => {
-                // ✅ OPTIMIZED: Prevent duplicates and maintain sort order
-                const exists = current.find(p => p.id === newPurchase.id);
-                if (exists) return current;
-                
-                return [newPurchase, ...current].sort((a, b) =>
-                  new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()
-                );
-              });
-            }
-          } else if (payload.eventType === 'UPDATE' && payload.new) {
-            const updatedPurchase = transformRealtimePayload(payload);
-            if (updatedPurchase) {
-              setPurchases(current => 
-                current.map(item => 
-                  item.id === updatedPurchase.id ? updatedPurchase : item
-                )
-              );
-            }
-          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setPurchases(current => 
-              current.filter(item => item.id !== payload.old.id)
-            );
-          }
-        } catch (error) {
-          logger.error('Real-time update error:', error);
-          toast.error('Error dalam pembaruan real-time data pembelian');
+    const setupSubscription = () => {
+      // ✅ Cleanup previous subscription first
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+
+      if (setupTimeoutRef.current) {
+        clearTimeout(setupTimeoutRef.current);
+      }
+
+      if (!user || !mounted) return;
+
+      // ✅ Check if user changed to prevent duplicate subscriptions
+      if (currentUserRef.current?.id === user.id && channelRef.current) {
+        return; // Same user, subscription already exists
+      }
+
+      currentUserRef.current = user;
+
+      // ✅ Small delay to prevent rapid re-creation
+      setupTimeoutRef.current = setTimeout(() => {
+        if (!mounted || !user) return;
+
+        const channelName = `realtime-purchases-${user.id}-${Date.now()}`;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PurchaseContext] Setting up subscription: ${channelName}`);
         }
-      })
-      .subscribe();
+
+        channelRef.current = supabase
+          .channel(channelName)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'purchases',
+            filter: `user_id=eq.${user.id}`,
+          }, (payload) => {
+            if (!mounted) return;
+
+            try {
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[PurchaseContext] Real-time event: ${payload.eventType}`);
+              }
+
+              if (payload.eventType === 'INSERT' && payload.new) {
+                const newPurchase = transformRealtimePayload(payload);
+                if (newPurchase) {
+                  setPurchases(current => {
+                    // ✅ OPTIMIZED: Prevent duplicates and maintain sort order
+                    const exists = current.find(p => p.id === newPurchase.id);
+                    if (exists) return current;
+                    
+                    return [newPurchase, ...current].sort((a, b) =>
+                      new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()
+                    );
+                  });
+                }
+              } else if (payload.eventType === 'UPDATE' && payload.new) {
+                const updatedPurchase = transformRealtimePayload(payload);
+                if (updatedPurchase) {
+                  setPurchases(current => 
+                    current.map(item => 
+                      item.id === updatedPurchase.id ? updatedPurchase : item
+                    )
+                  );
+                }
+              } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+                setPurchases(current => 
+                  current.filter(item => item.id !== payload.old.id)
+                );
+              }
+            } catch (error) {
+              logger.error('Real-time update error:', error);
+              toast.error('Error dalam pembaruan real-time data pembelian');
+            }
+          })
+          .subscribe((status) => {
+            if (!mounted) return;
+
+            if (status === 'SUBSCRIBED') {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[PurchaseContext] Real-time connected');
+              }
+            } else if (status === 'SUBSCRIPTION_ERROR') {
+              logger.error('PurchaseContext: Real-time subscription failed');
+            }
+          });
+      }, 200);
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      mounted = false;
+      
+      if (setupTimeoutRef.current) {
+        clearTimeout(setupTimeoutRef.current);
+      }
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      currentUserRef.current = null;
     };
-  }, [user]);
+  }, [user]); // ✅ Only depend on user
 
   // ✅ MEMOIZED: Context value for better performance
   const contextValue = useMemo<PurchaseContextType>(() => ({

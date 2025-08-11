@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '../../utils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../../constants';
+import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '../../types';
 
 interface BulkEditDialogProps {
@@ -49,7 +50,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
       onClose();
       setNewStatus(''); // Reset
     } catch (error) {
-      console.error('Error in bulk edit:', error);
+      logger.error('Error in bulk edit:', error);
     } finally {
       setLoading(false);
     }

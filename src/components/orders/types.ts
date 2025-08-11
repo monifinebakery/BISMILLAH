@@ -1,4 +1,4 @@
-// src/components/order/types.ts - Updated with Recipe Integration
+// src/components/orders/types.ts - Enhanced with Context Loading States
 
 export interface OrderItem {
   id: string;
@@ -6,22 +6,20 @@ export interface OrderItem {
   quantity: number;
   price: number;
   total: number;
-  
-  // Recipe Integration Fields
-  recipeId?: string;          // Link ke recipe ID
-  recipeCategory?: string;    // Kategori dari recipe
-  isFromRecipe?: boolean;     // Flag apakah item ini dari recipe
-  
-  // Additional fields
-  description?: string;       // Deskripsi tambahan
-  unit?: string;             // Satuan (porsi, pcs, dll)
+  recipeId?: string;
+  recipeCategory?: string;
+  isFromRecipe?: boolean;
+  description?: string;
+  unit?: string;
 }
 
 export interface Order {
   id: string;
   userId: string;
+  nomorPesanan: string; // ✅ Added: Order number field
   createdAt: Date;
   updatedAt: Date;
+  tanggal: Date; // ✅ Added: Order date field
   
   // Customer Info
   namaPelanggan: string;
@@ -40,44 +38,133 @@ export interface Order {
   totalPesanan: number;
   
   // Recipe Analytics (optional)
-  recipeCount?: number;       // Jumlah item dari recipe
-  customItemCount?: number;   // Jumlah item manual
-  totalRecipeValue?: number;  // Total nilai dari recipe items
+  recipeCount?: number;
+  customItemCount?: number;
+  totalRecipeValue?: number;
 }
 
 export interface NewOrder {
-  // Customer Info
   namaPelanggan: string;
   teleponPelanggan?: string;
   emailPelanggan?: string;
   alamatPengiriman?: string;
-  
-  // Order Details
   items: OrderItem[];
   status?: OrderStatus;
   catatan?: string;
-  
-  // Financial Info (calculated)
   subtotal?: number;
   pajak?: number;
   totalPesanan?: number;
+  tanggal?: Date; // ✅ Added: Optional order date
 }
 
 export type OrderStatus = 
-  | 'pending'     // Menunggu konfirmasi
-  | 'confirmed'   // Dikonfirmasi
-  | 'preparing'   // Sedang diproses
-  | 'ready'       // Siap untuk pickup/delivery
-  | 'delivered'   // Sudah dikirim/diambil
-  | 'cancelled'   // Dibatalkan
-  | 'completed';  // Selesai
+  | 'pending'
+  | 'confirmed'
+  | 'preparing'
+  | 'ready'
+  | 'delivered'
+  | 'cancelled'
+  | 'completed';
+
+// ✅ ENHANCED: Context Loading States
+export interface ContextLoadingStates {
+  auth: boolean;
+  activity: boolean;
+  financial: boolean;
+  settings: boolean;
+  notification: boolean;
+}
+
+// ✅ ENHANCED: Order Context Type with loading states
+export interface EnhancedOrderContextType {
+  // Core data
+  orders: Order[];
+  loading: boolean;
+  
+  // Connection status
+  isConnected: boolean;
+  contextReady: boolean;
+  contextLoadingStates: ContextLoadingStates;
+  
+  // CRUD operations
+  addOrder: (order: NewOrder) => Promise<boolean>;
+  updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
+  deleteOrder: (id: string) => Promise<boolean>;
+  
+  // Utility functions
+  refreshData: () => Promise<void>;
+  getOrderById: (id: string) => Order | undefined;
+  getOrdersByStatus: (status: string) => Order[];
+  getOrdersByDateRange: (startDate: Date, endDate: Date) => Order[];
+  
+  // Bulk operations
+  bulkUpdateStatus: (orderIds: string[], newStatus: string) => Promise<boolean>;
+  bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
+}
+
+// ✅ ENHANCED: Hook return type
+export interface UseOrderDataReturn {
+  orders: Order[];
+  loading: boolean;
+  isConnected: boolean;
+  addOrder: (order: NewOrder) => Promise<boolean>;
+  updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
+  deleteOrder: (id: string) => Promise<boolean>;
+  refreshData: () => Promise<void>;
+  getOrderById: (id: string) => Order | undefined;
+  getOrdersByStatus: (status: string) => Order[];
+  getOrdersByDateRange: (startDate: Date, endDate: Date) => Order[];
+  bulkUpdateStatus: (orderIds: string[], newStatus: string) => Promise<boolean>;
+  bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
+}
+
+// ✅ UI State Types
+export interface OrderFilters {
+  search: string;
+  status: string | 'all';
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  recipeFilter?: string;
+  itemTypeFilter?: 'all' | 'recipe' | 'custom';
+}
+
+export interface UseOrderUIReturn {
+  // Data
+  currentOrders: Order[];
+  totalItems: number;
+  totalPages: number;
+  
+  // Pagination
+  currentPage: number;
+  itemsPerPage: number;
+  setCurrentPage: (page: number) => void;
+  setItemsPerPage: (items: number) => void;
+  
+  // Filters
+  filters: OrderFilters;
+  updateFilters: (newFilters: Partial<OrderFilters>) => void;
+  clearFilters: () => void;
+  hasActiveFilters: boolean;
+  
+  // Selection
+  selectedOrderIds: string[];
+  isSelectionMode: boolean;
+  allCurrentSelected: boolean;
+  someCurrentSelected: boolean;
+  toggleSelectOrder: (orderId: string, forceValue?: boolean) => void;
+  toggleSelectAll: (orders: Order[]) => void;
+  clearSelection: () => void;
+  toggleSelectionMode: () => void;
+}
 
 // Database format (snake_case)
 export interface OrderDB {
   id: string;
   user_id: string;
+  nomor_pesanan: string;
   created_at: string;
   updated_at: string;
+  tanggal: string;
   nama_pelanggan: string;
   telepon_pelanggan?: string;
   email_pelanggan?: string;
@@ -90,9 +177,6 @@ export interface OrderDB {
   total_pesanan: number;
 }
 
-// Form state
-export interface OrderFormData extends NewOrder {}
-
 // Validation
 export interface OrderValidationResult {
   isValid: boolean;
@@ -104,13 +188,9 @@ export interface OrderStats {
   totalOrders: number;
   totalRevenue: number;
   averageOrderValue: number;
-  
-  // Status distribution
   statusDistribution: {
     [key in OrderStatus]: number;
   };
-  
-  // Recipe Analytics
   recipeUsage: {
     totalRecipeItems: number;
     totalCustomItems: number;
@@ -124,23 +204,9 @@ export interface OrderStats {
       totalRevenue: number;
     }>;
   };
-  
-  // Time-based stats
   todayOrders: number;
   weekOrders: number;
   monthOrders: number;
-}
-
-// Filter dan Search
-export interface OrderFilters {
-  searchTerm: string;
-  statusFilter: OrderStatus | 'all';
-  dateRange: {
-    start: Date | null;
-    end: Date | null;
-  };
-  recipeFilter?: string;      // Filter by specific recipe
-  itemTypeFilter?: 'all' | 'recipe' | 'custom'; // Filter by item type
 }
 
 export type OrderSortField = 
@@ -148,7 +214,29 @@ export type OrderSortField =
   | 'namaPelanggan' 
   | 'status' 
   | 'totalPesanan'
-  | 'recipeCount';
+  | 'recipeCount'
+  | 'tanggal';
+
+// ✅ ENHANCED: Connection Health Status
+export interface ConnectionHealthStatus {
+  isConnected: boolean;
+  lastPing: Date | null;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  connectionQuality: 'excellent' | 'good' | 'poor' | 'disconnected';
+}
+
+// ✅ ERROR HANDLING: Error types for better debugging
+export interface OrderError {
+  type: 'network' | 'validation' | 'permission' | 'server' | 'unknown';
+  message: string;
+  code?: string;
+  details?: any;
+  timestamp: Date;
+}
+
+// Form state
+export interface OrderFormData extends NewOrder {}
 
 // Constants
 export const ORDER_STATUSES: OrderStatus[] = [
@@ -172,13 +260,13 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
-  preparing: 'bg-purple-100 text-purple-800',
-  ready: 'bg-green-100 text-green-800',
-  delivered: 'bg-teal-100 text-teal-800',
-  completed: 'bg-gray-100 text-gray-800',
-  cancelled: 'bg-red-100 text-red-800'
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  confirmed: 'bg-blue-100 text-blue-800 border-blue-300',
+  preparing: 'bg-purple-100 text-purple-800 border-purple-300',
+  ready: 'bg-green-100 text-green-800 border-green-300',
+  delivered: 'bg-teal-100 text-teal-800 border-teal-300',
+  completed: 'bg-gray-100 text-gray-800 border-gray-300',
+  cancelled: 'bg-red-100 text-red-800 border-red-300'
 };
 
 // Helper functions
@@ -187,10 +275,10 @@ export const getStatusText = (status: OrderStatus): string => {
 };
 
 export const getStatusColor = (status: OrderStatus): string => {
-  return ORDER_STATUS_COLORS[status] || 'bg-gray-100 text-gray-800';
+  return ORDER_STATUS_COLORS[status] || 'bg-gray-100 text-gray-800 border-gray-300';
 };
 
-// Recipe Integration Helpers
+// ✅ ENHANCED: Recipe Integration Helpers
 export const calculateRecipeStats = (items: OrderItem[]) => {
   const recipeItems = items.filter(item => item.isFromRecipe);
   const customItems = items.filter(item => !item.isFromRecipe);
@@ -238,4 +326,12 @@ export const getRecipeUsageByOrder = (orders: Order[]) => {
 
   return Array.from(recipeUsage.values())
     .sort((a, b) => b.totalRevenue - a.totalRevenue);
+};
+
+// ✅ CONNECTION HEALTH: Helper functions
+export const getConnectionQuality = (reconnectAttempts: number, maxAttempts: number): ConnectionHealthStatus['connectionQuality'] => {
+  if (reconnectAttempts === 0) return 'excellent';
+  if (reconnectAttempts <= maxAttempts * 0.3) return 'good';
+  if (reconnectAttempts <= maxAttempts * 0.7) return 'poor';
+  return 'disconnected';
 };

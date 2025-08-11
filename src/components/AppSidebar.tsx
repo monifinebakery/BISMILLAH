@@ -41,11 +41,14 @@ import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
-import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
 import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
+
+// ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
+import { useAssetQuery } from "@/components/assets";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -56,6 +59,9 @@ export function AppSidebar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { state, open, setOpen } = useSidebar();
   
+  // Get user for asset query
+  const { user } = useAuth();
+  
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
@@ -65,10 +71,15 @@ export function AppSidebar() {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
   const { promos } = usePromo();
   const { state: operationalCostState } = useOperationalCost();
+  
+  // ✅ RESTORED: Use modular asset hook (nested QueryClient fixed)
+  const { assets, isLoading: assetsLoading } = useAssetQuery({ 
+    userId: user?.id,
+    enableRealtime: false // No need for realtime in sidebar
+  });
 
   const menuGroups = [
     {
@@ -119,6 +130,12 @@ export function AppSidebar() {
   };
 
   const handleExportAllData = () => {
+    // Check if assets are still loading
+    if (assetsLoading) {
+      toast.info("Tunggu sebentar, sedang memuat data aset...");
+      return;
+    }
+
     const allAppData = {
       bahanBaku,
       suppliers,
@@ -249,7 +266,7 @@ export function AppSidebar() {
             {renderActionButton(
               handleExportAllData,
               Download,
-              "Export Semua Data"
+              assetsLoading ? "Memuat Data..." : "Export Semua Data"
             )}
           </SidebarMenuItem>
           

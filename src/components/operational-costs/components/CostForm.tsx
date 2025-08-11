@@ -6,6 +6,7 @@ import { validateCostForm, sanitizeCostForm } from '../utils/costValidation';
 import { transformCostToForm } from '../utils/costTransformers';
 import { JENIS_BIAYA_OPTIONS, STATUS_BIAYA_OPTIONS, DEFAULT_COST_NAMES } from '../constants/costCategories';
 import { formatCurrency } from '../utils/costHelpers';
+import { logger } from '@/utils/logger';
 
 interface CostFormProps {
   initialData?: OperationalCost;
@@ -130,7 +131,7 @@ const CostForm: React.FC<CostFormProps> = ({
         setIsProductionStaff(null);
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
     }
   };
 

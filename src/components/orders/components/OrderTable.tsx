@@ -1,4 +1,4 @@
-// 🎯 Fixed OrderTable dengan Follow Up Template Integration
+// 🎯 Fixed OrderTable.tsx - Rules of Hooks Compliant
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { formatCurrency } from '@/utils/formatUtils';
 import type { Order, UseOrderUIReturn } from '../types';
 import { formatDateForDisplay } from '../utils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
+// ✅ FIXED: Hooks dipanggil di top level component
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -31,11 +32,11 @@ interface OrderTableProps {
   onDeleteOrder: (orderId: string) => void;
   onStatusChange: (orderId: string, newStatus: string) => void;
   onNewOrder: () => void;
-  onFollowUp?: (order: Order) => void; // ✅ TAMBAHKAN: Optional follow up handler
-  onViewDetail?: (order: Order) => void; // ✅ TAMBAHKAN: Optional view detail handler
+  onFollowUp?: (order: Order) => void;
+  onViewDetail?: (order: Order) => void;
 }
 
-// Status Badge Component (sama seperti sebelumnya)
+// Status Badge Component (unchanged)
 const StatusBadge: React.FC<{
   status: string;
   onChange?: (newStatus: string) => void;
@@ -74,13 +75,13 @@ const StatusBadge: React.FC<{
   );
 };
 
-// ✅ FIXED: Row Actions Component dengan implementasi yang benar
+// ✅ FIXED: Row Actions Component
 const OrderRowActions: React.FC<{
   order: Order;
   onEdit: () => void;
   onDelete: () => void;
-  onFollowUp?: () => void; // ✅ FIXED: Optional
-  onViewDetail?: () => void; // ✅ FIXED: Optional
+  onFollowUp?: () => void;
+  onViewDetail?: () => void;
   disabled?: boolean;
 }> = ({ order, onEdit, onDelete, onFollowUp, onViewDetail, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +98,7 @@ const OrderRowActions: React.FC<{
     if (onFollowUp) {
       onFollowUp();
     } else {
-      // ✅ FALLBACK: Jika tidak ada handler, buka WhatsApp atau email
+      // Fallback behavior
       const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
       if (order.teleponPelanggan) {
         const whatsappUrl = `https://wa.me/${order.teleponPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
@@ -116,8 +117,7 @@ const OrderRowActions: React.FC<{
     if (onViewDetail) {
       onViewDetail();
     } else {
-      // ✅ FALLBACK: Show alert atau navigate ke detail page
-      logger.component('OrderTable', 'View detail clicked for order:', order.nomorPesanan);
+      logger.info('View detail clicked for order:', order.nomorPesanan);
       alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
     }
   };
@@ -138,7 +138,7 @@ const OrderRowActions: React.FC<{
           className="h-8 w-8 p-0" 
           onClick={(e) => {
             e.stopPropagation();
-            logger.component('OrderTable', 'Dropdown menu clicked for order:', order.nomorPesanan);
+            logger.info('Dropdown menu clicked for order:', order.nomorPesanan);
           }}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -154,15 +154,14 @@ const OrderRowActions: React.FC<{
           Edit Pesanan
         </DropdownMenuItem>
         
-        {/* ✅ FIXED: Follow Up Menu Item */}
         <DropdownMenuItem 
           onClick={handleFollowUp}
           className="cursor-pointer"
-          disabled={!order.teleponPelanggan && !onFollowUp}
+          disabled={!order.telefonPelanggan && !onFollowUp}
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           Follow Up WhatsApp
-          {(!order.teleponPelanggan && !onFollowUp) && (
+          {(!order.telefonPelanggan && !onFollowUp) && (
             <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
           )}
         </DropdownMenuItem>
@@ -181,7 +180,7 @@ const OrderRowActions: React.FC<{
   );
 };
 
-// Row Selection Component (sama seperti sebelumnya)
+// Row Selection Component (unchanged)
 const OrderRowSelect: React.FC<{
   isSelected: boolean;
   onToggle: (forceValue?: boolean) => void;
@@ -205,7 +204,7 @@ const OrderRowSelect: React.FC<{
   );
 };
 
-// Empty State Component (sama seperti sebelumnya)
+// Empty State Component (unchanged)
 const EmptyState: React.FC<{
   hasFilters: boolean;
   onAddFirst: () => void;
@@ -239,7 +238,7 @@ const EmptyState: React.FC<{
   );
 };
 
-// ✅ FIXED: Main Table Component
+// ✅ FIXED: Main Table Component dengan hooks di top level
 const OrderTable: React.FC<OrderTableProps> = ({
   uiState,
   loading,
@@ -247,11 +246,14 @@ const OrderTable: React.FC<OrderTableProps> = ({
   onDeleteOrder,
   onStatusChange,
   onNewOrder,
-  onFollowUp, // ✅ TAMBAHKAN: Destructure prop
-  onViewDetail // ✅ TAMBAHKAN: Destructure prop
+  onFollowUp,
+  onViewDetail
 }) => {
+  // ✅ FIXED: Hooks dipanggil di top level component
+  const { getTemplate } = useFollowUpTemplate();
+  const { processTemplate } = useProcessTemplate();
   
-  // Handle row click dengan logika asli
+  // Handle row click logic (unchanged)
   const handleRowClick = (order: Order, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (
@@ -275,35 +277,31 @@ const OrderTable: React.FC<OrderTableProps> = ({
     uiState.toggleSelectAll(uiState.currentOrders);
   };
 
-  // ✅ FIXED: Implementasi yang proper
+  // ✅ FIXED: View detail handler
   const handleViewDetail = (order: Order) => {
     if (onViewDetail) {
       onViewDetail(order);
     } else {
-      // Default behavior
       alert(`Detail pesanan #${order.nomorPesanan}`);
     }
   };
 
-  // ✅ ENHANCED: Follow Up dengan Template Integration
+  // ✅ FIXED: Follow Up handler dengan proper hooks usage
   const handleFollowUp = (order: Order) => {
-    logger.component('OrderTable', 'Follow up clicked for order:', order.nomorPesanan);
+    logger.info('Follow up clicked for order:', order.nomorPesanan);
     
     if (onFollowUp) {
       onFollowUp(order);
       return;
     }
     
-    if (!order.teleponPelanggan) {
+    if (!order.telefonPelanggan) {
       toast.error('Tidak ada nomor WhatsApp untuk follow up');
       return;
     }
 
     try {
-      // Get template berdasarkan status order
-      const { getTemplate } = useFollowUpTemplate();
-      const { processTemplate } = useProcessTemplate();
-      
+      // ✅ SAFE: Hooks sudah dipanggil di top level
       const template = getTemplate(order.status);
       
       if (!template) {
@@ -315,7 +313,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const processedMessage = processTemplate(template, order);
       
       // Format nomor telepon
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
       
       // Buat WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
@@ -326,12 +324,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
       toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
       
     } catch (error) {
-      console.error('Error processing follow up template:', error);
+      logger.error('Error processing follow up template:', error);
       toast.error('Gagal memproses template follow up');
       
       // Fallback ke pesan sederhana
       const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
@@ -436,8 +434,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
-                    {order.teleponPelanggan && (
-                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    {order.telefonPelanggan && (
+                      <div className="text-xs text-gray-500">{order.telefonPelanggan}</div>
                     )}
                     {order.emailPelanggan && (
                       <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
@@ -485,8 +483,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     order={order}
                     onEdit={() => onEditOrder(order)}
                     onDelete={() => onDeleteOrder(order.id)}
-                    onFollowUp={() => handleFollowUp(order)} // ✅ FIXED: Pass handler
-                    onViewDetail={() => handleViewDetail(order)} // ✅ FIXED: Pass handler
+                    onFollowUp={() => handleFollowUp(order)}
+                    onViewDetail={() => handleViewDetail(order)}
                     disabled={uiState.isSelectionMode}
                   />
                 </td>

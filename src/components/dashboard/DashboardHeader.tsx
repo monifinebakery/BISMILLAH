@@ -51,7 +51,7 @@ const DashboardHeader: React.FC<Props> = ({
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
-                Dashboardish
+                Dashboard
               </h1>
             </div>
             

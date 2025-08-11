@@ -1,5 +1,5 @@
-// src/contexts/ActivityContext.tsx - REFACTORED with React Query
-import React, { createContext, useContext, useEffect, ReactNode, useCallback } from 'react';
+// src/contexts/ActivityContext.tsx - REFACTORED with React Query & Fixed Real-time Issues
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useRef, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Activity } from '@/types/activity'; 
@@ -84,6 +84,8 @@ const transformActivityFromDB = (dbItem: DatabaseActivity): Activity => ({
   updatedAt: safeParseDate(dbItem.updated_at), // Map updated_at to updatedAt
 });
 
+// ===== DEBOUNCE UTILITY (REMOVED - using simpler approach) =====
+
 // ===== CUSTOM HOOKS =====
 
 /**
@@ -163,12 +165,127 @@ const useActivityMutations = (userId?: string) => {
   return { addMutation };
 };
 
+// ===== REAL-TIME SUBSCRIPTION HOOK =====
+const useRealtimeSubscription = (userId?: string) => {
+  const queryClient = useQueryClient();
+  const [isConnected, setIsConnected] = useState(false);
+  const channelRef = useRef<any>(null);
+  const setupTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // ✅ Single debounced invalidation function
+  const invalidateQueries = useCallback(() => {
+    if (!userId) return;
+    
+    queryClient.invalidateQueries({ 
+      queryKey: activityQueryKeys.list(userId) 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: activityQueryKeys.stats(userId) 
+    });
+  }, [queryClient, userId]);
+
+  // ✅ Debounced version with 1 second minimum interval
+  const debouncedInvalidate = useMemo(() => {
+    let lastCall = 0;
+    let timeoutId: NodeJS.Timeout;
+    
+    return () => {
+      const now = Date.now();
+      
+      clearTimeout(timeoutId);
+      
+      if (now - lastCall > 1000) {
+        // Execute immediately if enough time has passed
+        lastCall = now;
+        invalidateQueries();
+      } else {
+        // Debounce if called too frequently
+        timeoutId = setTimeout(() => {
+          lastCall = Date.now();
+          invalidateQueries();
+        }, 1000);
+      }
+    };
+  }, [invalidateQueries]);
+
+  useEffect(() => {
+    // ✅ Cleanup previous subscription first
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    
+    if (setupTimeoutRef.current) {
+      clearTimeout(setupTimeoutRef.current);
+    }
+
+    if (!userId) {
+      setIsConnected(false);
+      return;
+    }
+
+    // ✅ Delay subscription setup to prevent rapid re-creation
+    setupTimeoutRef.current = setTimeout(() => {
+      const channelName = `activities-${userId.slice(-8)}-${Date.now()}`;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[ActivityContext] Setting up subscription: ${channelName}`);
+      }
+
+      const channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'activities',
+          filter: `user_id=eq.${userId}`,
+        }, (payload) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[ActivityContext] Real-time event: ${payload.eventType}`);
+          }
+          debouncedInvalidate();
+        })
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            setIsConnected(true);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[ActivityContext] Real-time connected');
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setIsConnected(false);
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`[ActivityContext] Connection ${status}:`, err?.message);
+            }
+          }
+        });
+
+      channelRef.current = channel;
+    }, 100); // Small delay to prevent rapid re-creation
+
+    return () => {
+      if (setupTimeoutRef.current) {
+        clearTimeout(setupTimeoutRef.current);
+      }
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      setIsConnected(false);
+    };
+  }, [userId, debouncedInvalidate]); // ✅ Simplified dependencies
+
+  return { isConnected };
+};
+
 // ===== CONTEXT TYPE =====
 interface ActivityContextType {
   activities: Activity[];
   loading: boolean;
   addActivity: (activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<void>;
   refreshActivities: () => Promise<void>;
+  isRealtimeConnected: boolean;
 }
 
 // ===== CONTEXT SETUP =====
@@ -191,61 +308,8 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
   // ✅ Get mutations
   const { addMutation } = useActivityMutations(userId);
 
-  // ===== REAL-TIME SUBSCRIPTION =====
-  useEffect(() => {
-    if (!userId) {
-      logger.context('ActivityContext', 'No user ID, skipping real-time subscription');
-      return;
-    }
-
-    logger.context('ActivityContext', 'Setting up real-time subscription for user:', userId);
-    
-    const channel = supabase
-      .channel(`realtime-activities-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'activities',
-          filter: `user_id=eq.${userId}`, 
-        },
-        (payload) => {
-          logger.context('ActivityContext', 'Real-time event detected:', payload.eventType, payload.new?.id || payload.old?.id);
-          
-          // ✅ RACE CONDITION FIX: Use invalidateQueries instead of direct state manipulation
-          // This ensures the single source of truth is always the database
-          queryClient.invalidateQueries({ 
-            queryKey: activityQueryKeys.list(userId) 
-          });
-          
-          queryClient.invalidateQueries({ 
-            queryKey: activityQueryKeys.stats(userId) 
-          });
-
-          // ✅ Optional: Trigger background refetch for immediate updates
-          queryClient.refetchQueries({ 
-            queryKey: activityQueryKeys.list(userId),
-            type: 'active' 
-          });
-        }
-      )
-      .subscribe((status, err) => {
-        logger.context('ActivityContext', 'Subscription status:', status, err ? { error: err } : '');
-        
-        if (status === 'SUBSCRIBED') {
-          logger.success('ActivityContext: Successfully subscribed to real-time updates');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          logger.error('ActivityContext: Subscription error/timeout:', status, err);
-        }
-      });
-
-    // ✅ Cleanup: Unsubscribe when component unmounts or user changes
-    return () => {
-      logger.context('ActivityContext', 'Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
+  // ✅ Setup real-time subscription (simplified)
+  const { isConnected: isRealtimeConnected } = useRealtimeSubscription(userId);
 
   // ===== CONTEXT FUNCTIONS =====
   const addActivity = useCallback(async (activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<void> => {
@@ -276,12 +340,27 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [error]);
 
+  // ===== FALLBACK POLLING (when real-time fails) =====
+  useEffect(() => {
+    if (!userId || isRealtimeConnected) return;
+
+    // Simple fallback polling without complex retry logic
+    const pollInterval = setInterval(() => {
+      queryClient.invalidateQueries({ 
+        queryKey: activityQueryKeys.list(userId) 
+      });
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [userId, isRealtimeConnected, queryClient]);
+
   // ===== CONTEXT VALUE =====
   const value: ActivityContextType = {
     activities,
     loading: isLoading || addMutation.isPending,
     addActivity,
     refreshActivities,
+    isRealtimeConnected,
   };
 
   return (

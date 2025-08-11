@@ -1,0 +1,96 @@
+// src/components/invoice/components/InvoiceActions.tsx
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Settings, Copy, Printer, FileText } from 'lucide-react';
+
+interface InvoiceActionsProps {
+  onBack?: () => void;
+  onReset: () => void;
+  onDuplicate: () => void;
+  onPrint: () => void;
+  onDownload: () => void;
+  orderId?: string;
+  orderNumber?: string;
+  className?: string;
+}
+
+export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
+  onBack,
+  onReset,
+  onDuplicate,
+  onPrint,
+  onDownload,
+  orderId,
+  orderNumber,
+  className = ''
+}) => {
+  return (
+    <Card className={`print:hidden border-1 border-gray-200 ${className}`}>
+      <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            {onBack && (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={onBack}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+            )}
+            <FileText className="h-8 w-8" />
+            <div>
+              <CardTitle className="text-xl sm:text-2xl font-bold">
+                {orderId ? 'Invoice dari Pesanan' : 'Invoice Generator'}
+              </CardTitle>
+              {orderId && (
+                <div className="text-blue-100 text-xs sm:text-sm space-y-1">
+                  <p>Order ID: {orderId}</p>
+                  {orderNumber && (
+                    <p>Pesanan: {orderNumber}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button 
+              variant="secondary" 
+              onClick={onReset}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={onDuplicate}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Duplikat
+            </Button>
+            <Button 
+              onClick={onPrint}
+              className="bg-white text-orange-600 hover:bg-gray-100 text-sm"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button 
+              onClick={onDownload}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+};

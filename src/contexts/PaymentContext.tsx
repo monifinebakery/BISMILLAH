@@ -1,4 +1,4 @@
-// src/contexts/PaymentContext.tsx - FIXED Hook Order
+// src/contexts/PaymentContext.tsx - FIXED Hook Order Issues
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
@@ -44,12 +44,12 @@ interface PaymentContextType {
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
 export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ✅ FIX: ALL HOOKS CALLED IN SAME ORDER EVERY TIME
+  // ✅ FIX: ALL HOOKS CALLED IN EXACT SAME ORDER EVERY TIME
   
-  // 1. useAuth - always called
+  // 1. useAuth - ALWAYS called first
   const { user, isLoading: authLoading, isReady: authReady } = useAuth();
   
-  // 2. All useState hooks - always called
+  // 2. ALL useState hooks - ALWAYS called in same order
   const [isUserValid, setIsUserValid] = useState(false);
   const [showMandatoryUpgrade, setShowMandatoryUpgrade] = useState(false);
   const [previewTimeLeft, setPreviewTimeLeft] = useState(60);
@@ -58,7 +58,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [accessMessage, setAccessMessage] = useState('Checking access...');
   const [accessLoading, setAccessLoading] = useState(true);
 
-  // 3. usePaymentStatus - always called
+  // 3. usePaymentStatus - ALWAYS called (no conditionals)
   const { 
     paymentStatus, 
     isLoading: paymentLoading, 
@@ -71,7 +71,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refetch: refetchPaymentStatus
   } = usePaymentStatus();
   
-  // 4. useUnlinkedPayments - always called, but with conditional user
+  // 4. useUnlinkedPayments - ALWAYS called with consistent user parameter
+  // ✅ FIX: Always pass user, let the hook handle null internally
   const {
     unlinkedPayments,
     isLoading: autoLinkLoading,
@@ -80,65 +81,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setShowAutoLinkPopup,
     refetch: refetchUnlinkedPayments,
     unlinkedCount: autoLinkCount
-  } = useUnlinkedPayments(supabase, isUserValid ? user : null);
+  } = useUnlinkedPayments(supabase, user); // ✅ Always pass user, not conditional
 
-  // 5. All useEffect hooks - always called in same order
+  // 5. ALL useCallback hooks - ALWAYS called in same order
   
-  // ✅ EFFECT 1: Validate user
-  useEffect(() => {
-    const validateUser = async () => {
-      if (!authReady || authLoading) {
-        setIsUserValid(false);
-        return;
-      }
-      
-      if (!user || !user.id || !user.email) {
-        logger.warn('PaymentContext: Invalid user object:', { 
-          hasUser: !!user, 
-          hasId: !!user?.id, 
-          hasEmail: !!user?.email 
-        });
-        setIsUserValid(false);
-        return;
-      }
-      
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error || !session || !session.user) {
-          logger.warn('PaymentContext: Invalid session:', { 
-            hasSession: !!session, 
-            error: error?.message 
-          });
-          setIsUserValid(false);
-          return;
-        }
-        
-        if (session.user.id !== user.id) {
-          logger.warn('PaymentContext: Session user mismatch:', {
-            authUser: user.id,
-            sessionUser: session.user.id
-          });
-          setIsUserValid(false);
-          return;
-        }
-        
-        logger.success('PaymentContext: User validation passed:', {
-          userId: user.id,
-          email: user.email
-        });
-        setIsUserValid(true);
-        
-      } catch (error) {
-        logger.error('PaymentContext: Session validation error:', error);
-        setIsUserValid(false);
-      }
-    };
-    
-    validateUser();
-  }, [authReady, authLoading, user]);
-
-  // ✅ EFFECT 2: Access status refresh callback
+  // ✅ Access status refresh callback
   const refreshAccessStatus = useCallback(async () => {
     if (!authReady || authLoading) {
       logger.debug('PaymentContext: Skipping access check - auth not ready');
@@ -201,38 +148,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [authReady, authLoading, isUserValid, user?.email, showOrderPopup, setShowOrderPopup, paymentLoading]);
 
-  // ✅ EFFECT 3: Trigger access refresh
-  useEffect(() => {
-    if (authReady && !authLoading && isUserValid && !paymentLoading) {
-      logger.debug('PaymentContext: Triggering access refresh for valid user');
-      refreshAccessStatus();
-    } else {
-      logger.debug('PaymentContext: Skipping access refresh', {
-        authReady,
-        authLoading,
-        isUserValid,
-        paymentLoading
-      });
-    }
-  }, [authReady, authLoading, isUserValid, paymentLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
-
-  // ✅ EFFECT 4: Close popup when access granted
-  useEffect(() => {
-    if (hasAccess && showOrderPopup) {
-      logger.info('PaymentContext: Access granted, closing order popup');
-      setShowOrderPopup(false);
-    }
-  }, [hasAccess, showOrderPopup, setShowOrderPopup]);
-
-  // ✅ EFFECT 5: Auto-close auto-link popup
-  useEffect(() => {
-    if (autoLinkCount === 0 && showAutoLinkPopup) {
-      logger.info('PaymentContext: No more auto-link payments, closing popup');
-      setShowAutoLinkPopup(false);
-    }
-  }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
-
-  // ✅ EFFECT 6: Enhanced refetch function
+  // ✅ Enhanced refetch function
   const enhancedRefetch = useCallback(async () => {
     if (!isUserValid) {
       logger.warn('PaymentContext: Skipping refetch - user invalid');
@@ -250,18 +166,100 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [isUserValid, refetchPaymentStatus, refetchUnlinkedPayments, refreshAccessStatus]);
 
-  // ✅ EFFECT 7: Calculate combined counts
-  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0;
-  const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
-  const isLoading = paymentLoading || authLoading || accessLoading;
+  // 6. ALL useEffect hooks - ALWAYS called in same order
 
-  // ✅ EFFECT 8: Debug logging
+  // ✅ EFFECT 1: Validate user
+  useEffect(() => {
+    const validateUser = async () => {
+      if (!authReady || authLoading) {
+        setIsUserValid(false);
+        return;
+      }
+      
+      if (!user || !user.id || !user.email) {
+        logger.warn('PaymentContext: Invalid user object:', { 
+          hasUser: !!user, 
+          hasId: !!user?.id, 
+          hasEmail: !!user?.email 
+        });
+        setIsUserValid(false);
+        return;
+      }
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session || !session.user) {
+          logger.warn('PaymentContext: Invalid session:', { 
+            hasSession: !!session, 
+            error: error?.message 
+          });
+          setIsUserValid(false);
+          return;
+        }
+        
+        if (session.user.id !== user.id) {
+          logger.warn('PaymentContext: Session user mismatch:', {
+            authUser: user.id,
+            sessionUser: session.user.id
+          });
+          setIsUserValid(false);
+          return;
+        }
+        
+        logger.success('PaymentContext: User validation passed:', {
+          userId: user.id,
+          email: user.email
+        });
+        setIsUserValid(true);
+        
+      } catch (error) {
+        logger.error('PaymentContext: Session validation error:', error);
+        setIsUserValid(false);
+      }
+    };
+    
+    validateUser();
+  }, [authReady, authLoading, user]);
+
+  // ✅ EFFECT 2: Trigger access refresh
+  useEffect(() => {
+    if (authReady && !authLoading && isUserValid && !paymentLoading) {
+      logger.debug('PaymentContext: Triggering access refresh for valid user');
+      refreshAccessStatus();
+    } else {
+      logger.debug('PaymentContext: Skipping access refresh', {
+        authReady,
+        authLoading,
+        isUserValid,
+        paymentLoading
+      });
+    }
+  }, [authReady, authLoading, isUserValid, paymentLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
+
+  // ✅ EFFECT 3: Close popup when access granted
+  useEffect(() => {
+    if (hasAccess && showOrderPopup) {
+      logger.info('PaymentContext: Access granted, closing order popup');
+      setShowOrderPopup(false);
+    }
+  }, [hasAccess, showOrderPopup, setShowOrderPopup]);
+
+  // ✅ EFFECT 4: Auto-close auto-link popup
+  useEffect(() => {
+    if (autoLinkCount === 0 && showAutoLinkPopup) {
+      logger.info('PaymentContext: No more auto-link payments, closing popup');
+      setShowAutoLinkPopup(false);
+    }
+  }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
+
+  // ✅ EFFECT 5: Debug logging
   useEffect(() => {
     logger.debug('PaymentContext state update:', {
       authReady,
       authLoading,
       isUserValid,
-      isLoading,
+      isLoading: paymentLoading || authLoading || accessLoading,
       paymentLoading,
       accessLoading,
       isPaid,
@@ -269,13 +267,12 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentUserEmail: user?.email,
       currentUserId: user?.id,
       autoLinkCount,
-      totalUnlinkedCount
+      totalUnlinkedCount: (hasUnlinkedPayment ? 1 : 0) + autoLinkCount
     });
   }, [
     authReady,
     authLoading,
     isUserValid,
-    isLoading,
     paymentLoading, 
     accessLoading,
     isPaid, 
@@ -283,8 +280,13 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     user?.email,
     user?.id,
     autoLinkCount, 
-    totalUnlinkedCount
+    hasUnlinkedPayment
   ]);
+
+  // ✅ Calculate derived values AFTER all hooks
+  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0;
+  const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
+  const isLoading = paymentLoading || authLoading || accessLoading;
 
   // ✅ RETURN: Always return same structure
   return (
@@ -307,7 +309,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       accessMessage,
       refreshAccessStatus,
       
-      // Auto-linking values
+      // Auto-linking values - ✅ Only use user if valid
       currentUser: isUserValid ? user : null,
       unlinkedPayments,
       showAutoLinkPopup,

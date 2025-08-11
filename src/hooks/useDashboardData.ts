@@ -6,7 +6,7 @@ import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useOrder } from '@/components/orders/context/OrderContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialUtils';
+import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialCalculations';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
 

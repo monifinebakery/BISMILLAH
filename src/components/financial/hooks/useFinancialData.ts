@@ -1,18 +1,22 @@
 // src/components/financial/hooks/useFinancialData.ts
-// Custom hooks untuk financial data processing
+// ✅ FIXED - No circular dependencies, correct imports
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { toast } from 'sonner'; // ✅ Added missing import
+import { toast } from 'sonner';
+
+// ✅ FIXED: Import from correct file - changed from financialUtils to financialCalculations
 import {
   filterByDateRange,
   calculateTotalIncome,
   calculateTotalExpense,
   groupByCategory,
-  calculateCategoryTotals,
-  FinancialTransaction
-} from '../utils/financialUtils'; // Asumsi ada folder utils
+  calculateCategoryTotals
+} from '../utils/financialCalculations';
+
+// ✅ FIXED: Import FinancialTransaction from types
+import { FinancialTransaction } from '../types/financial';
 
 // ===========================================
 // TYPES
@@ -127,9 +131,9 @@ export const useFinancialChartData = (
         Pemasukan: value.income,
         Pengeluaran: value.expense,
         Saldo: value.income - value.expense,
-        date: value.date
+        date: format(value.date, 'yyyy-MM-dd')
       }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // Transform daily data (last 30 days)
     const today = endOfDay(new Date());

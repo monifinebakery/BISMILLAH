@@ -1,5 +1,5 @@
 // src/pages/SettingsPage.tsx
-// CLEAN VERSION - UPDATED FOR NOTIFICATION COMPATIBILITY
+// ✅ UPDATED - Compatible with new notification system
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,13 +23,21 @@ import {
   Loader2,
   BellRing,
   Shield,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
+
+// ✅ UPDATED: Import from correct path
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';
+
+// ✅ NEW: Import notification triggers for demo
+import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
+  const { triggerCustomNotification } = useNotificationTriggers();
+  
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -84,6 +92,14 @@ const SettingsPage = () => {
       if (success) {
         setHasChanges(false);
         toast.success('Pengaturan bisnis berhasil disimpan');
+        
+        // ✅ NEW: Trigger notification when settings saved
+        await triggerCustomNotification(
+          'Pengaturan Disimpan',
+          'Informasi bisnis Anda telah diperbarui',
+          'success',
+          2
+        );
       }
     } finally {
       setIsSaving(false);
@@ -96,6 +112,16 @@ const SettingsPage = () => {
       setHasChanges(false);
       toast.info('Perubahan dibatalkan');
     }
+  };
+
+  // ✅ NEW: Test notification function
+  const handleTestNotification = async () => {
+    await triggerCustomNotification(
+      'Test Notifikasi',
+      'Ini adalah notifikasi test untuk memastikan sistem berjalan dengan baik',
+      'info',
+      2
+    );
   };
 
   return (
@@ -280,6 +306,7 @@ const SettingsPage = () => {
                 </div>
               </div>
               
+              {/* ✅ UPDATED: Import the fixed NotificationSettingsForm */}
               <NotificationSettingsForm />
             </div>
           </div>
@@ -311,6 +338,17 @@ const SettingsPage = () => {
                     </>
                   )}
                 </Button>
+
+                {/* ✅ NEW: Test Notification Button */}
+                <Button 
+                  onClick={handleTestNotification}
+                  variant="outline"
+                  className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                  size="lg"
+                >
+                  <BellRing className="mr-2 h-4 w-4" />
+                  Test Notifikasi
+                </Button>
                 
                 <Separator />
                 
@@ -319,7 +357,7 @@ const SettingsPage = () => {
                   <div className="flex items-center gap-2 text-sm">
                     {hasChanges ? (
                       <>
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                         <span className="text-orange-700">Unsaved changes</span>
                       </>
                     ) : (
@@ -328,6 +366,38 @@ const SettingsPage = () => {
                         <span className="text-green-700">All saved</span>
                       </>
                     )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ✅ UPDATED: Notification Tips Card */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-emerald-50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
+                    <BellRing className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-green-800 mb-2">Tips Notifikasi</h4>
+                    <ul className="text-sm text-green-700 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Aktifkan push notification untuk alert real-time</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Set threshold stok rendah sesuai bisnis Anda</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Enable laporan bulanan untuk insight bisnis</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Test notifikasi secara berkala</span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>
@@ -349,15 +419,15 @@ const SettingsPage = () => {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-yellow-500 mt-1">•</span>
-                        <span>Aktifkan notifikasi stok rendah untuk monitoring</span>
+                        <span>Update contact info secara berkala</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-yellow-500 mt-1">•</span>
-                        <span>Set threshold sesuai dengan kebutuhan bisnis</span>
+                        <span>Simpan perubahan sebelum keluar halaman</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-yellow-500 mt-1">•</span>
-                        <span>Review pengaturan secara berkala</span>
+                        <span>Backup data secara rutin</span>
                       </li>
                     </ul>
                   </div>
@@ -372,6 +442,10 @@ const SettingsPage = () => {
                   <p className="font-medium">Bakery Management System</p>
                   <p>Version 2.1.0</p>
                   <p>© 2025 Monifine</p>
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">System Online</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

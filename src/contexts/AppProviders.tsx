@@ -41,14 +41,14 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   
   return (
     <>
-      {/* ✅ CORE LAYER: Essential providers for OrderProvider (5 levels max) */}
+      {/* ✅ CORE LAYER: Essential providers for OrderProvider (6 levels max) */}
       <AuthProvider>
         <UserSettingsProvider>
           <ActivityProvider>
             <FinancialProvider>
               <NotificationProvider>
                 
-                {/* ✅ CRITICAL: OrderProvider at level 5 instead of level 10 */}
+                {/* ✅ CRITICAL: OrderProvider INSIDE NotificationProvider */}
                 <OrderProvider>
                   <FollowUpTemplateProvider>
                     

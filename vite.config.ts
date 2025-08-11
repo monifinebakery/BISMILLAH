@@ -16,18 +16,12 @@ export default defineConfig(({ mode }) => {
   const shouldKeepLogs = env.VITE_FORCE_LOGS === 'true';
   const shouldDropConsole = isProd && !shouldKeepLogs;
 
-  // ✅ NEW: Bundle analysis flags
-  const shouldAnalyzeBundle = env.VITE_ANALYZE === 'true' || env.npm_config_analyze === 'true';
-  const shouldShowSizes = env.VITE_SHOW_SIZES === 'true' || isDev;
-
   // ✅ Debug info (only in dev)
   if (isDev) {
     console.log(`🔍 Vite Mode: ${mode}`);
     console.log(`🔍 Environment Variables:`, {
       VITE_DEBUG_LEVEL: env.VITE_DEBUG_LEVEL,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
-      VITE_ANALYZE: env.VITE_ANALYZE,
-      VITE_SHOW_SIZES: env.VITE_SHOW_SIZES,
     });
   }
 
@@ -36,10 +30,8 @@ export default defineConfig(({ mode }) => {
     console.log('🔧 PRODUCTION BUILD - Environment Check:', {
       mode,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
-      VITE_ANALYZE: env.VITE_ANALYZE,
       shouldKeepLogs,
-      willDropConsole: shouldDropConsole,
-      willAnalyzeBundle: shouldAnalyzeBundle
+      willDropConsole: shouldDropConsole
     });
   }
 
@@ -52,22 +44,6 @@ export default defineConfig(({ mode }) => {
 
   if (isDev) {
     plugins.push(componentTagger());
-  }
-
-  // ✅ NEW: Bundle analyzer plugin (conditional)
-  if (shouldAnalyzeBundle) {
-    const { visualizer } = require('rollup-plugin-visualizer');
-    plugins.push(
-      visualizer({
-        filename: 'dist/bundle-analysis.html',
-        open: true,
-        gzipSize: true,
-        brotliSize: true,
-        template: 'treemap', // 'treemap', 'sunburst', 'network'
-        title: 'Bundle Size Analysis - ' + new Date().toISOString(),
-      })
-    );
-    console.log('📊 Bundle analyzer enabled - report will be at dist/bundle-analysis.html');
   }
 
   // ✅ Define globals - UPDATED for import.meta.env compatibility
@@ -126,25 +102,6 @@ export default defineConfig(({ mode }) => {
         output: {
           // ✅ Chunking terkontrol
           manualChunks: (id) => {
-            // ✅ NEW: Log large files during build
-            if (shouldShowSizes && fs.existsSync(id)) {
-              try {
-                const stats = fs.statSync(id);
-                const sizeInKB = Math.round(stats.size / 1024);
-                
-                // Log files larger than 100KB
-                if (sizeInKB > 100) {
-                  console.log(`📦 Large file detected: ${path.basename(id)} (${sizeInKB}KB)`);
-                  
-                  // Write to size report
-                  const logEntry = `${new Date().toISOString()} - ${sizeInKB}KB - ${id}\n`;
-                  fs.appendFileSync('bundle-sizes.log', logEntry);
-                }
-              } catch (e) {
-                // Ignore file stat errors
-              }
-            }
-
             // Core React
             if (id.includes('/react/') && !id.includes('react-dom') && !id.includes('scheduler')) {
               return 'react';
@@ -180,22 +137,6 @@ export default defineConfig(({ mode }) => {
             // Forms
             if (id.includes('react-hook-form') || id.includes('@hookform')) {
               return 'forms';
-            }
-            // ✅ NEW: Large libraries detection
-            if (id.includes('xlsx') || id.includes('sheetjs')) {
-              return 'excel-utils';
-            }
-            if (id.includes('lodash')) {
-              return 'lodash';
-            }
-            if (id.includes('moment') || id.includes('dayjs')) {
-              return 'date-heavy';
-            }
-            if (id.includes('three') || id.includes('3d')) {
-              return 'three-js';
-            }
-            if (id.includes('d3')) {
-              return 'd3-utils';
             }
             // Vendor fallback
             if (id.includes('node_modules')) {
@@ -260,8 +201,8 @@ export default defineConfig(({ mode }) => {
         },
       },
 
-      // ✅ NEW: Adjusted chunk size limits with warnings
-      chunkSizeWarningLimit: isProd ? 500 : 5000, // Lowered to catch more large chunks
+      // Chunk size limits
+      chunkSizeWarningLimit: isProd ? 800 : 5000,
 
       minify: isProd ? "esbuild" : false,
       sourcemap: isDev ? true : false,
@@ -271,9 +212,6 @@ export default defineConfig(({ mode }) => {
         cssCodeSplit: true,
         cssMinify: true,
         assetsInlineLimit: 4096,
-        
-        // ✅ NEW: Report bundle sizes
-        reportCompressedSize: shouldShowSizes,
       }),
     },
 
@@ -319,14 +257,9 @@ export default defineConfig(({ mode }) => {
         "react-day-picker",
       ],
 
-      // ✅ NEW: Exclude more large libraries to prevent bundling
+      // ✅ Exclude large libraries
       exclude: [
         "xlsx",
-        "sheetjs",
-        "moment", // Use date-fns instead
-        "lodash", // Import specific functions only
-        "three",  // 3D library
-        "d3",     // Large data viz library
       ],
 
       // ✅ Dedupe & force rebuild
@@ -388,7 +321,7 @@ export default defineConfig(({ mode }) => {
     }),
 
     ...(isProd && {
-      logLevel: shouldShowSizes ? 'info' : 'warn',
+      logLevel: 'warn',
     }),
   };
 });

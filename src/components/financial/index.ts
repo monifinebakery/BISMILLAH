@@ -1,45 +1,119 @@
-// src/components/financial/index.ts - Optimized Dependencies (12 → 5)
+// src/components/financial/index.ts
 /**
- * Financial Module - Clean Barrel Export
+ * ✅ CLEAN FINANCIAL MODULE - Optimized Barrel Export
  * 
- * HANYA export yang benar-benar diperlukan untuk external consumers
  * Dependencies reduced from 12 to 5
+ * No circular dependencies, clean imports only
+ * Updated to use new refactored structure
  */
 
-// ✅ CORE EXPORTS ONLY
-export { default as FinancialReportPage } from './FinancialReportPage';
+// ===========================================
+// ✅ CORE PAGE COMPONENTS
+// ===========================================
+export { default as FinancialReportPage } from './pages/FinancialReportPage';
 
-// ✅ ESSENTIAL CONTEXT
-export { FinancialProvider, useFinancial } from './contexts/FinancialContext';
+// ===========================================
+// ✅ ESSENTIAL CONTEXT (Minimal)
+// ===========================================
+export { 
+  FinancialProvider, 
+  useFinancial,
+  useFinancialQuery 
+} from './contexts/FinancialContext';
 
-// ✅ CONSOLIDATED HOOK (Single import instead of multiple)
-export { useFinancialCore } from './hooks/useFinancialCore'; // New consolidated hook
+// ===========================================
+// ✅ CONSOLIDATED HOOKS (Single import)
+// ===========================================
+export { 
+  useFinancialReportPage,
+  useFinancialDashboard,
+  useTransactionManagement
+} from '@/hooks/useFinancialPage';
 
+// Alternative: Keep useFinancialCore name for backward compatibility
+export { useFinancialReportPage as useFinancialCore } from '@/hooks/useFinancialPage';
+
+// ===========================================
 // ✅ ESSENTIAL TYPES ONLY
+// ===========================================
 export type {
   FinancialTransaction,
-  FinancialContextType
-} from './types/financial';
+  FinancialContextType,
+  CreateTransactionData,
+  UpdateTransactionData,
+  FinancialSummary,
+  DateRange
+} from '@/types/financial';
 
-// ✅ UTILITY FUNCTIONS (Essential only)
+// ===========================================
+// ✅ ESSENTIAL UTILITIES (Pure functions)
+// ===========================================
 export {
   calculateFinancialSummary,
-  validateTransaction
-} from './utils/financialUtils';
+  validateTransaction,
+  formatCurrency,
+  filterByDateRange
+} from '@/utils/financialCalculations';
 
-// ❌ REMOVED - Reduce dependencies:
-// - Individual components (use direct imports if needed)
-// - Individual hooks (consolidated into useFinancialCore)
-// - Detailed types (import from ./types if needed)
-// - Constants (import directly)
-// - Non-essential utilities
-
+// ===========================================
 // ✅ OPTIONAL: Advanced imports for power users
+// ===========================================
 export const FINANCIAL_ADVANCED = {
-  components: () => import('./components'),
-  dialogs: () => import('./dialogs'),
-  hooks: () => import('./hooks'),
-  types: () => import('./types/financial'),
-  utils: () => import('./utils/financialUtils'),
-  constants: () => import('./constants')
+  // Lazy-loaded modules to avoid bundling everything
+  hooks: () => import('@/hooks/useFinancialHooks'),
+  calculations: () => import('@/utils/financialCalculations'),
+  api: () => import('@/services/financialApi'),
+  types: () => import('@/types/financial'),
+  
+  // Component modules (if they exist)
+  components: () => import('./components').catch(() => null),
+  dialogs: () => import('./dialogs').catch(() => null),
+  charts: () => import('./charts').catch(() => null),
+  
+  // Constants and configurations
+  constants: () => import('@/types/financial').then(m => ({
+    DEFAULT_FINANCIAL_CATEGORIES: m.DEFAULT_FINANCIAL_CATEGORIES,
+    TRANSACTION_TYPE_LABELS: m.TRANSACTION_TYPE_LABELS,
+    CHART_COLORS: m.CHART_COLORS
+  }))
 } as const;
+
+// ===========================================
+// ✅ QUICK ACCESS CONSTANTS (Most used)
+// ===========================================
+export { 
+  DEFAULT_FINANCIAL_CATEGORIES,
+  TRANSACTION_TYPE_LABELS 
+} from '@/types/financial';
+
+// ===========================================
+// ❌ REMOVED (To reduce dependencies):
+// ===========================================
+// - Individual component exports (use direct imports)
+// - Multiple individual hooks (consolidated into useFinancialPage)
+// - Detailed type exports (import from @/types/financial directly)
+// - Non-essential utilities (import directly if needed)
+// - Complex re-exports that create circular dependencies
+
+// ===========================================
+// 📝 USAGE EXAMPLES:
+// ===========================================
+/*
+// ✅ RECOMMENDED USAGE:
+
+// For pages:
+import { useFinancialReportPage } from '@/components/financial';
+
+// For components:
+import { useFinancial, FinancialTransaction } from '@/components/financial';
+
+// For utilities:
+import { calculateFinancialSummary } from '@/components/financial';
+
+// For advanced usage:
+import { FINANCIAL_ADVANCED } from '@/components/financial';
+const hooks = await FINANCIAL_ADVANCED.hooks();
+
+// For backward compatibility:
+import { useFinancialCore } from '@/components/financial'; // → useFinancialReportPage
+*/

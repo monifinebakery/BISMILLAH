@@ -658,7 +658,7 @@ export const useOrderData = (
     };
   }, [cleanupSubscription]);
 
-  // ✅ ENHANCED: Immediate fetch on user ready, then setup subscription
+  // ✅ FIXED: Stable effect with no conditional dependencies
   useEffect(() => {
     if (!user) {
       logger.context('OrderData', 'User not ready, cleaning up');
@@ -692,18 +692,25 @@ export const useOrderData = (
     return () => {
       cleanupSubscription();
     };
-  }, [user?.id, hasAllDependencies, fetchOrders, setupSubscription, cleanupSubscription]);
+  }, [user?.id]); // ✅ FIXED: Only depend on user.id, not functions
 
-  // ✅ ENHANCED: Periodic connection health check with longer interval
+  // ✅ FIXED: Separate effect for connection health check
   useEffect(() => {
     if (!user) return;
 
-    const healthCheckInterval = setInterval(checkConnectionHealth, 60000); // Every 60 seconds
+    const healthCheckInterval = setInterval(() => {
+      if (!user || !isMountedRef.current || setupInProgressRef.current) return;
+
+      if (!isConnected && !subscriptionRef.current) {
+        logger.context('OrderData', 'Connection health check: attempting reconnect');
+        setupSubscription();
+      }
+    }, 60000); // Every 60 seconds
 
     return () => {
       clearInterval(healthCheckInterval);
     };
-  }, [user, checkConnectionHealth]);
+  }, [user?.id, isConnected]); // ✅ FIXED: Stable dependencies
 
   // ===== RETURN =====
   return {

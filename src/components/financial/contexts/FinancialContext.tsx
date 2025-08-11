@@ -181,7 +181,7 @@ export const useFinancialQuery = () => {
     if (user?.id) {
       queryClient.prefetchQuery({
         queryKey: financialQueryKeys.transactions(user.id),
-        queryFn: () => import('@/services/financialApi').then(api => api.getFinancialTransactions(user.id)),
+        queryFn: () => import('../services/financialApi').then(api => api.getFinancialTransactions(user.id)),
         staleTime: 5 * 60 * 1000,
       });
     }

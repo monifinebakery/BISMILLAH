@@ -10,7 +10,7 @@
 // ===========================================
 // ✅ CORE PAGE COMPONENTS
 // ===========================================
-export { default as FinancialReportPage } from './pages/FinancialReportPage';
+export { default as FinancialReportPage } from './FinancialReportPage';
 
 // ===========================================
 // ✅ ESSENTIAL CONTEXT (Minimal)

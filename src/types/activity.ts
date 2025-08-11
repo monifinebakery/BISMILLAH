@@ -1,8 +1,8 @@
-// src/types/activity.ts - Activity Type Definitions
+// src/types/activity.ts - Activity Type Definitions (Business System)
 
 /**
  * Core Activity interface that matches the database schema
- * and provides type safety throughout the application
+ * for business management system
  */
 export interface Activity {
   /** Unique identifier for the activity */
@@ -17,10 +17,10 @@ export interface Activity {
   /** Detailed description of the activity */
   description: string;
   
-  /** Type/category of the activity */
+  /** Type/category of the business activity */
   type: ActivityType;
   
-  /** Optional value associated with the activity (could be amount, duration, etc.) */
+  /** Optional value associated with the activity (could be amount, quantity, etc.) */
   value?: string | null;
   
   /** Legacy timestamp field for backward compatibility */
@@ -34,23 +34,19 @@ export interface Activity {
 }
 
 /**
- * Predefined activity types for consistency
- * Add new types here as needed
+ * Business activity types based on database constraint
+ * These match the check constraint in the database
  */
 export type ActivityType = 
-  | 'workout'
-  | 'study'
-  | 'work'
-  | 'meal'
-  | 'sleep'
-  | 'social'
-  | 'hobby'
-  | 'travel'
-  | 'shopping'
-  | 'health'
-  | 'finance'
-  | 'entertainment'
-  | 'other';
+  | 'hpp'        // Harga Pokok Penjualan
+  | 'stok'       // Stock Management
+  | 'resep'      // Recipe/Formula Management
+  | 'purchase'   // Purchase Orders
+  | 'supplier'   // Supplier Management
+  | 'aset'       // Asset Management
+  | 'keuangan'   // Financial Management
+  | 'order'      // Order Management
+  | 'promo';     // Promotion Management
 
 /**
  * Activity creation payload - excludes auto-generated fields
@@ -65,7 +61,7 @@ export type UpdateActivityInput = Partial<Omit<Activity, 'id' | 'userId' | 'crea
 };
 
 /**
- * Database activity shape (mirrors Supabase schema)
+ * Database activity shape (mirrors Supabase schema exactly)
  * Used for transformations between API and app types
  */
 export interface DatabaseActivity {
@@ -80,7 +76,7 @@ export interface DatabaseActivity {
 }
 
 /**
- * Activity statistics interface for analytics
+ * Activity statistics interface for business analytics
  */
 export interface ActivityStats {
   totalActivities: number;
@@ -89,6 +85,11 @@ export interface ActivityStats {
   activitiesThisMonth: number;
   mostActiveDay: string;
   averageActivitiesPerDay: number;
+  // Business specific stats
+  hppActivities: number;
+  orderActivities: number;
+  stockActivities: number;
+  financialActivities: number;
 }
 
 /**
@@ -106,7 +107,7 @@ export interface ActivityFilters {
 /**
  * Activity sort options
  */
-export type ActivitySortBy = 'createdAt' | 'title' | 'type' | 'updatedAt';
+export type ActivitySortBy = 'created_at' | 'title' | 'type' | 'updated_at';
 export type ActivitySortOrder = 'asc' | 'desc';
 
 export interface ActivitySortOptions {
@@ -164,9 +165,8 @@ export type ActivityAction =
  */
 export const isValidActivityType = (type: string): type is ActivityType => {
   const validTypes: ActivityType[] = [
-    'workout', 'study', 'work', 'meal', 'sleep', 'social', 
-    'hobby', 'travel', 'shopping', 'health', 'finance', 
-    'entertainment', 'other'
+    'hpp', 'stok', 'resep', 'purchase', 'supplier', 
+    'aset', 'keuangan', 'order', 'promo'
   ];
   return validTypes.includes(type as ActivityType);
 };
@@ -224,22 +224,63 @@ export interface PaginatedActivities {
 }
 
 /**
- * Export default activity type configuration
+ * Business activity type configurations with Indonesian labels
  */
-export const ACTIVITY_TYPES: { value: ActivityType; label: string; icon?: string }[] = [
-  { value: 'workout', label: 'Workout', icon: '💪' },
-  { value: 'study', label: 'Study', icon: '📚' },
-  { value: 'work', label: 'Work', icon: '💼' },
-  { value: 'meal', label: 'Meal', icon: '🍽️' },
-  { value: 'sleep', label: 'Sleep', icon: '😴' },
-  { value: 'social', label: 'Social', icon: '👥' },
-  { value: 'hobby', label: 'Hobby', icon: '🎨' },
-  { value: 'travel', label: 'Travel', icon: '✈️' },
-  { value: 'shopping', label: 'Shopping', icon: '🛒' },
-  { value: 'health', label: 'Health', icon: '🏥' },
-  { value: 'finance', label: 'Finance', icon: '💰' },
-  { value: 'entertainment', label: 'Entertainment', icon: '🎬' },
-  { value: 'other', label: 'Other', icon: '📋' },
+export const ACTIVITY_TYPES: { value: ActivityType; label: string; description: string; icon?: string }[] = [
+  { 
+    value: 'hpp', 
+    label: 'HPP', 
+    description: 'Harga Pokok Penjualan',
+    icon: '💰' 
+  },
+  { 
+    value: 'stok', 
+    label: 'Stok', 
+    description: 'Manajemen Stok/Inventori',
+    icon: '📦' 
+  },
+  { 
+    value: 'resep', 
+    label: 'Resep', 
+    description: 'Manajemen Resep/Formula',
+    icon: '📋' 
+  },
+  { 
+    value: 'purchase', 
+    label: 'Purchase', 
+    description: 'Pembelian/Purchase Order',
+    icon: '🛒' 
+  },
+  { 
+    value: 'supplier', 
+    label: 'Supplier', 
+    description: 'Manajemen Supplier',
+    icon: '🏪' 
+  },
+  { 
+    value: 'aset', 
+    label: 'Aset', 
+    description: 'Manajemen Aset',
+    icon: '🏢' 
+  },
+  { 
+    value: 'keuangan', 
+    label: 'Keuangan', 
+    description: 'Manajemen Keuangan',
+    icon: '💳' 
+  },
+  { 
+    value: 'order', 
+    label: 'Order', 
+    description: 'Manajemen Pesanan',
+    icon: '📝' 
+  },
+  { 
+    value: 'promo', 
+    label: 'Promo', 
+    description: 'Manajemen Promosi',
+    icon: '🎯' 
+  },
 ];
 
 /**
@@ -248,7 +289,7 @@ export const ACTIVITY_TYPES: { value: ActivityType; label: string; icon?: string
 export const DEFAULT_ACTIVITY: CreateActivityInput = {
   title: '',
   description: '',
-  type: 'other',
+  type: 'order',
   value: null,
 };
 
@@ -257,8 +298,40 @@ export const DEFAULT_ACTIVITY: CreateActivityInput = {
  */
 export const ACTIVITY_VALIDATION = {
   TITLE_MIN_LENGTH: 1,
-  TITLE_MAX_LENGTH: 100,
+  TITLE_MAX_LENGTH: 255,
   DESCRIPTION_MIN_LENGTH: 0,
-  DESCRIPTION_MAX_LENGTH: 500,
-  VALUE_MAX_LENGTH: 100,
+  DESCRIPTION_MAX_LENGTH: 1000,
+  VALUE_MAX_LENGTH: 255,
 } as const;
+
+/**
+ * Business-specific activity categorization
+ */
+export const ACTIVITY_CATEGORIES = {
+  FINANCIAL: ['hpp', 'keuangan'] as ActivityType[],
+  INVENTORY: ['stok', 'purchase', 'supplier'] as ActivityType[],
+  OPERATIONS: ['resep', 'order', 'aset'] as ActivityType[],
+  MARKETING: ['promo'] as ActivityType[],
+} as const;
+
+/**
+ * Helper functions for business logic
+ */
+export const getActivityCategory = (type: ActivityType): keyof typeof ACTIVITY_CATEGORIES | 'OTHER' => {
+  for (const [category, types] of Object.entries(ACTIVITY_CATEGORIES)) {
+    if (types.includes(type)) {
+      return category as keyof typeof ACTIVITY_CATEGORIES;
+    }
+  }
+  return 'OTHER';
+};
+
+export const getActivityTypeLabel = (type: ActivityType): string => {
+  const activityType = ACTIVITY_TYPES.find(at => at.value === type);
+  return activityType?.label || type;
+};
+
+export const getActivityTypeDescription = (type: ActivityType): string => {
+  const activityType = ACTIVITY_TYPES.find(at => at.value === type);
+  return activityType?.description || type;
+};

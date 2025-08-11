@@ -1,4 +1,4 @@
-// 🎯 Fixed useOrderData - Mengatasi "hooks render" error
+// 🎯 Fixed useOrderData - Stable Subscription Management
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,47 +15,61 @@ export const useOrderData = (
   settings: any,
   addNotification: any
 ): UseOrderDataReturn => {
-  // ===== SEMUA STATE HOOKS DIDEKLARASI DI ATAS (TIDAK KONDISIONAL) =====
+  // ===== STATE HOOKS =====
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   
-  // ===== SEMUA REF HOOKS DIDEKLARASI DI ATAS (TIDAK KONDISIONAL) =====
+  // ===== REF HOOKS =====
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
+  const setupInProgressRef = useRef<boolean>(false); // ✅ NEW: Prevent multiple setups
   
-  // ===== KONSTANTA =====
+  // ===== CONSTANTS =====
   const maxRetries = 3;
+  const retryDelayBase = 1000; // 1 second base delay
 
-  // ===== CLEANUP FUNCTIONS =====
+  // ✅ ENHANCED: Improved cleanup with safety checks
   const cleanupSubscription = useCallback(() => {
-    if (subscriptionRef.current) {
-      logger.context('OrderData', 'Cleaning up subscription');
-      try {
-        // Double check untuk memastikan subscription masih valid
-        if (subscriptionRef.current && typeof subscriptionRef.current.unsubscribe === 'function') {
-          subscriptionRef.current.unsubscribe();
-        }
-        
-        // Safe removal dari supabase
-        if (subscriptionRef.current) {
-          supabase.removeChannel(subscriptionRef.current);
-        }
-      } catch (error) {
-        logger.error('OrderData', 'Error during subscription cleanup:', error);
-        // Tetap lanjutkan cleanup meskipun ada error
-      } finally {
-        subscriptionRef.current = null;
+    if (!subscriptionRef.current) return;
+    
+    logger.context('OrderData', 'Starting subscription cleanup');
+    
+    try {
+      const subscription = subscriptionRef.current;
+      subscriptionRef.current = null; // ✅ Set to null FIRST to prevent race conditions
+      
+      // Check if subscription is still valid before unsubscribing
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+        logger.debug('OrderData', 'Subscription unsubscribed successfully');
       }
+      
+      // Safe removal from supabase
+      try {
+        supabase.removeChannel(subscription);
+        logger.debug('OrderData', 'Channel removed from supabase');
+      } catch (removeError) {
+        logger.warn('OrderData', 'Channel already removed or invalid:', removeError);
+      }
+      
+    } catch (error) {
+      logger.error('OrderData', 'Error during subscription cleanup:', error);
     }
 
     // Clear retry timeout
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
+      logger.debug('OrderData', 'Retry timeout cleared');
     }
+    
+    // Reset setup flag
+    setupInProgressRef.current = false;
+    
+    logger.context('OrderData', 'Subscription cleanup completed');
   }, []);
 
   // ===== FETCH ORDERS =====
@@ -66,7 +80,7 @@ export const useOrderData = (
       return;
     }
 
-    logger.context('OrderData', 'Fetching orders...');
+    logger.context('OrderData', 'Fetching orders for user:', user.id);
     setLoading(true);
 
     try {
@@ -78,7 +92,10 @@ export const useOrderData = (
 
       if (error) throw new Error(error.message);
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        logger.debug('OrderData', 'Component unmounted during fetch, ignoring results');
+        return;
+      }
 
       const transformedData = data
         .map(item => {
@@ -91,7 +108,7 @@ export const useOrderData = (
         })
         .filter(Boolean) as Order[];
 
-      logger.context('OrderData', 'Orders loaded:', transformedData.length, 'items');
+      logger.context('OrderData', 'Orders loaded successfully:', transformedData.length, 'items');
       setOrders(transformedData);
 
     } catch (error: any) {
@@ -99,6 +116,7 @@ export const useOrderData = (
       
       logger.error('OrderData - Error fetching orders:', error);
       toast.error(`Gagal memuat pesanan: ${error.message || 'Unknown error'}`);
+      setOrders([]); // ✅ Set empty array on error
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -106,39 +124,61 @@ export const useOrderData = (
     }
   }, [user]);
 
-  // ===== RETRY LOGIC =====
+  // ✅ ENHANCED: Improved retry logic with exponential backoff
   const retrySubscription = useCallback(() => {
-    if (retryCountRef.current < maxRetries && isMountedRef.current && user) {
-      retryCountRef.current++;
-      const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 10000);
-      
-      logger.context('OrderData', `Retrying subscription in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
-      
-      retryTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          setupSubscription();
-        }
-      }, delay);
-    } else {
-      logger.context('OrderData', 'Max retries reached or component unmounted');
+    if (retryCountRef.current >= maxRetries) {
+      logger.context('OrderData', `Max retries (${maxRetries}) reached, giving up`);
       setIsConnected(false);
+      setupInProgressRef.current = false;
+      return;
     }
-  }, [user]); // setupSubscription akan didefinisikan setelah ini
 
-  // ===== SUBSCRIPTION SETUP =====
+    if (!isMountedRef.current || !user) {
+      logger.context('OrderData', 'Component unmounted or no user, skipping retry');
+      setupInProgressRef.current = false;
+      return;
+    }
+
+    retryCountRef.current++;
+    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 10000); // Max 10s
+    
+    logger.context('OrderData', `Scheduling subscription retry in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+    
+    retryTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current && user && !setupInProgressRef.current) {
+        logger.context('OrderData', 'Executing subscription retry');
+        setupSubscription();
+      } else {
+        logger.context('OrderData', 'Retry cancelled: component unmounted or setup in progress');
+        setupInProgressRef.current = false;
+      }
+    }, delay);
+  }, [user]); // setupSubscription will be defined below
+
+  // ✅ ENHANCED: Improved subscription setup with safety checks
   const setupSubscription = useCallback(() => {
     if (!user || !isMountedRef.current) {
       logger.context('OrderData', 'Cannot setup subscription: no user or component unmounted');
+      setupInProgressRef.current = false;
       return;
     }
+
+    if (setupInProgressRef.current) {
+      logger.context('OrderData', 'Subscription setup already in progress, skipping');
+      return;
+    }
+
+    setupInProgressRef.current = true;
+    logger.context('OrderData', 'Setting up new subscription for user:', user.id);
 
     // Cleanup any existing subscription first
     cleanupSubscription();
 
-    logger.context('OrderData', 'Setting up new subscription for user:', user.id);
-
     try {
+      // ✅ Generate unique channel name to prevent conflicts
       const channelName = `orders_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      logger.debug('OrderData', 'Creating channel:', channelName);
       
       const channel = supabase
         .channel(channelName, {
@@ -157,8 +197,13 @@ export const useOrderData = (
             return;
           }
           
-          logger.context('OrderData', 'Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+          logger.context('OrderData', 'Real-time event received:', {
+            eventType: payload.eventType,
+            orderId: payload.new?.id || payload.old?.id,
+            nomorPesanan: payload.new?.nomor_pesanan || payload.old?.nomor_pesanan
+          });
           
+          // ✅ Reset retry count on successful event
           retryCountRef.current = 0;
           
           setOrders((prevOrders) => {
@@ -202,51 +247,71 @@ export const useOrderData = (
           });
         })
         .subscribe((status, err) => {
-          if (!isMountedRef.current) return;
+          if (!isMountedRef.current) {
+            logger.debug('OrderData', 'Subscription status ignored: component unmounted');
+            return;
+          }
           
-          logger.context('OrderData', 'Subscription status:', status, err ? { error: err } : '');
+          logger.context('OrderData', 'Subscription status changed:', status, err ? { error: err } : '');
           
           switch (status) {
             case 'SUBSCRIBED':
               setIsConnected(true);
               subscriptionRef.current = channel;
               retryCountRef.current = 0;
+              setupInProgressRef.current = false;
+              
+              // ✅ Fetch orders after successful subscription
               fetchOrders();
               logger.context('OrderData', 'Successfully subscribed to real-time updates');
               break;
               
             case 'CHANNEL_ERROR':
-              logger.error('OrderData', 'Channel error:', err);
+              logger.error('OrderData', 'Channel error occurred:', err);
               setIsConnected(false);
-              // Set to null immediately to prevent unsubscribe errors
-              subscriptionRef.current = null;
+              setupInProgressRef.current = false;
+              
+              // ✅ Don't set subscriptionRef to null immediately - let cleanup handle it
+              if (subscriptionRef.current === channel) {
+                subscriptionRef.current = null;
+              }
+              
+              // Retry with delay
               retrySubscription();
               break;
               
             case 'TIMED_OUT':
               logger.error('OrderData', 'Subscription timed out');
               setIsConnected(false);
-              // Set to null immediately to prevent unsubscribe errors
-              subscriptionRef.current = null;
+              setupInProgressRef.current = false;
+              
+              if (subscriptionRef.current === channel) {
+                subscriptionRef.current = null;
+              }
+              
               retrySubscription();
               break;
               
             case 'CLOSED':
               logger.context('OrderData', 'Subscription closed');
               setIsConnected(false);
-              // Set to null immediately to prevent unsubscribe errors
-              subscriptionRef.current = null;
+              setupInProgressRef.current = false;
+              
+              if (subscriptionRef.current === channel) {
+                subscriptionRef.current = null;
+              }
               break;
               
             default:
               logger.context('OrderData', 'Unknown subscription status:', status);
+              break;
           }
         });
 
     } catch (error) {
       logger.error('OrderData', 'Error setting up subscription:', error);
       setIsConnected(false);
-      subscriptionRef.current = null;
+      setupInProgressRef.current = false;
       retrySubscription();
     }
   }, [user, fetchOrders, cleanupSubscription, retrySubscription]);
@@ -458,7 +523,6 @@ export const useOrderData = (
       }
 
       toast.success('Pesanan berhasil dihapus.');
-
       return true;
     } catch (error: any) {
       logger.error('OrderData - Error deleting order:', error);
@@ -546,8 +610,9 @@ export const useOrderData = (
     }
   }, [orders]);
 
+  // ✅ ENHANCED: Improved connection health check with throttling
   const checkConnectionHealth = useCallback(() => {
-    if (!user || !isMountedRef.current) return;
+    if (!user || !isMountedRef.current || setupInProgressRef.current) return;
 
     if (!isConnected && !subscriptionRef.current) {
       logger.context('OrderData', 'Connection health check: attempting reconnect');
@@ -559,24 +624,26 @@ export const useOrderData = (
     logger.context('OrderData', 'Manual refresh requested');
     await fetchOrders();
     
-    if (!isConnected && user) {
+    if (!isConnected && user && !setupInProgressRef.current) {
       setupSubscription();
     }
   }, [fetchOrders, isConnected, user, setupSubscription]);
 
-  // ===== EFFECTS (SEMUA DI BAWAH, TIDAK KONDISIONAL) =====
+  // ===== EFFECTS =====
   
   // Component mount/unmount tracking
   useEffect(() => {
     isMountedRef.current = true;
+    logger.context('OrderData', 'Component mounted');
     
     return () => {
+      logger.context('OrderData', 'Component unmounting, cleaning up');
       isMountedRef.current = false;
       cleanupSubscription();
     };
   }, [cleanupSubscription]);
 
-  // Main effect for user changes
+  // ✅ ENHANCED: Main effect for user changes with better error handling
   useEffect(() => {
     if (!user) {
       logger.context('OrderData', 'User logged out, cleaning up');
@@ -585,22 +652,30 @@ export const useOrderData = (
       setLoading(false);
       setIsConnected(false);
       retryCountRef.current = 0;
+      setupInProgressRef.current = false;
       return;
     }
 
-    logger.context('OrderData', 'User changed, setting up subscription');
-    setupSubscription();
+    logger.context('OrderData', 'User changed, setting up subscription for:', user.id);
+    
+    // ✅ Add small delay to ensure all contexts are ready
+    const setupTimer = setTimeout(() => {
+      if (isMountedRef.current && user && !setupInProgressRef.current) {
+        setupSubscription();
+      }
+    }, 100);
 
     return () => {
+      clearTimeout(setupTimer);
       cleanupSubscription();
     };
   }, [user?.id, setupSubscription, cleanupSubscription]);
 
-  // Periodic connection health check
+  // ✅ ENHANCED: Periodic connection health check with longer interval
   useEffect(() => {
     if (!user) return;
 
-    const healthCheckInterval = setInterval(checkConnectionHealth, 30000);
+    const healthCheckInterval = setInterval(checkConnectionHealth, 60000); // Every 60 seconds
 
     return () => {
       clearInterval(healthCheckInterval);

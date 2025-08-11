@@ -1,5 +1,5 @@
 // src/components/financial/FinancialReportPage.tsx
-// ✅ CLEAN VERSION - Using consolidated hooks, much shorter
+// ✅ CLEAN VERSION - Using existing DateRangePicker component
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 // Auth Context
 import { useAuth } from '@/contexts/AuthContext';
+
+// ✅ EXISTING COMPONENTS - Reuse what's already available
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
@@ -47,14 +50,6 @@ const FinancialTransactionDialog = React.lazy(() =>
 const CategoryManagementDialog = React.lazy(() => 
   import('./dialogs/CategoryManagementDialog').catch(() => ({
     default: () => null
-  }))
-);
-
-const DateRangePicker = React.lazy(() => 
-  import('@/ui/DateRangePicker').catch(() => ({
-    default: ({ dateRange, onDateRangeChange }: any) => (
-      <div className="p-2 text-sm text-gray-500">Date picker tidak tersedia</div>
-    )
   }))
 );
 
@@ -171,7 +166,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// ✅ MAIN COMPONENT - MUCH SIMPLIFIED
+// ✅ MAIN COMPONENT - MUCH SIMPLIFIED WITH EXISTING DateRangePicker
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   
@@ -281,6 +276,28 @@ const FinancialReportPage: React.FC = () => {
     }
   };
 
+  // ✅ DATE RANGE HANDLER - Convert DateRangePicker format to useFinancialCore format
+  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
+    if (range) {
+      setDateRange({
+        from: range.from,
+        to: range.to
+      });
+    } else {
+      // Reset to current month if no range selected
+      const now = new Date();
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateRange({ from, to });
+    }
+  };
+
+  // ✅ CONVERT dateRange format for DateRangePicker component
+  const dateRangeForPicker = dateRange && dateRange.from && dateRange.to ? {
+    from: dateRange.from,
+    to: dateRange.to
+  } : undefined;
+
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
@@ -313,14 +330,15 @@ const FinancialReportPage: React.FC = () => {
                 {isMobile ? "Kategori" : "Kelola Kategori"}
               </Button>
               
+              {/* ✅ USING EXISTING DateRangePicker */}
               <div className="w-full sm:w-auto sm:min-w-[280px]">
-                <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
-                  <DateRangePicker
-                    dateRange={dateRange} 
-                    onDateRangeChange={setDateRange}
-                    isMobile={isMobile}
-                  />
-                </Suspense>
+                <DateRangePicker
+                  dateRange={dateRangeForPicker}
+                  onDateRangeChange={handleDateRangeChange}
+                  placeholder="Pilih periode laporan"
+                  isMobile={isMobile}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>

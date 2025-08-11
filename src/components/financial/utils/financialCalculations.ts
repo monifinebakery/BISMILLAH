@@ -1,7 +1,10 @@
 // src/components/financial/utils/financialCalculations.ts
-// ✅ PURE FUNCTIONS - No circular dependencies, no context imports
+// ✅ FIXED - Correct import path for types
 
 import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { logger } from '@/utils/logger';
+
+// ✅ FIXED: Correct import path for types
 import { 
   FinancialTransaction, 
   FinancialSummary, 
@@ -22,34 +25,52 @@ export const filterByDateRange = <T extends Record<string, any>>(
 ): T[] => {
   if (!items?.length || !dateRange?.from) return [];
 
-  const fromDate = safeParseDate(dateRange.from);
-  const toDate = dateRange.to ? safeParseDate(dateRange.to) : fromDate;
+  try {
+    const fromDate = safeParseDate(dateRange.from);
+    const toDate = dateRange.to ? safeParseDate(dateRange.to) : fromDate;
 
-  if (!fromDate) return [];
+    if (!fromDate) {
+      logger.warn('Invalid from date in filterByDateRange');
+      return [];
+    }
 
-  const fromTime = fromDate.setHours(0, 0, 0, 0);
-  const toTime = toDate ? toDate.setHours(23, 59, 59, 999) : fromTime;
+    const fromTime = fromDate.setHours(0, 0, 0, 0);
+    const toTime = toDate ? toDate.setHours(23, 59, 59, 999) : fromTime;
 
-  return items.filter(item => {
-    const itemDate = safeParseDate(item[dateKey]);
-    if (!itemDate) return false;
-    const itemTime = itemDate.getTime();
-    return itemTime >= fromTime && itemTime <= toTime;
-  });
+    return items.filter(item => {
+      const itemDateValue = item[dateKey];
+      if (!itemDateValue) return false;
+
+      const itemDate = safeParseDate(itemDateValue);
+      if (!itemDate) return false;
+
+      const itemTime = itemDate.getTime();
+      return itemTime >= fromTime && itemTime <= toTime;
+    });
+  } catch (error) {
+    logger.error('Error in filterByDateRange:', error);
+    return [];
+  }
 };
 
 export const filterByType = (
   transactions: FinancialTransaction[],
   type: 'income' | 'expense'
 ): FinancialTransaction[] => {
-  return transactions?.filter(t => t.type === type) || [];
+  if (!transactions || !Array.isArray(transactions)) {
+    return [];
+  }
+  return transactions.filter(t => t.type === type);
 };
 
 export const filterByCategory = (
   transactions: FinancialTransaction[],
   category: string
 ): FinancialTransaction[] => {
-  return transactions?.filter(t => t.category === category) || [];
+  if (!transactions || !Array.isArray(transactions)) {
+    return [];
+  }
+  return transactions.filter(t => t.category === category);
 };
 
 // ===========================================
@@ -57,21 +78,40 @@ export const filterByCategory = (
 // ===========================================
 
 export const calculateTotalIncome = (transactions: FinancialTransaction[]): number => {
+  if (!transactions || !Array.isArray(transactions)) {
+    return 0;
+  }
+  
   return transactions
-    ?.filter(t => t.type === 'income')
-    ?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
 };
 
 export const calculateTotalExpense = (transactions: FinancialTransaction[]): number => {
+  if (!transactions || !Array.isArray(transactions)) {
+    return 0;
+  }
+  
   return transactions
-    ?.filter(t => t.type === 'expense')
-    ?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+};
+
+export const calculateGrossRevenue = <T extends Record<string, any>>(
+  orders: T[],
+  totalField: string = 'total'
+): number => {
+  if (!orders || !Array.isArray(orders)) {
+    return 0;
+  }
+  
+  return orders.reduce((sum, order) => sum + (order[totalField] || 0), 0);
 };
 
 export const calculateFinancialSummary = (
   transactions: FinancialTransaction[]
 ): FinancialSummary => {
-  if (!transactions?.length) {
+  if (!transactions || !Array.isArray(transactions)) {
     return {
       totalIncome: 0,
       totalExpense: 0,
@@ -98,18 +138,28 @@ export const calculateFinancialSummary = (
 export const groupByCategory = (
   transactions: FinancialTransaction[]
 ): Record<string, FinancialTransaction[]> => {
-  return transactions?.reduce((groups, transaction) => {
+  if (!transactions || !Array.isArray(transactions)) {
+    return {};
+  }
+
+  return transactions.reduce((groups, transaction) => {
     const category = transaction.category || 'Lainnya';
-    if (!groups[category]) groups[category] = [];
+    if (!groups[category]) {
+      groups[category] = [];
+    }
     groups[category].push(transaction);
     return groups;
-  }, {} as Record<string, FinancialTransaction[]>) || {};
+  }, {} as Record<string, FinancialTransaction[]>);
 };
 
 export const groupByType = (
   transactions: FinancialTransaction[]
 ): { income: FinancialTransaction[]; expense: FinancialTransaction[] } => {
-  return transactions?.reduce(
+  if (!transactions || !Array.isArray(transactions)) {
+    return { income: [], expense: [] };
+  }
+
+  return transactions.reduce(
     (groups, transaction) => {
       if (transaction.type === 'income') {
         groups.income.push(transaction);
@@ -119,17 +169,21 @@ export const groupByType = (
       return groups;
     },
     { income: [] as FinancialTransaction[], expense: [] as FinancialTransaction[] }
-  ) || { income: [], expense: [] };
+  );
 };
 
 export const calculateCategoryTotals = (
   transactions: FinancialTransaction[]
 ): Record<string, number> => {
-  return transactions?.reduce((totals, transaction) => {
+  if (!transactions || !Array.isArray(transactions)) {
+    return {};
+  }
+
+  return transactions.reduce((totals, transaction) => {
     const category = transaction.category || 'Lainnya';
     totals[category] = (totals[category] || 0) + (transaction.amount || 0);
     return totals;
-  }, {} as Record<string, number>) || {};
+  }, {} as Record<string, number>);
 };
 
 // ===========================================
@@ -137,27 +191,27 @@ export const calculateCategoryTotals = (
 // ===========================================
 
 export const validateTransaction = (
-  transaction: Partial<CreateTransactionData | UpdateTransactionData>
+  transaction: Partial<FinancialTransaction>
 ): ValidationResult => {
   const errors: string[] = [];
 
-  if (transaction.amount !== undefined && transaction.amount <= 0) {
+  if (!transaction.amount || transaction.amount <= 0) {
     errors.push('Jumlah harus lebih dari 0');
   }
   
-  if (transaction.type && !['income', 'expense'].includes(transaction.type)) {
+  if (!transaction.type || !['income', 'expense'].includes(transaction.type)) {
     errors.push('Tipe transaksi harus pemasukan atau pengeluaran');
   }
   
-  if (transaction.category !== undefined && (!transaction.category || !transaction.category.trim())) {
+  if (!transaction.category || !transaction.category.trim()) {
     errors.push('Kategori wajib dipilih');
   }
   
-  if (transaction.description !== undefined && (!transaction.description || !transaction.description.trim())) {
+  if (!transaction.description || !transaction.description.trim()) {
     errors.push('Deskripsi tidak boleh kosong');
   }
   
-  if (transaction.date !== undefined && !transaction.date) {
+  if (!transaction.date) {
     errors.push('Tanggal wajib diisi');
   }
 
@@ -306,4 +360,46 @@ export const calculateStats = (transactions: FinancialTransaction[]) => {
       expense: summary.totalExpense
     }
   };
+};
+
+// ===========================================
+// ✅ EXPORT ORGANIZED UTILITIES
+// ===========================================
+
+export const FinancialFilters = {
+  filterByDateRange,
+  filterByType,
+  filterByCategory
+};
+
+export const FinancialCalculations = {
+  calculateTotalIncome,
+  calculateTotalExpense,
+  calculateGrossRevenue,
+  calculateFinancialSummary,
+  calculateCategoryTotals
+};
+
+export const FinancialGrouping = {
+  groupByCategory,
+  groupByType
+};
+
+export const FinancialValidation = {
+  validateTransaction
+};
+
+export const FinancialFormatting = {
+  formatTransactionForDisplay,
+  formatCurrency,
+  formatDate
+};
+
+// Default export with all utilities
+export default {
+  ...FinancialFilters,
+  ...FinancialCalculations,
+  ...FinancialGrouping,
+  ...FinancialValidation,
+  ...FinancialFormatting
 };

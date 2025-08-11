@@ -1,4 +1,4 @@
-// components/DateRangePicker.tsx - COMPACT VERSION
+// components/ui/DateRangePicker.tsx - COMPACT VERSION
 import React, { useState, useCallback, useMemo } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

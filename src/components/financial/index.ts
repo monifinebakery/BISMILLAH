@@ -28,7 +28,7 @@ export {
   useFinancialReportPage,
   useFinancialDashboard,
   useTransactionManagement
-} from '@/hooks/useFinancialPage';
+} from './hooks/useFinancialPage';
 
 // Alternative: Keep useFinancialCore name for backward compatibility
 export { useFinancialReportPage as useFinancialCore } from '@/hooks/useFinancialPage';

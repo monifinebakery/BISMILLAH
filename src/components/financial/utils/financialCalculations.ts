@@ -1,4 +1,4 @@
-// src/utils/financialCalculations.ts
+// src/components/financial/utils/financialCalculations.ts
 // ✅ PURE FUNCTIONS - No circular dependencies, no context imports
 
 import { safeParseDate } from '@/utils/unifiedDateUtils';

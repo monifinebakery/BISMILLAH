@@ -71,7 +71,7 @@ export const FINANCIAL_ADVANCED = {
   charts: () => import('./charts').catch(() => null),
   
   // Constants and configurations
-  constants: () => import('@/types/financial').then(m => ({
+  constants: () => import('./types/financial').then(m => ({
     DEFAULT_FINANCIAL_CATEGORIES: m.DEFAULT_FINANCIAL_CATEGORIES,
     TRANSACTION_TYPE_LABELS: m.TRANSACTION_TYPE_LABELS,
     CHART_COLORS: m.CHART_COLORS

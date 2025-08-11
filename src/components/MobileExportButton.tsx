@@ -2,23 +2,28 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
-// --- Impor Hook Konteks ---
-import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
+// --- Import Hook Contexts ---
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/components/purchase/context/PurchaseContext";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
-import { useAssets } from "@/contexts/AssetContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
-// ✅ PERBAIKAN: Path impor diubah dari @/hooks ke @/contexts
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 
-// --- Impor Fungsi Export ---
+// ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
+import { useAssetQuery } from "@/components/assets";
+import { useAuth } from '@/contexts/AuthContext';
+
+// --- Import Export Functions ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
 
 const MobileExportButton = () => {
-  // Panggil semua hook untuk mendapatkan data yang akan diekspor
+  // Get user for asset query
+  const { user } = useAuth();
+  
+  // Call all hooks to get data for export
   const { settings } = useUserSettings();
   const { bahanBaku } = useBahanBaku();
   const { suppliers } = useSupplier();
@@ -26,10 +31,20 @@ const MobileExportButton = () => {
   const { recipes, hppResults } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { assets } = useAssets();
   const { financialTransactions } = useFinancial();
+  
+  // ✅ RESTORED: Use modular asset hook (nested QueryClient fixed)
+  const { assets, isLoading: assetsLoading } = useAssetQuery({ 
+    userId: user?.id,
+    enableRealtime: false // No need for realtime in export
+  });
 
   const handleExport = () => {
+    // Check if assets are still loading
+    if (assetsLoading) {
+      return; // Could show loading toast here
+    }
+
     const allAppData = {
       bahanBaku,
       suppliers,
@@ -38,11 +53,11 @@ const MobileExportButton = () => {
       hppResults,
       activities,
       orders,
-      assets,
+      assets, // Will be empty array during debug
       financialTransactions,
     };
     
-    // Panggil fungsi ekspor dengan nama bisnis dari pengaturan
+    // Call export function with business name from settings
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
@@ -52,6 +67,8 @@ const MobileExportButton = () => {
       size="sm"
       onClick={handleExport}
       className="px-2 py-1"
+      disabled={assetsLoading}
+      title={assetsLoading ? "Memuat data aset..." : "Export semua data"}
     >
       <Download className="h-4 w-4" />
     </Button>

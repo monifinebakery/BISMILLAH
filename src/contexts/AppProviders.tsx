@@ -1,33 +1,23 @@
-// src/contexts/AppProviders.tsx - UPDATED with Race Condition Fix
+// src/contexts/AppProviders.tsx - EMERGENCY REVERT to Original
+
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// ✅ UPDATED: Import enhanced AuthProvider (no race condition)
+// ✅ REVERT: Back to original structure
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
-
-// ✅ UPDATED: Import enhanced PaymentProvider (now uses AuthContext)
 import { PaymentProvider } from './PaymentContext';
-
-// ✅ NEW: Import PromoProvider
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
-
-// ⚡ WAREHOUSE: Import both versions for performance testing
 import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseContext';
-// import { SimpleBahanBakuProvider as BahanBakuProvider } from '@/components/warehouse/context/SimpleBahanBakuContext'; // 🔧 Uncomment untuk testing
-
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
-import { AssetProvider } from './AssetContext';
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
-
-// ✅ NEW: Import OperationalCostProvider
 import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
 
 interface AppProvidersProps {
@@ -35,63 +25,38 @@ interface AppProvidersProps {
 }
 
 /**
- * ✅ ENHANCED AppProviders - Fixed Race Condition
- * Key changes:
- * 1. AuthProvider is now the MASTER auth state (single source of truth)
- * 2. PaymentProvider immediately follows AuthProvider (no conflicts)
- * 3. All auth redirects handled centrally in AuthContext
- * 4. No duplicate auth listeners or state management
+ * ✅ EMERGENCY REVERT - Back to Original Working Structure
+ * This is the exact same structure as before to ensure stability
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
     <>
-      {/* 1. Foundation Layer - MASTER AUTH STATE (Enhanced, no race condition) */}
+      {/* ✅ ORIGINAL STRUCTURE - Proven to work */}
       <AuthProvider>
-        
-        {/* 2. Payment Layer - IMMEDIATELY after auth (uses AuthContext) */}
         <PaymentProvider>
-          
-          {/* 3. Core Services Layer - Essential app services */}
           <NotificationProvider>
             <UserSettingsProvider>
               <ActivityProvider>
-                
-                {/* 4. Business Logic Layer - Financial systems */}
                 <FinancialProvider>
-                  
-                  {/* 5. Core Business Entities - Main data providers */}
-                  {/* ⚡ WAREHOUSE: Enhanced modular context */}
                   <BahanBakuProvider>
                     <SupplierProvider>
-                      
-                      {/* 6. Complex Business Logic - Recipe management */}
                       <RecipeProvider>
-                        
-                        {/* 7. Asset & Operations - Business operations */}
-                        <AssetProvider>
-                          <PurchaseProvider>
-                            <OrderProvider>
-                              
-                              {/* 8. Cost Management - Operational costs for HPP calculation */}
-                              {/* ✅ NEW: OperationalCostProvider for overhead calculation */}
-                              <OperationalCostProvider>
-                                
-                                {/* 9. Advanced Features - Enhanced capabilities */}
-                                {/* ✅ UPDATED: PromoProvider after RecipeProvider */}
-                                <PromoProvider>
-                                  <FollowUpTemplateProvider>
-                                    
-                                    {/* 10. Application Layer - Final app content */}
-                                    {children}
-                                    
-                                  </FollowUpTemplateProvider>
-                                </PromoProvider>
-                              </OperationalCostProvider>
-                            </OrderProvider>
-                          </PurchaseProvider>
-                        </AssetProvider>
+                        <PurchaseProvider>
+                          <OrderProvider>
+                            <OperationalCostProvider>
+                              <PromoProvider>
+                                <FollowUpTemplateProvider>
+                                  
+                                  {/* ✅ APP CONTENT */}
+                                  {children}
+                                  
+                                </FollowUpTemplateProvider>
+                              </PromoProvider>
+                            </OperationalCostProvider>
+                          </OrderProvider>
+                        </PurchaseProvider>
                       </RecipeProvider>
                     </SupplierProvider>
                   </BahanBakuProvider>
@@ -102,7 +67,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         </PaymentProvider>
       </AuthProvider>
       
-      {/* Global UI Components - Enhanced notifications */}
+      {/* ✅ GLOBAL UI */}
       <Toaster 
         position={isMobile ? 'top-center' : 'top-right'}
         closeButton

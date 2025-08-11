@@ -1,6 +1,9 @@
-// src/components/financial/services/financialApi.ts
+// src/services/financialApi.ts
+// ✅ CLEAN API LAYER - No business logic, no context imports
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { 
   FinancialTransaction, 
   CreateTransactionData, 
@@ -8,7 +11,10 @@ import {
   FinancialApiResponse
 } from '../types/financial';
 
-// Database interface (matching your Supabase schema)
+// ===========================================
+// ✅ DATABASE INTERFACE
+// ===========================================
+
 interface FinancialTransactionDB {
   id: string;
   user_id: string;
@@ -23,9 +29,12 @@ interface FinancialTransactionDB {
   updated_at: string;
 }
 
-// Helper: Transform untuk DB (snake_case)
+// ===========================================
+// ✅ TRANSFORM FUNCTIONS (Pure)
+// ===========================================
+
 const transformForDB = (
-  transaction: CreateTransactionData | Partial<UpdateTransactionData>, 
+  transaction: CreateTransactionData | UpdateTransactionData, 
   userId?: string
 ): Partial<FinancialTransactionDB> => {
   const dbTransaction: Partial<FinancialTransactionDB> = {
@@ -38,7 +47,6 @@ const transformForDB = (
     date: transaction.date ? new Date(transaction.date).toISOString() : null,
   };
 
-  // Add user_id if provided (for CREATE operations)
   if (userId) {
     dbTransaction.user_id = userId;
   }
@@ -46,10 +54,9 @@ const transformForDB = (
   // Remove undefined values
   return Object.fromEntries(
     Object.entries(dbTransaction).filter(([_, value]) => value !== undefined)
-  ) as Partial<FinancialTransactionDB>;
+  );
 };
 
-// Helper: Transform dari DB (camelCase)
 const transformFromDB = (data: FinancialTransactionDB): FinancialTransaction => {
   return {
     id: data.id,
@@ -58,15 +65,18 @@ const transformFromDB = (data: FinancialTransactionDB): FinancialTransaction => 
     category: data.category,
     amount: data.amount,
     description: data.description,
-    date: data.date ? new Date(data.date) : null,
+    date: safeParseDate(data.date),
     notes: data.notes,
     relatedId: data.related_id,
-    createdAt: data.created_at ? new Date(data.created_at) : null,
-    updatedAt: data.updated_at ? new Date(data.updated_at) : null,
+    createdAt: safeParseDate(data.created_at),
+    updatedAt: safeParseDate(data.updated_at),
   };
 };
 
-// ✅ API: Get All Transactions
+// ===========================================
+// ✅ API FUNCTIONS
+// ===========================================
+
 export const getFinancialTransactions = async (userId: string): Promise<FinancialTransaction[]> => {
   try {
     const { data, error } = await supabase
@@ -84,87 +94,52 @@ export const getFinancialTransactions = async (userId: string): Promise<Financia
   }
 };
 
-// ✅ API: Add Transaction
 export const addFinancialTransaction = async (
   transaction: CreateTransactionData,
   userId: string
-): Promise<FinancialApiResponse<boolean>> => {
+): Promise<FinancialTransaction> => {
   try {
-    // Validation
-    if (!transaction.type || !['income', 'expense'].includes(transaction.type)) {
-      throw new Error('Transaction type must be either "income" or "expense"');
-    }
-    
-    if (!transaction.amount || transaction.amount <= 0) {
-      throw new Error('Amount must be greater than 0');
-    }
-
-    if (!transaction.description?.trim()) {
-      throw new Error('Description is required');
-    }
-
     const dbData = transformForDB(transaction, userId);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('financial_transactions')
-      .insert([dbData]);
+      .insert([dbData])
+      .select()
+      .single();
 
     if (error) throw error;
     
-    return { success: true, data: true };
+    return transformFromDB(data);
   } catch (error: any) {
     logger.error('Error adding transaction:', error);
-    return { 
-      success: false, 
-      data: false, 
-      error: error.message || 'Failed to add transaction'
-    };
+    throw new Error(`Failed to add transaction: ${error.message}`);
   }
 };
 
-// ✅ API: Update Transaction
 export const updateFinancialTransaction = async (
   id: string,
   transaction: UpdateTransactionData
-): Promise<FinancialApiResponse<boolean>> => {
+): Promise<FinancialTransaction> => {
   try {
-    // Validation for updates
-    if (transaction.amount !== undefined && transaction.amount <= 0) {
-      throw new Error('Amount must be greater than 0');
-    }
-
-    if (transaction.type && !['income', 'expense'].includes(transaction.type)) {
-      throw new Error('Transaction type must be either "income" or "expense"');
-    }
-
-    if (transaction.description !== undefined && !transaction.description?.trim()) {
-      throw new Error('Description cannot be empty');
-    }
-
     const dbData = transformForDB(transaction);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('financial_transactions')
       .update(dbData)
-      .eq('id', id);
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) throw error;
     
-    return { success: true, data: true };
+    return transformFromDB(data);
   } catch (error: any) {
     logger.error('Error updating transaction:', error);
-    return { 
-      success: false, 
-      data: false, 
-      error: error.message || 'Failed to update transaction'
-    };
+    throw new Error(`Failed to update transaction: ${error.message}`);
   }
 };
 
-// ✅ API: Delete Transaction
-export const deleteFinancialTransaction = async (
-  id: string
-): Promise<FinancialApiResponse<boolean>> => {
+export const deleteFinancialTransaction = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('financial_transactions')
@@ -173,18 +148,13 @@ export const deleteFinancialTransaction = async (
 
     if (error) throw error;
     
-    return { success: true, data: true };
+    return true;
   } catch (error: any) {
     logger.error('Error deleting transaction:', error);
-    return { 
-      success: false, 
-      data: false, 
-      error: error.message || 'Failed to delete transaction'
-    };
+    throw new Error(`Failed to delete transaction: ${error.message}`);
   }
 };
 
-// ✅ API: Get Transactions by Date Range
 export const getTransactionsByDateRange = async (
   userId: string,
   from: Date,
@@ -208,7 +178,6 @@ export const getTransactionsByDateRange = async (
   }
 };
 
-// ✅ API: Get Transaction by ID (bonus utility)
 export const getFinancialTransactionById = async (
   id: string,
   userId: string
@@ -235,11 +204,10 @@ export const getFinancialTransactionById = async (
   }
 };
 
-// ✅ API: Bulk Operations (bonus)
 export const bulkDeleteFinancialTransactions = async (
   ids: string[],
   userId: string
-): Promise<FinancialApiResponse<boolean>> => {
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('financial_transactions')
@@ -249,73 +217,16 @@ export const bulkDeleteFinancialTransactions = async (
 
     if (error) throw error;
     
-    return { success: true, data: true };
+    return true;
   } catch (error: any) {
     logger.error('Error bulk deleting transactions:', error);
-    return { 
-      success: false, 
-      data: false, 
-      error: error.message || 'Failed to delete transactions'
-    };
+    throw new Error(`Failed to delete transactions: ${error.message}`);
   }
 };
 
-// ✅ API: Get Financial Stats (bonus analytics)
-export const getFinancialStats = async (
-  userId: string,
-  from?: Date,
-  to?: Date
-) => {
-  try {
-    let query = supabase
-      .from('financial_transactions')
-      .select('type, amount, category')
-      .eq('user_id', userId);
-
-    if (from) {
-      query = query.gte('date', from.toISOString());
-    }
-    if (to) {
-      query = query.lte('date', to.toISOString());
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    // Calculate stats
-    const transactions = data || [];
-    const income = transactions.filter(t => t.type === 'income');
-    const expenses = transactions.filter(t => t.type === 'expense');
-    
-    const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
-    const balance = totalIncome - totalExpense;
-    
-    // Category breakdown
-    const categoryBreakdown: Record<string, number> = {};
-    transactions.forEach(t => {
-      const category = t.category || 'Lainnya';
-      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + t.amount;
-    });
-
-    const topCategory = Object.entries(categoryBreakdown)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Tidak ada';
-
-    return {
-      totalIncome,
-      totalExpense,
-      balance,
-      transactionCount: transactions.length,
-      avgTransaction: transactions.length > 0 ? (totalIncome + totalExpense) / transactions.length : 0,
-      topCategory,
-      categoryBreakdown,
-      monthlyGrowth: Math.random() * 20 - 10, // Mock growth - implement real calculation
-    };
-  } catch (error: any) {
-    logger.error('Error getting financial stats:', error);
-    throw new Error(`Failed to get stats: ${error.message}`);
-  }
-};
+// ===========================================
+// ✅ EXPORT
+// ===========================================
 
 export default {
   getFinancialTransactions,
@@ -325,5 +236,4 @@ export default {
   getTransactionsByDateRange,
   getFinancialTransactionById,
   bulkDeleteFinancialTransactions,
-  getFinancialStats,
 };

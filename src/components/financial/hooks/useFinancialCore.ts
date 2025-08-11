@@ -1,16 +1,5 @@
 // src/components/financial/hooks/useFinancialCore.ts
-/**
- * ✅ CONSOLIDATED: Financial Core Hook
- * 
- * Combines functionality from:
- * - useFinancial (context)
- * - useFinancialData (calculations)
- * - useUserSettings (settings)
- * - Date range management
- * - Transaction operations
- * 
- * Single hook to reduce dependencies in FinancialReportPage
- */
+// ✅ FIXED - No circular dependencies, correct imports
 
 import { useMemo, useCallback, useState } from 'react';
 import { startOfMonth, endOfDay } from 'date-fns';
@@ -19,12 +8,12 @@ import { startOfMonth, endOfDay } from 'date-fns';
 import { useFinancial } from '../contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 
-// Utility imports
+// Utility imports - ✅ FIXED: Changed from financialUtils to financialCalculations
 import { 
   filterByDateRange, 
   calculateTotalIncome, 
   calculateTotalExpense 
-} from '../utils/financialUtils';
+} from '../utils/financialCalculations';
 
 export const useFinancialCore = () => {
   // Core context data
@@ -47,7 +36,7 @@ export const useFinancialCore = () => {
   // ✅ CONSOLIDATED: Filtered transactions and calculations
   const financialData = useMemo(() => {
     const filteredTransactions = filterByDateRange(transactions, dateRange, 'date')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
 
     const totalIncome = calculateTotalIncome(filteredTransactions);
     const totalExpense = calculateTotalExpense(filteredTransactions);

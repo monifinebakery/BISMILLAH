@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '../../utils';
+import { logger } from '@/utils/logger';
 import type { Order } from '../../types';
 
 interface BulkDeleteDialogProps {
@@ -36,7 +37,7 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
       await onConfirm();
       onClose();
     } catch (error) {
-      console.error('Error in bulk delete:', error);
+      logger.error('Error in bulk delete:', error);
     } finally {
       setLoading(false);
     }

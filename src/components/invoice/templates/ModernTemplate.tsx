@@ -1,18 +1,21 @@
+// src/components/invoice/templates/ModernTemplate.tsx
 import React from 'react';
-import { Order } from '@/components/orders/types';
+import { Card } from '@/components/ui/card';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+import { formatDateForInvoice } from '../utils';
+import type { OrderData } from '../types';
 
-interface InvoiceTemplateProps {
-  order: Order;
+interface ModernTemplateProps {
+  order: OrderData;
+  className?: string;
 }
 
-export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order }) => {
+export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className = '' }) => {
   const { settings } = useUserSettings();
   
   return (
-    <div className="bg-white shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200" id="invoice-to-print">
+    <div className={`bg-white shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200 ${className}`} id="invoice-to-print">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 sm:px-12 py-8 text-white">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -34,7 +37,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order }) => {
               </h2>
               <div className="space-y-1 text-blue-100">
                 <p className="text-sm"><span className="font-medium">No:</span> {order.nomorPesanan}</p>
-                <p className="text-sm"><span className="font-medium">Tanggal:</span> {formatDateForDisplay(order.tanggal)}</p>
+                <p className="text-sm"><span className="font-medium">Tanggal:</span> {formatDateForInvoice(new Date(order.tanggal || new Date()))}</p>
               </div>
             </div>
           </div>

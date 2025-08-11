@@ -17,7 +17,7 @@ import {
   useFinancialSearch,
   usePagination,
   useDateRange
-} from '@/hooks/useFinancialHooks';
+} from './useFinancialHooks';
 
 // Context imports
 import { useUserSettings } from '@/contexts/UserSettingsContext';

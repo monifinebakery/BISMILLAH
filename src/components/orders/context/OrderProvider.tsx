@@ -1,6 +1,6 @@
-// src/components/orders/context/OrderProvider.tsx - FINAL SIMPLIFIED
+// src/components/orders/context/OrderProvider.tsx - ULTRA SIMPLIFIED (No External Context Dependencies)
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo, useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import OrderContext from './OrderContext';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 
-// ✅ ONLY Auth dependency
+// ✅ ONLY Auth dependency - no other contexts
 import { useAuth } from '@/contexts/AuthContext';
 
 // Local imports
@@ -22,25 +22,53 @@ interface OrderProviderProps {
 
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   const { user } = useAuth();
+  const mountedRef = useRef(true);
 
-  // ✅ LOCAL IMPLEMENTATIONS - No external context dependencies
-  const addActivityLocal = async (activity: { title: string; description: string; type: string }) => {
+  // ✅ ULTRA SIMPLE: Direct implementations with no external dependencies
+  const addActivityDirect = async (activity: { title: string; description: string; type: string }) => {
     try {
-      // Simple toast notification instead of context
+      // Direct database insert instead of context
+      if (user?.id) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('activities').insert({
+          user_id: user.id,
+          title: activity.title,
+          description: activity.description,
+          type: activity.type,
+          value: null
+        });
+      }
+      
+      // Show simple toast
       toast(`📝 ${activity.title}`, { 
         description: activity.description,
         duration: 3000 
       });
       
-      logger.debug('OrderProvider', 'Activity logged:', activity.title);
+      logger.debug('OrderProvider', 'Activity logged directly:', activity.title);
     } catch (error) {
       logger.error('OrderProvider', 'Failed to log activity:', error);
     }
   };
 
-  const addTransactionLocal = async (transaction: any) => {
+  const addTransactionDirect = async (transaction: any) => {
     try {
-      // Simple toast notification for financial transaction
+      // Direct database insert instead of context
+      if (user?.id) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('financial_transactions').insert({
+          user_id: user.id,
+          type: 'income',
+          category: transaction.category || 'Penjualan Produk',
+          amount: transaction.amount,
+          description: transaction.description,
+          date: transaction.date || new Date().toISOString(),
+          notes: null,
+          related_id: transaction.relatedId
+        });
+      }
+      
+      // Show formatted toast
       toast.success(`💰 Transaksi Dicatat`, { 
         description: `${transaction.description}: ${new Intl.NumberFormat('id-ID', { 
           style: 'currency', 
@@ -49,13 +77,21 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         duration: 4000 
       });
       
-      logger.debug('OrderProvider', 'Transaction logged:', transaction.description);
+      logger.debug('OrderProvider', 'Transaction logged directly:', transaction.description);
     } catch (error) {
       logger.error('OrderProvider', 'Failed to log transaction:', error);
+      // Fallback to toast only
+      toast.success(`💰 Pemasukan Dicatat`, { 
+        description: `${transaction.description}: ${new Intl.NumberFormat('id-ID', { 
+          style: 'currency', 
+          currency: 'IDR' 
+        }).format(transaction.amount)}`,
+        duration: 4000 
+      });
     }
   };
 
-  const settingsLocal = {
+  const settingsDirect = {
     financialCategories: {
       income: ['Penjualan Produk', 'Penjualan Jasa', 'Lainnya'],
       expense: ['Biaya Operasional', 'Biaya Bahan', 'Lainnya']
@@ -64,9 +100,27 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     taxRate: 0.11
   };
 
-  const addNotificationLocal = async (notification: any) => {
+  const addNotificationDirect = async (notification: any) => {
     try {
-      // Simple toast notification instead of notification context
+      // Direct database insert instead of context
+      if (user?.id) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('notifications').insert({
+          user_id: user.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type || 'info',
+          icon: notification.icon,
+          priority: notification.priority || 2,
+          related_type: notification.related_type,
+          related_id: notification.related_id,
+          action_url: notification.action_url,
+          is_read: false,
+          is_archived: false
+        });
+      }
+      
+      // Show toast notification
       const { title, message, type = 'info' } = notification;
       
       switch (type) {
@@ -83,30 +137,56 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
           toast(title, { description: message, duration: 3000 });
       }
       
-      logger.debug('OrderProvider', 'Notification shown:', title);
+      logger.debug('OrderProvider', 'Notification created directly:', title);
     } catch (error) {
-      logger.error('OrderProvider', 'Failed to show notification:', error);
+      logger.error('OrderProvider', 'Failed to create notification:', error);
+      
+      // Fallback to toast only
+      const { title, message, type = 'info' } = notification;
+      switch (type) {
+        case 'success':
+          toast.success(title, { description: message, duration: 4000 });
+          break;
+        case 'error':
+          toast.error(title, { description: message, duration: 5000 });
+          break;
+        case 'warning':
+          toast.warning(title, { description: message, duration: 4000 });
+          break;
+        default:
+          toast(title, { description: message, duration: 3000 });
+      }
     }
   };
 
-  // ✅ CALL useOrderData with local implementations
+  // ✅ CALL useOrderData with direct implementations
   const orderData = useOrderData(
     user,
-    addActivityLocal,
-    addTransactionLocal,
-    settingsLocal,
-    addNotificationLocal
+    addActivityDirect,
+    addTransactionDirect,
+    settingsDirect,
+    addNotificationDirect
   );
 
   const isReady = !!user;
 
-  logger.context('OrderProvider', 'Simplified mode ready', {
+  // ✅ Component mount/unmount tracking
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  logger.context('OrderProvider', 'Ultra simplified mode', {
     hasUser: !!user,
     userId: user?.id || 'no_user',
     isReady,
     orderCount: orderData.orders.length,
     loading: orderData.loading,
-    connected: orderData.isConnected
+    connected: orderData.isConnected,
+    mode: 'ultra_simplified_direct_db'
   });
 
   // ✅ UTILITY METHODS
@@ -169,12 +249,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       contextReady: true,
     };
 
-    logger.success('OrderProvider', '🚀 SIMPLIFIED MODE FULLY READY!', {
+    logger.success('OrderProvider', '🚀 ULTRA SIMPLIFIED MODE READY!', {
       userId: user?.id,
       orderCount: orderData.orders.length,
       loading: baseValue.loading,
       connected: baseValue.isConnected,
-      mode: 'simplified_no_external_deps',
+      mode: 'ultra_simplified_direct_operations',
       loadTime: Date.now()
     });
 

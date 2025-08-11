@@ -217,14 +217,17 @@ export const clearAllNotifications = async (userId: string): Promise<boolean> =>
 
 export const getNotificationSettings = async (userId: string): Promise<NotificationSettings> => {
   try {
+    // ✅ FIXED: Use maybeSingle() instead of single() to avoid error when no data
     const { data, error } = await supabase
       .from('notification_settings')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      // Create default settings if none found
+    if (error) throw error;
+    
+    if (!data) {
+      // ✅ FIXED: Create default settings using upsert to avoid duplicate key error
       const defaultSettings = {
         user_id: userId,
         push_notifications: true,
@@ -235,19 +238,33 @@ export const getNotificationSettings = async (userId: string): Promise<Notificat
 
       const { data: newData, error: insertError } = await supabase
         .from('notification_settings')
-        .insert([defaultSettings])
+        .upsert(defaultSettings, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        })
         .select()
-        .single();
+        .maybeSingle();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        logger.warn('Could not create default settings, returning defaults:', insertError);
+        return defaultSettings;
+      }
       
-      return newData;
+      return newData || defaultSettings;
     }
     
     return data;
   } catch (error: any) {
     logger.error('Error fetching notification settings:', error);
-    throw new Error(`Failed to fetch settings: ${error.message}`);
+    
+    // ✅ FALLBACK: Return default settings if all else fails
+    return {
+      user_id: userId,
+      push_notifications: true,
+      inventory_alerts: true,
+      order_alerts: true,
+      financial_alerts: true
+    };
   }
 };
 
@@ -256,12 +273,16 @@ export const updateNotificationSettings = async (
   settings: Partial<NotificationSettings>
 ): Promise<NotificationSettings> => {
   try {
+    // ✅ FIXED: Use upsert to handle both insert and update
     const { data, error } = await supabase
       .from('notification_settings')
       .upsert({
         user_id: userId,
         ...settings,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id', // Specify conflict resolution
+        ignoreDuplicates: false // Always update if conflict
       })
       .select()
       .single();

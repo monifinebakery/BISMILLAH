@@ -18,7 +18,7 @@ import {
   ChartDataPoint,
   CategoryChartData,
   ValidationResult
-} from '@/types/financial';
+} from '../types/financial';
 
 // Pure function imports
 import {

@@ -1,6 +1,6 @@
-// src/components/orders/context/OrderProvider.tsx - Fixed with graceful loading
+// src/components/orders/context/OrderProvider.tsx - FINAL FIX: No Conditional Hooks
 
-import React, { ReactNode, useMemo, useEffect, useState } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { logger } from '@/utils/logger';
 
 // Context imports
@@ -23,33 +23,25 @@ interface OrderProviderProps {
   children: ReactNode;
 }
 
-// ✅ LOADING STATES: Track individual context loading states
-interface ContextLoadingState {
-  auth: boolean;
-  activity: boolean;
-  financial: boolean;
-  settings: boolean;
-  notification: boolean;
-}
-
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
-  // ✅ LOADING STATE: Track context readiness
-  const [contextLoading, setContextLoading] = useState<ContextLoadingState>({
-    auth: true,
-    activity: true,
-    financial: true,
-    settings: true,
-    notification: true
-  });
-
-  // Contexts with error handling
+  // ✅ FIXED: ALL HOOKS CALLED UNCONDITIONALLY AT TOP LEVEL
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addTransaction } = useFinancial();
   const { settings } = useUserSettings();
   const { addNotification } = useNotification();
 
-  // ✅ ENHANCED: Context dependency tracking with individual loading states
+  // ✅ FIXED: ALWAYS call useOrderData with all parameters
+  // Pass the actual values, useOrderData will handle null checks internally
+  const orderData = useOrderData(
+    user,           // Always pass user (can be null)
+    addActivity,    // Always pass addActivity (can be null)
+    addTransaction, // Always pass addTransaction (can be null)
+    settings,       // Always pass settings (can be null)
+    addNotification // Always pass addNotification (can be null)
+  );
+
+  // ✅ DEPENDENCY CHECK: Moved after hooks
   const contextDependencies = useMemo(() => {
     const hasUser = !!user;
     const hasActivity = !!addActivity;
@@ -59,29 +51,13 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     
     const hasAllDependencies = hasUser && hasActivity && hasFinancial && hasSettings && hasNotification;
     
-    // Update loading states
-    setContextLoading(prev => ({
-      auth: !hasUser,
-      activity: !hasActivity,
-      financial: !hasFinancial,
-      settings: !hasSettings,
-      notification: !hasNotification
-    }));
-    
     logger.context('OrderProvider', 'Dependency check', {
-      user: user?.id || 'loading',
+      user: user?.id || 'not_ready',
       hasActivity,
       hasFinancial,
       hasSettings,
       hasNotification,
-      allReady: hasAllDependencies,
-      loadingStates: {
-        auth: !hasUser,
-        activity: !hasActivity,
-        financial: !hasFinancial,
-        settings: !hasSettings,
-        notification: !hasNotification
-      }
+      allReady: hasAllDependencies
     });
 
     return { 
@@ -95,16 +71,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     };
   }, [user, addActivity, addTransaction, settings, addNotification]);
 
-  // ✅ CONDITIONAL HOOK USAGE: Only use orderData when all dependencies are ready
-  const orderData = useOrderData(
-    contextDependencies.hasAllDependencies ? contextDependencies.user : null,
-    contextDependencies.hasAllDependencies ? addActivity : null,
-    contextDependencies.hasAllDependencies ? addTransaction : null,
-    contextDependencies.hasAllDependencies ? settings : null,
-    contextDependencies.hasAllDependencies ? addNotification : null
-  );
-
-  // ✅ ENHANCED: Utility methods with error boundaries
+  // ✅ UTILITY METHODS: With dependency checks
   const utilityMethods = useMemo(() => ({
     getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
       try {
@@ -135,12 +102,43 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
   }), [orderData.orders, contextDependencies.hasAllDependencies]);
 
-  // ✅ ENHANCED: Context value with loading states
+  // ✅ CONTEXT VALUE: With proper loading states
   const contextValue = useMemo(() => {
+    // If contexts not ready, provide loading state
+    if (!contextDependencies.hasAllDependencies) {
+      logger.context('OrderProvider', 'Providing loading context - dependencies not ready');
+      
+      const noOpAsync = async () => {
+        logger.warn('OrderProvider: Operation called before contexts ready');
+        return false;
+      };
+
+      const noOpVoid = async () => {
+        logger.warn('OrderProvider: Operation called before contexts ready');
+      };
+
+      return {
+        orders: [],
+        loading: true,
+        isConnected: false,
+        addOrder: noOpAsync,
+        updateOrder: noOpAsync,
+        deleteOrder: noOpAsync,
+        bulkUpdateStatus: noOpAsync,
+        bulkDeleteOrders: noOpAsync,
+        refreshData: noOpVoid,
+        getOrderById: () => undefined,
+        getOrdersByStatus: () => [],
+        getOrdersByDateRange: () => [],
+        contextReady: false,
+      };
+    }
+
+    // All contexts ready, provide full functionality
     const baseValue = {
       // Core data
       orders: orderData.orders,
-      loading: orderData.loading || !contextDependencies.hasAllDependencies,
+      loading: orderData.loading,
       
       // CRUD operations
       addOrder: orderData.addOrder,
@@ -148,7 +146,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       deleteOrder: orderData.deleteOrder,
       
       // Enhanced features
-      isConnected: orderData.isConnected && contextDependencies.hasAllDependencies,
+      isConnected: orderData.isConnected,
       refreshData: orderData.refreshData,
       getOrderById: orderData.getOrderById,
       getOrdersByStatus: orderData.getOrdersByStatus,
@@ -156,94 +154,40 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       bulkUpdateStatus: orderData.bulkUpdateStatus,
       bulkDeleteOrders: orderData.bulkDeleteOrders,
       
-      // ✅ NEW: Loading state info
-      contextReady: contextDependencies.hasAllDependencies,
-      contextLoadingStates: contextLoading,
+      // Context state
+      contextReady: true,
     };
 
-    logger.context('OrderProvider', 'Context value created', {
+    logger.context('OrderProvider', 'Providing full context - all ready', {
       orderCount: orderData.orders.length,
       loading: baseValue.loading,
-      connected: baseValue.isConnected,
-      contextReady: contextDependencies.hasAllDependencies,
-      loadingStates: contextLoading
+      connected: baseValue.isConnected
     });
 
     return baseValue;
-  }, [orderData, utilityMethods, contextDependencies.hasAllDependencies, contextLoading]);
+  }, [orderData, utilityMethods, contextDependencies.hasAllDependencies]);
 
-  // ✅ ENHANCED: Limited context for when dependencies are not ready
-  const limitedContextValue = useMemo(() => {
-    logger.context('OrderProvider', 'Providing limited context - dependencies not ready');
-    
-    const noOpAsync = async () => {
-      logger.warn('OrderProvider: Operation called before contexts ready');
-      return false;
-    };
-
-    const noOpVoid = async () => {
-      logger.warn('OrderProvider: Operation called before contexts ready');
-    };
-
-    return {
-      orders: [],
-      loading: true, // ✅ Show loading when contexts not ready
-      isConnected: false,
-      addOrder: noOpAsync,
-      updateOrder: noOpAsync,
-      deleteOrder: noOpAsync,
-      bulkUpdateStatus: noOpAsync,
-      bulkDeleteOrders: noOpAsync,
-      refreshData: noOpVoid,
-      getOrderById: () => undefined,
-      getOrdersByStatus: () => [],
-      getOrdersByDateRange: () => [],
-      contextReady: false,
-      contextLoadingStates: contextLoading,
-    };
-  }, [contextLoading]);
-
-  // ✅ LOADING COMPONENT: Show loading while contexts are initializing
-  const LoadingFallback = () => (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Memuat Order System</h3>
-          <p className="text-sm text-gray-600 mb-4">Menginisialisasi sistem pesanan...</p>
-          
-          {/* ✅ LOADING DETAILS: Show which contexts are still loading */}
-          <div className="space-y-2 text-xs text-left">
-            {Object.entries(contextLoading).map(([context, isLoading]) => (
-              <div key={context} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                <span className="capitalize">{context} Context</span>
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-500"></div>
-                    <span className="text-orange-600">Loading...</span>
-                  </div>
-                ) : (
-                  <span className="text-green-600">✓ Ready</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ✅ CONDITIONAL RENDERING: Show loading until all contexts are ready
+  // ✅ LOADING COMPONENT: Simple loading fallback
   if (!contextDependencies.hasAllDependencies) {
     return (
       <FollowUpTemplateProvider>
-        <OrderContext.Provider value={limitedContextValue}>
-          <LoadingFallback />
+        <OrderContext.Provider value={contextValue}>
+          <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Memuat Order System</h3>
+                <p className="text-sm text-gray-600">Menginisialisasi sistem pesanan...</p>
+              </div>
+            </div>
+          </div>
+          {children}
         </OrderContext.Provider>
       </FollowUpTemplateProvider>
     );
   }
 
+  // ✅ NORMAL RENDER: All contexts ready
   return (
     <FollowUpTemplateProvider>
       <OrderContext.Provider value={contextValue}>

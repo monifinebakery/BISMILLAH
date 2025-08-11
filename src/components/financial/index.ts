@@ -61,7 +61,7 @@ export {
 export const FINANCIAL_ADVANCED = {
   // Lazy-loaded modules to avoid bundling everything
   hooks: () => import('./hooks/useFinancialHooks'),
-  calculations: () => import('@/utils/financialCalculations'),
+  calculations: () => import('./utils/financialCalculations'),
   api: () => import('@/services/financialApi'),
   types: () => import('@/types/financial'),
   

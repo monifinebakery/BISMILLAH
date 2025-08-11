@@ -1,8 +1,9 @@
 // src/types/financial.ts
-// Centralized type definitions for financial modules
+// ✅ SINGLE SOURCE OF TRUTH - No circular dependencies
 
 export type FinancialTransactionType = 'income' | 'expense';
 
+// ✅ CORE TRANSACTION TYPE - Single definition
 export interface FinancialTransaction {
   id: string;
   type: FinancialTransactionType;
@@ -17,22 +18,11 @@ export interface FinancialTransaction {
   updatedAt?: Date | string | null;
 }
 
-export interface FinancialCategories {
-  income: string[];
-  expense: string[];
-}
+// ✅ UTILITY TYPES
+export type CreateTransactionData = Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
+export type UpdateTransactionData = Partial<Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt'>>;
 
-export interface FinancialSettings {
-  financialCategories: FinancialCategories;
-  defaultCurrency?: string;
-  budgetAlerts?: boolean;
-}
-
-export interface DateRange {
-  from: Date | string;
-  to?: Date | string;
-}
-
+// ✅ CALCULATION INTERFACES
 export interface FinancialSummary {
   totalIncome: number;
   totalExpense: number;
@@ -40,6 +30,12 @@ export interface FinancialSummary {
   transactionCount: number;
 }
 
+export interface DateRange {
+  from: Date | string;
+  to?: Date | string;
+}
+
+// ✅ CHART DATA TYPES
 export interface ChartDataPoint {
   date: string;
   month?: string;
@@ -63,7 +59,7 @@ export interface FinancialChartData {
   };
 }
 
-// Form types
+// ✅ FORM TYPES
 export interface TransactionFormData {
   type: FinancialTransactionType;
   amount: number;
@@ -73,86 +69,37 @@ export interface TransactionFormData {
   notes?: string;
 }
 
-export interface TransactionFormErrors {
-  type?: string;
-  amount?: string;
-  category?: string;
-  description?: string;
-  date?: string;
-  notes?: string;
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
 }
 
-// API response types
+// ✅ API RESPONSE TYPES
 export interface FinancialApiResponse<T = any> {
   data: T;
   error?: string;
   success: boolean;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// Context types
+// ✅ CONTEXT TYPE - Minimal interface
 export interface FinancialContextType {
   financialTransactions: FinancialTransaction[];
   isLoading: boolean;
-  addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updateFinancialTransaction: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
+  addFinancialTransaction: (transaction: CreateTransactionData) => Promise<boolean>;
+  updateFinancialTransaction: (id: string, transaction: UpdateTransactionData) => Promise<boolean>;
   deleteFinancialTransaction: (id: string) => Promise<boolean>;
 }
 
-// Component prop types
-export interface FinancialTransactionDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAddTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  onUpdateTransaction?: (id: string, transaction: Partial<FinancialTransaction>) => Promise<boolean>;
-  transaction?: FinancialTransaction | null;
-  categories?: FinancialCategories;
+// ✅ CATEGORIES
+export interface FinancialCategories {
+  income: string[];
+  expense: string[];
 }
 
-export interface CategoryManagementDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  settings: any; // UserSettings type
-  saveSettings: (settings: any) => Promise<boolean>;
-}
-
-export interface TransactionTableProps {
-  transactions: FinancialTransaction[];
-  onEditTransaction: (transaction: FinancialTransaction) => void;
-  onAddTransaction: () => void;
-  isLoading?: boolean;
-}
-
-export interface FinancialChartsProps {
-  filteredTransactions: FinancialTransaction[];
-  dateRange: DateRange;
-}
-
-export interface CategoryChartsProps {
-  filteredTransactions: FinancialTransaction[];
-}
-
-// Utility function types
-export type FilterFunction<T> = (items: T[], ...args: any[]) => T[];
-export type CalculationFunction<T, R> = (items: T[]) => R;
-export type ValidationFunction<T> = (item: T) => string | null;
-
-// Export helper types
-export type CreateTransactionData = Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
-export type UpdateTransactionData = Partial<Omit<FinancialTransaction, 'id' | 'userId' | 'createdAt'>>;
-
-// Default values
 export const DEFAULT_FINANCIAL_CATEGORIES: FinancialCategories = {
   income: [
     'Penjualan Produk',
-    'Jasa Konsultasi',
+    'Jasa Konsultasi', 
     'Investasi',
     'Bonus',
     'Lainnya'
@@ -160,7 +107,7 @@ export const DEFAULT_FINANCIAL_CATEGORIES: FinancialCategories = {
   expense: [
     'Pembelian Bahan Baku',
     'Gaji Karyawan',
-    'Sewa Tempat',
+    'Sewa Tempat', 
     'Utilitas',
     'Marketing',
     'Transportasi',
@@ -168,6 +115,7 @@ export const DEFAULT_FINANCIAL_CATEGORIES: FinancialCategories = {
   ]
 };
 
+// ✅ CONSTANTS
 export const TRANSACTION_TYPE_LABELS: Record<FinancialTransactionType, string> = {
   income: 'Pemasukan',
   expense: 'Pengeluaran'
@@ -176,6 +124,6 @@ export const TRANSACTION_TYPE_LABELS: Record<FinancialTransactionType, string> =
 export const CHART_COLORS = {
   primary: ['#16a34a', '#2563eb', '#f59e0b', '#8b5cf6', '#dc2626', '#06b6d4'],
   income: '#16a34a',
-  expense: '#dc2626',
+  expense: '#dc2626', 
   balance: '#2563eb'
 };

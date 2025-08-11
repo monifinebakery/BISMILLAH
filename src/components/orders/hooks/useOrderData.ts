@@ -1,4 +1,5 @@
-// 🎯 Fixed useOrderData - Stable Subscription Management
+// src/components/orders/hooks/useOrderData.ts - COMPLETE FIXED VERSION
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,14 +20,6 @@ export const useOrderData = (
   // ✅ EARLY VALIDATION: Check if all dependencies are ready
   const hasAllDependencies = !!(user && addActivity && addFinancialTransaction && settings && addNotification);
   
-  logger.context('useOrderData', 'Hook called with dependencies:', {
-    hasUser: !!user,
-    hasActivity: !!addActivity,
-    hasFinancial: !!addFinancialTransaction,
-    hasSettings: !!settings,
-    hasNotification: !!addNotification,
-    allReady: hasAllDependencies
-  });
   // ===== STATE HOOKS =====
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,11 +30,21 @@ export const useOrderData = (
   const isMountedRef = useRef<boolean>(true);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
-  const setupInProgressRef = useRef<boolean>(false); // ✅ NEW: Prevent multiple setups
+  const setupInProgressRef = useRef<boolean>(false);
+  const initialFetchDoneRef = useRef<boolean>(false); // ✅ NEW: Track initial fetch
   
   // ===== CONSTANTS =====
   const maxRetries = 3;
-  const retryDelayBase = 1000; // 1 second base delay
+  const retryDelayBase = 1000;
+
+  logger.context('useOrderData', 'Hook called with dependencies:', {
+    hasUser: !!user,
+    hasActivity: !!addActivity,
+    hasFinancial: !!addFinancialTransaction,
+    hasSettings: !!settings,
+    hasNotification: !!addNotification,
+    allReady: hasAllDependencies
+  });
 
   // ✅ ENHANCED: Improved cleanup with safety checks
   const cleanupSubscription = useCallback(() => {
@@ -51,15 +54,13 @@ export const useOrderData = (
     
     try {
       const subscription = subscriptionRef.current;
-      subscriptionRef.current = null; // ✅ Set to null FIRST to prevent race conditions
+      subscriptionRef.current = null;
       
-      // Check if subscription is still valid before unsubscribing
       if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
         logger.debug('OrderData', 'Subscription unsubscribed successfully');
       }
       
-      // Safe removal from supabase
       try {
         supabase.removeChannel(subscription);
         logger.debug('OrderData', 'Channel removed from supabase');
@@ -71,28 +72,31 @@ export const useOrderData = (
       logger.error('OrderData', 'Error during subscription cleanup:', error);
     }
 
-    // Clear retry timeout
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
       logger.debug('OrderData', 'Retry timeout cleared');
     }
     
-    // Reset setup flag
     setupInProgressRef.current = false;
-    
     logger.context('OrderData', 'Subscription cleanup completed');
   }, []);
 
-  // ===== FETCH ORDERS =====
-  const fetchOrders = useCallback(async () => {
+  // ✅ ENHANCED: Immediate fetch on mount
+  const fetchOrders = useCallback(async (forceRefresh = false) => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
       setOrders([]);
       setLoading(false);
       return;
     }
 
-    logger.context('OrderData', 'Fetching orders for user:', user.id);
+    // ✅ Skip if already fetched and not forcing refresh
+    if (initialFetchDoneRef.current && !forceRefresh) {
+      logger.debug('OrderData', 'Skipping fetch - already done');
+      return;
+    }
+
+    logger.context('OrderData', 'Fetching orders for user:', user.id, forceRefresh ? '(forced)' : '(initial)');
     setLoading(true);
 
     try {
@@ -120,21 +124,26 @@ export const useOrderData = (
         })
         .filter(Boolean) as Order[];
 
-      logger.context('OrderData', 'Orders loaded successfully:', transformedData.length, 'items');
+      logger.success('OrderData', 'Orders loaded successfully:', {
+        count: transformedData.length,
+        isInitial: !initialFetchDoneRef.current
+      });
+      
       setOrders(transformedData);
+      initialFetchDoneRef.current = true; // ✅ Mark initial fetch as done
 
     } catch (error: any) {
       if (!isMountedRef.current) return;
       
       logger.error('OrderData - Error fetching orders:', error);
       toast.error(`Gagal memuat pesanan: ${error.message || 'Unknown error'}`);
-      setOrders([]); // ✅ Set empty array on error
+      setOrders([]);
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
       }
     }
-  }, [user]);
+  }, [user, hasAllDependencies]);
 
   // ✅ ENHANCED: Improved retry logic with exponential backoff
   const retrySubscription = useCallback(() => {
@@ -152,7 +161,7 @@ export const useOrderData = (
     }
 
     retryCountRef.current++;
-    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 10000); // Max 10s
+    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 10000);
     
     logger.context('OrderData', `Scheduling subscription retry in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
     
@@ -165,7 +174,7 @@ export const useOrderData = (
         setupInProgressRef.current = false;
       }
     }, delay);
-  }, [user]); // setupSubscription will be defined below
+  }, [user]);
 
   // ✅ ENHANCED: Improved subscription setup with safety checks
   const setupSubscription = useCallback(() => {
@@ -183,11 +192,9 @@ export const useOrderData = (
     setupInProgressRef.current = true;
     logger.context('OrderData', 'Setting up new subscription for user:', user.id);
 
-    // Cleanup any existing subscription first
     cleanupSubscription();
 
     try {
-      // ✅ Generate unique channel name to prevent conflicts
       const channelName = `orders_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       logger.debug('OrderData', 'Creating channel:', channelName);
@@ -215,7 +222,6 @@ export const useOrderData = (
             nomorPesanan: payload.new?.nomor_pesanan || payload.old?.nomor_pesanan
           });
           
-          // ✅ Reset retry count on successful event
           retryCountRef.current = 0;
           
           setOrders((prevOrders) => {
@@ -273,9 +279,8 @@ export const useOrderData = (
               retryCountRef.current = 0;
               setupInProgressRef.current = false;
               
-              // ✅ Fetch orders after successful subscription
-              fetchOrders();
-              logger.context('OrderData', 'Successfully subscribed to real-time updates');
+              // ✅ REMOVED: Don't fetch again here - already fetched on mount
+              logger.success('OrderData', 'Successfully subscribed to real-time updates');
               break;
               
             case 'CHANNEL_ERROR':
@@ -283,12 +288,10 @@ export const useOrderData = (
               setIsConnected(false);
               setupInProgressRef.current = false;
               
-              // ✅ Don't set subscriptionRef to null immediately - let cleanup handle it
               if (subscriptionRef.current === channel) {
                 subscriptionRef.current = null;
               }
               
-              // Retry with delay
               retrySubscription();
               break;
               
@@ -326,7 +329,7 @@ export const useOrderData = (
       setupInProgressRef.current = false;
       retrySubscription();
     }
-  }, [user, fetchOrders, cleanupSubscription, retrySubscription]);
+  }, [user, hasAllDependencies, cleanupSubscription, retrySubscription]);
 
   // ===== CRUD OPERATIONS =====
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
@@ -399,11 +402,11 @@ export const useOrderData = (
       toast.error(`Gagal menambahkan pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, addActivity, addNotification]);
+  }, [user, addActivity, addNotification, hasAllDependencies]);
 
   const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login.');
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
       return false;
     }
 
@@ -501,11 +504,11 @@ export const useOrderData = (
       toast.error(`Gagal memperbarui pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification]);
+  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies]);
 
   const deleteOrder = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menghapus pesanan');
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
       return false;
     }
 
@@ -541,11 +544,11 @@ export const useOrderData = (
       toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, orders, addActivity]);
+  }, [user, orders, addActivity, hasAllDependencies]);
 
   // ===== BULK OPERATIONS =====
   const bulkUpdateStatus = useCallback(async (orderIds: string[], newStatus: string): Promise<boolean> => {
-    if (!user || !Array.isArray(orderIds) || orderIds.length === 0) {
+    if (!hasAllDependencies || !user || !Array.isArray(orderIds) || orderIds.length === 0) {
       toast.error('Tidak ada pesanan yang dipilih');
       return false;
     }
@@ -565,10 +568,10 @@ export const useOrderData = (
       toast.error(`Gagal mengubah status: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user]);
+  }, [user, hasAllDependencies]);
 
   const bulkDeleteOrders = useCallback(async (orderIds: string[]): Promise<boolean> => {
-    if (!user || !Array.isArray(orderIds) || orderIds.length === 0) {
+    if (!hasAllDependencies || !user || !Array.isArray(orderIds) || orderIds.length === 0) {
       toast.error('Tidak ada pesanan yang dipilih');
       return false;
     }
@@ -588,7 +591,7 @@ export const useOrderData = (
       toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user]);
+  }, [user, hasAllDependencies]);
 
   // ===== UTILITY FUNCTIONS =====
   const getOrderById = useCallback((id: string): Order | undefined => {
@@ -634,12 +637,12 @@ export const useOrderData = (
 
   const refreshData = useCallback(async () => {
     logger.context('OrderData', 'Manual refresh requested');
-    await fetchOrders();
+    await fetchOrders(true); // Force refresh
     
-    if (!isConnected && user && !setupInProgressRef.current) {
+    if (!isConnected && user && hasAllDependencies && !setupInProgressRef.current) {
       setupSubscription();
     }
-  }, [fetchOrders, isConnected, user, setupSubscription]);
+  }, [fetchOrders, isConnected, user, hasAllDependencies, setupSubscription]);
 
   // ===== EFFECTS =====
   
@@ -655,33 +658,41 @@ export const useOrderData = (
     };
   }, [cleanupSubscription]);
 
-  // ✅ ENHANCED: Main effect for user changes with better error handling
+  // ✅ ENHANCED: Immediate fetch on user ready, then setup subscription
   useEffect(() => {
     if (!user) {
-      logger.context('OrderData', 'User logged out, cleaning up');
+      logger.context('OrderData', 'User not ready, cleaning up');
       cleanupSubscription();
       setOrders([]);
       setLoading(false);
       setIsConnected(false);
       retryCountRef.current = 0;
       setupInProgressRef.current = false;
+      initialFetchDoneRef.current = false;
       return;
     }
 
-    logger.context('OrderData', 'User changed, setting up subscription for:', user.id);
+    if (!hasAllDependencies) {
+      logger.context('OrderData', 'Dependencies not ready, skipping setup');
+      return;
+    }
+
+    logger.context('OrderData', 'User and dependencies ready, fetching data immediately');
     
-    // ✅ Add small delay to ensure all contexts are ready
-    const setupTimer = setTimeout(() => {
-      if (isMountedRef.current && user && !setupInProgressRef.current) {
-        setupSubscription();
-      }
-    }, 100);
+    // ✅ IMMEDIATE FETCH: Fetch data immediately when user is ready
+    fetchOrders().then(() => {
+      // ✅ THEN SETUP SUBSCRIPTION: After initial fetch, setup real-time
+      setTimeout(() => {
+        if (isMountedRef.current && user && hasAllDependencies) {
+          setupSubscription();
+        }
+      }, 100); // Small delay to ensure fetch is complete
+    });
 
     return () => {
-      clearTimeout(setupTimer);
       cleanupSubscription();
     };
-  }, [user?.id, setupSubscription, cleanupSubscription]);
+  }, [user?.id, hasAllDependencies, fetchOrders, setupSubscription, cleanupSubscription]);
 
   // ✅ ENHANCED: Periodic connection health check with longer interval
   useEffect(() => {

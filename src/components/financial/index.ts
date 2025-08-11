@@ -43,7 +43,7 @@ export type {
   UpdateTransactionData,
   FinancialSummary,
   DateRange
-} from '@/types/financial';
+} from './types/financial';
 
 // ===========================================
 // ✅ ESSENTIAL UTILITIES (Pure functions)

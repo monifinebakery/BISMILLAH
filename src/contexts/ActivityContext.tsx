@@ -87,15 +87,30 @@ const transformActivityFromDB = (dbItem: DatabaseActivity): Activity => ({
 // ===== DEBOUNCE UTILITY =====
 const useDebounceCallback = (callback: Function, delay: number) => {
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const lastCallRef = useRef<number>(0);
   
   return useCallback((...args: any[]) => {
+    const now = Date.now();
+    
+    // Prevent spam calls - minimum 1 second between actual executions
+    if (now - lastCallRef.current < 1000) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        lastCallRef.current = Date.now();
+        callback(...args);
+      }, delay);
+      return;
+    }
+    
+    // If enough time has passed, execute immediately
+    lastCallRef.current = now;
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
-    timeoutRef.current = setTimeout(() => {
-      callback(...args);
-    }, delay);
+    callback(...args);
   }, [callback, delay]);
 };
 
@@ -189,11 +204,14 @@ const useRealtimeSubscription = (userId?: string) => {
   const MAX_RETRIES = 5;
   const RETRY_DELAY_BASE = 2000; // 2 seconds
 
-  // ✅ Debounced invalidation to prevent race conditions
+  // ✅ Debounced invalidation to prevent race conditions and spam
   const debouncedInvalidate = useDebounceCallback(() => {
     if (!mountedRef.current || !userId) return;
     
-    logger.context('ActivityContext', 'Invalidating queries due to real-time event');
+    // Only log if in development mode
+    if (process.env.NODE_ENV === 'development') {
+      logger.context('ActivityContext', 'Invalidating queries due to real-time event');
+    }
     
     queryClient.invalidateQueries({ 
       queryKey: activityQueryKeys.list(userId) 
@@ -202,7 +220,7 @@ const useRealtimeSubscription = (userId?: string) => {
     queryClient.invalidateQueries({ 
       queryKey: activityQueryKeys.stats(userId) 
     });
-  }, 300);
+  }, 500); // Increased delay to 500ms
 
   const setupSubscription = useCallback(() => {
     if (!userId || !mountedRef.current || retryCount >= MAX_RETRIES) {
@@ -223,14 +241,16 @@ const useRealtimeSubscription = (userId?: string) => {
     // ✅ Generate unique channel name to prevent collisions
     const timestamp = Date.now();
     const random = Math.random().toString(36).substr(2, 5);
-    const channelName = `activities-${userId}-${timestamp}-${random}`;
+    const channelName = `activities-${userId.slice(-8)}-${random}`; // Shorter userId
     
-    logger.context('ActivityContext', 'Setting up subscription:', {
-      channelName,
-      userId: userId.substring(0, 8) + '...',
-      retryCount,
-      timestamp: new Date().toISOString()
-    });
+    // Only log setup in development or on first attempt
+    if (process.env.NODE_ENV === 'development' || retryCount === 0) {
+      logger.context('ActivityContext', 'Setting up subscription:', {
+        channelName,
+        retryCount,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const channel = supabase
       .channel(channelName)
@@ -244,15 +264,16 @@ const useRealtimeSubscription = (userId?: string) => {
         },
         (payload) => {
           if (!mountedRef.current) {
-            logger.warn('ActivityContext: Received event but component unmounted, ignoring');
-            return;
+            return; // Silent return, no logging
           }
 
-          logger.context('ActivityContext', 'Real-time event received:', {
-            eventType: payload.eventType,
-            recordId: payload.new?.id || payload.old?.id,
-            timestamp: new Date().toISOString()
-          });
+          // Only log in development mode and not too frequently
+          if (process.env.NODE_ENV === 'development') {
+            logger.context('ActivityContext', 'Real-time event:', {
+              eventType: payload.eventType,
+              recordId: payload.new?.id || payload.old?.id
+            });
+          }
           
           // ✅ Use debounced invalidation to prevent race conditions
           debouncedInvalidate();
@@ -261,34 +282,30 @@ const useRealtimeSubscription = (userId?: string) => {
       .subscribe((status, err) => {
         if (!mountedRef.current) return;
 
-        logger.context('ActivityContext', 'Subscription status change:', {
-          status,
-          error: err ? { message: err.message, code: err.code } : null,
-          channelName,
-          retryCount,
-          timestamp: new Date().toISOString()
-        });
+        // Reduce logging noise - only log important status changes
+        if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          logger.context('ActivityContext', 'Subscription status:', {
+            status,
+            error: err ? { message: err.message } : null,
+            retryCount
+          });
+        }
         
         switch (status) {
           case 'SUBSCRIBED':
-            logger.success('ActivityContext: Successfully subscribed to real-time updates');
+            logger.success('ActivityContext: Real-time connected');
             setIsConnected(true);
             setRetryCount(0); // Reset retry count on successful connection
             break;
             
           case 'CHANNEL_ERROR':
-            logger.error('ActivityContext: Channel error detected:', {
-              error: err,
-              channelName,
-              userId: userId.substring(0, 8) + '...',
-              retryCount
-            });
+            logger.error('ActivityContext: Channel error:', err?.message || 'Unknown error');
             setIsConnected(false);
             
             // ✅ Implement exponential backoff retry
             if (retryCount < MAX_RETRIES) {
               const delay = Math.min(RETRY_DELAY_BASE * Math.pow(2, retryCount), 30000);
-              logger.context('ActivityContext', `Retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+              logger.context('ActivityContext', `Retrying in ${delay}ms (${retryCount + 1}/${MAX_RETRIES})`);
               
               setTimeout(() => {
                 if (mountedRef.current) {
@@ -299,7 +316,7 @@ const useRealtimeSubscription = (userId?: string) => {
             break;
             
           case 'TIMED_OUT':
-            logger.error('ActivityContext: Subscription timed out:', err);
+            logger.error('ActivityContext: Connection timeout');
             setIsConnected(false);
             
             // ✅ Retry on timeout
@@ -313,12 +330,11 @@ const useRealtimeSubscription = (userId?: string) => {
             break;
             
           case 'CLOSED':
-            logger.warn('ActivityContext: Subscription closed');
+            if (process.env.NODE_ENV === 'development') {
+              logger.warn('ActivityContext: Subscription closed');
+            }
             setIsConnected(false);
             break;
-            
-          default:
-            logger.context('ActivityContext', 'Unknown subscription status:', status);
         }
       });
 
@@ -331,7 +347,9 @@ const useRealtimeSubscription = (userId?: string) => {
     mountedRef.current = true;
     
     if (!userId) {
-      logger.context('ActivityContext', 'No user ID, skipping real-time subscription');
+      if (process.env.NODE_ENV === 'development') {
+        logger.context('ActivityContext', 'No user ID, skipping real-time subscription');
+      }
       setIsConnected(false);
       return;
     }
@@ -343,7 +361,9 @@ const useRealtimeSubscription = (userId?: string) => {
       setIsConnected(false);
       
       if (channel) {
-        logger.context('ActivityContext', 'Cleaning up real-time subscription');
+        if (process.env.NODE_ENV === 'development') {
+          logger.context('ActivityContext', 'Cleaning up real-time subscription');
+        }
         supabase.removeChannel(channel);
       }
       
@@ -358,7 +378,9 @@ const useRealtimeSubscription = (userId?: string) => {
   // ✅ Retry effect
   useEffect(() => {
     if (retryCount > 0 && retryCount < MAX_RETRIES && userId && mountedRef.current) {
-      logger.context('ActivityContext', `Retry attempt ${retryCount}/${MAX_RETRIES}`);
+      if (process.env.NODE_ENV === 'development') {
+        logger.context('ActivityContext', `Retry attempt ${retryCount}/${MAX_RETRIES}`);
+      }
       setupSubscription();
     }
   }, [retryCount, userId, setupSubscription]);
@@ -432,17 +454,23 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     if (!userId || isRealtimeConnected || realtimeRetryCount < 5) return;
 
-    logger.context('ActivityContext', 'Real-time failed, setting up fallback polling');
+    if (process.env.NODE_ENV === 'development') {
+      logger.context('ActivityContext', 'Real-time failed, setting up fallback polling');
+    }
     
     const pollInterval = setInterval(() => {
-      logger.context('ActivityContext', 'Polling activities (fallback)');
+      if (process.env.NODE_ENV === 'development') {
+        logger.context('ActivityContext', 'Polling activities (fallback)');
+      }
       queryClient.invalidateQueries({ 
         queryKey: activityQueryKeys.list(userId) 
       });
     }, 30000); // Poll every 30 seconds
 
     return () => {
-      logger.context('ActivityContext', 'Cleaning up fallback polling');
+      if (process.env.NODE_ENV === 'development') {
+        logger.context('ActivityContext', 'Cleaning up fallback polling');
+      }
       clearInterval(pollInterval);
     };
   }, [userId, isRealtimeConnected, realtimeRetryCount, queryClient]);

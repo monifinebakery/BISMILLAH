@@ -31,7 +31,7 @@ export {
 } from './hooks/useFinancialPage';
 
 // Alternative: Keep useFinancialCore name for backward compatibility
-export { useFinancialReportPage as useFinancialCore } from '@/hooks/useFinancialPage';
+export { useFinancialReportPage as useFinancialCore } from './hooks/useFinancialPage';
 
 // ===========================================
 // ✅ ESSENTIAL TYPES ONLY

@@ -63,7 +63,7 @@ export const FINANCIAL_ADVANCED = {
   hooks: () => import('./hooks/useFinancialHooks'),
   calculations: () => import('./utils/financialCalculations'),
   api: () => import('./services/financialApi'),
-  types: () => import('@/types/financial'),
+  types: () => import('./types/financial'),
   
   // Component modules (if they exist)
   components: () => import('./components').catch(() => null),

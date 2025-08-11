@@ -1,4 +1,4 @@
-// src/components/popups/AutoLinkingPopup.tsx - DEBUG VERSION
+// src/components/popups/AutoLinkingPopup.tsx - FIXED JSX SYNTAX
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, CheckCircle, AlertCircle, Loader2, Zap, LogOut, Clock } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -471,6 +471,11 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           </div>
         </div>
 
+        {/* Main Content */}
+        <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+          {!showResults ? (
+            /* Payment Selection */
+            <>
               {/* User Info */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -597,10 +602,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   </div>
                 </>
               )}
-            </div>
+            </>
           ) : (
             /* Results Display */
-            <div className="p-6">
+            <>
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">
                   Hasil Auto-Linking (DEBUG)
@@ -649,7 +654,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
         </div>
 

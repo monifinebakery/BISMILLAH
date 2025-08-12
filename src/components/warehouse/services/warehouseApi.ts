@@ -1,5 +1,5 @@
 // src/components/warehouse/services/warehouseApi.ts
-// ✅ Updated for isi_per_kemasan support and proper unit price calculation
+// ✅ FIXED: Minor updates for type consistency and error handling
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { BahanBaku, BahanBakuFrontend, PackageCalculation } from '../types';
@@ -23,18 +23,18 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
     userId: dbItem.user_id,
     nama: dbItem.nama,
     kategori: dbItem.kategori,
-    stok: dbItem.stok,
-    minimum: dbItem.minimum,
+    stok: Number(dbItem.stok) || 0, // ✅ FIXED: Ensure numeric conversion
+    minimum: Number(dbItem.minimum) || 0,
     satuan: dbItem.satuan,
-    harga: dbItem.harga_satuan,
+    harga: Number(dbItem.harga_satuan) || 0,
     supplier: dbItem.supplier,
     expiry: dbItem.tanggal_kadaluwarsa,
     createdAt: dbItem.created_at,
     updatedAt: dbItem.updated_at,
-    jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
-    isiPerKemasan: dbItem.isi_per_kemasan, // ✅ NEW: package content
+    jumlahBeliKemasan: Number(dbItem.jumlah_beli_kemasan) || 0,
+    isiPerKemasan: Number(dbItem.isi_per_kemasan) || 1, // ✅ Default to 1
     satuanKemasan: dbItem.satuan_kemasan,
-    hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
+    hargaTotalBeliKemasan: Number(dbItem.harga_total_beli_kemasan) || 0,
   };
 
   return frontendItem;

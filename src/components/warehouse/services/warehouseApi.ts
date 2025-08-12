@@ -206,6 +206,8 @@ class CrudService {
 
   async updateBahanBaku(id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> {
     try {
+      logger.info('warehouseApi.updateBahanBaku called', { id, updates });
+      
       // ✅ VALIDATE: Recalculate unit price if package info changed
       if (updates.jumlahBeliKemasan !== undefined || 
           updates.isiPerKemasan !== undefined || 
@@ -226,9 +228,7 @@ class CrudService {
             // Auto-update unit price
             updates.harga = calculatedPrice;
             
-            if (this.config.enableDebugLogs) {
-              logger.info(`Recalculated unit price for ${merged.nama}: ${calculatedPrice}`);
-            }
+            logger.info(`Recalculated unit price for ${merged.nama}: ${calculatedPrice}`);
           }
         }
       }
@@ -239,18 +239,25 @@ class CrudService {
       // Remove user_id from updates to avoid changing ownership
       delete dbUpdates.user_id;
 
+      logger.debug('Updating item with data:', { id, dbUpdates });
+
       let query = supabase
         .from('bahan_baku')
         .update(dbUpdates)
         .eq('id', id);
 
-      // Add user_id filter if available
+      // Add user_id filter if available for security
       if (this.config.userId) {
         query = query.eq('user_id', this.config.userId);
       }
 
-      const { error } = await query;
-      if (error) throw error;
+      const { error, data } = await query;
+      if (error) {
+        logger.error('Update failed in Supabase:', error);
+        throw error;
+      }
+      
+      logger.info('Update successful in Supabase:', { id, updates: dbUpdates, result: data });
       return true;
     } catch (error: any) {
       this.handleError('Update failed', error);
@@ -366,9 +373,7 @@ class CrudService {
 
   private handleError(message: string, error: any) {
     const errorMsg = `${message}: ${error.message || error}`;
-    if (this.config.enableDebugLogs) {
-      logger.error('CrudService:', errorMsg);
-    }
+    logger.error('CrudService:', errorMsg);
     this.config.onError?.(errorMsg);
   }
 }
@@ -477,9 +482,7 @@ class SubscriptionService {
           table: 'bahan_baku',
           filter: this.config.userId ? `user_id=eq.${this.config.userId}` : undefined
         }, (payload) => {
-          if (this.config.enableDebugLogs) {
-            logger.debug('Subscription update:', payload);
-          }
+          logger.debug('Subscription update:', payload);
           // Transform and handle real-time updates here
           if (payload.new) {
             const transformedData = transformToFrontend(payload.new as BahanBaku);
@@ -487,9 +490,7 @@ class SubscriptionService {
           }
         })
         .subscribe((status) => {
-          if (this.config.enableDebugLogs) {
-            logger.debug('Subscription status:', status);
-          }
+          logger.debug('Subscription status:', status);
         });
     } catch (error) {
       logger.warn('Subscription setup failed, continuing without real-time updates:', error);
@@ -559,7 +560,7 @@ class AlertService {
 
   processLowStockAlert(items: BahanBakuFrontend[]) {
     const lowStockItems = items.filter(item => item.stok <= item.minimum);
-    if (lowStockItems.length > 0 && this.config.enableDebugLogs) {
+    if (lowStockItems.length > 0) {
       logger.warn(`Low stock alert: ${lowStockItems.length} items`);
     }
     return lowStockItems;
@@ -574,7 +575,7 @@ class AlertService {
       return expiryDate <= threshold && expiryDate > new Date();
     });
 
-    if (expiringItems.length > 0 && this.config.enableDebugLogs) {
+    if (expiringItems.length > 0) {
       logger.warn(`Expiry alert: ${expiringItems.length} items expiring soon`);
     }
     return expiringItems;
@@ -596,7 +597,7 @@ class AlertService {
       return Math.abs(calculatedPrice - item.harga) > item.harga * 0.1; // 10% tolerance
     });
 
-    if (inconsistentItems.length > 0 && this.config.enableDebugLogs) {
+    if (inconsistentItems.length > 0) {
       logger.warn(`Price inconsistency alert: ${inconsistentItems.length} items`);
     }
     return inconsistentItems;

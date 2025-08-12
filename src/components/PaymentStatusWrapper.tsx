@@ -1,6 +1,8 @@
+// src/components/PaymentStatusWrapper.tsx - SIMPLIFIED: AutoLinkingPopup Only
 import { useEffect, ReactNode } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import OrderConfirmationPopup from './OrderConfirmationPopup';
+import { AutoLinkingPopup } from '@/components/popups';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentStatusWrapperProps {
   children: ReactNode;
@@ -12,28 +14,31 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     needsPayment, 
     isLoading, 
     needsOrderLinking,
-    showOrderPopup,
-    setShowOrderPopup,
+    unlinkedPayments,
+    currentUser,
+    showAutoLinkPopup,
+    setShowAutoLinkPopup,
     refetch 
   } = usePaymentStatus();
-
-  // ✅ Auto-show popup if user needs to link order
+  
+  // ✅ Auto-show AutoLinkingPopup if user needs to link order OR has unlinked payments
   useEffect(() => {
-    if (needsOrderLinking && !showOrderPopup) {
+    if ((needsOrderLinking || unlinkedPayments.length > 0) && !showAutoLinkPopup && currentUser) {
       // Small delay to let page load first
       const timer = setTimeout(() => {
-        setShowOrderPopup(true);
+        setShowAutoLinkPopup(true);
       }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [needsOrderLinking, showOrderPopup, setShowOrderPopup]);
-
-  const handleOrderLinked = (payment: any) => {
-    console.log('✅ Order linked successfully:', payment);
+  }, [needsOrderLinking, unlinkedPayments.length, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
+  
+  const handleAutoLinked = (linkedPayments: any[]) => {
+    console.log('✅ Payments linked successfully:', linkedPayments);
     refetch(); // Refresh payment status
+    setShowAutoLinkPopup(false);
   };
-
+  
   // ✅ Show loading state
   if (isLoading) {
     return (
@@ -45,9 +50,9 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
       </div>
     );
   }
-
+  
   // ✅ Show payment required screen
-  if (needsPayment && !showOrderPopup) {
+  if (needsPayment && !showAutoLinkPopup) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full mx-4">
@@ -65,10 +70,10 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
             
             <div className="space-y-3">
               <button
-                onClick={() => setShowOrderPopup(true)}
+                onClick={() => setShowAutoLinkPopup(true)}
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
               >
-                Saya Sudah Bayar - Hubungkan Order
+                Saya Sudah Bayar - Link Pembayaran
               </button>
               
               <button
@@ -81,29 +86,38 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
           </div>
         </div>
         
-        <OrderConfirmationPopup
-          isOpen={showOrderPopup}
-          onClose={() => setShowOrderPopup(false)}
-          onSuccess={handleOrderLinked}
+        {/* ✅ AutoLinkingPopup handles both manual and automatic linking */}
+        <AutoLinkingPopup
+          isOpen={showAutoLinkPopup}
+          onClose={() => setShowAutoLinkPopup(false)}
+          unlinkedPayments={unlinkedPayments}
+          currentUser={currentUser}
+          supabaseClient={supabase}
+          onSuccess={handleAutoLinked}
         />
       </div>
     );
   }
-
+  
   // ✅ Show main app if payment confirmed
   if (isPaid) {
     return (
       <>
         {children}
-        <OrderConfirmationPopup
-          isOpen={showOrderPopup}
-          onClose={() => setShowOrderPopup(false)}
-          onSuccess={handleOrderLinked}
+        
+        {/* ✅ AutoLinkingPopup for additional payments */}
+        <AutoLinkingPopup
+          isOpen={showAutoLinkPopup}
+          onClose={() => setShowAutoLinkPopup(false)}
+          unlinkedPayments={unlinkedPayments}
+          currentUser={currentUser}
+          supabaseClient={supabase}
+          onSuccess={handleAutoLinked}
         />
       </>
     );
   }
-
+  
   // ✅ Fallback loading state
   return (
     <div className="min-h-screen flex items-center justify-center">

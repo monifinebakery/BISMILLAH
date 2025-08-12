@@ -1,5 +1,5 @@
 // src/components/NotificationSettingsForm.tsx
-// ✅ FIXED: Removed duplicate toast notifications
+// ✅ FIXED - No duplicate toasts, better error handling
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,36 +20,26 @@ import {
   AlertTriangle,
   DollarSign,
   TrendingUp,
-  FileText
+  FileText,
+  CheckCircle
 } from 'lucide-react';
 
-// ✅ UPDATED: Extended form state to match database schema
+// ✅ Complete form state matching database schema
 type FormState = {
-  // Basic notifications
   push_notifications: boolean;
-  
-  // Business notifications
   order_notifications: boolean;
   inventory_notifications: boolean;
   system_notifications: boolean;
-  
-  // Financial & alerts
   financial_alerts: boolean;
   inventory_alerts: boolean;
   stock_alerts: boolean;
   payment_alerts: boolean;
   low_stock_alerts: boolean;
-  
-  // Reports
   daily_reports: boolean;
   weekly_reports: boolean;
   monthly_reports: boolean;
-  
-  // Additional
   reminder_notifications: boolean;
   security_alerts: boolean;
-  
-  // Settings
   low_stock_threshold: number;
   auto_archive_days: number;
 };
@@ -57,56 +47,45 @@ type FormState = {
 const NotificationSettingsForm = () => {
   const { settings, updateSettings, isLoading: isContextLoading } = useNotification();
   const [formState, setFormState] = useState<FormState>({
-    // Basic notifications
     push_notifications: true,
-    
-    // Business notifications
     order_notifications: true,
     inventory_notifications: true,
     system_notifications: true,
-    
-    // Financial & alerts
     financial_alerts: true,
     inventory_alerts: true,
     stock_alerts: true,
     payment_alerts: true,
     low_stock_alerts: true,
-    
-    // Reports
     daily_reports: false,
     weekly_reports: false,
     monthly_reports: true,
-    
-    // Additional
     reminder_notifications: true,
     security_alerts: true,
-    
-    // Settings
     low_stock_threshold: 10,
     auto_archive_days: 30,
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  // ✅ UPDATED: Load all settings from context
+  // Load settings from context
   useEffect(() => {
     if (settings) {
       setFormState({
         push_notifications: settings.push_notifications ?? true,
-        order_notifications: settings.order_notifications ?? true,
-        inventory_notifications: settings.inventory_notifications ?? true,
-        system_notifications: settings.system_notifications ?? true,
+        order_notifications: (settings as any).order_notifications ?? true,
+        inventory_notifications: (settings as any).inventory_notifications ?? true,
+        system_notifications: (settings as any).system_notifications ?? true,
         financial_alerts: settings.financial_alerts ?? true,
         inventory_alerts: settings.inventory_alerts ?? true,
-        stock_alerts: settings.stock_alerts ?? true,
-        payment_alerts: settings.payment_alerts ?? true,
-        low_stock_alerts: settings.low_stock_alerts ?? true,
-        daily_reports: settings.daily_reports ?? false,
-        weekly_reports: settings.weekly_reports ?? false,
-        monthly_reports: settings.monthly_reports ?? true,
-        reminder_notifications: settings.reminder_notifications ?? true,
-        security_alerts: settings.security_alerts ?? true,
-        low_stock_threshold: settings.low_stock_threshold ?? 10,
-        auto_archive_days: settings.auto_archive_days ?? 30,
+        stock_alerts: (settings as any).stock_alerts ?? true,
+        payment_alerts: (settings as any).payment_alerts ?? true,
+        low_stock_alerts: (settings as any).low_stock_alerts ?? true,
+        daily_reports: (settings as any).daily_reports ?? false,
+        weekly_reports: (settings as any).weekly_reports ?? false,
+        monthly_reports: (settings as any).monthly_reports ?? true,
+        reminder_notifications: (settings as any).reminder_notifications ?? true,
+        security_alerts: (settings as any).security_alerts ?? true,
+        low_stock_threshold: (settings as any).low_stock_threshold ?? 10,
+        auto_archive_days: (settings as any).auto_archive_days ?? 30,
       });
     }
   }, [settings]);
@@ -115,19 +94,16 @@ const NotificationSettingsForm = () => {
     setFormState(prev => ({ ...prev, [field]: value }));
   };
 
-  // ✅ FIXED: Removed duplicate toast - updateSettings already shows success toast
+  // ✅ FIXED: No duplicate toasts - context already handles success/error messages
   const handleSaveSettings = async () => {
     setIsSaving(true);
     
     try {
-      const success = await updateSettings(formState); // This already shows success toast in NotificationContext
-      
-      // ✅ Only show error toast if save fails (context already shows success)
-      if (!success) {
-        toast.error('Gagal menyimpan pengaturan notifikasi');
-      }
+      await updateSettings(formState);
+      // ✅ Context shows success toast, don't show duplicate
     } catch (error) {
       console.error('Error saving notification settings:', error);
+      // ✅ Only show error if context didn't handle it
       toast.error('Terjadi kesalahan saat menyimpan pengaturan');
     } finally {
       setIsSaving(false);
@@ -165,7 +141,7 @@ const NotificationSettingsForm = () => {
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
         
-        {/* ✅ BASIC NOTIFICATIONS */}
+        {/* Basic Notifications */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -189,7 +165,7 @@ const NotificationSettingsForm = () => {
 
         <Separator />
 
-        {/* ✅ BUSINESS NOTIFICATIONS */}
+        {/* Business Notifications */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" />
@@ -243,7 +219,7 @@ const NotificationSettingsForm = () => {
 
         <Separator />
 
-        {/* ✅ ALERTS & WARNINGS */}
+        {/* Alerts & Warnings */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -299,7 +275,7 @@ const NotificationSettingsForm = () => {
 
         <Separator />
 
-        {/* ✅ REPORTS */}
+        {/* Reports */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -335,7 +311,7 @@ const NotificationSettingsForm = () => {
 
         <Separator />
 
-        {/* ✅ SETTINGS */}
+        {/* Settings */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900">Pengaturan Threshold</h3>
           

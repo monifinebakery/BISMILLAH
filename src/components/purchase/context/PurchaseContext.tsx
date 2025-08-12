@@ -1,59 +1,179 @@
-// src/components/purchase/context/PurchaseContext.tsx - Fixed Real-time Subscription Spam
+// src/components/purchase/context/PurchaseContext.tsx
+// ✅ FIXED VERSION - Using React Query pattern to eliminate fetch loops
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-// ✅ CONSOLIDATED: Core context imports
+// Core context imports
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 
-// ✅ CONSOLIDATED: Types and utilities
+// Types and utilities
 import { Purchase, PurchaseContextType } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 
-// ✅ CONSOLIDATED: Transform utilities (keep existing imports)
+// Transform utilities
 import {
   transformPurchaseFromDB,
   transformPurchaseForDB,
   transformPurchaseUpdateForDB,
   transformPurchasesFromDB,
-  transformRealtimePayload,
 } from '../utils/purchaseTransformers';
 
-// ✅ CONSOLIDATED: Helper utilities
+// Helper utilities
 import {
   validatePurchaseData,
   getStatusDisplayText,
 } from '../utils/purchaseHelpers';
 
-// ✅ OPTIMIZED: Context creation
+// ✅ Query Keys
+const purchaseQueryKeys = {
+  all: ['purchases'] as const,
+  lists: () => [...purchaseQueryKeys.all, 'list'] as const,
+  list: (userId?: string) => [...purchaseQueryKeys.lists(), userId] as const,
+} as const;
+
+// ✅ Transform functions (stable, no useCallback needed)
+const transformRealtimePayload = (payload: any): Purchase | null => {
+  try {
+    if (!payload.new) return null;
+    return transformPurchaseFromDB(payload.new);
+  } catch (error) {
+    logger.error('Error transforming realtime payload:', error);
+    return null;
+  }
+};
+
+// ✅ API Functions
+const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
+  logger.info('🔄 Fetching purchases for user:', userId);
+  
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .order('tanggal', { ascending: false });
+
+  if (error) {
+    logger.error('❌ Error fetching purchases:', error);
+    throw new Error(error.message);
+  }
+
+  const purchases = transformPurchasesFromDB(data || []);
+  logger.success('✅ Purchases fetched successfully:', purchases.length, 'items');
+  return purchases;
+};
+
+const createPurchase = async (
+  purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, 
+  userId: string
+): Promise<void> => {
+  logger.info('🔄 Creating purchase for supplier:', purchase.supplier);
+  
+  const purchaseDataForRPC = transformPurchaseForDB(purchase, userId);
+
+  const { error } = await supabase.rpc('add_purchase_and_update_stock', {
+    purchase_data: purchaseDataForRPC,
+  });
+
+  if (error) {
+    logger.error('❌ Error creating purchase:', error);
+    throw new Error(error.message);
+  }
+
+  logger.success('✅ Purchase created successfully');
+};
+
+const updatePurchase = async (
+  id: string, 
+  updates: Partial<Purchase>
+): Promise<void> => {
+  logger.info('🔄 Updating purchase:', id);
+  
+  const purchaseToUpdate = transformPurchaseUpdateForDB(updates);
+
+  const { error } = await supabase
+    .from('purchases')
+    .update(purchaseToUpdate)
+    .eq('id', id);
+
+  if (error) {
+    logger.error('❌ Error updating purchase:', error);
+    throw new Error(error.message);
+  }
+
+  logger.success('✅ Purchase updated successfully:', id);
+};
+
+const deletePurchase = async (id: string): Promise<void> => {
+  logger.info('🔄 Deleting purchase:', id);
+  
+  const { error } = await supabase
+    .from('purchases')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    logger.error('❌ Error deleting purchase:', error);
+    throw new Error(error.message);
+  }
+
+  logger.success('✅ Purchase deleted successfully:', id);
+};
+
+// ✅ Notification helper (stable function)
+const createPurchaseNotification = async (
+  addNotification: any,
+  title: string,
+  message: string,
+  type: 'success' | 'info' | 'warning' | 'error' = 'success',
+  priority: number = 2,
+  purchaseId?: string
+) => {
+  try {
+    if (!addNotification || typeof addNotification !== 'function') {
+      return;
+    }
+
+    await addNotification({
+      title,
+      message,
+      type,
+      icon: 'shopping-cart',
+      priority,
+      related_type: 'purchase',
+      related_id: purchaseId,
+      action_url: '/pembelian',
+      is_read: false,
+      is_archived: false,
+    });
+  } catch (error) {
+    logger.error('Error creating purchase notification:', error);
+  }
+};
+
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
-// ✅ OPTIMIZED: Provider component with fixed real-time subscription
-export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // ✅ STATE: Keep existing state structure
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // ✅ REFS: For subscription management
-  const channelRef = useRef<any>(null);
-  const currentUserRef = useRef<any>(null);
-  const setupTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // ✅ CONTEXTS: Keep existing context usage
+export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
+  const queryClient = useQueryClient();
 
-  // ✅ MEMOIZED: Optimize supplier lookup
+  logger.debug('🔍 PurchaseProvider rendered', {
+    userId: user?.id,
+    timestamp: new Date().toISOString()
+  });
+
+  // ✅ Memoized supplier lookup (stable)
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
       if (!supplierId || !Array.isArray(suppliers)) return 'Supplier';
@@ -65,122 +185,37 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [suppliers]);
 
-  // ✅ MEMOIZED: Notification creator
-  const createPurchaseNotification = useCallback(async (
-    title: string,
-    message: string,
-    type: 'success' | 'info' | 'warning' | 'error' = 'success',
-    priority: number = 2,
-    purchaseId?: string
-  ) => {
-    try {
-      if (!addNotification || typeof addNotification !== 'function') {
-        if (process.env.NODE_ENV === 'development') {
-          logger.warn('Notification function not available');
-        }
-        return;
+  // ✅ useQuery for fetching purchases
+  const {
+    data: purchases = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: purchaseQueryKeys.list(user?.id),
+    queryFn: () => fetchPurchases(user!.id),
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) {
+        return false;
       }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-      await addNotification({
-        title,
-        message,
-        type,
-        icon: 'shopping-cart',
-        priority,
-        related_type: 'purchase',
-        related_id: purchaseId,
-        action_url: '/pembelian',
-        is_read: false,
-        is_archived: false,
-      });
-    } catch (error) {
-      logger.error('Error creating purchase notification:', error);
-    }
-  }, [addNotification]);
+  // ✅ Mutations for CRUD operations
+  const createMutation = useMutation({
+    mutationFn: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => 
+      createPurchase(purchase, user!.id),
+    onSuccess: async (result, variables) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
 
-  // ✅ OPTIMIZED: Data fetching with better error handling
-  const fetchPurchases = useCallback(async () => {
-    if (!user) {
-      setPurchases([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('tanggal', { ascending: false });
-
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
-
-      if (data) {
-        const transformedPurchases = transformPurchasesFromDB(data);
-        setPurchases(transformedPurchases);
-        if (process.env.NODE_ENV === 'development') {
-          logger.context('PurchaseContext', 'Loaded purchases:', transformedPurchases.length);
-        }
-      }
-    } catch (err: any) {
-      const errorMessage = err.message || 'Gagal memuat data pembelian';
-      logger.error('Error fetching purchases:', err);
-      setError(errorMessage);
-      toast.error(`Gagal memuat pembelian: ${errorMessage}`);
-      
-      await createPurchaseNotification(
-        '❌ Error Sistem',
-        `Gagal memuat data pembelian: ${errorMessage}`,
-        'error',
-        4
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, createPurchaseNotification]);
-
-  // ✅ MEMOIZED: Public refresh method
-  const refreshPurchases = useCallback(async () => {
-    await fetchPurchases();
-  }, [fetchPurchases]);
-
-  // ✅ OPTIMIZED: Add purchase with consolidated logic
-  const addPurchase = useCallback(async (
-    purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
-  ): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login untuk menambahkan pembelian');
-      return false;
-    }
-
-    // ✅ EARLY VALIDATION
-    const validationErrors = validatePurchaseData(purchase);
-    if (validationErrors.length > 0) {
-      toast.error(validationErrors[0]);
-      return false;
-    }
-
-    try {
-      const purchaseDataForRPC = transformPurchaseForDB(purchase, user.id);
-
-      const { error } = await supabase.rpc('add_purchase_and_update_stock', {
-        purchase_data: purchaseDataForRPC,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // ✅ CONSOLIDATED: Success handling
-      const supplierName = getSupplierName(purchase.supplier);
-      const itemCount = purchase.items?.length || 0;
-      const totalValue = formatCurrency(purchase.totalNilai);
+      const supplierName = getSupplierName(variables.supplier);
+      const itemCount = variables.items?.length || 0;
+      const totalValue = formatCurrency(variables.totalNilai);
 
       // Activity log
       if (addActivity && typeof addActivity === 'function') {
@@ -192,71 +227,51 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
       }
 
-      // Success feedback
-      toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
-
+      // Success notification
       await createPurchaseNotification(
+        addNotification,
         '📦 Pembelian Baru Dibuat!',
         `Pembelian dari ${supplierName} senilai ${totalValue} dengan ${itemCount} item berhasil dibuat`,
         'success',
         2
       );
 
-      return true;
-    } catch (error: any) {
-      const errorMessage = error.message || 'Unknown error';
-      logger.error('Error adding purchase:', error);
-      toast.error(`Gagal memproses pembelian: ${errorMessage}`);
-
+      toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
+      logger.info('🎉 Create purchase mutation success');
+    },
+    onError: async (error: Error, variables) => {
+      logger.error('❌ Create purchase mutation error:', error.message);
+      
       await createPurchaseNotification(
+        addNotification,
         '❌ Pembelian Gagal',
-        `Gagal memproses pembelian: ${errorMessage}`,
+        `Gagal memproses pembelian: ${error.message}`,
         'error',
         4
       );
+      
+      toast.error(`Gagal memproses pembelian: ${error.message}`);
+    },
+  });
 
-      return false;
-    }
-  }, [user, getSupplierName, addActivity, createPurchaseNotification]);
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => 
+      updatePurchase(id, updates),
+    onMutate: async ({ id }) => {
+      // Find the old purchase for status handling
+      const oldPurchase = purchases.find(p => p.id === id);
+      return { oldPurchase };
+    },
+    onSuccess: async (result, { id, updates }, context) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
 
-  // ✅ OPTIMIZED: Update purchase with better status handling
-  const updatePurchase = useCallback(async (
-    id: string,
-    updatedData: Partial<Purchase>
-  ): Promise<boolean> => {
-    if (!user) {
-      toast.error('Anda harus login.');
-      return false;
-    }
+      const oldPurchase = context?.oldPurchase;
+      if (!oldPurchase) return;
 
-    if (!id || typeof id !== 'string') {
-      toast.error('ID pembelian tidak valid');
-      return false;
-    }
-
-    // ✅ MEMOIZED: Find old purchase
-    const oldPurchase = purchases.find(p => p.id === id);
-    if (!oldPurchase) {
-      toast.error('Data pembelian lama tidak ditemukan.');
-      return false;
-    }
-
-    try {
-      const purchaseToUpdate = transformPurchaseUpdateForDB(updatedData);
-
-      const { error } = await supabase
-        .from('purchases')
-        .update(purchaseToUpdate)
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // ✅ CONSOLIDATED: Status change handling
       const supplierName = getSupplierName(oldPurchase.supplier);
       const oldStatus = oldPurchase.status;
-      const newStatus = updatedData.status;
+      const newStatus = updates.status;
       const totalValue = formatCurrency(oldPurchase.totalNilai);
       let wasExpenseRecorded = false;
 
@@ -286,6 +301,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               }
 
               await createPurchaseNotification(
+                addNotification,
                 '✅ Pembelian Selesai!',
                 `Pembelian dari ${supplierName} senilai ${totalValue} telah selesai dan pengeluaran tercatat`,
                 'success',
@@ -293,26 +309,22 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                 id
               );
             } else {
-              toast.error('Pembelian diperbarui, tapi gagal mencatat pengeluaran.');
-
               await createPurchaseNotification(
+                addNotification,
                 '⚠️ Pembelian Diperbarui, Pengeluaran Gagal',
                 `Status pembelian dari ${supplierName} berhasil diubah, tetapi gagal mencatat pengeluaran ${totalValue}`,
                 'warning',
                 3,
                 id
               );
-
-              return true;
             }
           }
         } catch (financialError) {
           logger.error('Error recording financial transaction:', financialError);
-          toast.warning('Pembelian diperbarui, tapi ada masalah dengan pencatatan keuangan');
         }
       }
 
-      // ✅ CONSOLIDATED: Success notifications
+      // Success feedback
       if (wasExpenseRecorded) {
         toast.success('Status diubah & pengeluaran berhasil dicatat.');
       } else {
@@ -321,6 +333,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         // Status change notification
         if (newStatus && oldStatus !== newStatus) {
           await createPurchaseNotification(
+            addNotification,
             '📝 Status Pembelian Diubah',
             `Pembelian dari ${supplierName} diubah dari "${getStatusDisplayText(oldStatus)}" menjadi "${getStatusDisplayText(newStatus)}"`,
             'info',
@@ -330,27 +343,144 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       }
 
-      return true;
-    } catch (error: any) {
-      const errorMessage = error.message || 'Unknown error';
-      logger.error('Error updating purchase:', error);
-      toast.error(`Gagal memperbarui pembelian: ${errorMessage}`);
-
+      logger.info('🎉 Update purchase mutation success');
+    },
+    onError: async (error: Error, { id }) => {
+      logger.error('❌ Update purchase mutation error:', error.message);
+      
+      const oldPurchase = purchases.find(p => p.id === id);
+      const supplierName = oldPurchase ? getSupplierName(oldPurchase.supplier) : 'Unknown';
+      
       await createPurchaseNotification(
+        addNotification,
         '❌ Update Gagal',
-        `Gagal memperbarui pembelian dari ${getSupplierName(oldPurchase.supplier)}: ${errorMessage}`,
+        `Gagal memperbarui pembelian dari ${supplierName}: ${error.message}`,
         'error',
         4,
         id
       );
+      
+      toast.error(`Gagal memperbarui pembelian: ${error.message}`);
+    },
+  });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deletePurchase(id),
+    onMutate: async (id) => {
+      // Find purchase for activity log
+      const purchaseToDelete = purchases.find(p => p.id === id);
+      return { purchaseToDelete };
+    },
+    onSuccess: async (result, id, context) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
+
+      if (context?.purchaseToDelete) {
+        const supplierName = getSupplierName(context.purchaseToDelete.supplier);
+        const totalValue = formatCurrency(context.purchaseToDelete.totalNilai);
+
+        // Activity log
+        if (addActivity && typeof addActivity === 'function') {
+          addActivity({
+            title: 'Pembelian Dihapus',
+            description: `Pembelian dari ${supplierName} telah dihapus.`,
+            type: 'purchase',
+            value: null,
+          });
+        }
+
+        // Success notification
+        await createPurchaseNotification(
+          addNotification,
+          '🗑️ Pembelian Dihapus',
+          `Pembelian dari ${supplierName} senilai ${totalValue} telah dihapus dari sistem`,
+          'warning',
+          2
+        );
+
+        toast.success('Pembelian berhasil dihapus.');
+      }
+
+      logger.info('🎉 Delete purchase mutation success');
+    },
+    onError: async (error: Error, id) => {
+      logger.error('❌ Delete purchase mutation error:', error.message);
+      
+      const purchaseToDelete = purchases.find(p => p.id === id);
+      const supplierName = purchaseToDelete ? getSupplierName(purchaseToDelete.supplier) : 'Unknown';
+      
+      await createPurchaseNotification(
+        addNotification,
+        '❌ Hapus Gagal',
+        `Gagal menghapus pembelian dari ${supplierName}: ${error.message}`,
+        'error',
+        4,
+        id
+      );
+      
+      toast.error(`Gagal menghapus pembelian: ${error.message}`);
+    },
+  });
+
+  // ✅ Real-time subscription using useEffect (stable dependencies)
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    logger.info('🔄 Setting up real-time subscription for purchases');
+
+    const channel = supabase
+      .channel(`realtime-purchases-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchases',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        logger.info('📡 Real-time purchase event received:', payload.eventType);
+
+        // Invalidate queries to refetch fresh data
+        queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
+      })
+      .subscribe();
+
+    return () => {
+      logger.debug('🧹 Cleaning up purchase real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]); // ✅ Stable dependencies only
+
+  // ✅ Context action functions using mutations
+  const addPurchase = useCallback(async (
+    purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  ): Promise<boolean> => {
+    if (!user) {
+      logger.warn('🔐 Add purchase attempted without authentication');
+      toast.error('Anda harus login untuk menambahkan pembelian');
       return false;
     }
-  }, [user, purchases, getSupplierName, addTransaction, addActivity, createPurchaseNotification]);
 
-  // ✅ OPTIMIZED: Delete purchase with consolidated error handling
-  const deletePurchase = useCallback(async (id: string): Promise<boolean> => {
+    // Early validation
+    const validationErrors = validatePurchaseData(purchase);
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0]);
+      return false;
+    }
+
+    try {
+      await createMutation.mutateAsync(purchase);
+      return true;
+    } catch (error) {
+      logger.error('❌ Add purchase failed:', error);
+      return false;
+    }
+  }, [user, createMutation]);
+
+  const updatePurchaseAction = useCallback(async (
+    id: string,
+    updatedData: Partial<Purchase>
+  ): Promise<boolean> => {
     if (!user) {
+      logger.warn('🔐 Update purchase attempted without authentication');
       toast.error('Anda harus login.');
       return false;
     }
@@ -360,7 +490,35 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return false;
     }
 
-    // ✅ MEMOIZED: Find purchase to delete
+    // Check if purchase exists
+    const oldPurchase = purchases.find(p => p.id === id);
+    if (!oldPurchase) {
+      toast.error('Data pembelian lama tidak ditemukan.');
+      return false;
+    }
+
+    try {
+      await updateMutation.mutateAsync({ id, updates: updatedData });
+      return true;
+    } catch (error) {
+      logger.error('❌ Update purchase failed:', error);
+      return false;
+    }
+  }, [user, purchases, updateMutation]);
+
+  const deletePurchaseAction = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      logger.warn('🔐 Delete purchase attempted without authentication');
+      toast.error('Anda harus login.');
+      return false;
+    }
+
+    if (!id || typeof id !== 'string') {
+      toast.error('ID pembelian tidak valid');
+      return false;
+    }
+
+    // Check if purchase exists
     const purchaseToDelete = purchases.find(p => p.id === id);
     if (!purchaseToDelete) {
       toast.error('Data pembelian tidak ditemukan.');
@@ -368,193 +526,49 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     try {
-      const { error } = await supabase
-        .from('purchases')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // ✅ CONSOLIDATED: Success handling
-      const supplierName = getSupplierName(purchaseToDelete.supplier);
-      const totalValue = formatCurrency(purchaseToDelete.totalNilai);
-
-      // Activity log
-      if (addActivity && typeof addActivity === 'function') {
-        addActivity({
-          title: 'Pembelian Dihapus',
-          description: `Pembelian dari ${supplierName} telah dihapus.`,
-          type: 'purchase',
-          value: null,
-        });
-      }
-
-      // Success feedback
-      toast.success('Pembelian berhasil dihapus.');
-
-      await createPurchaseNotification(
-        '🗑️ Pembelian Dihapus',
-        `Pembelian dari ${supplierName} senilai ${totalValue} telah dihapus dari sistem`,
-        'warning',
-        2
-      );
-
+      await deleteMutation.mutateAsync(id);
       return true;
-    } catch (error: any) {
-      const errorMessage = error.message || 'Unknown error';
-      logger.error('Error deleting purchase:', error);
-      toast.error(`Gagal menghapus pembelian: ${errorMessage}`);
-
-      await createPurchaseNotification(
-        '❌ Hapus Gagal',
-        `Gagal menghapus pembelian dari ${getSupplierName(purchaseToDelete.supplier)}: ${errorMessage}`,
-        'error',
-        4,
-        id
-      );
-
+    } catch (error) {
+      logger.error('❌ Delete purchase failed:', error);
       return false;
     }
-  }, [user, purchases, getSupplierName, addActivity, createPurchaseNotification]);
+  }, [user, purchases, deleteMutation]);
 
-  // ✅ EFFECT: Initial data fetch (optimized)
-  useEffect(() => {
-    fetchPurchases();
-  }, [fetchPurchases]);
+  const refreshPurchases = useCallback(async (): Promise<void> => {
+    logger.info('🔄 Manual refresh purchases requested');
+    await refetch();
+  }, [refetch]);
 
-  // ✅ FIXED: Real-time subscription - no more spam!
-  useEffect(() => {
-    let mounted = true;
+  // ✅ Handle query error with notification
+  React.useEffect(() => {
+    if (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      createPurchaseNotification(
+        addNotification,
+        '❌ Error Sistem',
+        `Gagal memuat data pembelian: ${errorMessage}`,
+        'error',
+        4
+      );
+    }
+  }, [error, addNotification]);
 
-    const setupSubscription = () => {
-      // ✅ Cleanup previous subscription first
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-
-      if (setupTimeoutRef.current) {
-        clearTimeout(setupTimeoutRef.current);
-      }
-
-      if (!user || !mounted) return;
-
-      // ✅ Check if user changed to prevent duplicate subscriptions
-      if (currentUserRef.current?.id === user.id && channelRef.current) {
-        return; // Same user, subscription already exists
-      }
-
-      currentUserRef.current = user;
-
-      // ✅ Small delay to prevent rapid re-creation
-      setupTimeoutRef.current = setTimeout(() => {
-        if (!mounted || !user) return;
-
-        const channelName = `realtime-purchases-${user.id}-${Date.now()}`;
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[PurchaseContext] Setting up subscription: ${channelName}`);
-        }
-
-        channelRef.current = supabase
-          .channel(channelName)
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'purchases',
-            filter: `user_id=eq.${user.id}`,
-          }, (payload) => {
-            if (!mounted) return;
-
-            try {
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[PurchaseContext] Real-time event: ${payload.eventType}`);
-              }
-
-              if (payload.eventType === 'INSERT' && payload.new) {
-                const newPurchase = transformRealtimePayload(payload);
-                if (newPurchase) {
-                  setPurchases(current => {
-                    // ✅ OPTIMIZED: Prevent duplicates and maintain sort order
-                    const exists = current.find(p => p.id === newPurchase.id);
-                    if (exists) return current;
-                    
-                    return [newPurchase, ...current].sort((a, b) =>
-                      new Date(b.tanggal!).getTime() - new Date(a.tanggal!).getTime()
-                    );
-                  });
-                }
-              } else if (payload.eventType === 'UPDATE' && payload.new) {
-                const updatedPurchase = transformRealtimePayload(payload);
-                if (updatedPurchase) {
-                  setPurchases(current => 
-                    current.map(item => 
-                      item.id === updatedPurchase.id ? updatedPurchase : item
-                    )
-                  );
-                }
-              } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-                setPurchases(current => 
-                  current.filter(item => item.id !== payload.old.id)
-                );
-              }
-            } catch (error) {
-              logger.error('Real-time update error:', error);
-              toast.error('Error dalam pembaruan real-time data pembelian');
-            }
-          })
-          .subscribe((status) => {
-            if (!mounted) return;
-
-            if (status === 'SUBSCRIBED') {
-              if (process.env.NODE_ENV === 'development') {
-                console.log('[PurchaseContext] Real-time connected');
-              }
-            } else if (status === 'SUBSCRIPTION_ERROR') {
-              logger.error('PurchaseContext: Real-time subscription failed');
-            }
-          });
-      }, 200);
-    };
-
-    setupSubscription();
-
-    return () => {
-      mounted = false;
-      
-      if (setupTimeoutRef.current) {
-        clearTimeout(setupTimeoutRef.current);
-      }
-      
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      
-      currentUserRef.current = null;
-    };
-  }, [user]); // ✅ Only depend on user
-
-  // ✅ MEMOIZED: Context value for better performance
-  const contextValue = useMemo<PurchaseContextType>(() => ({
+  // ✅ Context value with enhanced state from useQuery
+  const contextValue: PurchaseContextType = {
     purchases,
-    isLoading,
-    error,
+    isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    error: error ? (error as Error).message : null,
     addPurchase,
-    updatePurchase,
-    deletePurchase,
+    updatePurchase: updatePurchaseAction,
+    deletePurchase: deletePurchaseAction,
     refreshPurchases,
-  }), [
-    purchases,
-    isLoading,
-    error,
-    addPurchase,
-    updatePurchase,
-    deletePurchase,
-    refreshPurchases
-  ]);
+  };
+
+  logger.debug('🎯 PurchaseContext value prepared:', {
+    purchasesCount: purchases.length,
+    isLoading: contextValue.isLoading,
+    hasError: !!contextValue.error
+  });
 
   return (
     <PurchaseContext.Provider value={contextValue}>
@@ -563,7 +577,6 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-// ✅ OPTIMIZED: Custom hook with error handling
 export const usePurchase = () => {
   const context = useContext(PurchaseContext);
   if (context === undefined) {

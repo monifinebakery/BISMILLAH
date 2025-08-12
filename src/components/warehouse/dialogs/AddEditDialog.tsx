@@ -553,7 +553,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Beli Kemasan</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Kemasan yang Dibeli</label>
                       <Input
                         type="number"
                         value={formData.jumlahBeliKemasan}

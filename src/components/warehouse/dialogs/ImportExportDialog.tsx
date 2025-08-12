@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // ✅ Updated interface to match BahanBakuFrontend structure
 interface BahanBakuImport {
@@ -15,6 +16,7 @@ interface BahanBakuImport {
   stok: number; // ✅ Changed from stok_saat_ini
   minimum: number; // ✅ Changed from minimum_stok
   jumlahBeliKemasan: number; // ✅ Changed from jumlah_beli_kemasan
+  isiPerKemasan: number; // ✅ NEW: Added isi_per_kemasan field
   satuanKemasan: string; // ✅ Changed from satuan_kemasan
   hargaTotalBeliKemasan: number; // ✅ Changed from harga_total_beli_kemasan
 }
@@ -105,6 +107,12 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'package_qty': 'jumlahBeliKemasan',
     'kemasan_qty': 'jumlahBeliKemasan',
     
+    // Package content variations (NEW)
+    'isi_per_kemasan': 'isiPerKemasan',
+    'content_per_package': 'isiPerKemasan',
+    'package_content': 'isiPerKemasan',
+    'isi_kemasan': 'isiPerKemasan',
+    
     // Package unit variations
     'satuan_kemasan': 'satuanKemasan', 
     'kemasan': 'satuanKemasan',
@@ -122,7 +130,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
   // ✅ Updated required fields
   const requiredFields = [
     'nama', 'kategori', 'supplier', 'satuan', 'stok', 'minimum', 
-    'jumlahBeliKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
+    'jumlahBeliKemasan', 'isiPerKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
   ];
 
   // ✅ Enhanced validation function
@@ -145,6 +153,9 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     }
     if (isNaN(data.jumlahBeliKemasan) || data.jumlahBeliKemasan <= 0) {
       errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
+    }
+    if (isNaN(data.isiPerKemasan) || data.isiPerKemasan <= 0) {
+      errors.push('Isi per kemasan tidak valid (harus angka > 0)');
     }
     if (isNaN(data.hargaTotalBeliKemasan) || data.hargaTotalBeliKemasan <= 0) {
       errors.push('Harga total tidak valid (harus angka > 0)');
@@ -174,7 +185,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       const XLSX = await import('xlsx');
       return XLSX;
     } catch (error) {
-      console.error('Failed to load XLSX:', error);
+      logger.error('Failed to load XLSX:', error);
       toast.error('Gagal memuat library Excel. Silakan refresh halaman.');
       throw error;
     }
@@ -247,7 +258,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
             let value = row[key];
             
             // Process numeric fields
-            if (['stok', 'minimum', 'jumlahBeliKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
+            if (['stok', 'minimum', 'jumlahBeliKemasan', 'isiPerKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
               // Clean and parse numbers
               const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
               value = parseFloat(cleanValue) || 0;
@@ -311,7 +322,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       }
       
     } catch (error: any) {
-      console.error('Processing error:', error);
+      logger.error('Processing error:', error);
       toast.error(`Error memproses file: ${error.message}`);
     } finally {
       setLoading(false);
@@ -326,7 +337,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       
       const XLSX = await loadXLSX();
       
-      // ✅ Updated template with correct field names
+      // ✅ Updated template with correct field names including isiPerKemasan
       const template = [
         {
           nama: 'Tepung Terigu Premium',
@@ -337,7 +348,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
           stok: 5000,
           minimum: 1000,
           jumlahBeliKemasan: 2,
-          satuanKemasan: 'sak 25kg',
+          isiPerKemasan: 25000, // ✅ NEW: Added isi per kemasan
+          satuanKemasan: 'sak',
           hargaTotalBeliKemasan: 150000
         },
         {
@@ -349,7 +361,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
           stok: 3000,
           minimum: 500,
           jumlahBeliKemasan: 1,
-          satuanKemasan: 'karton 1kg',
+          isiPerKemasan: 1000, // ✅ NEW: Added isi per kemasan
+          satuanKemasan: 'karton',
           hargaTotalBeliKemasan: 18000
         },
         {
@@ -361,7 +374,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
           stok: 2000,
           minimum: 300,
           jumlahBeliKemasan: 4,
-          satuanKemasan: 'botol 500ml',
+          isiPerKemasan: 500, // ✅ NEW: Added isi per kemasan
+          satuanKemasan: 'botol',
           hargaTotalBeliKemasan: 60000
         }
       ];
@@ -379,6 +393,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
         { wch: 8 },  // stok
         { wch: 8 },  // minimum
         { wch: 15 }, // jumlahBeliKemasan
+        { wch: 12 }, // isiPerKemasan ✅ NEW
         { wch: 15 }, // satuanKemasan
         { wch: 18 }  // hargaTotalBeliKemasan
       ];
@@ -390,7 +405,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       
       toast.success('Template berhasil di-download');
     } catch (error) {
-      console.error('Template download error:', error);
+      logger.error('Template download error:', error);
       toast.error('Gagal membuat template');
     } finally {
       setLoading(false);
@@ -409,7 +424,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
         onClose();
       }
     } catch (error: any) {
-      console.error('Import error:', error);
+      logger.error('Import error:', error);
       toast.error(`Gagal mengimpor data: ${error.message}`);
     } finally {
       setLoading(false);
@@ -532,6 +547,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                   <div><span className="font-medium">minimum</span> - Stok minimum</div>
                   <div><span className="font-medium">expiry</span> - Tanggal kadaluarsa (opsional)</div>
                   <div><span className="font-medium">jumlahBeliKemasan</span> - Jumlah kemasan</div>
+                  <div><span className="font-medium">isiPerKemasan</span> - Isi per kemasan ✅ NEW</div>
                   <div><span className="font-medium">satuanKemasan</span> - Jenis kemasan</div>
                   <div><span className="font-medium">hargaTotalBeliKemasan</span> - Harga total</div>
                 </div>
@@ -627,6 +643,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Supplier</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Stok</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Isi/Kemasan</th> {/* ✅ NEW */}
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
                         </tr>
                       </thead>
@@ -644,6 +661,9 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                             </td>
                             <td className="px-3 py-2 text-gray-600">
                               {item.jumlahBeliKemasan} {item.satuanKemasan}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600"> {/* ✅ NEW */}
+                              {item.isiPerKemasan} {item.satuan}
                             </td>
                             <td className="px-3 py-2 text-gray-600">
                               Rp {item.hargaTotalBeliKemasan?.toLocaleString('id-ID')}

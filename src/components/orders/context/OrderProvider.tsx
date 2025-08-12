@@ -1,4 +1,4 @@
-// src/components/orders/context/OrderProvider.tsx - FIXED VERSION (No Circular Dependencies)
+// src/components/orders/context/OrderProvider.tsx - FIXED VERSION (Hooks Order Fixed)
 
 import React, { ReactNode, useMemo, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/utils/logger';
@@ -20,7 +20,7 @@ interface OrderProviderProps {
   children: ReactNode;
 }
 
-// ✅ Helper function untuk format currency
+// ✅ Helper function untuk format currency (outside component)
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', { 
     style: 'currency', 
@@ -30,7 +30,7 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// ✅ Helper function untuk toast notifications
+// ✅ Helper function untuk toast notifications (outside component)
 const showToastNotification = (notification: any) => {
   const { title, message, type = 'info' } = notification;
   
@@ -50,14 +50,15 @@ const showToastNotification = (notification: any) => {
 };
 
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
+  // ✅ FIX: ALL HOOKS MUST BE CALLED IN SAME ORDER EVERY RENDER
+  // Step 1: All hooks at the top, no conditions
   const { user } = useAuth();
   const mountedRef = useRef(true);
-  
-  // ✅ Track if callbacks are ready
   const callbacksReadyRef = useRef(false);
-
-  // ✅ FIX: Stabilize function references with useCallback
+  
+  // ✅ FIX: All useCallback hooks MUST be called regardless of conditions
   const addActivityDirect = useCallback(async (activity: { title: string; description: string; type: string }) => {
+    // Check conditions INSIDE the callback, not before creating it
     if (!user?.id) {
       logger.warn('OrderProvider', 'Cannot add activity - no user');
       return;
@@ -78,7 +79,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         logger.error('OrderProvider', 'Database error adding activity:', error);
       }
       
-      // Show simple toast
       toast(`📝 ${activity.title}`, { 
         description: activity.description,
         duration: 3000 
@@ -87,16 +87,15 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       logger.debug('OrderProvider', 'Activity logged:', activity.title);
     } catch (error) {
       logger.error('OrderProvider', 'Failed to log activity:', error);
-      // Still show toast even if DB fails
       toast(`📝 ${activity.title}`, { 
         description: activity.description,
         duration: 3000 
       });
     }
-  }, [user?.id]);
+  }, [user?.id]); // Stable dependency
 
-  // ✅ FIX: Stabilize with useCallback
   const addTransactionDirect = useCallback(async (transaction: any) => {
+    // Check conditions INSIDE the callback
     if (!user?.id) {
       logger.warn('OrderProvider', 'Cannot add transaction - no user');
       return;
@@ -120,7 +119,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         logger.error('OrderProvider', 'Database error adding transaction:', error);
       }
       
-      // Show formatted toast
       toast.success(`💰 Transaksi Dicatat`, { 
         description: `${transaction.description}: ${formatCurrency(transaction.amount)}`,
         duration: 4000 
@@ -129,7 +127,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       logger.debug('OrderProvider', 'Transaction logged:', transaction.description);
     } catch (error) {
       logger.error('OrderProvider', 'Failed to log transaction:', error);
-      // Fallback to toast only
       toast.success(`💰 Pemasukan Dicatat`, { 
         description: `${transaction.description}: ${formatCurrency(transaction.amount)}`,
         duration: 4000 
@@ -137,19 +134,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // ✅ FIX: Stabilize settings with useMemo
-  const settingsDirect = useMemo(() => ({
-    financialCategories: {
-      income: ['Penjualan Produk', 'Penjualan Jasa', 'Lainnya'],
-      expense: ['Biaya Operasional', 'Biaya Bahan', 'Lainnya']
-    },
-    currency: 'IDR',
-    taxRate: 0.11,
-    timezone: 'Asia/Jakarta'
-  }), []); // Never changes
-
-  // ✅ FIX: Stabilize with useCallback
   const addNotificationDirect = useCallback(async (notification: any) => {
+    // Check conditions INSIDE the callback
     if (!user?.id) {
       logger.warn('OrderProvider', 'Cannot add notification - no user');
       showToastNotification(notification);
@@ -177,28 +163,26 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         logger.error('OrderProvider', 'Database error adding notification:', error);
       }
       
-      // Show toast notification
       showToastNotification(notification);
-      
       logger.debug('OrderProvider', 'Notification created:', notification.title);
     } catch (error) {
       logger.error('OrderProvider', 'Failed to create notification:', error);
-      // Fallback to toast only
       showToastNotification(notification);
     }
   }, [user?.id]);
 
-  // ✅ Mark callbacks as ready
-  useEffect(() => {
-    if (user?.id) {
-      callbacksReadyRef.current = true;
-      logger.debug('OrderProvider', 'Callbacks ready for user:', user.id);
-    } else {
-      callbacksReadyRef.current = false;
-    }
-  }, [user?.id]);
+  // ✅ FIX: useMemo must also be called unconditionally
+  const settingsDirect = useMemo(() => ({
+    financialCategories: {
+      income: ['Penjualan Produk', 'Penjualan Jasa', 'Lainnya'],
+      expense: ['Biaya Operasional', 'Biaya Bahan', 'Lainnya']
+    },
+    currency: 'IDR',
+    taxRate: 0.11,
+    timezone: 'Asia/Jakarta'
+  }), []); // Never changes
 
-  // ✅ CALL useOrderData with stabilized functions
+  // ✅ FIX: useOrderData MUST always be called
   const orderData = useOrderData(
     user,
     addActivityDirect,
@@ -207,9 +191,19 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     addNotificationDirect
   );
 
-  const isReady = !!(user && callbacksReadyRef.current);
+  // ✅ FIX: All useEffect hooks MUST be called in same order
+  // Effect 1: Track callbacks readiness
+  useEffect(() => {
+    if (user?.id) {
+      callbacksReadyRef.current = true;
+      logger.debug('OrderProvider', 'Callbacks ready for user:', user.id);
+    } else {
+      callbacksReadyRef.current = false;
+      logger.debug('OrderProvider', 'Callbacks not ready - no user');
+    }
+  }, [user?.id]);
 
-  // ✅ Component mount/unmount tracking
+  // Effect 2: Component mount/unmount
   useEffect(() => {
     mountedRef.current = true;
     logger.context('OrderProvider', 'Component mounted');
@@ -220,20 +214,22 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // ✅ Debug logging for state changes
+  // Effect 3: Debug logging
   useEffect(() => {
     logger.context('OrderProvider', 'State update', {
       hasUser: !!user,
       userId: user?.id || 'no_user',
-      isReady,
       callbacksReady: callbacksReadyRef.current,
       orderCount: orderData.orders.length,
       loading: orderData.loading,
       connected: orderData.isConnected
     });
-  }, [user?.id, isReady, orderData.orders.length, orderData.loading, orderData.isConnected]);
+  }, [user?.id, orderData.orders.length, orderData.loading, orderData.isConnected]);
 
-  // ✅ UTILITY METHODS with stable references
+  // ✅ Computed values (not hooks, safe to compute conditionally)
+  const isReady = !!(user && callbacksReadyRef.current);
+
+  // ✅ FIX: useMemo for utility methods - must be called unconditionally
   const utilityMethods = useMemo(() => ({
     getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
       try {
@@ -286,12 +282,21 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     
     getProcessingOrdersCount: (): number => {
       return orderData.orders.filter(order => order.status === 'processing').length;
+    },
+    
+    getCompletedOrdersCount: (): number => {
+      return orderData.orders.filter(order => order.status === 'completed').length;
+    },
+    
+    getCancelledOrdersCount: (): number => {
+      return orderData.orders.filter(order => order.status === 'cancelled').length;
     }
   }), [orderData.orders]);
 
-  // ✅ CONTEXT VALUE with stable memoization
+  // ✅ FIX: Final context value - useMemo must be called unconditionally
   const contextValue = useMemo(() => {
-    // Return empty state if not ready
+    // We can RETURN different values based on conditions
+    // but the useMemo itself must always be called
     if (!isReady) {
       logger.debug('OrderProvider', 'Context not ready, returning empty state');
       return {
@@ -300,22 +305,27 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         isConnected: false,
         addOrder: async () => {
           logger.warn('OrderProvider', 'addOrder called before ready');
+          toast.error('Sistem belum siap');
           return false;
         },
         updateOrder: async () => {
           logger.warn('OrderProvider', 'updateOrder called before ready');
+          toast.error('Sistem belum siap');
           return false;
         },
         deleteOrder: async () => {
           logger.warn('OrderProvider', 'deleteOrder called before ready');
+          toast.error('Sistem belum siap');
           return false;
         },
         bulkUpdateStatus: async () => {
           logger.warn('OrderProvider', 'bulkUpdateStatus called before ready');
+          toast.error('Sistem belum siap');
           return false;
         },
         bulkDeleteOrders: async () => {
           logger.warn('OrderProvider', 'bulkDeleteOrders called before ready');
+          toast.error('Sistem belum siap');
           return false;
         },
         refreshData: async () => {
@@ -328,6 +338,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         getTotalRevenue: () => 0,
         getPendingOrdersCount: () => 0,
         getProcessingOrdersCount: () => 0,
+        getCompletedOrdersCount: () => 0,
+        getCancelledOrdersCount: () => 0,
         contextReady: false,
       };
     }
@@ -359,12 +371,14 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       getTotalRevenue: utilityMethods.getTotalRevenue,
       getPendingOrdersCount: utilityMethods.getPendingOrdersCount,
       getProcessingOrdersCount: utilityMethods.getProcessingOrdersCount,
+      getCompletedOrdersCount: utilityMethods.getCompletedOrdersCount,
+      getCancelledOrdersCount: utilityMethods.getCancelledOrdersCount,
       
       // Ready flag
       contextReady: true,
     };
 
-    logger.success('OrderProvider', '✅ Context ready with stabilized functions', {
+    logger.success('OrderProvider', '✅ Context fully ready', {
       userId: user?.id,
       orderCount: orderData.orders.length,
       loading: fullContext.loading,
@@ -374,6 +388,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
     return fullContext;
   }, [
+    // ✅ FIX: Stable dependency list
+    isReady,
     orderData.orders,
     orderData.loading,
     orderData.isConnected,
@@ -386,10 +402,10 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     orderData.getOrderById,
     orderData.getOrdersByStatus,
     utilityMethods,
-    isReady,
     user?.id
   ]);
 
+  // ✅ ALWAYS return the same JSX structure
   return (
     <FollowUpTemplateProvider>
       <OrderContext.Provider value={contextValue}>

@@ -1,10 +1,9 @@
-// ===== 2. UPDATE WarehousePage.tsx =====
 // src/components/warehouse/WarehousePage.tsx
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
-// ✅ TAMBAH: Import useQuery
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 // SINGLE IMPORT - Reduced from multiple imports
 import { 
@@ -99,12 +98,17 @@ const createWarehouseItem = async (item: Partial<BahanBakuFrontend>): Promise<Ba
 
 const updateWarehouseItem = async ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }): Promise<BahanBakuFrontend> => {
   try {
+    logger.info('updateWarehouseItem called', { id, item });
+    
     const service = await getCrudService();
     
     const success = await service.updateBahanBaku(id, item);
     if (!success) {
+      logger.error('Update failed in service', { id, item });
       throw new Error('Failed to update item');
     }
+    
+    logger.info('Update successful in service', { id, item });
     
     // Return updated item (you might want to fetch it back for the real data)
     return { 
@@ -268,9 +272,11 @@ const useWarehouseData = () => {
       setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
+      toast.success(`Item "${newItem.nama}" berhasil ditambahkan!`);
     },
     onError: (error: Error) => {
       logger.error('❌ Gagal menambah item:', error.message);
+      toast.error(`Gagal menambah item: ${error.message}`);
     },
   });
 
@@ -281,9 +287,11 @@ const useWarehouseData = () => {
       setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info(`✅ Item "${updatedItem.nama}" berhasil diperbarui`);
+      toast.success(`Item "${updatedItem.nama}" berhasil diperbarui!`);
     },
     onError: (error: Error) => {
       logger.error('❌ Gagal memperbarui item:', error.message);
+      toast.error(`Gagal memperbarui item: ${error.message}`);
     },
   });
 
@@ -294,9 +302,11 @@ const useWarehouseData = () => {
       setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info('✅ Item berhasil dihapus');
+      toast.success('Item berhasil dihapus!');
     },
     onError: (error: Error) => {
       logger.error('❌ Gagal menghapus item:', error.message);
+      toast.error(`Gagal menghapus item: ${error.message}`);
     },
   });
 
@@ -362,15 +372,18 @@ const WarehousePageContent: React.FC = () => {
         core.dialogs?.close?.('addItem');
       } catch (error) {
         logger.error('Create handler error:', error);
+        toast.error(`Gagal menambah item: ${error.message || 'Unknown error'}`);
       }
     },
     
     update: async (id: string, item: Partial<BahanBakuFrontend>) => {
       try {
+        logger.info('Enhanced update handler called', { id, item });
         await warehouseData.updateItem({ id, item });
-        core.dialogs?.close?.('addItem');
+        core.dialogs?.close?.('editItem'); // ✅ Perbaiki closing dialog
       } catch (error) {
         logger.error('Update handler error:', error);
+        toast.error(`Gagal memperbarui item: ${error.message || 'Unknown error'}`);
       }
     },
     
@@ -381,6 +394,7 @@ const WarehousePageContent: React.FC = () => {
         }
       } catch (error) {
         logger.error('Delete handler error:', error);
+        toast.error(`Gagal menghapus item: ${error.message || 'Unknown error'}`);
       }
     },
   };

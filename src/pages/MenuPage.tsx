@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { performSignOut } from '@/lib/authUtils';
+import { performSignOut, performGlobalSignOut } from '@/lib/authUtils';
 
 import {
   AlertDialog,
@@ -20,16 +20,29 @@ import {
 const MenuPage = () => {
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutType, setLogoutType] = useState<'local' | 'global'>('local');
 
-  const handleLogout = () => {
+  const handleLogout = (type: 'local' | 'global' = 'local') => {
+    setLogoutType(type);
     setShowLogoutConfirm(true);
   };
 
   const confirmLogout = async () => {
     try {
-      const success = await performSignOut();
+      let success;
+      if (logoutType === 'global') {
+        success = await performGlobalSignOut();
+        if (success) {
+          toast.success("Berhasil keluar dari semua perangkat");
+        }
+      } else {
+        success = await performSignOut();
+        if (success) {
+          toast.success("Berhasil keluar dari perangkat ini");
+        }
+      }
+      
       if (success) {
-        toast.success("Berhasil keluar");
         setTimeout(() => {
           window.location.reload();
         }, 500);
@@ -63,7 +76,6 @@ const MenuPage = () => {
       path: '/gudang',
       color: 'from-orange-500 to-orange-600'
     },
-    // ✅ NEW: Biaya Operasional menu item
     {
       title: 'Biaya Operasional',
       description: 'Kelola biaya operasional untuk perhitungan overhead HPP',
@@ -167,19 +179,36 @@ const MenuPage = () => {
           ))}
         </div>
 
-        {/* Tombol Keluar */}
-        <Card className="bg-red-50 border-red-200 rounded-lg">
-          <CardContent className="p-4">
-            <Button
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full flex items-center justify-center gap-2 rounded-md"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Keluar dari Aplikasi</span>
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Logout Options */}
+        <div className="space-y-3">
+          {/* Keluar dari Perangkat Ini */}
+          <Card className="bg-orange-50 border-orange-200 rounded-lg">
+            <CardContent className="p-4">
+              <Button
+                onClick={() => handleLogout('local')}
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 rounded-md border-orange-300 text-orange-600 hover:bg-orange-100"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Keluar dari Perangkat Ini</span>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Keluar dari Semua Perangkat */}
+          <Card className="bg-red-50 border-red-200 rounded-lg">
+            <CardContent className="p-4">
+              <Button
+                onClick={() => handleLogout('global')}
+                variant="destructive"
+                className="w-full flex items-center justify-center gap-2 rounded-md"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Keluar dari Semua Perangkat</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Dialog Konfirmasi Keluar */}
@@ -188,12 +217,17 @@ const MenuPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses fitur-fitur.
+              {logoutType === 'global' 
+                ? "Apakah Anda yakin ingin keluar dari SEMUA perangkat? Anda perlu login kembali di semua perangkat untuk mengakses fitur-fitur."
+                : "Apakah Anda yakin ingin keluar dari perangkat ini? Anda masih akan tetap login di perangkat lain."
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout}>Keluar</AlertDialogAction>
+            <AlertDialogAction onClick={confirmLogout}>
+              {logoutType === 'global' ? 'Keluar dari Semua Perangkat' : 'Keluar dari Perangkat Ini'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

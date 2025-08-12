@@ -49,11 +49,11 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     satuan: frontendItem.satuan,
     harga_satuan: frontendItem.harga,
     supplier: frontendItem.supplier,
-    tanggal_kadaluwarsa: frontendItem.expiry,
-    jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan,
-    isi_per_kemasan: frontendItem.isiPerKemasan, // ✅ NEW: package content
-    satuan_kemasan: frontendItem.satuanKemasan,
-    harga_total_beli_kemasan: frontendItem.hargaTotalBeliKemasan,
+    tanggal_kadaluwarsa: frontendItem.expiry || null, // ✅ Pastikan null jika tidak ada
+    jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan || null, // ✅ Gunakan null jika 0
+    isi_per_kemasan: frontendItem.isiPerKemasan || null,
+    satuan_kemasan: frontendItem.satuanKemasan || null,
+    harga_total_beli_kemasan: frontendItem.hargaTotalBeliKemasan || null,
   };
 
   // Add user_id if provided
@@ -237,7 +237,7 @@ class CrudService {
       const dbUpdates = transformToDatabase(updates);
       
       // Remove user_id from updates to avoid changing ownership
-      delete dbUpdates.user_id;
+      delete (dbUpdates as any).user_id;
 
       logger.debug('Updating item with data:', { id, dbUpdates });
 
@@ -253,7 +253,7 @@ class CrudService {
 
       const { error, data } = await query;
       if (error) {
-        logger.error('Update failed in Supabase:', error);
+        logger.error('Update failed in Supabase:', { error, id, updates: dbUpdates });
         throw error;
       }
       

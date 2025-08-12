@@ -21,14 +21,37 @@ export const cleanupAuthState = () => {
 };
 
 /**
- * Performs a complete sign out, cleaning up auth state and calling Supabase signOut
+ * Performs a local sign out, only affecting the current device/session
  */
 export const performSignOut = async () => {
   try {
     // Clean up auth state first
     cleanupAuthState();
     
-    // Attempt global sign out
+    // Perform LOCAL sign out only (removes { scope: 'global' })
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // Continue even if this fails
+      console.error('Error during Supabase signOut:', err);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error during sign out process:', error);
+    return false;
+  }
+};
+
+/**
+ * Performs a global sign out from ALL devices (optional function for future use)
+ */
+export const performGlobalSignOut = async () => {
+  try {
+    // Clean up auth state first
+    cleanupAuthState();
+    
+    // Perform GLOBAL sign out from all devices
     try {
       await supabase.auth.signOut({ scope: 'global' });
     } catch (err) {

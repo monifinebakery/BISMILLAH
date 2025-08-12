@@ -1,9 +1,9 @@
-// ===== 3. UPDATE AddEditDialog.tsx (SIMPLIFIED VERSION) =====
 // src/components/warehouse/dialogs/AddEditDialog.tsx
+// 🎯 Improved AddEditDialog - Auto Calculate Price & Dropdown Units
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Edit2, Save, AlertCircle, Calculator, RefreshCw } from 'lucide-react';
+import { X, Plus, Edit2, Save, AlertCircle, Calculator, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
@@ -42,7 +42,33 @@ const initialFormData: FormData = {
   satuanKemasan: '', hargaTotalBeliKemasan: 0,
 };
 
-// ✅ SIMPLIFIED: API functions
+// ✅ ADDED: Common units dropdown options
+const commonUnits = [
+  { value: 'gram', label: 'gram', category: 'Berat' },
+  { value: 'kg', label: 'kilogram (kg)', category: 'Berat' },
+  { value: 'ml', label: 'mililiter (ml)', category: 'Volume' },
+  { value: 'liter', label: 'liter', category: 'Volume' },
+  { value: 'pcs', label: 'pieces (pcs)', category: 'Satuan' },
+  { value: 'buah', label: 'buah', category: 'Satuan' },
+  { value: 'lembar', label: 'lembar', category: 'Satuan' },
+  { value: 'pack', label: 'pack', category: 'Kemasan' },
+  { value: 'box', label: 'box', category: 'Kemasan' },
+  { value: 'dus', label: 'dus', category: 'Kemasan' },
+  { value: 'karton', label: 'karton', category: 'Kemasan' },
+  { value: 'sak', label: 'sak', category: 'Kemasan' },
+  { value: 'botol', label: 'botol', category: 'Kemasan' },
+  { value: 'kaleng', label: 'kaleng', category: 'Kemasan' },
+  { value: 'sachet', label: 'sachet', category: 'Kemasan' },
+];
+
+// ✅ ADDED: Common package units
+const commonPackageUnits = [
+  'dus', 'karton', 'sak', 'box', 'pack', 'roll', 'bundle',
+  'krat', 'bal', 'pallet', 'container', 'jerigen', 'drum',
+  'botol besar', 'kaleng besar', 'kemasan bulk'
+];
+
+// API functions
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -64,13 +90,21 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDropdown, setShowDropdown] = useState<{ categories: boolean; suppliers: boolean }>({
-    categories: false, suppliers: false
+  const [showDropdown, setShowDropdown] = useState<{ 
+    categories: boolean; 
+    suppliers: boolean; 
+    units: boolean;
+    packageUnits: boolean;
+  }>({
+    categories: false, 
+    suppliers: false,
+    units: false,
+    packageUnits: false
   });
 
   const isEditMode = mode === 'edit' || !!item;
 
-  // ✅ SIMPLIFIED: useQuery hooks
+  // useQuery hooks
   const { data: queriedCategories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
     queryKey: ['dialog-categories'],
     queryFn: () => fetchDialogData('categories'),
@@ -111,30 +145,49 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     setErrors([]);
   }, [isEditMode, item, isOpen]);
 
-  // Handle field changes
+  // ✅ ENHANCED: Handle field changes with auto-calculation
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
       
-      // Auto-calculate unit price
+      // ✅ AUTO-CALCULATE: Unit price when package info changes
       if (field === 'jumlahBeliKemasan' || field === 'hargaTotalBeliKemasan') {
         const jumlah = field === 'jumlahBeliKemasan' ? Number(value) : updated.jumlahBeliKemasan;
         const total = field === 'hargaTotalBeliKemasan' ? Number(value) : updated.hargaTotalBeliKemasan;
+        
         if (jumlah > 0 && total > 0) {
-          updated.harga = Math.round(total / jumlah);
+          // Calculate price per unit automatically
+          const unitPrice = Math.round(total / jumlah);
+          updated.harga = unitPrice;
+          
+          // Show calculation feedback
+          if (field === 'hargaTotalBeliKemasan') {
+            toast.success(`Harga per satuan otomatis: ${warehouseUtils.formatCurrency(unitPrice)}`);
+          }
         }
       }
+      
+      // ✅ AUTO-CALCULATE: Total when unit price changes (optional reverse calculation)
+      if (field === 'harga' && updated.jumlahBeliKemasan > 0) {
+        const newTotal = Number(value) * updated.jumlahBeliKemasan;
+        // Only auto-update total if current total is 0 or we're in add mode
+        if (updated.hargaTotalBeliKemasan === 0 || !isEditMode) {
+          updated.hargaTotalBeliKemasan = newTotal;
+        }
+      }
+      
       return updated;
     });
+    
     if (errors.length > 0) setErrors([]);
   };
 
-  // Calculate total from unit price
+  // Calculate total from unit price manually
   const handleCalculateTotal = () => {
     if (formData.jumlahBeliKemasan > 0 && formData.harga > 0) {
       const total = formData.jumlahBeliKemasan * formData.harga;
       handleFieldChange('hargaTotalBeliKemasan', total);
-      toast.success(`Total: ${warehouseUtils.formatCurrency(total)}`);
+      toast.success(`Total dihitung: ${warehouseUtils.formatCurrency(total)}`);
     } else {
       toast.error('Masukkan jumlah kemasan dan harga per satuan');
     }
@@ -194,12 +247,18 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   };
 
   // Auto-complete handlers
-  const handleSelect = (field: 'kategori' | 'supplier', value: string) => {
+  const handleSelect = (field: 'kategori' | 'supplier' | 'satuan' | 'satuanKemasan', value: string) => {
     handleFieldChange(field, value);
-    setShowDropdown(prev => ({ ...prev, [field === 'kategori' ? 'categories' : 'suppliers']: false }));
+    setShowDropdown(prev => ({ 
+      ...prev, 
+      categories: field === 'kategori' ? false : prev.categories,
+      suppliers: field === 'supplier' ? false : prev.suppliers,
+      units: field === 'satuan' ? false : prev.units,
+      packageUnits: field === 'satuanKemasan' ? false : prev.packageUnits,
+    }));
   };
 
-  // ✅ FIXED: Stock level helper using your warehouseUtils
+  // Stock level helper using warehouseUtils
   const getStockLevelInfo = (stok: number, minimum: number) => {
     const stockData = warehouseUtils.formatStockLevel(stok, minimum);
     let colorClass = 'bg-gray-400';
@@ -231,6 +290,17 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
       percentage: stockData.percentage 
     };
   };
+
+  // ✅ ADDED: Filter units by search
+  const filteredUnits = commonUnits.filter(unit => 
+    unit.label.toLowerCase().includes(formData.satuan.toLowerCase()) ||
+    unit.value.toLowerCase().includes(formData.satuan.toLowerCase())
+  );
+
+  // ✅ ADDED: Filter package units by search
+  const filteredPackageUnits = commonPackageUnits.filter(unit => 
+    unit.toLowerCase().includes(formData.satuanKemasan.toLowerCase())
+  );
 
   if (!isOpen) return null;
 
@@ -270,6 +340,16 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   {errors.map((error, index) => <li key={index}>• {error}</li>)}
                 </ul>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Auto-calculation info */}
+        {formData.jumlahBeliKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
+          <div className="p-3 bg-green-50 border-b border-green-200">
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <Calculator className="w-4 h-4" />
+              <span>💡 Harga per satuan dihitung otomatis: <strong>{warehouseUtils.formatCurrency(formData.harga)}</strong> per {formData.satuan}</span>
             </div>
           </div>
         )}
@@ -365,15 +445,59 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                     )}
                   </div>
 
-                  <div>
+                  {/* ✅ ENHANCED: Unit with dropdown */}
+                  <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Satuan *</label>
-                    <Input
-                      value={formData.satuan}
-                      onChange={(e) => handleFieldChange('satuan', e.target.value)}
-                      placeholder="kg, pcs, liter, dll"
-                      disabled={isSubmitting}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        value={formData.satuan}
+                        onChange={(e) => {
+                          handleFieldChange('satuan', e.target.value);
+                          setShowDropdown(prev => ({ ...prev, units: true }));
+                        }}
+                        onFocus={() => setShowDropdown(prev => ({ ...prev, units: true }))}
+                        onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, units: false })), 200)}
+                        placeholder="Pilih atau ketik satuan"
+                        disabled={isSubmitting}
+                        required
+                      />
+                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    </div>
+                    {showDropdown.units && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                        {filteredUnits.length > 0 ? (
+                          <>
+                            {['Berat', 'Volume', 'Satuan', 'Kemasan'].map(category => {
+                              const categoryUnits = filteredUnits.filter(unit => unit.category === category);
+                              if (categoryUnits.length === 0) return null;
+                              
+                              return (
+                                <div key={category}>
+                                  <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b">
+                                    {category}
+                                  </div>
+                                  {categoryUnits.map((unit) => (
+                                    <button
+                                      key={unit.value}
+                                      type="button"
+                                      onClick={() => handleSelect('satuan', unit.value)}
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex justify-between"
+                                    >
+                                      <span>{unit.label}</span>
+                                      <span className="text-gray-400 text-xs">{unit.value}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </>
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            Tidak ada satuan yang cocok
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -436,21 +560,55 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         onChange={(e) => handleFieldChange('jumlahBeliKemasan', Number(e.target.value))}
                         min="0"
                         disabled={isSubmitting}
+                        placeholder="0"
                       />
                     </div>
-                    <div>
+                    
+                    {/* ✅ ENHANCED: Package unit with dropdown */}
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Satuan Kemasan</label>
-                      <Input
-                        value={formData.satuanKemasan}
-                        onChange={(e) => handleFieldChange('satuanKemasan', e.target.value)}
-                        placeholder="dus, karton, sak"
-                        disabled={isSubmitting}
-                      />
+                      <div className="relative">
+                        <Input
+                          value={formData.satuanKemasan}
+                          onChange={(e) => {
+                            handleFieldChange('satuanKemasan', e.target.value);
+                            setShowDropdown(prev => ({ ...prev, packageUnits: true }));
+                          }}
+                          onFocus={() => setShowDropdown(prev => ({ ...prev, packageUnits: true }))}
+                          onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, packageUnits: false })), 200)}
+                          placeholder="Pilih atau ketik kemasan"
+                          disabled={isSubmitting}
+                        />
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      </div>
+                      {showDropdown.packageUnits && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
+                          {filteredPackageUnits.length > 0 ? (
+                            filteredPackageUnits.map((unit) => (
+                              <button
+                                key={unit}
+                                type="button"
+                                onClick={() => handleSelect('satuanKemasan', unit)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                              >
+                                {unit}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              Tidak ada kemasan yang cocok
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Harga Total Beli Kemasan</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga Total Beli Kemasan 
+                      <span className="text-xs text-gray-500 ml-1">(akan menghitung harga per satuan otomatis)</span>
+                    </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
                       <Input
@@ -460,12 +618,18 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         min="0"
                         className="pl-12"
                         disabled={isSubmitting}
+                        placeholder="0"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Harga per Satuan *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga per Satuan * 
+                      <span className="text-xs text-green-600 ml-1">
+                        {formData.jumlahBeliKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && '(dihitung otomatis)'}
+                      </span>
+                    </label>
                     <div className="flex gap-2">
                       <div className="flex-1 relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
@@ -477,20 +641,33 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           className="pl-12"
                           disabled={isSubmitting}
                           required
+                          placeholder="0"
                         />
                       </div>
-                      <Button type="button" variant="outline" onClick={handleCalculateTotal} disabled={isSubmitting}>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleCalculateTotal} 
+                        disabled={isSubmitting || !formData.jumlahBeliKemasan || !formData.harga}
+                        title="Hitung total dari harga per satuan"
+                      >
                         <Calculator className="w-4 h-4" />
                       </Button>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Tip: Isi "Harga Total" di atas, maka harga per satuan akan dihitung otomatis
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Purchase Summary */}
               {formData.jumlahBeliKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-900 mb-3">Ringkasan Pembelian</h4>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-medium text-blue-900 mb-3 flex items-center gap-2">
+                    <Calculator className="w-4 h-4" />
+                    Ringkasan Pembelian
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-blue-700">Jumlah:</span>
@@ -500,17 +677,22 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       <span className="text-blue-700">Total:</span>
                       <span className="font-medium">{warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between border-t border-blue-200 pt-2">
                       <span className="text-blue-700">Per Satuan:</span>
-                      <span className="font-medium">{warehouseUtils.formatCurrency(formData.harga)} / {formData.satuan}</span>
+                      <span className="font-bold text-blue-900">{warehouseUtils.formatCurrency(formData.harga)} / {formData.satuan}</span>
                     </div>
+                    {formData.jumlahBeliKemasan > 0 && formData.harga > 0 && (
+                      <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-100 rounded">
+                        ✅ Perhitungan: {warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)} ÷ {formData.jumlahBeliKemasan} = {warehouseUtils.formatCurrency(formData.harga)} per {formData.satuan}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Stock Preview */}
               {formData.stok > 0 && formData.minimum > 0 && (
-                <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
                   <div className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${getStockLevelInfo(formData.stok, formData.minimum).colorClass}`} />
@@ -521,8 +703,27 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       ({formData.stok} / min: {formData.minimum}) - {Math.round(getStockLevelInfo(formData.stok, formData.minimum).percentage)}%
                     </span>
                   </div>
+                  {formData.stok <= formData.minimum && (
+                    <div className="mt-2 text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
+                      ⚠️ Stok di bawah minimum, pertimbangkan untuk melakukan pemesanan ulang
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* ✅ ADDED: Calculation helper */}
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center gap-2">
+                  <Calculator className="w-4 h-4" />
+                  Bantuan Perhitungan
+                </h4>
+                <div className="text-xs text-green-600 space-y-1">
+                  <div>• <strong>Auto-calculate:</strong> Isi "Harga Total" → harga per satuan dihitung otomatis</div>
+                  <div>• <strong>Manual calculate:</strong> Isi "Harga per Satuan" → klik tombol kalkulator untuk hitung total</div>
+                  <div>• <strong>Satuan:</strong> Pilih dari dropdown atau ketik sendiri</div>
+                  <div>• <strong>Kemasan:</strong> Pilih jenis kemasan yang umum digunakan</div>
+                </div>
+              </div>
             </div>
           </div>
         </form>

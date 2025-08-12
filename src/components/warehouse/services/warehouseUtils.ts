@@ -1,9 +1,5 @@
-// src/components/warehouse/services/warehouseUtils.ts (Updated for new schema)
-/**
- * Warehouse Utility Functions (Updated for exact Supabase schema)
- * Simple helper functions with database field mapping
- */
-
+// src/components/warehouse/services/warehouseUtils.ts
+// ✅ FIXED: Updated for complete schema support with isi_per_kemasan
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
 export const warehouseUtils = {
@@ -14,7 +10,7 @@ export const warehouseUtils = {
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.nama.toLowerCase().includes(term) ||
         item.kategori?.toLowerCase().includes(term) ||
         item.supplier?.toLowerCase().includes(term)
@@ -62,7 +58,7 @@ export const warehouseUtils = {
     return [...items].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-      
+
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -92,7 +88,7 @@ export const warehouseUtils = {
   getExpiringItems: (items: BahanBakuFrontend[], days: number = 30): BahanBakuFrontend[] => {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() + days);
-    
+
     return items.filter(item => {
       if (!item.expiry) return false;
       const expiryDate = new Date(item.expiry);
@@ -100,7 +96,7 @@ export const warehouseUtils = {
     });
   },
 
-  // Validation (updated for new field names)
+  // ✅ ENHANCED: Validation with package content support
   validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
     const errors: string[] = [];
 
@@ -140,13 +136,41 @@ export const warehouseUtils = {
       }
     }
 
-    // Validate packaging fields if provided
+    // ✅ ENHANCED: Package validation with isi_per_kemasan
     if (data.jumlahBeliKemasan !== undefined && data.jumlahBeliKemasan < 0) {
       errors.push('Jumlah beli kemasan harus berupa angka positif');
     }
 
+    if (data.isiPerKemasan !== undefined && data.isiPerKemasan <= 0) {
+      errors.push('Isi per kemasan harus lebih dari 0');
+    }
+
     if (data.hargaTotalBeliKemasan !== undefined && data.hargaTotalBeliKemasan < 0) {
       errors.push('Harga total beli kemasan harus berupa angka positif');
+    }
+
+    // ✅ ENHANCED: Package consistency validation
+    if (data.jumlahBeliKemasan && data.jumlahBeliKemasan > 0) {
+      if (!data.satuanKemasan?.trim()) {
+        errors.push('Satuan kemasan harus diisi jika ada jumlah kemasan');
+      }
+      if (!data.isiPerKemasan || data.isiPerKemasan <= 0) {
+        errors.push('Isi per kemasan harus diisi dan lebih dari 0');
+      }
+      if (!data.hargaTotalBeliKemasan || data.hargaTotalBeliKemasan <= 0) {
+        errors.push('Harga total beli kemasan harus diisi dan lebih dari 0');
+      }
+    }
+
+    // ✅ ENHANCED: Price consistency validation
+    if (data.jumlahBeliKemasan && data.isiPerKemasan && data.hargaTotalBeliKemasan && data.harga) {
+      const totalContent = data.jumlahBeliKemasan * data.isiPerKemasan;
+      const calculatedUnitPrice = data.hargaTotalBeliKemasan / totalContent;
+      const tolerance = Math.max(calculatedUnitPrice * 0.05, 1); // 5% tolerance, minimum 1
+
+      if (Math.abs(calculatedUnitPrice - data.harga) > tolerance) {
+        errors.push(`Harga tidak konsisten: ${data.harga} vs kalkulasi ${Math.round(calculatedUnitPrice)}`);
+      }
     }
 
     return {
@@ -181,9 +205,9 @@ export const warehouseUtils = {
     if (current === 0) {
       return { level: 'out', percentage: 0, color: 'red' };
     }
-    
+
     const percentage = (current / (minimum * 2)) * 100;
-    
+
     if (current <= minimum) {
       return { level: 'low', percentage, color: 'red' };
     } else if (current <= minimum * 1.5) {
@@ -193,7 +217,7 @@ export const warehouseUtils = {
     }
   },
 
-  // Export helpers (updated for new field names)
+  // ✅ FIXED: Export helpers with correct field names
   prepareExportData: (items: BahanBakuFrontend[]) => {
     return items.map(item => ({
       'Nama': item.nama,
@@ -205,6 +229,7 @@ export const warehouseUtils = {
       'Harga Satuan': warehouseUtils.formatCurrency(item.harga),
       'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
       'Jumlah Beli Kemasan': item.jumlahBeliKemasan || '-',
+      'Isi Per Kemasan': item.isiPerKemasan || '-', // ✅ FIXED: Use isiPerKemasan
       'Satuan Kemasan': item.satuanKemasan || '-',
       'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
       'Dibuat': warehouseUtils.formatDate(item.createdAt),
@@ -216,7 +241,7 @@ export const warehouseUtils = {
   paginateItems: <T>(items: T[], page: number, itemsPerPage: number) => {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return {
       items: items.slice(startIndex, endIndex),
       totalPages: Math.ceil(items.length / itemsPerPage),
@@ -233,7 +258,7 @@ export const warehouseUtils = {
     delay: number
   ): ((...args: Parameters<T>) => void) => {
     let timeoutId: NodeJS.Timeout;
-    
+
     return (...args: Parameters<T>) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => func(...args), delay);
@@ -245,10 +270,10 @@ export const warehouseUtils = {
     delay: number
   ): ((...args: Parameters<T>) => void) => {
     let lastExecTime = 0;
-    
+
     return (...args: Parameters<T>) => {
       const currentTime = Date.now();
-      
+
       if (currentTime - lastExecTime >= delay) {
         func(...args);
         lastExecTime = currentTime;
@@ -256,18 +281,32 @@ export const warehouseUtils = {
     };
   },
 
-  // Calculate packaging metrics
+  // ✅ ENHANCED: Calculate packaging metrics with isi_per_kemasan
   calculatePackagingMetrics: (item: BahanBakuFrontend) => {
     const metrics = {
       unitCostFromPackage: 0,
       packagingEfficiency: 0,
       totalValue: item.stok * item.harga,
+      totalContent: 0,
+      packageInfo: null as string | null,
     };
 
-    // Calculate unit cost from packaging if data is available
-    if (item.jumlahBeliKemasan && item.hargaTotalBeliKemasan && item.jumlahBeliKemasan > 0) {
-      metrics.unitCostFromPackage = item.hargaTotalBeliKemasan / item.jumlahBeliKemasan;
+    // ✅ FIXED: Use isiPerKemasan instead of non-existent fields
+    if (item.jumlahBeliKemasan && item.isiPerKemasan && item.hargaTotalBeliKemasan &&
+        item.jumlahBeliKemasan > 0 && item.isiPerKemasan > 0) {
+      metrics.totalContent = item.jumlahBeliKemasan * item.isiPerKemasan;
+      metrics.unitCostFromPackage = item.hargaTotalBeliKemasan / metrics.totalContent;
       
+      // Parse package info from satuan_kemasan
+      if (item.satuanKemasan) {
+        const match = item.satuanKemasan.match(/^(\d+(?:\.\d+)?)\s+(\w+)\s+per\s+(.+)$/);
+        if (match) {
+          metrics.packageInfo = `${match[1]} ${match[2]} per ${match[3]}`;
+        } else {
+          metrics.packageInfo = item.satuanKemasan;
+        }
+      }
+
       // Calculate efficiency (lower is better)
       if (item.harga > 0) {
         metrics.packagingEfficiency = (metrics.unitCostFromPackage / item.harga) * 100;
@@ -277,13 +316,47 @@ export const warehouseUtils = {
     return metrics;
   },
 
+  // ✅ NEW: Parse package information
+  parsePackageInfo: (satuanKemasan: string | null): { 
+    isiPerKemasan: number; 
+    satuan: string; 
+    jenisKemasan: string; 
+  } => {
+    if (!satuanKemasan) {
+      return { isiPerKemasan: 1, satuan: '', jenisKemasan: '' };
+    }
+
+    // Parse format: "500 gram per pak"
+    const match = satuanKemasan.match(/^(\d+(?:\.\d+)?)\s+(\w+)\s+per\s+(.+)$/);
+    if (match) {
+      return {
+        isiPerKemasan: parseFloat(match[1]),
+        satuan: match[2],
+        jenisKemasan: match[3]
+      };
+    }
+
+    return { isiPerKemasan: 1, satuan: '', jenisKemasan: satuanKemasan };
+  },
+
+  // ✅ NEW: Calculate unit price from package data
+  calculateUnitPriceFromPackage: (
+    jumlahKemasan: number, 
+    isiPerKemasan: number, 
+    hargaTotal: number
+  ): number => {
+    if (jumlahKemasan <= 0 || isiPerKemasan <= 0 || hargaTotal <= 0) return 0;
+    const totalContent = jumlahKemasan * isiPerKemasan;
+    return Math.round(hargaTotal / totalContent);
+  },
+
   // Stock management helpers
   suggestReorderQuantity: (item: BahanBakuFrontend, avgUsagePerDay: number = 1): number => {
     // Simple reorder calculation: enough for 30 days + safety stock
     const safetyStock = item.minimum;
     const thirtyDaysStock = avgUsagePerDay * 30;
     const currentShortfall = Math.max(0, item.minimum - item.stok);
-    
+
     return Math.ceil(thirtyDaysStock + safetyStock + currentShortfall);
   },
 
@@ -293,14 +366,25 @@ export const warehouseUtils = {
     const lowStockItems = warehouseUtils.getLowStockItems(items);
     const outOfStockItems = warehouseUtils.getOutOfStockItems(items);
     const expiringItems = warehouseUtils.getExpiringItems(items, 30);
-    
+
     const totalValue = items.reduce((sum, item) => sum + (item.stok * item.harga), 0);
     const averageStockLevel = items.reduce((sum, item) => sum + item.stok, 0) / totalItems;
-    
+
     const categoryBreakdown = items.reduce((acc, item) => {
       acc[item.kategori] = (acc[item.kategori] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+
+    // ✅ NEW: Package efficiency analysis
+    const packagedItems = items.filter(item => 
+      item.jumlahBeliKemasan && item.isiPerKemasan && item.hargaTotalBeliKemasan
+    );
+    
+    const packageEfficiency = packagedItems.length > 0 ? 
+      packagedItems.reduce((sum, item) => {
+        const metrics = warehouseUtils.calculatePackagingMetrics(item);
+        return sum + metrics.packagingEfficiency;
+      }, 0) / packagedItems.length : 0;
 
     return {
       summary: {
@@ -310,6 +394,8 @@ export const warehouseUtils = {
         expiringCount: expiringItems.length,
         totalValue,
         averageStockLevel: Math.round(averageStockLevel),
+        packagedItems: packagedItems.length,
+        averagePackageEfficiency: Math.round(packageEfficiency),
       },
       categories: categoryBreakdown,
       alerts: {
@@ -317,6 +403,95 @@ export const warehouseUtils = {
         outOfStock: outOfStockItems,
         expiring: expiringItems,
       }
+    };
+  },
+
+  // Unit conversion helpers
+  convertUnit: (value: number, fromUnit: string, toUnit: string): number => {
+    const conversionFactors: Record<string, number> = {
+      // Mass conversions (to gram)
+      'kg': 1000,
+      'ton': 1000000,
+      // Volume conversions (to ml)
+      'liter': 1000,
+      'm³': 1000000,
+      // Length conversions (to meter)
+      'cm': 0.01,
+      'km': 1000,
+    };
+
+    if (fromUnit === toUnit) return value;
+
+    // Convert to base unit first
+    const baseValue = fromUnit in conversionFactors ?
+      value * conversionFactors[fromUnit] : value;
+
+    // Convert from base unit to target unit
+    const targetFactor = conversionFactors[toUnit];
+    if (targetFactor) {
+      return baseValue / targetFactor;
+    }
+
+    // If no conversion factor found, return original value
+    return value;
+  },
+
+  // Validate unit compatibility
+  areUnitsCompatible: (unit1: string, unit2: string): boolean => {
+    const massUnits = ['gram', 'kg', 'ton'];
+    const volumeUnits = ['ml', 'liter', 'm³'];
+    const lengthUnits = ['meter', 'cm', 'km'];
+
+    const isMass1 = massUnits.includes(unit1);
+    const isMass2 = massUnits.includes(unit2);
+    const isVolume1 = volumeUnits.includes(unit1);
+    const isVolume2 = volumeUnits.includes(unit2);
+    const isLength1 = lengthUnits.includes(unit1);
+    const isLength2 = lengthUnits.includes(unit2);
+
+    return (isMass1 && isMass2) || (isVolume1 && isVolume2) || (isLength1 && isLength2);
+  },
+
+  // ✅ NEW: Package validation helpers
+  validatePackageData: (data: {
+    jumlahKemasan?: number;
+    isiPerKemasan?: number;
+    hargaTotal?: number;
+    unitPrice?: number;
+  }): { isValid: boolean; errors: string[]; calculatedUnitPrice?: number } => {
+    const errors: string[] = [];
+    
+    if (!data.jumlahKemasan || data.jumlahKemasan <= 0) {
+      errors.push('Jumlah kemasan harus lebih dari 0');
+    }
+    
+    if (!data.isiPerKemasan || data.isiPerKemasan <= 0) {
+      errors.push('Isi per kemasan harus lebih dari 0');
+    }
+    
+    if (!data.hargaTotal || data.hargaTotal <= 0) {
+      errors.push('Harga total harus lebih dari 0');
+    }
+
+    let calculatedUnitPrice: number | undefined;
+    
+    if (errors.length === 0 && data.jumlahKemasan && data.isiPerKemasan && data.hargaTotal) {
+      calculatedUnitPrice = warehouseUtils.calculateUnitPriceFromPackage(
+        data.jumlahKemasan,
+        data.isiPerKemasan,
+        data.hargaTotal
+      );
+      
+      // Check consistency if unit price is provided
+      if (data.unitPrice && Math.abs(calculatedUnitPrice - data.unitPrice) > data.unitPrice * 0.1) {
+        errors.push(`Harga tidak konsisten: kalkulasi ${calculatedUnitPrice} vs input ${data.unitPrice}`);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      calculatedUnitPrice
     };
   },
 };

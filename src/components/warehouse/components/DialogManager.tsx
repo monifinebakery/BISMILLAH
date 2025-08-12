@@ -1,9 +1,8 @@
-// ===== FIXED DialogManager.tsx dengan proper handler fallbacks =====
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-// ✅ TAMBAH: Import useQuery dan mutation utilities
 import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
+import { toast } from 'sonner';
 
 // ✅ ONLY Lazy Imports - Remove direct imports completely
 const AddEditDialog = lazy(() => import('../dialogs/AddEditDialog'));
@@ -175,16 +174,21 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     // Enhanced save handler dengan cache management
     handleSave: async (data: any, isEdit: boolean = false) => {
       try {
+        logger.info('DialogManager.handleSave called', { data, isEdit, editingItem: dialogs.editingItem });
+        
         if (isEdit && dialogs.editingItem) {
           // ✅ Use editSave if update is not available
           if (handlers.update) {
+            logger.info('Using handlers.update');
             await handlers.update(dialogs.editingItem.id, data);
           } else {
+            logger.info('Using handlers.editSave');
             await handlers.editSave(data);
           }
         } else {
           // ✅ Use create if available, otherwise throw error
           if (handlers.create) {
+            logger.info('Using handlers.create');
             await handlers.create(data);
           } else {
             throw new Error('Create handler not available');
@@ -197,9 +201,11 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'suppliers'] });
         
         logger.debug(`[${pageId}] ✅ ${isEdit ? 'Updated' : 'Created'} item successfully`);
+        toast.success(`${isEdit ? 'Diperbarui' : 'Ditambahkan'} item berhasil!`);
         
       } catch (error) {
         logger.error(`[${pageId}] ❌ Failed to ${isEdit ? 'update' : 'create'} item:`, error);
+        toast.error(`Gagal ${isEdit ? 'memperbarui' : 'menambah'} item: ${error.message || 'Unknown error'}`);
         throw error;
       }
     },
@@ -229,6 +235,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         
       } catch (error) {
         logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, error);
+        toast.error(`Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal gagal: ${error.message || 'Unknown error'}`);
         throw error;
       }
     },
@@ -258,10 +265,12 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         await queryClient.refetchQueries({ queryKey: ['warehouse'] });
         
         logger.info(`[${pageId}] ✅ Import completed: ${successCount} success, ${errorCount} errors`);
+        toast.success(`Import selesai: ${successCount} berhasil, ${errorCount} gagal`);
         
         return { successCount, errorCount };
       } catch (error) {
         logger.error(`[${pageId}] ❌ Import operation failed:`, error);
+        toast.error(`Import gagal: ${error.message || 'Unknown error'}`);
         throw error;
       }
     }
@@ -283,6 +292,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               mode={dialogs.editingItem ? 'edit' : 'add'}
               item={dialogs.editingItem}
               onSave={async (data) => {
+                logger.info('AddEditDialog onSave called with data:', data);
                 await enhancedHandlers.handleSave(data, !!dialogs.editingItem);
               }}
               availableCategories={filters.availableCategories || []}

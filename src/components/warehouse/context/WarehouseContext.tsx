@@ -1,7 +1,6 @@
-// ===== 2. UPDATE WarehouseContext.tsx dengan useQuery =====
+// ===== FIXED WarehouseContext.tsx dengan proper mutation handling =====
 // src/components/warehouse/WarehouseContext.tsx
 import React, { createContext, useContext, useRef } from 'react';
-// ✅ TAMBAH: Import useQuery dan tanstack
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -18,7 +17,7 @@ import { warehouseApi } from '../services/warehouseApi';
 // Types
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
-// ✅ TAMBAH: Query keys
+// Query keys
 const warehouseQueryKeys = {
   all: ['warehouse'] as const,
   list: () => [...warehouseQueryKeys.all, 'list'] as const,
@@ -26,9 +25,9 @@ const warehouseQueryKeys = {
   analysis: () => [...warehouseQueryKeys.all, 'analysis'] as const,
 } as const;
 
-// ✅ UPDATE: Enhanced context interface dengan useQuery features
+// Enhanced context interface
 interface WarehouseContextType {
-  // Data - Enhanced dengan useQuery
+  // Data
   bahanBaku: BahanBakuFrontend[];
   loading: boolean;
   error: Error | null;
@@ -36,7 +35,7 @@ interface WarehouseContextType {
   isBulkDeleting: boolean;
   lastUpdated?: Date;
   
-  // Actions - Enhanced dengan mutations
+  // Actions
   addBahanBaku: (bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
   updateBahanBaku: (id: string, updates: Partial<BahanBakuFrontend>) => Promise<boolean>;
   deleteBahanBaku: (id: string) => Promise<boolean>;
@@ -52,7 +51,7 @@ interface WarehouseContextType {
   getOutOfStockItems: () => BahanBakuFrontend[];
   getExpiringItems: (days?: number) => BahanBakuFrontend[];
 
-  // ✅ TAMBAH: useQuery specific features
+  // useQuery specific
   refetch: () => void;
   isRefetching: boolean;
 }
@@ -64,18 +63,21 @@ interface WarehouseProviderProps {
   enableDebugLogs?: boolean;
 }
 
-// ✅ TAMBAH: API functions untuk useQuery
+// API functions
 const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]> => {
   try {
+    logger.debug('🔄 fetchWarehouseData called for userId:', userId);
+    
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
     const items = await service.fetchBahanBaku();
+    logger.debug('📊 fetchWarehouseData received items:', items.length);
     
     // Transform to frontend format and ensure proper types
-    return items.map((item: any) => ({
+    const transformedItems = items.map((item: any) => ({
       ...item,
       stok: Number(item.stok) || 0,
       minimum: Number(item.minimum) || 0,
@@ -83,78 +85,95 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
       hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
     }));
+    
+    logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
+    return transformedItems;
   } catch (error) {
-    logger.error('Failed to fetch warehouse data:', error);
+    logger.error('❌ fetchWarehouseData failed:', error);
     throw error;
   }
 };
 
 const createWarehouseItem = async (item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>, userId?: string): Promise<boolean> => {
   try {
+    logger.debug('🔄 createWarehouseItem called:', { item, userId });
+    
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
-    return await service.addBahanBaku(item);
+    const result = await service.addBahanBaku(item);
+    logger.debug('📊 createWarehouseItem result:', result);
+    return result;
   } catch (error) {
-    logger.error('Failed to create warehouse item:', error);
+    logger.error('❌ createWarehouseItem failed:', error);
     throw error;
   }
 };
 
 const updateWarehouseItem = async ({ id, updates, userId }: { id: string; updates: Partial<BahanBakuFrontend>; userId?: string }): Promise<boolean> => {
   try {
+    logger.info('🔄 updateWarehouseItem called:', { id, updates, userId });
+    logger.debug('📦 Package updates:', {
+      jumlahBeliKemasan: updates.jumlahBeliKemasan,
+      isiPerKemasan: updates.isiPerKemasan,
+      satuanKemasan: updates.satuanKemasan,
+      hargaTotalBeliKemasan: updates.hargaTotalBeliKemasan
+    });
+    
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
-    return await service.updateBahanBaku(id, updates);
+    const result = await service.updateBahanBaku(id, updates);
+    logger.info('📊 updateWarehouseItem result:', result);
+    return result;
   } catch (error) {
-    logger.error('Failed to update warehouse item:', error);
+    logger.error('❌ updateWarehouseItem failed:', error);
     throw error;
   }
 };
 
 const deleteWarehouseItem = async (id: string, userId?: string): Promise<boolean> => {
   try {
+    logger.debug('🔄 deleteWarehouseItem called:', { id, userId });
+    
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
-    return await service.deleteBahanBaku(id);
+    const result = await service.deleteBahanBaku(id);
+    logger.debug('📊 deleteWarehouseItem result:', result);
+    return result;
   } catch (error) {
-    logger.error('Failed to delete warehouse item:', error);
+    logger.error('❌ deleteWarehouseItem failed:', error);
     throw error;
   }
 };
 
 const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise<boolean> => {
   try {
+    logger.debug('🔄 bulkDeleteWarehouseItems called:', { ids, userId });
+    
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
-    return await service.bulkDeleteBahanBaku(ids);
+    const result = await service.bulkDeleteBahanBaku(ids);
+    logger.debug('📊 bulkDeleteWarehouseItems result:', result);
+    return result;
   } catch (error) {
-    logger.error('Failed to bulk delete warehouse items:', error);
+    logger.error('❌ bulkDeleteWarehouseItems failed:', error);
     throw error;
   }
 };
 
 /**
- * ✅ ENHANCED: Warehouse Context Provider dengan useQuery
- * 
- * Features:
- * - useQuery untuk data fetching
- * - useMutation untuk CRUD operations  
- * - Automatic caching dan background updates
- * - Optimistic updates
- * - Enhanced error handling
- * - Backward compatibility
+ * ✅ FIXED: Warehouse Context Provider with proper mutation handling
  */
 export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({ 
   children, 
@@ -172,7 +191,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     logger.debug(`[${providerId.current}] 🏗️ Context rendering with useQuery`);
   }
 
-  // ✅ TAMBAH: useQuery untuk warehouse data
+  // useQuery for warehouse data
   const {
     data: bahanBaku = [],
     isLoading: loading,
@@ -193,7 +212,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     },
   });
 
-  // ✅ TAMBAH: Mutations untuk CRUD operations
+  // ✅ FIXED: Mutations with proper error handling and return values
   const createMutation = useMutation({
     mutationFn: (item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => 
       createWarehouseItem(item, user?.id),
@@ -206,10 +225,12 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
           type: 'stok',
         });
         toast.success(`Bahan baku "${item.nama}" berhasil ditambahkan`);
+      } else {
+        toast.error('Gagal menambahkan bahan baku');
       }
     },
-    onError: (error: Error) => {
-      const errorMsg = `Gagal menambahkan bahan baku: ${error.message}`;
+    onError: (error: Error, item) => {
+      const errorMsg = `Gagal menambahkan "${item.nama}": ${error.message}`;
       addNotification(createNotificationHelper.systemError(errorMsg));
       toast.error(errorMsg);
     },
@@ -218,15 +239,20 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<BahanBakuFrontend> }) => 
       updateWarehouseItem({ id, updates, userId: user?.id }),
-    onSuccess: (success, { id, updates }) => {
+    onSuccess: (success, { updates }) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         toast.success('Bahan baku berhasil diperbarui');
+        logger.info('✅ Update mutation successful');
+      } else {
+        toast.error('Gagal memperbarui bahan baku');
+        logger.error('❌ Update mutation returned false');
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, { updates }) => {
       const errorMsg = `Gagal memperbarui bahan baku: ${error.message}`;
       toast.error(errorMsg);
+      logger.error('❌ Update mutation error:', error);
     },
   });
 
@@ -236,6 +262,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         toast.success('Bahan baku berhasil dihapus');
+      } else {
+        toast.error('Gagal menghapus bahan baku');
       }
     },
     onError: (error: Error) => {
@@ -250,6 +278,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         toast.success(`${ids.length} item berhasil dihapus`);
+      } else {
+        toast.error('Gagal menghapus bahan baku');
       }
     },
     onError: (error: Error) => {
@@ -258,48 +288,61 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     },
   });
 
-  // ✅ UPDATE: CRUD operations menggunakan mutations
+  // ✅ FIXED: CRUD operations with proper async handling
   const addBahanBaku = async (bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     try {
-      await createMutation.mutateAsync(bahan);
-      return true;
+      logger.debug(`[${providerId.current}] 🎯 addBahanBaku called:`, bahan);
+      const result = await createMutation.mutateAsync(bahan);
+      logger.debug(`[${providerId.current}] 📊 addBahanBaku result:`, result);
+      return result;
     } catch (error) {
+      logger.error(`[${providerId.current}] ❌ addBahanBaku failed:`, error);
       return false;
     }
   };
 
   const updateBahanBaku = async (id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> => {
     try {
-      await updateMutation.mutateAsync({ id, updates });
-      return true;
+      logger.info(`[${providerId.current}] 🎯 updateBahanBaku called:`, { id, updates });
+      const result = await updateMutation.mutateAsync({ id, updates });
+      logger.info(`[${providerId.current}] 📊 updateBahanBaku result:`, result);
+      return result;
     } catch (error) {
+      logger.error(`[${providerId.current}] ❌ updateBahanBaku failed:`, error);
       return false;
     }
   };
 
   const deleteBahanBaku = async (id: string): Promise<boolean> => {
     try {
-      await deleteMutation.mutateAsync(id);
-      return true;
+      logger.debug(`[${providerId.current}] 🎯 deleteBahanBaku called:`, { id });
+      const result = await deleteMutation.mutateAsync(id);
+      logger.debug(`[${providerId.current}] 📊 deleteBahanBaku result:`, result);
+      return result;
     } catch (error) {
+      logger.error(`[${providerId.current}] ❌ deleteBahanBaku failed:`, error);
       return false;
     }
   };
 
   const bulkDeleteBahanBaku = async (ids: string[]): Promise<boolean> => {
     try {
-      await bulkDeleteMutation.mutateAsync(ids);
-      return true;
+      logger.debug(`[${providerId.current}] 🎯 bulkDeleteBahanBaku called:`, { ids });
+      const result = await bulkDeleteMutation.mutateAsync(ids);
+      logger.debug(`[${providerId.current}] 📊 bulkDeleteBahanBaku result:`, result);
+      return result;
     } catch (error) {
+      logger.error(`[${providerId.current}] ❌ bulkDeleteBahanBaku failed:`, error);
       return false;
     }
   };
 
   const refreshData = async (): Promise<void> => {
+    logger.debug(`[${providerId.current}] 🔄 refreshData called`);
     await refetch();
   };
 
-  // ✅ UPDATE: Utility functions dengan proper typing
+  // Utility functions
   const getBahanBakuByName = (nama: string): BahanBakuFrontend | undefined => {
     if (!nama || typeof nama !== 'string') return undefined;
     return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
@@ -323,7 +366,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   };
 
-  // ✅ UPDATE: Analysis functions dengan proper typing
+  // Analysis functions
   const getLowStockItems = (): BahanBakuFrontend[] => {
     return bahanBaku.filter(item => Number(item.stok) <= Number(item.minimum));
   };
@@ -343,10 +386,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     });
   };
 
-  // ✅ TAMBAH: Connection status
+  // Connection status
   const [isConnected] = React.useState(navigator.onLine);
 
-  // ✅ UPDATE: Context value dengan useQuery features
+  // ✅ ENHANCED: Context value with debug logging
   const contextValue: WarehouseContextType = {
     // Data
     bahanBaku,
@@ -377,6 +420,23 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     isRefetching,
   };
 
+  // ✅ DEBUG: Log context state changes
+  React.useEffect(() => {
+    logger.debug(`[${providerId.current}] 📊 Context state:`, {
+      bahanBakuCount: bahanBaku.length,
+      loading,
+      hasError: !!error,
+      isConnected,
+      isBulkDeleting: bulkDeleteMutation.isPending,
+      mutations: {
+        create: createMutation.isPending,
+        update: updateMutation.isPending,
+        delete: deleteMutation.isPending,
+        bulkDelete: bulkDeleteMutation.isPending,
+      }
+    });
+  }, [bahanBaku.length, loading, error, isConnected, createMutation.isPending, updateMutation.isPending, deleteMutation.isPending, bulkDeleteMutation.isPending]);
+
   return (
     <WarehouseContext.Provider value={contextValue}>
       {children}
@@ -395,7 +455,7 @@ export const useWarehouseContext = (): WarehouseContextType => {
   return context;
 };
 
-// === BACKWARD COMPATIBILITY EXPORTS ===
+// Backward compatibility exports
 export const BahanBakuProvider = WarehouseProvider;
 export const useBahanBaku = useWarehouseContext;
 export type BahanBakuContextType = WarehouseContextType;

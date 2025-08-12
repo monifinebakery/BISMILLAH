@@ -1,4 +1,4 @@
-// src/components/orders/hooks/useOrderData.ts - COMPLETE FIXED VERSION
+// src/components/orders/hooks/useOrderData.ts - FIXED VERSION (No Race Conditions)
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -30,39 +30,60 @@ export const useOrderData = (
   const isMountedRef = useRef<boolean>(true);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
-  const setupInProgressRef = useRef<boolean>(false);
-  const initialFetchDoneRef = useRef<boolean>(false); // ✅ NEW: Track initial fetch
+  const initialFetchDoneRef = useRef<boolean>(false);
+  
+  // ✅ FIX: Add locks to prevent race conditions
+  const setupLockRef = useRef<boolean>(false);
+  const fetchLockRef = useRef<boolean>(false);
+  const cleanupLockRef = useRef<boolean>(false);
   
   // ===== CONSTANTS =====
   const maxRetries = 3;
-  const retryDelayBase = 1000;
+  const retryDelayBase = 2000; // Increased from 1000ms
 
-  logger.context('useOrderData', 'Hook called with dependencies:', {
+  logger.context('useOrderData', 'Hook initialized', {
     hasUser: !!user,
-    hasActivity: !!addActivity,
-    hasFinancial: !!addFinancialTransaction,
-    hasSettings: !!settings,
-    hasNotification: !!addNotification,
-    allReady: hasAllDependencies
+    hasAllDependencies,
+    userId: user?.id
   });
 
-  // ✅ ENHANCED: Improved cleanup with safety checks
-  const cleanupSubscription = useCallback(() => {
-    if (!subscriptionRef.current) return;
+  // ✅ FIX: Enhanced cleanup with lock
+  const cleanupSubscription = useCallback(async () => {
+    // Prevent concurrent cleanups
+    if (cleanupLockRef.current) {
+      logger.debug('OrderData', 'Cleanup already in progress, skipping');
+      return;
+    }
     
-    logger.context('OrderData', 'Starting subscription cleanup');
+    cleanupLockRef.current = true;
     
     try {
+      if (!subscriptionRef.current) {
+        logger.debug('OrderData', 'No subscription to cleanup');
+        return;
+      }
+      
+      logger.context('OrderData', 'Starting subscription cleanup');
+      
       const subscription = subscriptionRef.current;
       subscriptionRef.current = null;
       
+      // Unsubscribe first
       if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe();
-        logger.debug('OrderData', 'Subscription unsubscribed successfully');
+        try {
+          await subscription.unsubscribe();
+          logger.debug('OrderData', 'Subscription unsubscribed successfully');
+        } catch (unsubError) {
+          logger.warn('OrderData', 'Error during unsubscribe:', unsubError);
+        }
       }
       
+      // Small delay to ensure unsubscribe completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Then remove channel
       try {
-        supabase.removeChannel(subscription);
+        await supabase.removeChannel(subscription);
         logger.debug('OrderData', 'Channel removed from supabase');
       } catch (removeError) {
         logger.warn('OrderData', 'Channel already removed or invalid:', removeError);
@@ -70,33 +91,45 @@ export const useOrderData = (
       
     } catch (error) {
       logger.error('OrderData', 'Error during subscription cleanup:', error);
+    } finally {
+      // Clear retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      
+      cleanupLockRef.current = false;
+      logger.context('OrderData', 'Subscription cleanup completed');
     }
-
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-      logger.debug('OrderData', 'Retry timeout cleared');
-    }
-    
-    setupInProgressRef.current = false;
-    logger.context('OrderData', 'Subscription cleanup completed');
   }, []);
 
-  // ✅ ENHANCED: Immediate fetch on mount
+  // ✅ FIX: Enhanced fetch with lock
   const fetchOrders = useCallback(async (forceRefresh = false) => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
+      logger.debug('OrderData', 'Cannot fetch - dependencies not ready');
       setOrders([]);
       setLoading(false);
       return;
     }
 
-    // ✅ Skip if already fetched and not forcing refresh
+    // Prevent concurrent fetches unless forced
+    if (fetchLockRef.current && !forceRefresh) {
+      logger.debug('OrderData', 'Fetch already in progress, skipping');
+      return;
+    }
+    
+    // Skip if already fetched and not forcing refresh
     if (initialFetchDoneRef.current && !forceRefresh) {
-      logger.debug('OrderData', 'Skipping fetch - already done');
+      logger.debug('OrderData', 'Initial fetch already done, skipping');
       return;
     }
 
-    logger.context('OrderData', 'Fetching orders for user:', user.id, forceRefresh ? '(forced)' : '(initial)');
+    fetchLockRef.current = true;
+    logger.context('OrderData', 'Fetching orders', {
+      userId: user.id,
+      forced: forceRefresh
+    });
+    
     setLoading(true);
 
     try {
@@ -106,103 +139,199 @@ export const useOrderData = (
         .eq('user_id', user.id)
         .order('tanggal', { ascending: false });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
 
       if (!isMountedRef.current) {
         logger.debug('OrderData', 'Component unmounted during fetch, ignoring results');
         return;
       }
 
-      const transformedData = data
+      const transformedData = (data || [])
         .map(item => {
           try {
             return transformOrderFromDB(item);
           } catch (transformError) {
-            logger.error('OrderData: Error transforming individual order:', transformError, item);
+            logger.error('OrderData', 'Error transforming order:', transformError, item);
             return null;
           }
         })
         .filter(Boolean) as Order[];
 
-      logger.success('OrderData', 'Orders loaded successfully:', {
+      logger.success('OrderData', 'Orders fetched successfully', {
         count: transformedData.length,
         isInitial: !initialFetchDoneRef.current
       });
       
       setOrders(transformedData);
-      initialFetchDoneRef.current = true; // ✅ Mark initial fetch as done
+      initialFetchDoneRef.current = true;
 
     } catch (error: any) {
       if (!isMountedRef.current) return;
       
-      logger.error('OrderData - Error fetching orders:', error);
+      logger.error('OrderData', 'Error fetching orders:', error);
       toast.error(`Gagal memuat pesanan: ${error.message || 'Unknown error'}`);
       setOrders([]);
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
       }
+      fetchLockRef.current = false;
     }
   }, [user, hasAllDependencies]);
 
-  // ✅ ENHANCED: Improved retry logic with exponential backoff
+  // ✅ FIX: Handle real-time events with better filtering
+  const handleRealtimeEvent = useCallback((payload: any) => {
+    if (!isMountedRef.current) {
+      logger.debug('OrderData', 'Ignoring real-time event: component unmounted');
+      return;
+    }
+    
+    // Skip if initial fetch not done
+    if (!initialFetchDoneRef.current) {
+      logger.debug('OrderData', 'Skipping real-time event: initial fetch not complete');
+      return;
+    }
+    
+    logger.context('OrderData', 'Real-time event received', {
+      eventType: payload.eventType,
+      orderId: payload.new?.id || payload.old?.id,
+      nomorPesanan: payload.new?.nomor_pesanan || payload.old?.nomor_pesanan
+    });
+    
+    // Reset retry count on successful event
+    retryCountRef.current = 0;
+    
+    setOrders((prevOrders) => {
+      try {
+        let newOrders = [...prevOrders];
+        
+        if (payload.eventType === 'DELETE' && payload.old?.id) {
+          newOrders = newOrders.filter((item) => item.id !== payload.old.id);
+          logger.context('OrderData', 'Order deleted from real-time:', payload.old.id);
+        }
+        
+        if (payload.eventType === 'INSERT' && payload.new) {
+          try {
+            const newOrder = transformOrderFromDB(payload.new);
+            // Check if order already exists (prevent duplicates)
+            const exists = newOrders.some(o => o.id === newOrder.id);
+            if (!exists) {
+              newOrders = [newOrder, ...newOrders].sort((a, b) => 
+                new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+              );
+              logger.context('OrderData', 'Order added from real-time:', newOrder.id);
+            }
+          } catch (transformError) {
+            logger.error('OrderData', 'Error transforming new order:', transformError);
+          }
+        }
+        
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          try {
+            const updatedOrder = transformOrderFromDB(payload.new);
+            newOrders = newOrders.map((item) =>
+              item.id === updatedOrder.id ? updatedOrder : item
+            );
+            logger.context('OrderData', 'Order updated from real-time:', updatedOrder.id);
+          } catch (transformError) {
+            logger.error('OrderData', 'Error transforming updated order:', transformError);
+          }
+        }
+        
+        return newOrders;
+      } catch (error) {
+        logger.error('OrderData', 'Error processing real-time update:', error);
+        return prevOrders;
+      }
+    });
+  }, []);
+
+  // ✅ FIX: Improved retry logic with exponential backoff
   const retrySubscription = useCallback(() => {
     if (retryCountRef.current >= maxRetries) {
-      logger.context('OrderData', `Max retries (${maxRetries}) reached, giving up`);
+      logger.error('OrderData', `Max retries (${maxRetries}) reached, giving up`);
       setIsConnected(false);
-      setupInProgressRef.current = false;
+      setupLockRef.current = false;
       return;
     }
 
     if (!isMountedRef.current || !user) {
-      logger.context('OrderData', 'Component unmounted or no user, skipping retry');
-      setupInProgressRef.current = false;
+      logger.debug('OrderData', 'Component unmounted or no user, skipping retry');
+      setupLockRef.current = false;
       return;
     }
 
     retryCountRef.current++;
-    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 10000);
+    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 30000);
     
-    logger.context('OrderData', `Scheduling subscription retry in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+    logger.context('OrderData', `Scheduling retry`, {
+      attempt: `${retryCountRef.current}/${maxRetries}`,
+      delayMs: delay
+    });
     
     retryTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && user && !setupInProgressRef.current) {
+      if (isMountedRef.current && user && !setupLockRef.current) {
         logger.context('OrderData', 'Executing subscription retry');
         setupSubscription();
       } else {
-        logger.context('OrderData', 'Retry cancelled: component unmounted or setup in progress');
-        setupInProgressRef.current = false;
+        logger.debug('OrderData', 'Retry cancelled: conditions not met');
+        setupLockRef.current = false;
       }
     }, delay);
-  }, [user]);
+  }, [user]); // Will be defined below
 
-  // ✅ ENHANCED: Improved subscription setup with safety checks
-  const setupSubscription = useCallback(() => {
+  // ✅ FIX: Enhanced subscription setup with lock
+  const setupSubscription = useCallback(async () => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
-      logger.context('OrderData', 'Cannot setup subscription: dependencies not ready or component unmounted');
-      setupInProgressRef.current = false;
+      logger.debug('OrderData', 'Cannot setup subscription: dependencies not ready');
+      setupLockRef.current = false;
       return;
     }
 
-    if (setupInProgressRef.current) {
-      logger.context('OrderData', 'Subscription setup already in progress, skipping');
+    // Prevent concurrent setup attempts
+    if (setupLockRef.current) {
+      logger.debug('OrderData', 'Subscription setup already in progress, skipping');
       return;
     }
 
-    setupInProgressRef.current = true;
-    logger.context('OrderData', 'Setting up new subscription for user:', user.id);
+    setupLockRef.current = true;
+    logger.context('OrderData', 'Setting up subscription', { userId: user.id });
 
-    cleanupSubscription();
+    // Clean up any existing subscription first
+    await cleanupSubscription();
+    
+    // Wait a bit to ensure cleanup is complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    if (!isMountedRef.current) {
+      setupLockRef.current = false;
+      return;
+    }
 
     try {
-      const channelName = `orders_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Use simpler channel name
+      const channelName = `orders_${user.id}`;
       
       logger.debug('OrderData', 'Creating channel:', channelName);
+      
+      // Check and remove any existing channel with same name
+      try {
+        const existingChannel = supabase.channel(channelName);
+        if (existingChannel) {
+          await supabase.removeChannel(existingChannel);
+          logger.debug('OrderData', 'Removed existing channel with same name');
+        }
+      } catch (removeErr) {
+        // Ignore removal errors
+      }
       
       const channel = supabase
         .channel(channelName, {
           config: {
             presence: { key: user.id },
+            broadcast: { self: false }, // Don't receive own broadcasts
           },
         })
         .on('postgres_changes', {
@@ -210,107 +339,65 @@ export const useOrderData = (
           schema: 'public',
           table: 'orders',
           filter: `user_id=eq.${user.id}`,
-        }, (payload) => {
-          if (!isMountedRef.current) {
-            logger.context('OrderData', 'Ignoring real-time event: component unmounted');
-            return;
-          }
-          
-          logger.context('OrderData', 'Real-time event received:', {
-            eventType: payload.eventType,
-            orderId: payload.new?.id || payload.old?.id,
-            nomorPesanan: payload.new?.nomor_pesanan || payload.old?.nomor_pesanan
-          });
-          
-          retryCountRef.current = 0;
-          
-          setOrders((prevOrders) => {
-            try {
-              let newOrders = [...prevOrders];
-              
-              if (payload.eventType === 'DELETE' && payload.old?.id) {
-                newOrders = newOrders.filter((item) => item.id !== payload.old.id);
-                logger.context('OrderData', 'Order deleted from real-time:', payload.old.id);
-              }
-              
-              if (payload.eventType === 'INSERT' && payload.new) {
-                try {
-                  const newOrder = transformOrderFromDB(payload.new);
-                  newOrders = [newOrder, ...newOrders].sort((a, b) => 
-                    new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-                  );
-                  logger.context('OrderData', 'Order added from real-time:', newOrder.id);
-                } catch (transformError) {
-                  logger.error('OrderData', 'Error transforming new order:', transformError);
-                }
-              }
-              
-              if (payload.eventType === 'UPDATE' && payload.new) {
-                try {
-                  const updatedOrder = transformOrderFromDB(payload.new);
-                  newOrders = newOrders.map((item) =>
-                    item.id === updatedOrder.id ? updatedOrder : item
-                  );
-                  logger.context('OrderData', 'Order updated from real-time:', updatedOrder.id);
-                } catch (transformError) {
-                  logger.error('OrderData', 'Error transforming updated order:', transformError);
-                }
-              }
-              
-              return newOrders;
-            } catch (error) {
-              logger.error('OrderData', 'Error processing real-time update:', error);
-              return prevOrders;
-            }
-          });
-        })
-        .subscribe((status, err) => {
+        }, handleRealtimeEvent)
+        .subscribe(async (status, err) => {
           if (!isMountedRef.current) {
             logger.debug('OrderData', 'Subscription status ignored: component unmounted');
             return;
           }
           
-          logger.context('OrderData', 'Subscription status changed:', status, err ? { error: err } : '');
+          logger.context('OrderData', 'Subscription status changed', {
+            status,
+            error: err?.message
+          });
           
           switch (status) {
             case 'SUBSCRIBED':
               setIsConnected(true);
               subscriptionRef.current = channel;
               retryCountRef.current = 0;
-              setupInProgressRef.current = false;
-              
-              // ✅ REMOVED: Don't fetch again here - already fetched on mount
-              logger.success('OrderData', 'Successfully subscribed to real-time updates');
+              setupLockRef.current = false;
+              logger.success('OrderData', '✅ Successfully subscribed to real-time updates');
               break;
               
             case 'CHANNEL_ERROR':
-              logger.error('OrderData', 'Channel error occurred:', err);
+              logger.error('OrderData', 'Channel error occurred', {
+                error: err?.message,
+                code: err?.code,
+                details: err?.details
+              });
               setIsConnected(false);
-              setupInProgressRef.current = false;
+              setupLockRef.current = false;
               
               if (subscriptionRef.current === channel) {
                 subscriptionRef.current = null;
               }
               
-              retrySubscription();
+              // Only retry if not at max attempts
+              if (retryCountRef.current < maxRetries) {
+                retrySubscription();
+              }
               break;
               
             case 'TIMED_OUT':
               logger.error('OrderData', 'Subscription timed out');
               setIsConnected(false);
-              setupInProgressRef.current = false;
+              setupLockRef.current = false;
               
               if (subscriptionRef.current === channel) {
                 subscriptionRef.current = null;
               }
               
-              retrySubscription();
+              // Only retry if not at max attempts
+              if (retryCountRef.current < maxRetries) {
+                retrySubscription();
+              }
               break;
               
             case 'CLOSED':
               logger.context('OrderData', 'Subscription closed');
               setIsConnected(false);
-              setupInProgressRef.current = false;
+              setupLockRef.current = false;
               
               if (subscriptionRef.current === channel) {
                 subscriptionRef.current = null;
@@ -318,7 +405,7 @@ export const useOrderData = (
               break;
               
             default:
-              logger.context('OrderData', 'Unknown subscription status:', status);
+              logger.debug('OrderData', 'Subscription status:', status);
               break;
           }
         });
@@ -326,10 +413,14 @@ export const useOrderData = (
     } catch (error) {
       logger.error('OrderData', 'Error setting up subscription:', error);
       setIsConnected(false);
-      setupInProgressRef.current = false;
-      retrySubscription();
+      setupLockRef.current = false;
+      
+      // Only retry if not at max attempts
+      if (retryCountRef.current < maxRetries) {
+        retrySubscription();
+      }
     }
-  }, [user, hasAllDependencies, cleanupSubscription, retrySubscription]);
+  }, [user, hasAllDependencies, cleanupSubscription, handleRealtimeEvent, retrySubscription]);
 
   // ===== CRUD OPERATIONS =====
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
@@ -370,35 +461,44 @@ export const useOrderData = (
 
       const createdOrder = Array.isArray(data) ? data[0] : data;
       if (createdOrder) {
-        if (addActivity && typeof addActivity === 'function') {
-          addActivity({ 
-            title: 'Pesanan Baru Dibuat', 
-            description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} telah dibuat.`,
-            type: 'order'
-          });
+        // Use callback functions with safety checks
+        if (typeof addActivity === 'function') {
+          try {
+            await addActivity({ 
+              title: 'Pesanan Baru Dibuat', 
+              description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} telah dibuat.`,
+              type: 'order'
+            });
+          } catch (activityError) {
+            logger.error('OrderData', 'Error adding activity:', activityError);
+          }
         }
 
-        toast.success(`Pesanan #${createdOrder.nomor_pesanan} baru berhasil ditambahkan!`);
+        toast.success(`Pesanan #${createdOrder.nomor_pesanan} berhasil ditambahkan!`);
 
-        if (addNotification && typeof addNotification === 'function') {
-          await addNotification({
-            title: '🛍️ Pesanan Baru Dibuat!',
-            message: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} berhasil dibuat dengan total ${formatCurrency(createdOrder.total_pesanan)}`,
-            type: 'success',
-            icon: 'shopping-cart',
-            priority: 2,
-            related_type: 'order',
-            related_id: createdOrder.id,
-            action_url: '/orders',
-            is_read: false,
-            is_archived: false
-          });
+        if (typeof addNotification === 'function') {
+          try {
+            await addNotification({
+              title: '🛍️ Pesanan Baru Dibuat!',
+              message: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} berhasil dibuat dengan total ${formatCurrency(createdOrder.total_pesanan)}`,
+              type: 'success',
+              icon: 'shopping-cart',
+              priority: 2,
+              related_type: 'order',
+              related_id: createdOrder.id,
+              action_url: '/orders',
+              is_read: false,
+              is_archived: false
+            });
+          } catch (notifError) {
+            logger.error('OrderData', 'Error adding notification:', notifError);
+          }
         }
       }
 
       return true;
     } catch (error: any) {
-      logger.error('OrderData - Error adding order:', error);
+      logger.error('OrderData', 'Error adding order:', error);
       toast.error(`Gagal menambahkan pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
@@ -429,9 +529,10 @@ export const useOrderData = (
         });
         if (rpcError) throw new Error(rpcError.message);
 
-        try {
-          const incomeCategory = settings?.financialCategories?.income?.[0] || 'Penjualan Produk';
-          if (addFinancialTransaction && typeof addFinancialTransaction === 'function') {
+        // Add financial transaction with safety check
+        if (typeof addFinancialTransaction === 'function') {
+          try {
+            const incomeCategory = settings?.financialCategories?.income?.[0] || 'Penjualan Produk';
             await addFinancialTransaction({
               type: 'income',
               category: incomeCategory,
@@ -440,34 +541,42 @@ export const useOrderData = (
               date: new Date(),
               relatedId: oldOrder.id,
             });
+          } catch (financialError) {
+            logger.error('OrderData', 'Error adding financial transaction:', financialError);
           }
-        } catch (financialError) {
-          logger.error('OrderData: Error adding financial transaction:', financialError);
         }
 
-        if (addActivity && typeof addActivity === 'function') {
-          addActivity({
-            title: 'Pesanan Selesai',
-            description: `Pesanan #${oldOrder.nomorPesanan} lunas, stok diperbarui.`,
-            type: 'order',
-          });
+        if (typeof addActivity === 'function') {
+          try {
+            await addActivity({
+              title: 'Pesanan Selesai',
+              description: `Pesanan #${oldOrder.nomorPesanan} telah selesai.`,
+              type: 'order',
+            });
+          } catch (activityError) {
+            logger.error('OrderData', 'Error adding activity:', activityError);
+          }
         }
 
-        toast.success(`Pesanan #${oldOrder.nomorPesanan} selesai, stok dikurangi, & pemasukan dicatat!`);
+        toast.success(`Pesanan #${oldOrder.nomorPesanan} selesai!`);
 
-        if (addNotification && typeof addNotification === 'function') {
-          await addNotification({
-            title: '🎉 Pesanan Selesai!',
-            message: `Pesanan #${oldOrder.nomorPesanan} telah selesai. Revenue ${formatCurrency(oldOrder.totalPesanan)} tercatat dan stok diperbarui.`,
-            type: 'success',
-            icon: 'check-circle',
-            priority: 2,
-            related_type: 'order',
-            related_id: id,
-            action_url: '/orders',
-            is_read: false,
-            is_archived: false
-          });
+        if (typeof addNotification === 'function') {
+          try {
+            await addNotification({
+              title: '🎉 Pesanan Selesai!',
+              message: `Pesanan #${oldOrder.nomorPesanan} telah selesai dengan total ${formatCurrency(oldOrder.totalPesanan)}.`,
+              type: 'success',
+              icon: 'check-circle',
+              priority: 2,
+              related_type: 'order',
+              related_id: id,
+              action_url: '/orders',
+              is_read: false,
+              is_archived: false
+            });
+          } catch (notifError) {
+            logger.error('OrderData', 'Error adding notification:', notifError);
+          }
         }
 
       } else {
@@ -482,25 +591,29 @@ export const useOrderData = (
 
         toast.success(`Pesanan #${oldOrder.nomorPesanan} berhasil diperbarui.`);
 
-        if (newStatus && oldStatus !== newStatus && addNotification && typeof addNotification === 'function') {
-          await addNotification({
-            title: '📝 Status Pesanan Diubah',
-            message: `Pesanan #${oldOrder.nomorPesanan} dari "${getStatusText(oldStatus)}" menjadi "${getStatusText(newStatus)}"`,
-            type: 'info',
-            icon: 'refresh-cw',
-            priority: 2,
-            related_type: 'order',
-            related_id: id,
-            action_url: '/orders',
-            is_read: false,
-            is_archived: false
-          });
+        if (newStatus && oldStatus !== newStatus && typeof addNotification === 'function') {
+          try {
+            await addNotification({
+              title: '📝 Status Pesanan Diubah',
+              message: `Pesanan #${oldOrder.nomorPesanan} dari "${getStatusText(oldStatus)}" menjadi "${getStatusText(newStatus)}"`,
+              type: 'info',
+              icon: 'refresh-cw',
+              priority: 2,
+              related_type: 'order',
+              related_id: id,
+              action_url: '/orders',
+              is_read: false,
+              is_archived: false
+            });
+          } catch (notifError) {
+            logger.error('OrderData', 'Error adding notification:', notifError);
+          }
         }
       }
 
       return true;
     } catch (error: any) {
-      logger.error('OrderData - Error updating order:', error);
+      logger.error('OrderData', 'Error updating order:', error);
       toast.error(`Gagal memperbarui pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
@@ -529,18 +642,22 @@ export const useOrderData = (
       
       if (error) throw new Error(error.message);
 
-      if (addActivity && typeof addActivity === 'function') {
-        addActivity({ 
-          title: 'Pesanan Dihapus', 
-          description: `Pesanan #${orderToDelete.nomorPesanan} telah dihapus`, 
-          type: 'order' 
-        });
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({ 
+            title: 'Pesanan Dihapus', 
+            description: `Pesanan #${orderToDelete.nomorPesanan} telah dihapus`, 
+            type: 'order' 
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity:', activityError);
+        }
       }
 
       toast.success('Pesanan berhasil dihapus.');
       return true;
     } catch (error: any) {
-      logger.error('OrderData - Error deleting order:', error);
+      logger.error('OrderData', 'Error deleting order:', error);
       toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
@@ -563,12 +680,16 @@ export const useOrderData = (
       if (error) throw new Error(error.message);
 
       toast.success(`${orderIds.length} pesanan berhasil diubah statusnya ke ${getStatusText(newStatus)}`);
+      
+      // Refresh data to get updated orders
+      await fetchOrders(true);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal mengubah status: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, hasAllDependencies]);
+  }, [user, hasAllDependencies, fetchOrders]);
 
   const bulkDeleteOrders = useCallback(async (orderIds: string[]): Promise<boolean> => {
     if (!hasAllDependencies || !user || !Array.isArray(orderIds) || orderIds.length === 0) {
@@ -586,12 +707,16 @@ export const useOrderData = (
       if (error) throw new Error(error.message);
 
       toast.success(`${orderIds.length} pesanan berhasil dihapus`);
+      
+      // Refresh data to reflect deletions
+      await fetchOrders(true);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, hasAllDependencies]);
+  }, [user, hasAllDependencies, fetchOrders]);
 
   // ===== UTILITY FUNCTIONS =====
   const getOrderById = useCallback((id: string): Order | undefined => {
@@ -605,7 +730,7 @@ export const useOrderData = (
   const getOrdersByDateRange = useCallback((startDate: Date, endDate: Date): Order[] => {
     try {
       if (!isValidDate(startDate) || !isValidDate(endDate)) {
-        logger.error('OrderData: Invalid dates for getOrdersByDateRange:', { startDate, endDate });
+        logger.error('OrderData', 'Invalid dates for getOrdersByDateRange:', { startDate, endDate });
         return [];
       }
       
@@ -615,19 +740,21 @@ export const useOrderData = (
           if (!orderDate) return false;
           return orderDate >= startDate && orderDate <= endDate;
         } catch (error) {
-          logger.error('OrderData: Error processing order date:', error, order);
+          logger.error('OrderData', 'Error processing order date:', error, order);
           return false;
         }
       });
     } catch (error) {
-      logger.error('OrderData: Error in getOrdersByDateRange:', error);
+      logger.error('OrderData', 'Error in getOrdersByDateRange:', error);
       return [];
     }
   }, [orders]);
 
-  // ✅ ENHANCED: Improved connection health check with throttling
+  // ✅ FIX: Improved connection health check
   const checkConnectionHealth = useCallback(() => {
-    if (!user || !isMountedRef.current || setupInProgressRef.current) return;
+    if (!user || !isMountedRef.current || setupLockRef.current) {
+      return;
+    }
 
     if (!isConnected && !subscriptionRef.current) {
       logger.context('OrderData', 'Connection health check: attempting reconnect');
@@ -637,10 +764,14 @@ export const useOrderData = (
 
   const refreshData = useCallback(async () => {
     logger.context('OrderData', 'Manual refresh requested');
-    await fetchOrders(true); // Force refresh
     
-    if (!isConnected && user && hasAllDependencies && !setupInProgressRef.current) {
-      setupSubscription();
+    // Force refresh the data
+    await fetchOrders(true);
+    
+    // If not connected, try to establish connection
+    if (!isConnected && user && hasAllDependencies && !setupLockRef.current) {
+      logger.debug('OrderData', 'Attempting to reconnect during refresh');
+      await setupSubscription();
     }
   }, [fetchOrders, isConnected, user, hasAllDependencies, setupSubscription]);
 
@@ -652,65 +783,83 @@ export const useOrderData = (
     logger.context('OrderData', 'Component mounted');
     
     return () => {
-      logger.context('OrderData', 'Component unmounting, cleaning up');
+      logger.context('OrderData', 'Component unmounting');
       isMountedRef.current = false;
       cleanupSubscription();
     };
-  }, [cleanupSubscription]);
+  }, []); // Only on mount/unmount
 
-  // ✅ FIXED: Stable effect with no conditional dependencies
+  // ✅ FIX: Sequential initialization with proper delays
   useEffect(() => {
     if (!user) {
-      logger.context('OrderData', 'User not ready, cleaning up');
+      logger.context('OrderData', 'User not ready, resetting state');
       cleanupSubscription();
       setOrders([]);
       setLoading(false);
       setIsConnected(false);
       retryCountRef.current = 0;
-      setupInProgressRef.current = false;
+      setupLockRef.current = false;
+      fetchLockRef.current = false;
       initialFetchDoneRef.current = false;
       return;
     }
 
     if (!hasAllDependencies) {
-      logger.context('OrderData', 'Dependencies not ready, skipping setup');
+      logger.context('OrderData', 'Dependencies not ready, waiting...');
       return;
     }
 
-    logger.context('OrderData', 'User and dependencies ready, fetching data immediately');
+    let cancelled = false;
+
+    const initializeSequentially = async () => {
+      try {
+        // Step 1: Fetch initial data
+        logger.debug('OrderData', 'Step 1: Fetching initial data');
+        await fetchOrders();
+        
+        if (cancelled || !isMountedRef.current) return;
+        
+        // Step 2: Wait to ensure fetch is complete and avoid race
+        logger.debug('OrderData', 'Step 2: Waiting before subscription setup');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay
+        
+        if (cancelled || !isMountedRef.current) return;
+        
+        // Step 3: Setup subscription
+        logger.debug('OrderData', 'Step 3: Setting up real-time subscription');
+        await setupSubscription();
+        
+      } catch (error) {
+        logger.error('OrderData', 'Initialization failed:', error);
+      }
+    };
     
-    // ✅ IMMEDIATE FETCH: Fetch data immediately when user is ready
-    fetchOrders().then(() => {
-      // ✅ THEN SETUP SUBSCRIPTION: After initial fetch, setup real-time
-      setTimeout(() => {
-        if (isMountedRef.current && user && hasAllDependencies) {
-          setupSubscription();
-        }
-      }, 100); // Small delay to ensure fetch is complete
-    });
+    // Start initialization with a small delay to ensure everything is ready
+    const initTimer = setTimeout(() => {
+      if (!cancelled && isMountedRef.current && user && hasAllDependencies) {
+        initializeSequentially();
+      }
+    }, 500); // Initial delay before starting
 
     return () => {
+      cancelled = true;
+      clearTimeout(initTimer);
       cleanupSubscription();
     };
-  }, [user?.id]); // ✅ FIXED: Only depend on user.id, not functions
+  }, [user?.id, hasAllDependencies]); // Stable dependencies
 
-  // ✅ FIXED: Separate effect for connection health check
+  // ✅ FIX: Connection health check with proper interval
   useEffect(() => {
-    if (!user) return;
+    if (!user || !hasAllDependencies) return;
 
     const healthCheckInterval = setInterval(() => {
-      if (!user || !isMountedRef.current || setupInProgressRef.current) return;
-
-      if (!isConnected && !subscriptionRef.current) {
-        logger.context('OrderData', 'Connection health check: attempting reconnect');
-        setupSubscription();
-      }
+      checkConnectionHealth();
     }, 60000); // Every 60 seconds
 
     return () => {
       clearInterval(healthCheckInterval);
     };
-  }, [user?.id, isConnected]); // ✅ FIXED: Stable dependencies
+  }, [user?.id, hasAllDependencies, checkConnectionHealth]);
 
   // ===== RETURN =====
   return {

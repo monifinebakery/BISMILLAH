@@ -85,6 +85,23 @@ const getUnitDomain = (unit: string): 'mass' | 'volume' | 'count' | 'length' | '
   return 'unknown';
 };
 
+// ✅ FIXED: Package info parser for edit mode
+const parsePackageInfo = (satuanKemasan: string | null): { isiPerKemasan: number; satuanKemasan: string } => {
+  if (!satuanKemasan) return { isiPerKemasan: 1, satuanKemasan: '' };
+  
+  // Parse format: "500 gram per pak" or "1000 ml per botol"
+  const match = satuanKemasan.match(/^(\d+(?:\.\d+)?)\s+\w+\s+per\s+(.+)$/);
+  if (match) {
+    return {
+      isiPerKemasan: parseFloat(match[1]),
+      satuanKemasan: match[2].trim()
+    };
+  }
+  
+  // Fallback: treat as package type only
+  return { isiPerKemasan: 1, satuanKemasan: satuanKemasan };
+};
+
 // API functions
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
@@ -140,9 +157,12 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const availableCategories = queriedCategories.length > 0 ? queriedCategories : propCategories;
   const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
 
-  // Initialize form data
+  // ✅ FIXED: Initialize form data with proper package parsing
   useEffect(() => {
     if (isEditMode && item) {
+      // Parse package info from existing data
+      const { isiPerKemasan, satuanKemasan } = parsePackageInfo(item.satuanKemasan);
+      
       setFormData({
         nama: item.nama || '',
         kategori: item.kategori || '',
@@ -153,8 +173,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         harga: Number(item.harga) || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
         jumlahBeliKemasan: Number(item.jumlahBeliKemasan) || 0,
-        isiPerKemasan: 1, // ✅ Default to 1, will be calculated from existing data
-        satuanKemasan: item.satuanKemasan || '',
+        isiPerKemasan: isiPerKemasan, // ✅ FIXED: Parse from existing data
+        satuanKemasan: satuanKemasan, // ✅ FIXED: Extract package type only
         hargaTotalBeliKemasan: Number(item.hargaTotalBeliKemasan) || 0,
       });
     } else {
@@ -236,7 +256,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     return errors.length === 0;
   };
 
-  // Submit handler
+  // ✅ FIXED: Submit handler with proper database mapping
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -246,7 +266,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      // ✅ Map to database schema
+      // ✅ FIXED: Map to database schema with separate isi_per_kemasan
       const submitData = {
         nama: formData.nama.trim(),
         kategori: formData.kategori.trim(),
@@ -257,6 +277,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         harga_satuan: formData.harga, // ✅ Map to DB field
         tanggal_kadaluwarsa: formData.expiry || null,
         jumlah_beli_kemasan: formData.jumlahBeliKemasan || null,
+        isi_per_kemasan: formData.isiPerKemasan || null, // ✅ FIXED: Store separately
         satuan_kemasan: formData.satuanKemasan ? 
           `${formData.isiPerKemasan} ${formData.satuan} per ${formData.satuanKemasan}` : null, // ✅ Store complete info
         harga_total_beli_kemasan: formData.hargaTotalBeliKemasan || null,

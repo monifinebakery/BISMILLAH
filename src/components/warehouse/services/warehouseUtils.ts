@@ -1,23 +1,34 @@
-// src/components/warehouse/services/warehouseUtils.ts (Updated for new schema)
+// src/components/warehouse/services/warehouseUtils.ts
+// ✅ Updated for package content support and proper unit price calculations
 /**
- * Warehouse Utility Functions (Updated for exact Supabase schema)
- * Simple helper functions with database field mapping
+ * Warehouse Utility Functions - Enhanced Package Content Support
+ * Simple helper functions with proper package calculation handling
  */
 
-import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
+import type { 
+  BahanBakuFrontend, 
+  FilterState, 
+  SortConfig, 
+  ValidationResult, 
+  PackageCalculation,
+  StockAnalytics,
+  BahanBakuFormData
+} from '../types';
 
 export const warehouseUtils = {
-  // Data filtering (updated for new field names)
+  // ✅ ENHANCED: Data filtering with package content awareness
   filterItems: (items: BahanBakuFrontend[], searchTerm: string, filters: FilterState): BahanBakuFrontend[] => {
     let filtered = [...items];
 
-    // Search filter
+    // Search filter - enhanced to include package info
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(item => 
         item.nama.toLowerCase().includes(term) ||
         item.kategori?.toLowerCase().includes(term) ||
-        item.supplier?.toLowerCase().includes(term)
+        item.supplier?.toLowerCase().includes(term) ||
+        item.satuan?.toLowerCase().includes(term) ||
+        item.satuanKemasan?.toLowerCase().includes(term)
       );
     }
 
@@ -38,7 +49,7 @@ export const warehouseUtils = {
       filtered = filtered.filter(item => item.stok === 0);
     }
 
-    // Expiry filter (using tanggal_kadaluwarsa -> expiry)
+    // Expiry filter
     if (filters.expiry === 'expiring') {
       const threshold = new Date();
       threshold.setDate(threshold.getDate() + 30);
@@ -57,7 +68,7 @@ export const warehouseUtils = {
     return filtered;
   },
 
-  // Data sorting (updated for new field names)
+  // Data sorting (same as before)
   sortItems: (items: BahanBakuFrontend[], sortConfig: SortConfig): BahanBakuFrontend[] => {
     return [...items].sort((a, b) => {
       const aValue = a[sortConfig.key];
@@ -69,7 +80,7 @@ export const warehouseUtils = {
     });
   },
 
-  // Extract unique values for filters
+  // Extract unique values for filters (same as before)
   getUniqueCategories: (items: BahanBakuFrontend[]): string[] => {
     const categories = new Set(items.map(item => item.kategori).filter(Boolean));
     return Array.from(categories).sort();
@@ -80,7 +91,13 @@ export const warehouseUtils = {
     return Array.from(suppliers).sort();
   },
 
-  // Analysis functions (updated for new field names)
+  // ✅ NEW: Get unique units
+  getUniqueUnits: (items: BahanBakuFrontend[]): string[] => {
+    const units = new Set(items.map(item => item.satuan).filter(Boolean));
+    return Array.from(units).sort();
+  },
+
+  // Analysis functions (same as before)
   getLowStockItems: (items: BahanBakuFrontend[]): BahanBakuFrontend[] => {
     return items.filter(item => item.stok <= item.minimum);
   },
@@ -100,225 +117,41 @@ export const warehouseUtils = {
     });
   },
 
-  // Validation (updated for new field names)
-  validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
-    const errors: string[] = [];
+  // ✅ NEW: Package analysis functions
+  getItemsWithPackageInfo: (items: BahanBakuFrontend[]): BahanBakuFrontend[] => {
+    return items.filter(item => 
+      item.jumlahBeliKemasan && 
+      item.isiPerKemasan && 
+      item.hargaTotalBeliKemasan
+    );
+  },
 
+  getItemsWithPriceInconsistency: (items: BahanBakuFrontend[], tolerance: number = 0.1): BahanBakuFrontend[] => {
+    return items.filter(item => {
+      if (!item.jumlahBeliKemasan || !item.isiPerKemasan || !item.hargaTotalBeliKemasan) {
+        return false;
+      }
+
+      const calculatedPrice = warehouseUtils.calculateUnitPrice(
+        item.jumlahBeliKemasan,
+        item.isiPerKemasan,
+        item.hargaTotalBeliKemasan
+      );
+
+      return Math.abs(calculatedPrice - item.harga) > item.harga * tolerance;
+    });
+  },
+
+  // ✅ ENHANCED: Validation with package content support
+  validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
+    const errors: { field: string; message: string }[] = [];
+    const warnings: { field: string; message: string }[] = [];
+
+    // Basic field validation
     if (!data.nama?.trim()) {
-      errors.push('Nama bahan baku harus diisi');
+      errors.push({ field: 'nama', message: 'Nama bahan baku harus diisi' });
     }
 
     if (!data.kategori?.trim()) {
-      errors.push('Kategori harus diisi');
+      errors.push({ field: 'kategori', message: 'Kategori harus diisi' });
     }
-
-    if (!data.supplier?.trim()) {
-      errors.push('Supplier harus diisi');
-    }
-
-    if (typeof data.stok !== 'number' || data.stok < 0) {
-      errors.push('Stok harus berupa angka positif');
-    }
-
-    if (typeof data.minimum !== 'number' || data.minimum < 0) {
-      errors.push('Minimum stok harus berupa angka positif');
-    }
-
-    if (!data.satuan?.trim()) {
-      errors.push('Satuan harus diisi');
-    }
-
-    if (typeof data.harga !== 'number' || data.harga < 0) {
-      errors.push('Harga satuan harus berupa angka positif');
-    }
-
-    // Validate expiry date if provided
-    if (data.expiry && data.expiry.trim()) {
-      const expiryDate = new Date(data.expiry);
-      if (isNaN(expiryDate.getTime())) {
-        errors.push('Format tanggal kadaluarsa tidak valid');
-      }
-    }
-
-    // Validate packaging fields if provided
-    if (data.jumlahBeliKemasan !== undefined && data.jumlahBeliKemasan < 0) {
-      errors.push('Jumlah beli kemasan harus berupa angka positif');
-    }
-
-    if (data.hargaTotalBeliKemasan !== undefined && data.hargaTotalBeliKemasan < 0) {
-      errors.push('Harga total beli kemasan harus berupa angka positif');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  },
-
-  // Formatting helpers (updated for new field names)
-  formatCurrency: (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  },
-
-  formatDate: (date: string | Date): string => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(dateObj);
-  },
-
-  formatStockLevel: (current: number, minimum: number): {
-    level: 'high' | 'medium' | 'low' | 'out';
-    percentage: number;
-    color: string;
-  } => {
-    if (current === 0) {
-      return { level: 'out', percentage: 0, color: 'red' };
-    }
-    
-    const percentage = (current / (minimum * 2)) * 100;
-    
-    if (current <= minimum) {
-      return { level: 'low', percentage, color: 'red' };
-    } else if (current <= minimum * 1.5) {
-      return { level: 'medium', percentage, color: 'yellow' };
-    } else {
-      return { level: 'high', percentage, color: 'green' };
-    }
-  },
-
-  // Export helpers (updated for new field names)
-  prepareExportData: (items: BahanBakuFrontend[]) => {
-    return items.map(item => ({
-      'Nama': item.nama,
-      'Kategori': item.kategori,
-      'Supplier': item.supplier,
-      'Stok': item.stok,
-      'Minimum': item.minimum,
-      'Satuan': item.satuan,
-      'Harga Satuan': warehouseUtils.formatCurrency(item.harga),
-      'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
-      'Jumlah Beli Kemasan': item.jumlahBeliKemasan || '-',
-      'Satuan Kemasan': item.satuanKemasan || '-',
-      'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
-      'Dibuat': warehouseUtils.formatDate(item.createdAt),
-      'Diupdate': warehouseUtils.formatDate(item.updatedAt),
-    }));
-  },
-
-  // Pagination helpers
-  paginateItems: <T>(items: T[], page: number, itemsPerPage: number) => {
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    
-    return {
-      items: items.slice(startIndex, endIndex),
-      totalPages: Math.ceil(items.length / itemsPerPage),
-      startIndex,
-      endIndex: Math.min(endIndex, items.length),
-      currentPage: page,
-      totalItems: items.length,
-    };
-  },
-
-  // Performance helpers
-  debounce: <T extends (...args: any[]) => any>(
-    func: T,
-    delay: number
-  ): ((...args: Parameters<T>) => void) => {
-    let timeoutId: NodeJS.Timeout;
-    
-    return (...args: Parameters<T>) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func(...args), delay);
-    };
-  },
-
-  throttle: <T extends (...args: any[]) => any>(
-    func: T,
-    delay: number
-  ): ((...args: Parameters<T>) => void) => {
-    let lastExecTime = 0;
-    
-    return (...args: Parameters<T>) => {
-      const currentTime = Date.now();
-      
-      if (currentTime - lastExecTime >= delay) {
-        func(...args);
-        lastExecTime = currentTime;
-      }
-    };
-  },
-
-  // Calculate packaging metrics
-  calculatePackagingMetrics: (item: BahanBakuFrontend) => {
-    const metrics = {
-      unitCostFromPackage: 0,
-      packagingEfficiency: 0,
-      totalValue: item.stok * item.harga,
-    };
-
-    // Calculate unit cost from packaging if data is available
-    if (item.jumlahBeliKemasan && item.hargaTotalBeliKemasan && item.jumlahBeliKemasan > 0) {
-      metrics.unitCostFromPackage = item.hargaTotalBeliKemasan / item.jumlahBeliKemasan;
-      
-      // Calculate efficiency (lower is better)
-      if (item.harga > 0) {
-        metrics.packagingEfficiency = (metrics.unitCostFromPackage / item.harga) * 100;
-      }
-    }
-
-    return metrics;
-  },
-
-  // Stock management helpers
-  suggestReorderQuantity: (item: BahanBakuFrontend, avgUsagePerDay: number = 1): number => {
-    // Simple reorder calculation: enough for 30 days + safety stock
-    const safetyStock = item.minimum;
-    const thirtyDaysStock = avgUsagePerDay * 30;
-    const currentShortfall = Math.max(0, item.minimum - item.stok);
-    
-    return Math.ceil(thirtyDaysStock + safetyStock + currentShortfall);
-  },
-
-  // Generate stock report data
-  generateStockReport: (items: BahanBakuFrontend[]) => {
-    const totalItems = items.length;
-    const lowStockItems = warehouseUtils.getLowStockItems(items);
-    const outOfStockItems = warehouseUtils.getOutOfStockItems(items);
-    const expiringItems = warehouseUtils.getExpiringItems(items, 30);
-    
-    const totalValue = items.reduce((sum, item) => sum + (item.stok * item.harga), 0);
-    const averageStockLevel = items.reduce((sum, item) => sum + item.stok, 0) / totalItems;
-    
-    const categoryBreakdown = items.reduce((acc, item) => {
-      acc[item.kategori] = (acc[item.kategori] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      summary: {
-        totalItems,
-        lowStockCount: lowStockItems.length,
-        outOfStockCount: outOfStockItems.length,
-        expiringCount: expiringItems.length,
-        totalValue,
-        averageStockLevel: Math.round(averageStockLevel),
-      },
-      categories: categoryBreakdown,
-      alerts: {
-        lowStock: lowStockItems,
-        outOfStock: outOfStockItems,
-        expiring: expiringItems,
-      }
-    };
-  },
-};
-
-export default warehouseUtils;

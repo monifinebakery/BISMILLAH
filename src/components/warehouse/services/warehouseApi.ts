@@ -1,11 +1,13 @@
-// src/components/warehouse/services/warehouseApi.ts (Updated for exact Supabase schema)
+// src/components/warehouse/services/warehouseApi.ts
+// ✅ Updated for isi_per_kemasan support and proper unit price calculation
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { BahanBaku, BahanBakuFrontend } from '../types';
+import type { BahanBaku, BahanBakuFrontend, PackageCalculation } from '../types';
 
 /**
- * Warehouse API Service (Updated for exact Supabase column names)
+ * Warehouse API Service - Updated for Package Content Support
  * Handles transformation between database snake_case and frontend camelCase
+ * Includes proper unit price calculation with package content
  */
 
 interface ServiceConfig {
@@ -14,24 +16,29 @@ interface ServiceConfig {
   enableDebugLogs?: boolean;
 }
 
-// Data transformation helpers
-const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => ({
-  id: dbItem.id,
-  userId: dbItem.user_id,
-  nama: dbItem.nama,
-  kategori: dbItem.kategori,
-  stok: dbItem.stok,
-  minimum: dbItem.minimum,
-  satuan: dbItem.satuan,
-  harga: dbItem.harga_satuan,
-  supplier: dbItem.supplier,
-  expiry: dbItem.tanggal_kadaluwarsa,
-  createdAt: dbItem.created_at,
-  updatedAt: dbItem.updated_at,
-  jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
-  satuanKemasan: dbItem.satuan_kemasan,
-  hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
-});
+// ✅ ENHANCED: Data transformation helpers with package content support
+const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
+  const frontendItem: BahanBakuFrontend = {
+    id: dbItem.id,
+    userId: dbItem.user_id,
+    nama: dbItem.nama,
+    kategori: dbItem.kategori,
+    stok: dbItem.stok,
+    minimum: dbItem.minimum,
+    satuan: dbItem.satuan,
+    harga: dbItem.harga_satuan,
+    supplier: dbItem.supplier,
+    expiry: dbItem.tanggal_kadaluwarsa,
+    createdAt: dbItem.created_at,
+    updatedAt: dbItem.updated_at,
+    jumlahBeliKemasan: dbItem.jumlah_beli_kemasan,
+    isiPerKemasan: dbItem.isi_per_kemasan, // ✅ NEW: package content
+    satuanKemasan: dbItem.satuan_kemasan,
+    hargaTotalBeliKemasan: dbItem.harga_total_beli_kemasan,
+  };
+
+  return frontendItem;
+};
 
 const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): Partial<BahanBaku> => {
   const dbItem: Partial<BahanBaku> = {
@@ -44,6 +51,7 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     supplier: frontendItem.supplier,
     tanggal_kadaluwarsa: frontendItem.expiry,
     jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan,
+    isi_per_kemasan: frontendItem.isiPerKemasan, // ✅ NEW: package content
     satuan_kemasan: frontendItem.satuanKemasan,
     harga_total_beli_kemasan: frontendItem.hargaTotalBeliKemasan,
   };
@@ -59,7 +67,33 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
   ) as Partial<BahanBaku>;
 };
 
-// Service Factory
+// ✅ NEW: Package calculation helpers
+const calculateUnitPrice = (jumlahKemasan: number, isiPerKemasan: number, hargaTotal: number): number => {
+  if (jumlahKemasan <= 0 || isiPerKemasan <= 0 || hargaTotal <= 0) return 0;
+  const totalContent = jumlahKemasan * isiPerKemasan;
+  return Math.round(hargaTotal / totalContent);
+};
+
+const validatePackageCalculation = (calc: PackageCalculation): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (calc.jumlahKemasan <= 0) errors.push('Jumlah kemasan harus lebih dari 0');
+  if (calc.isiPerKemasan <= 0) errors.push('Isi per kemasan harus lebih dari 0');
+  if (calc.hargaTotal <= 0) errors.push('Harga total harus lebih dari 0');
+  
+  if (errors.length === 0) {
+    const expectedTotal = calc.hargaPerSatuan * calc.totalIsi;
+    const tolerance = Math.max(expectedTotal * 0.05, 100); // 5% tolerance
+    
+    if (Math.abs(expectedTotal - calc.hargaTotal) > tolerance) {
+      errors.push(`Harga tidak konsisten: ${calc.hargaPerSatuan} × ${calc.totalIsi} ≠ ${calc.hargaTotal}`);
+    }
+  }
+  
+  return { isValid: errors.length === 0, errors };
+};
+
+// ✅ ENHANCED: Service Factory with calculation utilities
 export const warehouseApi = {
   createService: async (serviceName: string, config: ServiceConfig) => {
     switch (serviceName) {
@@ -71,21 +105,33 @@ export const warehouseApi = {
         return new CacheService(config);
       case 'alert':
         return new AlertService(config);
+      case 'calculation': // ✅ NEW: calculation service
+        return new CalculationService(config);
       default:
         throw new Error(`Unknown service: ${serviceName}`);
     }
-  }
+  },
+  
+  // ✅ NEW: Direct access to calculation utilities
+  calculateUnitPrice,
+  validatePackageCalculation,
+  transformToFrontend,
+  transformToDatabase
 };
 
 /**
- * CRUD Service - Core database operations (Updated for exact schema)
+ * ✅ ENHANCED: CRUD Service with package content support
  */
 class CrudService {
   constructor(private config: ServiceConfig) {}
 
   async fetchBahanBaku(): Promise<BahanBakuFrontend[]> {
     try {
-      let query = supabase.from('bahan_baku').select('*');
+      let query = supabase.from('bahan_baku').select(`
+        id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
+        tanggal_kadaluwarsa, created_at, updated_at, jumlah_beli_kemasan,
+        isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan
+      `);
       
       // Filter by user_id if provided
       if (this.config.userId) {
@@ -97,7 +143,26 @@ class CrudService {
       if (error) throw error;
       
       // Transform database format to frontend format
-      return (data || []).map(transformToFrontend);
+      const transformedData = (data || []).map(transformToFrontend);
+      
+      // ✅ VALIDATE: Check for inconsistent pricing and log warnings
+      if (this.config.enableDebugLogs) {
+        transformedData.forEach(item => {
+          if (item.jumlahBeliKemasan && item.isiPerKemasan && item.hargaTotalBeliKemasan) {
+            const calculatedPrice = calculateUnitPrice(
+              item.jumlahBeliKemasan, 
+              item.isiPerKemasan, 
+              item.hargaTotalBeliKemasan
+            );
+            
+            if (Math.abs(calculatedPrice - item.harga) > item.harga * 0.1) { // 10% tolerance
+              logger.warn(`Price inconsistency for ${item.nama}: calculated ${calculatedPrice}, stored ${item.harga}`);
+            }
+          }
+        });
+      }
+      
+      return transformedData;
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
@@ -106,6 +171,24 @@ class CrudService {
 
   async addBahanBaku(bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> {
     try {
+      // ✅ VALIDATE: Package calculation before saving
+      if (bahan.jumlahBeliKemasan && bahan.isiPerKemasan && bahan.hargaTotalBeliKemasan) {
+        const calculatedPrice = calculateUnitPrice(
+          bahan.jumlahBeliKemasan,
+          bahan.isiPerKemasan,
+          bahan.hargaTotalBeliKemasan
+        );
+        
+        // Auto-correct unit price if not provided or inconsistent
+        if (!bahan.harga || Math.abs(bahan.harga - calculatedPrice) > calculatedPrice * 0.1) {
+          (bahan as any).harga = calculatedPrice;
+          
+          if (this.config.enableDebugLogs) {
+            logger.info(`Auto-calculated unit price for ${bahan.nama}: ${calculatedPrice}`);
+          }
+        }
+      }
+
       // Transform frontend data to database format
       const dbData = transformToDatabase(bahan, this.config.userId);
 
@@ -123,6 +206,33 @@ class CrudService {
 
   async updateBahanBaku(id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> {
     try {
+      // ✅ VALIDATE: Recalculate unit price if package info changed
+      if (updates.jumlahBeliKemasan !== undefined || 
+          updates.isiPerKemasan !== undefined || 
+          updates.hargaTotalBeliKemasan !== undefined) {
+        
+        // Get current item to merge with updates
+        const currentItem = await this.getBahanBakuById(id);
+        if (currentItem) {
+          const merged = { ...currentItem, ...updates };
+          
+          if (merged.jumlahBeliKemasan && merged.isiPerKemasan && merged.hargaTotalBeliKemasan) {
+            const calculatedPrice = calculateUnitPrice(
+              merged.jumlahBeliKemasan,
+              merged.isiPerKemasan,
+              merged.hargaTotalBeliKemasan
+            );
+            
+            // Auto-update unit price
+            updates.harga = calculatedPrice;
+            
+            if (this.config.enableDebugLogs) {
+              logger.info(`Recalculated unit price for ${merged.nama}: ${calculatedPrice}`);
+            }
+          }
+        }
+      }
+
       // Transform frontend updates to database format
       const dbUpdates = transformToDatabase(updates);
       
@@ -145,6 +255,28 @@ class CrudService {
     } catch (error: any) {
       this.handleError('Update failed', error);
       return false;
+    }
+  }
+
+  // ✅ NEW: Get single item by ID
+  async getBahanBakuById(id: string): Promise<BahanBakuFrontend | null> {
+    try {
+      let query = supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('id', id);
+
+      if (this.config.userId) {
+        query = query.eq('user_id', this.config.userId);
+      }
+
+      const { data, error } = await query.single();
+      
+      if (error) throw error;
+      return data ? transformToFrontend(data) : null;
+    } catch (error: any) {
+      this.handleError('Get by ID failed', error);
+      return null;
     }
   }
 
@@ -190,12 +322,46 @@ class CrudService {
     }
   }
 
+  // ✅ ENHANCED: Stock reduction with proper unit handling
   async reduceStok(nama: string, jumlah: number, currentItems: BahanBakuFrontend[]): Promise<boolean> {
     const item = currentItems.find(b => b.nama.toLowerCase() === nama.toLowerCase());
     if (!item) return false;
 
     const newStok = Math.max(0, item.stok - jumlah);
     return this.updateBahanBaku(item.id, { stok: newStok });
+  }
+
+  // ✅ NEW: Bulk price recalculation
+  async recalculateAllPrices(): Promise<{ updated: number; errors: string[] }> {
+    try {
+      const items = await this.fetchBahanBaku();
+      const errors: string[] = [];
+      let updated = 0;
+
+      for (const item of items) {
+        if (item.jumlahBeliKemasan && item.isiPerKemasan && item.hargaTotalBeliKemasan) {
+          const calculatedPrice = calculateUnitPrice(
+            item.jumlahBeliKemasan,
+            item.isiPerKemasan,
+            item.hargaTotalBeliKemasan
+          );
+
+          if (Math.abs(calculatedPrice - item.harga) > 1) { // Only update if difference > 1
+            const success = await this.updateBahanBaku(item.id, { harga: calculatedPrice });
+            if (success) {
+              updated++;
+            } else {
+              errors.push(`Failed to update ${item.nama}`);
+            }
+          }
+        }
+      }
+
+      return { updated, errors };
+    } catch (error: any) {
+      this.handleError('Bulk recalculation failed', error);
+      return { updated: 0, errors: [error.message] };
+    }
   }
 
   private handleError(message: string, error: any) {
@@ -208,7 +374,91 @@ class CrudService {
 }
 
 /**
- * Subscription Service - Real-time updates (Updated for exact schema)
+ * ✅ NEW: Calculation Service for package pricing
+ */
+class CalculationService {
+  constructor(private config: ServiceConfig) {}
+
+  calculateUnitPrice(jumlahKemasan: number, isiPerKemasan: number, hargaTotal: number): number {
+    return calculateUnitPrice(jumlahKemasan, isiPerKemasan, hargaTotal);
+  }
+
+  calculateTotalContent(jumlahKemasan: number, isiPerKemasan: number): number {
+    return jumlahKemasan * isiPerKemasan;
+  }
+
+  validatePackageConsistency(calculation: PackageCalculation) {
+    return validatePackageCalculation(calculation);
+  }
+
+  // ✅ NEW: Smart package suggestions
+  suggestPackageBreakdown(totalHarga: number, targetUnitPrice: number, satuan: string): Array<{
+    jumlahKemasan: number;
+    isiPerKemasan: number;
+    totalIsi: number;
+    actualUnitPrice: number;
+    efficiency: number;
+  }> {
+    const suggestions = [];
+    const maxContent = Math.floor(totalHarga / targetUnitPrice);
+
+    // Try different package combinations
+    for (let kemasan = 1; kemasan <= 10; kemasan++) {
+      const isiPerKemasan = Math.floor(maxContent / kemasan);
+      if (isiPerKemasan > 0) {
+        const totalIsi = kemasan * isiPerKemasan;
+        const actualUnitPrice = totalHarga / totalIsi;
+        const efficiency = Math.abs(actualUnitPrice - targetUnitPrice) / targetUnitPrice;
+
+        suggestions.push({
+          jumlahKemasan: kemasan,
+          isiPerKemasan,
+          totalIsi,
+          actualUnitPrice: Math.round(actualUnitPrice),
+          efficiency
+        });
+      }
+    }
+
+    // Sort by efficiency (lower is better)
+    return suggestions.sort((a, b) => a.efficiency - b.efficiency).slice(0, 5);
+  }
+
+  // ✅ NEW: Price comparison helpers
+  compareWithMarketPrice(currentPrice: number, marketPrices: number[]): {
+    isCompetitive: boolean;
+    percentile: number;
+    recommendation: string;
+  } {
+    if (marketPrices.length === 0) {
+      return { isCompetitive: true, percentile: 50, recommendation: 'No market data available' };
+    }
+
+    const sorted = [...marketPrices].sort((a, b) => a - b);
+    const position = sorted.findIndex(price => price >= currentPrice);
+    const percentile = position === -1 ? 100 : (position / sorted.length) * 100;
+
+    let recommendation = '';
+    if (percentile <= 25) {
+      recommendation = 'Harga sangat kompetitif';
+    } else if (percentile <= 50) {
+      recommendation = 'Harga kompetitif';
+    } else if (percentile <= 75) {
+      recommendation = 'Harga di atas rata-rata';
+    } else {
+      recommendation = 'Harga tinggi, pertimbangkan negosiasi';
+    }
+
+    return {
+      isCompetitive: percentile <= 50,
+      percentile,
+      recommendation
+    };
+  }
+}
+
+/**
+ * Subscription Service - Real-time updates (Enhanced for package fields)
  */
 class SubscriptionService {
   private subscription: any = null;
@@ -255,7 +505,7 @@ class SubscriptionService {
 }
 
 /**
- * Cache Service - Simple in-memory caching
+ * Cache Service - Simple in-memory caching (Enhanced)
  */
 class CacheService {
   private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
@@ -285,10 +535,24 @@ class CacheService {
   clear() {
     this.cache.clear();
   }
+
+  // ✅ NEW: Cache statistics
+  getStats() {
+    const entries = Array.from(this.cache.entries());
+    const valid = entries.filter(([_, item]) => Date.now() - item.timestamp <= item.ttl);
+    const expired = entries.length - valid.length;
+
+    return {
+      total: entries.length,
+      valid: valid.length,
+      expired,
+      hitRate: valid.length / Math.max(entries.length, 1)
+    };
+  }
 }
 
 /**
- * Alert Service - Notifications (Updated for frontend types)
+ * ✅ ENHANCED: Alert Service with package-aware notifications
  */
 class AlertService {
   constructor(private config: ServiceConfig) {}
@@ -298,6 +562,7 @@ class AlertService {
     if (lowStockItems.length > 0 && this.config.enableDebugLogs) {
       logger.warn(`Low stock alert: ${lowStockItems.length} items`);
     }
+    return lowStockItems;
   }
 
   processExpiryAlert(items: BahanBakuFrontend[]) {
@@ -312,8 +577,31 @@ class AlertService {
     if (expiringItems.length > 0 && this.config.enableDebugLogs) {
       logger.warn(`Expiry alert: ${expiringItems.length} items expiring soon`);
     }
+    return expiringItems;
+  }
+
+  // ✅ NEW: Price inconsistency alerts
+  processPriceInconsistencyAlert(items: BahanBakuFrontend[]) {
+    const inconsistentItems = items.filter(item => {
+      if (!item.jumlahBeliKemasan || !item.isiPerKemasan || !item.hargaTotalBeliKemasan) {
+        return false;
+      }
+
+      const calculatedPrice = calculateUnitPrice(
+        item.jumlahBeliKemasan,
+        item.isiPerKemasan,
+        item.hargaTotalBeliKemasan
+      );
+
+      return Math.abs(calculatedPrice - item.harga) > item.harga * 0.1; // 10% tolerance
+    });
+
+    if (inconsistentItems.length > 0 && this.config.enableDebugLogs) {
+      logger.warn(`Price inconsistency alert: ${inconsistentItems.length} items`);
+    }
+    return inconsistentItems;
   }
 }
 
 // Export transformation helpers for use in other parts of the app
-export { transformToFrontend, transformToDatabase };
+export { transformToFrontend, transformToDatabase, calculateUnitPrice, validatePackageCalculation };

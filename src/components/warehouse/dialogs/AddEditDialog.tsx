@@ -213,7 +213,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     if (errors.length > 0) setErrors([]);
   };
 
-  // ✅ ENHANCED: Validation with domain checking
+  // ✅ FIXED: Validasi yang lebih fleksibel
   const validateForm = (): boolean => {
     const errors: string[] = [];
     
@@ -227,28 +227,24 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     if (formData.minimum < 0) errors.push('Minimum stok tidak boleh negatif');
     if (formData.harga <= 0) errors.push('Harga per satuan harus lebih dari 0');
     
-    // Package validation
-    if (formData.jumlahBeliKemasan > 0) {
-      if (!formData.satuanKemasan.trim()) {
-        errors.push('Satuan kemasan harus diisi jika ada jumlah kemasan');
-      }
-      if (formData.isiPerKemasan <= 0) {
-        errors.push('Isi per kemasan harus lebih dari 0');
-      }
-      if (formData.hargaTotalBeliKemasan <= 0) {
-        errors.push('Harga total beli kemasan harus lebih dari 0');
-      }
-    }
+    // ✅ FLEKSIBEL: Validasi package hanya jika ada data package
+    const hasPackageData = formData.jumlahBeliKemasan > 0 || 
+                          formData.isiPerKemasan > 0 || 
+                          formData.hargaTotalBeliKemasan > 0 ||
+                          formData.satuanKemasan?.trim();
     
-    // ✅ ADDED: Price consistency validation
-    if (formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && 
-        formData.hargaTotalBeliKemasan > 0 && formData.harga > 0) {
-      const totalContent = formData.jumlahBeliKemasan * formData.isiPerKemasan;
-      const calculatedTotal = formData.harga * totalContent;
-      const tolerance = Math.max(calculatedTotal * 0.05, 100); // 5% tolerance
-      
-      if (Math.abs(calculatedTotal - formData.hargaTotalBeliKemasan) > tolerance) {
-        errors.push(`Harga tidak konsisten: ${formData.harga} × ${totalContent} = ${calculatedTotal}, tapi total: ${formData.hargaTotalBeliKemasan}`);
+    if (hasPackageData) {
+      // Jika ada data package, validasi kelengkapan
+      if (formData.jumlahBeliKemasan !== undefined && formData.jumlahBeliKemasan > 0) {
+        if (!formData.satuanKemasan?.trim()) {
+          errors.push('Jenis kemasan harus diisi jika ada jumlah kemasan');
+        }
+        if (formData.isiPerKemasan === undefined || formData.isiPerKemasan <= 0) {
+          errors.push('Isi per kemasan harus lebih dari 0');
+        }
+        if (formData.hargaTotalBeliKemasan === undefined || formData.hargaTotalBeliKemasan <= 0) {
+          errors.push('Harga total beli kemasan harus lebih dari 0');
+        }
       }
     }
     
@@ -256,7 +252,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     return errors.length === 0;
   };
 
-  // ✅ FIXED: Submit handler with proper database mapping
+  // ✅ FIXED: Submit handler dengan proper database mapping
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -266,6 +262,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
     setIsSubmitting(true);
     try {
+      logger.info('AddEditDialog.handleSubmit called with data:', formData);
+      
       // ✅ FIXED: Map to database schema with separate isi_per_kemasan
       const submitData = {
         nama: formData.nama.trim(),
@@ -274,18 +272,19 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         stok: formData.stok,
         minimum: formData.minimum,
         satuan: formData.satuan.trim(),
-        harga_satuan: formData.harga, // ✅ Map to DB field
-        tanggal_kadaluwarsa: formData.expiry || null,
-        jumlah_beli_kemasan: formData.jumlahBeliKemasan || null,
-        isi_per_kemasan: formData.isiPerKemasan || null, // ✅ FIXED: Store separately
-        satuan_kemasan: formData.satuanKemasan ? 
-          `${formData.isiPerKemasan} ${formData.satuan} per ${formData.satuanKemasan}` : null, // ✅ Store complete info
-        harga_total_beli_kemasan: formData.hargaTotalBeliKemasan || null,
+        harga: formData.harga, // ✅ Map to DB field
+        expiry: formData.expiry || null,
+        jumlahBeliKemasan: formData.jumlahBeliKemasan || null,
+        isiPerKemasan: formData.isiPerKemasan || null, // ✅ FIXED: Store separately
+        satuanKemasan: formData.satuanKemasan ? formData.satuanKemasan.trim() : null, // ✅ Store package type only
+        hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan || null,
       };
       
+      logger.debug('Submitting data to onSave:', submitData);
       await onSave(submitData);
       onClose();
     } catch (error: any) {
+      logger.error('Error in handleSubmit:', error);
       toast.error(error.message || 'Gagal menyimpan data');
     } finally {
       setIsSubmitting(false);

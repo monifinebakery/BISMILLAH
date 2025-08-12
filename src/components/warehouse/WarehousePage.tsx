@@ -272,6 +272,7 @@ const useWarehouseData = () => {
       setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
       logger.info(`✅ Item "${newItem.nama}" berhasil ditambahkan`);
+      toast.success(`Item "${newItem.nama}" berhasil ditambahkan!`);
     },
     onError: (error: Error) => {
       logger.error('❌ Gagal menambah item:', error.message);

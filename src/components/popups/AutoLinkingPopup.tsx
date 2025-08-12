@@ -378,12 +378,12 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   // Show countdown when popup is closed but will retry
   if (!isOpen && autoRetryTimer > 0 && !isDismissed && unlinkedPayments.length > 0) {
     return (
-      <div className="fixed bottom-4 right-4 bg-white border border-orange-300 rounded-lg p-4 shadow-lg max-w-sm z-50">
-        <div className="flex items-center gap-3 mb-3">
-          <Clock className="w-5 h-5 text-orange-600" />
-          <div>
-            <p className="font-medium text-gray-900">Auto-Link Reminder</p>
-            <p className="text-sm text-gray-600">
+      <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 bg-white border border-orange-300 rounded-lg p-3 sm:p-4 shadow-lg max-w-xs sm:max-w-sm z-50">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3">
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900 text-sm">Auto-Link Reminder</p>
+            <p className="text-xs sm:text-sm text-gray-600">
               Popup will reopen in {autoRetryTimer}s
             </p>
           </div>
@@ -392,15 +392,15 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         <div className="flex gap-2">
           <button
             onClick={() => onClose()}
-            className="flex-1 px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600"
+            className="flex-1 px-3 py-2 bg-orange-500 text-white rounded text-xs sm:text-sm hover:bg-orange-600 font-medium"
           >
             Open Now
           </button>
           <button
             onClick={() => setIsDismissed(true)}
-            className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+            className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 rounded text-xs sm:text-sm hover:bg-gray-400"
           >
-            Stop Reminders
+            Stop
           </button>
         </div>
       </div>
@@ -413,31 +413,31 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const showDebugInfo = import.meta.env.DEV && currentUser;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header with Enhanced Debug Info */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Zap className="w-5 h-5 text-orange-600" />
+        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200">
+          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Auto-Link Pembayaran Terdeteksi (DEBUG)
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 break-words">
+                Auto-Link Pembayaran <span className="hidden sm:inline">Terdeteksi</span> (DEBUG)
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Hubungkan pembayaran webhook ke akun Anda
               </p>
               
               {/* ✅ ENHANCED DEBUG: Show detailed user info */}
               {showDebugInfo && (
-                <div className="text-xs mt-2 bg-gray-100 p-2 rounded">
-                  <div className="font-mono">
-                    <div className={`${currentUser.id === 'null' ? 'text-red-600' : 'text-green-600'}`}>
+                <div className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-hidden">
+                  <div className="font-mono space-y-1">
+                    <div className={`${currentUser.id === 'null' ? 'text-red-600' : 'text-green-600'} break-all`}>
                       <strong>User ID:</strong> {currentUser.id} ({typeof currentUser.id})
                     </div>
-                    <div><strong>Email:</strong> {currentUser.email}</div>
-                    <div><strong>Sanitized:</strong> {sanitizeUserId(currentUser.id) || 'NULL'}</div>
+                    <div className="break-all"><strong>Email:</strong> {currentUser.email}</div>
+                    <div className="break-all"><strong>Sanitized:</strong> {sanitizeUserId(currentUser.id) || 'NULL'}</div>
                     <div><strong>UUID Valid:</strong> {sanitizeUserId(currentUser.id) ? '✅' : '❌'}</div>
                   </div>
                   {currentUser.id === 'null' && <div className="text-red-600 font-bold mt-1">⚠️ STRING NULL DETECTED!</div>}
@@ -446,46 +446,46 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
             <button
               onClick={handleLogout}
               disabled={isLinking || isLoggingOut}
-              className="p-2 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 text-red-600"
+              className="p-1.5 sm:p-2 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 text-red-600"
               title="Logout and login with different account"
             >
               {isLoggingOut ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
               ) : (
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
             
             <button
               onClick={() => handleClose(false)}
               disabled={isLinking}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
               title="Close (will reopen in 10 seconds)"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
             </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+        <div className="p-4 sm:p-6 max-h-[calc(95vh-140px)] sm:max-h-[calc(90vh-200px)] overflow-y-auto">
           {!showResults ? (
             /* Payment Selection */
             <>
               {/* User Info */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-gray-600" />
-                    <div>
-                      <p className="font-medium text-gray-900">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 text-sm sm:text-base break-all">
                         {currentUser?.email || 'Current User'}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         Pembayaran akan dihubungkan ke akun ini
                       </p>
                     </div>
@@ -494,7 +494,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                   <button
                     onClick={handleLogout}
                     disabled={isLinking || isLoggingOut}
-                    className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                    className="text-xs sm:text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50 flex-shrink-0"
                   >
                     {isLoggingOut ? 'Logging out...' : 'Wrong account? Logout'}
                   </button>
@@ -502,24 +502,24 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               </div>
 
               {unlinkedPayments.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                  <p className="text-gray-600">Tidak ada pembayaran webhook yang terdeteksi</p>
+                <div className="text-center py-6 sm:py-8">
+                  <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500 mx-auto mb-3" />
+                  <p className="text-sm sm:text-base text-gray-600">Tidak ada pembayaran webhook yang terdeteksi</p>
                 </div>
               ) : (
                 <>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                      <h3 className="font-medium text-gray-900 mb-2">
+                      <h3 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">
                         Pembayaran Terdeteksi Webhook ({unlinkedPayments.length})
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         Pembayaran ini terdeteksi otomatis oleh sistem webhook
                       </p>
                     </div>
                     <button
                       onClick={handleSelectAll}
-                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                      className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 font-medium self-start sm:self-auto"
                     >
                       {selectedPayments.length === unlinkedPayments.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
                     </button>
@@ -529,7 +529,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                     {unlinkedPayments.map((payment) => (
                       <div
                         key={payment.order_id}
-                        className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                        className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-all ${
                           selectedPayments.some(p => p.order_id === payment.order_id)
                             ? 'border-orange-500 bg-orange-50'
                             : 'border-gray-200 hover:border-gray-300'
@@ -537,40 +537,40 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                         onClick={() => handlePaymentToggle(payment)}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
                               <input
                                 type="checkbox"
                                 checked={selectedPayments.some(p => p.order_id === payment.order_id)}
                                 onChange={() => handlePaymentToggle(payment)}
-                                className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 flex-shrink-0"
                                 onClick={(e) => e.stopPropagation()}
                               />
-                              <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                              <span className="font-mono text-xs sm:text-sm bg-gray-100 px-2 py-1 rounded break-all">
                                 {payment.order_id}
                               </span>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
                                 payment.is_paid 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-yellow-100 text-yellow-800'
                               }`}>
                                 {payment.is_paid ? 'PAID' : 'PENDING'}
                               </span>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 flex-shrink-0">
                                 WEBHOOK
                               </span>
                               {/* Debug info */}
                               {showDebugInfo && (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
                                   USER_ID: {payment.user_id || 'NULL'}
                                 </span>
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                               <div>
                                 <span className="text-gray-500">Email:</span>
-                                <span className="ml-2 font-medium">
+                                <span className="ml-2 font-medium break-all">
                                   {payment.email === 'unlinked@payment.com' || payment.email === 'pending@webhook.com' 
                                     ? 'Auto-generated' 
                                     : payment.email || 'No email'}
@@ -590,7 +590,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                               </div>
                               <div>
                                 <span className="text-gray-500">Reference:</span>
-                                <span className="ml-2 font-mono text-xs">
+                                <span className="ml-2 font-mono text-xs break-all">
                                   {payment.pg_reference_id || 'N/A'}
                                 </span>
                               </div>
@@ -606,11 +606,11 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           ) : (
             /* Results Display */
             <>
-              <div className="mb-6">
-                <h3 className="font-medium text-gray-900 mb-2">
+              <div className="mb-4 sm:mb-6">
+                <h3 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">
                   Hasil Auto-Linking (DEBUG)
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500">
                   {linkingResults.filter(r => r.success).length} dari {linkingResults.length} pembayaran berhasil dihubungkan
                 </p>
               </div>
@@ -619,27 +619,27 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 {linkingResults.map((result) => (
                   <div
                     key={result.order_id}
-                    className={`border rounded-lg p-4 ${
+                    className={`border rounded-lg p-3 sm:p-4 ${
                       result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       {result.success ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" />
                       ) : (
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0 mt-0.5" />
                       )}
-                      <div className="flex-1">
-                        <div className="font-mono text-sm mb-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-xs sm:text-sm mb-1 break-all">
                           {result.order_id}
                         </div>
                         {result.success ? (
-                          <p className="text-sm text-green-700">
+                          <p className="text-xs sm:text-sm text-green-700">
                             Berhasil dihubungkan ke akun Anda
                           </p>
                         ) : (
                           <div>
-                            <p className="text-sm text-red-700">
+                            <p className="text-xs sm:text-sm text-red-700 break-words">
                               Gagal: {result.error}
                             </p>
                             {showDebugInfo && (
@@ -659,20 +659,20 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-6">
+        <div className="border-t border-gray-200 p-4 sm:p-6">
           {!showResults ? (
             <div className="space-y-3">
-              <div className="text-sm text-gray-500 text-center">
+              <div className="text-xs sm:text-sm text-gray-500 text-center">
                 {selectedPayments.length > 0 && (
                   `${selectedPayments.length} dari ${unlinkedPayments.length} pembayaran dipilih`
                 )}
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={() => handleClose(false)}
                   disabled={isLinking}
-                  className="flex-1 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 order-2 sm:order-1"
                   title="Close temporarily (will reopen in 10s)"
                 >
                   Tutup Sementara
@@ -681,7 +681,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 <button
                   onClick={() => handleClose(true)}
                   disabled={isLinking}
-                  className="flex-1 px-4 py-2 text-red-700 hover:bg-red-50 border border-red-300 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-700 hover:bg-red-50 border border-red-300 rounded-lg transition-colors disabled:opacity-50 order-3 sm:order-2"
                   title="Dismiss permanently (won't reopen automatically)"
                 >
                   Batal Permanen
@@ -690,25 +690,27 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 <button
                   onClick={handleAutoLinkPayments}
                   disabled={selectedPayments.length === 0 || isLinking || sanitizeUserId(currentUser?.id) === null}
-                  className="flex-1 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none sm:min-w-0 px-4 sm:px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm order-1 sm:order-3"
                   title={sanitizeUserId(currentUser?.id) === null ? 'Invalid user ID - please logout and login again' : ''}
                 >
-                  {isLinking && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <Zap className="w-4 h-4" />
-                  {isLinking ? 'Menghubungkan...' : `Hubungkan ${selectedPayments.length}`}
+                  {isLinking && <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />}
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="font-medium">
+                    {isLinking ? 'Menghubungkan...' : `Hubungkan ${selectedPayments.length}`}
+                  </span>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <div className="text-xs sm:text-sm text-gray-600">
                 {linkingResults.filter(r => r.success).length > 0 && (
                   `${linkingResults.filter(r => r.success).length} pembayaran berhasil dihubungkan`
                 )}
               </div>
               <button
                 onClick={() => handleClose(true)}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
               >
                 Selesai
               </button>

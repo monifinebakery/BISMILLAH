@@ -1,4 +1,4 @@
-// src/components/layout/AppLayout.tsx - FIXED: No infinite loops
+// src/components/layout/AppLayout.tsx - SIMPLIFIED: Only AutoLinkingPopup
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,7 +8,6 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 import { AppLoader } from "@/components/loaders";
 import { AutoLinkingPopup } from "@/components/popups";
-import OrderConfirmationPopup from "@/components/OrderConfirmationPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 
@@ -23,8 +22,6 @@ export const AppLayout = () => {
   const { 
     isPaid, 
     isLoading,
-    showOrderPopup,
-    setShowOrderPopup,
     refetchPayment,
     unlinkedPaymentCount,
     needsOrderLinking,
@@ -35,23 +32,31 @@ export const AppLayout = () => {
     autoLinkCount,
   } = usePaymentContext();
   
-  const {
-    handleOrderLinked,
-    handleAutoLinked,
-    renderOrderLinkButton,
-    renderAutoLinkIndicator
-  } = useAppLayout({
-    isPaid,
-    showOrderPopup,
-    setShowOrderPopup,
-    refetchPayment,
-    unlinkedPaymentCount,
-    needsOrderLinking,
-    currentUser,
-    setShowAutoLinkPopup,
-    autoLinkCount
-  });
-
+  // ✅ SIMPLIFIED: Auto-show AutoLinkingPopup when needed
+  useEffect(() => {
+    // Show popup if there are unlinked payments OR user needs order linking
+    if ((unlinkedPayments.length > 0 || needsOrderLinking) && !showAutoLinkPopup && currentUser) {
+      logger.debug('AppLayout: Auto-showing AutoLinkingPopup', {
+        unlinkedCount: unlinkedPayments.length,
+        needsOrderLinking,
+        currentUser: currentUser.email
+      });
+      
+      const timer = setTimeout(() => {
+        setShowAutoLinkPopup(true);
+      }, 1500); // Small delay to let page load
+      
+      return () => clearTimeout(timer);
+    }
+  }, [unlinkedPayments.length, needsOrderLinking, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
+  
+  // ✅ Handle successful auto-linking
+  const handleAutoLinked = (linkedPayments: any[]) => {
+    logger.success('AppLayout: Auto-linked payments:', linkedPayments);
+    refetchPayment(); // Refresh payment status
+    setShowAutoLinkPopup(false);
+  };
+  
   // ✅ SIMPLIFIED: Only one timeout effect, no recursive dependencies
   useEffect(() => {
     // Clear existing timeout
@@ -75,28 +80,60 @@ export const AppLayout = () => {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isLoading, forceReady]); // ✅ MINIMAL dependencies
-
+  }, [isLoading, forceReady]);
+  
   // ✅ THROTTLED debug logging (max once per 2 seconds)
   useEffect(() => {
     const now = Date.now();
     
-    if (now - lastLogRef.current > 2000) { // Throttle to 2 seconds
+    if (now - lastLogRef.current > 2000) {
       lastLogRef.current = now;
       
       logger.debug('AppLayout: State update', {
         isLoading,
         forceReady,
-        isPaid
+        isPaid,
+        unlinkedCount: unlinkedPayments.length,
+        needsOrderLinking
       });
     }
-  }, [isLoading, forceReady, isPaid]);
-
+  }, [isLoading, forceReady, isPaid, unlinkedPayments.length, needsOrderLinking]);
+  
   // ✅ Show loading screen - SIMPLE condition
   if (isLoading && !forceReady) {
     return <AppLoader title="Mengecek status pembayaran..." />;
   }
-
+  
+  // ✅ Render auto-link indicator in header/sidebar
+  const renderAutoLinkIndicator = () => {
+    if (autoLinkCount === 0) return null;
+    
+    return (
+      <button
+        onClick={() => setShowAutoLinkPopup(true)}
+        className="flex items-center gap-2 px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors text-sm font-medium"
+        title={`${autoLinkCount} pembayaran webhook terdeteksi`}
+      >
+        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+        <span>{autoLinkCount} Webhook</span>
+      </button>
+    );
+  };
+  
+  // ✅ Render manual link button for users who need to link payments
+  const renderOrderLinkButton = () => {
+    if (isPaid) return null;
+    
+    return (
+      <button
+        onClick={() => setShowAutoLinkPopup(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+      >
+        <span>Link Pembayaran</span>
+      </button>
+    );
+  };
+  
   // ✅ Simple layout props
   const layoutProps = {
     isPaid,
@@ -104,7 +141,7 @@ export const AppLayout = () => {
     renderAutoLinkIndicator,
     children: <Outlet />
   };
-
+  
   return (
     <>
       {/* ✅ Render layout */}
@@ -113,13 +150,8 @@ export const AppLayout = () => {
       ) : (
         <DesktopLayout {...layoutProps} />
       )}
-
-      {/* ✅ Popups */}
-      <OrderConfirmationPopup
-        isOpen={showOrderPopup}
-        onClose={() => setShowOrderPopup(false)}
-        onSuccess={handleOrderLinked}
-      />
+      
+      {/* ✅ ONLY AutoLinkingPopup - handles both manual and automatic linking */}
       <AutoLinkingPopup
         isOpen={showAutoLinkPopup}
         onClose={() => setShowAutoLinkPopup(false)}

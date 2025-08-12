@@ -1,145 +1,105 @@
 // src/types/notification.ts
+// ✅ SINGLE SOURCE OF TRUTH - All notification types centralized
+
 /**
- * Mendefinisikan struktur data untuk satu notifikasi.
- * Ini akan digunakan di seluruh aplikasi untuk memastikan konsistensi.
+ * Core Notification interface - matches database schema exactly
  */
 export interface Notification {
   id: string;
   user_id: string;
   title: string;
-  message?: string;
+  message: string;
   type: 'info' | 'success' | 'warning' | 'error';
+  icon?: string;
+  priority: number; // 1=low, 2=normal, 3=high, 4=urgent
+  related_type?: string;
+  related_id?: string;
+  action_url?: string;
   is_read: boolean;
   is_archived: boolean;
-  related_id?: string;
-  related_type?: 'order' | 'purchase' | 'inventory' | 'system';
-  action_url?: string;
-  icon?: string;
-  priority: 1 | 2 | 3 | 4; // 1=rendah, 2=normal, 3=tinggi, 4=darurat
   expires_at?: string;
   created_at: string;
   updated_at: string;
 }
 
 /**
- * Mendefinisikan struktur data untuk pengaturan notifikasi pengguna.
- * Updated untuk mencocokkan dengan form state di NotificationSettingsForm
+ * Settings interface - simplified version
  */
 export interface NotificationSettings {
   id?: string;
   user_id: string;
-  
-  // Basic notifications
   push_notifications: boolean;
-  
-  // Business notifications
-  order_notifications: boolean;
-  inventory_notifications: boolean;
-  system_notifications: boolean;
-  
-  // Financial & alerts
-  financial_alerts: boolean;
   inventory_alerts: boolean;
-  stock_alerts: boolean;
-  payment_alerts: boolean;
-  low_stock_alerts: boolean;
-  
-  // Reports
-  daily_reports: boolean;
-  weekly_reports: boolean;
-  monthly_reports: boolean;
-  
-  // Additional
-  reminder_notifications: boolean;
-  security_alerts: boolean;
-  
-  // Settings
-  low_stock_threshold: number;
-  auto_archive_days: number;
-  
-  // Timestamps
+  order_alerts: boolean;
+  financial_alerts: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
 /**
- * Partial type untuk update settings - semua field opsional kecuali user_id
+ * API Response types
  */
-export type NotificationSettingsUpdate = Partial<Omit<NotificationSettings, 'user_id'>> & {
-  user_id: string;
+export interface NotificationApiResponse<T = any> {
+  data: T;
+  error?: string;
+  success: boolean;
+}
+
+/**
+ * Context interface
+ */
+export interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  urgentCount: number;
+  isLoading: boolean;
+  settings: NotificationSettings | null;
+  addNotification: (notification: CreateNotificationData) => Promise<boolean>;
+  markAsRead: (notificationId: string) => Promise<boolean>;
+  markAllAsRead: () => Promise<boolean>;
+  deleteNotification: (notificationId: string) => Promise<boolean>;
+  archiveNotification: (notificationId: string) => Promise<boolean>;
+  updateSettings: (settings: Partial<NotificationSettings>) => Promise<boolean>;
+  refreshNotifications: () => Promise<void>;
+  clearAllNotifications: () => Promise<boolean>;
+}
+
+/**
+ * Helper types
+ */
+export type CreateNotificationData = Omit<Notification, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+export type UpdateNotificationData = Partial<Omit<Notification, 'id' | 'user_id' | 'created_at'>>;
+
+/**
+ * Default values
+ */
+export const DEFAULT_NOTIFICATION_SETTINGS: Omit<NotificationSettings, 'user_id'> = {
+  push_notifications: true,
+  inventory_alerts: true,
+  order_alerts: true,
+  financial_alerts: true
 };
 
 /**
- * Type untuk form state di komponen NotificationSettingsForm
+ * Constants
  */
-export type NotificationFormState = Omit<NotificationSettings, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+export const NOTIFICATION_ICONS = {
+  'bell': 'Bell',
+  'alert-circle': 'AlertCircle',
+  'alert-triangle': 'AlertTriangle',
+  'info': 'Info',
+  'check-circle': 'CheckCircle',
+  'refresh-cw': 'RefreshCw',
+  'shopping-cart': 'ShoppingCart',
+  'package': 'Package',
+  'user': 'User',
+  'calendar': 'Calendar',
+  'welcome': 'CheckCircle'
+} as const;
 
-/**
- * Enum untuk jenis-jenis notifikasi yang tersedia
- */
-export enum NotificationType {
-  INFO = 'info',
-  SUCCESS = 'success', 
-  WARNING = 'warning',
-  ERROR = 'error'
-}
-
-/**
- * Enum untuk prioritas notifikasi
- */
-export enum NotificationPriority {
-  LOW = 1,
-  NORMAL = 2,
-  HIGH = 3,
-  URGENT = 4
-}
-
-/**
- * Enum untuk tipe relasi notifikasi
- */
-export enum NotificationRelatedType {
-  ORDER = 'order',
-  PURCHASE = 'purchase',
-  INVENTORY = 'inventory',
-  SYSTEM = 'system'
-}
-
-/**
- * Interface untuk response API ketika mengambil notifikasi
- */
-export interface NotificationResponse {
-  notifications: Notification[];
-  total: number;
-  unread_count: number;
-  page?: number;
-  per_page?: number;
-}
-
-/**
- * Interface untuk filter notifikasi
- */
-export interface NotificationFilter {
-  type?: NotificationType;
-  is_read?: boolean;
-  is_archived?: boolean;
-  priority?: NotificationPriority;
-  related_type?: NotificationRelatedType;
-  date_from?: string;
-  date_to?: string;
-}
-
-/**
- * Interface untuk create notification payload
- */
-export interface CreateNotificationPayload {
-  user_id: string;
-  title: string;
-  message?: string;
-  type: NotificationType;
-  related_id?: string;
-  related_type?: NotificationRelatedType;
-  action_url?: string;
-  icon?: string;
-  priority?: NotificationPriority;
-  expires_at?: string;
-}
+export const NOTIFICATION_COLORS = {
+  info: 'text-blue-600 bg-blue-50 border-blue-200',
+  success: 'text-green-600 bg-green-50 border-green-200',
+  warning: 'text-orange-600 bg-orange-50 border-orange-200',
+  error: 'text-red-600 bg-red-50 border-red-200'
+} as const;

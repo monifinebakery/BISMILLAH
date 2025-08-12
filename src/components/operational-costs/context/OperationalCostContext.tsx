@@ -1,6 +1,6 @@
 // src/components/operational-costs/context/OperationalCostContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   OperationalCost, 
@@ -45,12 +45,6 @@ interface OperationalCostState {
 type OperationalCostAction =
   | { type: 'SET_LOADING'; payload: { key: keyof OperationalCostState['loading']; value: boolean } }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_COSTS'; payload: OperationalCost[] }
-  | { type: 'ADD_COST'; payload: OperationalCost }
-  | { type: 'UPDATE_COST'; payload: OperationalCost }
-  | { type: 'DELETE_COST'; payload: string }
-  | { type: 'SET_ALLOCATION_SETTINGS'; payload: AllocationSettings | null }
-  | { type: 'SET_SUMMARY'; payload: CostSummary }
   | { type: 'SET_OVERHEAD_CALCULATION'; payload: OverheadCalculation }
   | { type: 'SET_FILTERS'; payload: CostFilters }
   | { type: 'SET_AUTH_STATE'; payload: boolean }
@@ -99,53 +93,6 @@ const operationalCostReducer = (
       return {
         ...state,
         error: action.payload,
-      };
-
-    case 'SET_COSTS':
-      return {
-        ...state,
-        costs: action.payload,
-        summary: transformCostsToSummary(action.payload),
-        error: null,
-      };
-
-    case 'ADD_COST':
-      const newCosts = [...state.costs, action.payload];
-      return {
-        ...state,
-        costs: newCosts,
-        summary: transformCostsToSummary(newCosts),
-      };
-
-    case 'UPDATE_COST':
-      const updatedCosts = state.costs.map(cost =>
-        cost.id === action.payload.id ? action.payload : cost
-      );
-      return {
-        ...state,
-        costs: updatedCosts,
-        summary: transformCostsToSummary(updatedCosts),
-      };
-
-    case 'DELETE_COST':
-      const filteredCosts = state.costs.filter(cost => cost.id !== action.payload);
-      return {
-        ...state,
-        costs: filteredCosts,
-        summary: transformCostsToSummary(filteredCosts),
-      };
-
-    case 'SET_ALLOCATION_SETTINGS':
-      return {
-        ...state,
-        allocationSettings: action.payload,
-        error: null,
-      };
-
-    case 'SET_SUMMARY':
-      return {
-        ...state,
-        summary: action.payload,
       };
 
     case 'SET_OVERHEAD_CALCULATION':
@@ -214,19 +161,36 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   const [state, dispatch] = useReducer(operationalCostReducer, initialState);
   const queryClient = useQueryClient();
 
+  // Debug logging
+  logger.debug('🔍 OperationalCostProvider rendered', {
+    filters: state.filters,
+    isAuthenticated: state.isAuthenticated,
+    costsCount: state.costs.length
+  });
+
+  // ✅ Stabilize filters to prevent unnecessary re-renders
+  const stabilizedFilters = useMemo(() => {
+    logger.debug('📊 Filters stabilized:', state.filters);
+    return state.filters;
+  }, [JSON.stringify(state.filters)]);
+
   // Helper function to set loading state
   const setLoading = useCallback((key: keyof OperationalCostState['loading'], value: boolean) => {
+    logger.debug(`⏳ Setting loading.${key} = ${value}`);
     dispatch({ type: 'SET_LOADING', payload: { key, value } });
   }, []);
 
   // ✅ useQuery: Load Costs
   const costsQuery = useQuery({
-    queryKey: OPERATIONAL_COST_QUERY_KEYS.costs(state.filters),
+    queryKey: OPERATIONAL_COST_QUERY_KEYS.costs(stabilizedFilters),
     queryFn: async () => {
-      const response = await operationalCostApi.getCosts(state.filters);
+      logger.info('🔄 Fetching costs with filters:', stabilizedFilters);
+      const response = await operationalCostApi.getCosts(stabilizedFilters);
       if (response.error) {
+        logger.error('❌ Error fetching costs:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Costs fetched successfully:', response.data?.length || 0, 'items');
       return response.data;
     },
     enabled: state.isAuthenticated,
@@ -239,10 +203,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   const allocationQuery = useQuery({
     queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings(),
     queryFn: async () => {
+      logger.info('🔄 Fetching allocation settings');
       const response = await allocationApi.getSettings();
       if (response.error && !response.error.includes('tidak ditemukan')) {
+        logger.error('❌ Error fetching allocation settings:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Allocation settings fetched:', !!response.data);
       return response.data;
     },
     enabled: state.isAuthenticated,
@@ -253,72 +220,88 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // ✅ Mutations for CRUD operations
   const createCostMutation = useMutation({
     mutationFn: async (data: CostFormData) => {
+      logger.info('🔄 Creating new cost:', data.nama);
       const response = await operationalCostApi.createCost(data);
       if (response.error) {
+        logger.error('❌ Error creating cost:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Cost created successfully:', response.data?.id);
       return response.data;
     },
     onSuccess: (newCost) => {
-      dispatch({ type: 'ADD_COST', payload: newCost });
+      logger.info('🎉 Cost mutation success, invalidating queries');
       // Invalidate and refetch costs
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
+      logger.error('❌ Create cost mutation error:', error.message);
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menambahkan biaya operasional' });
     },
   });
 
   const updateCostMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CostFormData> }) => {
+      logger.info('🔄 Updating cost:', id, data);
       const response = await operationalCostApi.updateCost(id, data);
       if (response.error) {
+        logger.error('❌ Error updating cost:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Cost updated successfully:', id);
       return response.data;
     },
     onSuccess: (updatedCost) => {
-      dispatch({ type: 'UPDATE_COST', payload: updatedCost });
+      logger.info('🎉 Update cost mutation success, invalidating queries');
       // Invalidate and refetch costs
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
+      logger.error('❌ Update cost mutation error:', error.message);
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal memperbarui biaya operasional' });
     },
   });
 
   const deleteCostMutation = useMutation({
     mutationFn: async (id: string) => {
+      logger.info('🔄 Deleting cost:', id);
       const response = await operationalCostApi.deleteCost(id);
       if (response.error) {
+        logger.error('❌ Error deleting cost:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Cost deleted successfully:', id);
       return id;
     },
     onSuccess: (deletedId) => {
-      dispatch({ type: 'DELETE_COST', payload: deletedId });
+      logger.info('🎉 Delete cost mutation success, invalidating queries');
       // Invalidate and refetch costs
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
+      logger.error('❌ Delete cost mutation error:', error.message);
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menghapus biaya operasional' });
     },
   });
 
   const saveAllocationMutation = useMutation({
     mutationFn: async (data: AllocationFormData) => {
+      logger.info('🔄 Saving allocation settings:', data);
       const response = await allocationApi.upsertSettings(data);
       if (response.error) {
+        logger.error('❌ Error saving allocation settings:', response.error);
         throw new Error(response.error);
       }
+      logger.success('✅ Allocation settings saved successfully');
       return response.data;
     },
     onSuccess: (settings) => {
-      dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: settings });
+      logger.info('🎉 Save allocation mutation success, invalidating queries');
       // Invalidate and refetch allocation settings
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings() });
     },
     onError: (error: Error) => {
+      logger.error('❌ Save allocation mutation error:', error.message);
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menyimpan pengaturan alokasi' });
     },
   });
@@ -326,11 +309,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // ✅ Manual overhead calculation with useQuery pattern
   const calculateOverheadQuery = useCallback(async (materialCost: number = 0) => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Overhead calculation attempted without authentication');
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return;
     }
 
     try {
+      logger.info('🔄 Calculating overhead with material cost:', materialCost);
       setLoading('overhead', true);
       
       // Use queryClient.fetchQuery for manual triggering
@@ -347,37 +332,15 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         retry: 2,
       });
 
+      logger.success('✅ Overhead calculated successfully:', data?.overhead_per_unit);
       dispatch({ type: 'SET_OVERHEAD_CALCULATION', payload: data });
     } catch (error) {
-      logger.error('Error calculating overhead:', error);
+      logger.error('❌ Error calculating overhead:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Gagal menghitung overhead' });
     } finally {
       setLoading('overhead', false);
     }
   }, [state.isAuthenticated, queryClient, setLoading]);
-
-  // ✅ Update state when queries complete
-  useEffect(() => {
-    if (costsQuery.data) {
-      dispatch({ type: 'SET_COSTS', payload: costsQuery.data });
-    }
-    if (costsQuery.error) {
-      dispatch({ type: 'SET_ERROR', payload: costsQuery.error.message || 'Gagal memuat data biaya operasional' });
-    }
-    // Update loading state
-    setLoading('costs', costsQuery.isLoading);
-  }, [costsQuery.data, costsQuery.error, costsQuery.isLoading, setLoading]);
-
-  useEffect(() => {
-    if (allocationQuery.data) {
-      dispatch({ type: 'SET_ALLOCATION_SETTINGS', payload: allocationQuery.data });
-    }
-    if (allocationQuery.error) {
-      dispatch({ type: 'SET_ERROR', payload: allocationQuery.error.message || 'Gagal memuat pengaturan alokasi' });
-    }
-    // Update loading state
-    setLoading('allocation', allocationQuery.isLoading);
-  }, [allocationQuery.data, allocationQuery.error, allocationQuery.isLoading, setLoading]);
 
   // ✅ SIMPLIFIED: Auth state management
   useEffect(() => {
@@ -385,6 +348,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
 
     const initializeAuth = async () => {
       try {
+        logger.info('🔐 Initializing authentication');
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -398,6 +362,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         }
 
         const isAuthenticated = !!session?.user;
+        logger.info('🔐 Auth state initialized:', { isAuthenticated, userId: session?.user?.id });
         
         if (mounted) {
           dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
@@ -418,9 +383,12 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         if (!mounted) return;
 
         const isAuthenticated = !!session?.user;
+        logger.info('🔐 Auth state changed:', { event, isAuthenticated, userId: session?.user?.id });
+        
         dispatch({ type: 'SET_AUTH_STATE', payload: isAuthenticated });
         
         if (event === 'SIGNED_OUT') {
+          logger.info('🔐 User signed out, resetting state and clearing queries');
           dispatch({ type: 'RESET_STATE' });
           // Clear all queries when user signs out
           queryClient.clear();
@@ -431,11 +399,21 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      logger.debug('🔐 Auth listener cleaned up');
     };
   }, [queryClient]);
 
+  // ✅ Calculate summary from costs query data
+  const summary = useMemo(() => {
+    const costs = costsQuery.data || [];
+    const calculatedSummary = transformCostsToSummary(costs);
+    logger.debug('📊 Summary calculated:', calculatedSummary);
+    return calculatedSummary;
+  }, [costsQuery.data]);
+
   // ✅ Legacy wrapper functions to maintain API compatibility
   const loadCosts = useCallback(async (filters?: CostFilters) => {
+    logger.info('🔄 loadCosts called with filters:', filters);
     if (filters) {
       dispatch({ type: 'SET_FILTERS', payload: filters });
     }
@@ -444,11 +422,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   }, [costsQuery]);
 
   const loadAllocationSettings = useCallback(async () => {
+    logger.info('🔄 loadAllocationSettings called');
     await allocationQuery.refetch();
   }, [allocationQuery]);
 
   const createCost = useCallback(async (data: CostFormData): Promise<boolean> => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Create cost attempted without authentication');
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return false;
     }
@@ -457,12 +437,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       await createCostMutation.mutateAsync(data);
       return true;
     } catch (error) {
+      logger.error('❌ Create cost failed:', error);
       return false;
     }
   }, [state.isAuthenticated, createCostMutation]);
 
   const updateCost = useCallback(async (id: string, data: Partial<CostFormData>): Promise<boolean> => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Update cost attempted without authentication');
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return false;
     }
@@ -471,12 +453,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       await updateCostMutation.mutateAsync({ id, data });
       return true;
     } catch (error) {
+      logger.error('❌ Update cost failed:', error);
       return false;
     }
   }, [state.isAuthenticated, updateCostMutation]);
 
   const deleteCost = useCallback(async (id: string): Promise<boolean> => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Delete cost attempted without authentication');
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return false;
     }
@@ -485,12 +469,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       await deleteCostMutation.mutateAsync(id);
       return true;
     } catch (error) {
+      logger.error('❌ Delete cost failed:', error);
       return false;
     }
   }, [state.isAuthenticated, deleteCostMutation]);
 
   const saveAllocationSettings = useCallback(async (data: AllocationFormData): Promise<boolean> => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Save allocation settings attempted without authentication');
       dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
       return false;
     }
@@ -499,26 +485,36 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       await saveAllocationMutation.mutateAsync(data);
       return true;
     } catch (error) {
+      logger.error('❌ Save allocation settings failed:', error);
       return false;
     }
   }, [state.isAuthenticated, saveAllocationMutation]);
 
   // Filter actions
   const setFilters = useCallback((filters: CostFilters) => {
-    dispatch({ type: 'SET_FILTERS', payload: filters });
-    // Queries will automatically refetch when filters change
-  }, []);
+    // ✅ Prevent unnecessary updates if filters are the same
+    if (JSON.stringify(filters) !== JSON.stringify(state.filters)) {
+      logger.info('📊 Setting new filters:', filters);
+      dispatch({ type: 'SET_FILTERS', payload: filters });
+      // Queries will automatically refetch when filters change
+    } else {
+      logger.debug('📊 Filters unchanged, skipping update');
+    }
+  }, [state.filters]);
 
   const clearFilters = useCallback(() => {
+    logger.info('📊 Clearing all filters');
     dispatch({ type: 'SET_FILTERS', payload: {} });
   }, []);
 
   // Utility actions
   const refreshData = useCallback(async () => {
     if (!state.isAuthenticated) {
+      logger.warn('🔐 Refresh data attempted without authentication');
       return;
     }
 
+    logger.info('🔄 Refreshing all data');
     await Promise.all([
       costsQuery.refetch(),
       allocationQuery.refetch(),
@@ -526,12 +522,31 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   }, [state.isAuthenticated, costsQuery, allocationQuery]);
 
   const setError = useCallback((error: string | null) => {
+    if (error) {
+      logger.error('❌ Error set:', error);
+    } else {
+      logger.debug('✅ Error cleared');
+    }
     dispatch({ type: 'SET_ERROR', payload: error });
   }, []);
 
+  // ✅ Enhanced state with query data
+  const enhancedState: OperationalCostState = {
+    ...state,
+    costs: costsQuery.data || [],
+    allocationSettings: allocationQuery.data || null,
+    summary,
+    loading: {
+      ...state.loading,
+      costs: costsQuery.isLoading,
+      allocation: allocationQuery.isLoading,
+    },
+    error: state.error || costsQuery.error?.message || allocationQuery.error?.message || null,
+  };
+
   // Context value
   const contextValue: OperationalCostContextType = {
-    state,
+    state: enhancedState,
     actions: {
       loadCosts,
       createCost,
@@ -546,6 +561,13 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       setError,
     },
   };
+
+  logger.debug('🎯 Context value prepared:', {
+    costsCount: enhancedState.costs.length,
+    hasAllocationSettings: !!enhancedState.allocationSettings,
+    loadingStates: enhancedState.loading,
+    hasError: !!enhancedState.error
+  });
 
   return (
     <OperationalCostContext.Provider value={contextValue}>

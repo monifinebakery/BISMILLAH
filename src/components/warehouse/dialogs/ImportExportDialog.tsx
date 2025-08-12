@@ -1,40 +1,22 @@
-{/* ✅ Updated field info with harga */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Kolom Wajib (Header)</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div><code className="bg-white px-1 rounded">nama</code> - Nama bahan baku</div>
-                  <div><code className="bg-white px-1 rounded">kategori</code> - Kategori produk</div>
-                  <div><code className="bg-white px-1 rounded">supplier</code> - Nama supplier</div>
-                  <div><code className="bg-white px-1 rounded">satuan</code> - Satuan dasar</div>
-                  <div><code className="bg-white px-1 rounded">stok</code> - Stok saat ini</div>
-                  <div><code className="bg-white px-1 rounded">minimum</code> - Stok minimum</div>
-                  <div><code className="bg-white px-1 rounded">harga</code> - Harga per satuan</div>
-                  <div><code className="bg-white px-1 rounded">expiry</code> - Tgl kadaluarsa (opsional)</div>
-                  <div><code className="bg-white px-1 rounded">jumlahBeliKemasan</code> - Jumlah kemasan</div>
-                  <div><code className="bg-white px-1 rounded">satuanKemasan</code> - Jenis kemasan</div>
-                  <div><code className="bg-white px-1 rounded">hargaTotalBeliKemasan</code> - Harga total</div>
-                </div>
-                <div className="mt-3 text-xs text-gray-500// src/components/warehouse/dialogs/ImportDialog.tsx
-// 🎯 Fixed Import Dialog - CSV Upload Made Easy
+// src/components/warehouse/dialogs/ImportDialog.tsx
+// 🎯 Optimized Import Dialog - Lazy Load XLSX (~50KB instead of 600KB)
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ✅ Updated interface to match BahanBakuFrontend structure and AddEditDialog
+// ✅ Updated interface to match BahanBakuFrontend structure
 interface BahanBakuImport {
-  nama: string;
+  nama: string; // ✅ Changed from nama_bahan_baku
   kategori: string;
   supplier: string;
   satuan: string;
-  expiry?: string;
-  stok: number;
-  minimum: number;
-  harga: number; // ✅ Added: unit price calculation
-  jumlahBeliKemasan: number;
-  isiPerKemasan: number; // ✅ NEW: content per package
-  satuanKemasan: string;
-  hargaTotalBeliKemasan: number;
+  expiry?: string; // ✅ Changed from tanggal_kadaluwarsa
+  stok: number; // ✅ Changed from stok_saat_ini
+  minimum: number; // ✅ Changed from minimum_stok
+  jumlahBeliKemasan: number; // ✅ Changed from jumlah_beli_kemasan
+  satuanKemasan: string; // ✅ Changed from satuan_kemasan
+  hargaTotalBeliKemasan: number; // ✅ Changed from harga_total_beli_kemasan
 }
 
 interface ImportDialogProps {
@@ -44,12 +26,22 @@ interface ImportDialogProps {
 }
 
 /**
- * Warehouse Import Dialog Component - FIXED VERSION
+ * Warehouse Import Dialog Component
  * 
- * ✅ Fixed CSV parsing with proper delimiter detection
- * ✅ Better header mapping and field validation
- * ✅ Improved error messages and user guidance
- * ✅ Enhanced template generation
+ * ✅ Updated to match BahanBakuFrontend interface
+ * ✅ Enhanced with better field mapping
+ * ✅ Optimized XLSX lazy loading
+ * ✅ Improved validation and error handling
+ * 
+ * Features:
+ * - Lazy load XLSX library (only when needed)
+ * - Support CSV and Excel formats
+ * - Real-time validation and preview
+ * - Template download functionality
+ * - Progress indication and error reporting
+ * - Compatible with updated type system
+ * 
+ * Size: ~8KB + XLSX library (loaded on demand)
  */
 const ImportDialog: React.FC<ImportDialogProps> = ({
   isOpen,
@@ -61,7 +53,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // ✅ ENHANCED: More comprehensive header mapping (matching AddEditDialog)
+  // ✅ Updated header mapping to match BahanBakuFrontend field names
   const headerMap: Record<string, string> = {
     // Name variations
     'nama_bahan_baku': 'nama', 
@@ -69,26 +61,21 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'nama': 'nama',
     'name': 'nama',
     'item_name': 'nama',
-    'bahan': 'nama',
-    'produk': 'nama',
     
     // Category variations
     'kategori': 'kategori', 
     'category': 'kategori',
     'jenis': 'kategori',
-    'type': 'kategori',
     
     // Supplier variations
     'supplier': 'supplier', 
     'pemasok': 'supplier',
     'vendor': 'supplier',
-    'penyedia': 'supplier',
     
-    // Unit variations (matching AddEditDialog common units)
+    // Unit variations
     'satuan': 'satuan', 
     'unit': 'satuan',
     'uom': 'satuan',
-    'satuan_dasar': 'satuan',
     
     // Expiry variations
     'tanggal_kadaluwarsa': 'expiry', 
@@ -96,7 +83,6 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'expiry': 'expiry',
     'expiry_date': 'expiry',
     'exp_date': 'expiry',
-    'tanggal_exp': 'expiry',
     
     // Stock variations
     'stok_saat_ini': 'stok', 
@@ -105,7 +91,6 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'current_stock': 'stok',
     'qty': 'stok',
     'quantity': 'stok',
-    'jumlah': 'stok',
     
     // Minimum stock variations
     'minimum_stok': 'minimum', 
@@ -113,186 +98,74 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'min_stock': 'minimum',
     'min': 'minimum',
     'reorder_point': 'minimum',
-    'stok_minimum': 'minimum',
-    
-    // ✅ ADDED: Unit price variations
-    'harga': 'harga',
-    'harga_per_satuan': 'harga',
-    'unit_price': 'harga',
-    'price': 'harga',
-    'harga_satuan': 'harga',
     
     // Package quantity variations
     'jumlah_beli_kemasan': 'jumlahBeliKemasan', 
     'qty_kemasan': 'jumlahBeliKemasan',
     'package_qty': 'jumlahBeliKemasan',
     'kemasan_qty': 'jumlahBeliKemasan',
-    'jumlah_kemasan': 'jumlahBeliKemasan',
-    'jumlahbelikemasan': 'jumlahBeliKemasan',
     
-    // ✅ NEW: Package content variations
-    'isi_per_kemasan': 'isiPerKemasan',
-    'isiPerKemasan': 'isiPerKemasan',
-    'content_per_package': 'isiPerKemasan',
-    'isi_kemasan': 'isiPerKemasan',
-    'package_content': 'isiPerKemasan',
-    'isi': 'isiPerKemasan',
-    
-    // Package unit variations (matching AddEditDialog common package units)
+    // Package unit variations
     'satuan_kemasan': 'satuanKemasan', 
     'kemasan': 'satuanKemasan',
     'package_unit': 'satuanKemasan',
     'pack_unit': 'satuanKemasan',
-    'satuankemasan': 'satuanKemasan',
-    'jenis_kemasan': 'satuanKemasan',
     
     // Total price variations
     'harga_total_beli_kemasan': 'hargaTotalBeliKemasan', 
     'harga_total': 'hargaTotalBeliKemasan',
     'total_price': 'hargaTotalBeliKemasan',
     'package_price': 'hargaTotalBeliKemasan',
-    'total_cost': 'hargaTotalBeliKemasan',
-    'hargatotalbelikemasan': 'hargaTotalBeliKemasan'
+    'total_cost': 'hargaTotalBeliKemasan'
   };
 
-  // ✅ Updated required fields (including isiPerKemasan)
+  // ✅ Updated required fields
   const requiredFields = [
     'nama', 'kategori', 'supplier', 'satuan', 'stok', 'minimum', 
-    'harga', 'jumlahBeliKemasan', 'isiPerKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
+    'jumlahBeliKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
   ];
 
-  // Optional fields that don't require validation
-  const optionalFields = ['expiry'];
-
-  // ✅ Enhanced validation function (including package content validation)
+  // ✅ Enhanced validation function
   const validate = (data: any): string[] => {
     const errors: string[] = [];
     
     // Required field validation
-    if (!data.nama?.toString().trim()) errors.push('Nama bahan baku kosong');
-    if (!data.kategori?.toString().trim()) errors.push('Kategori kosong');
-    if (!data.supplier?.toString().trim()) errors.push('Supplier kosong');
-    if (!data.satuan?.toString().trim()) errors.push('Satuan kosong');
-    if (!data.satuanKemasan?.toString().trim()) errors.push('Satuan kemasan kosong');
+    if (!data.nama?.trim()) errors.push('Nama bahan baku kosong');
+    if (!data.kategori?.trim()) errors.push('Kategori kosong');
+    if (!data.supplier?.trim()) errors.push('Supplier kosong');
+    if (!data.satuan?.trim()) errors.push('Satuan kosong');
+    if (!data.satuanKemasan?.trim()) errors.push('Satuan kemasan kosong');
     
     // Numeric field validation
-    const stok = parseFloat(data.stok);
-    const minimum = parseFloat(data.minimum);
-    const harga = parseFloat(data.harga);
-    const jumlahKemasan = parseFloat(data.jumlahBeliKemasan);
-    const isiPerKemasan = parseFloat(data.isiPerKemasan);
-    const hargaTotal = parseFloat(data.hargaTotalBeliKemasan);
-    
-    if (isNaN(stok) || stok < 0) {
+    if (isNaN(data.stok) || data.stok < 0) {
       errors.push('Stok tidak valid (harus angka ≥ 0)');
     }
-    if (isNaN(minimum) || minimum < 0) {
+    if (isNaN(data.minimum) || data.minimum < 0) {
       errors.push('Minimum stok tidak valid (harus angka ≥ 0)');
     }
-    if (isNaN(harga) || harga <= 0) {
-      errors.push('Harga per satuan tidak valid (harus angka > 0)');
-    }
-    if (isNaN(jumlahKemasan) || jumlahKemasan <= 0) {
+    if (isNaN(data.jumlahBeliKemasan) || data.jumlahBeliKemasan <= 0) {
       errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
     }
-    if (isNaN(isiPerKemasan) || isiPerKemasan <= 0) {
-      errors.push('Isi per kemasan tidak valid (harus angka > 0)');
-    }
-    if (isNaN(hargaTotal) || hargaTotal <= 0) {
+    if (isNaN(data.hargaTotalBeliKemasan) || data.hargaTotalBeliKemasan <= 0) {
       errors.push('Harga total tidak valid (harus angka > 0)');
     }
     
-    // ✅ ENHANCED: Cross-validation for pricing consistency with package content
-    if (!isNaN(harga) && !isNaN(jumlahKemasan) && !isNaN(isiPerKemasan) && !isNaN(hargaTotal) && 
-        harga > 0 && jumlahKemasan > 0 && isiPerKemasan > 0 && hargaTotal > 0) {
-      
-      // Calculate expected total: harga × (jumlahKemasan × isiPerKemasan)
-      const totalContent = jumlahKemasan * isiPerKemasan;
-      const calculatedTotal = harga * totalContent;
-      const tolerance = Math.max(calculatedTotal * 0.05, 100); // 5% tolerance
-      
-      if (Math.abs(calculatedTotal - hargaTotal) > tolerance) {
-        errors.push(`Harga tidak konsisten: ${harga} × (${jumlahKemasan} × ${isiPerKemasan}) = ${calculatedTotal}, tapi harga total: ${hargaTotal}`);
-      }
-    }
-    
     // Date validation (optional)
-    if (data.expiry && data.expiry.toString().trim()) {
+    if (data.expiry && data.expiry.trim()) {
       const expiryDate = new Date(data.expiry);
       if (isNaN(expiryDate.getTime())) {
         errors.push('Format tanggal kadaluarsa tidak valid');
+      } else if (expiryDate < new Date()) {
+        errors.push('Tanggal kadaluarsa sudah lewat');
       }
+    }
+    
+    // Business logic validation
+    if (data.stok > 0 && data.minimum > 0 && data.stok < data.minimum) {
+      errors.push('Stok saat ini lebih rendah dari minimum (akan muncul alert)');
     }
     
     return errors;
-  };
-
-  // ✅ ENHANCED: Better CSV parsing with semicolon priority
-  const parseCSV = (text: string): any[] => {
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 2) throw new Error('File kosong atau hanya berisi header');
-    
-    // ✅ Detect delimiter with semicolon priority
-    const firstLine = lines[0];
-    let delimiter = ',';
-    const delimiters = [';', ',', '\t', '|']; // ✅ Semicolon first priority
-    
-    for (const d of delimiters) {
-      if (firstLine.split(d).length > firstLine.split(delimiter).length) {
-        delimiter = d;
-      }
-    }
-    
-    console.log('Detected delimiter:', delimiter);
-    
-    // ✅ Parse with proper quote handling
-    const parseRow = (row: string): string[] => {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      let i = 0;
-      
-      while (i < row.length) {
-        const char = row[i];
-        
-        if (char === '"') {
-          if (inQuotes && row[i + 1] === '"') {
-            current += '"';
-            i += 2;
-          } else {
-            inQuotes = !inQuotes;
-            i++;
-          }
-        } else if (char === delimiter && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-          i++;
-        } else {
-          current += char;
-          i++;
-        }
-      }
-      
-      result.push(current.trim());
-      return result;
-    };
-    
-    const headers = parseRow(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
-    console.log('Parsed headers:', headers);
-    
-    return lines.slice(1).map((line, index) => {
-      const values = parseRow(line);
-      const row: any = { _rowIndex: index + 2 };
-      
-      headers.forEach((header, i) => {
-        let value = values[i] || '';
-        // Remove quotes if present
-        value = value.replace(/^"|"$/g, '').trim();
-        row[header] = value;
-      });
-      
-      return row;
-    });
   };
 
   // ✅ OPTIMIZED: Lazy load XLSX only when needed
@@ -307,7 +180,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     }
   };
 
-  // ✅ FIXED: Better file processing
+  // ✅ OPTIMIZED: Process file with lazy XLSX loading
   const processFile = async (file: File) => {
     if (!file.name.match(/\.(csv|xlsx|xls)$/i)) {
       toast.error('Format file tidak didukung. Gunakan .csv, .xlsx, atau .xls');
@@ -325,11 +198,18 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       let jsonData: any[] = [];
 
       if (file.name.endsWith('.csv')) {
-        // ✅ FIXED: Better CSV processing
+        // CSV processing (no XLSX needed)
         const text = await file.text();
-        console.log('File content preview:', text.substring(0, 200));
-        jsonData = parseCSV(text);
-        console.log('Parsed CSV data:', jsonData.slice(0, 2));
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length < 2) throw new Error('File kosong atau hanya berisi header');
+        
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        jsonData = lines.slice(1).map((line, index) => {
+          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+          const row: any = { _rowIndex: index + 2 };
+          headers.forEach((h, i) => row[h] = values[i] || '');
+          return row;
+        });
       } else {
         // ✅ Excel processing - lazy load XLSX
         toast.info('Memuat library Excel...', { duration: 1000 });
@@ -354,9 +234,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
         throw new Error('Tidak ada data yang dapat diproses');
       }
 
-      console.log('Raw data sample:', jsonData[0]);
-
-      // ✅ FIXED: Better data mapping and processing
+      // ✅ Enhanced data mapping and processing
       const mapped = jsonData.map((row) => {
         const newRow: any = { _rowIndex: row._rowIndex };
         
@@ -364,14 +242,12 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
         Object.keys(row).forEach(key => {
           if (key === '_rowIndex') return;
           
-          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, '_');
-          const mappedKey = headerMap[normalizedKey] || headerMap[key.toLowerCase().trim()];
-          
+          const mappedKey = headerMap[key.toLowerCase().trim()];
           if (mappedKey) {
             let value = row[key];
             
-            // Process numeric fields (including isiPerKemasan)
-            if (['stok', 'minimum', 'harga', 'jumlahBeliKemasan', 'isiPerKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
+            // Process numeric fields
+            if (['stok', 'minimum', 'jumlahBeliKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
               // Clean and parse numbers
               const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
               value = parseFloat(cleanValue) || 0;
@@ -398,56 +274,29 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
         return newRow;
       });
 
-      console.log('Mapped data sample:', mapped[0]);
-
-      // ✅ ENHANCED: Auto-calculate unit price using proper package content calculation
-      mapped.forEach(row => {
-        if (row.jumlahBeliKemasan > 0 && row.isiPerKemasan > 0 && row.hargaTotalBeliKemasan > 0) {
-          // Calculate using proper formula: total ÷ (packages × content per package)
-          const totalContent = row.jumlahBeliKemasan * row.isiPerKemasan;
-          const calculatedPrice = Math.round(row.hargaTotalBeliKemasan / totalContent);
-          
-          if (!row.harga || row.harga === 0) {
-            row.harga = calculatedPrice;
-            console.log(`Auto-calculated harga for ${row.nama}: ${row.harga} per ${row.satuan}`);
-          } else {
-            // Check consistency
-            const tolerance = Math.max(calculatedPrice * 0.1, 1);
-            if (Math.abs(calculatedPrice - row.harga) > tolerance) {
-              console.warn(`Price inconsistency for ${row.nama}: calculated ${calculatedPrice}, provided ${row.harga}`);
-            }
-          }
-        }
-      });
-
       // ✅ Enhanced validation and error collection
       const valid: BahanBakuImport[] = [];
       const errors: string[] = [];
 
       // Check for required columns
       const sampleRow = mapped[0] || {};
-      const availableFields = Object.keys(sampleRow).filter(k => k !== '_rowIndex');
-      const missingCols = requiredFields.filter(field => !availableFields.includes(field));
-      
-      console.log('Available fields:', availableFields);
-      console.log('Missing required fields:', missingCols);
+      const missingCols = requiredFields.filter(field => 
+        !(field in sampleRow) || sampleRow[field] === undefined
+      );
       
       if (missingCols.length > 0) {
         errors.push(`Kolom wajib tidak ditemukan: ${missingCols.join(', ')}`);
         errors.push('Tip: Pastikan nama kolom sesuai dengan template atau gunakan variasi nama yang didukung');
-        errors.push(`Kolom yang ditemukan: ${availableFields.join(', ')}`);
       }
 
       // Validate each row
       mapped.forEach(row => {
         const fieldErrors = validate(row);
-        if (fieldErrors.length === 0 && missingCols.length === 0) {
+        if (fieldErrors.length === 0) {
           const { _rowIndex, ...cleanRow } = row;
           valid.push(cleanRow);
         } else {
-          if (missingCols.length === 0) {
-            errors.push(`Baris ${row._rowIndex}: ${fieldErrors.join(', ')}`);
-          }
+          errors.push(`Baris ${row._rowIndex}: ${fieldErrors.join(', ')}`);
         }
       });
 
@@ -464,37 +313,82 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     } catch (error: any) {
       console.error('Processing error:', error);
       toast.error(`Error memproses file: ${error.message}`);
-      setPreview({ valid: [], errors: [error.message] });
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ UPDATED: Download template with semicolon delimiter and harga column
+  // ✅ OPTIMIZED: Download template with lazy XLSX
   const downloadTemplate = async () => {
     try {
       setLoading(true);
+      toast.info('Memuat library Excel...', { duration: 1000 });
       
-      // ✅ UPDATED: Create CSV template with isiPerKemasan and proper examples
-      const csvTemplate = `nama;kategori;supplier;satuan;expiry;stok;minimum;harga;jumlahBeliKemasan;isiPerKemasan;satuanKemasan;hargaTotalBeliKemasan
-"Tepung Terigu Premium";"Bahan Dasar";"PT Supplier Terpercaya";"gram";"2024-12-31";5000;1000;180;2;500;"pak";180000
-"Gula Pasir Halus";"Pemanis";"CV Gula Manis";"gram";"2024-11-30";3000;500;18;1;1000;"karton";18000
-"Minyak Goreng";"Minyak";"PT Minyak Sehat";"ml";"2025-06-15";2000;300;30;4;500;"botol";60000
-"Mentega Tawar";"Lemak";"PT Dairy Fresh";"gram";"";1500;200;125;3;200;"pack";75000
-"Telur Ayam Grade A";"Protein";"Peternakan Maju";"buah";"";100;20;2500;1;30;"tray";75000`;
+      const XLSX = await loadXLSX();
+      
+      // ✅ Updated template with correct field names
+      const template = [
+        {
+          nama: 'Tepung Terigu Premium',
+          kategori: 'Bahan Dasar',
+          supplier: 'PT Supplier Terpercaya',
+          satuan: 'gram',
+          expiry: '2024-12-31',
+          stok: 5000,
+          minimum: 1000,
+          jumlahBeliKemasan: 2,
+          satuanKemasan: 'sak 25kg',
+          hargaTotalBeliKemasan: 150000
+        },
+        {
+          nama: 'Gula Pasir Halus',
+          kategori: 'Pemanis',
+          supplier: 'CV Gula Manis',
+          satuan: 'gram',
+          expiry: '2024-11-30',
+          stok: 3000,
+          minimum: 500,
+          jumlahBeliKemasan: 1,
+          satuanKemasan: 'karton 1kg',
+          hargaTotalBeliKemasan: 18000
+        },
+        {
+          nama: 'Minyak Goreng',
+          kategori: 'Minyak',
+          supplier: 'PT Minyak Sehat',
+          satuan: 'ml',
+          expiry: '2025-06-15',
+          stok: 2000,
+          minimum: 300,
+          jumlahBeliKemasan: 4,
+          satuanKemasan: 'botol 500ml',
+          hargaTotalBeliKemasan: 60000
+        }
+      ];
 
-      // Download CSV with semicolon delimiter
-      const blob = new Blob([csvTemplate], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `template_bahan_baku_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(template);
       
-      toast.success('Template CSV berhasil di-download (dengan isiPerKemasan dan contoh perhitungan yang benar)');
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 20 }, // nama
+        { wch: 15 }, // kategori
+        { wch: 20 }, // supplier
+        { wch: 10 }, // satuan
+        { wch: 12 }, // expiry
+        { wch: 8 },  // stok
+        { wch: 8 },  // minimum
+        { wch: 15 }, // jumlahBeliKemasan
+        { wch: 15 }, // satuanKemasan
+        { wch: 18 }  // hargaTotalBeliKemasan
+      ];
+      
+      XLSX.utils.book_append_sheet(wb, ws, 'Template Bahan Baku');
+      
+      const fileName = `template_bahan_baku_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success('Template berhasil di-download');
     } catch (error) {
       console.error('Template download error:', error);
       toast.error('Gagal membuat template');
@@ -577,13 +471,13 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                 </h3>
                 <p className="text-gray-600 mb-4">Drag & drop atau klik untuk memilih file</p>
                 <div className="flex justify-center gap-3">
-                    <Button onClick={() => fileRef.current?.click()} disabled={loading}>
-                      {loading ? 'Memproses...' : 'Pilih File'}
-                    </Button>
-                    <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
-                      <Download className="w-4 h-4 mr-2" />
-                      {loading ? 'Membuat...' : 'Download Template CSV'}
-                    </Button>
+                  <Button onClick={() => fileRef.current?.click()} disabled={loading}>
+                    {loading ? 'Memproses...' : 'Pilih File'}
+                  </Button>
+                  <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {loading ? 'Membuat...' : 'Download Template'}
+                  </Button>
                 </div>
                 <input
                   ref={fileRef}
@@ -594,7 +488,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                 />
               </div>
 
-              {/* ✅ ENHANCED: Better info panel */}
+              {/* ✅ ENHANCED: Improved info panel */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex gap-3">
@@ -602,39 +496,48 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                     <div>
                       <h4 className="font-medium text-blue-900">Format yang Didukung</h4>
                       <div className="text-sm text-blue-700 mt-1 space-y-1">
-                        <div>• <strong>CSV:</strong> Diproses langsung, sangat cepat</div>
-                        <div>• <strong>Excel:</strong> .xlsx, .xls (butuh loading)</div>
-                        <div>• <strong>Delimiter:</strong> Auto-detect (prioritas semicolon)</div>
+                        <div>• <strong>CSV:</strong> Langsung diproses, sangat cepat</div>
+                        <div>• <strong>Excel:</strong> .xlsx, .xls (butuh loading ~2-3 detik)</div>
                         <div>• <strong>Ukuran maksimal:</strong> 10MB</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                     <div>
-                      <h4 className="font-medium text-green-900">Tips Sukses</h4>
-                      <div className="text-sm text-green-700 mt-1 space-y-1">
-                        <div>• Download template CSV terlebih dahulu</div>
-                        <div>• Template menggunakan semicolon (;) sebagai delimiter</div>
-                        <div>• Pastikan tidak ada cell kosong di kolom wajib (*)</div>
-                        <div>• Format angka: gunakan angka biasa (tanpa titik/koma)</div>
-                        <div>• Kolom expiry boleh dikosongkan (opsional)</div>
-                        <div>• Isi "isiPerKemasan" dengan jumlah satuan per kemasan</div>
-                        <div>• Harga per satuan akan dihitung otomatis jika kosong</div>
+                      <h4 className="font-medium text-yellow-900">Tips Penting</h4>
+                      <div className="text-sm text-yellow-700 mt-1 space-y-1">
+                        <div>• Gunakan template untuk hasil terbaik</div>
+                        <div>• Pastikan semua kolom wajib terisi</div>
+                        <div>• Format tanggal: YYYY-MM-DD</div>
+                        <div>• Angka jangan pakai titik/koma pemisah</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-                <div className="mt-3 text-xs text-gray-500 space-y-1">
-                  <div>💡 Header bisa menggunakan variasi nama (Indonesia/Inggris), sistem akan auto-mapping</div>
-                  <div>🔹 Template menggunakan delimiter semicolon (;) untuk kolom terpisah dengan baik</div>
-                  <div>🧮 Harga per satuan akan dihitung otomatis jika kosong: hargaTotal ÷ jumlahKemasan</div>
+              {/* ✅ Field mapping info */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Kolom yang Diperlukan</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                  <div><span className="font-medium">nama</span> - Nama bahan baku</div>
+                  <div><span className="font-medium">kategori</span> - Kategori produk</div>
+                  <div><span className="font-medium">supplier</span> - Nama supplier</div>
+                  <div><span className="font-medium">satuan</span> - Satuan dasar</div>
+                  <div><span className="font-medium">stok</span> - Stok saat ini</div>
+                  <div><span className="font-medium">minimum</span> - Stok minimum</div>
+                  <div><span className="font-medium">expiry</span> - Tanggal kadaluarsa (opsional)</div>
+                  <div><span className="font-medium">jumlahBeliKemasan</span> - Jumlah kemasan</div>
+                  <div><span className="font-medium">satuanKemasan</span> - Jenis kemasan</div>
+                  <div><span className="font-medium">hargaTotalBeliKemasan</span> - Harga total</div>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Sistem mendukung berbagai variasi nama kolom (Indonesia/Inggris)
+                </p>
               </div>
             </div>
           ) : (
@@ -671,14 +574,14 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div>
-                    <p className="text-sm text-blue-600">Total Baris</p>
-                    <p className="text-2xl font-bold text-blue-900">{preview.valid.length + (preview.errors.filter(e => e.includes('Baris')).length)}</p>
+                    <p className="text-sm text-blue-600">Total</p>
+                    <p className="text-2xl font-bold text-blue-900">{preview.valid.length + preview.errors.length}</p>
                   </div>
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                   <div>
-                    <p className="text-sm text-purple-600">Status</p>
+                    <p className="text-sm text-purple-600">Siap Import</p>
                     <p className="text-2xl font-bold text-purple-900">
                       {preview.valid.length > 0 ? '✓' : '✗'}
                     </p>
@@ -723,9 +626,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kategori</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Supplier</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Stok</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga/Unit</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Total</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -739,22 +641,6 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                               {item.stok <= item.minimum && (
                                 <span className="ml-1 text-yellow-600 text-xs">⚠️</span>
                               )}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">
-                              Rp {item.harga?.toLocaleString('id-ID')} / {item.satuan}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">
-                              {item.jumlahBeliKemasan} {item.satuanKemasan} × {item.isiPerKemasan} {item.satuan}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">
-                              Rp {item.hargaTotalBeliKemasan?.toLocaleString('id-ID')}
-                            </td>
-                          </tr>
-                        ))}<span className="ml-1 text-yellow-600 text-xs">⚠️</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">
-                              Rp {item.harga?.toLocaleString('id-ID')} / {item.satuan}
                             </td>
                             <td className="px-3 py-2 text-gray-600">
                               {item.jumlahBeliKemasan} {item.satuanKemasan}

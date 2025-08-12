@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X, Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ✅ Updated interface to match BahanBakuFrontend structure
+// ✅ Updated interface to match BahanBakuFrontend structure and AddEditDialog
 interface BahanBakuImport {
   nama: string;
   kategori: string;
@@ -14,6 +14,7 @@ interface BahanBakuImport {
   expiry?: string;
   stok: number;
   minimum: number;
+  harga: number; // ✅ Added: unit price calculation
   jumlahBeliKemasan: number;
   satuanKemasan: string;
   hargaTotalBeliKemasan: number;
@@ -43,7 +44,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // ✅ FIXED: More comprehensive header mapping
+  // ✅ ENHANCED: More comprehensive header mapping (matching AddEditDialog)
   const headerMap: Record<string, string> = {
     // Name variations
     'nama_bahan_baku': 'nama', 
@@ -66,7 +67,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'vendor': 'supplier',
     'penyedia': 'supplier',
     
-    // Unit variations
+    // Unit variations (matching AddEditDialog common units)
     'satuan': 'satuan', 
     'unit': 'satuan',
     'uom': 'satuan',
@@ -97,6 +98,13 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'reorder_point': 'minimum',
     'stok_minimum': 'minimum',
     
+    // ✅ ADDED: Unit price variations
+    'harga': 'harga',
+    'harga_per_satuan': 'harga',
+    'unit_price': 'harga',
+    'price': 'harga',
+    'harga_satuan': 'harga',
+    
     // Package quantity variations
     'jumlah_beli_kemasan': 'jumlahBeliKemasan', 
     'qty_kemasan': 'jumlahBeliKemasan',
@@ -105,7 +113,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'jumlah_kemasan': 'jumlahBeliKemasan',
     'jumlahbelikemasan': 'jumlahBeliKemasan',
     
-    // Package unit variations
+    // Package unit variations (matching AddEditDialog common package units)
     'satuan_kemasan': 'satuanKemasan', 
     'kemasan': 'satuanKemasan',
     'package_unit': 'satuanKemasan',
@@ -118,17 +126,19 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     'total_price': 'hargaTotalBeliKemasan',
     'package_price': 'hargaTotalBeliKemasan',
     'total_cost': 'hargaTotalBeliKemasan',
-    'hargatotalbelikemasan': 'hargaTotalBeliKemasan',
-    'harga': 'hargaTotalBeliKemasan'
+    'hargatotalbelikemasan': 'hargaTotalBeliKemasan'
   };
 
-  // ✅ Required fields
+  // ✅ Updated required fields (expiry is optional)
   const requiredFields = [
     'nama', 'kategori', 'supplier', 'satuan', 'stok', 'minimum', 
-    'jumlahBeliKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
+    'harga', 'jumlahBeliKemasan', 'satuanKemasan', 'hargaTotalBeliKemasan'
   ];
 
-  // ✅ Enhanced validation function
+  // Optional fields that don't require validation
+  const optionalFields = ['expiry'];
+
+  // ✅ Enhanced validation function (including harga validation)
   const validate = (data: any): string[] => {
     const errors: string[] = [];
     
@@ -142,6 +152,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     // Numeric field validation
     const stok = parseFloat(data.stok);
     const minimum = parseFloat(data.minimum);
+    const harga = parseFloat(data.harga);
     const jumlahKemasan = parseFloat(data.jumlahBeliKemasan);
     const hargaTotal = parseFloat(data.hargaTotalBeliKemasan);
     
@@ -151,11 +162,25 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     if (isNaN(minimum) || minimum < 0) {
       errors.push('Minimum stok tidak valid (harus angka ≥ 0)');
     }
+    if (isNaN(harga) || harga <= 0) {
+      errors.push('Harga per satuan tidak valid (harus angka > 0)');
+    }
     if (isNaN(jumlahKemasan) || jumlahKemasan <= 0) {
       errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
     }
     if (isNaN(hargaTotal) || hargaTotal <= 0) {
       errors.push('Harga total tidak valid (harus angka > 0)');
+    }
+    
+    // ✅ ADDED: Cross-validation for pricing consistency
+    if (!isNaN(harga) && !isNaN(jumlahKemasan) && !isNaN(hargaTotal) && 
+        harga > 0 && jumlahKemasan > 0 && hargaTotal > 0) {
+      const calculatedTotal = harga * jumlahKemasan;
+      const tolerance = Math.max(calculatedTotal * 0.01, 1); // 1% tolerance or minimum 1
+      
+      if (Math.abs(calculatedTotal - hargaTotal) > tolerance) {
+        errors.push(`Harga tidak konsisten: ${harga} × ${jumlahKemasan} = ${calculatedTotal}, tapi harga total: ${hargaTotal}`);
+      }
     }
     
     // Date validation (optional)
@@ -169,15 +194,15 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     return errors;
   };
 
-  // ✅ FIXED: Better CSV parsing with multiple delimiter support
+  // ✅ ENHANCED: Better CSV parsing with semicolon priority
   const parseCSV = (text: string): any[] => {
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length < 2) throw new Error('File kosong atau hanya berisi header');
     
-    // ✅ Detect delimiter
+    // ✅ Detect delimiter with semicolon priority
     const firstLine = lines[0];
     let delimiter = ',';
-    const delimiters = [',', ';', '\t', '|'];
+    const delimiters = [';', ',', '\t', '|']; // ✅ Semicolon first priority
     
     for (const d of delimiters) {
       if (firstLine.split(d).length > firstLine.split(delimiter).length) {
@@ -312,8 +337,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
           if (mappedKey) {
             let value = row[key];
             
-            // Process numeric fields
-            if (['stok', 'minimum', 'jumlahBeliKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
+            // Process numeric fields (including harga)
+            if (['stok', 'minimum', 'harga', 'jumlahBeliKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
               // Clean and parse numbers
               const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
               value = parseFloat(cleanValue) || 0;
@@ -341,6 +366,14 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       });
 
       console.log('Mapped data sample:', mapped[0]);
+
+      // ✅ ENHANCED: Auto-calculate unit price if missing but total and quantity available
+      mapped.forEach(row => {
+        if (row.jumlahBeliKemasan > 0 && row.hargaTotalBeliKemasan > 0 && (!row.harga || row.harga === 0)) {
+          row.harga = Math.round(row.hargaTotalBeliKemasan / row.jumlahBeliKemasan);
+          console.log(`Auto-calculated harga for ${row.nama}: ${row.harga}`);
+        }
+      });
 
       // ✅ Enhanced validation and error collection
       const valid: BahanBakuImport[] = [];
@@ -392,18 +425,20 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     }
   };
 
-  // ✅ FIXED: Download template - simple CSV version
+  // ✅ UPDATED: Download template with semicolon delimiter and harga column
   const downloadTemplate = async () => {
     try {
       setLoading(true);
       
-      // ✅ Create simple CSV template
-      const csvTemplate = `nama,kategori,supplier,satuan,expiry,stok,minimum,jumlahBeliKemasan,satuanKemasan,hargaTotalBeliKemasan
-"Tepung Terigu Premium","Bahan Dasar","PT Supplier Terpercaya","gram","2024-12-31",5000,1000,2,"sak 25kg",150000
-"Gula Pasir Halus","Pemanis","CV Gula Manis","gram","2024-11-30",3000,500,1,"karton 1kg",18000
-"Minyak Goreng","Minyak","PT Minyak Sehat","ml","2025-06-15",2000,300,4,"botol 500ml",60000`;
+      // ✅ UPDATED: Create CSV template with semicolon delimiter, clear optional marking
+      const csvTemplate = `nama;kategori;supplier;satuan;expiry;stok;minimum;harga;jumlahBeliKemasan;satuanKemasan;hargaTotalBeliKemasan
+"Tepung Terigu Premium";"Bahan Dasar";"PT Supplier Terpercaya";"gram";"2024-12-31";5000;1000;75000;2;"sak 25kg";150000
+"Gula Pasir Halus";"Pemanis";"CV Gula Manis";"gram";"2024-11-30";3000;500;18000;1;"karton 1kg";18000
+"Minyak Goreng";"Minyak";"PT Minyak Sehat";"ml";"2025-06-15";2000;300;15000;4;"botol 500ml";60000
+"Mentega Tawar";"Lemak";"PT Dairy Fresh";"gram";"";1500;200;25000;3;"pack 200g";75000
+"Telur Ayam Grade A";"Protein";"Peternakan Maju";"buah";"";100;20;2500;30;"tray 30 butir";75000`;
 
-      // Download CSV
+      // Download CSV with semicolon delimiter
       const blob = new Blob([csvTemplate], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -414,7 +449,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       link.click();
       document.body.removeChild(link);
       
-      toast.success('Template CSV berhasil di-download');
+      toast.success('Template CSV berhasil di-download (format semicolon, expiry opsional)');
     } catch (error) {
       console.error('Template download error:', error);
       toast.error('Gagal membuat template');
@@ -497,13 +532,13 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                 </h3>
                 <p className="text-gray-600 mb-4">Drag & drop atau klik untuk memilih file</p>
                 <div className="flex justify-center gap-3">
-                  <Button onClick={() => fileRef.current?.click()} disabled={loading}>
-                    {loading ? 'Memproses...' : 'Pilih File'}
-                  </Button>
-                  <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
-                    <Download className="w-4 h-4 mr-2" />
-                    {loading ? 'Membuat...' : 'Download Template CSV'}
-                  </Button>
+                    <Button onClick={() => fileRef.current?.click()} disabled={loading}>
+                      {loading ? 'Memproses...' : 'Pilih File'}
+                    </Button>
+                    <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
+                      <Download className="w-4 h-4 mr-2" />
+                      {loading ? 'Membuat...' : 'Download Template CSV'}
+                    </Button>
                 </div>
                 <input
                   ref={fileRef}
@@ -524,7 +559,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                       <div className="text-sm text-blue-700 mt-1 space-y-1">
                         <div>• <strong>CSV:</strong> Diproses langsung, sangat cepat</div>
                         <div>• <strong>Excel:</strong> .xlsx, .xls (butuh loading)</div>
-                        <div>• <strong>Delimiter:</strong> Auto-detect koma, titik koma, tab</div>
+                        <div>• <strong>Delimiter:</strong> Auto-detect (prioritas semicolon)</div>
                         <div>• <strong>Ukuran maksimal:</strong> 10MB</div>
                       </div>
                     </div>
@@ -538,16 +573,18 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                       <h4 className="font-medium text-green-900">Tips Sukses</h4>
                       <div className="text-sm text-green-700 mt-1 space-y-1">
                         <div>• Download template CSV terlebih dahulu</div>
-                        <div>• Gunakan Excel untuk edit, save as CSV</div>
-                        <div>• Pastikan tidak ada cell kosong di kolom wajib</div>
+                        <div>• Template menggunakan semicolon (;) sebagai delimiter</div>
+                        <div>• Pastikan tidak ada cell kosong di kolom wajib (*)</div>
                         <div>• Format angka: gunakan angka biasa (tanpa titik/koma)</div>
+                        <div>• Kolom expiry boleh dikosongkan (opsional)</div>
+                        <div>• Harga per satuan akan dihitung otomatis jika kosong</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ✅ Simplified field info */}
+              {/* ✅ Updated field info with harga */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Kolom Wajib (Header)</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -557,14 +594,17 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                   <div><code className="bg-white px-1 rounded">satuan</code> - Satuan dasar</div>
                   <div><code className="bg-white px-1 rounded">stok</code> - Stok saat ini</div>
                   <div><code className="bg-white px-1 rounded">minimum</code> - Stok minimum</div>
+                  <div><code className="bg-white px-1 rounded">harga</code> - Harga per satuan</div>
                   <div><code className="bg-white px-1 rounded">expiry</code> - Tgl kadaluarsa (opsional)</div>
                   <div><code className="bg-white px-1 rounded">jumlahBeliKemasan</code> - Jumlah kemasan</div>
                   <div><code className="bg-white px-1 rounded">satuanKemasan</code> - Jenis kemasan</div>
                   <div><code className="bg-white px-1 rounded">hargaTotalBeliKemasan</code> - Harga total</div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Header bisa menggunakan variasi nama (Indonesia/Inggris), sistem akan auto-mapping
-                </p>
+                <div className="mt-3 text-xs text-gray-500 space-y-1">
+                  <div>💡 Header bisa menggunakan variasi nama (Indonesia/Inggris), sistem akan auto-mapping</div>
+                  <div>🔹 Template menggunakan delimiter semicolon (;) untuk kolom terpisah dengan baik</div>
+                  <div>🧮 Harga per satuan akan dihitung otomatis jika kosong: hargaTotal ÷ jumlahKemasan</div>
+                </div>
               </div>
             </div>
           ) : (
@@ -653,8 +693,9 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kategori</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Supplier</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Stok</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga/Unit</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -668,6 +709,9 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                               {item.stok <= item.minimum && (
                                 <span className="ml-1 text-yellow-600 text-xs">⚠️</span>
                               )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600">
+                              Rp {item.harga?.toLocaleString('id-ID')} / {item.satuan}
                             </td>
                             <td className="px-3 py-2 text-gray-600">
                               {item.jumlahBeliKemasan} {item.satuanKemasan}

@@ -745,7 +745,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   );
 };
 
-export default AddEditDialog; font-medium text-gray-700 mb-1 sm:mb-2">Nama Bahan Baku *</label>
+export default AddEditDialog;-1 sm:mb-2">Nama Bahan Baku *</label>
                         <Input
                           value={formData.nama}
                           onChange={(e) => handleFieldChange('nama', e.target.value)}
@@ -888,4 +888,4 @@ export default AddEditDialog; font-medium text-gray-700 mb-1 sm:mb-2">Nama Bahan
                       </div>
 
                       <div>
-                        <label className="block text-xs sm:text-sm
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb

@@ -1,7 +1,7 @@
 // src/components/financial/profit-analysis/utils/exportHelpers.ts
 // ✅ HELPER FUNCTIONS UNTUK EXPORT
 
-import { DatePeriod } from '@/types/profitAnalysis';
+import { DatePeriod } from '../types/profitAnalysis';
 
 export const prepareExportData = (profitData: any, period: DatePeriod) => {
   return {

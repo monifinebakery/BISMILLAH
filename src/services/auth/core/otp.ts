@@ -1,4 +1,4 @@
-// src/services/auth/core/otp.ts - FIXED SESSION CACHE CONFLICTS
+// src/services/auth/core/otp.ts - ENHANCED FOR RELIABILITY
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -122,11 +122,11 @@ export const verifyEmailOtp = async (
         duration: `${duration}ms`
       });
       
-      // ✅ CRITICAL FIX: Remove session cache manipulation
-      // Let AuthContext handle session state management completely
-      // The onAuthStateChange listener in AuthContext will pick up this session
+      // ✅ CRITICAL: Session is now created by Supabase
+      // AuthContext onAuthStateChange will automatically pick up this session
+      // No need to manually manage session state here
       
-      logger.debug('[OTP] Verification successful, letting AuthContext handle session state');
+      logger.debug('[OTP] Verification successful, AuthContext will detect session change');
       
       toast.success('Login berhasil!');
       return true;

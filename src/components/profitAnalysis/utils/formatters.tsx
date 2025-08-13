@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/utils/formatters.tsx
+// src/components/profitAnalysis/utils/formatters.tsx
 // ✅ UTILITY FUNCTIONS UNTUK FORMATTING
 
 export const formatCurrency = (amount: number): string => 

@@ -66,7 +66,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     getUniqueCategories 
   } = useRecipe();
 
-  // Form state dengan tambahan tanggalPesanan
+  // Form state dengan nama kolom 'tanggal' di backend
   const [formData, setFormData] = useState({
     namaPelanggan: '',
     teleponPelanggan: '',
@@ -79,7 +79,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     pajak: 0,
     totalPesanan: 0,
     isTaxEnabled: false,
-    tanggalPesanan: new Date().toISOString().split('T')[0], // Default to current date
+    tanggal: new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
   });
 
   const [loading, setLoading] = useState(false);
@@ -104,9 +104,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
         isTaxEnabled: !!initialData.pajak,
-        tanggalPesanan: initialData.tanggalPesanan 
-          ? new Date(initialData.tanggalPesanan).toISOString().split('T')[0] 
-          : new Date().toISOString().split('T')[0],
+        tanggal: initialData.tanggal 
+          ? new Date(initialData.tanggal).toISOString().split('T')[0] 
+          : new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
       });
     } else {
       // Reset form untuk mode baru
@@ -122,7 +122,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         pajak: 0,
         totalPesanan: 0,
         isTaxEnabled: false,
-        tanggalPesanan: new Date().toISOString().split('T')[0],
+        tanggal: new Date().toISOString().split('T')[0],
       });
     }
   }, [initialData, open]);
@@ -304,13 +304,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
               </div>
               
               <div>
-                <Label htmlFor="tanggalPesanan">Tanggal Pesanan</Label>
+                <Label htmlFor="tanggal">Tanggal Pesanan</Label> {/* Changed label to Tanggal Pesanan */}
                 <div className="relative">
                   <Input
-                    id="tanggalPesanan"
+                    id="tanggal"
                     type="date"
-                    value={formData.tanggalPesanan}
-                    onChange={(e) => updateField('tanggalPesanan', e.target.value)}
+                    value={formData.tanggal}
+                    onChange={(e) => updateField('tanggal', e.target.value)}
                     className="pl-10"
                   />
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />

@@ -1,4 +1,4 @@
-// src/components/auth/EmailAuthPage.tsx - FIXED TIMING ISSUES
+// src/components/auth/EmailAuthPage.tsx - FIXED CONFLICTING REDIRECT
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
@@ -29,7 +29,7 @@ interface EmailAuthPageProps {
 }
 
 // ✅ Simplified Auth States
-type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired' | 'redirecting';
+type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired' | 'success';
 
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   appName = 'Sistem HPP',
@@ -329,7 +329,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     return false;
   };
 
-  // ✅ FIXED: Verify OTP with session confirmation
+  // ✅ FIXED: Verify OTP - Let AuthContext handle redirection
   const handleVerifyOtp = async () => {
     if (!mountedRef.current) return;
     
@@ -351,7 +351,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       if (result === true) {
         logger.debug('EmailAuth: OTP verification successful, waiting for session...');
-        setAuthState('redirecting');
         
         // ✅ CRITICAL FIX: Wait for session to be properly set
         const sessionConfirmed = await waitForSession();
@@ -359,24 +358,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         if (!mountedRef.current) return;
         
         if (sessionConfirmed) {
-          toast.success('Login berhasil!');
+          // ✅ Set success state and show success message
+          setAuthState('success');
+          toast.success('Login berhasil! Mengarahkan ke dashboard...');
           
-          // ✅ Additional check: Verify session one more time before redirect
+          // ✅ Additional check: Verify session one more time
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session && session.user) {
-            logger.debug('EmailAuth: Session double-confirmed, redirecting to:', redirectUrl);
+            logger.debug('EmailAuth: Session double-confirmed. AuthContext will handle redirection.');
             
+            // ✅ REMOVED: Manual redirection - let AuthContext handle it
+            // The AuthContext onAuthStateChange listener will detect the session
+            // and handle the redirection automatically
+            
+            // ✅ Only call onLoginSuccess callback if provided (for custom logic)
             if (onLoginSuccess) {
               onLoginSuccess();
-            } else {
-              // ✅ Safer redirect with session confirmation
-              setTimeout(() => {
-                if (mountedRef.current) {
-                  window.location.href = redirectUrl;
-                }
-              }, 500); // Reduced delay since session is confirmed
             }
+            
+            // ✅ The component will stay in 'success' state while AuthContext redirects
+            
           } else {
             logger.error('EmailAuth: Session lost during double-check');
             setAuthState('error');
@@ -415,10 +417,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   };
 
   // ✅ Get Button States
-  const isLoading = authState === 'sending' || authState === 'verifying' || authState === 'redirecting';
+  const isLoading = authState === 'sending' || authState === 'verifying';
   const isSent = authState === 'sent' || authState === 'expired';
   const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
-  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying' && authState !== 'redirecting';
+  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying' && authState !== 'success';
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
@@ -566,13 +568,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               )}
 
-              {/* Redirecting Message */}
-              {authState === 'redirecting' && (
+              {/* Success Message */}
+              {authState === 'success' && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center">
                     <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
                     <span className="text-sm text-green-800">
-                      Login berhasil! Sedang mengarahkan ke dashboard...
+                      Login berhasil! AuthContext akan mengarahkan ke dashboard...
                     </span>
                   </div>
                 </div>
@@ -597,7 +599,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                      disabled={authState === 'verifying' || authState === 'redirecting'}
+                      disabled={authState === 'verifying' || authState === 'success'}
                     />
                   ))}
                 </div>
@@ -614,10 +616,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Memverifikasi...
                   </>
-                ) : authState === 'redirecting' ? (
+                ) : authState === 'success' ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Mengarahkan...
+                    Berhasil! Mengarahkan...
                   </>
                 ) : (
                   'Verifikasi Kode'
@@ -633,7 +635,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <Button
                   variant="outline"
                   onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0}
+                  disabled={isLoading || cooldownTime > 0 || authState === 'success'}
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                 >
                   {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : 'Kirim Ulang Kode'}

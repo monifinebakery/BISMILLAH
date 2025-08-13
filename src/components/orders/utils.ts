@@ -7,6 +7,7 @@
 
 import { Order, NewOrder } from './types';
 import { logger } from '@/utils/logger';
+import { VALIDATION_LIMITS } from './constants'; // ✅ Added: Import validation limits from constants
 
 // ✅ DATE UTILITIES: Optimized with better error handling
 export const isValidDate = (date: any): boolean => {
@@ -133,44 +134,71 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
   }
 };
 
-// ✅ VALIDATION: Enhanced with specific error messages  
+// ✅ VALIDATION: Enhanced with specific error messages and integrated limits
 export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  // Required field validations
+  // Required field validations with limits
   if (!data.namaPelanggan?.trim()) {
     errors.push('Nama pelanggan harus diisi');
-  } else if (data.namaPelanggan.trim().length < 2) {
-    errors.push('Nama pelanggan minimal 2 karakter');
+  } else {
+    const nameLength = data.namaPelanggan.trim().length;
+    if (nameLength < VALIDATION_LIMITS.customerName.min) {
+      errors.push(`Nama pelanggan minimal ${VALIDATION_LIMITS.customerName.min} karakter`);
+    }
+    if (nameLength > VALIDATION_LIMITS.customerName.max) {
+      errors.push(`Nama pelanggan maksimal ${VALIDATION_LIMITS.customerName.max} karakter`);
+    }
   }
   
-  // Order value validation
-  if (!data.totalPesanan || data.totalPesanan <= 0) {
-    errors.push('Total pesanan harus lebih dari 0');
-  } else if (data.totalPesanan > 1000000000) { // 1 billion limit
+  // Order value validation with limits
+  if (!data.totalPesanan || data.totalPesanan <= VALIDATION_LIMITS.orderValue.min) {
+    errors.push(`Total pesanan harus lebih dari ${VALIDATION_LIMITS.orderValue.min}`);
+  } else if (data.totalPesanan > VALIDATION_LIMITS.orderValue.max) {
     errors.push('Total pesanan terlalu besar');
   }
   
-  // Items validation
+  // Items validation with limits
   if (!Array.isArray(data.items) || data.items.length === 0) {
     errors.push('Minimal harus ada 1 item pesanan');
-  } else if (data.items.length > 100) { // Reasonable limit
-    errors.push('Maksimal 100 item per pesanan');
+  } else if (data.items.length > VALIDATION_LIMITS.itemsPerOrder.max) {
+    errors.push(`Maksimal ${VALIDATION_LIMITS.itemsPerOrder.max} item per pesanan`);
   }
   
-  // Optional field validations
+  // Optional field validations with limits and improved regex
   if (data.teleponPelanggan && data.teleponPelanggan.length > 0) {
-    const phoneRegex = /^[0-9+\-\s()]+$/;
-    if (!phoneRegex.test(data.teleponPelanggan)) {
-      errors.push('Format nomor telepon tidak valid');
+    const phone = data.teleponPelanggan;
+    const phoneLength = phone.length;
+    if (phoneLength < VALIDATION_LIMITS.phone.min || phoneLength > VALIDATION_LIMITS.phone.max) {
+      errors.push(`Nomor telepon harus antara ${VALIDATION_LIMITS.phone.min} dan ${VALIDATION_LIMITS.phone.max} karakter`);
+    } else {
+      // ✅ IMPROVED: Stricter regex for Indonesian phone numbers (local/internasional)
+      const phoneRegex = /^(?:\+62|0)[1-9]\d{8,13}$/;
+      if (!phoneRegex.test(phone)) {
+        errors.push('Format nomor telepon tidak valid (contoh: +628123456789 atau 08123456789)');
+      }
     }
   }
   
   if (data.emailPelanggan && data.emailPelanggan.length > 0) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.emailPelanggan)) {
-      errors.push('Format email tidak valid');
+    const email = data.emailPelanggan;
+    if (email.length > VALIDATION_LIMITS.email.max) {
+      errors.push(`Email maksimal ${VALIDATION_LIMITS.email.max} karakter`);
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        errors.push('Format email tidak valid');
+      }
     }
+  }
+  
+  // Additional optional fields (address, notes)
+  if (data.alamatPengiriman && data.alamatPengiriman.length > VALIDATION_LIMITS.address.max) {
+    errors.push(`Alamat pengiriman maksimal ${VALIDATION_LIMITS.address.max} karakter`);
+  }
+  
+  if (data.catatan && data.catatan.length > VALIDATION_LIMITS.notes.max) {
+    errors.push(`Catatan maksimal ${VALIDATION_LIMITS.notes.max} karakter`);
   }
   
   return {
@@ -257,6 +285,7 @@ const createFallbackOrder = (id?: string): Order => ({
   updatedAt: new Date(),
 });
 
+// ✅ Made private since only used internally; export if needed elsewhere
 const generateOrderNumber = (): string => {
   const timestamp = Date.now().toString().slice(-8);
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -306,5 +335,5 @@ export const OrderUtils = {
   filterOrdersByStatus,
   
   // Helpers
-  generateOrderNumber: () => generateOrderNumber()
+  generateOrderNumber
 } as const;

@@ -1,8 +1,9 @@
 // src/components/profitAnalysis/context/ProfitAnalysisContext.tsx
-// ✅ PROFIT ANALYSIS CONTEXT - Provider & Hook
+// ✅ COMPLETE UPDATED CONTEXT - Material Usage Integration
 
 import React, { createContext, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 // Hook imports
@@ -28,7 +29,7 @@ import { createDatePeriods } from '../services/profitAnalysisApi';
 const ProfitAnalysisContext = createContext<ProfitAnalysisContextType | undefined>(undefined);
 
 // ===========================================
-// ✅ PROVIDER COMPONENT
+// ✅ UPDATED PROVIDER COMPONENT
 // ===========================================
 
 export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -58,19 +59,23 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
   const dashboardSummary = useDashboardSummary();
 
   // ===========================================
-  // ✅ REAL-TIME UPDATES SUBSCRIPTION
+  // ✅ UPDATED REAL-TIME SUBSCRIPTION
   // ===========================================
 
   useEffect(() => {
     if (!user?.id) return;
 
-    logger.context('ProfitAnalysisContext', 'Setting up real-time subscription for user:', user.id);
+    logger.context('ProfitAnalysisContext', 'Setting up real-time subscription with material usage for user:', user.id);
 
-    // Listen for changes in financial transactions, operational costs, and warehouse data
+    // ✅ UPDATED: Listen for changes including material_usage_log and production_records
     const channels = [
       'financial_transactions',
       'operational_costs', 
-      'bahan_baku'
+      'bahan_baku',
+      'material_usage_log', // ✅ NEW
+      'production_records', // ✅ NEW
+      'orders', // ✅ NEW - for order completion triggers
+      'recipes' // ✅ NEW - for recipe changes
     ].map(table => {
       return supabase
         .channel(`realtime-${table}-profit-${user.id}`)
@@ -86,16 +91,67 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
             try {
               logger.context('ProfitAnalysisContext', `Real-time update received for ${table}:`, payload);
 
-              // Invalidate profit analysis queries to trigger recalculation
-              queryClient.invalidateQueries({
-                queryKey: profitMarginQueryKeys.all
-              });
+              // ✅ SPECIAL HANDLING for material_usage_log
+              if (table === 'material_usage_log') {
+                logger.info('Material usage updated - invalidating profit analysis cache');
+                
+                // Immediately invalidate profit analysis queries
+                queryClient.invalidateQueries({
+                  queryKey: profitMarginQueryKeys.all
+                });
 
-              // Show notification if auto-calculate is enabled
-              if (config?.autoCalculate) {
-                setTimeout(() => {
-                  refreshAnalysis();
-                }, 1000); // Debounce rapid updates
+                // Auto-refresh if enabled and it's a new material usage
+                if (config?.autoCalculate && payload.eventType === 'INSERT') {
+                  setTimeout(() => {
+                    refreshAnalysis();
+                  }, 2000); // Slight delay to ensure data consistency
+                }
+              }
+              
+              // ✅ SPECIAL HANDLING for production_records
+              else if (table === 'production_records') {
+                logger.info('Production record updated - invalidating profit analysis cache');
+                
+                queryClient.invalidateQueries({
+                  queryKey: profitMarginQueryKeys.all
+                });
+
+                if (config?.autoCalculate) {
+                  setTimeout(() => {
+                    refreshAnalysis();
+                  }, 2000);
+                }
+              }
+              
+              // ✅ SPECIAL HANDLING for orders (status changes)
+              else if (table === 'orders') {
+                // Only refresh on status changes to completed/delivered
+                if (payload.new?.status && ['completed', 'delivered'].includes(payload.new.status)) {
+                  logger.info('Order completed - checking for material usage updates');
+                  
+                  queryClient.invalidateQueries({
+                    queryKey: profitMarginQueryKeys.all
+                  });
+
+                  if (config?.autoCalculate) {
+                    setTimeout(() => {
+                      refreshAnalysis();
+                    }, 3000); // Longer delay for order processing
+                  }
+                }
+              }
+              
+              // Standard handling for other tables
+              else {
+                queryClient.invalidateQueries({
+                  queryKey: profitMarginQueryKeys.all
+                });
+
+                if (config?.autoCalculate) {
+                  setTimeout(() => {
+                    refreshAnalysis();
+                  }, 1000);
+                }
               }
 
             } catch (error) {
@@ -109,7 +165,7 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
     });
 
     return () => {
-      logger.context('ProfitAnalysisContext', 'Unsubscribing from real-time updates');
+      logger.context('ProfitAnalysisContext', 'Unsubscribing from real-time updates including material usage');
       channels.forEach(channel => {
         supabase.removeChannel(channel);
       });
@@ -117,7 +173,7 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
   }, [user?.id, queryClient, config?.autoCalculate, refreshAnalysis]);
 
   // ===========================================
-  // ✅ CONTEXT FUNCTIONS
+  // ✅ UPDATED CONTEXT FUNCTIONS
   // ===========================================
 
   const calculateProfitMargin = useCallback(async (input: {
@@ -127,11 +183,15 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       const result = await calculateProfit(input.period, input.categoryMapping);
       
-      logger.context('ProfitAnalysisContext', 'Profit margin calculated successfully:', {
+      logger.context('ProfitAnalysisContext', 'Profit margin calculated successfully with material usage:', {
         period: input.period.label,
         revenue: result.profitMarginData.revenue,
+        cogs: result.profitMarginData.cogs,
         grossMargin: result.profitMarginData.grossMargin,
-        netMargin: result.profitMarginData.netMargin
+        netMargin: result.profitMarginData.netMargin,
+        dataSource: result.cogsBreakdown.dataSource, // ✅ NEW
+        materialUsageRecords: result.rawData.materialUsage?.length || 0, // ✅ NEW
+        productionRecords: result.rawData.productionRecords?.length || 0 // ✅ NEW
       });
 
       return result;
@@ -157,7 +217,7 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       await exportAnalysis(format, profitData);
       
-      logger.context('ProfitAnalysisContext', `Export ${format} successful`);
+      logger.context('ProfitAnalysisContext', `Export ${format} successful with material usage data`);
       return true;
     } catch (error) {
       logger.error('Context: Export failed:', error);
@@ -170,8 +230,6 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
   // ===========================================
 
   const getProfitTrend = useCallback((months: number = 6) => {
-    // This could be enhanced to use the trend hook
-    // For now, return basic trend data from dashboard
     return dashboardSummary.data?.trends || [];
   }, [dashboardSummary.data?.trends]);
 
@@ -202,12 +260,63 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
       opexPercentage: (profitMarginData.opex / profitMarginData.revenue) * 100,
       materialCostPercentage: (cogsBreakdown.totalMaterialCost / profitMarginData.revenue) * 100,
       laborCostPercentage: (cogsBreakdown.totalDirectLaborCost / profitMarginData.revenue) * 100,
-      overheadPercentage: (cogsBreakdown.manufacturingOverhead / profitMarginData.revenue) * 100
+      overheadPercentage: (cogsBreakdown.manufacturingOverhead / profitMarginData.revenue) * 100,
+      
+      // ✅ NEW: Material usage insights
+      hasActualMaterialData: cogsBreakdown.dataSource === 'actual',
+      materialUsageRecords: cogsBreakdown.actualMaterialUsage?.length || 0,
+      productionRecords: cogsBreakdown.productionData?.length || 0,
+      dataQuality: cogsBreakdown.dataSource
+    };
+  }, [profitData]);
+
+  // ✅ NEW: Get material usage summary
+  const getMaterialUsageSummary = useCallback(() => {
+    if (!profitData?.cogsBreakdown.actualMaterialUsage) return null;
+
+    const materialUsage = profitData.cogsBreakdown.actualMaterialUsage;
+    const totalMaterialCost = materialUsage.reduce((sum, usage) => sum + usage.total_cost, 0);
+    const totalQuantity = materialUsage.reduce((sum, usage) => sum + usage.quantity_used, 0);
+
+    // Group by usage type
+    const usageByType = materialUsage.reduce((acc, usage) => {
+      if (!acc[usage.usage_type]) {
+        acc[usage.usage_type] = { count: 0, totalCost: 0 };
+      }
+      acc[usage.usage_type].count += 1;
+      acc[usage.usage_type].totalCost += usage.total_cost;
+      return acc;
+    }, {} as Record<string, { count: number; totalCost: number }>);
+
+    return {
+      totalMaterialCost,
+      totalQuantity,
+      recordCount: materialUsage.length,
+      usageByType,
+      averageCostPerRecord: materialUsage.length > 0 ? totalMaterialCost / materialUsage.length : 0
+    };
+  }, [profitData]);
+
+  // ✅ NEW: Get production summary
+  const getProductionSummary = useCallback(() => {
+    if (!profitData?.cogsBreakdown.productionData) return null;
+
+    const productionRecords = profitData.cogsBreakdown.productionData;
+    const totalQuantityProduced = productionRecords.reduce((sum, record) => sum + record.quantity_produced, 0);
+    const totalProductionCost = productionRecords.reduce((sum, record) => 
+      sum + record.total_material_cost + record.total_labor_cost + record.total_overhead_cost, 0);
+
+    return {
+      totalQuantityProduced,
+      totalProductionCost,
+      recordCount: productionRecords.length,
+      averageCostPerUnit: totalQuantityProduced > 0 ? totalProductionCost / totalQuantityProduced : 0,
+      products: Array.from(new Set(productionRecords.map(r => r.product_name))).length
     };
   }, [profitData]);
 
   // ===========================================
-  // ✅ CONTEXT VALUE
+  // ✅ UPDATED CONTEXT VALUE
   // ===========================================
 
   const contextValue: ProfitAnalysisContextType = {
@@ -234,7 +343,11 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
     getCostAnalysis,
     keyMetrics,
     dashboardSummary: dashboardSummary.data,
-    error: error?.message
+    error: error?.message,
+
+    // ✅ NEW: Material usage utilities
+    getMaterialUsageSummary,
+    getProductionSummary
   };
 
   return (
@@ -245,7 +358,7 @@ export const ProfitAnalysisProvider: React.FC<{ children: ReactNode }> = ({ chil
 };
 
 // ===========================================
-// ✅ HOOK
+// ✅ HOOK (unchanged)
 // ===========================================
 
 export const useProfitAnalysis = (): ProfitAnalysisContextType => {
@@ -257,7 +370,7 @@ export const useProfitAnalysis = (): ProfitAnalysisContextType => {
 };
 
 // ===========================================
-// ✅ SPECIALIZED CONTEXT HOOKS
+// ✅ UPDATED SPECIALIZED CONTEXT HOOKS
 // ===========================================
 
 /**
@@ -273,7 +386,8 @@ export const useProfitMetrics = () => {
       netMargin: 0,
       grossMarginStatus: getMarginStatus(0, 'gross'),
       netMarginStatus: getMarginStatus(0, 'net'),
-      hasData: false
+      hasData: false,
+      dataQuality: 'unknown' as const
     };
   }
 
@@ -286,7 +400,8 @@ export const useProfitMetrics = () => {
     grossMarginStatus: getMarginStatus(grossMargin, 'gross'),
     netMarginStatus: getMarginStatus(netMargin, 'net'),
     hasData: true,
-    rawData: currentAnalysis.profitMarginData
+    rawData: currentAnalysis.profitMarginData,
+    dataQuality: currentAnalysis.cogsBreakdown.dataSource // ✅ NEW
   };
 };
 
@@ -300,7 +415,12 @@ export const useCostBreakdown = () => {
     costAnalysis: getCostAnalysis(),
     cogsBreakdown: currentAnalysis?.cogsBreakdown,
     opexBreakdown: currentAnalysis?.opexBreakdown,
-    hasData: !!currentAnalysis
+    hasData: !!currentAnalysis,
+    
+    // ✅ NEW: Material usage data
+    hasActualMaterialData: currentAnalysis?.cogsBreakdown.dataSource === 'actual',
+    materialUsageRecords: currentAnalysis?.cogsBreakdown.actualMaterialUsage?.length || 0,
+    productionRecords: currentAnalysis?.cogsBreakdown.productionData?.length || 0
   };
 };
 
@@ -322,12 +442,40 @@ export const useProfitInsights = () => {
     efficiencyInsights: getInsightsByCategory('efficiency'),
     criticalInsights: insights.filter(i => i.type === 'critical'),
     warningInsights: insights.filter(i => i.type === 'warning'),
-    hasInsights: insights.length > 0
+    hasInsights: insights.length > 0,
+    
+    // ✅ NEW: Data quality insights
+    dataQualityInsights: insights.filter(i => i.category === 'efficiency')
+  };
+};
+
+/**
+ * ✅ NEW: Hook for material usage analytics
+ */
+export const useMaterialUsageAnalytics = () => {
+  const { currentAnalysis, getMaterialUsageSummary, getProductionSummary } = useProfitAnalysis();
+  
+  const materialSummary = getMaterialUsageSummary();
+  const productionSummary = getProductionSummary();
+  
+  return {
+    materialSummary,
+    productionSummary,
+    hasActualData: currentAnalysis?.cogsBreakdown.dataSource === 'actual',
+    materialUsageRecords: currentAnalysis?.cogsBreakdown.actualMaterialUsage || [],
+    productionRecords: currentAnalysis?.cogsBreakdown.productionData || [],
+    
+    // Data quality indicators
+    dataQuality: currentAnalysis?.cogsBreakdown.dataSource || 'unknown',
+    isDataComplete: materialSummary && productionSummary,
+    
+    // Recommendations
+    needsSetup: !materialSummary || materialSummary.recordCount === 0
   };
 };
 
 // ===========================================
-// ✅ UTILITY HOOKS
+// ✅ UTILITY HOOKS (unchanged)
 // ===========================================
 
 /**

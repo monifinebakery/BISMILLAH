@@ -1,4 +1,4 @@
-// src/hooks/useProfitMargin.ts
+// src/components/profitrAnalysis/hooks/useProfitMargin.ts
 // ✅ PROFIT MARGIN REACT HOOK
 
 import { useState, useCallback, useEffect } from 'react';

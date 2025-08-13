@@ -12,9 +12,7 @@ import { ProfitAnalysisResult } from '../types';
 
 // Hooks
 import {
-  useRincianCalculations,
-  useEfficiencyMetrics,
-  useTargetAnalysis
+  useRincianCalculations
 } from './RincianTab/hooks/useRincianCalculations';
 
 import {
@@ -23,17 +21,58 @@ import {
   useCostAnalysisComparison
 } from './RincianTab/hooks/useCostAnalysis';
 
+import {
+  useEfficiencyMetrics,
+  useEfficiencyMetricsWithScoring,
+  useEfficiencyTrends
+} from './RincianTab/hooks/useEfficiencyMetrics';
+
+import {
+  useTargetAnalysis,
+  useIndividualTargetAnalysis,
+  useActionPlan,
+  useGoalTracking
+} from './RincianTab/hooks/useTargetAnalysis';
+
 // Components
+import {
+  DataQualityIndicator,
+  TabNavigation
+} from './RincianTab';
+
+// Overview components
 import {
   CostOverview,
   HppSummaryCard,
   OpexSummaryCard,
-  QuickRatioAnalysis,
+  QuickRatioAnalysis
+} from './RincianTab/components/overview';
+
+// COGS detail components
+import {
   CogsDetailTab,
+  MaterialCostsCard,
+  LaborCostsCard,
+  MaterialUsageAnalytics
+} from './RincianTab/components/cogsDetail';
+
+// OPEX detail components
+import {
   OpexDetailTab,
+  ExpenseCard,
+  AdministrativeExpensesCard,
+  SellingExpensesCard,
+  GeneralExpensesCard
+} from './RincianTab/components/opexDetail';
+
+// Analysis components
+import {
   AnalysisTab,
-  DataQualityIndicator
-} from './RincianTab';
+  EfficiencyMetricsCard,
+  TargetVsActualCards,
+  RecommendationsCard,
+  ActionItemsCard
+} from './RincianTab/components/analysis';
 
 interface RincianTabProps {
   profitData: ProfitAnalysisResult;
@@ -51,9 +90,10 @@ export const RincianTab: React.FC<RincianTabProps> = ({
 
   // Custom hooks for business logic
   const calculations = useRincianCalculations({ profitData });
-  const costAnalysis = useCostAnalysis({ profitData });
-  const efficiencyMetrics = useEfficiencyMetrics({ profitData });
-  const targetAnalysis = useTargetAnalysis({ profitData });
+  const costAnalysis = useCostAnalysis(profitData);
+  const efficiencyMetrics = useEfficiencyMetricsWithScoring(profitData);
+  const targetAnalysis = useIndividualTargetAnalysis(profitData);
+  const actionPlan = useActionPlan(profitData);
 
   return (
     <div className={cn("space-y-6", isMobile && "space-y-4", className)}>
@@ -155,6 +195,7 @@ export const RincianTab: React.FC<RincianTabProps> = ({
               costAnalysis={costAnalysis}
               efficiencyMetrics={efficiencyMetrics}
               targetAnalysis={targetAnalysis}
+              actionPlan={actionPlan}
               isMobile={isMobile}
             />
           </Tabs>

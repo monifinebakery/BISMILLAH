@@ -24,15 +24,23 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       try {
         logger.debug('AuthGuard: Initializing auth...');
         
-        // Single session check with retry logic
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // ✅ ADD: Timeout untuk session check (15 detik)
+        const sessionPromise = supabase.auth.getSession();
+        const sessionTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 15000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise, 
+          sessionTimeoutPromise
+        ]) as any;
         
         if (!mounted) return;
 
         if (error) {
           logger.error('AuthGuard: Session error:', error);
           
-          // Retry on network errors
+          // Retry on network errors or timeouts
           if (retryCount < maxRetries && (
             error.message?.includes('network') || 
             error.message?.includes('fetch') ||
@@ -40,7 +48,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           )) {
             retryCount++;
             logger.warn(`AuthGuard: Retrying... (${retryCount}/${maxRetries})`);
-            setTimeout(() => initAuth(), 1000 * retryCount);
+            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
+            setTimeout(() => initAuth(), 2000 * retryCount);
             return;
           }
           
@@ -60,9 +69,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           return;
         }
 
-        // Validate session
+        // ✅ ADD: Timeout untuk validation (10 detik)
         logger.debug('AuthGuard: Validating session for user:', session.user.email);
-        const isValid = await validateAuthSession();
+        const validatePromise = validateAuthSession();
+        const validateTimeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve(false), 10000) // Return false if timeout
+        );
+        
+        const isValid = await Promise.race([
+          validatePromise, 
+          validateTimeoutPromise
+        ]) as boolean;
         
         if (!mounted) return;
         
@@ -71,7 +88,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           setUser(session.user);
           setError(null);
         } else {
-          logger.warn('AuthGuard: Session invalid, cleaning up');
+          logger.warn('AuthGuard: Session invalid or validation timeout, cleaning up');
           cleanupAuthState();
           setUser(null);
           setError('Sesi tidak valid. Silakan login ulang.');
@@ -85,7 +102,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           if (retryCount < maxRetries) {
             retryCount++;
             logger.warn(`AuthGuard: Retrying after error... (${retryCount}/${maxRetries})`);
-            setTimeout(() => initAuth(), 1000 * retryCount);
+            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
+            setTimeout(() => initAuth(), 2000 * retryCount);
             return;
           }
           
@@ -117,13 +135,30 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           setError(null);
         } else if (event === 'TOKEN_REFRESHED') {
           logger.debug('AuthGuard: Token refreshed');
-          // Verify the refreshed token is still valid
-          const isValid = await validateAuthSession();
-          if (isValid) {
-            setUser(session.user);
-            setError(null);
-          } else {
-            logger.warn('AuthGuard: Refreshed token is invalid');
+          
+          // ✅ ADD: Timeout untuk token refresh validation (10 detik)
+          try {
+            const validatePromise = validateAuthSession();
+            const validateTimeoutPromise = new Promise((resolve) => 
+              setTimeout(() => resolve(false), 10000)
+            );
+            
+            const isValid = await Promise.race([
+              validatePromise, 
+              validateTimeoutPromise
+            ]) as boolean;
+            
+            if (isValid) {
+              setUser(session.user);
+              setError(null);
+            } else {
+              logger.warn('AuthGuard: Refreshed token is invalid or validation timeout');
+              cleanupAuthState();
+              setUser(null);
+              setError('Sesi bermasalah. Silakan login ulang.');
+            }
+          } catch (error) {
+            logger.error('AuthGuard: Token refresh validation error:', error);
             cleanupAuthState();
             setUser(null);
             setError('Sesi bermasalah. Silakan login ulang.');

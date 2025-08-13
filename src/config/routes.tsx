@@ -1,4 +1,4 @@
-// src/config/routes.tsx - Route Configuration (UPDATED WITH ERROR BOUNDARY)
+// src/config/routes.tsx - Route Configuration (UPDATED WITH UPDATE ROUTES)
 import React from 'react';
 import { Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout";
@@ -61,6 +61,19 @@ const PromoFullCalculator = React.lazy(() =>
 const AssetPage = React.lazy(() => 
   import(/* webpackChunkName: "assets" */ "@/components/assets/AssetPage").then(module => ({
     default: module.AssetPage
+  }))
+);
+
+// ✅ NEW: Update System Pages
+const UpdatesPage = React.lazy(() => 
+  import(/* webpackChunkName: "updates" */ "@/components/update").then(module => ({
+    default: module.UpdatesPage
+  }))
+);
+
+const AdminUpdatesPage = React.lazy(() => 
+  import(/* webpackChunkName: "admin-updates" */ "@/components/update").then(module => ({
+    default: module.AdminUpdatesPage
   }))
 );
 
@@ -354,6 +367,25 @@ export const AppRouter = () => (
         element={
           <RouteWrapper title="Memuat Manajemen Aset" specialErrorBoundary={AssetErrorBoundary}>
             <AssetPage />
+          </RouteWrapper>
+        } 
+      />
+      
+      {/* ✅ NEW: Update System Routes */}
+      <Route 
+        path="updates" 
+        element={
+          <RouteWrapper title="Memuat Pembaruan">
+            <UpdatesPage />
+          </RouteWrapper>
+        } 
+      />
+      
+      <Route 
+        path="admin/updates" 
+        element={
+          <RouteWrapper title="Memuat Admin Updates">
+            <AdminUpdatesPage />
           </RouteWrapper>
         } 
       />

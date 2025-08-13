@@ -8,7 +8,6 @@ import { logger } from '@/utils/logger';
 import { 
   calculateProfitMargins,
   validateProfitAnalysisInput,
-  integrateFinancialData,
   compareProfitMargins
 } from '../utils/profitCalculations';
 
@@ -50,6 +49,46 @@ const handleApiError = (operation: string, error: any): ProfitAnalysisApiRespons
 };
 
 // ===========================================
+// ✅ INTEGRATION FUNCTION (Pindah ke sini untuk menghindari circular dependency)
+// ===========================================
+
+export const integrateFinancialData = async (
+  userId: string,
+  period: DatePeriod
+): Promise<{
+  transactions: FinancialTransaction[];
+  operationalCosts: OperationalCost[];
+  materials: BahanBakuFrontend[];
+}> => {
+  try {
+    // Dynamic imports to avoid circular dependencies
+    const [financialApi, operationalApi, warehouseApi] = await Promise.all([
+      import('@/components/financial/services/financialApi'),
+      import('@/components/operational-costs/services/operationalCostApi'),
+      import('@/components/warehouse/services/warehouseApi')
+    ]);
+
+    // Fetch data from all modules
+    const [transactionsResult, costsResult, warehouseService] = await Promise.all([
+      financialApi.getTransactionsByDateRange(userId, period.from, period.to),
+      operationalApi.operationalCostApi.getCosts(),
+      warehouseApi.warehouseApi.createService('crud', { userId })
+    ]);
+
+    const materials = await warehouseService.fetchBahanBaku();
+
+    return {
+      transactions: transactionsResult || [],
+      operationalCosts: costsResult.data || [],
+      materials: materials || []
+    };
+  } catch (error) {
+    logger.error('Error integrating financial data:', error);
+    throw new Error(`Data integration failed: ${error.message}`);
+  }
+};
+
+// ===========================================
 // ✅ MAIN API FUNCTIONS
 // ===========================================
 
@@ -73,7 +112,10 @@ export const profitAnalysisApi = {
         };
       }
 
-      logger.info('Starting profit margin calculation', { userId, period });
+      // Kurangi logging untuk production
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Starting profit margin calculation', { userId, period });
+      }
 
       // Integrate data from all modules
       const integratedData = await integrateFinancialData(userId, period);
@@ -112,13 +154,16 @@ export const profitAnalysisApi = {
 
       const calculationTime = Date.now() - startTime;
 
-      logger.info('Profit margin calculation completed', {
-        userId,
-        calculationTime,
-        revenue: result.profitMarginData.revenue,
-        grossMargin: result.profitMarginData.grossMargin,
-        netMargin: result.profitMarginData.netMargin
-      });
+      // Kurangi logging untuk production
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Profit margin calculation completed', {
+          userId,
+          calculationTime,
+          revenue: result.profitMarginData.revenue,
+          grossMargin: result.profitMarginData.grossMargin,
+          netMargin: result.profitMarginData.netMargin
+        });
+      }
 
       return {
         data: result,
@@ -396,11 +441,20 @@ export const profitAnalysisApi = {
         return result as any;
       }
 
-      // Generate trend data (last 6 months)
+      // Generate alerts based on insights (proses ini lebih dulu untuk mengurangi pemanggilan API)
+      const alerts = result.data.insights
+        .filter(insight => insight.type === 'warning' || insight.type === 'critical')
+        .map(insight => ({
+          type: insight.type,
+          message: insight.message
+        }));
+
+      // Generate trend data (last 3 months) - batasi jumlah pemanggilan
       const trends: Array<{ period: string; margin: number }> = [];
       const currentDate = new Date();
       
-      for (let i = 5; i >= 0; i--) {
+      // Batasi hanya 3 periode terakhir untuk mengurangi beban
+      for (let i = 2; i >= 0; i--) {
         const periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
         const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
         
@@ -410,6 +464,7 @@ export const profitAnalysisApi = {
         });
 
         try {
+          // Gunakan caching atau batch request jika memungkinkan
           const periodResult = await profitAnalysisApi.calculateProfitMargin({
             from: periodStart,
             to: periodEnd,
@@ -424,16 +479,9 @@ export const profitAnalysisApi = {
           }
         } catch (error) {
           logger.warn(`Failed to get trend for ${periodLabel}:`, error);
+          // Jangan hentikan proses hanya karena satu periode gagal
         }
       }
-
-      // Generate alerts based on insights
-      const alerts = result.data.insights
-        .filter(insight => insight.type === 'warning' || insight.type === 'critical')
-        .map(insight => ({
-          type: insight.type,
-          message: insight.message
-        }));
 
       return {
         data: {

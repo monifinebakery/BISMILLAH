@@ -1,6 +1,3 @@
-// src/components/profitAnalysis/ProfitAnalysisDialog.tsx
-// ✅ DIALOG ANALISIS PROFIT MARGIN - Modern Minimal Design
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -79,10 +76,11 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
 
   // ✅ EFFECTS
   useEffect(() => {
-    if (isOpen && !profitData && !isLoading) {
+    if (isOpen && !profitData && !isLoading && !error) {
+      logger.debug('Triggering initial profit calculation on dialog open', { period });
       handleCalculate();
     }
-  }, [isOpen]);
+  }, [isOpen, profitData, isLoading, error]);
 
   // Reset tab saat dialog dibuka
   useEffect(() => {
@@ -150,7 +148,7 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Gagal Memuat Analisis</h3>
         <p className="text-sm text-gray-500 mb-4">
-          {error?.message || 'Terjadi kesalahan saat memuat data'}
+          {error?.message || 'Terjadi kesalahan saat memuat data. Pastikan data biaya operasional tersedia.'}
         </p>
         <Button onClick={handleCalculate} variant="outline" size="sm">
           <RefreshCw className="mr-2 h-4 w-4" />

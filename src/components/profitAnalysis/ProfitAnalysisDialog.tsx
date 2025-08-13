@@ -326,4 +326,4 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
 };
 
 // Export sebagai named export
-export { ProfitAnalysisDialog };
+export default ProfitAnalysisDialog;

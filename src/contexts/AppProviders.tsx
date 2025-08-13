@@ -1,10 +1,8 @@
-// src/contexts/AppProviders.tsx - EMERGENCY REVERT to Original
-
+// src/contexts/AppProviders.tsx - UPDATED WITH UPDATE PROVIDER
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-// ✅ REVERT: Back to original structure
+// ✅ ORIGINAL: Back to original structure
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
@@ -20,20 +18,23 @@ import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
 
+// ✅ NEW: Import UpdateProvider
+import { UpdateProvider } from '@/components/update';
+
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 /**
- * ✅ EMERGENCY REVERT - Back to Original Working Structure
- * This is the exact same structure as before to ensure stability
+ * ✅ UPDATED - Add UpdateProvider to Original Working Structure
+ * Keeping the exact same structure as before but adding UpdateProvider
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
     <>
-      {/* ✅ ORIGINAL STRUCTURE - Proven to work */}
+      {/* ✅ ORIGINAL STRUCTURE - Proven to work + UpdateProvider */}
       <AuthProvider>
         <PaymentProvider>
           <NotificationProvider>
@@ -48,10 +49,13 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                             <OperationalCostProvider>
                               <PromoProvider>
                                 <FollowUpTemplateProvider>
-                                  
-                                  {/* ✅ APP CONTENT */}
-                                  {children}
-                                  
+                                  {/* ✅ NEW: Add UpdateProvider at the end */}
+                                  <UpdateProvider>
+                                    
+                                    {/* ✅ APP CONTENT */}
+                                    {children}
+                                    
+                                  </UpdateProvider>
                                 </FollowUpTemplateProvider>
                               </PromoProvider>
                             </OperationalCostProvider>

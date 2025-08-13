@@ -18,6 +18,8 @@ import { DataQualityIndicator } from './components/DataQualityIndicator';
 import { TabNavigation } from './components/TabNavigation';
 import { CostOverview } from './components/overview/CostOverview';
 import { CogsDetailTab } from './components/cogsDetail/CogsDetailTab';
+import { OpexDetailTab } from './components/opexDetail/OpexDetailTab';
+import { AnalysisTab } from './components/analysis/AnalysisTab';
 
 // Import constants
 import { SECTION_TITLES, EMPTY_STATE } from './constants/messages';
@@ -104,9 +106,17 @@ export const RincianTab: React.FC<RincianTabProps> = ({
               isMobile={isMobile}
             />
 
-            {/* TODO: Add other tab contents */}
-            {/* OpexDetailTab */}
-            {/* AnalysisTab */}
+            <OpexDetailTab
+              profitData={profitData}
+              calculations={calculations}
+              isMobile={isMobile}
+            />
+
+            <AnalysisTab
+              profitData={profitData}
+              calculations={calculations}
+              isMobile={isMobile}
+            />
 
           </Tabs>
         </CardContent>

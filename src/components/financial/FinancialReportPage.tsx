@@ -64,13 +64,6 @@ const ProfitAnalysisDialogLazy = React.lazy(() =>
   }))
 );
 
-// ✅ NEW PROFIT ANALYSIS COMPONENTS
-const ProfitAnalysisDialog = React.lazy(() => 
-  import('./dialogs/ProfitAnalysisDialog').catch(() => ({
-    default: () => null
-  }))
-);
-
 // Loading components
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppUpdate, UpdateContextType } from './types';
 import { UpdateNotification } from './UpdateNotification';
+import { logger } from '@/utils/logger';
 
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 
@@ -17,21 +18,21 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
-      console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
+      logger.debug('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('Fetching updates for user:', user.id);
+      logger.debug('Fetching updates for user:', user.id);
 
       let isAdmin = false;
       try {
         const { data: isAdminData, error: adminError } = await supabase.rpc('is_user_admin');
         if (!adminError && isAdminData) isAdmin = true;
       } catch (adminCheckError) {
-        console.warn('Could not check admin status, assuming non-admin:', adminCheckError);
+        logger.warn('Could not check admin status, assuming non-admin:', adminCheckError);
       }
 
       let query = supabase.from('app_updates').select('*');
@@ -43,7 +44,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const { data: updates, error: updatesError } = await query;
       if (updatesError) {
-        console.error('Error fetching updates:', updatesError.message);
+        logger.error('Error fetching updates:', updatesError.message);
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -51,7 +52,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (!updates || updates.length === 0) {
-        console.log('No updates found');
+        logger.debug('No updates found');
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -68,16 +69,16 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           update.priority === 'critical' || update.priority === 'high'
         );
         if (criticalUnseen.length > 0) {
-          console.log('Triggering popup for critical/high update:', criticalUnseen[0]);
+          logger.info('Triggering popup for critical/high update:', criticalUnseen[0]);
           setTimeout(() => showUpdateNotification(criticalUnseen[0]), 1000);
         } else {
-          console.log('No critical/high updates to show');
+          logger.debug('No critical/high updates to show');
         }
       } else {
-        console.log('No popup: Admin or no unseen updates');
+        logger.debug('No popup: Admin or no unseen updates');
       }
     } catch (error) {
-      console.error('Error in fetchUpdates:', error);
+      logger.error('Error in fetchUpdates:', error);
       setTimeout(() => toast.error('Gagal memuat pembaruan terbaru'), 2000);
     } finally {
       setLoading(false);
@@ -98,9 +99,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         duration: update.priority === 'critical' ? 20000 : 15000,
         position: 'top-right',
       });
-      console.log('Notification shown for:', update.title);
+      logger.debug('Notification shown for:', update.title);
     } catch (error) {
-      console.error('Error showing notification:', error);
+      logger.error('Error showing notification:', error);
     }
   }, []);
 
@@ -114,9 +115,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const newUnseen = unseenUpdates.filter(update => update.id !== updateId);
         return newUnseen.length > 0;
       });
-      console.log('Marked as seen:', updateId);
+      logger.debug('Marked as seen:', updateId);
     } catch (error) {
-      console.error('Error in markAsSeen:', error);
+      logger.error('Error in markAsSeen:', error);
     }
   }, [user?.id, unseenUpdates]);
 
@@ -130,9 +131,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
-      console.log('Marked all as seen');
+      logger.debug('Marked all as seen');
     } catch (error) {
-      console.error('Error in markAllAsSeen:', error);
+      logger.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
   }, [user?.id, unseenUpdates, seenUpdateIds]);
@@ -143,7 +144,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (user?.id && isReady) {
-      console.log('Auth ready, fetching updates...');
+      logger.debug('Auth ready, fetching updates...');
       fetchUpdates();
     } else {
       setLoading(false);
@@ -151,7 +152,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       setSeenUpdateIds(new Set());
-      console.log('Auth not ready or no user:', { userId: user?.id, isReady });
+      logger.debug('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);
 
@@ -166,13 +167,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           'postgres_changes',
           { event: '*', schema: 'public', table: 'app_updates' },
           (payload) => {
-            console.log('Real-time update received:', payload);
+            logger.debug('Real-time update received:', payload);
             setTimeout(() => fetchUpdates(), 500);
           }
         )
         .subscribe();
     } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
+      logger.error('Error setting up real-time subscription:', error);
     }
 
     return () => {
@@ -180,7 +181,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           supabase.removeChannel(channel);
         } catch (error) {
-          console.error('Error removing channel:', error);
+          logger.error('Error removing channel:', error);
         }
       }
     };

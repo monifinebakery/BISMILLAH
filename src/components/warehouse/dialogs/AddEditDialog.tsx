@@ -1,5 +1,5 @@
 // src/components/warehouse/dialogs/AddEditDialog.tsx
-// 🎯 FIXED: Proper Unit Price Calculation with Package Content
+// 🎯 FIXED: Mobile Layout with Safe Bottom Area
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -366,18 +366,24 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      {/* 🎯 FIXED: Mobile responsive dialog with safe bottom area */}
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" 
+           style={{ 
+             height: 'calc(100vh - 160px)', // ✅ Reserve space for mobile bottom nav + safe area
+             maxHeight: '90vh',
+             minHeight: '500px'
+           }}>
         
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              {isEditMode ? <Edit2 className="w-5 h-5 text-orange-600" /> : <Plus className="w-5 h-5 text-orange-600" />}
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+              {isEditMode ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
             </div>
             <div>
-              <h2 className="text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</h2>
-              <p className="text-sm text-gray-600">{isEditMode ? 'Ubah data bahan baku' : 'Tambah bahan baku baru'}</p>
+              <h2 className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</h2>
+              <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data bahan baku' : 'Tambah bahan baku baru'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -385,19 +391,19 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               <RefreshCw className={`w-4 h-4 ${categoriesLoading || suppliersLoading ? 'animate-spin' : ''}`} />
             </Button>
             <button onClick={onClose} disabled={isSubmitting} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
 
-        {/* Errors */}
+        {/* Errors - Fixed */}
         {errors.length > 0 && (
-          <div className="p-4 bg-red-50 border-b border-red-200 flex-shrink-0">
+          <div className="p-3 sm:p-4 bg-red-50 border-b border-red-200 flex-shrink-0">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-red-800 mb-1">Kesalahan pada form:</h3>
-                <ul className="text-sm text-red-700 space-y-1">
+                <h3 className="text-xs sm:text-sm font-medium text-red-800 mb-1">Kesalahan pada form:</h3>
+                <ul className="text-xs sm:text-sm text-red-700 space-y-1">
                   {errors.map((error, index) => <li key={index}>• {error}</li>)}
                 </ul>
               </div>
@@ -405,11 +411,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </div>
         )}
 
-        {/* ✅ ADDED: Calculation info banner */}
+        {/* ✅ ADDED: Calculation info banner - Fixed */}
         {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
-          <div className="p-3 bg-green-50 border-b border-green-200 flex-shrink-0">
-            <div className="flex items-center gap-2 text-sm text-green-700">
-              <Calculator className="w-4 h-4" />
+          <div className="p-2 sm:p-3 bg-green-50 border-b border-green-200 flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-green-700">
+              <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>
                 💡 Harga per {formData.satuan}: <strong>{warehouseUtils.formatCurrency(formData.harga)}</strong> 
                 (dari {formData.jumlahBeliKemasan} × {formData.isiPerKemasan} = {calculateTotalContent()} {formData.satuan})
@@ -418,433 +424,317 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </div>
         )}
 
-        {/* Form - menggunakan flex-grow untuk mengisi ruang yang tersisa */}
-        <form onSubmit={handleSubmit} className="flex-grow overflow-hidden flex flex-col">
-          <div className="overflow-y-auto flex-grow p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* Left Column */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Informasi Dasar</h3>
-                  <div className="space-y-4">
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nama Bahan Baku *</label>
-                      <Input
-                        value={formData.nama}
-                        onChange={(e) => handleFieldChange('nama', e.target.value)}
-                        placeholder="Nama bahan baku"
-                        disabled={isSubmitting}
-                        required
-                      />
-                    </div>
-
-                    {/* Category with dropdown */}
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Kategori * {categoriesLoading && <span className="text-xs text-gray-500">(loading...)</span>}
-                      </label>
-                      <Input
-                        value={formData.kategori}
-                        onChange={(e) => {
-                          handleFieldChange('kategori', e.target.value);
-                          setShowDropdown(prev => ({ ...prev, categories: true }));
-                        }}
-                        onFocus={() => setShowDropdown(prev => ({ ...prev, categories: true }))}
-                        onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, categories: false })), 200)}
-                        placeholder="Pilih atau ketik kategori"
-                        disabled={isSubmitting}
-                        required
-                      />
-                      {showDropdown.categories && availableCategories.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
-                          {availableCategories
-                            .filter(cat => cat.toLowerCase().includes(formData.kategori.toLowerCase()))
-                            .map((category) => (
-                            <button
-                              key={category}
-                              type="button"
-                              onClick={() => handleSelect('kategori', category)}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                            >
-                              {category}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Supplier with dropdown */}
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Supplier * {suppliersLoading && <span className="text-xs text-gray-500">(loading...)</span>}
-                      </label>
-                      <Input
-                        value={formData.supplier}
-                        onChange={(e) => {
-                          handleFieldChange('supplier', e.target.value);
-                          setShowDropdown(prev => ({ ...prev, suppliers: true }));
-                        }}
-                        onFocus={() => setShowDropdown(prev => ({ ...prev, suppliers: true }))}
-                        onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, suppliers: false })), 200)}
-                        placeholder="Pilih atau ketik supplier"
-                        disabled={isSubmitting}
-                        required
-                      />
-                      {showDropdown.suppliers && availableSuppliers.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
-                          {availableSuppliers
-                            .filter(sup => sup.toLowerCase().includes(formData.supplier.toLowerCase()))
-                            .map((supplier) => (
-                            <button
-                              key={supplier}
-                              type="button"
-                              onClick={() => handleSelect('supplier', supplier)}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                            >
-                              {supplier}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ✅ ENHANCED: Base unit only */}
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Satuan Dasar * 
-                        <span className="text-xs text-gray-500 ml-1">(satuan untuk stok dan harga)</span>
-                      </label>
-                      <div className="relative">
-                        <Input
-                          value={formData.satuan}
-                          onChange={(e) => {
-                            handleFieldChange('satuan', e.target.value);
-                            setShowDropdown(prev => ({ ...prev, units: true }));
-                          }}
-                          onFocus={() => setShowDropdown(prev => ({ ...prev, units: true }))}
-                          onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, units: false })), 200)}
-                          placeholder="Pilih satuan dasar"
-                          disabled={isSubmitting}
-                          required
-                        />
-                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      </div>
-                      {showDropdown.units && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-                          {filteredUnits.length > 0 ? (
-                            <>
-                              {['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
-                                const categoryUnits = filteredUnits.filter(unit => unit.category === category);
-                                if (categoryUnits.length === 0) return null;
-                                
-                                return (
-                                  <div key={category}>
-                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b">
-                                      {category}
-                                    </div>
-                                    {categoryUnits.map((unit) => (
-                                      <button
-                                        key={unit.value}
-                                        type="button"
-                                        onClick={() => handleSelect('satuan', unit.value)}
-                                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex justify-between"
-                                      >
-                                        <span>{unit.label}</span>
-                                        <span className="text-gray-400 text-xs">{unit.value}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                );
-                              })}
-                            </>
-                          ) : (
-                            <div className="px-3 py-2 text-sm text-gray-500">
-                              Tidak ada satuan yang cocok
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Kadaluarsa</label>
-                      <Input
-                        type="date"
-                        value={formData.expiry}
-                        onChange={(e) => handleFieldChange('expiry', e.target.value)}
-                        disabled={isSubmitting}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stock Info */}
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Informasi Stok</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stok Saat Ini * 
-                        <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
-                      </label>
-                      <Input
-                        type="number"
-                        value={formData.stok}
-                        onChange={(e) => handleFieldChange('stok', Number(e.target.value))}
-                        min="0"
-                        disabled={isSubmitting}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Minimum Stok * 
-                        <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
-                      </label>
-                      <Input
-                        type="number"
-                        value={formData.minimum}
-                        onChange={(e) => handleFieldChange('minimum', Number(e.target.value))}
-                        min="0"
-                        disabled={isSubmitting}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-6">
+        {/* ✅ FIXED: Form content - Scrollable area */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="h-full flex flex-col">
+            <div className="flex-1 p-3 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 
-                {/* ✅ ENHANCED: Purchase Details with Package Content */}
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Detail Pembelian</h3>
-                  <div className="space-y-4">
-                    
-                    {/* ✅ NEW: Package breakdown */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Kemasan</label>
-                        <Input
-                          type="number"
-                          value={formData.jumlahBeliKemasan}
-                          onChange={(e) => handleFieldChange('jumlahBeliKemasan', Number(e.target.value))}
-                          min="0"
-                          disabled={isSubmitting}
-                          placeholder="0"
-                        />
-                      </div>
+                {/* Left Column */}
+                <div className="space-y-4 sm:space-y-6">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Dasar</h3>
+                    <div className="space-y-3 sm:space-y-4">
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Isi per Kemasan *
-                          <span className="text-xs text-gray-500 block">({formData.satuan || 'satuan'})</span>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Tanggal Kadaluarsa</label>
+                        <Input
+                          type="date"
+                          value={formData.expiry}
+                          onChange={(e) => handleFieldChange('expiry', e.target.value)}
+                          disabled={isSubmitting}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stock Info */}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Stok</h3>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Stok Saat Ini * 
+                          <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
                         </label>
                         <Input
                           type="number"
-                          value={formData.isiPerKemasan}
-                          onChange={(e) => handleFieldChange('isiPerKemasan', Number(e.target.value))}
-                          min="0.01"
-                          step="0.01"
-                          disabled={isSubmitting}
-                          placeholder="500"
-                        />
-                      </div>
-                      
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Kemasan</label>
-                        <div className="relative">
-                          <Input
-                            value={formData.satuanKemasan}
-                            onChange={(e) => {
-                              handleFieldChange('satuanKemasan', e.target.value);
-                              setShowDropdown(prev => ({ ...prev, packageTypes: true }));
-                            }}
-                            onFocus={() => setShowDropdown(prev => ({ ...prev, packageTypes: true }))}
-                            onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, packageTypes: false })), 200)}
-                            placeholder="pak, botol, dus"
-                            disabled={isSubmitting}
-                          />
-                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        </div>
-                        {showDropdown.packageTypes && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-40 overflow-y-auto">
-                            {filteredPackageTypes.length > 0 ? (
-                              filteredPackageTypes.map((type) => (
-                                <button
-                                  key={type}
-                                  type="button"
-                                  onClick={() => handleSelect('satuanKemasan', type)}
-                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                                >
-                                  {type}
-                                </button>
-                              ))
-                            ) : (
-                              <div className="px-3 py-2 text-sm text-gray-500">
-                                Tidak ada jenis kemasan yang cocok
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ✅ ADDED: Example helper */}
-                    {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.satuanKemasan && (
-                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2 text-sm text-blue-700">
-                          <Info className="w-4 h-4" />
-                          <span>
-                            Contoh: {formData.jumlahBeliKemasan} {formData.satuanKemasan} × {formData.isiPerKemasan} {formData.satuan} = 
-                            <strong> {calculateTotalContent()} {formData.satuan}</strong> total
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Harga Total Beli Kemasan 
-                        <span className="text-xs text-gray-500 ml-1">(akan menghitung harga per {formData.satuan} otomatis)</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
-                        <Input
-                          type="number"
-                          value={formData.hargaTotalBeliKemasan}
-                          onChange={(e) => handleFieldChange('hargaTotalBeliKemasan', Number(e.target.value))}
+                          value={formData.stok}
+                          onChange={(e) => handleFieldChange('stok', Number(e.target.value))}
                           min="0"
-                          className="pl-12"
-                          disabled={isSubmitting}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Harga per {formData.satuan || 'Satuan'} * 
-                        <span className="text-xs text-green-600 ml-1">
-                          {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && '(dihitung otomatis)'}
-                        </span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
-                        <Input
-                          type="number"
-                          value={formData.harga}
-                          onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
-                          min="0"
-                          className="pl-12"
                           disabled={isSubmitting}
                           required
-                          placeholder="0"
+                          className="text-sm"
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 Tip: Isi detail kemasan di atas, maka harga per {formData.satuan} akan dihitung otomatis
-                      </p>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Minimum Stok * 
+                          <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
+                        </label>
+                        <Input
+                          type="number"
+                          value={formData.minimum}
+                          onChange={(e) => handleFieldChange('minimum', Number(e.target.value))}
+                          min="0"
+                          disabled={isSubmitting}
+                          required
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* ✅ ENHANCED: Purchase Summary */}
-                {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <h4 className="text-sm font-medium text-green-900 mb-3 flex items-center gap-2">
-                      <Calculator className="w-4 h-4" />
-                      Ringkasan Pembelian & Perhitungan
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Jumlah kemasan:</span>
-                        <span className="font-medium">{formData.jumlahBeliKemasan} {formData.satuanKemasan}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Isi per kemasan:</span>
-                        <span className="font-medium">{formData.isiPerKemasan} {formData.satuan}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-green-200 pt-2">
-                        <span className="text-green-700">Total isi:</span>
-                        <span className="font-bold">{calculateTotalContent()} {formData.satuan}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Harga total:</span>
-                        <span className="font-medium">{warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-green-200 pt-2">
-                        <span className="text-green-700">Harga per {formData.satuan}:</span>
-                        <span className="font-bold text-green-900">{warehouseUtils.formatCurrency(formData.harga)}</span>
-                      </div>
+                {/* Right Column */}
+                <div className="space-y-4 sm:space-y-6">
+                  
+                  {/* ✅ ENHANCED: Purchase Details with Package Content */}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Detail Pembelian</h3>
+                    <div className="space-y-3 sm:space-y-4">
                       
-                      <div className="text-xs text-green-600 mt-3 p-2 bg-green-100 rounded">
-                        ✅ Perhitungan: {warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)} ÷ ({formData.jumlahBeliKemasan} × {formData.isiPerKemasan}) = {warehouseUtils.formatCurrency(formData.harga)} per {formData.satuan}
+                      {/* ✅ NEW: Package breakdown */}
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Jumlah Kemasan</label>
+                          <Input
+                            type="number"
+                            value={formData.jumlahBeliKemasan}
+                            onChange={(e) => handleFieldChange('jumlahBeliKemasan', Number(e.target.value))}
+                            min="0"
+                            disabled={isSubmitting}
+                            placeholder="0"
+                            className="text-sm"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                            Isi per Kemasan *
+                            <span className="text-xs text-gray-500 block">({formData.satuan || 'satuan'})</span>
+                          </label>
+                          <Input
+                            type="number"
+                            value={formData.isiPerKemasan}
+                            onChange={(e) => handleFieldChange('isiPerKemasan', Number(e.target.value))}
+                            min="0.01"
+                            step="0.01"
+                            disabled={isSubmitting}
+                            placeholder="500"
+                            className="text-sm"
+                          />
+                        </div>
+                        
+                        <div className="relative">
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Jenis Kemasan</label>
+                          <div className="relative">
+                            <Input
+                              value={formData.satuanKemasan}
+                              onChange={(e) => {
+                                handleFieldChange('satuanKemasan', e.target.value);
+                                setShowDropdown(prev => ({ ...prev, packageTypes: true }));
+                              }}
+                              onFocus={() => setShowDropdown(prev => ({ ...prev, packageTypes: true }))}
+                              onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, packageTypes: false })), 200)}
+                              placeholder="pak, botol, dus"
+                              disabled={isSubmitting}
+                              className="text-sm"
+                            />
+                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                          </div>
+                          {showDropdown.packageTypes && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                              {filteredPackageTypes.length > 0 ? (
+                                filteredPackageTypes.map((type) => (
+                                  <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => handleSelect('satuanKemasan', type)}
+                                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
+                                  >
+                                    {type}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">
+                                  Tidak ada jenis kemasan yang cocok
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ✅ ADDED: Example helper */}
+                      {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.satuanKemasan && (
+                        <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-700">
+                            <Info className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span>
+                              Contoh: {formData.jumlahBeliKemasan} {formData.satuanKemasan} × {formData.isiPerKemasan} {formData.satuan} = 
+                              <strong> {calculateTotalContent()} {formData.satuan}</strong> total
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Harga Total Beli Kemasan 
+                          <span className="text-xs text-gray-500 ml-1">(akan menghitung harga per {formData.satuan} otomatis)</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                          <Input
+                            type="number"
+                            value={formData.hargaTotalBeliKemasan}
+                            onChange={(e) => handleFieldChange('hargaTotalBeliKemasan', Number(e.target.value))}
+                            min="0"
+                            className="pl-10 sm:pl-12 text-sm"
+                            disabled={isSubmitting}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Harga per {formData.satuan || 'Satuan'} * 
+                          <span className="text-xs text-green-600 ml-1">
+                            {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && '(dihitung otomatis)'}
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                          <Input
+                            type="number"
+                            value={formData.harga}
+                            onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
+                            min="0"
+                            className="pl-10 sm:pl-12 text-sm"
+                            disabled={isSubmitting}
+                            required
+                            placeholder="0"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Tip: Isi detail kemasan di atas, maka harga per {formData.satuan} akan dihitung otomatis
+                        </p>
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* Stock Preview */}
-                {formData.stok > 0 && formData.minimum > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
-                    <div className="flex items-center gap-4">
-                      <div className={`w-3 h-3 rounded-full ${getStockLevelInfo(formData.stok, formData.minimum).colorClass}`} />
-                      <span className="text-sm text-gray-600">
-                        {getStockLevelInfo(formData.stok, formData.minimum).label}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ({formData.stok} / min: {formData.minimum} {formData.satuan}) - {Math.round(getStockLevelInfo(formData.stok, formData.minimum).percentage)}%
-                      </span>
-                    </div>
-                    {formData.stok <= formData.minimum && (
-                      <div className="mt-2 text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
-                        ⚠️ Stok di bawah minimum, pertimbangkan untuk melakukan pemesanan ulang
+                  {/* ✅ ENHANCED: Purchase Summary - Mobile optimized */}
+                  {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
+                    <div className="p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
+                      <h4 className="text-xs sm:text-sm font-medium text-green-900 mb-2 sm:mb-3 flex items-center gap-2">
+                        <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
+                        Ringkasan Pembelian & Perhitungan
+                      </h4>
+                      <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-green-700">Jumlah kemasan:</span>
+                          <span className="font-medium">{formData.jumlahBeliKemasan} {formData.satuanKemasan}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-700">Isi per kemasan:</span>
+                          <span className="font-medium">{formData.isiPerKemasan} {formData.satuan}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-green-200 pt-1 sm:pt-2">
+                          <span className="text-green-700">Total isi:</span>
+                          <span className="font-bold">{calculateTotalContent()} {formData.satuan}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-700">Harga total:</span>
+                          <span className="font-medium">{warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-green-200 pt-1 sm:pt-2">
+                          <span className="text-green-700">Harga per {formData.satuan}:</span>
+                          <span className="font-bold text-green-900">{warehouseUtils.formatCurrency(formData.harga)}</span>
+                        </div>
+                        
+                        <div className="text-xs text-green-600 mt-2 sm:mt-3 p-2 bg-green-100 rounded">
+                          ✅ Perhitungan: {warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)} ÷ ({formData.jumlahBeliKemasan} × {formData.isiPerKemasan}) = {warehouseUtils.formatCurrency(formData.harga)} per {formData.satuan}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ✅ ENHANCED: Calculation helper */}
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-medium text-blue-700 mb-2 flex items-center gap-2">
-                    <Calculator className="w-4 h-4" />
-                    Cara Menghitung Harga per Satuan
-                  </h4>
-                  <div className="text-xs text-blue-600 space-y-2">
-                    <div className="p-2 bg-blue-100 rounded">
-                      <strong>Contoh:</strong> Beli 2 pak biji chia, isi 500 gram per pak, total bayar Rp 180.000
                     </div>
-                    <div>1. <strong>Total isi:</strong> 2 pak × 500 gram = 1.000 gram</div>
-                    <div>2. <strong>Harga per gram:</strong> Rp 180.000 ÷ 1.000 gram = Rp 180/gram</div>
-                    <div>3. <strong>Bukan:</strong> Rp 180.000 ÷ 2 pak = Rp 90.000/pak ❌</div>
-                    <div className="text-blue-700 font-medium mt-2">
-                      💡 <strong>Kunci:</strong> Selalu bagi dengan total isi, bukan jumlah kemasan!
+                  )}
+
+                  {/* Stock Preview - Mobile optimized */}
+                  {formData.stok > 0 && formData.minimum > 0 && (
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${getStockLevelInfo(formData.stok, formData.minimum).colorClass}`} />
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {getStockLevelInfo(formData.stok, formData.minimum).label}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({formData.stok} / min: {formData.minimum} {formData.satuan}) - {Math.round(getStockLevelInfo(formData.stok, formData.minimum).percentage)}%
+                        </span>
+                      </div>
+                      {formData.stok <= formData.minimum && (
+                        <div className="mt-2 text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
+                          ⚠️ Stok di bawah minimum, pertimbangkan untuk melakukan pemesanan ulang
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ✅ ENHANCED: Calculation helper - Mobile optimized */}
+                  <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-xs sm:text-sm font-medium text-blue-700 mb-2 flex items-center gap-2">
+                      <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Cara Menghitung Harga per Satuan
+                    </h4>
+                    <div className="text-xs text-blue-600 space-y-2">
+                      <div className="p-2 bg-blue-100 rounded">
+                        <strong>Contoh:</strong> Beli 2 pak biji chia, isi 500 gram per pak, total bayar Rp 180.000
+                      </div>
+                      <div>1. <strong>Total isi:</strong> 2 pak × 500 gram = 1.000 gram</div>
+                      <div>2. <strong>Harga per gram:</strong> Rp 180.000 ÷ 1.000 gram = Rp 180/gram</div>
+                      <div>3. <strong>Bukan:</strong> Rp 180.000 ÷ 2 pak = Rp 90.000/pak ❌</div>
+                      <div className="text-blue-700 font-medium mt-2">
+                        💡 <strong>Kunci:</strong> Selalu bagi dengan total isi, bukan jumlah kemasan!
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
 
-        {/* Footer - tetap di bagian bawah */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50 flex-shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Batal</Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isSubmitting} className="flex items-center gap-2">
+        {/* ✅ FIXED: Footer - Always visible with safe bottom margin */}
+        <div className="flex items-center justify-end gap-2 sm:gap-3 p-3 sm:p-6 border-t bg-gray-50 flex-shrink-0" 
+             style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            size="sm"
+            className="text-xs sm:text-sm"
+          >
+            Batal
+          </Button>
+          <Button 
+            type="submit" 
+            onClick={handleSubmit} 
+            disabled={isSubmitting} 
+            size="sm"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+          >
             {isSubmitting ? (
               <>
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full" />
                 Menyimpan...
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" />
+                <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                 {isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}
               </>
             )}
@@ -855,4 +745,147 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   );
 };
 
-export default AddEditDialog;
+export default AddEditDialog; font-medium text-gray-700 mb-1 sm:mb-2">Nama Bahan Baku *</label>
+                        <Input
+                          value={formData.nama}
+                          onChange={(e) => handleFieldChange('nama', e.target.value)}
+                          placeholder="Nama bahan baku"
+                          disabled={isSubmitting}
+                          required
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* Category with dropdown */}
+                      <div className="relative">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Kategori * {categoriesLoading && <span className="text-xs text-gray-500">(loading...)</span>}
+                        </label>
+                        <Input
+                          value={formData.kategori}
+                          onChange={(e) => {
+                            handleFieldChange('kategori', e.target.value);
+                            setShowDropdown(prev => ({ ...prev, categories: true }));
+                          }}
+                          onFocus={() => setShowDropdown(prev => ({ ...prev, categories: true }))}
+                          onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, categories: false })), 200)}
+                          placeholder="Pilih atau ketik kategori"
+                          disabled={isSubmitting}
+                          required
+                          className="text-sm"
+                        />
+                        {showDropdown.categories && availableCategories.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                            {availableCategories
+                              .filter(cat => cat.toLowerCase().includes(formData.kategori.toLowerCase()))
+                              .map((category) => (
+                              <button
+                                key={category}
+                                type="button"
+                                onClick={() => handleSelect('kategori', category)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
+                              >
+                                {category}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Supplier with dropdown */}
+                      <div className="relative">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Supplier * {suppliersLoading && <span className="text-xs text-gray-500">(loading...)</span>}
+                        </label>
+                        <Input
+                          value={formData.supplier}
+                          onChange={(e) => {
+                            handleFieldChange('supplier', e.target.value);
+                            setShowDropdown(prev => ({ ...prev, suppliers: true }));
+                          }}
+                          onFocus={() => setShowDropdown(prev => ({ ...prev, suppliers: true }))}
+                          onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, suppliers: false })), 200)}
+                          placeholder="Pilih atau ketik supplier"
+                          disabled={isSubmitting}
+                          required
+                          className="text-sm"
+                        />
+                        {showDropdown.suppliers && availableSuppliers.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                            {availableSuppliers
+                              .filter(sup => sup.toLowerCase().includes(formData.supplier.toLowerCase()))
+                              .map((supplier) => (
+                              <button
+                                key={supplier}
+                                type="button"
+                                onClick={() => handleSelect('supplier', supplier)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
+                              >
+                                {supplier}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ✅ ENHANCED: Base unit only */}
+                      <div className="relative">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                          Satuan Dasar * 
+                          <span className="text-xs text-gray-500 ml-1">(satuan untuk stok dan harga)</span>
+                        </label>
+                        <div className="relative">
+                          <Input
+                            value={formData.satuan}
+                            onChange={(e) => {
+                              handleFieldChange('satuan', e.target.value);
+                              setShowDropdown(prev => ({ ...prev, units: true }));
+                            }}
+                            onFocus={() => setShowDropdown(prev => ({ ...prev, units: true }))}
+                            onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, units: false })), 200)}
+                            placeholder="Pilih satuan dasar"
+                            disabled={isSubmitting}
+                            required
+                            className="text-sm"
+                          />
+                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                        </div>
+                        {showDropdown.units && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-48 sm:max-h-60 overflow-y-auto">
+                            {filteredUnits.length > 0 ? (
+                              <>
+                                {['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
+                                  const categoryUnits = filteredUnits.filter(unit => unit.category === category);
+                                  if (categoryUnits.length === 0) return null;
+                                  
+                                  return (
+                                    <div key={category}>
+                                      <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b">
+                                        {category}
+                                      </div>
+                                      {categoryUnits.map((unit) => (
+                                        <button
+                                          key={unit.value}
+                                          type="button"
+                                          onClick={() => handleSelect('satuan', unit.value)}
+                                          className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm flex justify-between"
+                                        >
+                                          <span>{unit.label}</span>
+                                          <span className="text-gray-400 text-xs">{unit.value}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  );
+                                })}
+                              </>
+                            ) : (
+                              <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">
+                                Tidak ada satuan yang cocok
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs sm:text-sm

@@ -28,7 +28,7 @@ import { useProfitMargin } from './hooks/useProfitMargin';
 import { createDatePeriods } from './services/profitAnalysisApi';
 
 // Types
-import { DatePeriod } from './types/profitAnalysis';
+import { DatePeriod } from './types';
 
 // Components
 import { AnalysisSkeleton } from './components/LoadingSkeleton';

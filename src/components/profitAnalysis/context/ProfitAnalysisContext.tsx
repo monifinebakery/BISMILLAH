@@ -17,7 +17,7 @@ import {
   DEFAULT_CATEGORY_MAPPING,
   DatePeriod,
   ProfitInsight
-} from '@/types/profitAnalysis';
+} from '../types/profitAnalysis';
 
 import { createDatePeriods } from '@/services/profitAnalysisApi';
 

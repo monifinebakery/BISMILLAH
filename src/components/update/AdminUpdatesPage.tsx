@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -31,35 +31,156 @@ export const AdminUpdatesPage: React.FC = () => {
     totalViews: 0
   });
 
-  // ✅ FIXED: Check admin status using RPC function
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setCheckingAdmin(false);
+  // ✅ SAFE: Check admin status with proper error handling
+  const checkAdminStatus = useCallback(async () => {
+    if (!user?.id) {
+      setCheckingAdmin(false);
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('is_user_admin');
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(data || false);
+      }
+    } catch (error) {
+      console.error('Error in admin check:', error);
+      setIsAdmin(false);
+    } finally {
+      setCheckingAdmin(false);
+    }
+  }, [user?.id]);
+
+  // ✅ SAFE: Fetch updates with proper error handling
+  const fetchUpdates = useCallback(async () => {
+    if (!user?.id || !isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('app_updates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching updates:', error);
+        toast.error('Gagal memuat data pembaruan');
         return;
       }
 
-      try {
-        const { data, error } = await supabase.rpc('is_user_admin');
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        } else {
-          setIsAdmin(data || false);
-        }
-      } catch (error) {
-        console.error('Error in admin check:', error);
-        setIsAdmin(false);
-      } finally {
-        setCheckingAdmin(false);
+      setUpdates(data || []);
+      
+      // ✅ SAFE: Calculate stats
+      const total = data?.length || 0;
+      const active = data?.filter(u => u.is_active).length || 0;
+      
+      setStats({
+        totalUpdates: total,
+        activeUpdates: active,
+        totalViews: 0 // You can implement view tracking later
+      });
+    } catch (error) {
+      console.error('Error in fetchUpdates:', error);
+      toast.error('Gagal memuat data pembaruan');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, isAdmin]);
+
+  // ✅ SAFE: Toggle update status
+  const toggleUpdateStatus = useCallback(async (updateId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('app_updates')
+        .update({ is_active: !currentStatus })
+        .eq('id', updateId);
+
+      if (error) {
+        console.error('Error toggling update status:', error);
+        toast.error('Gagal mengubah status pembaruan');
+        return;
       }
+
+      toast.success(`Pembaruan ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
+      await fetchUpdates();
+    } catch (error) {
+      console.error('Error in toggleUpdateStatus:', error);
+      toast.error('Gagal mengubah status pembaruan');
+    }
+  }, [fetchUpdates]);
+
+  // ✅ SAFE: Delete update
+  const deleteUpdate = useCallback(async (updateId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus pembaruan ini?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('app_updates')
+        .delete()
+        .eq('id', updateId);
+
+      if (error) {
+        console.error('Error deleting update:', error);
+        toast.error('Gagal menghapus pembaruan');
+        return;
+      }
+
+      toast.success('Pembaruan berhasil dihapus');
+      await fetchUpdates();
+    } catch (error) {
+      console.error('Error in deleteUpdate:', error);
+      toast.error('Gagal menghapus pembaruan');
+    }
+  }, [fetchUpdates]);
+
+  // ✅ SAFE: Format date
+  const formatDate = useCallback((dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  }, []);
+
+  // ✅ SAFE: Get priority badge
+  const getPriorityBadge = useCallback((priority: string) => {
+    const configs = {
+      critical: 'bg-red-100 text-red-800 border-red-200',
+      high: 'bg-orange-100 text-orange-800 border-orange-200',
+      normal: 'bg-blue-100 text-blue-800 border-blue-200',
+      low: 'bg-gray-100 text-gray-800 border-gray-200'
     };
+    return configs[priority as keyof typeof configs] || configs.normal;
+  }, []);
 
+  // ✅ SAFE: Check admin status on mount
+  useEffect(() => {
     checkAdminStatus();
-  }, [user]);
+  }, [checkAdminStatus]);
 
-  // Show loading while checking admin status
+  // ✅ SAFE: Fetch updates when admin status is confirmed
+  useEffect(() => {
+    if (!checkingAdmin && isAdmin) {
+      fetchUpdates();
+    }
+  }, [checkingAdmin, isAdmin, fetchUpdates]);
+
+  // ✅ SAFE: Show loading while checking admin
   if (checkingAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -71,7 +192,7 @@ export const AdminUpdatesPage: React.FC = () => {
     );
   }
 
-  // Check admin access
+  // ✅ SAFE: Show access denied if not admin
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -88,95 +209,7 @@ export const AdminUpdatesPage: React.FC = () => {
     );
   }
 
-  const fetchUpdates = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('app_updates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setUpdates(data || []);
-      
-      // Calculate stats
-      const total = data?.length || 0;
-      const active = data?.filter(u => u.is_active).length || 0;
-      
-      setStats({
-        totalUpdates: total,
-        activeUpdates: active,
-        totalViews: 0 // You can implement view tracking later
-      });
-    } catch (error) {
-      console.error('Error fetching updates:', error);
-      toast.error('Gagal memuat data pembaruan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleUpdateStatus = async (updateId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('app_updates')
-        .update({ is_active: !currentStatus })
-        .eq('id', updateId);
-
-      if (error) throw error;
-
-      toast.success(`Pembaruan ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
-      fetchUpdates();
-    } catch (error) {
-      console.error('Error toggling update status:', error);
-      toast.error('Gagal mengubah status pembaruan');
-    }
-  };
-
-  const deleteUpdate = async (updateId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus pembaruan ini?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('app_updates')
-        .delete()
-        .eq('id', updateId);
-
-      if (error) throw error;
-
-      toast.success('Pembaruan berhasil dihapus');
-      fetchUpdates();
-    } catch (error) {
-      console.error('Error deleting update:', error);
-      toast.error('Gagal menghapus pembaruan');
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const configs = {
-      critical: 'bg-red-100 text-red-800 border-red-200',
-      high: 'bg-orange-100 text-orange-800 border-orange-200',
-      normal: 'bg-blue-100 text-blue-800 border-blue-200',
-      low: 'bg-gray-100 text-gray-800 border-gray-200'
-    };
-    return configs[priority as keyof typeof configs] || configs.normal;
-  };
-
-  useEffect(() => {
-    fetchUpdates();
-  }, []);
-
+  // ✅ SAFE: Show loading while fetching data
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

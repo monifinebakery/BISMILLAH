@@ -1,4 +1,4 @@
-// src/components/financial/components/ProfitSetupGuide.tsx
+// src/components/profitAnalysis/components/ProfitSetupGuide.tsx
 // ✅ PROFIT SETUP GUIDE - Help users setup Real Profit Margin
 
 import React, { useState } from 'react';

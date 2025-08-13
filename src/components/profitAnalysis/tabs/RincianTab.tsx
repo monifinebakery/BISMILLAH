@@ -35,44 +35,34 @@ import {
 } from './RincianTab/hooks/useTargetAnalysis';
 
 // Components
-import {
-  DataQualityIndicator,
-  TabNavigation
-} from './RincianTab';
+import { DataQualityIndicator } from './RincianTab/components/DataQualityIndicator';
+import { TabNavigation } from './RincianTab/components/TabNavigation';
 
 // Overview components
-import {
-  CostOverview,
-  HppSummaryCard,
-  OpexSummaryCard,
-  QuickRatioAnalysis
-} from './RincianTab/components/overview';
+import { CostOverview } from './RincianTab/components/overview/CostOverview';
+import { HppSummaryCard } from './RincianTab/components/overview/HppSummaryCard';
+import { OpexSummaryCard } from './RincianTab/components/overview/OpexSummaryCard';
+import { QuickRatioAnalysis } from './RincianTab/components/overview/QuickRatioAnalysis';
 
 // COGS detail components
-import {
-  CogsDetailTab,
-  MaterialCostsCard,
-  LaborCostsCard,
-  MaterialUsageAnalytics
-} from './RincianTab/components/cogsDetail';
+import { CogsDetailTab } from './RincianTab/components/cogsDetail/CogsDetailTab';
+import { MaterialCostsCard } from './RincianTab/components/cogsDetail/MaterialCostsCard';
+import { LaborCostsCard } from './RincianTab/components/cogsDetail/LaborCostsCard';
+import { MaterialUsageAnalytics } from './RincianTab/components/cogsDetail/MaterialUsageAnalytics';
 
 // OPEX detail components
-import {
-  OpexDetailTab,
-  ExpenseCard,
-  AdministrativeExpensesCard,
-  SellingExpensesCard,
-  GeneralExpensesCard
-} from './RincianTab/components/opexDetail';
+import { OpexDetailTab } from './RincianTab/components/opexDetail/OpexDetailTab';
+import { ExpenseCard } from './RincianTab/components/opexDetail/ExpenseCard';
+import { AdministrativeExpensesCard } from './RincianTab/components/opexDetail/AdministrativeExpensesCard';
+import { SellingExpensesCard } from './RincianTab/components/opexDetail/SellingExpensesCard';
+import { GeneralExpensesCard } from './RincianTab/components/opexDetail/GeneralExpensesCard';
 
 // Analysis components
-import {
-  AnalysisTab,
-  EfficiencyMetricsCard,
-  TargetVsActualCards,
-  RecommendationsCard,
-  ActionItemsCard
-} from './RincianTab/components/analysis';
+import { AnalysisTab } from './RincianTab/components/analysis/AnalysisTab';
+import { EfficiencyMetricsCard } from './RincianTab/components/analysis/EfficiencyMetricsCard';
+import { TargetVsActualCards } from './RincianTab/components/analysis/TargetVsActualCards';
+import { RecommendationsCard } from './RincianTab/components/analysis/RecommendationsCard';
+import { ActionItemsCard } from './RincianTab/components/analysis/ActionItemsCard';
 
 interface RincianTabProps {
   profitData: ProfitAnalysisResult;

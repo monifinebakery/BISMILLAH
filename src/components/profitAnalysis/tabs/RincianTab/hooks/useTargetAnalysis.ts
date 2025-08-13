@@ -1,4 +1,4 @@
-// src/components/profitAnalysis/tabs/rincianTab/hooks/useTargetAnalysis.ts
+// src/components/profitAnalysis/tabs/RincianTab/hooks/useTargetAnalysis.ts
 
 import { useMemo } from 'react';
 import { ProfitAnalysisResult } from '../../types';

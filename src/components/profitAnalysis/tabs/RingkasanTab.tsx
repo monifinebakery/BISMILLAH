@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/tabs/RingkasanTab.tsx
+// src/components/profitAnalysis/tabs/RingkasanTab.tsx
 // ✅ TAB RINGKASAN - Overview metrics dan chart
 
 import React from 'react';

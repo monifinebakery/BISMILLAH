@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -45,14 +45,10 @@ interface ProfitAnalysisDialogProps {
   dateRange?: { from: Date; to: Date };
 }
 
-const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({ 
-  isOpen, 
-  onClose, 
-  dateRange 
-}) => {
+const ProfitAnalysisDialog = ({ isOpen, onClose, dateRange }: ProfitAnalysisDialogProps) => {
   const isMobile = useIsMobile();
-  const [isCalculating, setIsCalculating] = useState(false);
   const [activeTab, setActiveTab] = useState('ringkasan');
+  const hasInitialized = useRef(false); // Guard for one-time initialization
 
   // Buat periode dari dateRange
   const period: DatePeriod = dateRange ? {
@@ -68,15 +64,18 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
     isLoading,
     calculateProfit,
     exportAnalysis,
-    error
+    error,
+    isCalculating,
+    refreshAnalysis,
   } = useProfitMargin(period);
 
   // ✅ EFFECTS
   useEffect(() => {
-    if (isOpen && !profitData && !isLoading) {
+    if (isOpen && !hasInitialized.current && !profitData && !isLoading && !isCalculating) {
       handleCalculate();
+      hasInitialized.current = true; // Set guard to prevent re-running
     }
-  }, [isOpen]);
+  }, [isOpen, profitData, isLoading, isCalculating, calculateProfit]);
 
   // Reset tab saat dialog dibuka
   useEffect(() => {
@@ -89,15 +88,12 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   const handleCalculate = async () => {
     try {
       logger.info('Starting profit calculation', { period });
-      setIsCalculating(true);
       await calculateProfit();
       toast.success('Analisis profit margin berhasil dihitung');
       logger.info('Profit calculation completed successfully');
     } catch (error: any) {
       logger.error('Failed to calculate profit margin', error);
       toast.error(error.message || 'Gagal menghitung profit margin');
-    } finally {
-      setIsCalculating(false);
     }
   };
 
@@ -114,17 +110,12 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       const filename = generateExportFilename(format, period);
       await exportAnalysis(format, profitData);
       
-      const formatLabels = {
-        pdf: 'PDF',
-        excel: 'Excel', 
-        csv: 'CSV'
-      };
-      
+      const formatLabels = { pdf: 'PDF', excel: 'Excel', csv: 'CSV' };
       toast.success(`Laporan ${formatLabels[format]} berhasil diekspor`);
       logger.info('Export completed successfully', { format, filename });
     } catch (error: any) {
       logger.error('Export failed', { format, error });
-      toast.error(error.message || 'Gagal mengekspor laporan');
+      toast.error(error.message || 'Gagal meneksport laporan');
     }
   };
 
@@ -319,7 +310,7 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
               </Button>
               {profitData && (
                 <Button 
-                  onClick={() => handleCalculate()}
+                  onClick={handleCalculate}
                   disabled={isCalculating}
                   className={cn(isMobile && "w-full text-xs")}
                 >

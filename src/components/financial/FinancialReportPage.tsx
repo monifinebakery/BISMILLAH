@@ -1,10 +1,11 @@
 // src/components/financial/FinancialReportPage.tsx
-// ✅ CLEAN VERSION - Using existing DateRangePicker component
+// ✅ ENHANCED VERSION - With Real Profit Margin Integration
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, RefreshCw, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Settings, RefreshCw, AlertCircle, Calculator, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 // UI utilities
@@ -16,6 +17,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ EXISTING COMPONENTS - Reuse what's already available
 import DateRangePicker from '@/components/ui/DateRangePicker';
+
+// ✅ NEW PROFIT MARGIN COMPONENTS
+import { ProfitMarginWidget } from './components/ProfitMarginWidget';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
@@ -53,6 +57,13 @@ const CategoryManagementDialog = React.lazy(() =>
   }))
 );
 
+// ✅ NEW PROFIT ANALYSIS COMPONENTS
+const ProfitAnalysisDialog = React.lazy(() => 
+  import('./dialogs/ProfitAnalysisDialog').catch(() => ({
+    default: () => null
+  }))
+);
+
 // Loading components
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
@@ -65,30 +76,53 @@ const ChartSkeleton = () => (
   </Card>
 );
 
-// ✅ SIMPLIFIED Summary Cards Component
+// ✅ ENHANCED Summary Cards Component with Profit Margin
 const SummaryCards: React.FC<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
   isLoading?: boolean;
   onRefresh?: () => void;
-}> = ({ totalIncome, totalExpense, balance, isLoading, onRefresh }) => {
+  onShowProfitAnalysis?: () => void;
+}> = ({ totalIncome, totalExpense, balance, isLoading, onRefresh, onShowProfitAnalysis }) => {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 
   const cards = [
-    { title: 'Total Pemasukan', value: totalIncome, color: 'green' },
-    { title: 'Total Pengeluaran', value: totalExpense, color: 'red' },
-    { title: 'Saldo Akhir', value: balance, color: balance >= 0 ? 'green' : 'red' }
+    { 
+      title: 'Total Pemasukan', 
+      value: totalIncome, 
+      color: 'green',
+      icon: TrendingUp
+    },
+    { 
+      title: 'Total Pengeluaran', 
+      value: totalExpense, 
+      color: 'red',
+      icon: TrendingUp,
+      iconRotate: true
+    },
+    { 
+      title: 'Saldo Akhir', 
+      value: balance, 
+      color: balance >= 0 ? 'green' : 'red',
+      icon: Calculator
+    }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {cards.map((card, index) => (
         <Card key={index} className="border-l-4 border-blue-500">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">{card.title}</CardTitle>
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <card.icon className={cn(
+                  "h-4 w-4",
+                  card.iconRotate && "rotate-180"
+                )} />
+                {card.title}
+              </CardTitle>
               {index === 0 && onRefresh && (
                 <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
                   <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -106,6 +140,30 @@ const SummaryCards: React.FC<{
           </CardContent>
         </Card>
       ))}
+      
+      {/* ✅ NEW PROFIT MARGIN CARD */}
+      <Card className="border-l-4 border-purple-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Real Profit Margin
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            onClick={onShowProfitAnalysis}
+            variant="outline" 
+            className="w-full"
+            disabled={isLoading}
+          >
+            <Calculator className="mr-2 h-4 w-4" />
+            Lihat Analisis
+          </Button>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Profit margin sesungguhnya vs cash flow
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -166,7 +224,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// ✅ MAIN COMPONENT - MUCH SIMPLIFIED WITH EXISTING DateRangePicker
+// ✅ MAIN COMPONENT - ENHANCED WITH PROFIT MARGIN TAB
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   
@@ -196,13 +254,15 @@ const FinancialReportPage: React.FC = () => {
   // ✅ CHART DATA - Single hook
   const chartData = useFinancialChartData(filteredTransactions);
 
-  // ✅ SIMPLE STATE - Just dialogs
+  // ✅ STATE - Dialogs and active tab
+  const [activeTab, setActiveTab] = useState('overview');
   const [dialogs, setDialogs] = useState({
     transaction: { isOpen: false, editing: null as any },
-    category: { isOpen: false }
+    category: { isOpen: false },
+    profitAnalysis: { isOpen: false }
   });
 
-  // ✅ SIMPLE HANDLERS
+  // ✅ DIALOG HANDLERS
   const openTransactionDialog = (transaction: any = null) => {
     setDialogs(prev => ({
       ...prev,
@@ -223,6 +283,14 @@ const FinancialReportPage: React.FC = () => {
 
   const closeCategoryDialog = () => {
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
+  };
+
+  const openProfitAnalysisDialog = () => {
+    setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: true } }));
+  };
+
+  const closeProfitAnalysisDialog = () => {
+    setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: false } }));
   };
 
   // ✅ TRANSACTION HANDLERS
@@ -276,7 +344,7 @@ const FinancialReportPage: React.FC = () => {
     }
   };
 
-  // ✅ DATE RANGE HANDLER - Convert DateRangePicker format to useFinancialCore format
+  // ✅ DATE RANGE HANDLER
   const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
     if (range) {
       setDateRange({
@@ -301,12 +369,12 @@ const FinancialReportPage: React.FC = () => {
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
-        {/* ✅ SIMPLIFIED Header */}
+        {/* ✅ ENHANCED Header */}
         <div className="space-y-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
-              Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
+              Analisis pemasukan, pengeluaran, saldo, dan profit margin bisnis Anda
             </p>
           </div>
           
@@ -344,47 +412,145 @@ const FinancialReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ SIMPLIFIED Summary Cards */}
+        {/* ✅ ENHANCED Summary Cards with Profit Margin */}
         <SummaryCards 
           totalIncome={totalIncome}
           totalExpense={totalExpense}
           balance={balance}
           isLoading={isLoading}
+          onShowProfitAnalysis={openProfitAnalysisDialog}
         />
 
-        {/* ✅ SIMPLIFIED Charts */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <FinancialCharts 
-            filteredTransactions={filteredTransactions}
-            dateRange={dateRange}
-            isLoading={isLoading}
-          />
-        </Suspense>
+        {/* ✅ NEW TABBED INTERFACE */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="profit-analysis">
+              <Calculator className="mr-2 h-4 w-4" />
+              Profit Margin
+            </TabsTrigger>
+            <TabsTrigger value="transactions">Transaksi</TabsTrigger>
+          </TabsList>
 
-        <Suspense fallback={
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartSkeleton />
-            <ChartSkeleton />
-          </div>
-        }>
-          <CategoryCharts 
-            filteredTransactions={filteredTransactions}
-            isLoading={isLoading}
-          />
-        </Suspense>
+          {/* ✅ OVERVIEW TAB - Original financial charts */}
+          <TabsContent value="overview" className="space-y-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <FinancialCharts 
+                filteredTransactions={filteredTransactions}
+                dateRange={dateRange}
+                isLoading={isLoading}
+              />
+            </Suspense>
 
-        {/* ✅ SIMPLIFIED Transaction Table */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <TransactionTable
-            transactions={filteredTransactions}
-            onEditTransaction={openTransactionDialog}
-            onAddTransaction={() => openTransactionDialog()}
-            onDeleteTransaction={handleDeleteTransaction}
-            isLoading={isLoading}
-          />
-        </Suspense>
+            <Suspense fallback={
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChartSkeleton />
+                <ChartSkeleton />
+              </div>
+            }>
+              <CategoryCharts 
+                filteredTransactions={filteredTransactions}
+                isLoading={isLoading}
+              />
+            </Suspense>
+          </TabsContent>
 
-        {/* ✅ SIMPLIFIED Dialogs */}
+          {/* ✅ NEW PROFIT ANALYSIS TAB */}
+          <TabsContent value="profit-analysis" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Main Profit Margin Widget */}
+              <div className="lg:col-span-2">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <ProfitMarginWidget 
+                    dateRange={dateRangeForPicker}
+                    className="w-full"
+                  />
+                </Suspense>
+              </div>
+
+              {/* Quick Insights Cards */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Cash Flow vs Real Profit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded">
+                      <h4 className="font-medium text-blue-800 mb-2">💰 Cash Flow (Sebelumnya)</h4>
+                      <p className="text-sm text-blue-700">
+                        Pemasukan - Pengeluaran = {new Intl.NumberFormat('id-ID', { 
+                          style: 'currency', 
+                          currency: 'IDR' 
+                        }).format(balance)}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-green-50 p-4 rounded">
+                      <h4 className="font-medium text-green-800 mb-2">📊 Real Profit (Sekarang)</h4>
+                      <p className="text-sm text-green-700">
+                        Revenue - HPP - OPEX = Profit sesungguhnya
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Lihat tab "Profit Margin" untuk analisis lengkap
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>🎯 Rekomendasi</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                      <div>
+                        <p className="font-medium">Tambahkan Data Warehouse</p>
+                        <p className="text-gray-600">Untuk tracking HPP yang akurat</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
+                      <div>
+                        <p className="font-medium">Kategorisasi Biaya</p>
+                        <p className="text-gray-600">Pisahkan COGS dari OPEX</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2" />
+                      <div>
+                        <p className="font-medium">Monitor Margin</p>
+                        <p className="text-gray-600">Target: Gross 25%+, Net 10%+</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* ✅ TRANSACTIONS TAB */}
+          <TabsContent value="transactions" className="space-y-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <TransactionTable
+                transactions={filteredTransactions}
+                onEditTransaction={openTransactionDialog}
+                onAddTransaction={() => openTransactionDialog()}
+                onDeleteTransaction={handleDeleteTransaction}
+                isLoading={isLoading}
+              />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
+
+        {/* ✅ DIALOGS */}
         <Suspense fallback={null}>
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
@@ -404,6 +570,15 @@ const FinancialReportPage: React.FC = () => {
             saveSettings={(newSettings) => {
               toast.success('Kategori berhasil disimpan');
             }}
+          />
+        </Suspense>
+
+        {/* ✅ NEW PROFIT ANALYSIS DIALOG */}
+        <Suspense fallback={null}>
+          <ProfitAnalysisDialog
+            isOpen={dialogs.profitAnalysis.isOpen}
+            onClose={closeProfitAnalysisDialog}
+            dateRange={dateRangeForPicker}
           />
         </Suspense>
       </div>

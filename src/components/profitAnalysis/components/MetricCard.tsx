@@ -1,4 +1,4 @@
-/ src/components/financial/profit-analysis/components/MetricCard.tsx
+// src/components/financial/profit-analysis/components/MetricCard.tsx
 // ✅ KOMPONEN KARTU METRIK - Reusable component
 
 import React from 'react';

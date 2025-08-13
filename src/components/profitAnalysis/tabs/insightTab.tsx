@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/tabs/InsightsTab.tsx
+// src/components/financial/profitAnalysis/tabs/InsightsTab.tsx
 // ✅ TAB INSIGHTS - Complete version dengan AI insights dan action items
 
 import React, { useState } from 'react';

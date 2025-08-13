@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/types/index.ts
-// ✅ COMPLETE UPDATED TYPES - Material Usage Integration
+// ✅ FINAL CONSOLIDATED TYPES - Material Usage Integration
 
 import { FinancialTransaction } from '@/components/financial/types/financial';
 import { OperationalCost } from '@/components/operational-costs/types/operationalCost.types';
@@ -155,6 +155,17 @@ export interface ProfitAnalysisInput {
   materialUsage: MaterialUsageLog[]; // ✅ NEW
   productionRecords: ProductionRecord[]; // ✅ NEW
   period: DatePeriod;
+  
+  // ✅ LEGACY SUPPORT: Optional production data
+  productionData?: ProductionData;
+}
+
+// ✅ LEGACY TYPE (for backward compatibility)
+export interface ProductionData {
+  unitsProduced: number;
+  unitsSold: number;
+  averageSellingPrice: number;
+  productionEfficiency: number;
 }
 
 // ===========================================
@@ -169,10 +180,31 @@ export interface CategoryMapping {
 }
 
 export const DEFAULT_CATEGORY_MAPPING: CategoryMapping = {
-  cogsCategories: ["Pembelian Bahan Baku", "Biaya Produksi", "Upah Langsung"],
-  opexCategories: ["Marketing", "Transportasi", "Biaya Administrasi"],
-  directLaborCategories: ["Gaji Karyawan Produksi", "Upah Buruh"],
-  operationalExpenseCategories: ["Gaji Administrasi", "Biaya Pemasaran"]
+  cogsCategories: [
+    "Pembelian Bahan Baku", 
+    "Biaya Produksi", 
+    "Upah Langsung",
+    "Biaya Manufaktur"
+  ],
+  opexCategories: [
+    "Marketing", 
+    "Transportasi", 
+    "Biaya Administrasi",
+    "Gaji Administrasi",
+    "Sewa Kantor",
+    "Utilitas Kantor"
+  ],
+  directLaborCategories: [
+    "Gaji Karyawan Produksi", 
+    "Upah Buruh",
+    "Tunjangan Produksi"
+  ],
+  operationalExpenseCategories: [
+    "Gaji Administrasi", 
+    "Biaya Pemasaran",
+    "Biaya Penjualan",
+    "Biaya Umum"
+  ]
 };
 
 export interface ProfitInsight {
@@ -191,6 +223,10 @@ export interface ProfitAnalysisResult {
   cogsBreakdown: COGSBreakdown;
   opexBreakdown: OPEXBreakdown;
   insights: ProfitInsight[];
+  
+  // ✅ LEGACY SUPPORT: Optional comparison
+  comparison?: ProfitComparison;
+  
   rawData: {
     transactions: FinancialTransaction[];
     operationalCosts: OperationalCost[];
@@ -198,6 +234,18 @@ export interface ProfitAnalysisResult {
     recipes: Recipe[];
     materialUsage?: MaterialUsageLog[]; // ✅ NEW
     productionRecords?: ProductionRecord[]; // ✅ NEW
+  };
+}
+
+// ✅ LEGACY TYPE (for backward compatibility)
+export interface ProfitComparison {
+  previousPeriod?: ProfitMarginData;
+  budgetPlan?: ProfitMarginData;
+  industryBenchmark?: ProfitMarginData;
+  variance: {
+    revenueGrowth: number;
+    marginImprovement: number;
+    costReduction: number;
   };
 }
 
@@ -224,8 +272,15 @@ export const PROFIT_MARGIN_THRESHOLDS = {
   }
 };
 
+// ✅ LEGACY CONSTANTS (for backward compatibility)
+export const CALCULATION_METHODS = {
+  materialCost: 'fifo' as const,
+  laborAllocation: 'per_unit' as const,
+  overheadAllocation: 'activity_based' as const
+};
+
 // ===========================================
-// ✅ CONTEXT TYPES
+// ✅ UPDATED CONTEXT TYPES
 // ===========================================
 
 export interface ProfitAnalysisContextType {
@@ -256,6 +311,23 @@ export interface ProfitAnalysisContextType {
   getCostAnalysis: () => any;
   keyMetrics?: any;
   dashboardSummary?: any;
+  
+  // ✅ NEW: Material usage utilities
+  getMaterialUsageSummary?: () => {
+    totalMaterialCost: number;
+    totalQuantity: number;
+    recordCount: number;
+    usageByType: Record<string, { count: number; totalCost: number }>;
+    averageCostPerRecord: number;
+  } | null;
+  
+  getProductionSummary?: () => {
+    totalQuantityProduced: number;
+    totalProductionCost: number;
+    recordCount: number;
+    averageCostPerUnit: number;
+    products: number;
+  } | null;
 }
 
 // ===========================================
@@ -281,6 +353,17 @@ export interface ProfitChartData {
     value: number;
     cumulative: number;
   }>;
+}
+
+// ✅ LEGACY FORM TYPE (for backward compatibility)
+export interface ProfitAnalysisFormData {
+  period: {
+    from: string;
+    to: string;
+  };
+  includeProjections: boolean;
+  includeBenchmarks: boolean;
+  categoryMappingOverrides?: Partial<CategoryMapping>;
 }
 
 // ===========================================
@@ -317,3 +400,10 @@ export const isValidDatePeriod = (period: any): period is DatePeriod => {
     period.from <= period.to
   );
 };
+
+// ===========================================
+// ✅ UTILITY TYPES
+// ===========================================
+
+export type CreateProfitAnalysisInput = Omit<ProfitAnalysisInput, 'calculatedAt'>;
+export type ProfitMarginSummary = Pick<ProfitMarginData, 'revenue' | 'grossMargin' | 'netMargin' | 'period'>;

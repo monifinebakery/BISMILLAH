@@ -1,4 +1,4 @@
-// src/components/financial/components/ProfitMarginWidget.tsx
+// src/components/profitAnalysis/components/ProfitMarginWidget.tsx
 // ✅ PROFIT MARGIN WIDGET - Dashboard Integration
 
 import React, { useState } from 'react';

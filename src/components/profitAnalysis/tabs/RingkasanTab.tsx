@@ -89,7 +89,7 @@ export const RingkasanTab: React.FC<RingkasanTabProps> = ({ profitData }) => {
             </p>
             <p className="text-xs text-red-600">dari total pendapatan</p>
             <p className="text-xs text-gray-600 mt-1">
-              Target: <70% untuk margin sehat
+              Target: {"<"}70% untuk margin sehat
             </p>
           </CardContent>
         </Card>

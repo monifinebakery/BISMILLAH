@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/ProfitAnalysisDialog.tsx
-// ✅ DIALOG ANALISIS PROFIT MARGIN - Fixed and Enhanced Version
+// ✅ DIALOG ANALISIS PROFIT MARGIN - Modern Minimal Design
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -145,35 +145,35 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
 
   // ✅ RENDER ERROR STATE
   const renderErrorState = () => (
-    <Card className="border-red-200 bg-red-50">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-3 text-red-600">
-          <AlertTriangle className="h-6 w-6" />
-          <div>
-            <h3 className="font-medium">Gagal Memuat Analisis</h3>
-            <p className="text-sm text-red-500 mt-1">{error?.message || 'Terjadi kesalahan saat memuat data'}</p>
-          </div>
-        </div>
-        <Button onClick={handleCalculate} variant="outline" className="mt-4">
+    <div className="flex flex-col items-center justify-center h-64 px-4">
+      <div className="text-center">
+        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Gagal Memuat Analisis</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {error?.message || 'Terjadi kesalahan saat memuat data'}
+        </p>
+        <Button onClick={handleCalculate} variant="outline" size="sm">
           <RefreshCw className="mr-2 h-4 w-4" />
           Coba Lagi
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   // ✅ RENDER EMPTY STATE
   const renderEmptyState = () => (
-    <div className="text-center py-12">
-      <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-      <h3 className="font-medium text-gray-600 mb-2">Belum Ada Analisis</h3>
-      <p className="text-sm text-gray-500 mb-4">
-        Klik "Hitung Ulang" untuk memulai analisis profit margin.
-      </p>
-      <Button onClick={handleCalculate} disabled={isCalculating}>
-        <Calculator className="mr-2 h-4 w-4" />
-        Mulai Analisis
-      </Button>
+    <div className="flex flex-col items-center justify-center h-64 px-4">
+      <div className="text-center">
+        <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Analisis</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Klik tombol di bawah untuk memulai analisis profit margin.
+        </p>
+        <Button onClick={handleCalculate} disabled={isCalculating} size="sm">
+          <Calculator className="mr-2 h-4 w-4" />
+          {isCalculating ? 'Menghitung...' : 'Mulai Analisis'}
+        </Button>
+      </div>
     </div>
   );
 
@@ -185,38 +185,69 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
     }
 
     return (
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={cn("grid w-full", isMobile ? "grid-cols-2" : "grid-cols-4")}>
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="rincian">Rincian</TabsTrigger>
-          {!isMobile && (
-            <>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
-              <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
-            </>
-          )}
-        </TabsList>
+      <div className="space-y-6">
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className={cn(
+              "grid w-full bg-gray-50/50 rounded-lg p-1 h-auto",
+              isMobile ? "grid-cols-2" : "grid-cols-4"
+            )}>
+              <TabsTrigger 
+                value="ringkasan" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2.5 px-4 text-sm font-medium"
+              >
+                Ringkasan
+              </TabsTrigger>
+              <TabsTrigger 
+                value="rincian"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2.5 px-4 text-sm font-medium"
+              >
+                Rincian
+              </TabsTrigger>
+              {!isMobile && (
+                <>
+                  <TabsTrigger 
+                    value="insights"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2.5 px-4 text-sm font-medium"
+                  >
+                    Insights
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="perbandingan"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2.5 px-4 text-sm font-medium"
+                  >
+                    Perbandingan
+                  </TabsTrigger>
+                </>
+              )}
+            </TabsList>
 
-        <TabsContent value="ringkasan" className="mt-6">
-          <RingkasanTab profitData={profitData} />
-        </TabsContent>
+            {/* Tab Contents */}
+            <div className="mt-6">
+              <TabsContent value="ringkasan" className="space-y-6 mt-0">
+                <RingkasanTab profitData={profitData} />
+              </TabsContent>
 
-        <TabsContent value="rincian" className="mt-6">
-          <RincianTab profitData={profitData} />
-        </TabsContent>
+              <TabsContent value="rincian" className="space-y-6 mt-0">
+                <RincianTab profitData={profitData} />
+              </TabsContent>
 
-        {!isMobile && (
-          <>
-            <TabsContent value="insights" className="mt-6">
-              <InsightsTab profitData={profitData} />
-            </TabsContent>
+              {!isMobile && (
+                <>
+                  <TabsContent value="insights" className="space-y-6 mt-0">
+                    <InsightsTab profitData={profitData} />
+                  </TabsContent>
 
-            <TabsContent value="perbandingan" className="mt-6">
-              <PerbandinganTab profitData={profitData} />
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+                  <TabsContent value="perbandingan" className="space-y-6 mt-0">
+                    <PerbandinganTab profitData={profitData} />
+                  </TabsContent>
+                </>
+              )}
+            </div>
+          </Tabs>
+        </div>
+      </div>
     );
   };
 
@@ -224,121 +255,106 @@ const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className={cn(
-        "max-w-6xl max-h-[90vh] p-0 flex flex-col",
-        isMobile && "m-0 rounded-none w-screen h-screen max-w-full max-h-full"
+        "max-w-7xl w-[95vw] h-[90vh] p-0 gap-0 flex flex-col",
+        isMobile && "w-[98vw] h-[95vh] max-w-none"
       )}>
-        {/* Header */}
-        <DialogHeader className="p-6 pb-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
+        {/* ✅ MODERN HEADER - Fixed */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <Calculator className="h-5 w-5 text-blue-600" />
+            </div>
             <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
+              <DialogTitle className="text-xl font-semibold text-gray-900">
                 Analisis Margin Profit Sesungguhnya
               </DialogTitle>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-0.5">
                 Periode: {period.label}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleCalculate}
-                disabled={isCalculating || isLoading}
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-2", (isCalculating || isLoading) && "animate-spin")} />
-                {isCalculating || isLoading ? 'Menghitung...' : 'Hitung Ulang'}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-        </DialogHeader>
-
-        {/* Content */}
-        <ScrollArea className="flex-1 px-6">
-          {isLoading ? (
-            <AnalysisSkeleton />
-          ) : error ? (
-            renderErrorState()
-          ) : (
-            renderMainContent()
-          )}
-        </ScrollArea>
-
-        {/* Footer */}
-        <DialogFooter className="p-6 pt-4 border-t flex-shrink-0">
-          <div className="flex flex-col sm:flex-row justify-between w-full gap-4">
-            {/* Export Options */}
-            <div className="flex flex-wrap gap-2">
-              {profitData && (
-                <>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleExport('excel')}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Ekspor Excel
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleExport('pdf')}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Ekspor PDF
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleExport('csv')}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Ekspor CSV
-                  </Button>
-                </>
-              )}
-            </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCalculate}
+              disabled={isCalculating || isLoading}
+              className="hidden sm:flex"
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", (isCalculating || isLoading) && "animate-spin")} />
+              {isCalculating || isLoading ? 'Menghitung...' : 'Perbarui'}
+            </Button>
             
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClose}>
-                Tutup
-              </Button>
-              {profitData && (
-                <Button 
-                  onClick={() => handleCalculate()}
-                  disabled={isCalculating}
-                >
-                  <RefreshCw className={cn("mr-2 h-4 w-4", isCalculating && "animate-spin")} />
-                  {isCalculating ? 'Menghitung...' : 'Perbarui Analisis'}
-                </Button>
+            {/* ✅ SINGLE X BUTTON */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleClose}
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* ✅ SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {isLoading ? (
+                <AnalysisSkeleton />
+              ) : error ? (
+                renderErrorState()
+              ) : (
+                renderMainContent()
               )}
             </div>
-          </div>
+          </ScrollArea>
+        </div>
 
-          {/* Export Info */}
-          {profitData && (
-            <div className="w-full mt-4 pt-4 border-t">
-              <div className="bg-blue-50 p-3 rounded">
-                <h5 className="font-medium text-blue-800 mb-1 text-sm">📄 Informasi Ekspor</h5>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <p>• <strong>Excel:</strong> Data lengkap dengan chart dan formula untuk analisis lanjutan</p>
-                  <p>• <strong>PDF:</strong> Laporan siap cetak dengan visualisasi dan insights</p>
-                  <p>• <strong>CSV:</strong> Data mentah untuk import ke sistem lain</p>
-                </div>
-                <p className="text-xs text-blue-600 mt-2">
-                  📅 Periode: {period.label} | 🕒 Dihitung: {new Date().toLocaleDateString('id-ID')}
-                </p>
+        {/* ✅ MODERN FOOTER - Fixed */}
+        {profitData && (
+          <div className="border-t border-gray-200 bg-gray-50/50 p-4 rounded-b-lg">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* Export Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleExport('excel')}
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                >
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleExport('pdf')}
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                >
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  PDF
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleExport('csv')}
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                >
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  CSV
+                </Button>
+              </div>
+              
+              {/* Info Text */}
+              <div className="text-xs text-gray-500">
+                📅 {period.label} • 🕒 {new Date().toLocaleDateString('id-ID')}
               </div>
             </div>
-          )}
-        </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

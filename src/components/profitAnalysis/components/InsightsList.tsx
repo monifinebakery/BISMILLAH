@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/components/InsightsList.tsx
+// src/components/profitAnalysis/components/InsightsList.tsx
 // ✅ KOMPONEN DAFTAR INSIGHTS
 
 import React from 'react';

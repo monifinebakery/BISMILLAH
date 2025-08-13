@@ -322,17 +322,17 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
             </TabsContent>
 
             {/* Competitive Analysis */}
-            <TabsContent value="competitive" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>🏆 Analisis Kompetitif</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <h5 className="font-medium mb-2">📊 Perbandingan Margin</h5>
-                      <div className="bg-gray-100 p-4 rounded">
-                        <pre className="text-xs overflow-x-auto">
+<TabsContent value="competitive" className="mt-6">
+  <Card>
+    <CardHeader>
+      <CardTitle>🏆 Analisis Kompetitif</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-6">
+        <div>
+          <h5 className="font-medium mb-2">📊 Perbandingan Margin</h5>
+          <div className="bg-gray-100 p-4 rounded">
+            <pre>
 {`{
   type: 'bar',
   data: {
@@ -371,47 +371,53 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
     }
   }
 }`}
-                        </pre>
-                      </div>
-                    </div>
+            </pre>
+          </div>
+        </div>
 
-                    <div>
-                      <h5 className="font-medium mb-2">🔍 Analisis Rasio Biaya</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Object.entries({
-                          'COGS Ratio': competitiveAnalysis.yourCompany.cogsRatio,
-                          'OPEX Ratio': competitiveAnalysis.yourCompany.opexRatio
-                        }).map(([key, value]) => (
-                          <div key={key} className="bg-gray-50 p-4 rounded">
-                            <div className="flex justify-between">
-                              <span className="text-sm font-medium">{key}</span>
-                              <span className="text-sm font-bold">{value.toFixed(1)}%</span>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">
-                              vs Industri: {competitiveAnalysis.industryAverage[key.toLowerCase().replace(' ', '') as keyof typeof competitiveAnalysis.industryAverage].toFixed(1)}%
-                              <br />
-                              vs Top: {competitiveAnalysis.topPerformers[key.toLowerCase().replace(' ', '') as keyof typeof competitiveAnalysis.topPerformers].toFixed(1)}%
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Alert>
-                      <BarChart3 className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Rekomendasi:</strong>
-                        <ul className="mt-2 space-y-1 text-sm">
-                          <li>• Optimasi COGS untuk mendekati top performers (55%)</li>
-                          <li>• Reduksi OPEX melalui efisiensi operasional</li>
-                          <li>• Benchmark dengan top performers untuk strategi pricing</li>
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
+        <div>
+          <h5 className="font-medium mb-2">🔍 Analisis Rasio Biaya</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries({
+              'COGS Ratio': competitiveAnalysis.yourCompany.cogsRatio,
+              'OPEX Ratio': competitiveAnalysis.yourCompany.opexRatio
+            }).map(([key, value]) => {
+              const normalizedKey = key.toLowerCase().replace(' ', '') as keyof typeof competitiveAnalysis.industryAverage;
+              const industryValue = competitiveAnalysis.industryAverage[normalizedKey];
+              const topPerformerValue = competitiveAnalysis.topPerformers[normalizedKey];
+              
+              return (
+                <div key={key} className="bg-gray-50 p-4 rounded">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">{key}</span>
+                    <span className="text-sm font-bold">{value.toFixed(1)}%</span>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  <p className="text-xs text-gray-600 mt-1">
+                    vs Industri: {industryValue !== undefined ? industryValue.toFixed(1) : 'N/A'}%
+                    <br />
+                    vs Top: {topPerformerValue !== undefined ? topPerformerValue.toFixed(1) : 'N/A'}%
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <Alert>
+          <BarChart3 className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Rekomendasi:</strong>
+            <ul className="mt-2 space-y-1 text-sm">
+              <li>• Optimasi COGS untuk mendekati top performers (55%)</li>
+              <li>• Reduksi OPEX melalui efisiensi operasional</li>
+              <li>• Benchmark dengan top performers untuk strategi pricing</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
 
             {/* Improvement Potential */}
             <TabsContent value="improvement" className="mt-6">

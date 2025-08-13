@@ -1,3 +1,6 @@
+// src/components/profitAnalysis/components/ProfitMarginWidget.tsx
+// ✅ PROFIT MARGIN WIDGET - Fixed and Enhanced Version
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // Hooks
 import { useProfitMargin, useProfitDashboard } from '../hooks/useProfitMargin';
@@ -32,24 +36,28 @@ import {
 import { ProfitMarginData, ProfitInsight } from '../types';
 
 // ✅ LOADING SKELETON
-const ProfitSkeleton = () => (
-  <Card>
-    <CardHeader className={cn("p-4", isMobile && "p-3")}>
-      <div className="flex items-center justify-between">
-        <div className={cn("bg-gray-200 rounded h-6 w-32 animate-pulse", isMobile && "h-5 w-24")} />
-        <div className={cn("bg-gray-200 rounded h-8 w-8 animate-pulse", isMobile && "h-6 w-6")} />
-      </div>
-    </CardHeader>
-    <CardContent className={cn("space-y-4 p-4", isMobile && "space-y-3 p-3")}>
-      <div className="grid grid-cols-1 gap-4">
-        <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
-        <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
-      </div>
-      <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
-      <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
-    </CardContent>
-  </Card>
-);
+const ProfitSkeleton = () => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <Card>
+      <CardHeader className={cn("p-4", isMobile && "p-3")}>
+        <div className="flex items-center justify-between">
+          <div className={cn("bg-gray-200 rounded h-6 w-32 animate-pulse", isMobile && "h-5 w-24")} />
+          <div className={cn("bg-gray-200 rounded h-8 w-8 animate-pulse", isMobile && "h-6 w-6")} />
+        </div>
+      </CardHeader>
+      <CardContent className={cn("space-y-4 p-4", isMobile && "space-y-3 p-3")}>
+        <div className="grid grid-cols-1 gap-4">
+          <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
+          <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
+        </div>
+        <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
+        <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
+      </CardContent>
+    </Card>
+  );
+};
 
 // ✅ MARGIN STATUS INDICATOR
 const MarginStatus: React.FC<{
@@ -58,6 +66,7 @@ const MarginStatus: React.FC<{
   label: string;
 }> = ({ margin, type, label }) => {
   const isMobile = useIsMobile();
+  
   const getStatus = (margin: number, type: 'gross' | 'net') => {
     const thresholds = {
       gross: { excellent: 40, good: 25, acceptable: 15, poor: 5 },
@@ -110,6 +119,7 @@ const CostBreakdown: React.FC<{
   opex: number;
 }> = ({ revenue, cogs, opex }) => {
   const isMobile = useIsMobile();
+  
   if (revenue === 0) return null;
 
   const cogsPercentage = (cogs / revenue) * 100;
@@ -180,6 +190,7 @@ const InsightsDisplay: React.FC<{
   maxShow?: number;
 }> = ({ insights, maxShow = 3 }) => {
   const isMobile = useIsMobile();
+  
   if (!insights || insights.length === 0) return null;
 
   const getIcon = (type: string) => {
@@ -228,7 +239,7 @@ export const ProfitMarginWidget: React.FC<{
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Use dashboard summary for quick overview
-  const { summary, isLoading, error, refetch } = useProfitDashboard();
+  const { summary, isLoading: isDashboardLoading, error: dashboardError, refetch } = useProfitDashboard();
 
   // Use detailed analysis for current period
   const currentPeriod = dateRange ? {
@@ -241,8 +252,13 @@ export const ProfitMarginWidget: React.FC<{
     profitData, 
     keyMetrics, 
     calculateProfit, 
-    exportAnalysis 
+    exportAnalysis,
+    isLoading: isProfitLoading,
+    error: profitError
   } = useProfitMargin(currentPeriod);
+
+  const isLoading = isDashboardLoading || isProfitLoading;
+  const error = dashboardError || profitError;
 
   // ✅ HANDLERS
   const handleRecalculate = async () => {
@@ -250,8 +266,10 @@ export const ProfitMarginWidget: React.FC<{
       setIsCalculating(true);
       await calculateProfit();
       toast.success('Profit margin berhasil dihitung ulang');
+      logger.info('Profit margin recalculated successfully');
     } catch (error: any) {
       toast.error(error.message || 'Gagal menghitung profit margin');
+      logger.error('Failed to recalculate profit margin:', error);
     } finally {
       setIsCalculating(false);
     }
@@ -259,10 +277,15 @@ export const ProfitMarginWidget: React.FC<{
 
   const handleExport = async () => {
     try {
-      await exportAnalysis('excel');
+      if (!profitData) {
+        throw new Error('Tidak ada data untuk diekspor');
+      }
+      await exportAnalysis('excel', profitData);
       toast.success('Laporan berhasil diekspor');
+      logger.info('Profit analysis exported successfully');
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengekspor laporan');
+      logger.error('Failed to export profit analysis:', error);
     }
   };
 
@@ -280,7 +303,9 @@ export const ProfitMarginWidget: React.FC<{
             <AlertTriangle className={cn("h-6 w-6", isMobile && "h-5 w-5")} />
             <div>
               <h3 className={cn("font-medium", isMobile && "text-sm")}>Gagal Memuat Profit Margin</h3>
-              <p className={cn("text-sm text-red-500 mt-1", isMobile && "text-xs")}>{error}</p>
+              <p className={cn("text-sm text-red-500 mt-1", isMobile && "text-xs")}>
+                {error instanceof Error ? error.message : String(error)}
+              </p>
             </div>
           </div>
           <Button 
@@ -297,7 +322,7 @@ export const ProfitMarginWidget: React.FC<{
   }
 
   // Use detailed data if available, otherwise summary
-  const displayData = keyMetrics || summary?.currentMargin;
+  const displayData = keyMetrics || (summary?.currentMargin as any);
 
   // ✅ NO DATA STATE
   if (!displayData) {
@@ -330,6 +355,11 @@ export const ProfitMarginWidget: React.FC<{
     );
   }
 
+  // Validate required data fields
+  const hasRequiredData = displayData.revenue !== undefined && 
+                         displayData.cogs !== undefined && 
+                         displayData.opex !== undefined;
+
   return (
     <Card className={className}>
       <CardHeader className={cn("p-4", isMobile && "p-3")}>
@@ -349,6 +379,7 @@ export const ProfitMarginWidget: React.FC<{
               onClick={handleRecalculate}
               disabled={isCalculating}
               className={cn(isMobile && "p-1")}
+              title="Hitung Ulang"
             >
               <RefreshCw className={cn("h-4 w-4", isCalculating && "animate-spin", isMobile && "h-3 w-3")} />
             </Button>
@@ -359,6 +390,7 @@ export const ProfitMarginWidget: React.FC<{
                 size="sm" 
                 onClick={handleExport}
                 className={cn(isMobile && "p-1")}
+                title="Ekspor"
               >
                 <Download className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
               </Button>
@@ -383,7 +415,7 @@ export const ProfitMarginWidget: React.FC<{
         </div>
 
         {/* ✅ COST BREAKDOWN */}
-        {displayData.revenue && displayData.cogs !== undefined && displayData.opex !== undefined && (
+        {hasRequiredData && (
           <CostBreakdown 
             revenue={displayData.revenue}
             cogs={displayData.cogs}

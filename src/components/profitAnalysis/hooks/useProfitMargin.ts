@@ -18,7 +18,7 @@ import {
   ProfitChartData
 } from '../types/profitAnalysis';
 
-import { prepareProfitChartData } from '@/utils/profitCalculations';
+import { prepareProfitChartData } from '../utils/profitCalculations';
 
 // ===========================================
 // ✅ QUERY KEYS

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 /**
  * Cleans up all Supabase authentication related data from localStorage and sessionStorage
@@ -7,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
  * ⚠️ WARNING: This function completely removes auth state. Use sparingly!
  */
 export const cleanupAuthState = () => {
-  console.log('🧹 Cleaning up auth state...');
+  logger.warn('🧹 Cleaning up auth state...');
   
   // Remove all Supabase auth keys from localStorage
   Object.keys(localStorage).forEach((key) => {
@@ -23,7 +24,7 @@ export const cleanupAuthState = () => {
     }
   });
   
-  console.log('✅ Auth state cleanup completed');
+  logger.success('✅ Auth state cleanup completed');
 };
 
 /**
@@ -31,7 +32,7 @@ export const cleanupAuthState = () => {
  */
 export const performSignOut = async () => {
   try {
-    console.log('🚪 Performing local sign out...');
+    logger.info('🚪 Performing local sign out...');
     
     // Clean up auth state first
     cleanupAuthState();
@@ -39,15 +40,15 @@ export const performSignOut = async () => {
     // Perform LOCAL sign out only (removes { scope: 'global' })
     try {
       await supabase.auth.signOut();
-      console.log('✅ Supabase sign out completed');
+      logger.success('✅ Supabase sign out completed');
     } catch (err) {
       // Continue even if this fails
-      console.error('⚠️ Error during Supabase signOut:', err);
+      logger.error('⚠️ Error during Supabase signOut:', err);
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Error during sign out process:', error);
+    logger.error('❌ Error during sign out process:', error);
     return false;
   }
 };
@@ -57,7 +58,7 @@ export const performSignOut = async () => {
  */
 export const performGlobalSignOut = async () => {
   try {
-    console.log('🌍 Performing global sign out...');
+    logger.info('🌍 Performing global sign out...');
     
     // Clean up auth state first
     cleanupAuthState();
@@ -65,15 +66,15 @@ export const performGlobalSignOut = async () => {
     // Perform GLOBAL sign out from all devices
     try {
       await supabase.auth.signOut({ scope: 'global' });
-      console.log('✅ Global sign out completed');
+      logger.success('✅ Global sign out completed');
     } catch (err) {
       // Continue even if this fails
-      console.error('⚠️ Error during global signOut:', err);
+      logger.error('⚠️ Error during global signOut:', err);
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Error during global sign out process:', error);
+    logger.error('❌ Error during global sign out process:', error);
     return false;
   }
 };
@@ -89,7 +90,7 @@ export const performGlobalSignOut = async () => {
  */
 export const validateAuthSession = async () => {
   try {
-    console.log('🔍 Validating auth session...');
+    logger.debug('🔍 Validating auth session...');
     
     // ✅ ADD: Timeout protection for slow networks (15 seconds)
     const sessionPromise = supabase.auth.getSession();
@@ -103,23 +104,23 @@ export const validateAuthSession = async () => {
     ]);
     
     if (error) {
-      console.error('⚠️ Error validating auth session:', error);
+      logger.error('⚠️ Error validating auth session:', error);
       
       // ✅ IMPROVED: Only cleanup on specific auth errors, not network errors
       if (error.message?.includes('Invalid Refresh Token') || 
           error.message?.includes('refresh_token_not_found') ||
           error.message?.includes('invalid_grant')) {
-        console.log('🧹 Invalid token detected, cleaning up auth state');
+        logger.warn('🧹 Invalid token detected, cleaning up auth state');
         cleanupAuthState();
       } else {
-        console.log('⚠️ Network/temporary error, preserving auth state');
+        logger.debug('⚠️ Network/temporary error, preserving auth state');
       }
       
       return false;
     }
     
     if (!session) {
-      console.log('ℹ️ No session found during validation');
+      logger.debug('ℹ️ No session found during validation');
       
       // ✅ CRITICAL FIX: DON'T cleanup auth state on missing session
       // This could be due to:
@@ -135,19 +136,19 @@ export const validateAuthSession = async () => {
     
     // ✅ Additional validation: check session expiry
     if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      console.log('⏰ Session expired, cleaning up auth state');
+      logger.warn('⏰ Session expired, cleaning up auth state');
       cleanupAuthState();
       return false;
     }
     
     // ✅ Additional validation: check user object
     if (!session.user || !session.user.id) {
-      console.log('👤 Invalid user in session, cleaning up auth state');
+      logger.warn('👤 Invalid user in session, cleaning up auth state');
       cleanupAuthState();
       return false;
     }
     
-    console.log('✅ Session validation successful:', {
+    logger.success('✅ Session validation successful:', {
       userId: session.user.id,
       email: session.user.email,
       expiresAt: session.expires_at
@@ -156,17 +157,17 @@ export const validateAuthSession = async () => {
     return true;
     
   } catch (error) {
-    console.error('❌ Unexpected error validating auth session:', error);
+    logger.error('❌ Unexpected error validating auth session:', error);
     
     // ✅ CRITICAL FIX: DON'T cleanup on timeout/network errors
     // Only cleanup on specific auth-related errors
     if (error.message?.includes('Session validation timeout')) {
-      console.log('⏱️ Session validation timeout, preserving auth state');
+      logger.debug('⏱️ Session validation timeout, preserving auth state');
     } else if (error.message?.includes('network') || 
                error.message?.includes('fetch')) {
-      console.log('🌐 Network error during validation, preserving auth state');
+      logger.debug('🌐 Network error during validation, preserving auth state');
     } else {
-      console.log('🧹 Unexpected error, cleaning up auth state for safety');
+      logger.warn('🧹 Unexpected error, cleaning up auth state for safety');
       cleanupAuthState();
     }
     
@@ -183,7 +184,7 @@ export const validateAuthSession = async () => {
  */
 export const checkSessionExists = async () => {
   try {
-    console.log('👀 Checking session existence (safe mode)...');
+    logger.debug('👀 Checking session existence (safe mode)...');
     
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise((resolve) => 
@@ -196,17 +197,17 @@ export const checkSessionExists = async () => {
     ]);
     
     if (error) {
-      console.log('⚠️ Error checking session (safe mode):', error.message);
+      logger.debug('⚠️ Error checking session (safe mode):', error.message);
       return false;
     }
     
     const exists = !!(session?.user?.id);
-    console.log('👀 Session exists (safe mode):', exists);
+    logger.debug('👀 Session exists (safe mode):', exists);
     
     return exists;
     
   } catch (error) {
-    console.log('❌ Error in safe session check:', error.message);
+    logger.debug('❌ Error in safe session check:', error.message);
     return false;
   }
 };
@@ -219,25 +220,25 @@ export const checkSessionExists = async () => {
  */
 export const refreshSessionSafely = async () => {
   try {
-    console.log('🔄 Safely refreshing session...');
+    logger.debug('🔄 Safely refreshing session...');
     
     const { data: { session }, error } = await supabase.auth.refreshSession();
     
     if (error) {
-      console.error('⚠️ Session refresh error:', error);
+      logger.error('⚠️ Session refresh error:', error);
       return false;
     }
     
     if (session?.user?.id) {
-      console.log('✅ Session refreshed successfully:', session.user.email);
+      logger.success('✅ Session refreshed successfully:', session.user.email);
       return true;
     }
     
-    console.log('⚠️ Session refresh returned no user');
+    logger.warn('⚠️ Session refresh returned no user');
     return false;
     
   } catch (error) {
-    console.error('❌ Error refreshing session safely:', error);
+    logger.error('❌ Error refreshing session safely:', error);
     return false;
   }
 };
@@ -250,7 +251,7 @@ export const refreshSessionSafely = async () => {
  */
 export const debugAuthState = async () => {
   try {
-    console.log('🔬 Debugging auth state...');
+    logger.debug('🔬 Debugging auth state...');
     
     // Check localStorage
     const localStorageKeys = Object.keys(localStorage).filter(key => 
@@ -285,11 +286,11 @@ export const debugAuthState = async () => {
       sessionInfo
     };
     
-    console.log('🔬 Auth Debug Info:', debugInfo);
+    logger.debug('🔬 Auth Debug Info:', debugInfo);
     return debugInfo;
     
   } catch (error) {
-    console.error('❌ Error debugging auth state:', error);
+    logger.error('❌ Error debugging auth state:', error);
     return { error: error.message };
   }
 };

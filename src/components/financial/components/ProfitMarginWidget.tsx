@@ -28,7 +28,7 @@ import {
   formatCurrency, 
   getMarginStatus, 
   getMarginColor 
-} from '../profitAnalysis/utils/formatters';
+} from '@/components/profitAnalysis/utils/formatters';
 
 // Types
 import { ProfitMarginData, ProfitInsight } from '@/types/profitAnalysis';

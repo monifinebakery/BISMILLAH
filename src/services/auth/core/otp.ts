@@ -1,9 +1,8 @@
-// src/services/auth/core/otp.ts - FIXED SESSION CACHE ISSUE
+// src/services/auth/core/otp.ts - FIXED SESSION CACHE CONFLICTS
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
-import { clearSessionCache, updateSessionCache } from './session';
 
 export const sendEmailOtp = async (
   email: string, 
@@ -17,9 +16,6 @@ export const sendEmailOtp = async (
       return false;
     }
 
-    // ✅ Clear session cache before sending OTP (this is fine)
-    clearSessionCache();
-    
     logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
     const otpOptions: any = {
@@ -126,9 +122,11 @@ export const verifyEmailOtp = async (
         duration: `${duration}ms`
       });
       
-      // ✅ CRITICAL FIX: Update cache dengan session baru instead of clearing
-      updateSessionCache(data.session);
-      logger.debug('[Session] Session cache updated after successful OTP verification');
+      // ✅ CRITICAL FIX: Remove session cache manipulation
+      // Let AuthContext handle session state management completely
+      // The onAuthStateChange listener in AuthContext will pick up this session
+      
+      logger.debug('[OTP] Verification successful, letting AuthContext handle session state');
       
       toast.success('Login berhasil!');
       return true;

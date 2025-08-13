@@ -3,16 +3,18 @@
  * Orders Constants - Essential Constants Only
  * 
  * Core constants optimized for performance and maintainability
+ * ✅ UPDATED: Aligned statuses with types.ts ('preparing', 'ready' instead of 'processing', 'shipped')
+ * ✅ UPDATED: Added possible reversals in transitions for flexibility (e.g., back to 'preparing' if needed)
  */
 
 import { OrderStatus } from './types';
 
-// ✅ ORDER STATUS: Core status definitions
+// ✅ ORDER STATUS: Core status definitions aligned with types.ts
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
   'confirmed', 
-  'processing',
-  'shipped',
+  'preparing',
+  'ready',
   'delivered',
   'cancelled',
   'completed'
@@ -21,9 +23,9 @@ export const ORDER_STATUSES: OrderStatus[] = [
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Menunggu',
   confirmed: 'Dikonfirmasi',
-  processing: 'Diproses',
-  shipped: 'Dikirim',
-  delivered: 'Diterima',
+  preparing: 'Sedang Diproses',
+  ready: 'Siap Diambil/Dikirim',
+  delivered: 'Sudah Diterima',
   cancelled: 'Dibatalkan',
   completed: 'Selesai'
 } as const;
@@ -31,8 +33,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   confirmed: 'bg-blue-100 text-blue-800 border-blue-200',
-  processing: 'bg-purple-100 text-purple-800 border-purple-200',
-  shipped: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  preparing: 'bg-purple-100 text-purple-800 border-purple-200',
+  ready: 'bg-indigo-100 text-indigo-800 border-indigo-200',
   delivered: 'bg-green-100 text-green-800 border-green-200',
   cancelled: 'bg-red-100 text-red-800 border-red-200',
   completed: 'bg-emerald-100 text-emerald-800 border-emerald-200'
@@ -42,7 +44,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
 export const EDITABLE_STATUSES: OrderStatus[] = [
   'pending',
   'confirmed',
-  'processing'
+  'preparing'
 ] as const;
 
 export const FINAL_STATUSES: OrderStatus[] = [
@@ -54,8 +56,8 @@ export const FINAL_STATUSES: OrderStatus[] = [
 export const ACTIVE_STATUSES: OrderStatus[] = [
   'pending',
   'confirmed',
-  'processing',
-  'shipped'
+  'preparing',
+  'ready'
 ] as const;
 
 // ✅ DEFAULTS: Default values
@@ -152,12 +154,12 @@ export const isActiveStatus = (status: OrderStatus): boolean => {
   return ACTIVE_STATUSES.includes(status);
 };
 
-// ✅ STATUS TRANSITIONS: Valid status transitions
+// ✅ STATUS TRANSITIONS: Valid status transitions with added flexibility for reversals
 export const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['confirmed', 'cancelled'],
-  confirmed: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
-  shipped: ['delivered', 'cancelled'],
+  confirmed: ['preparing', 'cancelled', 'pending'], // ✅ Added: Allow back to pending if needed
+  preparing: ['ready', 'cancelled', 'confirmed'], // ✅ Added: Allow back to confirmed
+  ready: ['delivered', 'cancelled', 'preparing'], // ✅ Added: Allow back to preparing
   delivered: ['completed'],
   cancelled: [], // No transitions from cancelled
   completed: []  // No transitions from completed

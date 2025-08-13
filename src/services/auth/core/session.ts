@@ -1,4 +1,4 @@
-// src/services/auth/core/session.ts - SIMPLIFIED VERSION
+// src/services/auth/core/session.ts - OPTIMIZED FOR AUTHCONTEXT COMPATIBILITY
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -16,21 +16,32 @@ export const clearSessionCache = () => {
   cacheTimestamp = 0;
 };
 
-// ✅ REMOVED: updateSessionCache to avoid conflicts with AuthContext
-// AuthContext manages session state, this service is just for utility functions
+// ✅ CRITICAL: Prevent cache conflicts with AuthContext
+// Use very short cache duration to avoid stale data
+const UTILITY_CACHE_DURATION = 1000; // Only 1 second for utilities
 
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
     const now = Date.now();
     
-    // Return cached session if still valid (short cache for utilities)
-    if (sessionCache && (now - cacheTimestamp) < (CACHE_DURATION / 4)) { // Shorter cache
-      logger.debug('[Session] Returning cached session for utility');
+    // ✅ SHORTENED: Very short cache for utilities to avoid conflicts with AuthContext
+    if (sessionCache && (now - cacheTimestamp) < UTILITY_CACHE_DURATION) {
+      logger.debug('[Session] Returning cached session for utility (very short cache)');
       return sessionCache;
     }
 
     logger.debug('[Session] Fetching fresh session from Supabase for utility');
-    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    // ✅ ADD TIMEOUT: Prevent hanging utilities
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Session utility timeout')), 5000)
+    );
+    
+    const { data: { session }, error } = await Promise.race([
+      sessionPromise,
+      timeoutPromise
+    ]) as any;
     
     if (error) {
       logger.error('[Session] Error getting session:', error);
@@ -38,18 +49,28 @@ export const getCurrentSession = async (): Promise<Session | null> => {
       return null;
     }
     
-    // Check if session is expired
-    if (session && session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      logger.debug('[Session] Session expired, clearing cache');
-      clearSessionCache();
-      return null;
-    }
-    
-    // ✅ Simple cache update for utilities
+    // ✅ Enhanced session validation
     if (session) {
+      // Check if session is expired
+      if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+        logger.debug('[Session] Session expired, clearing cache');
+        clearSessionCache();
+        return null;
+      }
+      
+      // Check user validity
+      if (!session.user || !session.user.id || session.user.id === 'null') {
+        logger.warn('[Session] Invalid user in session, clearing cache');
+        clearSessionCache();
+        return null;
+      }
+      
+      // ✅ Simple cache update for utilities with short duration
       sessionCache = session;
       cacheTimestamp = now;
-      logger.debug('[Session] Fresh session cached for utility');
+      logger.debug('[Session] Fresh session cached for utility (1s duration)');
+    } else {
+      clearSessionCache();
     }
     
     return session;
@@ -64,7 +85,16 @@ export const refreshSession = async (): Promise<Session | null> => {
   try {
     logger.info('[Session] Refreshing session...');
     
-    const { data, error } = await supabase.auth.refreshSession();
+    // ✅ ADD TIMEOUT: Prevent hanging refresh
+    const refreshPromise = supabase.auth.refreshSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
+    );
+    
+    const { data, error } = await Promise.race([
+      refreshPromise,
+      timeoutPromise
+    ]) as any;
     
     if (error) {
       logger.error('[Session] Session refresh error:', error);
@@ -72,15 +102,15 @@ export const refreshSession = async (): Promise<Session | null> => {
       return null;
     }
     
-    if (data.session) {
+    if (data.session && data.session.user && data.session.user.id !== 'null') {
       logger.success('[Session] Session refreshed successfully');
-      // ✅ Simple cache update
+      // ✅ Simple cache update with validation
       sessionCache = data.session;
       cacheTimestamp = Date.now();
       return data.session;
     }
     
-    logger.warn('[Session] Session refresh returned no session');
+    logger.warn('[Session] Session refresh returned invalid session');
     clearSessionCache();
     return null;
   } catch (error) {
@@ -94,15 +124,17 @@ export const refreshSession = async (): Promise<Session | null> => {
 export const getSessionCacheInfo = () => {
   const now = Date.now();
   const cacheAge = cacheTimestamp > 0 ? now - cacheTimestamp : 0;
-  const isValid = sessionCache && cacheAge < (CACHE_DURATION / 4);
+  const isValid = sessionCache && cacheAge < UTILITY_CACHE_DURATION;
   
   return {
     hasCache: !!sessionCache,
     cacheAge,
     isValid,
+    cacheDuration: UTILITY_CACHE_DURATION,
     userId: sessionCache?.user?.id || null,
     email: sessionCache?.user?.email || null,
-    expiresAt: sessionCache?.expires_at || null
+    expiresAt: sessionCache?.expires_at || null,
+    userIdValid: sessionCache?.user?.id && sessionCache.user.id !== 'null'
   };
 };
 
@@ -110,4 +142,17 @@ export const getSessionCacheInfo = () => {
 export const invalidateSessionCache = () => {
   logger.info('[Session] Force invalidating session cache');
   clearSessionCache();
+};
+
+// ✅ NEW: Check if session cache is synced with AuthContext
+export const validateSessionCacheSync = (authContextUser: any) => {
+  const cacheInfo = getSessionCacheInfo();
+  const isSync = cacheInfo.userId === authContextUser?.id;
+  
+  if (!isSync && cacheInfo.hasCache && authContextUser) {
+    logger.warn('[Session] Cache out of sync with AuthContext, clearing cache');
+    clearSessionCache();
+  }
+  
+  return isSync;
 };

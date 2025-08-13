@@ -1,5 +1,5 @@
-// src/components/profitrAnalysis/hooks/useProfitMargin.ts
-// ✅ PROFIT MARGIN REACT HOOK
+// src/hooks/useProfitMargin.ts
+// ✅ UPDATED PROFIT MARGIN REACT HOOK - Material Usage Integration
 
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,15 +8,17 @@ import { logger } from '@/utils/logger';
 // API imports
 import profitAnalysisApi, { createDatePeriods } from '../services/profitAnalysisApi';
 
-// Type imports
+// ✅ UPDATED: Import from consolidated types
 import {
   ProfitAnalysisResult,
   ProfitMarginData,
   DatePeriod,
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
-  ProfitChartData
-} from '../types/profitAnalysis';
+  ProfitChartData,
+  MaterialUsageLog,
+  ProductionRecord
+} from '../types'; // ✅ Changed from '../types/profitAnalysis' to '../types'
 
 import { prepareProfitChartData } from '../utils/profitCalculations';
 
@@ -32,10 +34,15 @@ export const profitMarginQueryKeys = {
   trend: (periods: DatePeriod[]) => [...profitMarginQueryKeys.all, 'trend', periods] as const,
   dashboard: () => [...profitMarginQueryKeys.all, 'dashboard'] as const,
   config: () => [...profitMarginQueryKeys.all, 'config'] as const,
+  
+  // ✅ NEW: Material usage specific queries
+  materialUsage: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialUsage', period] as const,
+  materialSummary: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialSummary', period] as const,
+  dataQuality: () => [...profitMarginQueryKeys.all, 'dataQuality'] as const,
 };
 
 // ===========================================
-// ✅ MAIN PROFIT MARGIN HOOK
+// ✅ MAIN PROFIT MARGIN HOOK (UPDATED)
 // ===========================================
 
 export const useProfitMargin = (period?: DatePeriod) => {
@@ -47,7 +54,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   const defaultPeriod = period || createDatePeriods.thisMonth();
 
   // ===========================================
-  // ✅ MAIN PROFIT ANALYSIS QUERY
+  // ✅ MAIN PROFIT ANALYSIS QUERY (UPDATED)
   // ===========================================
 
   const profitAnalysisQuery = useQuery({
@@ -62,6 +69,15 @@ export const useProfitMargin = (period?: DatePeriod) => {
         throw new Error(result.error || 'Failed to calculate profit margin');
       }
       
+      // ✅ NEW: Log material usage data quality
+      if (result.data?.cogsBreakdown) {
+        logger.info('Profit analysis completed with data source:', {
+          dataSource: result.data.cogsBreakdown.dataSource,
+          materialUsageRecords: result.data.cogsBreakdown.actualMaterialUsage?.length || 0,
+          productionRecords: result.data.cogsBreakdown.productionData?.length || 0
+        });
+      }
+      
       return result.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -71,7 +87,61 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ PROFIT COMPARISON HOOK
+  // ✅ NEW: MATERIAL USAGE SUMMARY HOOK
+  // ===========================================
+
+  const useMaterialUsageSummary = (targetPeriod?: DatePeriod) => {
+    const summaryPeriod = targetPeriod || defaultPeriod;
+    
+    return useQuery({
+      queryKey: profitMarginQueryKeys.materialSummary(summaryPeriod),
+      queryFn: async () => {
+        const result = await profitAnalysisApi.getMaterialUsageSummary(summaryPeriod);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to get material usage summary');
+        }
+        
+        return result.data;
+      },
+      enabled: !!summaryPeriod,
+      staleTime: 10 * 60 * 1000, // 10 minutes
+    });
+  };
+
+  // ===========================================
+  // ✅ UPDATED: DATA QUALITY HOOK
+  // ===========================================
+
+  const useDataQuality = () => {
+    return useQuery({
+      queryKey: profitMarginQueryKeys.dataQuality(),
+      queryFn: async () => {
+        // Check data quality across multiple sources
+        const analysisResult = profitAnalysisQuery.data;
+        if (!analysisResult) return null;
+
+        const materialUsageCount = analysisResult.cogsBreakdown.actualMaterialUsage?.length || 0;
+        const productionRecordsCount = analysisResult.cogsBreakdown.productionData?.length || 0;
+        const dataSource = analysisResult.cogsBreakdown.dataSource;
+
+        return {
+          hasActualData: dataSource === 'actual',
+          dataSource,
+          materialUsageRecords: materialUsageCount,
+          productionRecords: productionRecordsCount,
+          dataCompleteness: materialUsageCount > 0 && productionRecordsCount > 0 ? 'complete' : 
+                           materialUsageCount > 0 ? 'partial' : 'minimal',
+          recommendations: generateDataQualityRecommendations(dataSource, materialUsageCount, productionRecordsCount)
+        };
+      },
+      enabled: !!profitAnalysisQuery.data,
+      staleTime: 15 * 60 * 1000, // 15 minutes
+    });
+  };
+
+  // ===========================================
+  // ✅ PROFIT COMPARISON HOOK (unchanged)
   // ===========================================
 
   const useProfitComparison = (currentPeriod: DatePeriod, previousPeriod?: DatePeriod) => {
@@ -96,7 +166,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ PROFIT TREND HOOK
+  // ✅ PROFIT TREND HOOK (unchanged)
   // ===========================================
 
   const useProfitTrend = (periods: DatePeriod[]) => {
@@ -117,7 +187,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ DASHBOARD SUMMARY HOOK
+  // ✅ DASHBOARD SUMMARY HOOK (unchanged)
   // ===========================================
 
   const useDashboardSummary = () => {
@@ -138,7 +208,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ CONFIGURATION HOOK
+  // ✅ CONFIGURATION HOOK (unchanged)
   // ===========================================
 
   const configQuery = useQuery({
@@ -161,7 +231,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ MUTATIONS
+  // ✅ MUTATIONS (unchanged but enhanced logging)
   // ===========================================
 
   const calculateProfitMutation = useMutation({
@@ -180,6 +250,15 @@ export const useProfitMargin = (period?: DatePeriod) => {
         throw new Error(result.error || 'Calculation failed');
       }
       
+      // ✅ ENHANCED: Log calculation results with material usage info
+      logger.info('Profit calculation completed:', {
+        period: period.label,
+        revenue: result.data?.profitMarginData.revenue,
+        cogs: result.data?.profitMarginData.cogs,
+        dataSource: result.data?.cogsBreakdown.dataSource,
+        calculationTime: result.calculationTime
+      });
+      
       return result.data;
     },
     onSuccess: (data, variables) => {
@@ -192,6 +271,11 @@ export const useProfitMargin = (period?: DatePeriod) => {
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: profitMarginQueryKeys.dashboard()
+      });
+      
+      // ✅ NEW: Invalidate material usage queries
+      queryClient.invalidateQueries({
+        queryKey: profitMarginQueryKeys.materialSummary(variables.period)
       });
     },
     onError: (error) => {
@@ -230,7 +314,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ CALLBACK FUNCTIONS
+  // ✅ UPDATED CALLBACK FUNCTIONS
   // ===========================================
 
   const calculateProfit = useCallback(async (
@@ -247,6 +331,11 @@ export const useProfitMargin = (period?: DatePeriod) => {
   const refreshAnalysis = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: profitMarginQueryKeys.analysis(defaultPeriod)
+    });
+    
+    // ✅ NEW: Also refresh material usage data
+    await queryClient.invalidateQueries({
+      queryKey: profitMarginQueryKeys.materialSummary(defaultPeriod)
     });
   }, [queryClient, defaultPeriod]);
 
@@ -282,7 +371,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   }, [profitAnalysisQuery.data]);
 
   // ===========================================
-  // ✅ DERIVED DATA
+  // ✅ UPDATED DERIVED DATA
   // ===========================================
 
   const profitData = profitAnalysisQuery.data;
@@ -294,18 +383,29 @@ export const useProfitMargin = (period?: DatePeriod) => {
     ? prepareProfitChartData([profitData])
     : null;
 
-  // Key metrics for quick access
+  // ✅ ENHANCED: Key metrics with material usage info
   const keyMetrics = profitData ? {
     revenue: profitData.profitMarginData.revenue,
     grossMargin: profitData.profitMarginData.grossMargin,
     netMargin: profitData.profitMarginData.netMargin,
     cogs: profitData.profitMarginData.cogs,
     opex: profitData.profitMarginData.opex,
-    insights: profitData.insights
+    insights: profitData.insights,
+    
+    // ✅ NEW: Material usage metrics
+    dataSource: profitData.cogsBreakdown.dataSource,
+    hasActualMaterialData: profitData.cogsBreakdown.dataSource === 'actual',
+    materialUsageRecords: profitData.cogsBreakdown.actualMaterialUsage?.length || 0,
+    productionRecords: profitData.cogsBreakdown.productionData?.length || 0,
+    materialCostBreakdown: {
+      totalMaterialCost: profitData.cogsBreakdown.totalMaterialCost,
+      totalDirectLabor: profitData.cogsBreakdown.totalDirectLaborCost,
+      manufacturingOverhead: profitData.cogsBreakdown.manufacturingOverhead
+    }
   } : null;
 
   // ===========================================
-  // ✅ RETURN OBJECT
+  // ✅ UPDATED RETURN OBJECT
   // ===========================================
 
   return {
@@ -327,10 +427,12 @@ export const useProfitMargin = (period?: DatePeriod) => {
     updateCategoryMapping,
     exportAnalysis,
     
-    // Nested hooks
+    // ✅ UPDATED: Nested hooks with material usage
     useProfitComparison,
     useProfitTrend,
     useDashboardSummary,
+    useMaterialUsageSummary, // ✅ NEW
+    useDataQuality, // ✅ NEW
     
     // Query objects for advanced usage
     profitAnalysisQuery,
@@ -341,7 +443,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
 };
 
 // ===========================================
-// ✅ SPECIALIZED HOOKS
+// ✅ SPECIALIZED HOOKS (UPDATED)
 // ===========================================
 
 /**
@@ -397,6 +499,26 @@ export const useProfitTrend = (periods: DatePeriod[]) => {
 };
 
 /**
+ * ✅ NEW: Hook for material usage analytics
+ */
+export const useMaterialUsageAnalytics = (period?: DatePeriod) => {
+  const { useMaterialUsageSummary, useDataQuality } = useProfitMargin(period);
+  const materialSummary = useMaterialUsageSummary();
+  const dataQuality = useDataQuality();
+  
+  return {
+    summary: materialSummary.data,
+    dataQuality: dataQuality.data,
+    isLoading: materialSummary.isLoading || dataQuality.isLoading,
+    error: materialSummary.error || dataQuality.error,
+    refetch: () => {
+      materialSummary.refetch();
+      dataQuality.refetch();
+    }
+  };
+};
+
+/**
  * Hook for monthly profit analysis (common use case)
  */
 export const useMonthlyProfit = (year?: number, month?: number) => {
@@ -433,7 +555,7 @@ export const useQuarterlyProfit = (year?: number, quarter?: number) => {
 };
 
 // ===========================================
-// ✅ UTILITY FUNCTIONS
+// ✅ UTILITY FUNCTIONS (unchanged)
 // ===========================================
 
 /**
@@ -487,6 +609,39 @@ export const createTrendPeriods = {
     
     return periods;
   }
+};
+
+// ===========================================
+// ✅ NEW UTILITY FUNCTIONS
+// ===========================================
+
+/**
+ * Generate data quality recommendations
+ */
+const generateDataQualityRecommendations = (
+  dataSource: 'actual' | 'estimated' | 'mixed',
+  materialUsageCount: number,
+  productionRecordsCount: number
+): string[] => {
+  const recommendations: string[] = [];
+  
+  if (dataSource === 'estimated') {
+    recommendations.push('Setup material usage tracking untuk COGS calculation yang lebih akurat');
+  }
+  
+  if (materialUsageCount === 0) {
+    recommendations.push('Mulai track penggunaan material untuk setiap produksi');
+  }
+  
+  if (productionRecordsCount === 0) {
+    recommendations.push('Catat production records untuk better cost allocation');
+  }
+  
+  if (dataSource === 'mixed') {
+    recommendations.push('Standardisasi tracking untuk consistency data quality');
+  }
+  
+  return recommendations;
 };
 
 /**

@@ -15,7 +15,8 @@ import {
   DEFAULT_CATEGORY_MAPPING,
   ProfitChartData,
   MaterialUsageLog,
-  ProductionRecord
+  ProductionRecord,
+  ProfitInsight
 } from '../types';
 
 import { prepareProfitChartData } from '../utils/profitCalculations';
@@ -230,7 +231,7 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
       }
 
       // Validasi response data
-      if (!response.data.revenue || typeof response.data.revenue !== 'number') {
+      if (!response.data || typeof response.data.revenue !== 'number' || isNaN(response.data.revenue)) {
         logger.error('Invalid dashboard summary data received', { data: response.data });
         throw new Error('Data ringkasan dashboard tidak valid');
       }
@@ -238,12 +239,12 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
       return {
         currentMargin: {
           revenue: response.data.revenue,
-          cogs: response.data.cogs,
-          opex: response.data.opex,
-          grossProfit: response.data.grossProfit,
-          netProfit: response.data.netProfit,
-          grossMargin: response.data.grossMargin,
-          netMargin: response.data.netMargin,
+          cogs: response.data.cogs || 0,
+          opex: response.data.opex || 0,
+          grossProfit: response.data.grossProfit || 0,
+          netProfit: response.data.netProfit || 0,
+          grossMargin: response.data.grossMargin || 0,
+          netMargin: response.data.netMargin || 0,
           calculatedAt: new Date(),
           period: response.data.period || createDatePeriods.thisMonth()
         },
@@ -258,8 +259,9 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
   // Handle refetch
   const refetch = useCallback(async () => {
     setError(null);
+    await queryClient.invalidateQueries(profitMarginQueryKeys.dashboard());
     await queryRefetch();
-  }, [queryRefetch]);
+  }, [queryClient, queryRefetch]);
 
   // Effect untuk log error
   useEffect(() => {

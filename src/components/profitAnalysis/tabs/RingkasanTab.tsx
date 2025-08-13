@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/tabs/RingkasanTab.tsx
-// ✅ TAB RINGKASAN - Overview metrics dan chart
+// ✅ TAB RINGKASAN - Fixed and Enhanced Version
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,42 +7,57 @@ import { DollarSign, TrendingUp, Calculator, Factory } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { CostBreakdownChart } from '../components/CostBreakdownChart';
 import { formatCurrency, getMarginStatus, getMarginColor } from '../utils/formatters';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface RingkasanTabProps {
   profitData: any;
 }
 
 export const RingkasanTab: React.FC<RingkasanTabProps> = ({ profitData }) => {
+  const isMobile = useIsMobile();
+  
+  // Validasi data
+  if (!profitData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p>Data tidak tersedia</p>
+      </div>
+    );
+  }
+
+  const { profitMarginData, cogsBreakdown, opexBreakdown } = profitData;
+
   return (
     <div className="space-y-6">
       {/* Metrik Utama */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <MetricCard
           title="Pendapatan"
-          value={formatCurrency(profitData.profitMarginData.revenue)}
+          value={formatCurrency(profitMarginData.revenue)}
           icon={DollarSign}
           color="blue"
         />
         <MetricCard
           title="Margin Kotor"
-          value={`${profitData.profitMarginData.grossMargin.toFixed(1)}%`}
-          subtitle={formatCurrency(profitData.profitMarginData.grossProfit)}
+          value={`${profitMarginData.grossMargin.toFixed(1)}%`}
+          subtitle={formatCurrency(profitMarginData.grossProfit)}
           icon={TrendingUp}
-          color={getMarginColor(profitData.profitMarginData.grossMargin, 'gross')}
-          status={getMarginStatus(profitData.profitMarginData.grossMargin, 'gross')}
+          color={getMarginColor(profitMarginData.grossMargin, 'gross')}
+          status={getMarginStatus(profitMarginData.grossMargin, 'gross')}
         />
         <MetricCard
           title="Margin Bersih"
-          value={`${profitData.profitMarginData.netMargin.toFixed(1)}%`}
-          subtitle={formatCurrency(profitData.profitMarginData.netProfit)}
+          value={`${profitMarginData.netMargin.toFixed(1)}%`}
+          subtitle={formatCurrency(profitMarginData.netProfit)}
           icon={Calculator}
-          color={getMarginColor(profitData.profitMarginData.netMargin, 'net')}
-          status={getMarginStatus(profitData.profitMarginData.netMargin, 'net')}
+          color={getMarginColor(profitMarginData.netMargin, 'net')}
+          status={getMarginStatus(profitMarginData.netMargin, 'net')}
         />
         <MetricCard
           title="Total Biaya"
-          value={formatCurrency(profitData.profitMarginData.cogs + profitData.profitMarginData.opex)}
-          subtitle={`${(((profitData.profitMarginData.cogs + profitData.profitMarginData.opex) / profitData.profitMarginData.revenue) * 100).toFixed(1)}% dari pendapatan`}
+          value={formatCurrency(profitMarginData.cogs + profitMarginData.opex)}
+          subtitle={`${(((profitMarginData.cogs + profitMarginData.opex) / profitMarginData.revenue) * 100).toFixed(1)}% dari pendapatan`}
           icon={Factory}
           color="purple"
         />
@@ -55,26 +70,26 @@ export const RingkasanTab: React.FC<RingkasanTabProps> = ({ profitData }) => {
         </CardHeader>
         <CardContent>
           <CostBreakdownChart
-            revenue={profitData.profitMarginData.revenue}
-            materialCost={profitData.cogsBreakdown.totalMaterialCost}
-            laborCost={profitData.cogsBreakdown.totalDirectLaborCost}
-            overhead={profitData.cogsBreakdown.manufacturingOverhead}
-            opex={profitData.opexBreakdown.totalOPEX}
+            revenue={profitMarginData.revenue}
+            materialCost={cogsBreakdown.totalMaterialCost}
+            laborCost={cogsBreakdown.totalDirectLaborCost}
+            overhead={cogsBreakdown.manufacturingOverhead}
+            opex={opexBreakdown.totalOPEX}
           />
         </CardContent>
       </Card>
 
       {/* Quick Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-red-50 border-red-200">
           <CardContent className="p-4">
             <h5 className="font-medium text-red-800 mb-2">🏭 Rasio HPP</h5>
             <p className="text-2xl font-bold text-red-700">
-              {((profitData.cogsBreakdown.totalCOGS / profitData.profitMarginData.revenue) * 100).toFixed(1)}%
+              {((cogsBreakdown.totalCOGS / profitMarginData.revenue) * 100).toFixed(1)}%
             </p>
             <p className="text-xs text-red-600">dari total pendapatan</p>
             <p className="text-xs text-gray-600 mt-1">
-              Target: &lt;70% untuk margin sehat
+              Target: <70% untuk margin sehat
             </p>
           </CardContent>
         </Card>
@@ -83,11 +98,11 @@ export const RingkasanTab: React.FC<RingkasanTabProps> = ({ profitData }) => {
           <CardContent className="p-4">
             <h5 className="font-medium text-purple-800 mb-2">🏢 Rasio OPEX</h5>
             <p className="text-2xl font-bold text-purple-700">
-              {((profitData.opexBreakdown.totalOPEX / profitData.profitMarginData.revenue) * 100).toFixed(1)}%
+              {((opexBreakdown.totalOPEX / profitMarginData.revenue) * 100).toFixed(1)}%
             </p>
             <p className="text-xs text-purple-600">dari total pendapatan</p>
             <p className="text-xs text-gray-600 mt-1">
-              Target: &lt;20% untuk efisiensi optimal
+              Target: <20% untuk efisiensi optimal
             </p>
           </CardContent>
         </Card>
@@ -96,11 +111,11 @@ export const RingkasanTab: React.FC<RingkasanTabProps> = ({ profitData }) => {
           <CardContent className="p-4">
             <h5 className="font-medium text-green-800 mb-2">💰 Rasio Laba</h5>
             <p className="text-2xl font-bold text-green-700">
-              {profitData.profitMarginData.netMargin.toFixed(1)}%
+              {profitMarginData.netMargin.toFixed(1)}%
             </p>
             <p className="text-xs text-green-600">margin laba bersih</p>
             <p className="text-xs text-gray-600 mt-1">
-              Target: &gt;10% untuk bisnis sehat
+              Target: >10% untuk bisnis sehat
             </p>
           </CardContent>
         </Card>

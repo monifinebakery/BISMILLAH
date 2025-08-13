@@ -1,13 +1,25 @@
-// src/services/auth/index.ts
+// src/services/auth/index.ts - FIXED CONFLICTING EXPORTS
 // Main export barrel file - Export all public functions
 
 // Core exports
 export { getCurrentSession, refreshSession } from './core/session';
-export { isAuthenticated, getCurrentUser, signOut, onAuthStateChange, hasValidSession, onAuthStateChangeWithPaymentLinking } from './core/authentication';
+export { 
+  isAuthenticated, 
+  getCurrentUser, 
+  getCurrentUserValidated,
+  refreshCurrentUser,
+  signOut, 
+  hasValidSession,
+  debugAuthState
+} from './core/authentication';
 export { sendEmailOtp, verifyEmailOtp } from './core/otp';
 
+// ✅ REMOVED: onAuthStateChange, onAuthStateChangeWithPaymentLinking
+// These were causing conflicts with AuthContext
+// Components should use useAuth() hook instead
+
 // Payment exports
-export { verifyOrderExists, verifyCustomerOrder } from './payments/verification'; // ✅ Pastikan ini ada
+export { verifyOrderExists, verifyCustomerOrder } from './payments/verification';
 export { linkPaymentToUser, checkUserHasPayment, debugConstraintIssue } from './payments/linking';
 export { getUserAccessStatus, hasAppAccess, getUserPaymentStatus } from './payments/access';
 

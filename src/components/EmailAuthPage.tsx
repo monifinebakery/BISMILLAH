@@ -1,4 +1,4 @@
-// src/components/auth/EmailAuthPage.tsx - FIXED CONFLICTING REDIRECT
+// src/components/auth/EmailAuthPage.tsx - SIMPLIFIED OTP VERIFICATION
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
@@ -298,38 +298,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ FIXED: Session Confirmation Helper
-  const waitForSession = async (maxRetries = 15, delayMs = 300): Promise<boolean> => {
-    logger.debug('EmailAuth: Waiting for session to be set...');
-    
-    for (let i = 0; i < maxRetries; i++) {
-      if (!mountedRef.current) return false;
-      
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          logger.error('EmailAuth: Error checking session:', error);
-          continue;
-        }
-        
-        if (session && session.user) {
-          logger.debug('EmailAuth: Session confirmed after', i + 1, 'attempts');
-          return true;
-        }
-        
-        // Wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      } catch (error) {
-        logger.error('EmailAuth: Session check error:', error);
-      }
-    }
-    
-    logger.warn('EmailAuth: Session not found after', maxRetries, 'attempts');
-    return false;
-  };
-
-  // ✅ FIXED: Verify OTP - Let AuthContext handle redirection
+  // ✅ SIMPLIFIED: Verify OTP - Let AuthGuard handle redirection completely
   const handleVerifyOtp = async () => {
     if (!mountedRef.current) return;
     
@@ -350,45 +319,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (!mountedRef.current) return;
       
       if (result === true) {
-        logger.debug('EmailAuth: OTP verification successful, waiting for session...');
+        logger.debug('EmailAuth: OTP verification successful');
         
-        // ✅ CRITICAL FIX: Wait for session to be properly set
-        const sessionConfirmed = await waitForSession();
+        // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
+        setAuthState('success');
+        toast.success('Login berhasil! AuthGuard akan mengarahkan ke dashboard...');
         
-        if (!mountedRef.current) return;
-        
-        if (sessionConfirmed) {
-          // ✅ Set success state and show success message
-          setAuthState('success');
-          toast.success('Login berhasil! Mengarahkan ke dashboard...');
-          
-          // ✅ Additional check: Verify session one more time
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session && session.user) {
-            logger.debug('EmailAuth: Session double-confirmed. AuthContext will handle redirection.');
-            
-            // ✅ REMOVED: Manual redirection - let AuthContext handle it
-            // The AuthContext onAuthStateChange listener will detect the session
-            // and handle the redirection automatically
-            
-            // ✅ Only call onLoginSuccess callback if provided (for custom logic)
-            if (onLoginSuccess) {
-              onLoginSuccess();
-            }
-            
-            // ✅ The component will stay in 'success' state while AuthContext redirects
-            
-          } else {
-            logger.error('EmailAuth: Session lost during double-check');
-            setAuthState('error');
-            setError('Login berhasil tapi sesi tidak stabil. Silakan coba login lagi.');
-          }
-        } else {
-          logger.error('EmailAuth: Session confirmation failed');
-          setAuthState('error');
-          setError('Login berhasil tapi sesi tidak tersimpan. Silakan refresh halaman dan coba lagi.');
+        // ✅ Only call onLoginSuccess callback if provided (for custom logic)
+        if (onLoginSuccess) {
+          onLoginSuccess();
         }
+        
+        // ✅ REMOVED ALL MANUAL REDIRECT LOGIC
+        // AuthGuard will automatically detect the session change and redirect
+        // No need for session checking, waiting, or manual navigation
+        
       } else if (result === 'expired') {
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
@@ -574,7 +519,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   <div className="flex items-center">
                     <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
                     <span className="text-sm text-green-800">
-                      Login berhasil! AuthContext akan mengarahkan ke dashboard...
+                      Login berhasil! AuthGuard akan mengarahkan ke dashboard...
                     </span>
                   </div>
                 </div>
@@ -619,7 +564,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 ) : authState === 'success' ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Berhasil! Mengarahkan...
+                    Berhasil! AuthGuard mengarahkan...
                   </>
                 ) : (
                   'Verifikasi Kode'

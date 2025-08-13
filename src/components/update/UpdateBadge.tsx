@@ -7,10 +7,7 @@ interface UpdateBadgeProps {
   showCount?: boolean;
 }
 
-export const UpdateBadge: React.FC<UpdateBadgeProps> = ({ 
-  className = '', 
-  showCount = true 
-}) => {
+export const UpdateBadge: React.FC<UpdateBadgeProps> = ({ className = '', showCount = true }) => {
   const { hasUnseenUpdates, unseenUpdates } = useUpdates();
 
   if (!hasUnseenUpdates) {

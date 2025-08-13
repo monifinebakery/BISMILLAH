@@ -1,5 +1,6 @@
 // src/components/auth/EmailAuthPage.tsx - SIMPLIFIED OTP VERIFICATION
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ TAMBAHKAN INI
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   onLoginSuccess,
   redirectUrl = '/',
 }) => {
+  // ✅ TAMBAHKAN NAVIGATE
+  const navigate = useNavigate();
+  
   // ✅ Simplified State Management
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -323,16 +327,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         
         // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
         setAuthState('success');
-        toast.success('Login berhasil! AuthGuard akan mengarahkan ke dashboard...');
+        toast.success('Login berhasil! Mengarahkan ke dashboard...');
+        
+        // ✅ BACKUP REDIRECT: Jika AuthGuard gagal, lakukan manual redirect
+        setTimeout(() => {
+          console.log('🚀 [EmailAuth] Backup redirect check, current path:', window.location.pathname);
+          if (window.location.pathname === '/auth') {
+            console.log('🚀 [EmailAuth] AuthGuard failed, doing manual redirect');
+            navigate('/', { replace: true });
+          }
+        }, 2000);
         
         // ✅ Only call onLoginSuccess callback if provided (for custom logic)
         if (onLoginSuccess) {
           onLoginSuccess();
         }
-        
-        // ✅ REMOVED ALL MANUAL REDIRECT LOGIC
-        // AuthGuard will automatically detect the session change and redirect
-        // No need for session checking, waiting, or manual navigation
         
       } else if (result === 'expired') {
         setAuthState('expired');

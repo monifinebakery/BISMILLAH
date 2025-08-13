@@ -1,4 +1,4 @@
-// src/types/profitAnalysis.ts
+// src/components/financial/types/profitAnalysis
 // ✅ PROFIT ANALYSIS TYPES - Real Profit Margin Integration
 
 import { FinancialTransaction } from '@/components/financial/types/financial';

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { OpexDetailTabProps } from '../../types/components';
 import { ExpenseCard } from './ExpenseCard';
 import { hasDetailedOpexBreakdown } from '../../utils/validators';
+import { formatCurrency } from '../../utils/formatters';
 import { SECTION_TITLES } from '../../constants/messages';
 
 export const OpexDetailTab: React.FC<OpexDetailTabProps> = ({

@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/ProfitAnalysisDialog.tsx
+// src/components/profitAnalysis/ProfitAnalysisDialog.tsx
 // ✅ DIALOG ANALISIS PROFIT MARGIN - Refactored Structure
 
 import React, { useState, useEffect } from 'react';

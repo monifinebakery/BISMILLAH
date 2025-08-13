@@ -72,6 +72,18 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
     return { status: 'Perlu Optimasi', color: 'orange', description: 'Rasio melebihi target' };
   };
 
+  // Helper function to get badge variant
+  const getBadgeVariant = (color: string) => {
+    switch(color) {
+      case 'green': return 'default';
+      case 'blue': return 'secondary';
+      case 'yellow': return 'destructive';
+      case 'orange': return 'outline';
+      case 'red': return 'destructive';
+      default: return 'default';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Comparison View Selector */}
@@ -215,7 +227,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                         <div className="text-right">
                           <span className="text-sm font-bold">{profitData.profitMarginData.grossMargin.toFixed(1)}%</span>
                           <Badge 
-                            variant={getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').color === 'green' ? "default" : "secondary"}
+                            variant={getBadgeVariant(getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').color)}
                             className="ml-2 text-xs"
                           >
                             {getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').status}
@@ -225,7 +237,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                       <Progress 
                         value={profitData.profitMarginData.grossMargin} 
                         max={50}
-                        className={`h-2 bg-${getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').color}-500`} 
+                        className="h-2" 
                       />
                       <p className="text-xs text-gray-600 mt-1">
                         {getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').description}
@@ -238,7 +250,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                         <div className="text-right">
                           <span className="text-sm font-bold">{profitData.profitMarginData.netMargin.toFixed(1)}%</span>
                           <Badge 
-                            variant={getMarginStatus(profitData.profitMarginData.netMargin, 'net').color === 'green' ? "default" : "secondary"}
+                            variant={getBadgeVariant(getMarginStatus(profitData.profitMarginData.netMargin, 'net').color)}
                             className="ml-2 text-xs"
                           >
                             {getMarginStatus(profitData.profitMarginData.netMargin, 'net').status}
@@ -248,7 +260,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                       <Progress 
                         value={profitData.profitMarginData.netMargin} 
                         max={30}
-                        className={`h-2 bg-${getMarginStatus(profitData.profitMarginData.netMargin, 'net').color}-500`} 
+                        className="h-2" 
                       />
                       <p className="text-xs text-gray-600 mt-1">
                         {getMarginStatus(profitData.profitMarginData.netMargin, 'net').description}
@@ -287,7 +299,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                           <div className="text-right">
                             <span className="text-sm font-bold">{value.toFixed(1)}%</span>
                             <Badge 
-                              variant={getRatioStatus(value, 70).color === 'green' ? "default" : "secondary"}
+                              variant={getBadgeVariant(getRatioStatus(value, 70).color)}
                               className="ml-2 text-xs"
                             >
                               {getRatioStatus(value, 70).status}
@@ -297,7 +309,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                         <Progress 
                           value={value} 
                           max={100}
-                          className={`h-2 bg-${getRatioStatus(value, 70).color}-500`} 
+                          className="h-2" 
                         />
                         <p className="text-xs text-gray-600 mt-1">
                           {getRatioStatus(value, 70).description}
@@ -320,7 +332,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                     <div>
                       <h5 className="font-medium mb-2">📊 Perbandingan Margin</h5>
                       <div className="bg-gray-100 p-4 rounded">
-                        <pre>
+                        <pre className="text-xs overflow-x-auto">
 {`{
   type: 'bar',
   data: {

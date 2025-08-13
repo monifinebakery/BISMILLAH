@@ -1,3 +1,6 @@
+// src/components/profitAnalysis/tabs/InsightsTab.tsx
+// ✅ TAB INSIGHTS - Fixed and Enhanced Version
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +34,7 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({ profitData }) => {
 
   // Filter insights berdasarkan kategori
   const filterInsights = (category: string) => {
-    if (!profitData.insights) return [];
+    if (!profitData?.insights) return [];
     if (category === 'semua') return profitData.insights;
     return profitData.insights.filter((insight: any) => insight.category === category);
   };
@@ -83,7 +86,7 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({ profitData }) => {
   };
 
   const allInsights = [
-    ...(profitData.insights || []),
+    ...(profitData?.insights || []),
     ...generateAdditionalInsights()
   ];
 
@@ -132,7 +135,7 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({ profitData }) => {
   return (
     <div className={cn("space-y-6", isMobile && "space-y-4")}>
       {/* Insight Overview Metrics */}
-      <div className={cn("grid grid-cols-1 gap-4", !isMobile && "md:grid-cols-5")}>
+      <div className={cn("grid grid-cols-2 gap-4 sm:grid-cols-5")}>
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className={cn("p-4 text-center", isMobile && "p-3")}>
             <BarChart3 className={cn("h-6 w-6 text-blue-600 mx-auto mb-2", isMobile && "h-5 w-5 mb-1")} />

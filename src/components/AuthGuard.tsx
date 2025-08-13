@@ -1,76 +1,45 @@
+// src/components/AuthGuard.tsx - FIXED NAVIGATION LOGIC
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate, useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { cleanupAuthState, validateAuthSession } from '@/lib/authUtils';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext'; // ✅ Use AuthContext
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // ✅ SIMPLIFIED: Use AuthContext as primary source of truth
+  const { user: contextUser, isLoading: contextLoading, isReady } = useAuth();
+  
+  // ✅ Local state only for validation and errors
+  const [validatedUser, setValidatedUser] = useState<User | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const location = useLocation();
 
+  // ✅ SIMPLIFIED: Validate user from AuthContext
   useEffect(() => {
-    let mounted = true;
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const initAuth = async () => {
+    if (!isReady) return; // Wait for AuthContext to be ready
+    
+    const validateUser = async () => {
+      setIsValidating(true);
+      setValidationError(null);
+      
       try {
-        logger.debug('AuthGuard: Initializing auth...');
-        
-        // ✅ ADD: Timeout untuk session check (15 detik)
-        const sessionPromise = supabase.auth.getSession();
-        const sessionTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 15000)
-        );
-        
-        const { data: { session }, error } = await Promise.race([
-          sessionPromise, 
-          sessionTimeoutPromise
-        ]) as any;
-        
-        if (!mounted) return;
-
-        if (error) {
-          logger.error('AuthGuard: Session error:', error);
-          
-          // Retry on network errors or timeouts
-          if (retryCount < maxRetries && (
-            error.message?.includes('network') || 
-            error.message?.includes('fetch') ||
-            error.message?.includes('timeout')
-          )) {
-            retryCount++;
-            logger.warn(`AuthGuard: Retrying... (${retryCount}/${maxRetries})`);
-            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
-            setTimeout(() => initAuth(), 2000 * retryCount);
-            return;
-          }
-          
-          // Non-retryable error
-          cleanupAuthState();
-          setUser(null);
-          setError('Gagal memuat sesi. Silakan login ulang.');
-          setLoading(false);
+        if (!contextUser) {
+          logger.debug('AuthGuard: No user from AuthContext');
+          setValidatedUser(null);
+          setIsValidating(false);
           return;
         }
 
-        if (!session) {
-          logger.debug('AuthGuard: No session found');
-          cleanupAuthState();
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
+        logger.debug('AuthGuard: Validating user from AuthContext:', contextUser.email);
+        
         // ✅ ADD: Timeout untuk validation (10 detik)
-        logger.debug('AuthGuard: Validating session for user:', session.user.email);
         const validatePromise = validateAuthSession();
         const validateTimeoutPromise = new Promise((resolve) => 
           setTimeout(() => resolve(false), 10000) // Return false if timeout
@@ -81,106 +50,36 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           validateTimeoutPromise
         ]) as boolean;
         
-        if (!mounted) return;
-        
         if (isValid) {
-          logger.debug('AuthGuard: Session valid, user authenticated');
-          setUser(session.user);
-          setError(null);
+          logger.debug('AuthGuard: User validation successful');
+          setValidatedUser(contextUser);
+          setValidationError(null);
         } else {
-          logger.warn('AuthGuard: Session invalid or validation timeout, cleaning up');
+          logger.warn('AuthGuard: User validation failed or timeout');
           cleanupAuthState();
-          setUser(null);
-          setError('Sesi tidak valid. Silakan login ulang.');
+          setValidatedUser(null);
+          setValidationError('Sesi tidak valid. Silakan login ulang.');
         }
         
       } catch (error) {
-        logger.error('AuthGuard: Initialization error:', error);
-        
-        if (mounted) {
-          // Retry on unexpected errors
-          if (retryCount < maxRetries) {
-            retryCount++;
-            logger.warn(`AuthGuard: Retrying after error... (${retryCount}/${maxRetries})`);
-            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
-            setTimeout(() => initAuth(), 2000 * retryCount);
-            return;
-          }
-          
-          cleanupAuthState();
-          setUser(null);
-          setError('Terjadi kesalahan. Silakan muat ulang halaman.');
-        }
+        logger.error('AuthGuard: User validation error:', error);
+        cleanupAuthState();
+        setValidatedUser(null);
+        setValidationError('Terjadi kesalahan validasi. Silakan login ulang.');
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setIsValidating(false);
       }
     };
 
-    // Auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        logger.debug('AuthGuard: Auth state changed:', event, session?.user?.email);
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          logger.debug('AuthGuard: User signed out');
-          setUser(null);
-          setError(null);
-        } else if (event === 'SIGNED_IN') {
-          logger.debug('AuthGuard: User signed in');
-          setUser(session.user);
-          setError(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          logger.debug('AuthGuard: Token refreshed');
-          
-          // ✅ ADD: Timeout untuk token refresh validation (10 detik)
-          try {
-            const validatePromise = validateAuthSession();
-            const validateTimeoutPromise = new Promise((resolve) => 
-              setTimeout(() => resolve(false), 10000)
-            );
-            
-            const isValid = await Promise.race([
-              validatePromise, 
-              validateTimeoutPromise
-            ]) as boolean;
-            
-            if (isValid) {
-              setUser(session.user);
-              setError(null);
-            } else {
-              logger.warn('AuthGuard: Refreshed token is invalid or validation timeout');
-              cleanupAuthState();
-              setUser(null);
-              setError('Sesi bermasalah. Silakan login ulang.');
-            }
-          } catch (error) {
-            logger.error('AuthGuard: Token refresh validation error:', error);
-            cleanupAuthState();
-            setUser(null);
-            setError('Sesi bermasalah. Silakan login ulang.');
-          }
-        }
-        
-        setLoading(false);
-      }
-    );
+    validateUser();
+  }, [contextUser, isReady]);
 
-    initAuth();
+  // ✅ REMOVED: Duplicate onAuthStateChange listener
+  // AuthContext already handles auth state changes
+  // AuthGuard only needs to validate what AuthContext provides
 
-    return () => {
-      mounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, []);
-
-  // Error state
-  if (error) {
+  // ✅ SIMPLIFIED: Error handling
+  if (validationError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-red-200">
@@ -191,7 +90,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             <h1 className="text-xl font-semibold text-gray-900 mb-2">
               Masalah Autentikasi
             </h1>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <p className="text-gray-600 mb-6">{validationError}</p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => window.location.href = '/auth'}
@@ -212,26 +111,36 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // Loading state
-  if (loading) {
+  // ✅ SIMPLIFIED: Loading state
+  if (contextLoading || !isReady || isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
-          <p className="text-gray-500">Sedang memverifikasi sesi Anda...</p>
+          <p className="text-gray-500">
+            {!isReady ? 'Memuat sistem...' : 
+             isValidating ? 'Memvalidasi sesi...' : 
+             'Sedang memverifikasi...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Redirect to auth if not authenticated
-  if (!user && location.pathname !== '/auth') {
-    logger.debug('AuthGuard: Redirecting to auth, no user found');
+  // ✅ CRITICAL FIX: Clear redirect logic
+  if (!validatedUser && location.pathname !== '/auth') {
+    logger.debug('AuthGuard: No validated user, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
-  // User is authenticated, render children
+  // ✅ SUCCESS: User is authenticated and validated
+  if (validatedUser && location.pathname === '/auth') {
+    logger.debug('AuthGuard: Validated user on auth page, redirecting to dashboard');
+    return <Navigate to="/" replace />;
+  }
+
+  // ✅ Render children for authenticated users
   return <>{children}</>;
 };
 

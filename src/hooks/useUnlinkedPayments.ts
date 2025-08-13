@@ -61,7 +61,7 @@ export const useUnlinkedPayments = (
         .limit(10);
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Fetch timeout')), 5000)
+        setTimeout(() => reject(new Error('Fetch timeout')), 15000)
       );
 
       const { data, error: fetchError } = await Promise.race([fetchPromise, timeoutPromise]) as any;

@@ -1,4 +1,3 @@
-// 🎯 Enhanced OrderForm dengan Recipe Integration
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch'; // Added Switch component
 
 // Import Recipe Context dan Types
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -66,7 +66,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     getUniqueCategories 
   } = useRecipe();
 
-  // Form state dengan semua field dari kode asli
+  // Form state dengan tambahan isTaxEnabled
   const [formData, setFormData] = useState({
     namaPelanggan: '',
     teleponPelanggan: '',
@@ -78,6 +78,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     subtotal: 0,
     pajak: 0,
     totalPesanan: 0,
+    isTaxEnabled: false, // Added tax toggle state
   });
 
   const [loading, setLoading] = useState(false);
@@ -101,6 +102,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         subtotal: initialData.subtotal || 0,
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
+        isTaxEnabled: !!initialData.pajak, // Set tax enabled if pajak exists
       });
     } else {
       // Reset form untuk mode baru
@@ -115,6 +117,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         subtotal: 0,
         pajak: 0,
         totalPesanan: 0,
+        isTaxEnabled: false,
       });
     }
   }, [initialData, open]);
@@ -152,7 +155,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
       quantity: 1,
       price: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
       total: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
-      recipeId: recipe.id, // Link ke recipe
+      recipeId: recipe.id,
       recipeCategory: recipe.kategoriResep,
       isFromRecipe: true,
     };
@@ -166,7 +169,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     toast.success(`${recipe.namaResep} ditambahkan ke pesanan`);
   };
 
-  // Add custom item (manual input)
+  // Add custom item
   const addCustomItem = () => {
     const newItem: OrderItem = {
       id: Date.now().toString(),
@@ -189,7 +192,6 @@ const OrderForm: React.FC<OrderFormProps> = ({
       items: prev.items.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
-          // Recalculate total untuk item ini
           if (field === 'quantity' || field === 'price') {
             updatedItem.total = updatedItem.quantity * updatedItem.price;
           }
@@ -208,10 +210,10 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
   };
 
-  // Calculate totals seperti kode asli
+  // Calculate totals dengan pajak opsional
   useEffect(() => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-    const pajak = subtotal * 0.1; // 10% tax
+    const pajak = formData.isTaxEnabled ? subtotal * 0.1 : 0; // Pajak hanya dihitung jika enabled
     const totalPesanan = subtotal + pajak;
 
     setFormData(prev => ({
@@ -220,13 +222,12 @@ const OrderForm: React.FC<OrderFormProps> = ({
       pajak,
       totalPesanan
     }));
-  }, [formData.items]);
+  }, [formData.items, formData.isTaxEnabled]);
 
   // Handle submit dengan validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation seperti kode asli
     const validation = validateOrderData(formData);
     if (!validation.isValid) {
       validation.errors.forEach(error => toast.error(error));
@@ -339,7 +340,6 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 Item Pesanan
               </h3>
               <div className="flex gap-2">
-                {/* Recipe Selector */}
                 <Popover open={isRecipeSelectOpen} onOpenChange={setIsRecipeSelectOpen}>
                   <PopoverTrigger asChild>
                     <Button 
@@ -363,7 +363,6 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         />
                       </div>
                       
-                      {/* Category Filter */}
                       <div className="p-2 border-b">
                         <Select
                           value={selectedCategory}
@@ -416,7 +415,6 @@ const OrderForm: React.FC<OrderFormProps> = ({
                   </PopoverContent>
                 </Popover>
 
-                {/* Manual Item */}
                 <Button 
                   type="button" 
                   onClick={addCustomItem} 
@@ -504,19 +502,31 @@ const OrderForm: React.FC<OrderFormProps> = ({
           {/* Order Summary */}
           {formData.items.length > 0 && (
             <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg border">
-              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                <Calculator className="h-5 w-5" />
-                Ringkasan Pesanan
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Ringkasan Pesanan
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="taxToggle">Aktifkan Pajak (10%)</Label>
+                  <Switch
+                    id="taxToggle"
+                    checked={formData.isTaxEnabled}
+                    onCheckedChange={(checked) => updateField('isTaxEnabled', checked)}
+                  />
+                </div>
+              </div>
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({formData.items.length} item):</span>
                   <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Pajak (10%):</span>
-                  <span>Rp {formData.pajak.toLocaleString('id-ID')}</span>
-                </div>
+                {formData.isTaxEnabled && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Pajak (10%):</span>
+                    <span>Rp {formData.pajak.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between font-bold text-xl text-orange-600">
                   <span>Total Pesanan:</span>

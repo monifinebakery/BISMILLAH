@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/hooks/useProfitAnalysisHooks.ts
+// src/components/profitAnalysis/hooks/useProfitAnalysisHooks.ts
 // ✅ ADDITIONAL HOOKS - Specialized hooks untuk profit analysis
 
 import { useState, useCallback } from 'react';

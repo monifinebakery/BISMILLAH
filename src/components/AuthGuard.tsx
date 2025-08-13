@@ -1,237 +1,110 @@
+// src/components/AuthGuard.tsx - FORCE RE-RENDER VERSION
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Navigate, useLocation } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
-import { cleanupAuthState, validateAuthSession } from '@/lib/authUtils';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading, isReady } = useAuth();
   const location = useLocation();
+  const [renderCount, setRenderCount] = useState(0);
 
+  // ✅ FORCE RE-RENDER on auth state changes
   useEffect(() => {
-    let mounted = true;
-    let retryCount = 0;
-    const maxRetries = 3;
+    setRenderCount(prev => prev + 1);
+  }, [user, isReady, isLoading]);
 
-    const initAuth = async () => {
-      try {
-        logger.debug('AuthGuard: Initializing auth...');
-        
-        // ✅ ADD: Timeout untuk session check (15 detik)
-        const sessionPromise = supabase.auth.getSession();
-        const sessionTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 15000)
-        );
-        
-        const { data: { session }, error } = await Promise.race([
-          sessionPromise, 
-          sessionTimeoutPromise
-        ]) as any;
-        
-        if (!mounted) return;
-
-        if (error) {
-          logger.error('AuthGuard: Session error:', error);
-          
-          // Retry on network errors or timeouts
-          if (retryCount < maxRetries && (
-            error.message?.includes('network') || 
-            error.message?.includes('fetch') ||
-            error.message?.includes('timeout')
-          )) {
-            retryCount++;
-            logger.warn(`AuthGuard: Retrying... (${retryCount}/${maxRetries})`);
-            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
-            setTimeout(() => initAuth(), 2000 * retryCount);
-            return;
-          }
-          
-          // Non-retryable error
-          cleanupAuthState();
-          setUser(null);
-          setError('Gagal memuat sesi. Silakan login ulang.');
-          setLoading(false);
-          return;
-        }
-
-        if (!session) {
-          logger.debug('AuthGuard: No session found');
-          cleanupAuthState();
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
-        // ✅ ADD: Timeout untuk validation (10 detik)
-        logger.debug('AuthGuard: Validating session for user:', session.user.email);
-        const validatePromise = validateAuthSession();
-        const validateTimeoutPromise = new Promise((resolve) => 
-          setTimeout(() => resolve(false), 10000) // Return false if timeout
-        );
-        
-        const isValid = await Promise.race([
-          validatePromise, 
-          validateTimeoutPromise
-        ]) as boolean;
-        
-        if (!mounted) return;
-        
-        if (isValid) {
-          logger.debug('AuthGuard: Session valid, user authenticated');
-          setUser(session.user);
-          setError(null);
-        } else {
-          logger.warn('AuthGuard: Session invalid or validation timeout, cleaning up');
-          cleanupAuthState();
-          setUser(null);
-          setError('Sesi tidak valid. Silakan login ulang.');
-        }
-        
-      } catch (error) {
-        logger.error('AuthGuard: Initialization error:', error);
-        
-        if (mounted) {
-          // Retry on unexpected errors
-          if (retryCount < maxRetries) {
-            retryCount++;
-            logger.warn(`AuthGuard: Retrying after error... (${retryCount}/${maxRetries})`);
-            // ✅ CHANGE: Longer retry delay (2, 4, 6 detik)
-            setTimeout(() => initAuth(), 2000 * retryCount);
-            return;
-          }
-          
-          cleanupAuthState();
-          setUser(null);
-          setError('Terjadi kesalahan. Silakan muat ulang halaman.');
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
+  // ✅ ENHANCED DEBUG: Log all state changes
+  useEffect(() => {
+    const debugInfo = {
+      renderCount,
+      currentPath: location.pathname,
+      hasUser: !!user,
+      userEmail: user?.email || 'none',
+      userId: user?.id || 'none',
+      userIdType: typeof user?.id,
+      isLoading,
+      isReady,
+      timestamp: new Date().toISOString()
     };
 
-    // Auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        logger.debug('AuthGuard: Auth state changed:', event, session?.user?.email);
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          logger.debug('AuthGuard: User signed out');
-          setUser(null);
-          setError(null);
-        } else if (event === 'SIGNED_IN') {
-          logger.debug('AuthGuard: User signed in');
-          setUser(session.user);
-          setError(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          logger.debug('AuthGuard: Token refreshed');
-          
-          // ✅ ADD: Timeout untuk token refresh validation (10 detik)
-          try {
-            const validatePromise = validateAuthSession();
-            const validateTimeoutPromise = new Promise((resolve) => 
-              setTimeout(() => resolve(false), 10000)
-            );
-            
-            const isValid = await Promise.race([
-              validatePromise, 
-              validateTimeoutPromise
-            ]) as boolean;
-            
-            if (isValid) {
-              setUser(session.user);
-              setError(null);
-            } else {
-              logger.warn('AuthGuard: Refreshed token is invalid or validation timeout');
-              cleanupAuthState();
-              setUser(null);
-              setError('Sesi bermasalah. Silakan login ulang.');
-            }
-          } catch (error) {
-            logger.error('AuthGuard: Token refresh validation error:', error);
-            cleanupAuthState();
-            setUser(null);
-            setError('Sesi bermasalah. Silakan login ulang.');
-          }
+    logger.debug('🔍 AuthGuard State Update:', debugInfo);
+    
+    // ✅ FORCE LOG to console for debugging
+    console.log(`🔍 [AuthGuard #${renderCount}] State:`, debugInfo);
+
+    // ✅ Log specific navigation decisions
+    if (isReady && !isLoading) {
+      if (!user && location.pathname !== '/auth') {
+        logger.info('🚀 AuthGuard: Will redirect to /auth (no user)');
+        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to /auth (no user)`);
+      } else if (user && location.pathname === '/auth') {
+        logger.info('🚀 AuthGuard: Will redirect to / (authenticated user on auth page)');
+        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to / (authenticated user on auth page)`);
+        console.log(`🚀 [AuthGuard #${renderCount}] User details:`, { id: user.id, email: user.email });
+      } else if (user && location.pathname !== '/auth') {
+        logger.info('✅ AuthGuard: User authenticated, rendering protected content');
+        console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering protected content`);
+      }
+    } else {
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for AuthContext:`, { isReady, isLoading });
+    }
+  }, [user, isLoading, isReady, location.pathname, renderCount]);
+
+  // ✅ IMMEDIATE REDIRECT CHECK on user change
+  useEffect(() => {
+    if (isReady && !isLoading && user && location.pathname === '/auth') {
+      console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
+      console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
+      
+      // Small delay to ensure state is stable
+      setTimeout(() => {
+        if (location.pathname === '/auth') {
+          console.log(`🚀 [AuthGuard] Executing delayed redirect`);
+          window.location.href = '/';
         }
-        
-        setLoading(false);
-      }
-    );
+      }, 100);
+    }
+  }, [user, isReady, isLoading, location.pathname]);
 
-    initAuth();
-
-    return () => {
-      mounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, []);
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-red-200">
-          <div className="p-6 text-center">
-            <div className="mx-auto flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-              <span className="text-red-600 text-2xl">⚠️</span>
-            </div>
-            <h1 className="text-xl font-semibold text-gray-900 mb-2">
-              Masalah Autentikasi
-            </h1>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => window.location.href = '/auth'}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-              >
-                Login Ulang
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
-              >
-                Muat Ulang
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (loading) {
+  // ✅ ENHANCED: Loading state with more detailed info
+  if (isLoading || !isReady) {
+    console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady });
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
-          <p className="text-gray-500">Sedang memverifikasi sesi Anda...</p>
+          <p className="text-gray-500">
+            {!isReady ? 'Memuat sistem...' : 'Memverifikasi sesi...'}
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Redirect to auth if not authenticated
+  // ✅ ENHANCED: Redirect logic with detailed logging
   if (!user && location.pathname !== '/auth') {
-    logger.debug('AuthGuard: Redirecting to auth, no user found');
+    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to /auth`);
     return <Navigate to="/auth" replace />;
   }
 
-  // User is authenticated, render children
+  if (user && location.pathname === '/auth') {
+    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to / for user:`, user.email);
+    console.log(`🚀 [AuthGuard #${renderCount}] Current path was:`, location.pathname);
+    return <Navigate to="/" replace />;
+  }
+
+  // ✅ User terautentikasi dan di halaman yang benar
+  console.log(`✅ [AuthGuard #${renderCount}] Rendering protected content for user:`, user?.email);
   return <>{children}</>;
 };
 

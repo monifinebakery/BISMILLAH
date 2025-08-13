@@ -1,5 +1,5 @@
-// src/components/AuthGuard.tsx - FINAL VERSION - COMPATIBLE WITH ALL SERVICES
-import React, { useEffect } from 'react';
+// src/components/AuthGuard.tsx - FORCE RE-RENDER VERSION
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,10 +11,17 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, isLoading, isReady } = useAuth();
   const location = useLocation();
+  const [renderCount, setRenderCount] = useState(0);
 
-  // ✅ Debug logging untuk troubleshooting
+  // ✅ FORCE RE-RENDER on auth state changes
   useEffect(() => {
-    logger.debug('🔍 AuthGuard State:', {
+    setRenderCount(prev => prev + 1);
+  }, [user, isReady, isLoading]);
+
+  // ✅ ENHANCED DEBUG: Log all state changes
+  useEffect(() => {
+    const debugInfo = {
+      renderCount,
       currentPath: location.pathname,
       hasUser: !!user,
       userEmail: user?.email || 'none',
@@ -23,23 +30,51 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       isLoading,
       isReady,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    logger.debug('🔍 AuthGuard State Update:', debugInfo);
+    
+    // ✅ FORCE LOG to console for debugging
+    console.log(`🔍 [AuthGuard #${renderCount}] State:`, debugInfo);
 
     // ✅ Log specific navigation decisions
     if (isReady && !isLoading) {
       if (!user && location.pathname !== '/auth') {
         logger.info('🚀 AuthGuard: Will redirect to /auth (no user)');
+        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to /auth (no user)`);
       } else if (user && location.pathname === '/auth') {
         logger.info('🚀 AuthGuard: Will redirect to / (authenticated user on auth page)');
+        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to / (authenticated user on auth page)`);
+        console.log(`🚀 [AuthGuard #${renderCount}] User details:`, { id: user.id, email: user.email });
       } else if (user && location.pathname !== '/auth') {
         logger.info('✅ AuthGuard: User authenticated, rendering protected content');
+        console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering protected content`);
       }
+    } else {
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for AuthContext:`, { isReady, isLoading });
     }
-  }, [user, isLoading, isReady, location.pathname]);
+  }, [user, isLoading, isReady, location.pathname, renderCount]);
 
-  // ✅ Loading state - tampilkan loading sampai AuthContext siap
+  // ✅ IMMEDIATE REDIRECT CHECK on user change
+  useEffect(() => {
+    if (isReady && !isLoading && user && location.pathname === '/auth') {
+      console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
+      console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
+      
+      // Small delay to ensure state is stable
+      setTimeout(() => {
+        if (location.pathname === '/auth') {
+          console.log(`🚀 [AuthGuard] Executing delayed redirect`);
+          window.location.href = '/';
+        }
+      }, 100);
+    }
+  }, [user, isReady, isLoading, location.pathname]);
+
+  // ✅ ENHANCED: Loading state with more detailed info
   if (isLoading || !isReady) {
-    logger.debug('🔄 AuthGuard: Showing loading state');
+    console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady });
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -48,27 +83,31 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           <p className="text-gray-500">
             {!isReady ? 'Memuat sistem...' : 'Memverifikasi sesi...'}
           </p>
+          <p className="text-xs text-gray-400 mt-2">
+            Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
+          </p>
         </div>
       </div>
     );
   }
 
-  // ✅ SEDERHANA: Langsung percaya AuthContext tanpa validasi tambahan
-  // Jika user tidak ada dan bukan di halaman auth, redirect ke auth
+  // ✅ ENHANCED: Redirect logic with detailed logging
   if (!user && location.pathname !== '/auth') {
-    logger.info('🚀 AuthGuard: Executing redirect to /auth (no user)');
+    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to /auth`);
     return <Navigate to="/auth" replace />;
   }
 
-  // ✅ SEDERHANA: Jika user ada dan di halaman auth, redirect ke dashboard
   if (user && location.pathname === '/auth') {
-    logger.info('🚀 AuthGuard: Executing redirect to / (authenticated user on auth page)');
+    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to / for user:`, user.email);
+    console.log(`🚀 [AuthGuard #${renderCount}] Current path was:`, location.pathname);
     return <Navigate to="/" replace />;
   }
 
   // ✅ User terautentikasi dan di halaman yang benar
-  logger.debug('✅ AuthGuard: Rendering protected content for user:', user.email);
+  console.log(`✅ [AuthGuard #${renderCount}] Rendering protected content for user:`, user?.email);
   return <>{children}</>;
 };
+
+export default AuthGuard;
 
 export default AuthGuard;

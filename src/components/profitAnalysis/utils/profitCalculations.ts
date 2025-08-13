@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/utils/profitCalculations.ts
-// ✅ REAL PROFIT MARGIN CALCULATIONS - Integration Logic
+// ✅ REAL PROFIT MARGIN CALCULATIONS - Integration Logic (Updated with Recipe)
 
 import { logger } from '@/utils/logger';
 import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
@@ -9,6 +9,7 @@ import { calculateTotalActiveCosts, calculateOverheadPerUnit } from '@/component
 import { FinancialTransaction } from '@/components/financial/types/financial';
 import { OperationalCost, AllocationSettings } from '@/components/operational-costs/types/operationalCost.types';
 import { BahanBakuFrontend } from '@/components/warehouse/types';
+import { Recipe } from '@/components/recipe/types'; // ✅ Import Recipe type
 import {
   ProfitMarginData,
   ProfitAnalysisInput,
@@ -41,7 +42,8 @@ export const calculateProfitMargins = (
         period: input.period?.label,
         transactionCount: input.transactions?.length,
         costCount: input.operationalCosts?.length,
-        materialCount: input.materials?.length
+        materialCount: input.materials?.length,
+        recipeCount: input.recipes?.length // ✅ Log recipe count
       });
     }
 
@@ -60,6 +62,7 @@ export const calculateProfitMargins = (
       periodTransactions,
       input.operationalCosts,
       input.materials,
+      input.recipes, // ✅ Pass recipes to COGS calculation
       categoryMapping,
       allocationSettings
     );
@@ -94,7 +97,8 @@ export const calculateProfitMargins = (
       rawData: {
         transactions: periodTransactions,
         operationalCosts: input.operationalCosts,
-        materials: input.materials
+        materials: input.materials,
+        recipes: input.recipes // ✅ Include recipes in raw data
       }
     };
 
@@ -128,17 +132,18 @@ export const calculateRevenue = (transactions: FinancialTransaction[]): number =
 };
 
 // ===========================================
-// ✅ COGS (HPP) CALCULATION
+// ✅ COGS (HPP) CALCULATION (Updated)
 // ===========================================
 
 export const calculateCOGS = (
   transactions: FinancialTransaction[],
   operationalCosts: OperationalCost[],
   materials: BahanBakuFrontend[],
+  recipes: Recipe[], // ✅ Add recipes parameter
   categoryMapping: CategoryMapping,
   allocationSettings?: AllocationSettings
 ): COGSBreakdown => {
-  // 1. Material costs from financial transactions
+  // 1. Material costs from financial transactions and warehouse data
   const materialCosts = calculateMaterialCosts(transactions, materials, categoryMapping);
   
   // 2. Direct labor costs from operational costs
@@ -150,6 +155,13 @@ export const calculateCOGS = (
     allocationSettings,
     materialCosts.totalMaterialCost
   );
+
+  // 4. Recipe-based cost calculation (NEW)
+  // Here we can potentially cross-reference recipes with transactions or materials
+  // For now, we'll keep the existing logic but acknowledge recipes are available
+  // In a more advanced system, recipes could be used to allocate costs more precisely
+  // or to validate material usage against expected norms.
+  // Example: Find transactions related to recipe sales and allocate COGS accordingly.
 
   const totalCOGS = materialCosts.totalMaterialCost + 
                    directLaborCosts.totalDirectLaborCost + 
@@ -167,7 +179,7 @@ export const calculateCOGS = (
 };
 
 // ===========================================
-// ✅ MATERIAL COST CALCULATION
+// ✅ MATERIAL COST CALCULATION (Updated)
 // ===========================================
 
 const calculateMaterialCosts = (
@@ -590,6 +602,13 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
     warnings.push('Tidak ada data bahan baku');
     suggestions.push('Tambahkan data warehouse untuk tracking HPP yang akurat');
   }
+
+  // Validate recipes (optional, but good to check)
+  if (!input.recipes) { // Allow empty array, but not undefined/null
+    warnings.push('Data resep tidak tersedia');
+    suggestions.push('Tambahkan data resep untuk analisis yang lebih komprehensif');
+  }
+  // Note: An empty recipes array [] is valid if no recipes exist.
 
   // Business logic validations
   const revenue = calculateRevenue(input.transactions);

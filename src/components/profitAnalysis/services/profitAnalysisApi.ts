@@ -339,7 +339,8 @@ export const getDashboardSummary = async (): Promise<ProfitAnalysisApiResponse<a
     const result = await calculateProfitMargins(input);
 
     // Validasi hasil
-    if (!result.profitMarginData || typeof result.profitMarginData.revenue !== 'number') {
+    if (!result || !result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
+      logger.error('getDashboardSummary: Hasil perhitungan tidak valid', { result });
       return {
         data: null,
         error: 'Hasil perhitungan dashboard summary tidak valid',
@@ -350,13 +351,16 @@ export const getDashboardSummary = async (): Promise<ProfitAnalysisApiResponse<a
     return {
       data: {
         revenue: result.profitMarginData.revenue,
-        grossProfit: result.profitMarginData.grossProfit,
-        netProfit: result.profitMarginData.netProfit,
-        grossMargin: result.profitMarginData.grossMargin,
-        netMargin: result.profitMarginData.netMargin,
-        cogsBreakdown: result.cogsBreakdown,
-        opexBreakdown: result.opexBreakdown,
-        insights: result.insights
+        grossProfit: result.profitMarginData.grossProfit || 0,
+        netProfit: result.profitMarginData.netProfit || 0,
+        grossMargin: result.profitMarginData.grossMargin || 0,
+        netMargin: result.profitMarginData.netMargin || 0,
+        cogs: result.profitMarginData.cogs || 0,
+        opex: result.profitMarginData.opex || 0,
+        cogsBreakdown: result.cogsBreakdown || { materialCosts: [], totalMaterialCost: 0, directLaborCosts: [], totalDirectLaborCost: 0, manufacturingOverhead: 0, overheadAllocationMethod: 'activity_based', totalCOGS: 0, actualMaterialUsage: [], productionData: [], dataSource: 'estimated' },
+        opexBreakdown: result.opexBreakdown || { administrativeExpenses: [], totalAdministrative: 0, sellingExpenses: [], totalSelling: 0, generalExpenses: [], totalGeneral: 0, totalOPEX: 0 },
+        insights: result.insights || [],
+        period: result.profitMarginData.period || currentMonth
       },
       success: true
     };

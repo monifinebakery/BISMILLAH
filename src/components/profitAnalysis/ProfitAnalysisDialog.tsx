@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Calculator,
@@ -39,22 +39,20 @@ import { PerbandinganTab } from './tabs/PerbandinganTab';
 // Utils
 import { prepareExportData, generateExportFilename } from './utils/exportHelpers';
 
-// ===================================================================
-
 interface ProfitAnalysisDialogProps {
   isOpen: boolean;
   onClose: () => void;
   dateRange?: { from: Date; to: Date };
 }
 
-export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({ 
+const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({ 
   isOpen, 
   onClose, 
   dateRange 
 }) => {
   const isMobile = useIsMobile();
   const [isCalculating, setIsCalculating] = useState(false);
-  const [activeTab, setActiveTab] = useState('ringkasa');
+  const [activeTab, setActiveTab] = useState('ringkasan');
 
   // Buat periode dari dateRange
   const period: DatePeriod = dateRange ? {
@@ -126,7 +124,9 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       logger.info('Export completed successfully', { format, filename });
     } catch (error: any) {
       logger.error('Export failed', { format, error });
- сожалению
+      toast.error(error.message || 'Gagal mengekspor laporan');
+    }
+  };
 
   const handleClose = () => {
     logger.debug('Closing profit analysis dialog');
@@ -145,7 +145,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
             <p className={cn("text-sm text-red-500 mt-1", isMobile && "text-xs")}>{error}</p>
           </div>
         </div>
-        <Button onClick={handleCalculate} variant="outline" className={cn("mt-4", isMobile && "mt-3 text-xs")}>
+        <Button onClick={handleCalculate} variant="outline" className={cn("mt-4", isMobile && "mt-3 text-xs w-full")}>
           <RefreshCw className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
           Coba Lagi
         </Button>
@@ -161,7 +161,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       <p className={cn("text-sm text-gray-500 mb-4", isMobile && "text-xs mb-3")}>
         Klik "Hitung Ulang" untuk memulai analisis profit margin.
       </p>
-      <Button onClick={handleCalculate} disabled={isCalculating} className={isMobile ? "text-xs" : ""}>
+      <Button onClick={handleCalculate} disabled={isCalculating} className={cn(isMobile && "text-xs w-full")}>
         <Calculator className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
         Mulai Analisis
       </Button>
@@ -175,25 +175,25 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
         "grid w-full grid-cols-4",
         isMobile && "flex overflow-x-auto whitespace-nowrap"
       )}>
-        <TabsTrigger value="ringkasan" className={isMobile ? "text-xs px-2" : ""}>Ringkasan</TabsTrigger>
-        <TabsTrigger value="rincian" className={isMobile ? "text-xs px-2" : ""}>Rincian</TabsTrigger>
-        <TabsTrigger value="insights" className={isMobile ? "text-xs px-2" : ""}>Insights</TabsTrigger>
-        <TabsTrigger value="perbandingan" className={isMobile ? "text-xs px-2" : ""}>Perbandingan</TabsTrigger>
+        <TabsTrigger value="ringkasan" className={cn(isMobile && "text-xs px-2")}>Ringkasan</TabsTrigger>
+        <TabsTrigger value="rincian" className={cn(isMobile && "text-xs px-2")}>Rincian</TabsTrigger>
+        <TabsTrigger value="insights" className={cn(isMobile && "text-xs px-2")}>Insights</TabsTrigger>
+        <TabsTrigger value="perbandingan" className={cn(isMobile && "text-xs px-2")}>Perbandingan</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="ringkasan" className="mt-6">
+      <TabsContent value="ringkasan" className={cn("mt-6", isMobile && "mt-4")}>
         <RingkasanTab profitData={profitData} />
       </TabsContent>
 
-      <TabsContent value="rincian" className="mt-6">
+      <TabsContent value="rincian" className={cn("mt-6", isMobile && "mt-4")}>
         <RincianTab profitData={profitData} />
       </TabsContent>
 
-      <TabsContent value="insights" className="mt-6">
+      <TabsContent value="insights" className={cn("mt-6", isMobile && "mt-4")}>
         <InsightsTab profitData={profitData} />
       </TabsContent>
 
-      <TabsContent value="perbandingan" className="mt-6">
+      <TabsContent value="perbandingan" className={cn("mt-6", isMobile && "mt-4")}>
         <PerbandinganTab profitData={profitData} />
       </TabsContent>
     </Tabs>
@@ -221,22 +221,27 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
                 Periode: {period.label}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-2", isMobile && "gap-1")}>
               <Button 
                 variant="outline" 
                 size={isMobile ? "sm" : "sm"} 
                 onClick={handleCalculate}
                 disabled={isCalculating || isLoading}
-                className={isMobile ? "text-xs" : ""}
+                className={cn(isMobile && "text-xs p-1")}
               >
                 <RefreshCw className={cn(
                   "h-4 w-4 mr-2",
                   (isCalculating || isLoading) && "animate-spin",
-                  isMobile && "h-3 w-3"
+                  isMobile && "h-3 w-3 mr-1"
                 )} />
                 {isCalculating || isLoading ? 'Menghitung...' : 'Hitung Ulang'}
               </Button>
-              <Button variant="ghost" size={isMobile ? "sm" : "sm"} onClick={handleClose}>
+              <Button 
+                variant="ghost" 
+                size={isMobile ? "sm" : "sm"} 
+                onClick={handleClose}
+                className={cn(isMobile && "p-1")}
+              >
                 <X className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
               </Button>
             </div>
@@ -273,27 +278,27 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
                     variant="outline" 
                     onClick={() => handleExport('excel')}
                     size={isMobile ? "sm" : "sm"}
-                    className={isMobile ? "text-xs w-full" : "text-xs"}
+                    className={cn(isMobile && "text-xs w-full p-1")}
                   >
-                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3 mr-1")} />
                     Ekspor Excel
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleExport('pdf')}
                     size={isMobile ? "sm" : "sm"}
-                    className={isMobile ? "text-xs w-full" : "text-xs"}
+                    className={cn(isMobile && "text-xs w-full p-1")}
                   >
-                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3 mr-1")} />
                     Ekspor PDF
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleExport('csv')}
                     size={isMobile ? "sm" : "sm"}
-                    className={isMobile ? "text-xs w-full" : "text-xs"}
+                    className={cn(isMobile && "text-xs w-full p-1")}
                   >
-                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+                    <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3 mr-1")} />
                     Ekspor CSV
                   </Button>
                 </>
@@ -308,7 +313,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
               <Button 
                 variant="outline" 
                 onClick={handleClose}
-                className={isMobile ? "w-full text-xs" : ""}
+                className={cn(isMobile && "w-full text-xs")}
               >
                 Tutup
               </Button>
@@ -316,12 +321,12 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
                 <Button 
                   onClick={() => handleCalculate()}
                   disabled={isCalculating}
-                  className={isMobile ? "w-full text-xs" : ""}
+                  className={cn(isMobile && "w-full text-xs")}
                 >
                   <RefreshCw className={cn(
                     "mr-2 h-4 w-4",
                     isCalculating && "animate-spin",
-                    isMobile && "h-3 w-3"
+                    isMobile && "h-3 w-3 mr-1"
                   )} />
                   {isCalculating ? 'Menghitung...' : 'Perbarui Analisis'}
                 </Button>
@@ -353,5 +358,4 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   );
 };
 
-// Export sebagai named export
 export default ProfitAnalysisDialog;

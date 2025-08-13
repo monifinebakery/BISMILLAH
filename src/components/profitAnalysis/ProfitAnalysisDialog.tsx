@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/ProfitAnalysisDialog.tsx
-// ✅ DIALOG ANALISIS PROFIT MARGIN - Robust Version
+// ✅ DIALOG ANALISIS PROFIT MARGIN - Fixed and Enhanced Version
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
 
 // Hooks
@@ -49,11 +50,13 @@ interface ProfitAnalysisDialogProps {
   dateRange?: { from: Date; to: Date };
 }
 
-export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({ 
+// Komponen utama ProfitAnalysisDialog
+const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({ 
   isOpen, 
   onClose, 
   dateRange 
 }) => {
+  const isMobile = useIsMobile();
   const [isCalculating, setIsCalculating] = useState(false);
   const [activeTab, setActiveTab] = useState('ringkasan');
 
@@ -67,6 +70,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   // Gunakan hook profit margin
   const {
     profitData,
+    keyMetrics,
     isLoading,
     calculateProfit,
     exportAnalysis,
@@ -78,7 +82,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
     if (isOpen && !profitData && !isLoading) {
       handleCalculate();
     }
-  }, [isOpen, profitData, isLoading]);
+  }, [isOpen]);
 
   // Reset tab saat dialog dibuka
   useEffect(() => {
@@ -96,7 +100,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       toast.success('Analisis profit margin berhasil dihitung');
       logger.info('Profit calculation completed successfully');
     } catch (error: any) {
-      logger.error('Failed to calculate profit margin', { error: error.message || error });
+      logger.error('Failed to calculate profit margin', error);
       toast.error(error.message || 'Gagal menghitung profit margin');
     } finally {
       setIsCalculating(false);
@@ -128,7 +132,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       toast.success(`Laporan ${formatLabels[format]} berhasil diekspor`);
       logger.info('Export completed successfully', { format, filename });
     } catch (error: any) {
-      logger.error('Export failed', { format, error: error.message || error });
+      logger.error('Export failed', { format, error });
       toast.error(error.message || 'Gagal mengekspor laporan');
     }
   };
@@ -147,9 +151,7 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
           <AlertTriangle className="h-6 w-6" />
           <div>
             <h3 className="font-medium">Gagal Memuat Analisis</h3>
-            <p className="text-sm text-red-500 mt-1">
-              {error?.message || 'Terjadi kesalahan saat memuat data'}
-            </p>
+            <p className="text-sm text-red-500 mt-1">{error?.message || 'Terjadi kesalahan saat memuat data'}</p>
           </div>
         </div>
         <Button onClick={handleCalculate} variant="outline" className="mt-4">
@@ -184,11 +186,15 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
 
     return (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={cn("grid w-full", isMobile ? "grid-cols-2" : "grid-cols-4")}>
           <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
           <TabsTrigger value="rincian">Rincian</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
+          {!isMobile && (
+            <>
+              <TabsTrigger value="insights">Insights</TabsTrigger>
+              <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="ringkasan" className="mt-6">
@@ -199,13 +205,17 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
           <RincianTab profitData={profitData} />
         </TabsContent>
 
-        <TabsContent value="insights" className="mt-6">
-          <InsightsTab profitData={profitData} />
-        </TabsContent>
+        {!isMobile && (
+          <>
+            <TabsContent value="insights" className="mt-6">
+              <InsightsTab profitData={profitData} />
+            </TabsContent>
 
-        <TabsContent value="perbandingan" className="mt-6">
-          <PerbandinganTab profitData={profitData} />
-        </TabsContent>
+            <TabsContent value="perbandingan" className="mt-6">
+              <PerbandinganTab profitData={profitData} />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     );
   };
@@ -213,7 +223,10 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   // ✅ MAIN RENDER
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0 flex flex-col">
+      <DialogContent className={cn(
+        "max-w-6xl max-h-[90vh] p-0 flex flex-col",
+        isMobile && "m-0 rounded-none w-screen h-screen max-w-full max-h-full"
+      )}>
         {/* Header */}
         <DialogHeader className="p-6 pb-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -331,5 +344,5 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   );
 };
 
-// Export sebagai named export untuk kompatibilitas
+// Hanya satu export di akhir file
 export { ProfitAnalysisDialog };

@@ -10,7 +10,7 @@ import {
   validateProfitAnalysisInput,
   integrateFinancialData,
   compareProfitMargins
-} from '@/utils/profitCalculations';
+} from '../utils/profitCalculations';
 
 // Type imports
 import {

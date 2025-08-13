@@ -321,16 +321,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // ✅ DEBUG: Expose auth state to window for debugging (development only)
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      // @ts-ignore - Debug purposes only
-      window.__DEBUG_AUTH_USER__ = user;
-      // @ts-ignore - Debug purposes only  
-      window.__DEBUG_AUTH_READY__ = isReady;
-      // @ts-ignore - Debug purposes only
-      window.__DEBUG_AUTH_LOADING__ = isLoading;
-      // @ts-ignore - Debug purposes only
-      window.__DEBUG_AUTH_SESSION__ = session;
-    }
+    // @ts-ignore - Debug purposes only
+    window.__DEBUG_AUTH_USER__ = user;
+    // @ts-ignore - Debug purposes only  
+    window.__DEBUG_AUTH_READY__ = isReady;
+    // @ts-ignore - Debug purposes only
+    window.__DEBUG_AUTH_LOADING__ = isLoading;
+    // @ts-ignore - Debug purposes only
+    window.__DEBUG_AUTH_SESSION__ = session;
+    
+    // ✅ FORCE LOG untuk debugging
+    console.log('🔧 [AuthContext] Debug values set:', {
+      user: !!user,
+      userEmail: user?.email,
+      isReady,
+      isLoading,
+      session: !!session
+    });
   }, [user, isReady, isLoading, session]);
 
   // ✅ ENHANCED: Additional validation in context value

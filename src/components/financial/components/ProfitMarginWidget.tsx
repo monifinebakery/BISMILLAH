@@ -23,6 +23,13 @@ import { cn } from '@/lib/utils';
 import { useProfitMargin, useProfitDashboard } from '@/hooks/useProfitMargin';
 import { createDatePeriods } from '@/services/profitAnalysisApi';
 
+// ✅ UPDATED IMPORT - Menggunakan utility dari profit-analysis
+import { 
+  formatCurrency, 
+  getMarginStatus, 
+  getMarginColor 
+} from '../profitAnalysis/utils/formatters';
+
 // Types
 import { ProfitMarginData, ProfitInsight } from '@/types/profitAnalysis';
 

@@ -1,53 +1,48 @@
 // src/components/profitAnalysis/types/index.ts
-// ✅ PROFIT ANALYSIS TYPES - Real Profit Margin Integration & Component Types
+// ✅ COMPLETE UPDATED TYPES - Material Usage Integration
 
 import { FinancialTransaction } from '@/components/financial/types/financial';
 import { OperationalCost } from '@/components/operational-costs/types/operationalCost.types';
 import { BahanBakuFrontend } from '@/components/warehouse/types';
+import { Recipe } from '@/components/recipe/types';
 
 // ===========================================
-// ✅ LOCAL UI TYPES - Types for profit analysis components
+// ✅ NEW MATERIAL USAGE TYPES
 // ===========================================
 
-export interface ProfitAnalysisDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  dateRange?: { from: Date; to: Date };
-  initialTab?: string;
-  onExport?: (format: string, data: any) => void;
+export interface MaterialUsageLog {
+  id: string;
+  user_id: string;
+  material_id: string;
+  usage_type: 'production' | 'sale' | 'adjustment' | 'waste';
+  quantity_used: number;
+  unit_cost: number;
+  total_cost: number;
+  usage_date: Date;
+  reference_type?: 'sale' | 'production' | 'adjustment';
+  reference_id?: string;
+  notes?: string;
+  batch_number?: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export interface TabComponentProps {
-  profitData: any;
-  isLoading?: boolean;
-  onAction?: (action: string, data?: any) => void;
-}
-
-export interface MetricCardProps {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ComponentType<any>;
-  color: 'green' | 'red' | 'blue' | 'purple' | 'orange';
-  trend?: number;
-  status?: string;
-  onClick?: () => void;
-}
-
-export interface CostBreakdownItem {
-  label: string;
-  amount: number;
-  color: string;
-  percentage: number;
-}
-
-export interface ExportData {
-  ringkasan: Record<string, any>;
-  rincian_hpp: Record<string, any>;
-  rincian_opex: Record<string, any>;
-  insights: Array<Record<string, any>>;
-  analisis_rasio: Record<string, any>;
-  patokan_industri: Record<string, any>;
+export interface ProductionRecord {
+  id: string;
+  user_id: string;
+  product_name: string;
+  quantity_produced: number;
+  production_date: Date;
+  total_material_cost: number;
+  total_labor_cost: number;
+  total_overhead_cost: number;
+  unit_cost: number;
+  batch_number?: string;
+  quality_grade?: 'A' | 'B' | 'C' | 'reject';
+  notes?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  created_at: Date;
+  updated_at: Date;
 }
 
 // ===========================================
@@ -58,10 +53,10 @@ export interface ProfitMarginData {
   revenue: number;
   cogs: number;
   opex: number;
-  grossProfit: number; // Revenue - COGS
-  netProfit: number; // Gross Profit - OPEX
-  grossMargin: number; // (Gross Profit / Revenue) * 100
-  netMargin: number; // (Net Profit / Revenue) * 100
+  grossProfit: number;
+  netProfit: number;
+  grossMargin: number;
+  netMargin: number;
   calculatedAt: Date;
   period: DatePeriod;
 }
@@ -69,11 +64,11 @@ export interface ProfitMarginData {
 export interface DatePeriod {
   from: Date;
   to: Date;
-  label: string; // "Q1 2024", "January 2024", etc.
+  label: string;
 }
 
 // ===========================================
-// ✅ HPP (COGS) BREAKDOWN
+// ✅ UPDATED COGS BREAKDOWN
 // ===========================================
 
 export interface COGSBreakdown {
@@ -82,8 +77,13 @@ export interface COGSBreakdown {
   directLaborCosts: LaborCostDetail[];
   totalDirectLaborCost: number;
   manufacturingOverhead: number;
-  overheadAllocationMethod: 'per_unit' | 'persentase';
+  overheadAllocationMethod: string;
   totalCOGS: number;
+  
+  // ✅ NEW FIELDS for actual data tracking
+  actualMaterialUsage?: MaterialUsageLog[];
+  productionData?: ProductionRecord[];
+  dataSource: 'actual' | 'estimated' | 'mixed';
 }
 
 export interface MaterialCostDetail {
@@ -94,6 +94,16 @@ export interface MaterialCostDetail {
   totalCost: number;
   supplier: string;
   category: string;
+  
+  // ✅ NEW FIELDS for actual usage tracking
+  usageType?: 'production' | 'sale' | 'adjustment' | 'waste';
+  isEstimate?: boolean;
+  referenceInfo?: {
+    referenceType?: string;
+    referenceId?: string;
+    notes?: string;
+  };
+  
   packageInfo?: {
     fromPackageQty: number;
     packageSize: number;
@@ -107,7 +117,7 @@ export interface LaborCostDetail {
   costType: 'tetap' | 'variabel';
   monthlyAmount: number;
   allocatedAmount: number;
-  allocationBasis: string; // e.g., "per unit", "percentage"
+  allocationBasis: string;
 }
 
 // ===========================================
@@ -134,26 +144,21 @@ export interface OperationalExpenseDetail {
 }
 
 // ===========================================
-// ✅ PROFIT ANALYSIS INTEGRATION
+// ✅ UPDATED PROFIT ANALYSIS INPUT
 // ===========================================
 
 export interface ProfitAnalysisInput {
   transactions: FinancialTransaction[];
   operationalCosts: OperationalCost[];
   materials: BahanBakuFrontend[];
+  recipes: Recipe[];
+  materialUsage: MaterialUsageLog[]; // ✅ NEW
+  productionRecords: ProductionRecord[]; // ✅ NEW
   period: DatePeriod;
-  productionData?: ProductionData;
-}
-
-export interface ProductionData {
-  unitsProduced: number;
-  unitsSold: number;
-  averageSellingPrice: number;
-  productionEfficiency: number; // %
 }
 
 // ===========================================
-// ✅ CATEGORIZATION LOGIC
+// ✅ CATEGORIZATION & ANALYSIS
 // ===========================================
 
 export interface CategoryMapping {
@@ -164,134 +169,45 @@ export interface CategoryMapping {
 }
 
 export const DEFAULT_CATEGORY_MAPPING: CategoryMapping = {
-  cogsCategories: [
-    'Pembelian Bahan Baku',
-    'Biaya Produksi',
-    'Upah Langsung',
-    'Biaya Manufaktur'
-  ],
-  opexCategories: [
-    'Marketing',
-    'Transportasi',
-    'Biaya Administrasi',
-    'Gaji Administrasi',
-    'Sewa Kantor',
-    'Utilitas Kantor'
-  ],
-  directLaborCategories: [
-    'Gaji Karyawan Produksi',
-    'Upah Buruh',
-    'Tunjangan Produksi'
-  ],
-  operationalExpenseCategories: [
-    'Gaji Karyawan Administrasi',
-    'Biaya Pemasaran',
-    'Biaya Penjualan',
-    'Biaya Umum'
-  ]
+  cogsCategories: ["Pembelian Bahan Baku", "Biaya Produksi", "Upah Langsung"],
+  opexCategories: ["Marketing", "Transportasi", "Biaya Administrasi"],
+  directLaborCategories: ["Gaji Karyawan Produksi", "Upah Buruh"],
+  operationalExpenseCategories: ["Gaji Administrasi", "Biaya Pemasaran"]
 };
 
-// ===========================================
-// ✅ CALCULATION RESULTS
-// ===========================================
+export interface ProfitInsight {
+  type: 'critical' | 'warning' | 'info' | 'success';
+  category: 'margin' | 'cogs' | 'opex' | 'efficiency' | 'trend';
+  title: string;
+  message: string;
+  recommendation?: string;
+  impact: 'high' | 'medium' | 'low';
+  value?: number;
+  trend?: 'increasing' | 'decreasing' | 'stable';
+}
 
 export interface ProfitAnalysisResult {
   profitMarginData: ProfitMarginData;
   cogsBreakdown: COGSBreakdown;
   opexBreakdown: OPEXBreakdown;
   insights: ProfitInsight[];
-  comparison?: ProfitComparison;
   rawData: {
     transactions: FinancialTransaction[];
     operationalCosts: OperationalCost[];
     materials: BahanBakuFrontend[];
+    recipes: Recipe[];
+    materialUsage?: MaterialUsageLog[]; // ✅ NEW
+    productionRecords?: ProductionRecord[]; // ✅ NEW
   };
 }
 
-export interface ProfitInsight {
-  type: 'warning' | 'info' | 'success' | 'critical';
-  category: 'margin' | 'cogs' | 'opex' | 'efficiency';
-  title: string;
-  message: string;
-  recommendation?: string;
-  impact: 'high' | 'medium' | 'low';
-}
-
-export interface ProfitComparison {
-  previousPeriod?: ProfitMarginData;
-  budgetPlan?: ProfitMarginData;
-  industryBenchmark?: ProfitMarginData;
-  variance: {
-    revenueGrowth: number;
-    marginImprovement: number;
-    costReduction: number;
-  };
-}
-
-// ===========================================
-// ✅ API RESPONSE TYPES
-// ===========================================
-
-export interface ProfitAnalysisApiResponse<T = any> {
-  data: T;
+export interface ProfitAnalysisApiResponse<T> {
+  data: T | null;
   error?: string;
   success: boolean;
   message?: string;
-  calculationTime?: number; // ms
+  calculationTime?: number;
 }
-
-// ===========================================
-// ✅ CONTEXT TYPE
-// ===========================================
-
-export interface ProfitAnalysisContextType {
-  currentAnalysis: ProfitAnalysisResult | null;
-  isLoading: boolean;
-  isCalculating: boolean;
-  calculateProfitMargin: (input: ProfitAnalysisInput) => Promise<ProfitAnalysisResult>;
-  refreshAnalysis: () => Promise<void>;
-  categoryMapping: CategoryMapping;
-  updateCategoryMapping: (mapping: Partial<CategoryMapping>) => void;
-  exportAnalysis: (format: 'pdf' | 'excel' | 'csv') => Promise<boolean>;
-  getInsightsByCategory: (category: string) => ProfitInsight[];
-}
-
-// ===========================================
-// ✅ FORM & UI TYPES
-// ===========================================
-
-export interface ProfitAnalysisFormData {
-  period: {
-    from: string;
-    to: string;
-  };
-  includeProjections: boolean;
-  includeBenchmarks: boolean;
-  categoryMappingOverrides?: Partial<CategoryMapping>;
-}
-
-export interface ProfitChartData {
-  marginTrend: Array<{
-    date: string;
-    grossMargin: number;
-    netMargin: number;
-  }>;
-  costBreakdown: Array<{
-    category: string;
-    amount: number;
-    percentage: number;
-    type: 'cogs' | 'opex';
-  }>;
-  profitWaterfall: Array<{
-    category: string;
-    value: number;
-    cumulative: number;
-  }>;
-}
-
-// ===========================================
-// ✅ CONSTANTS
-// ===========================================
 
 export const PROFIT_MARGIN_THRESHOLDS = {
   grossMargin: {
@@ -308,11 +224,64 @@ export const PROFIT_MARGIN_THRESHOLDS = {
   }
 };
 
-export const CALCULATION_METHODS = {
-  materialCost: 'fifo' as const,
-  laborAllocation: 'per_unit' as const,
-  overheadAllocation: 'activity_based' as const
-};
+// ===========================================
+// ✅ CONTEXT TYPES
+// ===========================================
+
+export interface ProfitAnalysisContextType {
+  // State
+  currentAnalysis: ProfitAnalysisResult | null;
+  isLoading: boolean;
+  isCalculating: boolean;
+  error?: string;
+
+  // Actions
+  calculateProfitMargin: (input: {
+    period: DatePeriod;
+    categoryMapping?: Partial<CategoryMapping>;
+  }) => Promise<ProfitAnalysisResult>;
+  refreshAnalysis: () => Promise<void>;
+
+  // Configuration
+  categoryMapping: CategoryMapping;
+  updateCategoryMapping: (mapping: Partial<CategoryMapping>) => void;
+
+  // Utilities
+  exportAnalysis: (format: 'pdf' | 'excel' | 'csv') => Promise<boolean>;
+  getInsightsByCategory: (category: string) => ProfitInsight[];
+  
+  // Enhanced utilities
+  getProfitTrend: (months?: number) => Array<{ period: string; margin: number }>;
+  getMarginStatus: (margin: number, type: 'gross' | 'net') => { status: string; color: string };
+  getCostAnalysis: () => any;
+  keyMetrics?: any;
+  dashboardSummary?: any;
+}
+
+// ===========================================
+// ✅ CHART & UI TYPES
+// ===========================================
+
+export interface ProfitChartData {
+  marginTrend: Array<{
+    date: string;
+    grossMargin: number;
+    netMargin: number;
+  }>;
+  
+  costBreakdown: Array<{
+    category: string;
+    amount: number;
+    percentage: number;
+    type: 'cogs' | 'opex';
+  }>;
+  
+  profitWaterfall: Array<{
+    category: string;
+    value: number;
+    cumulative: number;
+  }>;
+}
 
 // ===========================================
 // ✅ VALIDATION TYPES
@@ -326,13 +295,9 @@ export interface ProfitAnalysisValidation {
 }
 
 // ===========================================
-// ✅ EXPORT UTILITIES
+// ✅ TYPE GUARDS
 // ===========================================
 
-export type CreateProfitAnalysisInput = Omit<ProfitAnalysisInput, 'calculatedAt'>;
-export type ProfitMarginSummary = Pick<ProfitMarginData, 'revenue' | 'grossMargin' | 'netMargin' | 'period'>;
-
-// Type guards
 export const isProfitAnalysisResult = (obj: any): obj is ProfitAnalysisResult => {
   return (
     typeof obj === 'object' &&

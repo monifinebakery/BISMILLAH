@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 
 // API imports
-import profitAnalysisApi, { createDatePeriods } from '@/services/profitAnalysisApi';
+import profitAnalysisApi, { createDatePeriods } from '../services/profitAnalysisApi';
 
 // Type imports
 import {

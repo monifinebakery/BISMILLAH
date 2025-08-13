@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,8 @@ interface UpdateFormProps {
 export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [formData, setFormData] = useState<UpdateFormData>({
     version: '',
     title: '',
@@ -21,8 +23,51 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
     is_active: true
   });
 
+  // ✅ FIXED: Check admin status using RPC function
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('is_user_admin');
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data || false);
+        }
+      } catch (error) {
+        console.error('Error in admin check:', error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
+
+  // Show loading while checking admin status
+  if (checkingAdmin) {
+    return (
+      <div className="max-w-md mx-auto p-6 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="flex items-center gap-3 text-gray-600">
+          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          <div>
+            <h3 className="font-semibold">Memverifikasi Akses</h3>
+            <p className="text-sm mt-1">Memeriksa izin admin...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Check if user is admin
-  if (!user || user.user_metadata?.role !== 'admin') {
+  if (!user || !isAdmin) {
     return (
       <div className="max-w-md mx-auto p-6 bg-red-50 border border-red-200 rounded-lg">
         <div className="flex items-center gap-3 text-red-800">

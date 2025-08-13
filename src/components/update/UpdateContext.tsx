@@ -8,16 +8,16 @@ import { UpdateNotification } from './UpdateNotification';
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth(); // Tambah isReady untuk pastikan auth siap
   const [latestUpdate, setLatestUpdate] = useState<AppUpdate | null>(null);
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set()); // Track seen updates locally
+  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set());
 
-  // Fetch updates with memoization
   const fetchUpdates = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.id || !isReady) {
+      console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
       setLoading(false);
       return;
     }
@@ -31,7 +31,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const { data: isAdminData, error: adminError } = await supabase.rpc('is_user_admin');
         if (!adminError && isAdminData) isAdmin = true;
       } catch (adminCheckError) {
-        console.warn('Could not check admin status:', adminCheckError);
+        console.warn('Could not check admin status, assuming non-admin:', adminCheckError);
       }
 
       let query = supabase.from('app_updates').select('*');
@@ -43,7 +43,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const { data: updates, error: updatesError } = await query;
       if (updatesError) {
-        console.error('Error fetching updates:', updatesError);
+        console.error('Error fetching updates:', updatesError.message);
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -51,6 +51,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (!updates || updates.length === 0) {
+        console.log('No updates found');
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -67,10 +68,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           update.priority === 'critical' || update.priority === 'high'
         );
         if (criticalUnseen.length > 0) {
-          setTimeout(() => {
-            showUpdateNotification(criticalUnseen[0]);
-          }, 1000); // Delay to ensure UI ready
+          console.log('Triggering popup for critical/high update:', criticalUnseen[0]);
+          setTimeout(() => showUpdateNotification(criticalUnseen[0]), 1000);
+        } else {
+          console.log('No critical/high updates to show');
         }
+      } else {
+        console.log('No popup: Admin or no unseen updates');
       }
     } catch (error) {
       console.error('Error in fetchUpdates:', error);
@@ -78,9 +82,8 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user?.id, seenUpdateIds]);
+  }, [user?.id, isReady, seenUpdateIds]);
 
-  // Show notification
   const showUpdateNotification = useCallback((update: AppUpdate) => {
     try {
       toast.custom((t) => (
@@ -95,12 +98,12 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         duration: update.priority === 'critical' ? 20000 : 15000,
         position: 'top-right',
       });
+      console.log('Notification shown for:', update.title);
     } catch (error) {
       console.error('Error showing notification:', error);
     }
   }, []);
 
-  // Mark as seen (local state only)
   const markAsSeen = useCallback(async (updateId: string) => {
     if (!user?.id) return;
 
@@ -111,12 +114,12 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const newUnseen = unseenUpdates.filter(update => update.id !== updateId);
         return newUnseen.length > 0;
       });
+      console.log('Marked as seen:', updateId);
     } catch (error) {
       console.error('Error in markAsSeen:', error);
     }
   }, [user?.id, unseenUpdates]);
 
-  // Mark all as seen
   const markAllAsSeen = useCallback(async () => {
     if (!user?.id || unseenUpdates.length === 0) return;
 
@@ -127,20 +130,20 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
+      console.log('Marked all as seen');
     } catch (error) {
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
   }, [user?.id, unseenUpdates, seenUpdateIds]);
 
-  // Refresh updates
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
   }, [fetchUpdates]);
 
-  // Initial fetch
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isReady) {
+      console.log('Auth ready, fetching updates...');
       fetchUpdates();
     } else {
       setLoading(false);
@@ -148,10 +151,10 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       setSeenUpdateIds(new Set());
+      console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
-  }, [user?.id, fetchUpdates]);
+  }, [user?.id, isReady, fetchUpdates]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 

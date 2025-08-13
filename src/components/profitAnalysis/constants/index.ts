@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/constants/index.ts
+// src/components/profitAnalysis/constants/constants/index.ts
 // ✅ CONSTANTS - Konstanta untuk profit analysis
 
 export const PROFIT_COLORS = {

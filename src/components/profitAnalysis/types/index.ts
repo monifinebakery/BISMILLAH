@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/types/index.ts
+// src/components/profitAnalysis/types/index.ts
 // ✅ LOCAL TYPES - Types khusus untuk profit analysis components
 
 export interface ProfitAnalysisDialogProps {

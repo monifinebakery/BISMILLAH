@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search } from 'lucide-react';
+import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Switch } from '@/components/ui/switch'; // Added Switch component
+import { Switch } from '@/components/ui/switch';
 
 // Import Recipe Context dan Types
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -66,7 +66,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     getUniqueCategories 
   } = useRecipe();
 
-  // Form state dengan tambahan isTaxEnabled
+  // Form state dengan tambahan tanggalPesanan
   const [formData, setFormData] = useState({
     namaPelanggan: '',
     teleponPelanggan: '',
@@ -78,7 +78,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
     subtotal: 0,
     pajak: 0,
     totalPesanan: 0,
-    isTaxEnabled: false, // Added tax toggle state
+    isTaxEnabled: false,
+    tanggalPesanan: new Date().toISOString().split('T')[0], // Default to current date
   });
 
   const [loading, setLoading] = useState(false);
@@ -102,7 +103,10 @@ const OrderForm: React.FC<OrderFormProps> = ({
         subtotal: initialData.subtotal || 0,
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
-        isTaxEnabled: !!initialData.pajak, // Set tax enabled if pajak exists
+        isTaxEnabled: !!initialData.pajak,
+        tanggalPesanan: initialData.tanggalPesanan 
+          ? new Date(initialData.tanggalPesanan).toISOString().split('T')[0] 
+          : new Date().toISOString().split('T')[0],
       });
     } else {
       // Reset form untuk mode baru
@@ -118,6 +122,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         pajak: 0,
         totalPesanan: 0,
         isTaxEnabled: false,
+        tanggalPesanan: new Date().toISOString().split('T')[0],
       });
     }
   }, [initialData, open]);
@@ -213,7 +218,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
   // Calculate totals dengan pajak opsional
   useEffect(() => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-    const pajak = formData.isTaxEnabled ? subtotal * 0.1 : 0; // Pajak hanya dihitung jika enabled
+    const pajak = formData.isTaxEnabled ? subtotal * 0.1 : 0;
     const totalPesanan = subtotal + pajak;
 
     setFormData(prev => ({
@@ -296,6 +301,20 @@ const OrderForm: React.FC<OrderFormProps> = ({
                   onChange={(e) => updateField('emailPelanggan', e.target.value)}
                   placeholder="Masukkan email pelanggan"
                 />
+              </div>
+              
+              <div>
+                <Label htmlFor="tanggalPesanan">Tanggal Pesanan</Label>
+                <div className="relative">
+                  <Input
+                    id="tanggalPesanan"
+                    type="date"
+                    value={formData.tanggalPesanan}
+                    onChange={(e) => updateField('tanggalPesanan', e.target.value)}
+                    className="pl-10"
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                </div>
               </div>
               
               <div>

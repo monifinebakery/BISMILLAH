@@ -3,22 +3,22 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, Settings } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Types
 import { ProfitAnalysisResult } from '../types';
 
-// Hooks
+// ✅ Hooks: ambil dari barrel hooks
 import {
   useRincianCalculations,
   useCostAnalysis,
   useEfficiencyMetrics,
-  useTargetAnalysis
-} from './RincianTab/hooks/useRincianCalculations';
+  useTargetAnalysis,
+} from './RincianTab/hooks';
 
-// Components
+// Components (via barrel components RincianTab)
 import {
   CostOverview,
   HppSummaryCard,
@@ -27,7 +27,7 @@ import {
   CogsDetailTab,
   OpexDetailTab,
   AnalysisTab,
-  DataQualityIndicator
+  DataQualityIndicator,
 } from './RincianTab';
 
 interface RincianTabProps {
@@ -37,121 +37,81 @@ interface RincianTabProps {
 
 type TabKey = 'overview' | 'cogs' | 'opex' | 'analysis';
 
-export const RincianTab: React.FC<RincianTabProps> = ({
-  profitData,
-  className
-}) => {
+export const RincianTab: React.FC<RincianTabProps> = ({ profitData, className }) => {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
-  // Custom hooks for business logic
+  // Business logic hooks
   const calculations = useRincianCalculations({ profitData });
   const costAnalysis = useCostAnalysis({ profitData });
   const efficiencyMetrics = useEfficiencyMetrics({ profitData });
   const targetAnalysis = useTargetAnalysis({ profitData });
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4", className)}>
-      {/* Data Quality Indicator */}
+    <div className={cn('space-y-6', isMobile && 'space-y-4', className)}>
+      {/* Banner/Indicator kualitas data */}
       <DataQualityIndicator profitData={profitData} />
 
-      {/* Main Content */}
       <Card>
-        <CardHeader className={cn("p-6", isMobile && "p-4")}>
-          <CardTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
-            <Calculator className={cn("h-5 w-5", isMobile && "h-4 w-4")} />
+        <CardHeader className={cn('p-6', isMobile && 'p-4')}>
+          <CardTitle className={cn('flex items-center gap-2', isMobile && 'text-base')}>
+            <Calculator className={cn('h-5 w-5', isMobile && 'h-4 w-4')} />
             Rincian Analisis Profitabilitas
           </CardTitle>
         </CardHeader>
-        <CardContent className={cn("p-6", isMobile && "p-4")}>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-            <TabsList className={cn(
-              "grid w-full",
-              isMobile ? "grid-cols-2" : "grid-cols-4",
-              isMobile && "h-auto"
-            )}>
-              <TabsTrigger 
-                value="overview" 
-                className={cn(isMobile && "text-xs py-2")}
-              >
-                {isMobile ? "Overview" : "Ringkasan Biaya"}
+
+        <CardContent className={cn('p-6', isMobile && 'p-4')}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+            <TabsList
+              className={cn('grid w-full', isMobile ? 'grid-cols-2' : 'grid-cols-4', isMobile && 'h-auto')}
+            >
+              <TabsTrigger value="overview" className={cn(isMobile && 'text-xs py-2')}>
+                {isMobile ? 'Overview' : 'Ringkasan Biaya'}
               </TabsTrigger>
-              <TabsTrigger 
-                value="cogs" 
-                className={cn(isMobile && "text-xs py-2")}
-              >
-                {isMobile ? "COGS" : "Detail HPP"}
+              <TabsTrigger value="cogs" className={cn(isMobile && 'text-xs py-2')}>
+                {isMobile ? 'COGS' : 'Detail HPP'}
               </TabsTrigger>
-              <TabsTrigger 
-                value="opex" 
-                className={cn(isMobile && "text-xs py-2")}
-              >
-                {isMobile ? "OPEX" : "Detail OPEX"}
+              <TabsTrigger value="opex" className={cn(isMobile && 'text-xs py-2')}>
+                {isMobile ? 'OPEX' : 'Detail OPEX'}
               </TabsTrigger>
-              <TabsTrigger 
-                value="analysis" 
-                className={cn(isMobile && "text-xs py-2")}
-              >
-                {isMobile ? "Analisis" : "Analisis & Target"}
+              <TabsTrigger value="analysis" className={cn(isMobile && 'text-xs py-2')}>
+                {isMobile ? 'Analisis' : 'Analisis & Target'}
               </TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className={cn("mt-6", isMobile && "mt-4")}>
-              <div className={cn("space-y-6", isMobile && "space-y-4")}>
-                {/* Cost Overview */}
-                <CostOverview
-                  profitData={profitData}
-                  calculations={calculations}
-                  isMobile={isMobile}
-                />
-
-                {/* Summary Cards */}
-                <div className={cn("grid grid-cols-1 gap-6", !isMobile && "lg:grid-cols-2")}>
-                  <HppSummaryCard
-                    profitData={profitData}
-                    calculations={calculations}
-                    isMobile={isMobile}
-                  />
-                  <OpexSummaryCard
-                    profitData={profitData}
-                    calculations={calculations}
-                    isMobile={isMobile}
-                  />
+            {/* OVERVIEW */}
+            <TabsContent value="overview" className={cn('mt-6', isMobile && 'mt-4')}>
+              <div className={cn('space-y-6', isMobile && 'space-y-4')}>
+                <CostOverview profitData={profitData} calculations={calculations} isMobile={isMobile} />
+                <div className={cn('grid grid-cols-1 gap-6', !isMobile && 'lg:grid-cols-2')}>
+                  <HppSummaryCard profitData={profitData} calculations={calculations} isMobile={isMobile} />
+                  <OpexSummaryCard profitData={profitData} calculations={calculations} isMobile={isMobile} />
                 </div>
-
-                {/* Quick Ratio Analysis */}
-                <QuickRatioAnalysis
-                  profitData={profitData}
-                  calculations={calculations}
-                  isMobile={isMobile}
-                />
+                <QuickRatioAnalysis profitData={profitData} calculations={calculations} isMobile={isMobile} />
               </div>
             </TabsContent>
 
-            {/* COGS Detail Tab */}
-            <CogsDetailTab
-              profitData={profitData}
-              calculations={calculations}
-              isMobile={isMobile}
-            />
+            {/* COGS */}
+            <TabsContent value="cogs" className={cn('mt-6', isMobile && 'mt-4')}>
+              <CogsDetailTab profitData={profitData} calculations={calculations} isMobile={isMobile} />
+            </TabsContent>
 
-            {/* OPEX Detail Tab */}
-            <OpexDetailTab
-              profitData={profitData}
-              calculations={calculations}
-              isMobile={isMobile}
-            />
+            {/* OPEX */}
+            <TabsContent value="opex" className={cn('mt-6', isMobile && 'mt-4')}>
+              <OpexDetailTab profitData={profitData} calculations={calculations} isMobile={isMobile} />
+            </TabsContent>
 
-            {/* Analysis Tab */}
-            <AnalysisTab
-              profitData={profitData}
-              calculations={calculations}
-              costAnalysis={costAnalysis}
-              efficiencyMetrics={efficiencyMetrics}
-              targetAnalysis={targetAnalysis}
-              isMobile={isMobile}
-            />
+            {/* ANALYSIS */}
+            <TabsContent value="analysis" className={cn('mt-6', isMobile && 'mt-4')}>
+              <AnalysisTab
+                profitData={profitData}
+                calculations={calculations}
+                costAnalysis={costAnalysis}
+                efficiencyMetrics={efficiencyMetrics}
+                targetAnalysis={targetAnalysis}
+                isMobile={isMobile}
+              />
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
@@ -159,5 +119,4 @@ export const RincianTab: React.FC<RincianTabProps> = ({
   );
 };
 
-// Default export for easier importing
 export default RincianTab;

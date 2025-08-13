@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/tabs/RincianTab.tsx
+// src/components/profitAnalysis/tabs/RincianTab.tsx
 // ✅ TAB RINCIAN - Detailed breakdown HPP dan OPEX
 
 import React from 'react';

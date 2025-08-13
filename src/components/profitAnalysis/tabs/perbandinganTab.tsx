@@ -1,5 +1,5 @@
-/ src/components/financial/profit-analysis/tabs/PerbandinganTab.tsx
-// ✅ TAB PERBANDINGAN - Complete version dengan comprehensive comparison
+// src/components/financial/profit-analysis/tabs/PerbandinganTab.tsx
+// ✅ TAB PERBANDINGAN - Complete version with comprehensive comparison
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,14 +14,13 @@ import {
   TrendingDown, 
   BarChart3,
   Target,
-  DollarSign,
-  Calculator,
-  ArrowUpDown
+  Calculator
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
+import { ProfitAnalysisResult, PROFIT_MARGIN_THRESHOLDS } from '@/components/profitAnalysis/types';
 
 interface PerbandinganTabProps {
-  profitData: any;
+  profitData: ProfitAnalysisResult;
 }
 
 export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) => {
@@ -34,26 +33,7 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
   const isRealProfitHigher = realProfit > cashFlow;
 
   // Industry benchmarks data
-  const industryBenchmarks = {
-    grossMargin: {
-      excellent: 40,
-      good: 25,
-      acceptable: 15,
-      poor: 5
-    },
-    netMargin: {
-      excellent: 15,
-      good: 10,
-      acceptable: 5,
-      poor: 2
-    },
-    costRatios: {
-      cogs: { target: 70, current: (profitData.cogsBreakdown.totalCOGS / profitData.profitMarginData.revenue) * 100 },
-      opex: { target: 20, current: (profitData.opexBreakdown.totalOPEX / profitData.profitMarginData.revenue) * 100 },
-      material: { target: 40, current: (profitData.cogsBreakdown.totalMaterialCost / profitData.profitMarginData.revenue) * 100 },
-      labor: { target: 20, current: (profitData.cogsBreakdown.totalDirectLaborCost / profitData.profitMarginData.revenue) * 100 }
-    }
-  };
+  const industryBenchmarks = PROFIT_MARGIN_THRESHOLDS;
 
   // Competitive analysis simulation
   const competitiveAnalysis = {
@@ -85,6 +65,14 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
     if (margin >= benchmarks.acceptable) return { status: 'Cukup', color: 'yellow', description: 'Memenuhi minimum' };
     if (margin >= benchmarks.poor) return { status: 'Perlu Perbaikan', color: 'orange', description: 'Di bawah standar' };
     return { status: 'Kritis', color: 'red', description: 'Perlu tindakan segera' };
+  };
+
+  const getRatioStatus = (current: number, target: number) => {
+    const diff = current - target;
+    if (diff <= -5) return { status: 'Efisien', color: 'green', description: 'Rasio sangat baik' };
+    if (diff <= 0) return { status: 'Baik', color: 'blue', description: 'Rasio sesuai target' };
+    if (diff <= 5) return { status: 'Cukup', color: 'yellow', description: 'Rasio sedikit di atas target' };
+    return { status: 'Perlu Optimasi', color: 'orange', description: 'Rasio melebihi target' };
   };
 
   return (
@@ -233,4 +221,265 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                             variant={getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').color === 'green' ? "default" : "secondary"}
                             className="ml-2 text-xs"
                           >
-                            {getMarginStatus(profitData.profitMarginData.grossMargin, 'gross
+                            {getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={profitData.profitMarginData.grossMargin} 
+                        max={50}
+                        className={`h-2 bg-${getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').color}-500`} 
+                      />
+                      <p className="text-xs text-gray-600 mt-1">
+                        {getMarginStatus(profitData.profitMarginData.grossMargin, 'gross').description}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Margin Bersih</span>
+                        <div className="text-right">
+                          <span className="text-sm font-bold">{profitData.profitMarginData.netMargin.toFixed(1)}%</span>
+                          <Badge 
+                            variant={getMarginStatus(profitData.profitMarginData.netMargin, 'net').color === 'green' ? "default" : "secondary"}
+                            className="ml-2 text-xs"
+                          >
+                            {getMarginStatus(profitData.profitMarginData.netMargin, 'net').status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={profitData.profitMarginData.netMargin} 
+                        max={30}
+                        className={`h-2 bg-${getMarginStatus(profitData.profitMarginData.netMargin, 'net').color}-500`} 
+                      />
+                      <p className="text-xs text-gray-600 mt-1">
+                        {getMarginStatus(profitData.profitMarginData.netMargin, 'net').description}
+                      </p>
+                    </div>
+
+                    <Alert>
+                      <Target className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Target Industri:</strong>
+                        <ul className="mt-2 space-y-1 text-sm">
+                          <li>• Margin Kotor Excellent: ≥{industryBenchmarks.grossMargin.excellent}%</li>
+                          <li>• Margin Bersih Excellent: ≥{industryBenchmarks.netMargin.excellent}%</li>
+                          <li>• Rasio COGS Target: ≤70%</li>
+                          <li>• Rasio OPEX Target: ≤20%</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>🔍 Rasio Biaya vs Industri</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {Object.entries({
+                      COGS: (profitData.cogsBreakdown.totalCOGS / profitData.profitMarginData.revenue) * 100,
+                      OPEX: (profitData.opexBreakdown.totalOPEX / profitData.profitMarginData.revenue) * 100,
+                      Material: (profitData.cogsBreakdown.totalMaterialCost / profitData.profitMarginData.revenue) * 100,
+                      Labor: (profitData.cogsBreakdown.totalDirectLaborCost / profitData.profitMarginData.revenue) * 100
+                    }).map(([key, value]) => (
+                      <div key={key}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">{key}</span>
+                          <div className="text-right">
+                            <span className="text-sm font-bold">{value.toFixed(1)}%</span>
+                            <Badge 
+                              variant={getRatioStatus(value, 70).color === 'green' ? "default" : "secondary"}
+                              className="ml-2 text-xs"
+                            >
+                              {getRatioStatus(value, 70).status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Progress 
+                          value={value} 
+                          max={100}
+                          className={`h-2 bg-${getRatioStatus(value, 70).color}-500`} 
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          {getRatioStatus(value, 70).description}
+                        </p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Competitive Analysis */}
+            <TabsContent value="competitive" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>🏆 Analisis Kompetitif</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <h5 className="font-medium mb-2">📊 Perbandingan Margin</h5>
+                      <div className="bg-gray-100 p-4 rounded">
+                        ```chartjs
+                        {
+                          type: 'bar',
+                          data: {
+                            labels: ['Your Company', 'Industry Average', 'Top Performers'],
+                            datasets: [
+                              {
+                                label: 'Gross Margin (%)',
+                                data: [
+                                  ${competitiveAnalysis.yourCompany.grossMargin},
+                                  ${competitiveAnalysis.industryAverage.grossMargin},
+                                  ${competitiveAnalysis.topPerformers.grossMargin}
+                                ],
+                                backgroundColor: '#4CAF50',
+                                borderColor: '#388E3C',
+                                borderWidth: 1
+                              },
+                              {
+                                label: 'Net Margin (%)',
+                                data: [
+                                  ${competitiveAnalysis.yourCompany.netMargin},
+                                  ${competitiveAnalysis.industryAverage.netMargin},
+                                  ${competitiveAnalysis.topPerformers.netMargin}
+                                ],
+                                backgroundColor: '#2196F3',
+                                borderColor: '#1976D2',
+                                borderWidth: 1
+                              }
+                            ]
+                          },
+                          options: {
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                title: {
+                                  display: true,
+                                  text: 'Margin (%)'
+                                }
+                              }
+                            },
+                            plugins: {
+                              legend: {
+                                position: 'top'
+                              }
+                            }
+                          }
+                        }
+                        ```
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="font-medium mb-2">🔍 Analisis Rasio Biaya</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries({
+                          'COGS Ratio': competitiveAnalysis.yourCompany.cogsRatio,
+                          'OPEX Ratio': competitiveAnalysis.yourCompany.opexRatio
+                        }).map(([key, value]) => (
+                          <div key={key} className="bg-gray-50 p-4 rounded">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">{key}</span>
+                              <span className="text-sm font-bold">{value.toFixed(1)}%</span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              vs Industri: {competitiveAnalysis.industryAverage[key.toLowerCase().replace(' ', '') as keyof typeof competitiveAnalysis.industryAverage].toFixed(1)}%
+                              <br />
+                              vs Top: {competitiveAnalysis.topPerformers[key.toLowerCase().replace(' ', '') as keyof typeof competitiveAnalysis.topPerformers].toFixed(1)}%
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Alert>
+                      <BarChart3 className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Rekomendasi:</strong>
+                        <ul className="mt-2 space-y-1 text-sm">
+                          <li>• Optimasi COGS untuk mendekati top performers (55%)</li>
+                          <li>• Reduksi OPEX melalui efisiensi operasional</li>
+                          <li>• Benchmark dengan top performers untuk strategi pricing</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Improvement Potential */}
+            <TabsContent value="improvement" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>🚀 Potensi Perbaikan</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {profitData.insights
+                      .filter(insight => insight.impact === 'high' || insight.impact === 'medium')
+                      .map((insight, index) => (
+                        <Alert key={index}>
+                          <AlertTriangle className={`h-4 w-4 ${insight.type === 'critical' ? 'text-red-600' : 'text-yellow-600'}`} />
+                          <AlertDescription>
+                            <strong>{insight.title}</strong>
+                            <p className="text-sm">{insight.message}</p>
+                            {insight.recommendation && (
+                              <p className="text-xs text-gray-600 mt-1">Rekomendasi: {insight.recommendation}</p>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      ))}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>🎯 Target Optimasi</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h5 className="font-medium mb-2">Skenario Perbaikan</h5>
+                      <div className="space-y-3">
+                        <div className="bg-green-50 p-3 rounded">
+                          <div className="flex justify-between">
+                            <span className="text-green-800">Reduksi COGS 10%</span>
+                            <span className="font-medium text-green-700">
+                              +{formatCurrency(profitData.cogsBreakdown.totalCOGS * 0.1)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-green-600 mt-1">
+                            Potensi kenaikan laba bersih
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded">
+                          <div className="flex justify-between">
+                            <span className="text-blue-800">Reduksi OPEX 10%</span>
+                            <span className="font-medium text-blue-700">
+                              +{formatCurrency(profitData.opexBreakdown.totalOPEX * 0.1)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-blue-600 mt-1">
+                            Potensi kenaikan laba bersih
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="outline" className="w-full">
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Simulasikan Skenario Lain
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

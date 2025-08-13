@@ -2,6 +2,79 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 /**
+ * ✅ NEW: Device capability detection
+ */
+const detectDeviceCapabilities = () => {
+  const capabilities = {
+    hasLocalStorage: false,
+    hasSessionStorage: false,
+    networkType: 'unknown',
+    isSlowDevice: false,
+    userAgent: navigator.userAgent || 'unknown'
+  };
+
+  // Test localStorage
+  try {
+    localStorage.setItem('__test__', 'test');
+    localStorage.removeItem('__test__');
+    capabilities.hasLocalStorage = true;
+  } catch {
+    logger.warn('localStorage not available or restricted');
+  }
+
+  // Test sessionStorage
+  try {
+    sessionStorage.setItem('__test__', 'test');
+    sessionStorage.removeItem('__test__');
+    capabilities.hasSessionStorage = true;
+  } catch {
+    logger.warn('sessionStorage not available or restricted');
+  }
+
+  // Detect network type
+  if ('connection' in navigator) {
+    const connection = (navigator as any).connection;
+    capabilities.networkType = connection.effectiveType || 'unknown';
+  }
+
+  // Detect slow device (simplified heuristic)
+  const isSlowDevice = capabilities.userAgent.includes('Android 4') || 
+                      capabilities.userAgent.includes('iPhone OS 10') ||
+                      !capabilities.hasLocalStorage;
+  capabilities.isSlowDevice = isSlowDevice;
+
+  logger.debug('Device capabilities detected:', capabilities);
+  return capabilities;
+};
+
+/**
+ * ✅ NEW: Adaptive timeout based on device capabilities
+ */
+const getAdaptiveTimeout = (baseTimeout = 15000) => {
+  const capabilities = detectDeviceCapabilities();
+  
+  let timeout = baseTimeout;
+  
+  // Increase timeout for slow devices
+  if (capabilities.isSlowDevice) {
+    timeout *= 2;
+    logger.debug('Slow device detected, doubling timeout:', timeout);
+  }
+  
+  // Increase timeout for slow networks
+  if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
+    timeout *= 3;
+    logger.debug('Slow network detected, tripling timeout:', timeout);
+  } else if (capabilities.networkType === '3g') {
+    timeout *= 1.5;
+    logger.debug('3G network detected, increasing timeout:', timeout);
+  }
+  
+  // Cap at reasonable maximum
+  return Math.min(timeout, 60000); // Max 60 seconds
+};
+
+/**
  * Cleans up all Supabase authentication related data from localStorage and sessionStorage
  * to ensure no invalid tokens remain when authentication issues occur
  * 
@@ -88,14 +161,29 @@ export const performGlobalSignOut = async () => {
  * - Handles temporary network issues gracefully
  * - Prevents aggressive cleanup that destroys valid sessions
  */
-export const validateAuthSession = async () => {
+/**
+ * ✅ ENHANCED: Validates the current auth session with device-adaptive timeout and retry logic
+ * 
+ * This function now:
+ * - Detects device capabilities and adapts timeouts accordingly
+ * - Implements retry logic for slow devices/networks
+ * - Only cleans up auth state when truly necessary
+ * - Handles temporary network issues gracefully
+ * - Prevents aggressive cleanup that destroys valid sessions
+ */
+export const validateAuthSession = async (retryCount = 0) => {
+  const maxRetries = 2;
+  
   try {
-    logger.debug('🔍 Validating auth session...');
+    logger.debug(`🔍 Validating auth session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
     
-    // ✅ ADD: Timeout protection for slow networks (15 seconds)
+    // ✅ DEVICE B FIX: Adaptive timeout based on device capabilities
+    const adaptiveTimeout = getAdaptiveTimeout(15000);
+    logger.debug('Using adaptive timeout:', adaptiveTimeout);
+    
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session validation timeout')), 15000)
+      setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeout)
     );
     
     const { data: { session }, error } = await Promise.race([
@@ -105,6 +193,18 @@ export const validateAuthSession = async () => {
     
     if (error) {
       logger.error('⚠️ Error validating auth session:', error);
+      
+      // ✅ DEVICE B FIX: Retry on network errors for slow devices
+      if (retryCount < maxRetries && (
+        error.message?.includes('network') || 
+        error.message?.includes('fetch') ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('Failed to fetch')
+      )) {
+        logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return validateAuthSession(retryCount + 1);
+      }
       
       // ✅ IMPROVED: Only cleanup on specific auth errors, not network errors
       if (error.message?.includes('Invalid Refresh Token') || 
@@ -122,11 +222,22 @@ export const validateAuthSession = async () => {
     if (!session) {
       logger.debug('ℹ️ No session found during validation');
       
+      // ✅ DEVICE B FIX: Retry for slow devices that might need more time
+      if (retryCount < maxRetries) {
+        const capabilities = detectDeviceCapabilities();
+        if (capabilities.isSlowDevice || capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
+          logger.debug('🐌 Slow device/network detected, retrying session check...');
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+          return validateAuthSession(retryCount + 1);
+        }
+      }
+      
       // ✅ CRITICAL FIX: DON'T cleanup auth state on missing session
       // This could be due to:
       // - Session not yet propagated after OTP
       // - Temporary network issues
       // - Race conditions
+      // - Device-specific timing issues
       // 
       // Let AuthGuard/AuthContext handle the redirect decision
       // cleanupAuthState(); // ❌ REMOVED
@@ -148,10 +259,18 @@ export const validateAuthSession = async () => {
       return false;
     }
     
+    // ✅ DEVICE B FIX: Validate user ID format (catch corrupted sessions)
+    if (typeof session.user.id !== 'string' || session.user.id.length < 10) {
+      logger.warn('🔧 Invalid user ID format, cleaning up auth state:', session.user.id);
+      cleanupAuthState();
+      return false;
+    }
+    
     logger.success('✅ Session validation successful:', {
       userId: session.user.id,
       email: session.user.email,
-      expiresAt: session.expires_at
+      expiresAt: session.expires_at,
+      attempt: retryCount + 1
     });
     
     return true;
@@ -159,15 +278,31 @@ export const validateAuthSession = async () => {
   } catch (error) {
     logger.error('❌ Unexpected error validating auth session:', error);
     
-    // ✅ CRITICAL FIX: DON'T cleanup on timeout/network errors
-    // Only cleanup on specific auth-related errors
+    // ✅ DEVICE B FIX: Enhanced retry logic for device-specific issues
+    if (retryCount < maxRetries) {
+      const errorMessage = error.message?.toLowerCase() || '';
+      
+      if (errorMessage.includes('session validation timeout')) {
+        logger.warn('⏱️ Session validation timeout, retrying with longer delay...');
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+        return validateAuthSession(retryCount + 1);
+      } else if (errorMessage.includes('network') || 
+                 errorMessage.includes('fetch') ||
+                 errorMessage.includes('connection')) {
+        logger.warn('🌐 Network error during validation, retrying...');
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return validateAuthSession(retryCount + 1);
+      }
+    }
+    
+    // ✅ CRITICAL FIX: DON'T cleanup on timeout/network errors after all retries
     if (error.message?.includes('Session validation timeout')) {
-      logger.debug('⏱️ Session validation timeout, preserving auth state');
+      logger.debug('⏱️ Session validation timeout after retries, preserving auth state');
     } else if (error.message?.includes('network') || 
                error.message?.includes('fetch')) {
-      logger.debug('🌐 Network error during validation, preserving auth state');
+      logger.debug('🌐 Network error after retries, preserving auth state');
     } else {
-      logger.warn('🧹 Unexpected error, cleaning up auth state for safety');
+      logger.warn('🧹 Unexpected error after retries, cleaning up auth state for safety');
       cleanupAuthState();
     }
     
@@ -182,13 +317,19 @@ export const validateAuthSession = async () => {
  * Use this for non-critical checks where you don't want to risk
  * cleaning up valid auth state.
  */
+/**
+ * ✅ ENHANCED: Safe session check with device-adaptive timeout
+ */
 export const checkSessionExists = async () => {
   try {
     logger.debug('👀 Checking session existence (safe mode)...');
     
+    // ✅ DEVICE B FIX: Use adaptive timeout
+    const adaptiveTimeout = getAdaptiveTimeout(5000);
+    
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise((resolve) => 
-      setTimeout(() => resolve({ data: { session: null }, error: null }), 5000)
+      setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
     );
     
     const { data: { session }, error } = await Promise.race([
@@ -218,11 +359,25 @@ export const checkSessionExists = async () => {
  * Attempts to refresh the current session. If it fails,
  * it doesn't clean up auth state - just returns false.
  */
+/**
+ * ✅ ENHANCED: Force refresh session with device-adaptive retry
+ */
 export const refreshSessionSafely = async () => {
   try {
     logger.debug('🔄 Safely refreshing session...');
     
-    const { data: { session }, error } = await supabase.auth.refreshSession();
+    // ✅ DEVICE B FIX: Add timeout for refresh operation
+    const adaptiveTimeout = getAdaptiveTimeout(10000);
+    
+    const refreshPromise = supabase.auth.refreshSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Session refresh timeout')), adaptiveTimeout)
+    );
+    
+    const { data: { session }, error } = await Promise.race([
+      refreshPromise,
+      timeoutPromise
+    ]);
     
     if (error) {
       logger.error('⚠️ Session refresh error:', error);
@@ -249,9 +404,15 @@ export const refreshSessionSafely = async () => {
  * Provides detailed information about current auth state
  * for debugging purposes without affecting the session.
  */
+/**
+ * ✅ ENHANCED: Debug auth state with device capabilities
+ */
 export const debugAuthState = async () => {
   try {
     logger.debug('🔬 Debugging auth state...');
+    
+    // Check device capabilities
+    const capabilities = detectDeviceCapabilities();
     
     // Check localStorage
     const localStorageKeys = Object.keys(localStorage).filter(key => 
@@ -263,17 +424,30 @@ export const debugAuthState = async () => {
       key.startsWith('supabase.auth.') || key.includes('sb-')
     );
     
-    // Check current session
+    // Check current session with timeout
     let sessionInfo = null;
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const adaptiveTimeout = getAdaptiveTimeout(10000);
+      
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((resolve) => 
+        setTimeout(() => resolve({ data: { session: null }, error: { message: 'Debug timeout' } }), adaptiveTimeout)
+      );
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]);
+      
       sessionInfo = {
         hasSession: !!session,
         hasUser: !!session?.user,
         userId: session?.user?.id || null,
         email: session?.user?.email || null,
         expiresAt: session?.expires_at || null,
-        error: error?.message || null
+        error: error?.message || null,
+        userIdType: typeof session?.user?.id,
+        userIdLength: session?.user?.id?.length || 0
       };
     } catch (err) {
       sessionInfo = { error: err.message };
@@ -281,12 +455,28 @@ export const debugAuthState = async () => {
     
     const debugInfo = {
       timestamp: new Date().toISOString(),
+      deviceCapabilities: capabilities,
+      adaptiveTimeout: getAdaptiveTimeout(15000),
       localStorageKeys,
       sessionStorageKeys,
-      sessionInfo
+      sessionInfo,
+      userAgent: navigator.userAgent
     };
     
     logger.debug('🔬 Auth Debug Info:', debugInfo);
+    
+    // ✅ DEVICE B: Also log to console for easier debugging
+    console.table({
+      'Has LocalStorage': capabilities.hasLocalStorage,
+      'Has SessionStorage': capabilities.hasSessionStorage,
+      'Network Type': capabilities.networkType,
+      'Is Slow Device': capabilities.isSlowDevice,
+      'Has Session': sessionInfo?.hasSession || false,
+      'Has User': sessionInfo?.hasUser || false,
+      'User Email': sessionInfo?.email || 'none',
+      'Adaptive Timeout': getAdaptiveTimeout(15000) + 'ms'
+    });
+    
     return debugInfo;
     
   } catch (error) {

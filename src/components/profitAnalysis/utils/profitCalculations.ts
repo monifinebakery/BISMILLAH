@@ -23,7 +23,7 @@ import {
   DEFAULT_CATEGORY_MAPPING,
   ProfitInsight,
   PROFIT_MARGIN_THRESHOLDS
-} from '../types/profitAnalysis';
+} from '../types';
 
 // ===========================================
 // ✅ MAIN PROFIT CALCULATION FUNCTION

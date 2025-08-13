@@ -78,21 +78,6 @@ export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
     retryDelay: 1000
   });
 
-  // Query untuk dashboard summary
-  const { data: dashboardData } = useQuery({
-    queryKey: profitMarginQueryKeys.dashboard(),
-    queryFn: async () => {
-      const response = await profitAnalysisApi.getDashboardSummary();
-      if (!response.success || !response.data) {
-        logger.warn('Dashboard summary query failed', { error: response.error });
-        throw new Error(response.error || 'Gagal memuat dashboard summary');
-      }
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 10, // 10 menit
-    enabled: !!period
-  });
-
   // Mutation untuk perhitungan ulang
   const calculateMutation = useMutation({
     mutationFn: async () => {
@@ -212,6 +197,83 @@ export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
     comparePeriods,
     getTrend,
     exportAnalysis
+  };
+};
+
+// ===========================================
+// ✅ DASHBOARD HOOK
+// ===========================================
+
+interface ProfitDashboardHook {
+  summary: {
+    currentMargin: ProfitMarginData;
+    alerts: ProfitInsight[];
+  } | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+}
+
+export const useProfitDashboard = (): ProfitDashboardHook => {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<Error | null>(null);
+
+  // Query untuk dashboard summary
+  const { data, isLoading, error: queryError, refetch: queryRefetch } = useQuery({
+    queryKey: profitMarginQueryKeys.dashboard(),
+    queryFn: async () => {
+      logger.debug('Fetching dashboard summary');
+      const response = await profitAnalysisApi.getDashboardSummary();
+      if (!response.success || !response.data) {
+        logger.error('Dashboard summary query failed', { error: response.error });
+        throw new Error(response.error || 'Gagal memuat dashboard summary');
+      }
+
+      // Validasi response data
+      if (!response.data.revenue || typeof response.data.revenue !== 'number') {
+        logger.error('Invalid dashboard summary data received', { data: response.data });
+        throw new Error('Data ringkasan dashboard tidak valid');
+      }
+
+      return {
+        currentMargin: {
+          revenue: response.data.revenue,
+          cogs: response.data.cogs,
+          opex: response.data.opex,
+          grossProfit: response.data.grossProfit,
+          netProfit: response.data.netProfit,
+          grossMargin: response.data.grossMargin,
+          netMargin: response.data.netMargin,
+          calculatedAt: new Date(),
+          period: response.data.period || createDatePeriods.thisMonth()
+        },
+        alerts: response.data.insights || []
+      };
+    },
+    staleTime: 1000 * 60 * 10, // 10 menit
+    retry: 2,
+    retryDelay: 1000
+  });
+
+  // Handle refetch
+  const refetch = useCallback(async () => {
+    setError(null);
+    await queryRefetch();
+  }, [queryRefetch]);
+
+  // Effect untuk log error
+  useEffect(() => {
+    if (queryError) {
+      logger.error('Dashboard summary query error', { error: queryError });
+      setError(queryError);
+    }
+  }, [queryError]);
+
+  return {
+    summary: data || null,
+    isLoading,
+    error,
+    refetch
   };
 };
 
@@ -353,6 +415,7 @@ export const useMaterialUsage = (): MaterialUsageHook => {
 
 export default {
   useProfitMargin,
+  useProfitDashboard,
   useProfitConfig,
   useMaterialUsage
 };

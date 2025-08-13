@@ -254,7 +254,7 @@ export const RincianTab: React.FC<RincianTabProps> = ({ profitData }) => {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>Target:</span>
-                  <span className="font-medium"><20%</span>
+                  <span className="font-medium">{"<"}20%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Aktual:</span>

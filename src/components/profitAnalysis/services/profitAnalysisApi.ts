@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/services/profitAnalysisApi.ts
-// ✅ PROFIT ANALYSIS API - Integration Layer (Updated with Recipe)
+// ✅ COMPLETE UPDATED API - Material Usage Integration
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
@@ -19,11 +19,16 @@ import {
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
   DatePeriod,
-  ProfitMarginData
+  ProfitMarginData,
+  MaterialUsageLog,
+  ProductionRecord
 } from '../types';
 
 import { AllocationSettings } from '@/components/operational-costs/types/operationalCost.types';
-import { Recipe } from '@/components/recipe/types'; // ✅ Import Recipe type
+import { Recipe } from '@/components/recipe/types';
+import { FinancialTransaction } from '@/components/financial/types/financial';
+import { OperationalCost } from '@/components/operational-costs/types/operationalCost.types';
+import { BahanBakuFrontend } from '@/components/warehouse/types';
 
 // ===========================================
 // ✅ HELPER FUNCTIONS
@@ -50,7 +55,7 @@ const handleApiError = (operation: string, error: any): ProfitAnalysisApiRespons
 };
 
 // ===========================================
-// ✅ INTEGRATION FUNCTION (Pindah ke sini untuk menghindari circular dependency)
+// ✅ UPDATED INTEGRATION FUNCTION
 // ===========================================
 
 export const integrateFinancialData = async (
@@ -60,7 +65,9 @@ export const integrateFinancialData = async (
   transactions: FinancialTransaction[];
   operationalCosts: OperationalCost[];
   materials: BahanBakuFrontend[];
-  recipes: Recipe[]; // ✅ Add recipes to integrated data
+  recipes: Recipe[];
+  materialUsage: MaterialUsageLog[]; // ✅ NEW
+  productionRecords: ProductionRecord[]; // ✅ NEW
 }> => {
   try {
     // Dynamic imports to avoid circular dependencies
@@ -68,22 +75,100 @@ export const integrateFinancialData = async (
       import('@/components/financial/services/financialApi'),
       import('@/components/operational-costs/services/operationalCostApi'),
       import('@/components/warehouse/services/warehouseApi'),
-      import('@/components/recipe/services/recipeApi') // ✅ Import recipe API
+      import('@/components/recipe/services/recipeApi')
     ]);
 
-    // Fetch data from all modules
-    const [transactionsResult, costsResult, materialsResult, recipesResult] = await Promise.all([
+    // ✅ FETCH ALL DATA INCLUDING MATERIAL USAGE
+    const [
+      transactionsResult, 
+      costsResult, 
+      materialsResult, 
+      recipesResult,
+      materialUsageResult,
+      productionRecordsResult
+    ] = await Promise.all([
       financialApi.getTransactionsByDateRange(userId, period.from, period.to),
       operationalApi.operationalCostApi.getCosts(),
       warehouseApi.warehouseApi.createService('crud', { userId }).then(service => service.fetchBahanBaku()),
-      recipeApi.recipeApi.getRecipes() // ✅ Fetch all recipes (filtering can be done later if needed)
+      recipeApi.recipeApi.getRecipes(),
+      
+      // ✅ NEW: Fetch material usage from database
+      supabase
+        .from('material_usage_log')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('usage_date', period.from.toISOString())
+        .lte('usage_date', period.to.toISOString())
+        .order('usage_date', { ascending: false }),
+        
+      // ✅ NEW: Fetch production records from database  
+      supabase
+        .from('production_records')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('production_date', period.from.toISOString())
+        .lte('production_date', period.to.toISOString())
+        .order('production_date', { ascending: false })
     ]);
+
+    // ✅ PROCESS MATERIAL USAGE DATA
+    let materialUsage: MaterialUsageLog[] = [];
+    if (materialUsageResult.data && !materialUsageResult.error) {
+      materialUsage = materialUsageResult.data.map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        material_id: record.material_id,
+        usage_type: record.usage_type,
+        quantity_used: Number(record.quantity_used),
+        unit_cost: Number(record.unit_cost),
+        total_cost: Number(record.total_cost),
+        usage_date: new Date(record.usage_date),
+        reference_type: record.reference_type,
+        reference_id: record.reference_id,
+        notes: record.notes,
+        batch_number: record.batch_number,
+        created_at: new Date(record.created_at),
+        updated_at: new Date(record.updated_at)
+      }));
+      
+      logger.info(`Fetched ${materialUsage.length} material usage records for period ${period.label}`);
+    } else {
+      logger.warn('Failed to fetch material usage:', materialUsageResult.error);
+    }
+
+    // ✅ PROCESS PRODUCTION RECORDS DATA
+    let productionRecords: ProductionRecord[] = [];
+    if (productionRecordsResult.data && !productionRecordsResult.error) {
+      productionRecords = productionRecordsResult.data.map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        product_name: record.product_name,
+        quantity_produced: Number(record.quantity_produced),
+        production_date: new Date(record.production_date),
+        total_material_cost: Number(record.total_material_cost),
+        total_labor_cost: Number(record.total_labor_cost),
+        total_overhead_cost: Number(record.total_overhead_cost),
+        unit_cost: Number(record.unit_cost || 0),
+        batch_number: record.batch_number,
+        quality_grade: record.quality_grade,
+        notes: record.notes,
+        status: record.status,
+        created_at: new Date(record.created_at),
+        updated_at: new Date(record.updated_at)
+      }));
+      
+      logger.info(`Fetched ${productionRecords.length} production records for period ${period.label}`);
+    } else {
+      logger.warn('Failed to fetch production records:', productionRecordsResult.error);
+    }
 
     return {
       transactions: transactionsResult || [],
       operationalCosts: costsResult.data || [],
       materials: materialsResult || [],
-      recipes: recipesResult || [] // ✅ Include recipes
+      recipes: recipesResult || [],
+      materialUsage, // ✅ NEW
+      productionRecords // ✅ NEW
     };
   } catch (error) {
     logger.error('Error integrating financial data:', error);
@@ -97,7 +182,7 @@ export const integrateFinancialData = async (
 
 export const profitAnalysisApi = {
   /**
-   * Calculate profit margins for a given period
+   * ✅ UPDATED: Calculate profit margins with material usage
    */
   async calculateProfitMargin(
     period: DatePeriod,
@@ -115,15 +200,14 @@ export const profitAnalysisApi = {
         };
       }
 
-      // Kurangi logging untuk production
       if (process.env.NODE_ENV === 'development') {
-        logger.info('Starting profit margin calculation', { userId, period });
+        logger.info('Starting profit margin calculation with material usage', { userId, period });
       }
 
-      // Integrate data from all modules
+      // ✅ INTEGRATE DATA INCLUDING MATERIAL USAGE
       const integratedData = await integrateFinancialData(userId, period);
 
-      // Prepare analysis input
+      // ✅ PREPARE ANALYSIS INPUT WITH NEW FIELDS
       const analysisInput: ProfitAnalysisInput = {
         ...integratedData,
         period
@@ -139,7 +223,7 @@ export const profitAnalysisApi = {
         };
       }
 
-      // Get allocation settings for overhead calculation
+      // Get allocation settings
       const allocationSettings = await profitAnalysisApi.getAllocationSettings();
 
       // Merge category mapping with defaults
@@ -148,7 +232,7 @@ export const profitAnalysisApi = {
         ...categoryMapping
       };
 
-      // Calculate profit margins
+      // ✅ CALCULATE WITH UPDATED FUNCTION
       const result = calculateProfitMargins(
         analysisInput,
         finalCategoryMapping,
@@ -157,21 +241,22 @@ export const profitAnalysisApi = {
 
       const calculationTime = Date.now() - startTime;
 
-      // Kurangi logging untuk production
       if (process.env.NODE_ENV === 'development') {
-        logger.info('Profit margin calculation completed', {
+        logger.info('Profit margin calculation completed with material usage', {
           userId,
           calculationTime,
           revenue: result.profitMarginData.revenue,
-          grossMargin: result.profitMarginData.grossMargin,
-          netMargin: result.profitMarginData.netMargin
+          cogs: result.profitMarginData.cogs,
+          materialUsageRecords: integratedData.materialUsage.length,
+          productionRecords: integratedData.productionRecords.length,
+          dataSource: result.cogsBreakdown.dataSource
         });
       }
 
       return {
         data: result,
         success: true,
-        message: 'Analisis profit margin berhasil',
+        message: 'Analisis profit margin berhasil dengan data material usage',
         calculationTime
       };
 
@@ -291,6 +376,79 @@ export const profitAnalysisApi = {
   },
 
   /**
+   * ✅ NEW: Get material usage summary for period
+   */
+  async getMaterialUsageSummary(
+    period: DatePeriod
+  ): Promise<ProfitAnalysisApiResponse<{
+    totalMaterialCost: number;
+    materialUsageCount: number;
+    topMaterials: Array<{
+      materialId: string;
+      materialName: string;
+      totalCost: number;
+      quantityUsed: number;
+    }>;
+  }>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: null,
+          error: 'User tidak ditemukan',
+          success: false
+        };
+      }
+
+      const { materialUsage } = await integrateFinancialData(userId, period);
+
+      const totalMaterialCost = materialUsage.reduce((sum, usage) => sum + usage.total_cost, 0);
+      const materialUsageCount = materialUsage.length;
+
+      // Group by material and calculate totals
+      const materialMap = new Map<string, { totalCost: number; quantityUsed: number; materialName: string }>();
+      
+      materialUsage.forEach(usage => {
+        const key = usage.material_id;
+        if (materialMap.has(key)) {
+          const existing = materialMap.get(key)!;
+          existing.totalCost += usage.total_cost;
+          existing.quantityUsed += usage.quantity_used;
+        } else {
+          materialMap.set(key, {
+            totalCost: usage.total_cost,
+            quantityUsed: usage.quantity_used,
+            materialName: 'Material' // Would need to join with materials to get actual name
+          });
+        }
+      });
+
+      const topMaterials = Array.from(materialMap.entries())
+        .map(([materialId, data]) => ({
+          materialId,
+          materialName: data.materialName,
+          totalCost: data.totalCost,
+          quantityUsed: data.quantityUsed
+        }))
+        .sort((a, b) => b.totalCost - a.totalCost)
+        .slice(0, 10);
+
+      return {
+        data: {
+          totalMaterialCost,
+          materialUsageCount,
+          topMaterials
+        },
+        success: true,
+        message: 'Material usage summary berhasil dimuat'
+      };
+
+    } catch (error) {
+      return handleApiError('Material usage summary', error);
+    }
+  },
+
+  /**
    * Save profit analysis configuration
    */
   async saveProfitConfig(
@@ -393,34 +551,6 @@ export const profitAnalysisApi = {
   },
 
   /**
-   * Export profit analysis to different formats
-   */
-  async exportProfitAnalysis(
-    result: ProfitAnalysisResult,
-    format: 'pdf' | 'excel' | 'csv'
-  ): Promise<ProfitAnalysisApiResponse<string>> {
-    try {
-      // This would integrate with export utilities
-      // For now, return a placeholder
-      logger.info('Export profit analysis', { format });
-
-      // In a real implementation, you would:
-      // 1. Format the data for export
-      // 2. Generate the file (PDF, Excel, CSV)
-      // 3. Upload to storage or return download URL
-
-      return {
-        data: `export-${format}-${Date.now()}`,
-        success: true,
-        message: `Export ${format.toUpperCase()} berhasil`
-      };
-
-    } catch (error) {
-      return handleApiError('Export profit analysis', error);
-    }
-  },
-
-  /**
    * Get profit analysis summary for dashboard
    */
   async getDashboardSummary(
@@ -444,7 +574,7 @@ export const profitAnalysisApi = {
         return result as any;
       }
 
-      // Generate alerts based on insights (proses ini lebih dulu untuk mengurangi pemanggilan API)
+      // Generate alerts based on insights
       const alerts = result.data.insights
         .filter(insight => insight.type === 'warning' || insight.type === 'critical')
         .map(insight => ({
@@ -452,11 +582,10 @@ export const profitAnalysisApi = {
           message: insight.message
         }));
 
-      // Generate trend data (last 3 months) - batasi jumlah pemanggilan
+      // Generate trend data (last 3 months)
       const trends: Array<{ period: string; margin: number }> = [];
       const currentDate = new Date();
       
-      // Batasi hanya 3 periode terakhir untuk mengurangi beban
       for (let i = 2; i >= 0; i--) {
         const periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
         const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
@@ -467,7 +596,6 @@ export const profitAnalysisApi = {
         });
 
         try {
-          // Gunakan caching atau batch request jika memungkinkan
           const periodResult = await profitAnalysisApi.calculateProfitMargin({
             from: periodStart,
             to: periodEnd,
@@ -482,7 +610,6 @@ export const profitAnalysisApi = {
           }
         } catch (error) {
           logger.warn(`Failed to get trend for ${periodLabel}:`, error);
-          // Jangan hentikan proses hanya karena satu periode gagal
         }
       }
 

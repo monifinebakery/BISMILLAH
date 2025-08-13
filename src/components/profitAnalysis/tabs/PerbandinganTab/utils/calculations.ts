@@ -1,4 +1,4 @@
-/ src/components/profitAnalysis/tabs/PerbandinganTab/utils/calculations.ts
+// src/components/profitAnalysis/tabs/PerbandinganTab/utils/calculations.ts
 
 import { 
   CashVsRealComparison, 

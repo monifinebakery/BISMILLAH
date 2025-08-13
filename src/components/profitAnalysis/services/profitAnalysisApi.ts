@@ -21,7 +21,7 @@ import {
   DEFAULT_CATEGORY_MAPPING,
   DatePeriod,
   ProfitMarginData
-} from '../types/profitAnalysis';
+} from '../types';
 
 import { AllocationSettings } from '@/components/operational-costs/types/operationalCost.types';
 

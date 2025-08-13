@@ -1,4 +1,4 @@
-// src/components/financial/utils/profitCalculations.ts
+// src/components/profitAnalysis/profitCalculations.ts
 // ✅ REAL PROFIT MARGIN CALCULATIONS - Integration Logic
 
 import { logger } from '@/utils/logger';

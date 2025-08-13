@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/utils/profitCalculations.ts
-// ✅ REAL PROFIT MARGIN CALCULATIONS - Integration Logic (Updated with Recipe)
+// ✅ COMPLETE UPDATED CALCULATIONS - Material Usage Integration
 
 import { logger } from '@/utils/logger';
 import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
@@ -9,7 +9,7 @@ import { calculateTotalActiveCosts, calculateOverheadPerUnit } from '@/component
 import { FinancialTransaction } from '@/components/financial/types/financial';
 import { OperationalCost, AllocationSettings } from '@/components/operational-costs/types/operationalCost.types';
 import { BahanBakuFrontend } from '@/components/warehouse/types';
-import { Recipe } from '@/components/recipe/types'; // ✅ Import Recipe type
+import { Recipe } from '@/components/recipe/types';
 import {
   ProfitMarginData,
   ProfitAnalysisInput,
@@ -23,11 +23,13 @@ import {
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
   ProfitInsight,
-  PROFIT_MARGIN_THRESHOLDS
+  PROFIT_MARGIN_THRESHOLDS,
+  MaterialUsageLog,
+  ProductionRecord
 } from '../types';
 
 // ===========================================
-// ✅ MAIN PROFIT CALCULATION FUNCTION
+// ✅ MAIN PROFIT CALCULATION FUNCTION (UPDATED)
 // ===========================================
 
 export const calculateProfitMargins = (
@@ -36,14 +38,15 @@ export const calculateProfitMargins = (
   allocationSettings?: AllocationSettings
 ): ProfitAnalysisResult => {
   try {
-    // Kurangi logging untuk production
     if (process.env.NODE_ENV === 'development') {
-      logger.info('Starting profit margin calculation', { 
+      logger.info('Starting profit margin calculation with material usage', { 
         period: input.period?.label,
         transactionCount: input.transactions?.length,
         costCount: input.operationalCosts?.length,
         materialCount: input.materials?.length,
-        recipeCount: input.recipes?.length // ✅ Log recipe count
+        recipeCount: input.recipes?.length,
+        materialUsageCount: input.materialUsage?.length, // ✅ NEW
+        productionRecordsCount: input.productionRecords?.length // ✅ NEW
       });
     }
 
@@ -57,12 +60,14 @@ export const calculateProfitMargins = (
     // Calculate revenue from financial transactions
     const revenue = calculateRevenue(periodTransactions);
 
-    // Calculate COGS breakdown
+    // ✅ UPDATED: Calculate COGS breakdown with material usage
     const cogsBreakdown = calculateCOGS(
       periodTransactions,
       input.operationalCosts,
       input.materials,
-      input.recipes, // ✅ Pass recipes to COGS calculation
+      input.recipes,
+      input.materialUsage, // ✅ NEW
+      input.productionRecords, // ✅ NEW
       categoryMapping,
       allocationSettings
     );
@@ -98,18 +103,20 @@ export const calculateProfitMargins = (
         transactions: periodTransactions,
         operationalCosts: input.operationalCosts,
         materials: input.materials,
-        recipes: input.recipes // ✅ Include recipes in raw data
+        recipes: input.recipes,
+        materialUsage: input.materialUsage, // ✅ NEW
+        productionRecords: input.productionRecords // ✅ NEW
       }
     };
 
-    // Kurangi logging untuk production
     if (process.env.NODE_ENV === 'development') {
-      logger.info('Profit margin calculation completed', {
+      logger.info('Profit margin calculation completed with material usage', {
         revenue,
         cogs: cogsBreakdown.totalCOGS,
         opex: opexBreakdown.totalOPEX,
         grossMargin: profitMarginData.grossMargin,
-        netMargin: profitMarginData.netMargin
+        netMargin: profitMarginData.netMargin,
+        dataSource: cogsBreakdown.dataSource
       });
     }
 
@@ -122,7 +129,7 @@ export const calculateProfitMargins = (
 };
 
 // ===========================================
-// ✅ REVENUE CALCULATION
+// ✅ REVENUE CALCULATION (unchanged)
 // ===========================================
 
 export const calculateRevenue = (transactions: FinancialTransaction[]): number => {
@@ -132,36 +139,37 @@ export const calculateRevenue = (transactions: FinancialTransaction[]): number =
 };
 
 // ===========================================
-// ✅ COGS (HPP) CALCULATION (Updated)
+// ✅ UPDATED COGS CALCULATION
 // ===========================================
 
 export const calculateCOGS = (
   transactions: FinancialTransaction[],
   operationalCosts: OperationalCost[],
   materials: BahanBakuFrontend[],
-  recipes: Recipe[], // ✅ Add recipes parameter
+  recipes: Recipe[],
+  materialUsage: MaterialUsageLog[], // ✅ NEW PARAMETER
+  productionRecords: ProductionRecord[], // ✅ NEW PARAMETER
   categoryMapping: CategoryMapping,
   allocationSettings?: AllocationSettings
 ): COGSBreakdown => {
-  // 1. Material costs from financial transactions and warehouse data
-  const materialCosts = calculateMaterialCosts(transactions, materials, categoryMapping);
   
-  // 2. Direct labor costs from operational costs
+  // ✅ PRIORITIZE ACTUAL MATERIAL USAGE over transaction estimates
+  const materialCosts = calculateActualMaterialCosts(
+    materialUsage, 
+    materials, 
+    transactions, 
+    categoryMapping
+  );
+  
+  // Direct labor costs from operational costs (unchanged)
   const directLaborCosts = calculateDirectLaborCosts(operationalCosts, categoryMapping);
   
-  // 3. Manufacturing overhead allocation
+  // Manufacturing overhead allocation (unchanged)
   const manufacturingOverhead = calculateManufacturingOverhead(
     operationalCosts,
     allocationSettings,
     materialCosts.totalMaterialCost
   );
-
-  // 4. Recipe-based cost calculation (NEW)
-  // Here we can potentially cross-reference recipes with transactions or materials
-  // For now, we'll keep the existing logic but acknowledge recipes are available
-  // In a more advanced system, recipes could be used to allocate costs more precisely
-  // or to validate material usage against expected norms.
-  // Example: Find transactions related to recipe sales and allocate COGS accordingly.
 
   const totalCOGS = materialCosts.totalMaterialCost + 
                    directLaborCosts.totalDirectLaborCost + 
@@ -174,15 +182,94 @@ export const calculateCOGS = (
     totalDirectLaborCost: directLaborCosts.totalDirectLaborCost,
     manufacturingOverhead: manufacturingOverhead.amount,
     overheadAllocationMethod: manufacturingOverhead.method,
-    totalCOGS
+    totalCOGS,
+    
+    // ✅ NEW: Include actual usage data for better insights
+    actualMaterialUsage: materialUsage,
+    productionData: productionRecords,
+    dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
   };
 };
 
 // ===========================================
-// ✅ MATERIAL COST CALCULATION (Updated)
+// ✅ NEW FUNCTION: Calculate material costs from actual usage
 // ===========================================
 
-const calculateMaterialCosts = (
+const calculateActualMaterialCosts = (
+  materialUsage: MaterialUsageLog[],
+  materials: BahanBakuFrontend[],
+  transactions: FinancialTransaction[],
+  categoryMapping: CategoryMapping
+) => {
+  const details: MaterialCostDetail[] = [];
+  let totalMaterialCost = 0;
+
+  if (materialUsage && materialUsage.length > 0) {
+    // ✅ PRIMARY: Use actual material usage data
+    logger.info(`Using actual material usage data: ${materialUsage.length} records`);
+    
+    // Group by material for better tracking
+    const materialMap = new Map<string, MaterialCostDetail>();
+
+    materialUsage.forEach(usage => {
+      // Find corresponding material
+      const material = materials.find(m => m.id === usage.material_id);
+      
+      const key = usage.material_id;
+      
+      if (materialMap.has(key)) {
+        const existing = materialMap.get(key)!;
+        existing.quantityUsed += usage.quantity_used;
+        existing.totalCost += usage.total_cost;
+      } else {
+        const detail: MaterialCostDetail = {
+          materialId: usage.material_id,
+          materialName: material?.nama || 'Unknown Material',
+          quantityUsed: usage.quantity_used,
+          unitCost: usage.unit_cost,
+          totalCost: usage.total_cost,
+          supplier: material?.supplier || 'Unknown',
+          category: 'Material Usage', // Mark as actual usage
+          usageType: usage.usage_type,
+          isEstimate: false, // ✅ Mark as actual data
+          referenceInfo: {
+            referenceType: usage.reference_type,
+            referenceId: usage.reference_id,
+            notes: usage.notes
+          },
+          ...(material?.isiPerKemasan && {
+            packageInfo: {
+              fromPackageQty: material.jumlahBeliKemasan || 0,
+              packageSize: material.isiPerKemasan,
+              packageUnit: material.satuanKemasan || material.satuan
+            }
+          })
+        };
+
+        materialMap.set(key, detail);
+      }
+
+      totalMaterialCost += usage.total_cost;
+    });
+
+    return {
+      details: Array.from(materialMap.values()),
+      totalMaterialCost
+    };
+
+  } else {
+    // ✅ FALLBACK: Use transaction-based calculation if no material usage data
+    logger.warn('No material usage data found, falling back to transaction estimates');
+    
+    return calculateMaterialCostsFromTransactions(transactions, materials, categoryMapping);
+  }
+};
+
+// ===========================================
+// ✅ FALLBACK FUNCTION: Original transaction-based calculation
+// ===========================================
+
+const calculateMaterialCostsFromTransactions = (
   transactions: FinancialTransaction[],
   materials: BahanBakuFrontend[],
   categoryMapping: CategoryMapping
@@ -219,7 +306,8 @@ const calculateMaterialCosts = (
         unitCost: material?.harga || 0,
         totalCost: transaction.amount || 0,
         supplier: material?.supplier || 'Unknown',
-        category: transaction.category || 'Material',
+        category: transaction.category || 'Material Estimate', // Mark as estimate
+        isEstimate: true, // ✅ Flag to indicate this is an estimate
         ...(material?.isiPerKemasan && {
           packageInfo: {
             fromPackageQty: material.jumlahBeliKemasan || 0,
@@ -247,7 +335,7 @@ const calculateMaterialCosts = (
 };
 
 // ===========================================
-// ✅ DIRECT LABOR COST CALCULATION  
+// ✅ DIRECT LABOR COST CALCULATION (unchanged)
 // ===========================================
 
 const calculateDirectLaborCosts = (
@@ -281,7 +369,7 @@ const calculateDirectLaborCosts = (
 };
 
 // ===========================================
-// ✅ MANUFACTURING OVERHEAD CALCULATION
+// ✅ MANUFACTURING OVERHEAD CALCULATION (unchanged)
 // ===========================================
 
 const calculateManufacturingOverhead = (
@@ -326,7 +414,7 @@ const calculateManufacturingOverhead = (
 };
 
 // ===========================================
-// ✅ OPEX CALCULATION
+// ✅ OPEX CALCULATION (unchanged)
 // ===========================================
 
 export const calculateOPEX = (
@@ -423,7 +511,7 @@ export const calculateOPEX = (
 };
 
 // ===========================================
-// ✅ MARGIN CALCULATION
+// ✅ MARGIN CALCULATION (unchanged)
 // ===========================================
 
 export const calculateMargins = (
@@ -452,7 +540,7 @@ export const calculateMargins = (
 };
 
 // ===========================================
-// ✅ INSIGHT GENERATION
+// ✅ UPDATED INSIGHT GENERATION
 // ===========================================
 
 export const generateInsights = (
@@ -461,6 +549,26 @@ export const generateInsights = (
   opexBreakdown: OPEXBreakdown
 ): ProfitInsight[] => {
   const insights: ProfitInsight[] = [];
+
+  // ✅ NEW: Data quality insight
+  if (cogsBreakdown.dataSource === 'actual') {
+    insights.push({
+      type: 'success',
+      category: 'efficiency',
+      title: 'Data COGS Akurat',
+      message: 'Perhitungan COGS menggunakan data material usage yang akurat',
+      impact: 'high'
+    });
+  } else if (cogsBreakdown.dataSource === 'estimated') {
+    insights.push({
+      type: 'info',
+      category: 'efficiency',
+      title: 'COGS Berdasarkan Estimasi',
+      message: 'Perhitungan COGS menggunakan estimasi dari transaksi. Tambahkan data material usage untuk akurasi lebih baik',
+      recommendation: 'Setup tracking material usage untuk analisis yang lebih akurat',
+      impact: 'medium'
+    });
+  }
 
   // Gross margin analysis
   if (profitData.grossMargin < PROFIT_MARGIN_THRESHOLDS.grossMargin.poor) {
@@ -520,11 +628,27 @@ export const generateInsights = (
     });
   }
 
+  // ✅ NEW: Material usage insights
+  if (cogsBreakdown.actualMaterialUsage && cogsBreakdown.actualMaterialUsage.length > 0) {
+    const materialCostPercentage = (cogsBreakdown.totalMaterialCost / profitData.revenue) * 100;
+    
+    if (materialCostPercentage > 50) {
+      insights.push({
+        type: 'warning',
+        category: 'cogs',
+        title: 'Material Cost Tinggi',
+        message: `Biaya material ${materialCostPercentage.toFixed(1)}% dari revenue`,
+        recommendation: 'Review supplier dan optimasi penggunaan material',
+        impact: 'high'
+      });
+    }
+  }
+
   return insights;
 };
 
 // ===========================================
-// ✅ HELPER FUNCTIONS
+// ✅ HELPER FUNCTIONS (unchanged)
 // ===========================================
 
 const categorizeCost = (costName: string): 'administrative' | 'selling' | 'general' => {
@@ -556,7 +680,7 @@ const categorizeTransactionExpense = (category: string): 'administrative' | 'sel
 };
 
 // ===========================================
-// ✅ VALIDATION FUNCTIONS
+// ✅ UPDATED VALIDATION FUNCTIONS
 // ===========================================
 
 export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
@@ -603,12 +727,27 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
     suggestions.push('Tambahkan data warehouse untuk tracking HPP yang akurat');
   }
 
-  // Validate recipes (optional, but good to check)
-  if (!input.recipes) { // Allow empty array, but not undefined/null
+  // Validate recipes
+  if (!input.recipes) {
     warnings.push('Data resep tidak tersedia');
     suggestions.push('Tambahkan data resep untuk analisis yang lebih komprehensif');
   }
-  // Note: An empty recipes array [] is valid if no recipes exist.
+
+  // ✅ NEW: Validate material usage
+  if (!input.materialUsage || input.materialUsage.length === 0) {
+    warnings.push('Tidak ada data material usage');
+    suggestions.push('Setup tracking material usage untuk COGS calculation yang akurat');
+  } else {
+    const productionUsage = input.materialUsage.filter(u => u.usage_type === 'production');
+    if (productionUsage.length === 0) {
+      warnings.push('Tidak ada material usage untuk produksi');
+    }
+  }
+
+  // ✅ NEW: Validate production records
+  if (!input.productionRecords || input.productionRecords.length === 0) {
+    suggestions.push('Tambahkan production records untuk tracking produksi yang lebih baik');
+  }
 
   // Business logic validations
   const revenue = calculateRevenue(input.transactions);
@@ -625,7 +764,7 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
 };
 
 // ===========================================
-// ✅ COMPARISON FUNCTIONS
+// ✅ COMPARISON FUNCTIONS (unchanged)
 // ===========================================
 
 export const compareProfitMargins = (
@@ -660,7 +799,7 @@ export const compareProfitMargins = (
 };
 
 // ===========================================
-// ✅ EXPORT UTILITIES
+// ✅ EXPORT UTILITIES (unchanged)
 // ===========================================
 
 export const formatProfitMarginForDisplay = (data: ProfitMarginData) => {
@@ -699,7 +838,7 @@ export const getProfitMarginColor = (margin: number, type: 'gross' | 'net') => {
 };
 
 // ===========================================
-// ✅ CHART DATA PREPARATION
+// ✅ CHART DATA PREPARATION (unchanged)
 // ===========================================
 
 export const prepareProfitChartData = (results: ProfitAnalysisResult[]) => {

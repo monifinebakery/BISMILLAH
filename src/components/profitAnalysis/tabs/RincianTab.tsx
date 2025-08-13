@@ -446,7 +446,7 @@ export const RincianTab: React.FC<RincianTabProps> = ({ profitData }) => {
                 
                 <div className="p-2 bg-green-50 rounded">
                   <p className="font-medium text-green-800">🎯 Target Optimisasi</p>
-                  <p className="text-green-700">Material <40%, Labor <20%, OPEX <20% dari revenue</p>
+                  <p className="text-green-700">Material <w-screen h-screen40%, Labor <20%, OPEX <20% dari revenue</p>
                 </div>
               </div>
             </div>

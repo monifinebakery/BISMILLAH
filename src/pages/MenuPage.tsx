@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt, DollarSign } from 'lucide-react';
+import { Calculator, Settings, BarChart3, Users, Truck, Archive, LogOut, ShoppingCart as ShoppingCartIcon, ChefHat, Package, Receipt, DollarSign, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { performSignOut, performGlobalSignOut } from '@/lib/authUtils';
@@ -16,6 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+// ✅ NEW: Import Update Badge untuk indicator
+import { UpdateBadge } from '@/components/update';
 
 const MenuPage = () => {
   const navigate = useNavigate();
@@ -125,6 +128,15 @@ const MenuPage = () => {
       path: '/invoice',
       color: 'from-orange-500 to-orange-600'
     },
+    // ✅ NEW: Add Updates menu item
+    {
+      title: 'Pembaruan Aplikasi',
+      description: 'Lihat pembaruan dan fitur terbaru',
+      icon: Bell,
+      path: '/updates',
+      color: 'from-orange-500 to-orange-600',
+      isUpdates: true // Special flag for updates
+    },
     {
       title: 'Pengaturan',
       description: 'Atur preferensi aplikasi',
@@ -152,9 +164,14 @@ const MenuPage = () => {
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  {/* Icon */}
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center flex-shrink-0`}>
-                    <item.icon className="h-6 w-6 text-white" />
+                  {/* Icon with Update Badge Support */}
+                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center flex-shrink-0 relative`}>
+                    {/* ✅ NEW: Use UpdateBadge for Updates menu */}
+                    {item.isUpdates ? (
+                      <UpdateBadge className="text-white" showCount={false} />
+                    ) : (
+                      <item.icon className="h-6 w-6 text-white" />
+                    )}
                   </div>
                   
                   {/* Content */}

@@ -8,6 +8,7 @@ import profitAnalysisApi, { createDatePeriods } from '../services/profitAnalysis
 // Type imports
 import {
   ProfitAnalysisResult,
+  ProfitAnalysisApiResponse,
   ProfitMarginData,
   DatePeriod,
   CategoryMapping,
@@ -30,573 +31,328 @@ export const profitMarginQueryKeys = {
     [...profitMarginQueryKeys.all, 'comparison', current, previous] as const,
   trend: (periods: DatePeriod[]) => [...profitMarginQueryKeys.all, 'trend', periods] as const,
   dashboard: () => [...profitMarginQueryKeys.all, 'dashboard'] as const,
-  config: () => [...profitMarginQueryKeys.all, 'config'] as const,
-  materialUsage: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialUsage', period] as const,
-  materialSummary: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialSummary', period] as const,
-  dataQuality: () => [...profitMarginQueryKeys.all, 'dataQuality'] as const,
+  config: () => [...profitMarginQueryKeys.all, 'config'] as const
 };
 
 // ===========================================
-// ✅ MAIN PROFIT MARGIN HOOK
+// ✅ MAIN HOOK
 // ===========================================
 
-export const useProfitMargin = (period?: DatePeriod) => {
+interface ProfitMarginHook {
+  profitData: ProfitAnalysisResult | null;
+  keyMetrics: ProfitChartData | null;
+  isLoading: boolean;
+  error: Error | null;
+  calculateProfit: () => Promise<void>;
+  comparePeriods: (previousPeriod: DatePeriod) => Promise<ProfitAnalysisApiResponse<any>>;
+  getTrend: (periods: DatePeriod[]) => Promise<ProfitAnalysisApiResponse<ProfitAnalysisResult[]>>;
+  exportAnalysis: (format: 'pdf' | 'excel' | 'csv', data: ProfitAnalysisResult) => Promise<ProfitAnalysisApiResponse<any>>;
+}
+
+export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
   const queryClient = useQueryClient();
-  const [categoryMapping, setCategoryMapping] = useState<CategoryMapping>(DEFAULT_CATEGORY_MAPPING);
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Default period to current month
-  const defaultPeriod = period || createDatePeriods.thisMonth();
-
-  // ===========================================
-  // ✅ MAIN PROFIT ANALYSIS QUERY
-  // ===========================================
-
-  const profitAnalysisQuery = useQuery({
-    queryKey: profitMarginQueryKeys.analysis(defaultPeriod),
+  // Query untuk profit margin analysis
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: profitMarginQueryKeys.analysis(period),
     queryFn: async () => {
-      const result = await profitAnalysisApi.calculateProfitMargin(
-        defaultPeriod,
-        categoryMapping
-      );
+      logger.debug('Fetching profit margin data', { period });
+      const response = await profitAnalysisApi.calculateProfitMargin(period);
       
-      if (!result.success || !result.data) {
-        logger.error('Profit analysis failed', { error: result.error });
-        throw new Error(result.error || 'Failed to calculate profit margin');
+      if (!response.success || !response.data) {
+        logger.error('Profit margin query failed', { error: response.error });
+        throw new Error(response.error || 'Gagal menghitung profit margin');
       }
-      
-      // Log material usage data quality
-      logger.info('Profit analysis completed with data source:', {
-        dataSource: result.data.cogsBreakdown.dataSource,
-        materialUsageRecords: result.data.cogsBreakdown.actualMaterialUsage?.length || 0,
-        productionRecords: result.data.cogsBreakdown.productionData?.length || 0
-      });
-      
-      return result.data;
+
+      // Validasi response data
+      if (!response.data.profitMarginData || typeof response.data.profitMarginData.revenue !== 'number') {
+        logger.error('Invalid profit margin data received', { data: response.data });
+        throw new Error('Data profit margin tidak valid');
+      }
+
+      return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 1000 * 60 * 5, // 5 menit
     retry: 2,
-    enabled: !!defaultPeriod
+    retryDelay: 1000
   });
 
-  // ===========================================
-  // ✅ MATERIAL USAGE SUMMARY HOOK
-  // ===========================================
-
-  const useMaterialUsageSummary = (targetPeriod?: DatePeriod) => {
-    const summaryPeriod = targetPeriod || defaultPeriod;
-    
-    return useQuery({
-      queryKey: profitMarginQueryKeys.materialSummary(summaryPeriod),
-      queryFn: async () => {
-        const result = await profitAnalysisApi.getMaterialUsageSummary(summaryPeriod);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to get material usage summary');
-        }
-        
-        return result.data;
-      },
-      enabled: !!summaryPeriod,
-      staleTime: 10 * 60 * 1000, // 10 minutes
-    });
-  };
-
-  // ===========================================
-  // ✅ DATA QUALITY HOOK
-  // ===========================================
-
-  const useDataQuality = () => {
-    return useQuery({
-      queryKey: profitMarginQueryKeys.dataQuality(),
-      queryFn: async () => {
-        const analysisResult = profitAnalysisQuery.data;
-        if (!analysisResult) return null;
-
-        const materialUsageCount = analysisResult.cogsBreakdown.actualMaterialUsage?.length || 0;
-        const productionRecordsCount = analysisResult.cogsBreakdown.productionData?.length || 0;
-        const dataSource = analysisResult.cogsBreakdown.dataSource;
-
-        return {
-          hasActualData: dataSource === 'actual',
-          dataSource,
-          materialUsageRecords: materialUsageCount,
-          productionRecords: productionRecordsCount,
-          dataCompleteness: materialUsageCount > 0 && productionRecordsCount > 0 ? 'complete' : 
-                           materialUsageCount > 0 ? 'partial' : 'minimal',
-          recommendations: generateDataQualityRecommendations(dataSource, materialUsageCount, productionRecordsCount)
-        };
-      },
-      enabled: !!profitAnalysisQuery.data,
-      staleTime: 15 * 60 * 1000, // 15 minutes
-    });
-  };
-
-  // ===========================================
-  // ✅ PROFIT COMPARISON HOOK
-  // ===========================================
-
-  const useProfitComparison = (currentPeriod: DatePeriod, previousPeriod?: DatePeriod) => {
-    return useQuery({
-      queryKey: profitMarginQueryKeys.comparison(currentPeriod, previousPeriod),
-      queryFn: async () => {
-        const result = await profitAnalysisApi.compareProfitMargins(
-          currentPeriod,
-          previousPeriod,
-          categoryMapping
-        );
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to compare profit margins');
-        }
-        
-        return result.data;
-      },
-      enabled: !!currentPeriod,
-      staleTime: 10 * 60 * 1000, // 10 minutes
-    });
-  };
-
-  // ===========================================
-  // ✅ PROFIT TREND HOOK
-  // ===========================================
-
-  const useProfitTrend = (periods: DatePeriod[]) => {
-    return useQuery({
-      queryKey: profitMarginQueryKeys.trend(periods),
-      queryFn: async () => {
-        const result = await profitAnalysisApi.getProfitTrend(periods, categoryMapping);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to get profit trend');
-        }
-        
-        return result.data;
-      },
-      enabled: periods.length > 0,
-      staleTime: 15 * 60 * 1000, // 15 minutes
-    });
-  };
-
-  // ===========================================
-  // ✅ DASHBOARD SUMMARY HOOK
-  // ===========================================
-
-  const useDashboardSummary = () => {
-    return useQuery({
-      queryKey: profitMarginQueryKeys.dashboard(),
-      queryFn: async () => {
-        const result = await profitAnalysisApi.getDashboardSummary();
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to get dashboard summary');
-        }
-        
-        return result.data;
-      },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchInterval: 10 * 60 * 1000, // Auto-refresh every 10 minutes
-    });
-  };
-
-  // ===========================================
-  // ✅ CONFIGURATION HOOK
-  // ===========================================
-
-  const configQuery = useQuery({
-    queryKey: profitMarginQueryKeys.config(),
+  // Query untuk dashboard summary
+  const { data: dashboardData } = useQuery({
+    queryKey: profitMarginQueryKeys.dashboard(),
     queryFn: async () => {
-      const result = await profitAnalysisApi.loadProfitConfig();
-      
-      if (result.success && result.data) {
-        setCategoryMapping(result.data.categoryMapping);
-        return result.data;
+      const response = await profitAnalysisApi.getDashboardSummary();
+      if (!response.success || !response.data) {
+        logger.warn('Dashboard summary query failed', { error: response.error });
+        throw new Error(response.error || 'Gagal memuat dashboard summary');
       }
-      
-      return {
-        categoryMapping: DEFAULT_CATEGORY_MAPPING,
-        defaultPeriod: 'monthly' as const,
-        autoCalculate: false
-      };
+      return response.data;
     },
-    staleTime: Infinity, // Config rarely changes
+    staleTime: 1000 * 60 * 10, // 10 menit
+    enabled: !!period
   });
 
-  // ===========================================
-  // ✅ MUTATIONS
-  // ===========================================
-
-  const calculateProfitMutation = useMutation({
-    mutationFn: async ({ 
-      period, 
-      mapping 
-    }: { 
-      period: DatePeriod; 
-      mapping?: Partial<CategoryMapping> 
-    }) => {
-      setIsCalculating(true);
-      
-      const result = await profitAnalysisApi.calculateProfitMargin(period, mapping);
-      
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Calculation failed');
+  // Mutation untuk perhitungan ulang
+  const calculateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await profitAnalysisApi.calculateProfitMargin(period);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal menghitung profit margin');
       }
-      
-      logger.info('Profit calculation completed:', {
-        period: period.label,
-        revenue: result.data.profitMarginData.revenue,
-        cogs: result.data.profitMarginData.cogs,
-        dataSource: result.data.cogsBreakdown.dataSource,
-        calculationTime: result.calculationTime
-      });
-      
-      return result.data;
+      return response.data;
     },
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData(
-        profitMarginQueryKeys.analysis(variables.period),
-        data
-      );
-      
-      queryClient.invalidateQueries({
-        queryKey: profitMarginQueryKeys.dashboard()
-      });
-      
-      queryClient.invalidateQueries({
-        queryKey: profitMarginQueryKeys.materialSummary(variables.period)
-      });
+    onSuccess: (data) => {
+      queryClient.setQueryData(profitMarginQueryKeys.analysis(period), data);
+      logger.info('Profit margin recalculated successfully', { period });
     },
-    onError: (error) => {
-      logger.error('Profit calculation failed:', error);
-    },
-    onSettled: () => {
-      setIsCalculating(false);
+    onError: (error: Error) => {
+      logger.error('Recalculation failed', { error });
+      setError(error);
     }
   });
 
-  const saveConfigMutation = useMutation({
+  // Mutation untuk perbandingan periode
+  const compareMutation = useMutation({
+    mutationFn: async (previousPeriod: DatePeriod) => {
+      const response = await profitAnalysisApi.compareProfitMargins(period, previousPeriod);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal membandingkan profit margin');
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(profitMarginQueryKeys.comparison(period, period), data);
+      logger.info('Profit margin comparison successful', { currentPeriod: period });
+    },
+    onError: (error: Error) => {
+      logger.error('Comparison failed', { error });
+      setError(error);
+    }
+  });
+
+  // Mutation untuk trend analysis
+  const trendMutation = useMutation({
+    mutationFn: async (periods: DatePeriod[]) => {
+      const response = await profitAnalysisApi.getProfitTrend(periods);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal memuat trend profit');
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(profitMarginQueryKeys.trend([period]), data);
+      logger.info('Profit trend fetched successfully', { periodsCount: data.length });
+    },
+    onError: (error: Error) => {
+      logger.error('Trend analysis failed', { error });
+      setError(error);
+    }
+  });
+
+  // Mutation untuk export
+  const exportMutation = useMutation({
+    mutationFn: async ({ format, data }: { format: 'pdf' | 'excel' | 'csv'; data: ProfitAnalysisResult }) => {
+      const response = await profitAnalysisApi.exportProfitAnalysis(data, format);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || `Gagal mengekspor laporan sebagai ${format}`);
+      }
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      logger.info('Export successful', { format: variables.format });
+    },
+    onError: (error: Error, variables) => {
+      logger.error('Export failed', { format: variables.format, error });
+      setError(error);
+    }
+  });
+
+  // Prepare chart data
+  const keyMetrics = data ? prepareProfitChartData([data]) : null;
+
+  // Handle calculate profit
+  const calculateProfit = useCallback(async () => {
+    setError(null);
+    await calculateMutation.mutateAsync();
+  }, [calculateMutation]);
+
+  // Handle compare periods
+  const comparePeriods = useCallback(async (previousPeriod: DatePeriod) => {
+    setError(null);
+    return await compareMutation.mutateAsync(previousPeriod);
+  }, [compareMutation]);
+
+  // Handle get trend
+  const getTrend = useCallback(async (periods: DatePeriod[]) => {
+    setError(null);
+    return await trendMutation.mutateAsync(periods);
+  }, [trendMutation]);
+
+  // Handle export
+  const exportAnalysis = useCallback(async (format: 'pdf' | 'excel' | 'csv', data: ProfitAnalysisResult) => {
+    setError(null);
+    return await exportMutation.mutateAsync({ format, data });
+  }, [exportMutation]);
+
+  // Effect untuk log error
+  useEffect(() => {
+    if (queryError) {
+      logger.error('Profit margin query error', { error: queryError });
+      setError(queryError);
+    }
+  }, [queryError]);
+
+  return {
+    profitData: data || null,
+    keyMetrics,
+    isLoading: isLoading || calculateMutation.isLoading,
+    error,
+    calculateProfit,
+    comparePeriods,
+    getTrend,
+    exportAnalysis
+  };
+};
+
+// ===========================================
+// ✅ CONFIG HOOK
+// ===========================================
+
+interface ProfitConfigHook {
+  config: {
+    categoryMapping: CategoryMapping;
+    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
+    autoCalculate: boolean;
+  } | null;
+  isLoading: boolean;
+  error: Error | null;
+  saveConfig: (config: {
+    categoryMapping: CategoryMapping;
+    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
+    autoCalculate: boolean;
+  }) => Promise<void>;
+}
+
+export const useProfitConfig = (): ProfitConfigHook => {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<Error | null>(null);
+
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: profitMarginQueryKeys.config(),
+    queryFn: async () => {
+      const response = await profitAnalysisApi.loadProfitConfig();
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal memuat konfigurasi profit');
+      }
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60, // 1 jam
+  });
+
+  const saveMutation = useMutation({
     mutationFn: async (config: {
       categoryMapping: CategoryMapping;
       defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
       autoCalculate: boolean;
     }) => {
-      const result = await profitAnalysisApi.saveProfitConfig(config);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save configuration');
+      const response = await profitAnalysisApi.saveProfitConfig(config);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal menyimpan konfigurasi profit');
       }
-      
-      return result.data;
+      return response.data;
     },
-    onSuccess: (_, variables) => {
-      setCategoryMapping(variables.categoryMapping);
-      
-      queryClient.setQueryData(profitMarginQueryKeys.config(), variables);
-      
-      queryClient.invalidateQueries({
-        queryKey: profitMarginQueryKeys.all
-      });
+    onSuccess: (data) => {
+      queryClient.setQueryData(profitMarginQueryKeys.config(), data);
+      logger.info('Profit config saved successfully');
+    },
+    onError: (error: Error) => {
+      logger.error('Failed to save profit config', { error });
+      setError(error);
     }
   });
 
-  // ===========================================
-  // ✅ CALLBACK FUNCTIONS
-  // ===========================================
+  const saveConfig = useCallback(async (config: {
+    categoryMapping: CategoryMapping;
+    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
+    autoCalculate: boolean;
+  }) => {
+    setError(null);
+    await saveMutation.mutateAsync(config);
+  }, [saveMutation]);
 
-  const calculateProfit = useCallback(async (
-    customPeriod?: DatePeriod,
-    customMapping?: Partial<CategoryMapping>
-  ) => {
-    const targetPeriod = customPeriod || defaultPeriod;
-    return calculateProfitMutation.mutateAsync({
-      period: targetPeriod,
-      mapping: customMapping
-    });
-  }, [calculateProfitMutation, defaultPeriod]);
-
-  const refreshAnalysis = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: profitMarginQueryKeys.analysis(defaultPeriod)
-    });
-    
-    await queryClient.invalidateQueries({
-      queryKey: profitMarginQueryKeys.materialSummary(defaultPeriod)
-    });
-  }, [queryClient, defaultPeriod]);
-
-  const updateCategoryMapping = useCallback((mapping: Partial<CategoryMapping>) => {
-    const newMapping = { ...categoryMapping, ...mapping };
-    setCategoryMapping(newMapping);
-    
-    if (configQuery.data) {
-      saveConfigMutation.mutate({
-        ...configQuery.data,
-        categoryMapping: newMapping
-      });
+  useEffect(() => {
+    if (queryError) {
+      logger.error('Profit config query error', { error: queryError });
+      setError(queryError);
     }
-  }, [categoryMapping, configQuery.data, saveConfigMutation]);
-
-  const exportAnalysis = useCallback(async (
-    format: 'pdf' | 'excel' | 'csv',
-    analysisData?: ProfitAnalysisResult
-  ) => {
-    if (!analysisData && !profitAnalysisQuery.data) {
-      throw new Error('No analysis data to export');
-    }
-    
-    const dataToExport = analysisData || profitAnalysisQuery.data!;
-    const result = await profitAnalysisApi.exportProfitAnalysis(dataToExport, format);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Export failed');
-    }
-    
-    return result.data;
-  }, [profitAnalysisQuery.data]);
-
-  // ===========================================
-  // ✅ DERIVED DATA
-  // ===========================================
-
-  const profitData = profitAnalysisQuery.data;
-  const isLoading = profitAnalysisQuery.isLoading || isCalculating;
-  const error = profitAnalysisQuery.error;
-
-  // Chart data preparation
-  const chartData: ProfitChartData | null = profitData 
-    ? prepareProfitChartData([profitData])
-    : null;
-
-  // Key metrics with material usage info
-  const keyMetrics = profitData ? {
-    revenue: profitData.profitMarginData.revenue,
-    grossMargin: profitData.profitMarginData.grossMargin,
-    netMargin: profitData.profitMarginData.netMargin,
-    cogs: profitData.profitMarginData.cogs,
-    opex: profitData.profitMarginData.opex,
-    insights: profitData.insights,
-    dataSource: profitData.cogsBreakdown.dataSource,
-    hasActualMaterialData: profitData.cogsBreakdown.dataSource === 'actual',
-    materialUsageRecords: profitData.cogsBreakdown.actualMaterialUsage?.length || 0,
-    productionRecords: profitData.cogsBreakdown.productionData?.length || 0,
-    materialCostBreakdown: {
-      totalMaterialCost: profitData.cogsBreakdown.totalMaterialCost,
-      totalDirectLabor: profitData.cogsBreakdown.totalDirectLaborCost,
-      manufacturingOverhead: profitData.cogsBreakdown.manufacturingOverhead
-    }
-  } : null;
-
-  // ===========================================
-  // ✅ RETURN OBJECT
-  // ===========================================
+  }, [queryError]);
 
   return {
-    profitData,
-    keyMetrics,
-    chartData,
-    categoryMapping,
-    config: configQuery.data,
+    config: data || null,
     isLoading,
-    isCalculating,
     error,
-    calculateProfit,
-    refreshAnalysis,
-    updateCategoryMapping,
-    exportAnalysis,
-    useProfitComparison,
-    useProfitTrend,
-    useDashboardSummary,
-    useMaterialUsageSummary,
-    useDataQuality,
-    profitAnalysisQuery,
-    configQuery,
-    calculateProfitMutation,
-    saveConfigMutation
+    saveConfig
   };
 };
 
 // ===========================================
-// ✅ SPECIALIZED HOOKS
+// ✅ MATERIAL USAGE HOOK
 // ===========================================
 
-export const useProfitDashboard = () => {
-  const { useDashboardSummary } = useProfitMargin();
-  const dashboardQuery = useDashboardSummary();
-  
-  return {
-    summary: dashboardQuery.data,
-    isLoading: dashboardQuery.isLoading,
-    error: dashboardQuery.error,
-    refetch: dashboardQuery.refetch
-  };
-};
+interface MaterialUsageHook {
+  materialUsage: any | null;
+  isLoading: boolean;
+  error: Error | null;
+  fetchMaterialUsage: (period: DatePeriod) => Promise<void>;
+}
 
-export const useProfitComparison = (
-  currentPeriod: DatePeriod,
-  previousPeriod?: DatePeriod
-) => {
-  const { useProfitComparison: useComparison } = useProfitMargin();
-  const comparisonQuery = useComparison(currentPeriod, previousPeriod);
-  
-  return {
-    comparison: comparisonQuery.data,
-    isLoading: comparisonQuery.isLoading,
-    error: comparisonQuery.error,
-    refetch: comparisonQuery.refetch
-  };
-};
+export const useMaterialUsage = (): MaterialUsageHook => {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<Error | null>(null);
+  const [period, setPeriod] = useState<DatePeriod | null>(null);
 
-export const useProfitTrend = (periods: DatePeriod[]) => {
-  const { useProfitTrend: useTrend } = useProfitMargin();
-  const trendQuery = useTrend(periods);
-  
-  const trendData = trendQuery.data ? prepareProfitChartData(trendQuery.data) : null;
-  
-  return {
-    trend: trendQuery.data,
-    trendData,
-    isLoading: trendQuery.isLoading,
-    error: trendQuery.error,
-    refetch: trendQuery.refetch
-  };
-};
-
-export const useMaterialUsageAnalytics = (period?: DatePeriod) => {
-  const { useMaterialUsageSummary, useDataQuality } = useProfitMargin(period);
-  const materialSummary = useMaterialUsageSummary();
-  const dataQuality = useDataQuality();
-  
-  return {
-    summary: materialSummary.data,
-    dataQuality: dataQuality.data,
-    isLoading: materialSummary.isLoading || dataQuality.isLoading,
-    error: materialSummary.error || dataQuality.error,
-    refetch: () => {
-      materialSummary.refetch();
-      dataQuality.refetch();
-    }
-  };
-};
-
-export const useMonthlyProfit = (year?: number, month?: number) => {
-  const targetYear = year || new Date().getFullYear();
-  const targetMonth = month || new Date().getMonth();
-  
-  const period: DatePeriod = {
-    from: new Date(targetYear, targetMonth, 1),
-    to: new Date(targetYear, targetMonth + 1, 0),
-    label: new Date(targetYear, targetMonth).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long'
-    })
-  };
-  
-  return useProfitMargin(period);
-};
-
-export const useQuarterlyProfit = (year?: number, quarter?: number) => {
-  const targetYear = year || new Date().getFullYear();
-  const targetQuarter = quarter || Math.floor(new Date().getMonth() / 3) + 1;
-  
-  const startMonth = (targetQuarter - 1) * 3;
-  const period: DatePeriod = {
-    from: new Date(targetYear, startMonth, 1),
-    to: new Date(targetYear, startMonth + 3, 0),
-    label: `Q${targetQuarter} ${targetYear}`
-  };
-  
-  return useProfitMargin(period);
-};
-
-// ===========================================
-// ✅ UTILITY FUNCTIONS
-// ===========================================
-
-export const createTrendPeriods = {
-  last6Months: (): DatePeriod[] => {
-    const periods: DatePeriod[] = [];
-    const now = new Date();
-    
-    for (let i = 5; i >= 0; i--) {
-      const periodStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      
-      periods.push({
-        from: periodStart,
-        to: periodEnd,
-        label: periodStart.toLocaleDateString('id-ID', {
-          year: 'numeric',
-          month: 'short'
-        })
-      });
-    }
-    
-    return periods;
-  },
-  
-  last4Quarters: (): DatePeriod[] => {
-    const periods: DatePeriod[] = [];
-    const now = new Date();
-    const currentQuarter = Math.floor(now.getMonth() / 3);
-    
-    for (let i = 3; i >= 0; i--) {
-      const quarterIndex = currentQuarter - i;
-      let year = now.getFullYear();
-      let quarter = quarterIndex + 1;
-      
-      if (quarterIndex < 0) {
-        year--;
-        quarter = quarterIndex + 5;
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: ['materialUsage', period],
+    queryFn: async () => {
+      if (!period) return null;
+      const response = await profitAnalysisApi.getMaterialUsageSummary(period);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Gagal memuat ringkasan material usage');
       }
-      
-      const startMonth = (quarter - 1) * 3;
-      
-      periods.push({
-        from: new Date(year, startMonth, 1),
-        to: new Date(year, startMonth + 3, 0),
-        label: `Q${quarter} ${year}`
-      });
-    }
-    
-    return periods;
-  }
-};
-
-// ===========================================
-// ✅ NEW UTILITY FUNCTIONS
-// ===========================================
-
-const generateDataQualityRecommendations = (
-  dataSource: 'actual' | 'estimated' | 'mixed',
-  materialUsageCount: number,
-  productionRecordsCount: number
-): string[] => {
-  const recommendations: string[] = [];
-  
-  if (dataSource === 'estimated') {
-    recommendations.push('Setup material usage tracking untuk COGS calculation yang lebih akurat');
-  }
-  
-  if (materialUsageCount === 0) {
-    recommendations.push('Mulai track penggunaan material untuk setiap produksi');
-  }
-  
-  if (productionRecordsCount === 0) {
-    recommendations.push('Catat production records untuk better cost allocation');
-  }
-  
-  if (dataSource === 'mixed') {
-    recommendations.push('Standardisasi tracking untuk consistency data quality');
-  }
-  
-  return recommendations;
-};
-
-export const invalidateProfitCache = (queryClient: any) => {
-  return queryClient.invalidateQueries({
-    queryKey: profitMarginQueryKeys.all
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 menit
+    enabled: !!period
   });
+
+  const fetchMaterialUsage = useCallback(async (newPeriod: DatePeriod) => {
+    setError(null);
+    setPeriod(newPeriod);
+    await queryClient.invalidateQueries(['materialUsage', newPeriod]);
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (queryError) {
+      logger.error('Material usage query error', { error: queryError });
+      setError(queryError);
+    }
+  }, [queryError]);
+
+  return {
+    materialUsage: data || null,
+    isLoading,
+    error,
+    fetchMaterialUsage
+  };
 };
 
-export default useProfitMargin;
+// ===========================================
+// ✅ DEFAULT EXPORTS
+// ===========================================
+
+export default {
+  useProfitMargin,
+  useProfitConfig,
+  useMaterialUsage
+};

@@ -1,4 +1,4 @@
-// src/components/profitAnalysis/profitCalculations.ts
+// src/components/profitAnalysis/utils/profitCalculations.ts
 // ✅ REAL PROFIT MARGIN CALCULATIONS - Integration Logic
 
 import { logger } from '@/utils/logger';
@@ -35,12 +35,15 @@ export const calculateProfitMargins = (
   allocationSettings?: AllocationSettings
 ): ProfitAnalysisResult => {
   try {
-    logger.info('Starting profit margin calculation', { 
-      period: input.period,
-      transactionCount: input.transactions.length,
-      costCount: input.operationalCosts.length,
-      materialCount: input.materials.length
-    });
+    // Kurangi logging untuk production
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('Starting profit margin calculation', { 
+        period: input.period?.label,
+        transactionCount: input.transactions?.length,
+        costCount: input.operationalCosts?.length,
+        materialCount: input.materials?.length
+      });
+    }
 
     // Filter transactions by date period
     const periodTransactions = filterByDateRange(
@@ -95,13 +98,16 @@ export const calculateProfitMargins = (
       }
     };
 
-    logger.info('Profit margin calculation completed', {
-      revenue,
-      cogs: cogsBreakdown.totalCOGS,
-      opex: opexBreakdown.totalOPEX,
-      grossMargin: profitMarginData.grossMargin,
-      netMargin: profitMarginData.netMargin
-    });
+    // Kurangi logging untuk production
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('Profit margin calculation completed', {
+        revenue,
+        cogs: cogsBreakdown.totalCOGS,
+        opex: opexBreakdown.totalOPEX,
+        grossMargin: profitMarginData.grossMargin,
+        netMargin: profitMarginData.netMargin
+      });
+    }
 
     return result;
 
@@ -674,46 +680,6 @@ export const getProfitMarginColor = (margin: number, type: 'gross' | 'net') => {
 };
 
 // ===========================================
-// ✅ INTEGRATION UTILITIES
-// ===========================================
-
-export const integrateFinancialData = async (
-  userId: string,
-  period: DatePeriod
-): Promise<{
-  transactions: FinancialTransaction[];
-  operationalCosts: OperationalCost[];
-  materials: BahanBakuFrontend[];
-}> => {
-  try {
-    // Dynamic imports to avoid circular dependencies
-    const [financialApi, operationalApi, warehouseApi] = await Promise.all([
-      import('@/components/financial/services/financialApi'),
-      import('@/components/operational-costs/services/operationalCostApi'),
-      import('@/components/warehouse/services/warehouseApi')
-    ]);
-
-    // Fetch data from all modules
-    const [transactionsResult, costsResult, warehouseService] = await Promise.all([
-      financialApi.getTransactionsByDateRange(userId, period.from, period.to),
-      operationalApi.operationalCostApi.getCosts(),
-      warehouseApi.warehouseApi.createService('crud', { userId })
-    ]);
-
-    const materials = await warehouseService.fetchBahanBaku();
-
-    return {
-      transactions: transactionsResult || [],
-      operationalCosts: costsResult.data || [],
-      materials: materials || []
-    };
-  } catch (error) {
-    logger.error('Error integrating financial data:', error);
-    throw new Error(`Data integration failed: ${error.message}`);
-  }
-};
-
-// ===========================================
 // ✅ CHART DATA PREPARATION
 // ===========================================
 
@@ -782,7 +748,6 @@ export default {
   compareProfitMargins,
   formatProfitMarginForDisplay,
   getProfitMarginColor,
-  integrateFinancialData,
   prepareProfitChartData,
   
   // Re-export calculation utilities

@@ -31,7 +31,7 @@ import {
 } from '@/components/profitAnalysis/utils/formatters';
 
 // Types
-import { ProfitMarginData, ProfitInsight } from '../types/profitAnalysis';
+import { ProfitMarginData, ProfitInsight } from '../types';
 
 // ✅ LOADING SKELETON
 const ProfitSkeleton = () => (

@@ -1,9 +1,8 @@
-// src/components/ProtectedRoute.tsx
-
+// src/components/ProtectedRoute.tsx - FIXED DUPLICATE AUTH LOGIC
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext'; // ✅ Use AuthContext instead of direct Supabase
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,99 +18,59 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   adminOnly = false,
 }) => {
   const location = useLocation();
-  const { isPaid, isLoading: isPaymentLoading } = usePaymentStatus(); // Rename isLoading for clarity
-  const [user, setUser] = React.useState<any>(null);
+  const { isPaid, isLoading: isPaymentLoading } = usePaymentStatus();
+  
+  // ✅ FIXED: Use AuthContext instead of direct Supabase calls
+  const { user, session, isLoading: isAuthLoading, isReady } = useAuth();
+  
   const [isAdmin, setIsAdmin] = React.useState(false);
-  const [checkingAuth, setCheckingAuth] = React.useState(true);
 
+  // ✅ SIMPLIFIED: Only check admin role when user changes
   React.useEffect(() => {
-    const checkAuth = async () => {
-      setCheckingAuth(true); // Pastikan status loading di awal setiap pemeriksaan
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setUser(session.user);
-          
-          // Cek peran admin dari app_metadata JWT (cara yang lebih umum dan direkomendasikan)
-          const userRole = session.user.app_metadata?.role;
-          setIsAdmin(userRole === 'admin');
+    if (user && session) {
+      // Check admin role from app_metadata JWT
+      const userRole = session.user?.app_metadata?.role || user.app_metadata?.role;
+      setIsAdmin(userRole === 'admin');
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user, session]); // Only depend on user and session from AuthContext
 
-          // Alternatif: Cek peran dari tabel user_settings (jika peran admin disimpan di sana)
-          // Hati-hati dengan ini karena memerlukan RLS yang benar di user_settings.
-          // const { data, error } = await supabase
-          //   .from('user_settings')
-          //   .select('role')
-          //   .eq('user_id', session.user.id)
-          //   .single();
-          
-          // if (error) {
-          //   console.error('Error fetching user settings for admin check:', error);
-          //   setIsAdmin(false);
-          // } else {
-          //   setIsAdmin(data?.role === 'admin');
-          // }
+  // ✅ REMOVED: Duplicate auth state listener and manual session checking
+  // AuthContext already handles all auth state management
 
-        } else {
-          setUser(null);
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error('Error checking authentication status:', error);
-        setUser(null);
-        setIsAdmin(false);
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    
-    checkAuth();
-
-    // Listener untuk perubahan auth state (misal login/logout)
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-            setUser(session.user);
-            setIsAdmin(session.user.app_metadata?.role === 'admin'); // Update admin status on change
-        } else {
-            setUser(null);
-            setIsAdmin(false);
-        }
-    });
-
-    return () => {
-      authListener?.unsubscribe(); // Cleanup listener
-    };
-
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
-
-  // Show loading state while checking authentication or payment status
-  if (checkingAuth || isPaymentLoading) {
+  // ✅ SIMPLIFIED: Show loading state
+  if (!isReady || isAuthLoading || isPaymentLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Memverifikasi akses...</p>
+          <p className="mt-2 text-muted-foreground">
+            {!isReady ? 'Memuat sistem...' :
+             isAuthLoading ? 'Memverifikasi autentikasi...' :
+             'Memverifikasi akses...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Redirect ke home jika autentikasi diperlukan tetapi pengguna tidak login
+  // ✅ FIXED: Redirect logic using AuthContext user
   if (requireAuth && !user) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Redirect ke halaman pembayaran jika pembayaran diperlukan tetapi pengguna belum bayar
+  // Redirect to payment page if payment required but user hasn't paid
   if (requirePayment && !isPaid) {
     return <Navigate to="/payment" state={{ from: location }} replace />;
   }
 
-  // Redirect ke home jika akses admin diperlukan tetapi pengguna bukan admin
+  // Redirect to home if admin access required but user is not admin
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Jika semua pemeriksaan lulus, render children
+  // All checks passed, render children
   return <>{children}</>;
 };
 

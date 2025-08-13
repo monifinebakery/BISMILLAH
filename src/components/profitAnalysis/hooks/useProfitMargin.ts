@@ -1,6 +1,3 @@
-// src/components/profitAnalysis/hooks/useProfitMargin.ts
-// ✅ UPDATED PROFIT MARGIN REACT HOOK - Material Usage Integration
-
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
@@ -8,7 +5,7 @@ import { logger } from '@/utils/logger';
 // API imports
 import profitAnalysisApi, { createDatePeriods } from '../services/profitAnalysisApi';
 
-// ✅ UPDATED: Import from consolidated types
+// Type imports
 import {
   ProfitAnalysisResult,
   ProfitMarginData,
@@ -18,7 +15,7 @@ import {
   ProfitChartData,
   MaterialUsageLog,
   ProductionRecord
-} from '../types'; // ✅ Changed from '../types/profitAnalysis' to '../types'
+} from '../types';
 
 import { prepareProfitChartData } from '../utils/profitCalculations';
 
@@ -34,15 +31,13 @@ export const profitMarginQueryKeys = {
   trend: (periods: DatePeriod[]) => [...profitMarginQueryKeys.all, 'trend', periods] as const,
   dashboard: () => [...profitMarginQueryKeys.all, 'dashboard'] as const,
   config: () => [...profitMarginQueryKeys.all, 'config'] as const,
-  
-  // ✅ NEW: Material usage specific queries
   materialUsage: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialUsage', period] as const,
   materialSummary: (period: DatePeriod) => [...profitMarginQueryKeys.all, 'materialSummary', period] as const,
   dataQuality: () => [...profitMarginQueryKeys.all, 'dataQuality'] as const,
 };
 
 // ===========================================
-// ✅ MAIN PROFIT MARGIN HOOK (UPDATED)
+// ✅ MAIN PROFIT MARGIN HOOK
 // ===========================================
 
 export const useProfitMargin = (period?: DatePeriod) => {
@@ -54,7 +49,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   const defaultPeriod = period || createDatePeriods.thisMonth();
 
   // ===========================================
-  // ✅ MAIN PROFIT ANALYSIS QUERY (UPDATED)
+  // ✅ MAIN PROFIT ANALYSIS QUERY
   // ===========================================
 
   const profitAnalysisQuery = useQuery({
@@ -65,18 +60,17 @@ export const useProfitMargin = (period?: DatePeriod) => {
         categoryMapping
       );
       
-      if (!result.success) {
+      if (!result.success || !result.data) {
+        logger.error('Profit analysis failed', { error: result.error });
         throw new Error(result.error || 'Failed to calculate profit margin');
       }
       
-      // ✅ NEW: Log material usage data quality
-      if (result.data?.cogsBreakdown) {
-        logger.info('Profit analysis completed with data source:', {
-          dataSource: result.data.cogsBreakdown.dataSource,
-          materialUsageRecords: result.data.cogsBreakdown.actualMaterialUsage?.length || 0,
-          productionRecords: result.data.cogsBreakdown.productionData?.length || 0
-        });
-      }
+      // Log material usage data quality
+      logger.info('Profit analysis completed with data source:', {
+        dataSource: result.data.cogsBreakdown.dataSource,
+        materialUsageRecords: result.data.cogsBreakdown.actualMaterialUsage?.length || 0,
+        productionRecords: result.data.cogsBreakdown.productionData?.length || 0
+      });
       
       return result.data;
     },
@@ -87,7 +81,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ NEW: MATERIAL USAGE SUMMARY HOOK
+  // ✅ MATERIAL USAGE SUMMARY HOOK
   // ===========================================
 
   const useMaterialUsageSummary = (targetPeriod?: DatePeriod) => {
@@ -110,14 +104,13 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ UPDATED: DATA QUALITY HOOK
+  // ✅ DATA QUALITY HOOK
   // ===========================================
 
   const useDataQuality = () => {
     return useQuery({
       queryKey: profitMarginQueryKeys.dataQuality(),
       queryFn: async () => {
-        // Check data quality across multiple sources
         const analysisResult = profitAnalysisQuery.data;
         if (!analysisResult) return null;
 
@@ -141,7 +134,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ PROFIT COMPARISON HOOK (unchanged)
+  // ✅ PROFIT COMPARISON HOOK
   // ===========================================
 
   const useProfitComparison = (currentPeriod: DatePeriod, previousPeriod?: DatePeriod) => {
@@ -166,7 +159,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ PROFIT TREND HOOK (unchanged)
+  // ✅ PROFIT TREND HOOK
   // ===========================================
 
   const useProfitTrend = (periods: DatePeriod[]) => {
@@ -187,7 +180,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ DASHBOARD SUMMARY HOOK (unchanged)
+  // ✅ DASHBOARD SUMMARY HOOK
   // ===========================================
 
   const useDashboardSummary = () => {
@@ -208,7 +201,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   };
 
   // ===========================================
-  // ✅ CONFIGURATION HOOK (unchanged)
+  // ✅ CONFIGURATION HOOK
   // ===========================================
 
   const configQuery = useQuery({
@@ -231,7 +224,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ MUTATIONS (unchanged but enhanced logging)
+  // ✅ MUTATIONS
   // ===========================================
 
   const calculateProfitMutation = useMutation({
@@ -246,34 +239,30 @@ export const useProfitMargin = (period?: DatePeriod) => {
       
       const result = await profitAnalysisApi.calculateProfitMargin(period, mapping);
       
-      if (!result.success) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Calculation failed');
       }
       
-      // ✅ ENHANCED: Log calculation results with material usage info
       logger.info('Profit calculation completed:', {
         period: period.label,
-        revenue: result.data?.profitMarginData.revenue,
-        cogs: result.data?.profitMarginData.cogs,
-        dataSource: result.data?.cogsBreakdown.dataSource,
+        revenue: result.data.profitMarginData.revenue,
+        cogs: result.data.profitMarginData.cogs,
+        dataSource: result.data.cogsBreakdown.dataSource,
         calculationTime: result.calculationTime
       });
       
       return result.data;
     },
     onSuccess: (data, variables) => {
-      // Update cache
       queryClient.setQueryData(
         profitMarginQueryKeys.analysis(variables.period),
         data
       );
       
-      // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: profitMarginQueryKeys.dashboard()
       });
       
-      // ✅ NEW: Invalidate material usage queries
       queryClient.invalidateQueries({
         queryKey: profitMarginQueryKeys.materialSummary(variables.period)
       });
@@ -303,10 +292,8 @@ export const useProfitMargin = (period?: DatePeriod) => {
     onSuccess: (_, variables) => {
       setCategoryMapping(variables.categoryMapping);
       
-      // Update config cache
       queryClient.setQueryData(profitMarginQueryKeys.config(), variables);
       
-      // Invalidate all profit queries to recalculate with new mapping
       queryClient.invalidateQueries({
         queryKey: profitMarginQueryKeys.all
       });
@@ -314,7 +301,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   });
 
   // ===========================================
-  // ✅ UPDATED CALLBACK FUNCTIONS
+  // ✅ CALLBACK FUNCTIONS
   // ===========================================
 
   const calculateProfit = useCallback(async (
@@ -333,7 +320,6 @@ export const useProfitMargin = (period?: DatePeriod) => {
       queryKey: profitMarginQueryKeys.analysis(defaultPeriod)
     });
     
-    // ✅ NEW: Also refresh material usage data
     await queryClient.invalidateQueries({
       queryKey: profitMarginQueryKeys.materialSummary(defaultPeriod)
     });
@@ -343,7 +329,6 @@ export const useProfitMargin = (period?: DatePeriod) => {
     const newMapping = { ...categoryMapping, ...mapping };
     setCategoryMapping(newMapping);
     
-    // Auto-save configuration
     if (configQuery.data) {
       saveConfigMutation.mutate({
         ...configQuery.data,
@@ -371,7 +356,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
   }, [profitAnalysisQuery.data]);
 
   // ===========================================
-  // ✅ UPDATED DERIVED DATA
+  // ✅ DERIVED DATA
   // ===========================================
 
   const profitData = profitAnalysisQuery.data;
@@ -383,7 +368,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
     ? prepareProfitChartData([profitData])
     : null;
 
-  // ✅ ENHANCED: Key metrics with material usage info
+  // Key metrics with material usage info
   const keyMetrics = profitData ? {
     revenue: profitData.profitMarginData.revenue,
     grossMargin: profitData.profitMarginData.grossMargin,
@@ -391,8 +376,6 @@ export const useProfitMargin = (period?: DatePeriod) => {
     cogs: profitData.profitMarginData.cogs,
     opex: profitData.profitMarginData.opex,
     insights: profitData.insights,
-    
-    // ✅ NEW: Material usage metrics
     dataSource: profitData.cogsBreakdown.dataSource,
     hasActualMaterialData: profitData.cogsBreakdown.dataSource === 'actual',
     materialUsageRecords: profitData.cogsBreakdown.actualMaterialUsage?.length || 0,
@@ -405,36 +388,27 @@ export const useProfitMargin = (period?: DatePeriod) => {
   } : null;
 
   // ===========================================
-  // ✅ UPDATED RETURN OBJECT
+  // ✅ RETURN OBJECT
   // ===========================================
 
   return {
-    // Data
     profitData,
     keyMetrics,
     chartData,
     categoryMapping,
     config: configQuery.data,
-    
-    // State
     isLoading,
     isCalculating,
     error,
-    
-    // Actions
     calculateProfit,
     refreshAnalysis,
     updateCategoryMapping,
     exportAnalysis,
-    
-    // ✅ UPDATED: Nested hooks with material usage
     useProfitComparison,
     useProfitTrend,
     useDashboardSummary,
-    useMaterialUsageSummary, // ✅ NEW
-    useDataQuality, // ✅ NEW
-    
-    // Query objects for advanced usage
+    useMaterialUsageSummary,
+    useDataQuality,
     profitAnalysisQuery,
     configQuery,
     calculateProfitMutation,
@@ -443,12 +417,9 @@ export const useProfitMargin = (period?: DatePeriod) => {
 };
 
 // ===========================================
-// ✅ SPECIALIZED HOOKS (UPDATED)
+// ✅ SPECIALIZED HOOKS
 // ===========================================
 
-/**
- * Hook for dashboard widget - simplified data
- */
 export const useProfitDashboard = () => {
   const { useDashboardSummary } = useProfitMargin();
   const dashboardQuery = useDashboardSummary();
@@ -461,9 +432,6 @@ export const useProfitDashboard = () => {
   };
 };
 
-/**
- * Hook for profit comparison between periods
- */
 export const useProfitComparison = (
   currentPeriod: DatePeriod,
   previousPeriod?: DatePeriod
@@ -479,14 +447,10 @@ export const useProfitComparison = (
   };
 };
 
-/**
- * Hook for profit trend analysis
- */
 export const useProfitTrend = (periods: DatePeriod[]) => {
   const { useProfitTrend: useTrend } = useProfitMargin();
   const trendQuery = useTrend(periods);
   
-  // Generate chart-ready data
   const trendData = trendQuery.data ? prepareProfitChartData(trendQuery.data) : null;
   
   return {
@@ -498,9 +462,6 @@ export const useProfitTrend = (periods: DatePeriod[]) => {
   };
 };
 
-/**
- * ✅ NEW: Hook for material usage analytics
- */
 export const useMaterialUsageAnalytics = (period?: DatePeriod) => {
   const { useMaterialUsageSummary, useDataQuality } = useProfitMargin(period);
   const materialSummary = useMaterialUsageSummary();
@@ -518,9 +479,6 @@ export const useMaterialUsageAnalytics = (period?: DatePeriod) => {
   };
 };
 
-/**
- * Hook for monthly profit analysis (common use case)
- */
 export const useMonthlyProfit = (year?: number, month?: number) => {
   const targetYear = year || new Date().getFullYear();
   const targetMonth = month || new Date().getMonth();
@@ -537,9 +495,6 @@ export const useMonthlyProfit = (year?: number, month?: number) => {
   return useProfitMargin(period);
 };
 
-/**
- * Hook for quarterly profit analysis
- */
 export const useQuarterlyProfit = (year?: number, quarter?: number) => {
   const targetYear = year || new Date().getFullYear();
   const targetQuarter = quarter || Math.floor(new Date().getMonth() / 3) + 1;
@@ -555,12 +510,9 @@ export const useQuarterlyProfit = (year?: number, quarter?: number) => {
 };
 
 // ===========================================
-// ✅ UTILITY FUNCTIONS (unchanged)
+// ✅ UTILITY FUNCTIONS
 // ===========================================
 
-/**
- * Create standard periods for trend analysis
- */
 export const createTrendPeriods = {
   last6Months: (): DatePeriod[] => {
     const periods: DatePeriod[] = [];
@@ -595,7 +547,7 @@ export const createTrendPeriods = {
       
       if (quarterIndex < 0) {
         year--;
-        quarter = quarterIndex + 5; // 4 quarters + 1
+        quarter = quarterIndex + 5;
       }
       
       const startMonth = (quarter - 1) * 3;
@@ -615,9 +567,6 @@ export const createTrendPeriods = {
 // ✅ NEW UTILITY FUNCTIONS
 // ===========================================
 
-/**
- * Generate data quality recommendations
- */
 const generateDataQualityRecommendations = (
   dataSource: 'actual' | 'estimated' | 'mixed',
   materialUsageCount: number,
@@ -644,9 +593,6 @@ const generateDataQualityRecommendations = (
   return recommendations;
 };
 
-/**
- * Invalidate all profit-related cache
- */
 export const invalidateProfitCache = (queryClient: any) => {
   return queryClient.invalidateQueries({
     queryKey: profitMarginQueryKeys.all

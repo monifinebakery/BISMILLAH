@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - FIXED with User Sanitization
+// src/contexts/AuthContext.tsx - MOBILE OPTIMIZED
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -11,6 +11,74 @@ interface AuthContextType {
   isReady: boolean;
   refreshUser: () => Promise<void>;
 }
+
+// ✅ MOBILE: Device capability detection (shared with authUtils)
+const detectDeviceCapabilities = () => {
+  const capabilities = {
+    hasLocalStorage: false,
+    hasSessionStorage: false,
+    networkType: 'unknown',
+    isSlowDevice: false,
+    userAgent: navigator.userAgent || 'unknown'
+  };
+
+  // Test localStorage
+  try {
+    localStorage.setItem('__test__', 'test');
+    localStorage.removeItem('__test__');
+    capabilities.hasLocalStorage = true;
+  } catch {
+    logger.warn('localStorage not available or restricted');
+  }
+
+  // Test sessionStorage
+  try {
+    sessionStorage.setItem('__test__', 'test');
+    sessionStorage.removeItem('__test__');
+    capabilities.hasSessionStorage = true;
+  } catch {
+    logger.warn('sessionStorage not available or restricted');
+  }
+
+  // Detect network type
+  if ('connection' in navigator) {
+    const connection = (navigator as any).connection;
+    capabilities.networkType = connection.effectiveType || 'unknown';
+  }
+
+  // Detect slow device (simplified heuristic)
+  const isSlowDevice = capabilities.userAgent.includes('Android 4') || 
+                      capabilities.userAgent.includes('iPhone OS 10') ||
+                      !capabilities.hasLocalStorage;
+  capabilities.isSlowDevice = isSlowDevice;
+
+  return capabilities;
+};
+
+// ✅ MOBILE: Adaptive timeout for AuthContext
+const getAdaptiveTimeout = (baseTimeout = 15000) => {
+  const capabilities = detectDeviceCapabilities();
+  
+  let timeout = baseTimeout;
+  
+  // Increase timeout for slow devices
+  if (capabilities.isSlowDevice) {
+    timeout *= 2;
+    logger.debug('AuthContext: Slow device detected, doubling timeout:', timeout);
+  }
+  
+  // Increase timeout for slow networks
+  if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
+    timeout *= 3;
+    logger.debug('AuthContext: Slow network detected, tripling timeout:', timeout);
+  } else if (capabilities.networkType === '3g') {
+    timeout *= 1.5;
+    logger.debug('AuthContext: 3G network detected, increasing timeout:', timeout);
+  }
+  
+  // Cap at reasonable maximum
+  return Math.min(timeout, 45000); // Max 45 seconds for AuthContext
+};
 
 // ✅ NEW: User object sanitization
 const sanitizeUser = (user: User | null): User | null => {
@@ -76,12 +144,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
 
-  // ✅ ENHANCED: Manual refresh with sanitization
+  // ✅ ENHANCED: Manual refresh with sanitization and mobile timeout
   const refreshUser = async () => {
     try {
       logger.context('AuthContext', 'Manual user refresh triggered');
       
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // ✅ MOBILE: Use adaptive timeout for refresh
+      const adaptiveTimeout = getAdaptiveTimeout(10000);
+      
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('AuthContext refresh timeout')), adaptiveTimeout)
+      );
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]) as any;
       
       if (error) {
         logger.error('AuthContext refresh error:', error);
@@ -113,10 +192,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         logger.context('AuthContext', 'Initializing auth...');
         
-        // Add timeout to prevent hanging
+        // ✅ MOBILE FIX: Adaptive timeout to prevent hanging on mobile
+        const adaptiveTimeout = getAdaptiveTimeout(15000);
+        logger.debug('AuthContext: Using adaptive timeout:', adaptiveTimeout);
+        
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 15000)
+          setTimeout(() => reject(new Error('Auth initialization timeout')), adaptiveTimeout)
         );
         
         const { data: { session } } = await Promise.race([
@@ -135,7 +217,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           userEmail: validUser?.email || 'none',
           userId: validUser?.id || 'none',
           originalSessionValid: !!session,
-          wasUserSanitized: !!session?.user && !validUser
+          wasUserSanitized: !!session?.user && !validUser,
+          adaptiveTimeout
         });
         
         setSession(validSession);
@@ -153,6 +236,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
       } catch (error) {
         logger.error('AuthContext initialization failed:', error);
+        
+        // ✅ MOBILE: More lenient error handling for mobile devices
+        if (error.message?.includes('timeout')) {
+          const capabilities = detectDeviceCapabilities();
+          if (capabilities.isSlowDevice || capabilities.networkType === '2g' || capabilities.networkType === '3g') {
+            logger.warn('AuthContext: Mobile device timeout detected, allowing graceful fallback');
+            // Don't force signout on mobile timeout - let AuthGuard handle it
+          }
+        }
+        
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -202,13 +295,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         
-        // ✅ Handle redirects centrally (only for valid sessions)
+        // ✅ MOBILE: Enhanced redirect handling with delay for mobile
         if (event === 'SIGNED_IN' && validSession?.user) {
           if (window.location.pathname === '/auth') {
             logger.info('AuthContext: Redirecting to dashboard after valid sign in');
+            
+            // ✅ MOBILE: Longer delay for mobile devices to ensure session is stable
+            const capabilities = detectDeviceCapabilities();
+            const redirectDelay = capabilities.isSlowDevice ? 2000 : 1000;
+            
             setTimeout(() => {
-              window.location.href = '/';
-            }, 1000);
+              if (mounted) {
+                window.location.href = '/';
+              }
+            }, redirectDelay);
           }
         } else if (event === 'SIGNED_OUT') {
           if (window.location.pathname !== '/auth') {

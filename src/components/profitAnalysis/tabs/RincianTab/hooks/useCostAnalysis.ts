@@ -1,24 +1,47 @@
-// src/components/profitAnalysis/tabs/rincianTab/hooks/useCostAnalysis.ts
+// src/components/profitAnalysis/tabs/RincianTab/hooks/useCostAnalysis.ts
+// ✅ Updated with robust validation and logger
 
 import { useMemo } from 'react';
+import { logger } from '@/utils/logger'; // ✅ Import logger
 import { ProfitAnalysisResult } from '../../types';
 import { CostAnalysis } from '../types/calculations';
 import { calculateCostAnalysis } from '../utils/calculations';
-import { validateProfitData } from '../utils/validators';
+import { validateProfitData } from '../utils/validators'; // ✅ Import validator
 
 /**
  * Hook for cost analysis calculations with validation
+ * ✅ ROBUST VALIDATION
  */
 export const useCostAnalysis = (profitData: ProfitAnalysisResult | null): CostAnalysis | null => {
   return useMemo(() => {
     if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useCostAnalysis: Data profit tidak valid atau tidak lengkap diterima', { hasProfitData: !!profitData });
       return null;
+    }
+
+    const criticalProperties = {
+      revenue: profitData.profitMarginData.revenue,
+      cogs: profitData.profitMarginData.cogs,
+      opex: profitData.profitMarginData.opex,
+      totalMaterialCost: profitData.cogsBreakdown.totalMaterialCost,
+      totalDirectLaborCost: profitData.cogsBreakdown.totalDirectLaborCost,
+      manufacturingOverhead: profitData.cogsBreakdown.manufacturingOverhead,
+      totalCOGS: profitData.cogsBreakdown.totalCOGS,
+      totalOPEX: profitData.opexBreakdown.totalOPEX
+    };
+
+    const invalidValues = Object.entries(criticalProperties).filter(
+      ([key, value]) => value == null || (typeof value === 'number' && isNaN(value))
+    );
+
+    if (invalidValues.length > 0) {
+      logger.warn('useCostAnalysis: Terdapat nilai kritis yang tidak valid sebelum calculateCostAnalysis', { invalidValues, profitData });
     }
 
     try {
       return calculateCostAnalysis(profitData);
     } catch (error) {
-      console.error('Error in useCostAnalysis:', error);
+      logger.error('Error in useCostAnalysis:', error);
       return null;
     }
   }, [profitData]);
@@ -26,36 +49,62 @@ export const useCostAnalysis = (profitData: ProfitAnalysisResult | null): CostAn
 
 /**
  * Hook for cost analysis with additional metadata
+ * ✅ ROBUST VALIDATION
  */
 export const useCostAnalysisWithMetadata = (profitData: ProfitAnalysisResult | null) => {
   return useMemo(() => {
-    const costAnalysis = calculateCostAnalysis(profitData);
-    
-    if (!costAnalysis || !profitData) {
+    if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useCostAnalysisWithMetadata: Data profit tidak valid atau tidak lengkap diterima', { hasProfitData: !!profitData });
       return null;
     }
 
-    // Calculate additional metadata
-    const totalCosts = profitData.cogsBreakdown.totalCOGS + profitData.opexBreakdown.totalOPEX;
-    const revenue = profitData.profitMarginData.revenue;
-    
-    return {
-      ...costAnalysis,
-      metadata: {
-        totalCosts,
-        revenue,
-        profitability: revenue > 0 ? ((revenue - totalCosts) / revenue) * 100 : 0,
-        costEfficiency: totalCosts > 0 ? revenue / totalCosts : 0,
-        breakEvenPoint: totalCosts,
-        marginSafety: revenue > totalCosts ? revenue - totalCosts : 0,
-        costStructureHealth: {
-          isHealthy: costAnalysis.cogsRatio <= 70 && costAnalysis.opexRatio <= 20,
-          riskLevel: costAnalysis.cogsRatio > 80 || costAnalysis.opexRatio > 30 ? 'high' : 
-                    costAnalysis.cogsRatio > 70 || costAnalysis.opexRatio > 20 ? 'medium' : 'low',
-          recommendations: generateQuickRecommendations(costAnalysis)
-        }
+    try {
+      const criticalProperties = {
+        revenue: profitData.profitMarginData.revenue,
+        totalCOGS: profitData.cogsBreakdown.totalCOGS,
+        totalOPEX: profitData.opexBreakdown.totalOPEX
+      };
+
+      const invalidValues = Object.entries(criticalProperties).filter(
+        ([key, value]) => value == null || (typeof value === 'number' && isNaN(value))
+      );
+
+      if (invalidValues.length > 0) {
+        logger.warn('useCostAnalysisWithMetadata: Terdapat nilai kritis yang tidak valid', { invalidValues, profitData });
+        return null;
       }
-    };
+
+      const costAnalysis = calculateCostAnalysis(profitData);
+      
+      if (!costAnalysis) {
+        logger.warn('useCostAnalysisWithMetadata: calculateCostAnalysis mengembalikan null/undefined');
+        return null;
+      }
+
+      const totalCosts = profitData.cogsBreakdown.totalCOGS + profitData.opexBreakdown.totalOPEX;
+      const revenue = profitData.profitMarginData.revenue;
+      
+      return {
+        ...costAnalysis,
+        metadata: {
+          totalCosts,
+          revenue,
+          profitability: revenue > 0 ? ((revenue - totalCosts) / revenue) * 100 : 0,
+          costEfficiency: totalCosts > 0 ? revenue / totalCosts : 0,
+          breakEvenPoint: totalCosts,
+          marginSafety: revenue > totalCosts ? revenue - totalCosts : 0,
+          costStructureHealth: {
+            isHealthy: costAnalysis.cogsRatio <= 70 && costAnalysis.opexRatio <= 20,
+            riskLevel: costAnalysis.cogsRatio > 80 || costAnalysis.opexRatio > 30 ? 'high' : 
+                      costAnalysis.cogsRatio > 70 || costAnalysis.opexRatio > 20 ? 'medium' : 'low',
+            recommendations: generateQuickRecommendations(costAnalysis)
+          }
+        }
+      };
+    } catch (error) {
+      logger.error('Error in useCostAnalysisWithMeta', error);
+      return null;
+    }
   }, [profitData]);
 };
 
@@ -103,26 +152,42 @@ export const useCostAnalysisComparison = (
   }
 ) => {
   return useMemo(() => {
-    const costAnalysis = calculateCostAnalysis(profitData);
-    
-    if (!costAnalysis || !industryBenchmarks) {
+    if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useCostAnalysisComparison: Data profit tidak valid atau tidak lengkap diterima', { hasProfitData: !!profitData });
       return null;
     }
 
-    return {
-      costAnalysis,
-      comparison: {
-        materialVariance: costAnalysis.materialRatio - industryBenchmarks.materialRatio,
-        laborVariance: costAnalysis.laborRatio - industryBenchmarks.laborRatio,
-        cogsVariance: costAnalysis.cogsRatio - industryBenchmarks.cogsRatio,
-        opexVariance: costAnalysis.opexRatio - industryBenchmarks.opexRatio
-      },
-      performance: {
-        materialPerformance: costAnalysis.materialRatio <= industryBenchmarks.materialRatio ? 'above' : 'below',
-        laborPerformance: costAnalysis.laborRatio <= industryBenchmarks.laborRatio ? 'above' : 'below',
-        cogsPerformance: costAnalysis.cogsRatio <= industryBenchmarks.cogsRatio ? 'above' : 'below',
-        opexPerformance: costAnalysis.opexRatio <= industryBenchmarks.opexRatio ? 'above' : 'below'
+    if (!industryBenchmarks) {
+      logger.warn('useCostAnalysisComparison: Industry benchmarks tidak tersedia');
+      return null;
+    }
+
+    try {
+      const costAnalysis = calculateCostAnalysis(profitData);
+      
+      if (!costAnalysis) {
+        logger.warn('useCostAnalysisComparison: calculateCostAnalysis mengembalikan null/undefined');
+        return null;
       }
-    };
+
+      return {
+        costAnalysis,
+        comparison: {
+          materialVariance: costAnalysis.materialRatio - industryBenchmarks.materialRatio,
+          laborVariance: costAnalysis.laborRatio - industryBenchmarks.laborRatio,
+          cogsVariance: costAnalysis.cogsRatio - industryBenchmarks.cogsRatio,
+          opexVariance: costAnalysis.opexRatio - industryBenchmarks.opexRatio
+        },
+        performance: {
+          materialPerformance: costAnalysis.materialRatio <= industryBenchmarks.materialRatio ? 'above' : 'below',
+          laborPerformance: costAnalysis.laborRatio <= industryBenchmarks.laborRatio ? 'above' : 'below',
+          cogsPerformance: costAnalysis.cogsRatio <= industryBenchmarks.cogsRatio ? 'above' : 'below',
+          opexPerformance: costAnalysis.opexRatio <= industryBenchmarks.opexRatio ? 'above' : 'below'
+        }
+      };
+    } catch (error) {
+      logger.error('Error in useCostAnalysisComparison:', error);
+      return null;
+    }
   }, [profitData, industryBenchmarks]);
 };

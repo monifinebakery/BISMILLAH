@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 
 // ✅ NEW PROFIT MARGIN COMPONENTS
-import { ProfitMarginWidget } from './components/ProfitMarginWidget';
+import { ProfitMarginWidget } from '@/components/profitAnalysis/componentsProfitMarginWidget';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';

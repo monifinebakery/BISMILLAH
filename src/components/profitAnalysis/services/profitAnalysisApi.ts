@@ -1,4 +1,4 @@
-// src/components/financial/services/profitAnalysisApi.ts
+// src/components/profitAnalysis/services/profitAnalysisApi.ts
 // ✅ PROFIT ANALYSIS API - Integration Layer
 
 import { supabase } from '@/integrations/supabase/client';

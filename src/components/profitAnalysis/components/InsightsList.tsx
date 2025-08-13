@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, TrendingUp, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ProfitInsight } from '@/components/profitAnalysistypes/profitAnalysis';
+import { ProfitInsight } from '@/components/financial/types/profitAnalysis';
 
 interface InsightsListProps {
   insights: ProfitInsight[];

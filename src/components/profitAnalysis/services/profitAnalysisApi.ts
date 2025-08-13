@@ -1,5 +1,5 @@
 // src/components/profitAnalysis/services/profitAnalysisApi.ts
-// ✅ PROFIT ANALYSIS API - Integration Layer
+// ✅ PROFIT ANALYSIS API - Integration Layer (Updated with Recipe)
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
@@ -23,6 +23,7 @@ import {
 } from '../types';
 
 import { AllocationSettings } from '@/components/operational-costs/types/operationalCost.types';
+import { Recipe } from '@/components/recipe/types'; // ✅ Import Recipe type
 
 // ===========================================
 // ✅ HELPER FUNCTIONS
@@ -59,28 +60,30 @@ export const integrateFinancialData = async (
   transactions: FinancialTransaction[];
   operationalCosts: OperationalCost[];
   materials: BahanBakuFrontend[];
+  recipes: Recipe[]; // ✅ Add recipes to integrated data
 }> => {
   try {
     // Dynamic imports to avoid circular dependencies
-    const [financialApi, operationalApi, warehouseApi] = await Promise.all([
+    const [financialApi, operationalApi, warehouseApi, recipeApi] = await Promise.all([
       import('@/components/financial/services/financialApi'),
       import('@/components/operational-costs/services/operationalCostApi'),
-      import('@/components/warehouse/services/warehouseApi')
+      import('@/components/warehouse/services/warehouseApi'),
+      import('@/components/recipe/services/recipeApi') // ✅ Import recipe API
     ]);
 
     // Fetch data from all modules
-    const [transactionsResult, costsResult, warehouseService] = await Promise.all([
+    const [transactionsResult, costsResult, materialsResult, recipesResult] = await Promise.all([
       financialApi.getTransactionsByDateRange(userId, period.from, period.to),
       operationalApi.operationalCostApi.getCosts(),
-      warehouseApi.warehouseApi.createService('crud', { userId })
+      warehouseApi.warehouseApi.createService('crud', { userId }).then(service => service.fetchBahanBaku()),
+      recipeApi.recipeApi.getRecipes() // ✅ Fetch all recipes (filtering can be done later if needed)
     ]);
-
-    const materials = await warehouseService.fetchBahanBaku();
 
     return {
       transactions: transactionsResult || [],
       operationalCosts: costsResult.data || [],
-      materials: materials || []
+      materials: materialsResult || [],
+      recipes: recipesResult || [] // ✅ Include recipes
     };
   } catch (error) {
     logger.error('Error integrating financial data:', error);

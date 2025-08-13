@@ -24,11 +24,11 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Hooks
-import { useProfitMargin } from '@/hooks/useProfitMargin';
-import { createDatePeriods } from '@/services/profitAnalysisApi';
+import { useProfitMargin } from './hooks/useProfitMargin';
+import { createDatePeriods } from './services/profitAnalysisApi';
 
 // Types
-import { DatePeriod } from '@/types/profitAnalysis';
+import { DatePeriod } from './types/profitAnalysis';
 
 // Components
 import { AnalysisSkeleton } from './components/LoadingSkeleton';

@@ -1,4 +1,4 @@
-// src/types/financial.ts
+// src/components/financial/types/financial
 // ✅ SINGLE SOURCE OF TRUTH - No circular dependencies
 
 export type FinancialTransactionType = 'income' | 'expense';

@@ -21,12 +21,28 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     try {
-      // Fetch all active updates
-      const { data: updates, error: updatesError } = await supabase
-        .from('app_updates')
-        .select('*')
-        .eq('is_active', true)
-        .order('release_date', { ascending: false });
+      // ✅ FIXED: Use RPC call to check admin status first
+      const { data: isAdminData, error: adminError } = await supabase
+        .rpc('is_user_admin');
+
+      if (adminError) {
+        console.warn('Could not check admin status:', adminError);
+      }
+
+      const isAdmin = isAdminData || false;
+
+      // ✅ UPDATED: Fetch updates based on admin status
+      let query = supabase.from('app_updates').select('*');
+      
+      if (isAdmin) {
+        // Admin can see all updates
+        query = query.order('release_date', { ascending: false });
+      } else {
+        // Regular users only see active updates
+        query = query.eq('is_active', true).order('release_date', { ascending: false });
+      }
+
+      const { data: updates, error: updatesError } = await query;
 
       if (updatesError) throw updatesError;
 
@@ -53,13 +69,15 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates(unseen);
       setHasUnseenUpdates(unseen.length > 0);
 
-      // Show popup for critical or high priority unseen updates
-      const criticalUnseen = unseen.filter(update => 
-        update.priority === 'critical' || update.priority === 'high'
-      );
+      // Show popup for critical or high priority unseen updates (only for non-admin users)
+      if (!isAdmin) {
+        const criticalUnseen = unseen.filter(update => 
+          update.priority === 'critical' || update.priority === 'high'
+        );
 
-      if (criticalUnseen.length > 0) {
-        showUpdateNotification(criticalUnseen[0]);
+        if (criticalUnseen.length > 0) {
+          showUpdateNotification(criticalUnseen[0]);
+        }
       }
     } catch (error) {
       console.error('Error fetching updates:', error);

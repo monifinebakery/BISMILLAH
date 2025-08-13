@@ -1,4 +1,4 @@
-// src/contexts/ProfitAnalysisContext.tsx
+// src/components/profitAnalysis/context/ProfitAnalysisContext.tsx
 // ✅ PROFIT ANALYSIS CONTEXT - Provider & Hook
 
 import React, { createContext, useContext, useEffect, ReactNode, useCallback } from 'react';

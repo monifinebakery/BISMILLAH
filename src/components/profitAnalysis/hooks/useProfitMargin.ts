@@ -1,4 +1,4 @@
-// src/hooks/useProfitMargin.ts
+// src/components/profitAnalysis/hooks/useProfitMargin.ts
 // ✅ UPDATED PROFIT MARGIN REACT HOOK - Material Usage Integration
 
 import { useState, useCallback, useEffect } from 'react';

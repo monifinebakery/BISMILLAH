@@ -1,6 +1,3 @@
-// src/components/financial/profit-analysis/tabs/PerbandinganTab.tsx
-// ✅ TAB PERBANDINGAN - Complete version with comprehensive comparison
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -323,54 +320,46 @@ export const PerbandinganTab: React.FC<PerbandinganTabProps> = ({ profitData }) 
                     <div>
                       <h5 className="font-medium mb-2">📊 Perbandingan Margin</h5>
                       <div className="bg-gray-100 p-4 rounded">
-                        ```chartjs
-                        {
-                          type: 'bar',
-                          data: {
-                            labels: ['Your Company', 'Industry Average', 'Top Performers'],
-                            datasets: [
-                              {
-                                label: 'Gross Margin (%)',
-                                data: [
-                                  ${competitiveAnalysis.yourCompany.grossMargin},
-                                  ${competitiveAnalysis.industryAverage.grossMargin},
-                                  ${competitiveAnalysis.topPerformers.grossMargin}
-                                ],
-                                backgroundColor: '#4CAF50',
-                                borderColor: '#388E3C',
-                                borderWidth: 1
-                              },
-                              {
-                                label: 'Net Margin (%)',
-                                data: [
-                                  ${competitiveAnalysis.yourCompany.netMargin},
-                                  ${competitiveAnalysis.industryAverage.netMargin},
-                                  ${competitiveAnalysis.topPerformers.netMargin}
-                                ],
-                                backgroundColor: '#2196F3',
-                                borderColor: '#1976D2',
-                                borderWidth: 1
-                              }
-                            ]
-                          },
-                          options: {
-                            scales: {
-                              y: {
-                                beginAtZero: true,
-                                title: {
-                                  display: true,
-                                  text: 'Margin (%)'
-                                }
-                              }
-                            },
-                            plugins: {
-                              legend: {
-                                position: 'top'
-                              }
-                            }
-                          }
-                        }
-                        ```
+                        <pre>
+{`{
+  type: 'bar',
+  data: {
+    labels: ['Your Company', 'Industry Average', 'Top Performers'],
+    datasets: [
+      {
+        label: 'Gross Margin (%)',
+        data: [${competitiveAnalysis.yourCompany.grossMargin}, ${competitiveAnalysis.industryAverage.grossMargin}, ${competitiveAnalysis.topPerformers.grossMargin}],
+        backgroundColor: '#4CAF50',
+        borderColor: '#388E3C',
+        borderWidth: 1
+      },
+      {
+        label: 'Net Margin (%)',
+        data: [${competitiveAnalysis.yourCompany.netMargin}, ${competitiveAnalysis.industryAverage.netMargin}, ${competitiveAnalysis.topPerformers.netMargin}],
+        backgroundColor: '#2196F3',
+        borderColor: '#1976D2',
+        borderWidth: 1
+      }
+    ]
+  },
+  options: {
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Margin (%)'
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'top'
+      }
+    }
+  }
+}`}
+                        </pre>
                       </div>
                     </div>
 

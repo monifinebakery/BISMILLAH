@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 // UI utilities
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // Auth Context
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,40 +29,58 @@ import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
 // LAZY LOADED COMPONENTS
 const FinancialCharts = React.lazy(() => 
-  import('./components/FinancialCharts').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat chart</div>
-  }))
+  import('./components/FinancialCharts').catch((error) => {
+    logger.error('Failed to load FinancialCharts', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat chart</div>
+    };
+  })
 );
 
 const CategoryCharts = React.lazy(() => 
-  import('./components/CategoryCharts').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori chart</div>
-  }))
+  import('./components/CategoryCharts').catch((error) => {
+    logger.error('Failed to load CategoryCharts', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori chart</div>
+    };
+  })
 );
 
 const TransactionTable = React.lazy(() => 
-  import('./components/TransactionTable').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
-  }))
+  import('./components/TransactionTable').catch((error) => {
+    logger.error('Failed to load TransactionTable', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
+    };
+  })
 );
 
 const FinancialTransactionDialog = React.lazy(() => 
-  import('./dialogs/FinancialTransactionDialog').catch(() => ({
-    default: () => null
-  }))
+  import('./dialogs/FinancialTransactionDialog').catch((error) => {
+    logger.error('Failed to load FinancialTransactionDialog', error);
+    return {
+      default: () => null
+    };
+  })
 );
 
 const CategoryManagementDialog = React.lazy(() => 
-  import('./dialogs/CategoryManagementDialog').catch(() => ({
-    default: () => null
-  }))
+  import('./dialogs/CategoryManagementDialog').catch((error) => {
+    logger.error('Failed to load CategoryManagementDialog', error);
+    return {
+      default: () => null
+    };
+  })
 );
 
 // ✅ UPDATED LAZY IMPORT - Menggunakan path baru
-const ProfitAnalysisDialogLazy = React.lazy(() => 
-  import('@/components/profitAnalysis/ProfitAnalysisDialog').catch(() => ({
-    default: () => null
-  }))
+const ProfitAnalysisDialog = React.lazy(() => 
+  import('@/components/profitAnalysis/ProfitAnalysisDialog').then(module => ({ default: module.ProfitAnalysisDialog })).catch((error) => {
+    logger.error('Failed to load ProfitAnalysisDialog', error);
+    return {
+      default: () => null
+    };
+  })
 );
 
 // Loading components
@@ -264,6 +283,7 @@ const FinancialReportPage: React.FC = () => {
 
   // ✅ DIALOG HANDLERS
   const openTransactionDialog = (transaction: any = null) => {
+    logger.debug('Opening transaction dialog', { editing: !!transaction });
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: true, editing: transaction }
@@ -271,6 +291,7 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const closeTransactionDialog = () => {
+    logger.debug('Closing transaction dialog');
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: false, editing: null }
@@ -278,74 +299,91 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const openCategoryDialog = () => {
+    logger.debug('Opening category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: true } }));
   };
 
   const closeCategoryDialog = () => {
+    logger.debug('Closing category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
   };
 
   const openProfitAnalysisDialog = () => {
+    logger.debug('Opening profit analysis dialog');
     setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: true } }));
   };
 
   const closeProfitAnalysisDialog = () => {
+    logger.debug('Closing profit analysis dialog');
     setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: false } }));
   };
 
   // ✅ TRANSACTION HANDLERS
   const handleAddTransaction = async (transactionData: any) => {
     try {
+      logger.info('Adding new transaction', { transactionData });
       const result = await addTransaction(transactionData);
       if (result.success) {
         closeTransactionDialog();
         toast.success('Transaksi berhasil ditambahkan');
+        logger.info('Transaction added successfully');
         return true;
       } else {
         toast.error(result.error || 'Gagal menambah transaksi');
+        logger.error('Failed to add transaction', { error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while adding transaction', error);
       return false;
     }
   };
 
   const handleUpdateTransaction = async (id: string, transactionData: any) => {
     try {
+      logger.info('Updating transaction', { id, transactionData });
       const result = await updateTransaction(id, transactionData);
       if (result.success) {
         closeTransactionDialog();
         toast.success('Transaksi berhasil diperbarui');
+        logger.info('Transaction updated successfully', { id });
         return true;
       } else {
         toast.error(result.error || 'Gagal memperbarui transaksi');
+        logger.error('Failed to update transaction', { id, error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while updating transaction', error);
       return false;
     }
   };
 
   const handleDeleteTransaction = async (id: string) => {
     try {
+      logger.info('Deleting transaction', { id });
       const result = await deleteTransaction(id);
       if (result.success) {
         toast.success('Transaksi berhasil dihapus');
+        logger.info('Transaction deleted successfully', { id });
         return true;
       } else {
         toast.error(result.error || 'Gagal menghapus transaksi');
+        logger.error('Failed to delete transaction', { id, error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while deleting transaction', error);
       return false;
     }
   };
 
   // ✅ DATE RANGE HANDLER
   const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
+    logger.debug('Date range changed', { range });
     if (range) {
       setDateRange({
         from: range.from,
@@ -569,6 +607,7 @@ const FinancialReportPage: React.FC = () => {
             settings={settings}
             saveSettings={(newSettings) => {
               toast.success('Kategori berhasil disimpan');
+              logger.info('Categories saved successfully');
             }}
           />
         </Suspense>

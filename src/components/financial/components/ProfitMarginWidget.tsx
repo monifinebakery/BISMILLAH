@@ -20,8 +20,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Hooks
-import { useProfitMargin, useProfitDashboard } from '@/hooks/useProfitMargin';
-import { createDatePeriods } from '@/services/profitAnalysisApi';
+import { useProfitMargin, useProfitDashboard } from '../hooks/useProfitMargin';
+import { createDatePeriods } from '../services/profitAnalysisApi';
 
 // ✅ UPDATED IMPORT - Menggunakan utility dari profit-analysis
 import { 

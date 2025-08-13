@@ -4,7 +4,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useProfitMargin } from '../hooks/useProfitMargin';
-import { DatePeriod } from '../types/profitAnalysis';
+import { DatePeriod } from '../types';
 
 /**
  * Hook untuk dialog state management

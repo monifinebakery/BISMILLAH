@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Add timeout to prevent hanging
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
+          setTimeout(() => reject(new Error('Auth initialization timeout')), 15000)
         );
         
         const { data: { session } } = await Promise.race([

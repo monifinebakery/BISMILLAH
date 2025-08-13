@@ -19,7 +19,7 @@ import {
   ProfitInsight
 } from '../types/profitAnalysis';
 
-import { createDatePeriods } from '@/services/profitAnalysisApi';
+import { createDatePeriods } from '../services/profitAnalysisApi';
 
 // ===========================================
 // ✅ CONTEXT SETUP

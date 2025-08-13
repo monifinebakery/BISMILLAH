@@ -1,4 +1,4 @@
-// src/components/AuthGuard.tsx - SIMPLIFIED & RELIABLE
+// src/components/AuthGuard.tsx - FINAL VERSION - COMPATIBLE WITH ALL SERVICES
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { logger } from '@/utils/logger';

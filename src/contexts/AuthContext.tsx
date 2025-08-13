@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - FIXED CONFLICTING REDIRECT
+// src/contexts/AuthContext.tsx - ENHANCED FOR RELIABILITY
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isReady: boolean;
   refreshUser: () => Promise<void>;
+  triggerRedirectCheck: () => void;
 }
 
 // ✅ MOBILE: Device capability detection (shared with authUtils)
@@ -185,6 +186,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // ✅ NEW: Helper function to manually trigger redirect check
+  const triggerRedirectCheck = () => {
+    if (isReady && user && window.location.pathname === '/auth') {
+      logger.info('🚀 AuthContext: Manual redirect trigger - user authenticated on auth page');
+      window.location.href = '/';
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     
@@ -261,7 +270,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // ✅ FIXED: Auth state change handler - REMOVED REDIRECT LOGIC
+    // ✅ SIMPLIFIED: Auth state change handler - NO REDIRECT LOGIC
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -295,7 +304,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         
-        // ✅ CRITICAL FIX: REMOVED ALL REDIRECT LOGIC
+        // ✅ CRITICAL FIX: NO REDIRECT LOGIC HERE
         // Let AuthGuard handle all redirects consistently
         // AuthContext should only manage state, not navigation
         
@@ -310,13 +319,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  // ✅ DEBUG: Expose auth state to window for debugging (development only)
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      // @ts-ignore - Debug purposes only
+      window.__DEBUG_AUTH_USER__ = user;
+      // @ts-ignore - Debug purposes only  
+      window.__DEBUG_AUTH_READY__ = isReady;
+      // @ts-ignore - Debug purposes only
+      window.__DEBUG_AUTH_LOADING__ = isLoading;
+      // @ts-ignore - Debug purposes only
+      window.__DEBUG_AUTH_SESSION__ = session;
+    }
+  }, [user, isReady, isLoading, session]);
+
   // ✅ ENHANCED: Additional validation in context value
   const contextValue = { 
     session, 
     user, 
     isLoading, 
     isReady,
-    refreshUser
+    refreshUser,
+    triggerRedirectCheck
   };
 
   // ✅ DEBUG: Log context value in development

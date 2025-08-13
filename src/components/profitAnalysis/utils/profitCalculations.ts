@@ -47,6 +47,12 @@ export const calculateProfitMargins = (
       });
     }
 
+    // Validasi input operationalCosts
+    if (!Array.isArray(input.operationalCosts)) {
+      logger.warn('calculateProfitMargins: operationalCosts bukan array', { operationalCosts: input.operationalCosts });
+      input.operationalCosts = [];
+    }
+
     // Filter transactions by date period
     const periodTransactions = filterByDateRange(
       input.transactions,
@@ -184,6 +190,10 @@ export const calculateProfitMargins = (
 // ===========================================
 
 export const calculateRevenue = (transactions: FinancialTransaction[]): number => {
+  if (!Array.isArray(transactions)) {
+    logger.warn('calculateRevenue: transactions bukan array', { transactions });
+    return 0;
+  }
   return transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -203,7 +213,12 @@ export const calculateCOGS = (
   categoryMapping: CategoryMapping,
   allocationSettings?: AllocationSettings
 ): COGSBreakdown => {
-  
+  // Validasi operationalCosts
+  if (!Array.isArray(operationalCosts)) {
+    logger.warn('calculateCOGS: operationalCosts bukan array', { operationalCosts });
+    operationalCosts = [];
+  }
+
   // Prioritize actual material usage over transaction estimates
   const materialCosts = calculateActualMaterialCosts(
     materialUsage, 
@@ -234,8 +249,8 @@ export const calculateCOGS = (
     manufacturingOverhead: manufacturingOverhead.amount,
     overheadAllocationMethod: manufacturingOverhead.method,
     totalCOGS,
-    actualMaterialUsage: materialUsage,
-    productionData: productionRecords,
+    actualMaterialUsage: materialUsage || [],
+    productionData: productionRecords || [],
     dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
   };
 };
@@ -319,6 +334,11 @@ const calculateMaterialCostsFromTransactions = (
   materials: BahanBakuFrontend[],
   categoryMapping: CategoryMapping
 ) => {
+  if (!Array.isArray(transactions)) {
+    logger.warn('calculateMaterialCostsFromTransactions: transactions bukan array', { transactions });
+    return { details: [], totalMaterialCost: 0 };
+  }
+
   const materialTransactions = transactions.filter(t => 
     t.type === 'expense' && 
     categoryMapping.cogsCategories.includes(t.category || '')
@@ -383,6 +403,11 @@ const calculateDirectLaborCosts = (
   operationalCosts: OperationalCost[],
   categoryMapping: CategoryMapping
 ) => {
+  if (!Array.isArray(operationalCosts)) {
+    logger.warn('calculateDirectLaborCosts: operationalCosts bukan array', { operationalCosts });
+    return { details: [], totalDirectLaborCost: 0 };
+  }
+
   const directLaborCosts = operationalCosts.filter(cost => 
     cost.status === 'aktif' &&
     categoryMapping.directLaborCategories.some(category =>
@@ -418,6 +443,11 @@ const calculateManufacturingOverhead = (
   allocationSettings?: AllocationSettings,
   materialCost: number = 0
 ) => {
+  if (!Array.isArray(operationalCosts)) {
+    logger.warn('calculateManufacturingOverhead: operationalCosts bukan array', { operationalCosts });
+    return { amount: 0, method: 'per_unit' as const };
+  }
+
   const overheadCosts = operationalCosts.filter(cost => 
     cost.status === 'aktif' &&
     !cost.nama_biaya.toLowerCase().includes('gaji') &&
@@ -461,6 +491,16 @@ export const calculateOPEX = (
   operationalCosts: OperationalCost[],
   categoryMapping: CategoryMapping
 ): OPEXBreakdown => {
+  if (!Array.isArray(transactions)) {
+    logger.warn('calculateOPEX: transactions bukan array', { transactions });
+    transactions = [];
+  }
+
+  if (!Array.isArray(operationalCosts)) {
+    logger.warn('calculateOPEX: operationalCosts bukan array', { operationalCosts });
+    operationalCosts = [];
+  }
+
   const opexTransactions = transactions.filter(t => 
     t.type === 'expense' && 
     categoryMapping.opexCategories.includes(t.category || '')
@@ -729,7 +769,10 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
   }
 
   // Validate transactions
-  if (!input.transactions || input.transactions.length === 0) {
+  if (!Array.isArray(input.transactions)) {
+    warnings.push('Tidak ada transaksi dalam periode ini');
+    input.transactions = [];
+  } else if (input.transactions.length === 0) {
     warnings.push('Tidak ada transaksi dalam periode ini');
   } else {
     const hasIncome = input.transactions.some(t => t.type === 'income');
@@ -744,7 +787,11 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
   }
 
   // Validate operational costs
-  if (!input.operationalCosts || input.operationalCosts.length === 0) {
+  if (!Array.isArray(input.operationalCosts)) {
+    warnings.push('Data biaya operasional tidak valid');
+    suggestions.push('Pastikan data biaya operasional tersedia dan dalam format array');
+    input.operationalCosts = [];
+  } else if (input.operationalCosts.length === 0) {
     warnings.push('Tidak ada data biaya operasional');
     suggestions.push('Tambahkan biaya operasional untuk analisis yang lebih akurat');
   } else {
@@ -755,19 +802,19 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
   }
 
   // Validate materials
-  if (!input.materials || input.materials.length === 0) {
+  if (!Array.isArray(input.materials) || input.materials.length === 0) {
     warnings.push('Tidak ada data bahan baku');
     suggestions.push('Tambahkan data warehouse untuk tracking HPP yang akurat');
   }
 
   // Validate recipes
-  if (!input.recipes) {
+  if (!Array.isArray(input.recipes)) {
     warnings.push('Data resep tidak tersedia');
     suggestions.push('Tambahkan data resep untuk analisis yang lebih komprehensif');
   }
 
   // Validate material usage
-  if (!input.materialUsage || input.materialUsage.length === 0) {
+  if (!Array.isArray(input.materialUsage) || input.materialUsage.length === 0) {
     warnings.push('Tidak ada data material usage');
     suggestions.push('Setup tracking material usage untuk COGS calculation yang akurat');
   } else {
@@ -778,7 +825,7 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
   }
 
   // Validate production records
-  if (!input.productionRecords || input.productionRecords.length === 0) {
+  if (!Array.isArray(input.productionRecords) || input.productionRecords.length === 0) {
     suggestions.push('Tambahkan production records untuk tracking produksi yang lebih baik');
   }
 

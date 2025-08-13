@@ -16,7 +16,7 @@ import {
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
   ProfitChartData
-} from '@/types/profitAnalysis';
+} from '../types/profitAnalysis';
 
 import { prepareProfitChartData } from '@/utils/profitCalculations';
 

@@ -1,11 +1,12 @@
 // src/components/profitAnalysis/tabs/RincianTab.tsx
-
+// ✅ UPDATED with Robust Data Validation
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, Settings } from 'lucide-react';
+import { Calculator, TrendingUp, Settings, AlertCircle } from 'lucide-react'; // ✅ Added AlertCircle
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger'; // ✅ Import logger
 
 // Types
 import { ProfitAnalysisResult } from '../types';
@@ -36,7 +37,7 @@ import {
 
 // Components
 import { DataQualityIndicator } from './RincianTab/components/DataQualityIndicator';
-import { TabNavigation } from './RincianTab/components/TabNavigation';
+// import { TabNavigation } from './RincianTab/components/TabNavigation'; // Commented out as not used in current layout
 
 // Overview components
 import { CostOverview } from './RincianTab/components/overview/CostOverview';
@@ -65,7 +66,7 @@ import { RecommendationsCard } from './RincianTab/components/analysis/Recommenda
 import { ActionItemsCard } from './RincianTab/components/analysis/ActionItemsCard';
 
 interface RincianTabProps {
-  profitData: ProfitAnalysisResult;
+  profitData: ProfitAnalysisResult | null | undefined; // ✅ Allow null/undefined explicitly
   className?: string;
 }
 
@@ -78,7 +79,75 @@ export const RincianTab: React.FC<RincianTabProps> = ({
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
+  // ✅ ROBUST VALIDATION AT THE VERY BEGINNING OF THE COMPONENT
+  // Check if profitData object itself exists
+  if (!profitData) {
+    logger.warn("RincianTab: profitData is null or undefined");
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">Data tidak tersedia</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check for required top-level properties and their types
+  if (
+    !profitData.profitMarginData ||
+    typeof profitData.profitMarginData !== 'object' ||
+    !profitData.cogsBreakdown ||
+    typeof profitData.cogsBreakdown !== 'object' ||
+    !profitData.opexBreakdown ||
+    typeof profitData.opexBreakdown !== 'object'
+  ) {
+    logger.warn("RincianTab: profitData structure is invalid or missing required properties", { profitData });
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">Struktur data tidak valid</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check for required properties within nested objects and ensure they are numbers
+  const { profitMarginData, cogsBreakdown, opexBreakdown } = profitData;
+  if (
+    typeof profitMarginData.revenue !== 'number' || isNaN(profitMarginData.revenue) ||
+    typeof profitMarginData.cogs !== 'number' || isNaN(profitMarginData.cogs) ||
+    typeof profitMarginData.opex !== 'number' || isNaN(profitMarginData.opex) ||
+    typeof profitMarginData.netProfit !== 'number' || isNaN(profitMarginData.netProfit) ||
+    typeof profitMarginData.grossMargin !== 'number' || isNaN(profitMarginData.grossMargin) ||
+    typeof profitMarginData.netMargin !== 'number' || isNaN(profitMarginData.netMargin) ||
+    typeof cogsBreakdown.totalMaterialCost !== 'number' || isNaN(cogsBreakdown.totalMaterialCost) ||
+    typeof cogsBreakdown.totalDirectLaborCost !== 'number' || isNaN(cogsBreakdown.totalDirectLaborCost) ||
+    typeof cogsBreakdown.manufacturingOverhead !== 'number' || isNaN(cogsBreakdown.manufacturingOverhead) ||
+    typeof cogsBreakdown.totalCOGS !== 'number' || isNaN(cogsBreakdown.totalCOGS) ||
+    typeof opexBreakdown.totalAdministrative !== 'number' || isNaN(opexBreakdown.totalAdministrative) ||
+    typeof opexBreakdown.totalSelling !== 'number' || isNaN(opexBreakdown.totalSelling) ||
+    typeof opexBreakdown.totalGeneral !== 'number' || isNaN(opexBreakdown.totalGeneral) ||
+    typeof opexBreakdown.totalOPEX !== 'number' || isNaN(opexBreakdown.totalOPEX)
+    // Add checks for other critical numeric fields if accessed directly by child components
+  ) {
+    logger.warn("RincianTab: Required numeric properties are missing, invalid, or NaN", { profitMarginData, cogsBreakdown, opexBreakdown });
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">Data numerik tidak lengkap atau tidak valid</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ If we reach here, data is valid. Proceed with calculations and rendering.
+  // const { profitMarginData, cogsBreakdown, opexBreakdown } = profitData; // Already destructured above with validation
+
   // Custom hooks for business logic
+  // These hooks should also perform internal validation, but the check above provides a strong first line of defense.
   const calculations = useRincianCalculations({ profitData });
   const costAnalysis = useCostAnalysis(profitData);
   const efficiencyMetrics = useEfficiencyMetricsWithScoring(profitData);
@@ -105,26 +174,26 @@ export const RincianTab: React.FC<RincianTabProps> = ({
               isMobile ? "grid-cols-2" : "grid-cols-4",
               isMobile && "h-auto"
             )}>
-              <TabsTrigger 
-                value="overview" 
+              <TabsTrigger
+                value="overview"
                 className={cn(isMobile && "text-xs py-2")}
               >
                 {isMobile ? "Overview" : "Ringkasan Biaya"}
               </TabsTrigger>
-              <TabsTrigger 
-                value="cogs" 
+              <TabsTrigger
+                value="cogs"
                 className={cn(isMobile && "text-xs py-2")}
               >
                 {isMobile ? "COGS" : "Detail HPP"}
               </TabsTrigger>
-              <TabsTrigger 
-                value="opex" 
+              <TabsTrigger
+                value="opex"
                 className={cn(isMobile && "text-xs py-2")}
               >
                 {isMobile ? "OPEX" : "Detail OPEX"}
               </TabsTrigger>
-              <TabsTrigger 
-                value="analysis" 
+              <TabsTrigger
+                value="analysis"
                 className={cn(isMobile && "text-xs py-2")}
               >
                 {isMobile ? "Analisis" : "Analisis & Target"}

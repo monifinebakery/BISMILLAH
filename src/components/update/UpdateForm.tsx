@@ -8,22 +8,22 @@ import { Save, X, AlertTriangle, Info, Bell, Zap, Eye, EyeOff } from 'lucide-rea
 interface UpdateFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialData?: AppUpdate; // Support for edit mode
 }
 
-export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) => {
+export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, initialData }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [formData, setFormData] = useState<UpdateFormData>({
-    version: '',
-    title: '',
-    description: '',
-    priority: 'normal',
-    is_active: true
+    version: initialData?.version || '',
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    priority: initialData?.priority || 'normal',
+    is_active: initialData?.is_active || true,
   });
 
-  // ✅ FIXED: Check admin status using RPC function
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
@@ -33,7 +33,6 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
 
       try {
         const { data, error } = await supabase.rpc('is_user_admin');
-        
         if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
@@ -51,7 +50,6 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
     checkAdminStatus();
   }, [user]);
 
-  // Show loading while checking admin status
   if (checkingAdmin) {
     return (
       <div className="max-w-md mx-auto p-6 bg-gray-50 border border-gray-200 rounded-lg">
@@ -66,7 +64,6 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
     );
   }
 
-  // Check if user is admin
   if (!user || !isAdmin) {
     return (
       <div className="max-w-md mx-auto p-6 bg-red-50 border border-red-200 rounded-lg">
@@ -84,7 +81,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
   const handleInputChange = (field: keyof UpdateFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -102,7 +99,6 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
       return false;
     }
 
-    // Validate version format (basic semver check)
     const versionRegex = /^\d+\.\d+\.\d+$/;
     if (!versionRegex.test(formData.version)) {
       toast.error('Format versi harus seperti: 1.2.3');
@@ -114,55 +110,71 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
-    
-    try {
-      // Check if version already exists
-      const { data: existingUpdate } = await supabase
-        .from('app_updates')
-        .select('id')
-        .eq('version', formData.version)
-        .single();
 
-      if (existingUpdate) {
-        toast.error('Versi ini sudah ada. Gunakan versi yang berbeda.');
-        setLoading(false);
-        return;
+    try {
+      if (initialData) {
+        // Mode edit
+        const { error } = await supabase
+          .from('app_updates')
+          .update({
+            version: formData.version.trim(),
+            title: formData.title.trim(),
+            description: formData.description.trim(),
+            priority: formData.priority,
+            is_active: formData.is_active,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', initialData.id);
+
+        if (error) throw error;
+        toast.success('Pembaruan berhasil diperbarui!');
+      } else {
+        // Mode tambah
+        const { data: existingUpdate } = await supabase
+          .from('app_updates')
+          .select('id')
+          .eq('version', formData.version)
+          .single();
+
+        if (existingUpdate) {
+          toast.error('Versi ini sudah ada. Gunakan versi yang berbeda.');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await supabase
+          .from('app_updates')
+          .insert({
+            version: formData.version.trim(),
+            title: formData.title.trim(),
+            description: formData.description.trim(),
+            priority: formData.priority,
+            is_active: formData.is_active,
+            release_date: new Date().toISOString(),
+            created_by: user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+        toast.success('Pembaruan berhasil ditambahkan!');
       }
 
-      // Insert new update
-      const { error } = await supabase
-        .from('app_updates')
-        .insert({
-          version: formData.version.trim(),
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          priority: formData.priority,
-          is_active: formData.is_active,
-          release_date: new Date().toISOString(),
-          created_by: user.id,
-        });
-
-      if (error) throw error;
-
-      toast.success('Pembaruan berhasil ditambahkan! User akan melihat notifikasi otomatis.');
-      
-      // Reset form
       setFormData({
         version: '',
         title: '',
         description: '',
         priority: 'normal',
-        is_active: true
+        is_active: true,
       });
-
       onSuccess?.();
     } catch (error: any) {
-      console.error('Error adding update:', error);
-      toast.error('Gagal menambahkan pembaruan: ' + error.message);
+      console.error('Error adding/updating update:', error);
+      toast.error(`Gagal ${initialData ? 'memperbarui' : 'menambahkan'} pembaruan: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -189,18 +201,17 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Tambah Pembaruan Baru</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          {initialData ? 'Edit Pembaruan' : 'Tambah Pembaruan Baru'}
+        </h2>
         <p className="text-gray-600">
-          Buat pengumuman pembaruan aplikasi yang akan dilihat oleh semua user
+          {initialData ? 'Ubah detail pembaruan yang ada' : 'Buat pengumuman pembaruan aplikasi yang akan dilihat oleh semua user'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Version */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Versi Aplikasi
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Versi Aplikasi</label>
           <input
             type="text"
             placeholder="Contoh: 1.2.3"
@@ -209,16 +220,11 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Format: major.minor.patch (contoh: 1.2.3)
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Format: major.minor.patch (contoh: 1.2.3)</p>
         </div>
 
-        {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Judul Pembaruan
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Pembaruan</label>
           <input
             type="text"
             placeholder="Contoh: Fitur Baru: Dashboard Analytics"
@@ -229,21 +235,21 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
           />
         </div>
 
-        {/* Priority */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Prioritas Pembaruan
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">Prioritas Pembaruan</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(['critical', 'high', 'normal', 'low'] as UpdatePriority[]).map((priority) => (
               <label
                 key={priority}
                 className={`relative flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   formData.priority === priority
-                    ? priority === 'critical' ? 'border-red-500 bg-red-50' :
-                      priority === 'high' ? 'border-orange-500 bg-orange-50' :
-                      priority === 'normal' ? 'border-blue-500 bg-blue-50' :
-                      'border-gray-500 bg-gray-50'
+                    ? priority === 'critical'
+                      ? 'border-red-500 bg-red-50'
+                      : priority === 'high'
+                      ? 'border-orange-500 bg-orange-50'
+                      : priority === 'normal'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-500 bg-gray-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -258,12 +264,8 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
                 <div className="flex items-center gap-3">
                   {getPriorityIcon(priority)}
                   <div>
-                    <div className="font-semibold capitalize text-gray-900">
-                      {priority}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {getPriorityDescription(priority)}
-                    </div>
+                    <div className="font-semibold capitalize text-gray-900">{priority}</div>
+                    <div className="text-xs text-gray-600">{getPriorityDescription(priority)}</div>
                   </div>
                 </div>
               </label>
@@ -271,11 +273,8 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
           </div>
         </div>
 
-        {/* Description */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Deskripsi Pembaruan
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Pembaruan</label>
           <textarea
             placeholder="Jelaskan secara detail tentang pembaruan ini. Apa yang baru, bug yang diperbaiki, atau fitur yang ditambahkan..."
             value={formData.description}
@@ -284,34 +283,29 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Gunakan bahasa yang mudah dipahami oleh user aplikasi
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Gunakan bahasa yang mudah dipahami oleh user aplikasi</p>
         </div>
 
-        {/* Active Status */}
         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
           <button
             type="button"
             onClick={() => handleInputChange('is_active', !formData.is_active)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               formData.is_active
-                ? 'bg-green-100 text-green-800 border border-green-200'
-                : 'bg-gray-100 text-gray-800 border border-gray-200'
+                ? 'bg-green-100 text-green-800 border border-green-200 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
             }`}
           >
             {formData.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             {formData.is_active ? 'Aktif' : 'Draft'}
           </button>
           <p className="text-sm text-gray-600">
-            {formData.is_active 
+            {formData.is_active
               ? 'Pembaruan akan langsung terlihat oleh user'
-              : 'Pembaruan disimpan sebagai draft'
-            }
+              : 'Pembaruan disimpan sebagai draft'}
           </p>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-3 pt-4">
           <button
             type="submit"
@@ -321,12 +315,12 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Menyimpan...
+                {initialData ? 'Memperbarui...' : 'Menyimpan...'}
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                Publikasikan Pembaruan
+                {initialData ? 'Perbarui Pembaruan' : 'Publikasikan Pembaruan'}
               </>
             )}
           </button>

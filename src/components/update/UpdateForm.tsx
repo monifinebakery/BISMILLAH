@@ -8,19 +8,20 @@ import { Save, X, AlertTriangle, Info, Bell, Zap, Eye, EyeOff } from 'lucide-rea
 interface UpdateFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialData?: AppUpdate; // Support for edit mode
 }
 
-export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) => {
+export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, initialData }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [formData, setFormData] = useState<UpdateFormData>({
-    version: '',
-    title: '',
-    description: '',
-    priority: 'normal',
-    is_active: true,
+    version: initialData?.version || '',
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    priority: initialData?.priority || 'normal',
+    is_active: initialData?.is_active || true,
   });
 
   useEffect(() => {
@@ -115,31 +116,54 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
     setLoading(true);
 
     try {
-      const { data: existingUpdate } = await supabase
-        .from('app_updates')
-        .select('id')
-        .eq('version', formData.version)
-        .single();
+      if (initialData) {
+        // Mode edit
+        const { error } = await supabase
+          .from('app_updates')
+          .update({
+            version: formData.version.trim(),
+            title: formData.title.trim(),
+            description: formData.description.trim(),
+            priority: formData.priority,
+            is_active: formData.is_active,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', initialData.id);
 
-      if (existingUpdate) {
-        toast.error('Versi ini sudah ada. Gunakan versi yang berbeda.');
-        setLoading(false);
-        return;
+        if (error) throw error;
+        toast.success('Pembaruan berhasil diperbarui!');
+      } else {
+        // Mode tambah
+        const { data: existingUpdate } = await supabase
+          .from('app_updates')
+          .select('id')
+          .eq('version', formData.version)
+          .single();
+
+        if (existingUpdate) {
+          toast.error('Versi ini sudah ada. Gunakan versi yang berbeda.');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await supabase
+          .from('app_updates')
+          .insert({
+            version: formData.version.trim(),
+            title: formData.title.trim(),
+            description: formData.description.trim(),
+            priority: formData.priority,
+            is_active: formData.is_active,
+            release_date: new Date().toISOString(),
+            created_by: user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+        toast.success('Pembaruan berhasil ditambahkan!');
       }
 
-      const { error } = await supabase.from('app_updates').insert({
-        version: formData.version.trim(),
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        priority: formData.priority,
-        is_active: formData.is_active,
-        release_date: new Date().toISOString(),
-        created_by: user.id,
-      });
-
-      if (error) throw error;
-
-      toast.success('Pembaruan berhasil ditambahkan! User akan melihat notifikasi otomatis.');
       setFormData({
         version: '',
         title: '',
@@ -149,8 +173,8 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
       });
       onSuccess?.();
     } catch (error: any) {
-      console.error('Error adding update:', error);
-      toast.error('Gagal menambahkan pembaruan: ' + error.message);
+      console.error('Error adding/updating update:', error);
+      toast.error(`Gagal ${initialData ? 'memperbarui' : 'menambahkan'} pembaruan: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -177,9 +201,11 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Tambah Pembaruan Baru</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          {initialData ? 'Edit Pembaruan' : 'Tambah Pembaruan Baru'}
+        </h2>
         <p className="text-gray-600">
-          Buat pengumuman pembaruan aplikasi yang akan dilihat oleh semua user
+          {initialData ? 'Ubah detail pembaruan yang ada' : 'Buat pengumuman pembaruan aplikasi yang akan dilihat oleh semua user'}
         </p>
       </div>
 
@@ -263,7 +289,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
           <button
             type="button"
-            onClick={() => handleInputChange('is_active', !formData.is_active)} // Tambah fungsi klik
+            onClick={() => handleInputChange('is_active', !formData.is_active)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               formData.is_active
                 ? 'bg-green-100 text-green-800 border border-green-200 hover:bg-green-200'
@@ -289,12 +315,12 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel }) =
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Menyimpan...
+                {initialData ? 'Memperbarui...' : 'Menyimpan...'}
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                Publikasikan Pembaruan
+                {initialData ? 'Perbarui Pembaruan' : 'Publikasikan Pembaruan'}
               </>
             )}
           </button>

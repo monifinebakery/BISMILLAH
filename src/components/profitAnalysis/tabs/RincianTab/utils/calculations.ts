@@ -1,15 +1,30 @@
-// src/components/profitAnalysis/tabs/rincianTab/utils/calculations.ts
-
 import { ProfitAnalysisResult } from '../../types';
+import { logger } from '@/utils/logger';
 
 /**
  * Calculate cost analysis ratios
  */
 export const calculateCostAnalysis = (profitData: ProfitAnalysisResult) => {
   const { profitMarginData, cogsBreakdown, opexBreakdown } = profitData;
+
+  // Validasi profitMarginData
+  if (!profitMarginData || typeof profitMarginData.revenue !== 'number' || isNaN(profitMarginData.revenue)) {
+    logger.warn('calculateCostAnalysis: profitMarginData tidak valid atau revenue tidak tersedia', { profitMarginData });
+    return {
+      materialRatio: 0,
+      laborRatio: 0,
+      overheadRatio: 0,
+      cogsRatio: 0,
+      opexRatio: 0,
+      totalCostRatio: 0
+    };
+  }
+
   const revenue = profitMarginData.revenue;
-  
+
+  // Cegah pembagian dengan nol
   if (revenue === 0) {
+    logger.warn('calculateCostAnalysis: revenue adalah nol', { profitMarginData });
     return {
       materialRatio: 0,
       laborRatio: 0,
@@ -35,11 +50,24 @@ export const calculateCostAnalysis = (profitData: ProfitAnalysisResult) => {
  */
 export const calculateEfficiencyMetrics = (profitData: ProfitAnalysisResult) => {
   const { profitMarginData, cogsBreakdown, opexBreakdown } = profitData;
+
+  // Validasi profitMarginData
+  if (!profitMarginData || typeof profitMarginData.revenue !== 'number' || isNaN(profitMarginData.revenue)) {
+    logger.warn('calculateEfficiencyMetrics: profitMarginData tidak valid atau revenue tidak tersedia', { profitMarginData });
+    return {
+      revenuePerCost: 0,
+      cogsEfficiency: 0,
+      opexEfficiency: 0,
+      materialEfficiency: 0,
+      laborEfficiency: 0,
+      overheadRate: 0
+    };
+  }
+
   const revenue = profitMarginData.revenue;
-  
   const totalCosts = cogsBreakdown.totalCOGS + opexBreakdown.totalOPEX;
-  
-  // Prevent division by zero
+
+  // Cegah pembagian dengan nol
   const safeRevenue = revenue || 1;
   const safeCogs = cogsBreakdown.totalCOGS || 1;
   const safeOpex = opexBreakdown.totalOPEX || 1;
@@ -62,7 +90,7 @@ export const calculateEfficiencyMetrics = (profitData: ProfitAnalysisResult) => 
  */
 export const calculateOpexComposition = (opexBreakdown: any) => {
   const total = opexBreakdown.totalOPEX;
-  
+
   if (total === 0) {
     return {
       adminRatio: 0,
@@ -94,7 +122,7 @@ export const calculateMaterialUsageStats = (materialUsage: any[]) => {
 
   const totalCost = materialUsage.reduce((sum, usage) => sum + usage.total_cost, 0);
   const avgUnitCost = materialUsage.reduce((sum, usage) => sum + usage.unit_cost, 0) / materialUsage.length;
-  
+
   // Group by usage type
   const usageByType = materialUsage.reduce((acc, usage) => {
     acc[usage.usage_type] = (acc[usage.usage_type] || 0) + usage.total_cost;
@@ -131,7 +159,7 @@ export const calculateVariance = (actual: number, target: number): {
 } => {
   const variance = actual - target;
   const variancePercent = target !== 0 ? (variance / target) * 100 : 0;
-  
+
   return {
     variance,
     variancePercent,
@@ -144,9 +172,9 @@ export const calculateVariance = (actual: number, target: number): {
  */
 export const calculateCostDistribution = (costs: { name: string; amount: number }[]) => {
   const total = costs.reduce((sum, cost) => sum + cost.amount, 0);
-  
+
   if (total === 0) return costs.map(cost => ({ ...cost, percentage: 0 }));
-  
+
   return costs.map(cost => ({
     ...cost,
     percentage: (cost.amount / total) * 100

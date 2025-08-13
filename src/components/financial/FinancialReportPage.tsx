@@ -59,7 +59,7 @@ const CategoryManagementDialog = React.lazy(() =>
 
 // ✅ UPDATED LAZY IMPORT - Menggunakan path baru
 const ProfitAnalysisDialogLazy = React.lazy(() => 
-  import('./profitAnalysis/ProfitAnalysisDialog').catch(() => ({
+  import('@/components/profitAnalysis/ProfitAnalysisDialog').catch(() => ({
     default: () => null
   }))
 );

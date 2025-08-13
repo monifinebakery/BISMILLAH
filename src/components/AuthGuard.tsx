@@ -1,18 +1,18 @@
-// src/components/AuthGuard.tsx - FIXED NAVIGATION LOGIC
+// src/components/AuthGuard.tsx - ENHANCED DEBUG LOGGING
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate, useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { cleanupAuthState, validateAuthSession } from '@/lib/authUtils';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext'; // ✅ Use AuthContext
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  // ✅ SIMPLIFIED: Use AuthContext as primary source of truth
+  // ✅ Use AuthContext as primary source of truth
   const { user: contextUser, isLoading: contextLoading, isReady } = useAuth();
   
   // ✅ Local state only for validation and errors
@@ -21,9 +21,28 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const [isValidating, setIsValidating] = useState(false);
   const location = useLocation();
 
+  // ✅ ENHANCED DEBUG: Log all state changes
+  useEffect(() => {
+    logger.debug('🔍 AuthGuard State Update:', {
+      currentPath: location.pathname,
+      contextUser: !!contextUser,
+      contextUserEmail: contextUser?.email || 'none',
+      contextUserID: contextUser?.id || 'none',
+      contextLoading,
+      isReady,
+      validatedUser: !!validatedUser,
+      validationError,
+      isValidating,
+      timestamp: new Date().toISOString()
+    });
+  }, [contextUser, contextLoading, isReady, validatedUser, validationError, isValidating, location.pathname]);
+
   // ✅ SIMPLIFIED: Validate user from AuthContext
   useEffect(() => {
-    if (!isReady) return; // Wait for AuthContext to be ready
+    if (!isReady) {
+      logger.debug('🔍 AuthGuard: Waiting for AuthContext to be ready...');
+      return;
+    }
     
     const validateUser = async () => {
       setIsValidating(true);
@@ -31,18 +50,25 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       
       try {
         if (!contextUser) {
-          logger.debug('AuthGuard: No user from AuthContext');
+          logger.debug('🔍 AuthGuard: No user from AuthContext, setting validated user to null');
           setValidatedUser(null);
           setIsValidating(false);
           return;
         }
 
-        logger.debug('AuthGuard: Validating user from AuthContext:', contextUser.email);
+        logger.debug('🔍 AuthGuard: Validating user from AuthContext:', {
+          email: contextUser.email,
+          id: contextUser.id,
+          currentPath: location.pathname
+        });
         
-        // ✅ ADD: Timeout untuk validation (10 detik)
+        // ✅ Add timeout for validation (10 seconds)
         const validatePromise = validateAuthSession();
         const validateTimeoutPromise = new Promise((resolve) => 
-          setTimeout(() => resolve(false), 10000) // Return false if timeout
+          setTimeout(() => {
+            logger.warn('🔍 AuthGuard: Validation timeout after 10 seconds');
+            resolve(false);
+          }, 10000)
         );
         
         const isValid = await Promise.race([
@@ -51,18 +77,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         ]) as boolean;
         
         if (isValid) {
-          logger.debug('AuthGuard: User validation successful');
+          logger.success('✅ AuthGuard: User validation successful, setting validated user');
           setValidatedUser(contextUser);
           setValidationError(null);
         } else {
-          logger.warn('AuthGuard: User validation failed or timeout');
+          logger.warn('⚠️ AuthGuard: User validation failed or timeout');
           cleanupAuthState();
           setValidatedUser(null);
           setValidationError('Sesi tidak valid. Silakan login ulang.');
         }
         
       } catch (error) {
-        logger.error('AuthGuard: User validation error:', error);
+        logger.error('❌ AuthGuard: User validation error:', error);
         cleanupAuthState();
         setValidatedUser(null);
         setValidationError('Terjadi kesalahan validasi. Silakan login ulang.');
@@ -72,14 +98,34 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     };
 
     validateUser();
-  }, [contextUser, isReady]);
+  }, [contextUser, isReady, location.pathname]);
 
-  // ✅ REMOVED: Duplicate onAuthStateChange listener
-  // AuthContext already handles auth state changes
-  // AuthGuard only needs to validate what AuthContext provides
+  // ✅ ENHANCED DEBUG: Log navigation decisions
+  useEffect(() => {
+    if (!isReady || contextLoading || isValidating) return;
+    
+    logger.debug('🔍 AuthGuard: Navigation Decision Point:', {
+      currentPath: location.pathname,
+      hasValidatedUser: !!validatedUser,
+      validatedUserEmail: validatedUser?.email || 'none',
+      hasValidationError: !!validationError,
+      shouldRedirectToAuth: !validatedUser && location.pathname !== '/auth',
+      shouldRedirectToDashboard: validatedUser && location.pathname === '/auth'
+    });
 
-  // ✅ SIMPLIFIED: Error handling
+    // ✅ Log specific redirect scenarios
+    if (!validatedUser && location.pathname !== '/auth') {
+      logger.info('🚀 AuthGuard: Will redirect to /auth (no validated user)');
+    } else if (validatedUser && location.pathname === '/auth') {
+      logger.info('🚀 AuthGuard: Will redirect to / (user authenticated on auth page)');
+    } else if (validatedUser && location.pathname !== '/auth') {
+      logger.info('✅ AuthGuard: User authenticated, rendering protected content');
+    }
+  }, [validatedUser, validationError, isReady, contextLoading, isValidating, location.pathname]);
+
+  // ✅ Error handling
   if (validationError) {
+    logger.error('❌ AuthGuard: Showing error state:', validationError);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-red-200">
@@ -93,7 +139,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             <p className="text-gray-600 mb-6">{validationError}</p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => window.location.href = '/auth'}
+                onClick={() => {
+                  logger.info('🚀 AuthGuard: Manual redirect to /auth from error state');
+                  window.location.href = '/auth';
+                }}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
               >
                 Login Ulang
@@ -111,8 +160,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // ✅ SIMPLIFIED: Loading state
+  // ✅ Loading state
   if (contextLoading || !isReady || isValidating) {
+    logger.debug('🔄 AuthGuard: Showing loading state:', {
+      contextLoading,
+      isReady,
+      isValidating
+    });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -128,19 +182,20 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // ✅ CRITICAL FIX: Clear redirect logic
+  // ✅ CRITICAL: Navigation logic with enhanced debugging
   if (!validatedUser && location.pathname !== '/auth') {
-    logger.debug('AuthGuard: No validated user, redirecting to auth');
+    logger.info('🚀 AuthGuard: Executing redirect to /auth (no validated user)');
     return <Navigate to="/auth" replace />;
   }
 
-  // ✅ SUCCESS: User is authenticated and validated
+  // ✅ SUCCESS: User is authenticated and on auth page, redirect to dashboard
   if (validatedUser && location.pathname === '/auth') {
-    logger.debug('AuthGuard: Validated user on auth page, redirecting to dashboard');
+    logger.info('🚀 AuthGuard: Executing redirect to / (authenticated user on auth page)');
     return <Navigate to="/" replace />;
   }
 
   // ✅ Render children for authenticated users
+  logger.debug('✅ AuthGuard: Rendering protected content for authenticated user');
   return <>{children}</>;
 };
 

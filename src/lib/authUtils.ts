@@ -1,9 +1,9 @@
-// src/lib/authUtils.ts - COMPLETE WITH ALL EXPORTS FOR COMPATIBILITY
+// src/lib/authUtils.ts - CLEAN VERSION WITHOUT DUPLICATES
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 /**
- * ✅ SIMPLIFIED: Device capability detection (streamlined)
+ * ✅ Device capability detection
  */
 const detectDeviceCapabilities = () => {
   const capabilities = {
@@ -44,528 +44,79 @@ const detectDeviceCapabilities = () => {
                       !capabilities.hasLocalStorage;
   capabilities.isSlowDevice = isSlowDevice;
 
+  logger.debug('Device capabilities detected:', capabilities);
   return capabilities;
 };
 
 /**
- * ✅ SIMPLIFIED: Adaptive timeout (shorter for AuthGuard)
+ * ✅ Adaptive timeout based on device capabilities
  */
-const getAdaptiveTimeout = (baseTimeout = 5000) => {
+const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
   
   let timeout = baseTimeout;
   
-  // Shorter timeouts for AuthGuard to prevent hanging
+  // Increase timeout for slow devices
   if (capabilities.isSlowDevice) {
-    timeout *= 1.5; // Less aggressive than before
+    timeout *= 2;
+    logger.debug('Slow device detected, doubling timeout:', timeout);
   }
   
+  // Increase timeout for slow networks
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 2; // Less aggressive than before
+    timeout *= 3;
+    logger.debug('Slow network detected, tripling timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= 1.3;
+    timeout *= 1.5;
+    logger.debug('3G network detected, increasing timeout:', timeout);
   }
   
-  // Cap at reasonable maximum for AuthGuard
-  return Math.min(timeout, 15000); // Max 15 seconds for AuthGuard
+  // Cap at reasonable maximum
+  return Math.min(timeout, 60000); // Max 60 seconds
 };
 
 /**
- * ✅ SIMPLIFIED: Cleanup auth state (minimal for AuthGuard)
- */
-export const cleanupAuthState = () => {
-  logger.warn('🧹 Cleaning up auth state (AuthGuard)...');
-  
-  // Remove only Supabase auth keys from localStorage
-  try {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Also clean sessionStorage
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  } catch (error) {
-    logger.error('Error cleaning storage:', error);
-  }
-  
-  logger.success('✅ Auth state cleanup completed (AuthGuard)');
-};
-
-/**
- * ✅ RESTORED: Sign out functions for backward compatibility
- */
-export const performSignOut = async (): Promise<boolean> => {
-  try {
-    logger.info('🚪 Performing local sign out...');
-    
-    // Clean up auth state first
-    cleanupAuthState();
-    
-    // Perform LOCAL sign out with timeout
-    try {
-      const signOutPromise = supabase.auth.signOut();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('SignOut timeout')), 5000)
-      );
-      
-      const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
-      
-      if (error) {
-        logger.error('⚠️ Error during Supabase signOut:', error);
-      } else {
-        logger.success('✅ Supabase sign out completed');
-      }
-    } catch (err) {
-      logger.error('⚠️ Error during Supabase signOut:', err);
-    }
-    
-    return true;
-  } catch (error) {
-    logger.error('❌ Error during sign out process:', error);
-    return false;
-  }
-};
-
-export const performGlobalSignOut = async (): Promise<boolean> => {
-  try {
-    logger.info('🌍 Performing global sign out...');
-    
-    // Clean up auth state first
-    cleanupAuthState();
-    
-    // Perform GLOBAL sign out from all devices with timeout
-    try {
-      const signOutPromise = supabase.auth.signOut({ scope: 'global' });
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Global SignOut timeout')), 10000)
-      );
-      
-      const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
-      
-      if (error) {
-        logger.error('⚠️ Error during global signOut:', error);
-      } else {
-        logger.success('✅ Global sign out completed');
-      }
-    } catch (err) {
-      logger.error('⚠️ Error during global signOut:', err);
-    }
-    
-    return true;
-  } catch (error) {
-    logger.error('❌ Error during global sign out process:', error);
-    return false;
-  }
-};
-
-/**
- * ✅ SIMPLIFIED: Validate auth session (streamlined for AuthGuard)
- */
-export const validateAuthSession = async (): Promise<boolean> => {
-  try {
-    logger.debug('🔍 AuthGuard: Quick session validation...');
-    
-    // ✅ SIMPLIFIED: Short timeout for AuthGuard
-    const adaptiveTimeout = getAdaptiveTimeout(3000); // Short timeout
-    
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('AuthGuard session timeout')), adaptiveTimeout)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.debug('⚠️ AuthGuard session error:', error.message);
-      return false;
-    }
-    
-    if (!session) {
-      logger.debug('ℹ️ AuthGuard: No session found');
-      return false;
-    }
-    
-    // ✅ SIMPLIFIED: Basic validation only
-    if (!session.user || !session.user.id || session.user.id === 'null') {
-      logger.debug('⚠️ AuthGuard: Invalid user in session');
-      return false;
-    }
-    
-    // ✅ Check session expiry
-    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      logger.debug('⏰ AuthGuard: Session expired');
-      return false;
-    }
-    
-    logger.debug('✅ AuthGuard: Session validation passed');
-    return true;
-    
-  } catch (error) {
-    logger.debug('❌ AuthGuard session validation error:', error.message);
-    return false;
-  }
-};
-
-/**
- * ✅ SIMPLIFIED: Safe session check for AuthGuard
- */
-export const checkSessionExists = async (): Promise<boolean> => {
-  try {
-    const adaptiveTimeout = getAdaptiveTimeout(2000); // Very short for AuthGuard
-    
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((resolve) => 
-      setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.debug('⚠️ AuthGuard session exists check error:', error.message);
-      return false;
-    }
-    
-    const exists = !!(session?.user?.id && session.user.id !== 'null');
-    logger.debug('👀 AuthGuard session exists:', exists);
-    
-    return exists;
-    
-  } catch (error) {
-    logger.debug('❌ AuthGuard session exists error:', error.message);
-    return false;
-  }
-};
-
-export const refreshSessionSafely = async (): Promise<boolean> => {
-  try {
-    logger.debug('🔄 Safely refreshing session...');
-    
-    const adaptiveTimeout = getAdaptiveTimeout(10000);
-    
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session refresh timeout')), adaptiveTimeout)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('⚠️ Session refresh error:', error);
-      return false;
-    }
-    
-    if (session?.user?.id && session.user.id !== 'null') {
-      logger.success('✅ Session refreshed successfully:', session.user.email);
-      return true;
-    }
-    
-    logger.warn('⚠️ Session refresh returned no valid user');
-    return false;
-    
-  } catch (error) {
-    logger.error('❌ Error refreshing session safely:', error);
-    return false;
-  }
-};
-
-/**
- * ✅ SIMPLIFIED: Debug helper for AuthGuard
- */
-export const debugAuthState = async () => {
-  try {
-    const capabilities = detectDeviceCapabilities();
-    
-    // Quick session check
-    let sessionInfo = null;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      sessionInfo = {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userId: session?.user?.id || null,
-        email: session?.user?.email || null,
-        userIdValid: !!(session?.user?.id && session.user.id !== 'null')
-      };
-    } catch (err) {
-      sessionInfo = { error: err.message };
-    }
-    
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      currentPath: window.location.pathname,
-      deviceCapabilities: capabilities,
-      sessionInfo,
-      adaptiveTimeout: getAdaptiveTimeout(5000)
-    };
-    
-    console.table({
-      'Current Path': debugInfo.currentPath,
-      'Has Session': sessionInfo?.hasSession || false,
-      'Has Valid User': sessionInfo?.userIdValid || false,
-      'User Email': sessionInfo?.email || 'none',
-      'Is Slow Device': capabilities.isSlowDevice,
-      'Network Type': capabilities.networkType
-    });
-    
-    return debugInfo;
-    
-  } catch (error) {
-    logger.error('❌ AuthGuard debug error:', error);
-    return { error: error.message };
-  }
-};// src/lib/authUtils.ts - SIMPLIFIED FOR AUTHGUARD COMPATIBILITY
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
-
-/**
- * ✅ SIMPLIFIED: Device capability detection (streamlined)
- */
-const detectDeviceCapabilities = () => {
-  const capabilities = {
-    hasLocalStorage: false,
-    networkType: 'unknown',
-    isSlowDevice: false,
-    userAgent: navigator.userAgent || 'unknown'
-  };
-
-  // Test localStorage
-  try {
-    localStorage.setItem('__test__', 'test');
-    localStorage.removeItem('__test__');
-    capabilities.hasLocalStorage = true;
-  } catch {
-    logger.warn('localStorage not available or restricted');
-  }
-
-  // Detect network type
-  if ('connection' in navigator) {
-    const connection = (navigator as any).connection;
-    capabilities.networkType = connection.effectiveType || 'unknown';
-  }
-
-  // Detect slow device (simplified heuristic)
-  const isSlowDevice = capabilities.userAgent.includes('Android 4') || 
-                      capabilities.userAgent.includes('iPhone OS 10') ||
-                      !capabilities.hasLocalStorage;
-  capabilities.isSlowDevice = isSlowDevice;
-
-  return capabilities;
-};
-
-/**
- * ✅ SIMPLIFIED: Adaptive timeout (shorter for AuthGuard)
- */
-const getAdaptiveTimeout = (baseTimeout = 5000) => {
-  const capabilities = detectDeviceCapabilities();
-  
-  let timeout = baseTimeout;
-  
-  // Shorter timeouts for AuthGuard to prevent hanging
-  if (capabilities.isSlowDevice) {
-    timeout *= 1.5; // Less aggressive than before
-  }
-  
-  if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 2; // Less aggressive than before
-  } else if (capabilities.networkType === '3g') {
-    timeout *= 1.3;
-  }
-  
-  // Cap at reasonable maximum for AuthGuard
-  return Math.min(timeout, 15000); // Max 15 seconds for AuthGuard
-};
-
-/**
- * ✅ SIMPLIFIED: Cleanup auth state (minimal for AuthGuard)
- */
-export const cleanupAuthState = () => {
-  logger.warn('🧹 Cleaning up auth state (AuthGuard)...');
-  
-  // Remove only Supabase auth keys from localStorage
-  try {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-  } catch (error) {
-    logger.error('Error cleaning localStorage:', error);
-  }
-  
-  logger.success('✅ Auth state cleanup completed (AuthGuard)');
-};
-
-/**
- * ✅ SIMPLIFIED: Validate auth session (streamlined for AuthGuard)
+ * Cleans up all Supabase authentication related data from localStorage and sessionStorage
+ * to ensure no invalid tokens remain when authentication issues occur
  * 
- * This is now MUCH simpler and focused on what AuthGuard needs:
- * - Quick session check
- * - Basic validation
- * - No aggressive cleanup
- * - Short timeout
+ * ⚠️ WARNING: This function completely removes auth state. Use sparingly!
  */
-export const validateAuthSession = async (): Promise<boolean> => {
-  try {
-    logger.debug('🔍 AuthGuard: Quick session validation...');
-    
-    // ✅ SIMPLIFIED: Short timeout for AuthGuard
-    const adaptiveTimeout = getAdaptiveTimeout(3000); // Short timeout
-    
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('AuthGuard session timeout')), adaptiveTimeout)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.debug('⚠️ AuthGuard session error:', error.message);
-      return false;
+export const cleanupAuthState = () => {
+  logger.warn('🧹 Cleaning up auth state...');
+  
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
     }
-    
-    if (!session) {
-      logger.debug('ℹ️ AuthGuard: No session found');
-      return false;
+  });
+  
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
     }
-    
-    // ✅ SIMPLIFIED: Basic validation only
-    if (!session.user || !session.user.id || session.user.id === 'null') {
-      logger.debug('⚠️ AuthGuard: Invalid user in session');
-      return false;
-    }
-    
-    // ✅ Check session expiry
-    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-      logger.debug('⏰ AuthGuard: Session expired');
-      return false;
-    }
-    
-    logger.debug('✅ AuthGuard: Session validation passed');
-    return true;
-    
-  } catch (error) {
-    logger.debug('❌ AuthGuard session validation error:', error.message);
-    return false;
-  }
+  });
+  
+  logger.success('✅ Auth state cleanup completed');
 };
 
 /**
- * ✅ SIMPLIFIED: Safe session check for AuthGuard
+ * Performs a local sign out, only affecting the current device/session
  */
-export const checkSessionExists = async (): Promise<boolean> => {
-  try {
-    const adaptiveTimeout = getAdaptiveTimeout(2000); // Very short for AuthGuard
-    
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((resolve) => 
-      setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.debug('⚠️ AuthGuard session exists check error:', error.message);
-      return false;
-    }
-    
-    const exists = !!(session?.user?.id && session.user.id !== 'null');
-    logger.debug('👀 AuthGuard session exists:', exists);
-    
-    return exists;
-    
-  } catch (error) {
-    logger.debug('❌ AuthGuard session exists error:', error.message);
-    return false;
-  }
-};
-
-/**
- * ✅ SIMPLIFIED: Debug helper for AuthGuard
- */
-export const debugAuthState = async () => {
-  try {
-    const capabilities = detectDeviceCapabilities();
-    
-    // Quick session check
-    let sessionInfo = null;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      sessionInfo = {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userId: session?.user?.id || null,
-        email: session?.user?.email || null,
-        userIdValid: !!(session?.user?.id && session.user.id !== 'null')
-      };
-    } catch (err) {
-      sessionInfo = { error: err.message };
-    }
-    
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      currentPath: window.location.pathname,
-      deviceCapabilities: capabilities,
-      sessionInfo,
-      adaptiveTimeout: getAdaptiveTimeout(5000)
-    };
-    
-    console.table({
-      'Current Path': debugInfo.currentPath,
-      'Has Session': sessionInfo?.hasSession || false,
-      'Has Valid User': sessionInfo?.userIdValid || false,
-      'User Email': sessionInfo?.email || 'none',
-      'Is Slow Device': capabilities.isSlowDevice,
-      'Network Type': capabilities.networkType
-    });
-    
-    return debugInfo;
-    
-  } catch (error) {
-    logger.error('❌ AuthGuard debug error:', error);
-    return { error: error.message };
-  }
-};
-
-/**
- * ✅ RESTORED: Sign out functions for backward compatibility
- */
-export const performSignOut = async (): Promise<boolean> => {
+export const performSignOut = async () => {
   try {
     logger.info('🚪 Performing local sign out...');
     
     // Clean up auth state first
     cleanupAuthState();
     
-    // Perform LOCAL sign out
+    // Perform LOCAL sign out only (removes { scope: 'global' })
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        logger.error('⚠️ Error during Supabase signOut:', error);
-      } else {
-        logger.success('✅ Supabase sign out completed');
-      }
+      await supabase.auth.signOut();
+      logger.success('✅ Supabase sign out completed');
     } catch (err) {
+      // Continue even if this fails
       logger.error('⚠️ Error during Supabase signOut:', err);
     }
     
@@ -576,7 +127,10 @@ export const performSignOut = async (): Promise<boolean> => {
   }
 };
 
-export const performGlobalSignOut = async (): Promise<boolean> => {
+/**
+ * Performs a global sign out from ALL devices
+ */
+export const performGlobalSignOut = async () => {
   try {
     logger.info('🌍 Performing global sign out...');
     
@@ -585,13 +139,10 @@ export const performGlobalSignOut = async (): Promise<boolean> => {
     
     // Perform GLOBAL sign out from all devices
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) {
-        logger.error('⚠️ Error during global signOut:', error);
-      } else {
-        logger.success('✅ Global sign out completed');
-      }
+      await supabase.auth.signOut({ scope: 'global' });
+      logger.success('✅ Global sign out completed');
     } catch (err) {
+      // Continue even if this fails
       logger.error('⚠️ Error during global signOut:', err);
     }
     
@@ -602,10 +153,199 @@ export const performGlobalSignOut = async (): Promise<boolean> => {
   }
 };
 
-export const refreshSessionSafely = async (): Promise<boolean> => {
+/**
+ * ✅ ENHANCED: Validates the current auth session with device-adaptive timeout and retry logic
+ * 
+ * This function now:
+ * - Detects device capabilities and adapts timeouts accordingly
+ * - Implements retry logic for slow devices/networks
+ * - Only cleans up auth state when truly necessary
+ * - Handles temporary network issues gracefully
+ * - Prevents aggressive cleanup that destroys valid sessions
+ */
+export const validateAuthSession = async (retryCount = 0) => {
+  const maxRetries = 2;
+  
+  try {
+    logger.debug(`🔍 Validating auth session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+    
+    // ✅ DEVICE B FIX: Adaptive timeout based on device capabilities
+    const adaptiveTimeout = getAdaptiveTimeout(15000);
+    logger.debug('Using adaptive timeout:', adaptiveTimeout);
+    
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeout)
+    );
+    
+    const { data: { session }, error } = await Promise.race([
+      sessionPromise, 
+      timeoutPromise
+    ]) as any;
+    
+    if (error) {
+      logger.error('⚠️ Error validating auth session:', error);
+      
+      // ✅ DEVICE B FIX: Retry on network errors for slow devices
+      if (retryCount < maxRetries && (
+        error.message?.includes('network') || 
+        error.message?.includes('fetch') ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('Failed to fetch')
+      )) {
+        logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return validateAuthSession(retryCount + 1);
+      }
+      
+      // ✅ IMPROVED: Only cleanup on specific auth errors, not network errors
+      if (error.message?.includes('Invalid Refresh Token') || 
+          error.message?.includes('refresh_token_not_found') ||
+          error.message?.includes('invalid_grant')) {
+        logger.warn('🧹 Invalid token detected, cleaning up auth state');
+        cleanupAuthState();
+      } else {
+        logger.debug('⚠️ Network/temporary error, preserving auth state');
+      }
+      
+      return false;
+    }
+    
+    if (!session) {
+      logger.debug('ℹ️ No session found during validation');
+      
+      // ✅ DEVICE B FIX: Retry for slow devices that might need more time
+      if (retryCount < maxRetries) {
+        const capabilities = detectDeviceCapabilities();
+        if (capabilities.isSlowDevice || capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
+          logger.debug('🐌 Slow device/network detected, retrying session check...');
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+          return validateAuthSession(retryCount + 1);
+        }
+      }
+      
+      // ✅ CRITICAL FIX: DON'T cleanup auth state on missing session
+      // This could be due to:
+      // - Session not yet propagated after OTP
+      // - Temporary network issues
+      // - Race conditions
+      // - Device-specific timing issues
+      // 
+      // Let AuthGuard/AuthContext handle the redirect decision
+      // cleanupAuthState(); // ❌ REMOVED
+      
+      return false;
+    }
+    
+    // ✅ Additional validation: check session expiry
+    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+      logger.warn('⏰ Session expired, cleaning up auth state');
+      cleanupAuthState();
+      return false;
+    }
+    
+    // ✅ Additional validation: check user object
+    if (!session.user || !session.user.id) {
+      logger.warn('👤 Invalid user in session, cleaning up auth state');
+      cleanupAuthState();
+      return false;
+    }
+    
+    // ✅ DEVICE B FIX: Validate user ID format (catch corrupted sessions)
+    if (typeof session.user.id !== 'string' || session.user.id.length < 10) {
+      logger.warn('🔧 Invalid user ID format, cleaning up auth state:', session.user.id);
+      cleanupAuthState();
+      return false;
+    }
+    
+    logger.success('✅ Session validation successful:', {
+      userId: session.user.id,
+      email: session.user.email,
+      expiresAt: session.expires_at,
+      attempt: retryCount + 1
+    });
+    
+    return true;
+    
+  } catch (error) {
+    logger.error('❌ Unexpected error validating auth session:', error);
+    
+    // ✅ DEVICE B FIX: Enhanced retry logic for device-specific issues
+    if (retryCount < maxRetries) {
+      const errorMessage = error.message?.toLowerCase() || '';
+      
+      if (errorMessage.includes('session validation timeout')) {
+        logger.warn('⏱️ Session validation timeout, retrying with longer delay...');
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+        return validateAuthSession(retryCount + 1);
+      } else if (errorMessage.includes('network') || 
+                 errorMessage.includes('fetch') ||
+                 errorMessage.includes('connection')) {
+        logger.warn('🌐 Network error during validation, retrying...');
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return validateAuthSession(retryCount + 1);
+      }
+    }
+    
+    // ✅ CRITICAL FIX: DON'T cleanup on timeout/network errors after all retries
+    if (error.message?.includes('Session validation timeout')) {
+      logger.debug('⏱️ Session validation timeout after retries, preserving auth state');
+    } else if (error.message?.includes('network') || 
+               error.message?.includes('fetch')) {
+      logger.debug('🌐 Network error after retries, preserving auth state');
+    } else {
+      logger.warn('🧹 Unexpected error after retries, cleaning up auth state for safety');
+      cleanupAuthState();
+    }
+    
+    return false;
+  }
+};
+
+/**
+ * ✅ ENHANCED: Safe session check with device-adaptive timeout
+ */
+export const checkSessionExists = async () => {
+  try {
+    logger.debug('👀 Checking session existence (safe mode)...');
+    
+    // ✅ DEVICE B FIX: Use adaptive timeout
+    const adaptiveTimeout = getAdaptiveTimeout(5000);
+    
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((resolve) => 
+      setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
+    );
+    
+    const { data: { session }, error } = await Promise.race([
+      sessionPromise, 
+      timeoutPromise
+    ]) as any;
+    
+    if (error) {
+      logger.debug('⚠️ Error checking session (safe mode):', error.message);
+      return false;
+    }
+    
+    const exists = !!(session?.user?.id);
+    logger.debug('👀 Session exists (safe mode):', exists);
+    
+    return exists;
+    
+  } catch (error) {
+    logger.debug('❌ Error in safe session check:', error.message);
+    return false;
+  }
+};
+
+/**
+ * ✅ ENHANCED: Force refresh session with device-adaptive retry
+ */
+export const refreshSessionSafely = async () => {
   try {
     logger.debug('🔄 Safely refreshing session...');
     
+    // ✅ DEVICE B FIX: Add timeout for refresh operation
     const adaptiveTimeout = getAdaptiveTimeout(10000);
     
     const refreshPromise = supabase.auth.refreshSession();
@@ -623,16 +363,97 @@ export const refreshSessionSafely = async (): Promise<boolean> => {
       return false;
     }
     
-    if (session?.user?.id && session.user.id !== 'null') {
+    if (session?.user?.id) {
       logger.success('✅ Session refreshed successfully:', session.user.email);
       return true;
     }
     
-    logger.warn('⚠️ Session refresh returned no valid user');
+    logger.warn('⚠️ Session refresh returned no user');
     return false;
     
   } catch (error) {
     logger.error('❌ Error refreshing session safely:', error);
     return false;
+  }
+};
+
+/**
+ * ✅ ENHANCED: Debug auth state with device capabilities
+ */
+export const debugAuthState = async () => {
+  try {
+    logger.debug('🔬 Debugging auth state...');
+    
+    // Check device capabilities
+    const capabilities = detectDeviceCapabilities();
+    
+    // Check localStorage
+    const localStorageKeys = Object.keys(localStorage).filter(key => 
+      key.startsWith('supabase.auth.') || key.includes('sb-')
+    );
+    
+    // Check sessionStorage  
+    const sessionStorageKeys = Object.keys(sessionStorage || {}).filter(key => 
+      key.startsWith('supabase.auth.') || key.includes('sb-')
+    );
+    
+    // Check current session with timeout
+    let sessionInfo = null;
+    try {
+      const adaptiveTimeout = getAdaptiveTimeout(10000);
+      
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((resolve) => 
+        setTimeout(() => resolve({ data: { session: null }, error: { message: 'Debug timeout' } }), adaptiveTimeout)
+      );
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]) as any;
+      
+      sessionInfo = {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id || null,
+        email: session?.user?.email || null,
+        expiresAt: session?.expires_at || null,
+        error: error?.message || null,
+        userIdType: typeof session?.user?.id,
+        userIdLength: session?.user?.id?.length || 0
+      };
+    } catch (err) {
+      sessionInfo = { error: err.message };
+    }
+    
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      deviceCapabilities: capabilities,
+      adaptiveTimeout: getAdaptiveTimeout(15000),
+      localStorageKeys,
+      sessionStorageKeys,
+      sessionInfo,
+      userAgent: navigator.userAgent
+    };
+    
+    logger.debug('🔬 Auth Debug Info:', debugInfo);
+    
+    // ✅ DEVICE B: Also log to console for easier debugging
+    console.table({
+      'Has LocalStorage': capabilities.hasLocalStorage,
+      'Has SessionStorage': capabilities.hasSessionStorage,
+      'Network Type': capabilities.networkType,
+      'Is Slow Device': capabilities.isSlowDevice,
+      'Has Session': sessionInfo?.hasSession || false,
+      'Has User': sessionInfo?.hasUser || false,
+      'User Email': sessionInfo?.email || 'none',
+      'Adaptive Timeout': getAdaptiveTimeout(15000) + 'ms'
+    });
+    
+    return debugInfo;
+    
+  } catch (error) {
+    logger.error('❌ Error debugging auth state:', error);
+    return { error: error.message };
   }
 };

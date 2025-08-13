@@ -17,6 +17,7 @@ import { useRincianCalculations } from './hooks/useRincianCalculations';
 import { DataQualityIndicator } from './components/DataQualityIndicator';
 import { TabNavigation } from './components/TabNavigation';
 import { CostOverview } from './components/overview/CostOverview';
+import { CogsDetailTab } from './components/cogsDetail/CogsDetailTab';
 
 // Import constants
 import { SECTION_TITLES, EMPTY_STATE } from './constants/messages';
@@ -96,8 +97,14 @@ export const RincianTab: React.FC<RincianTabProps> = ({
               isMobile={isMobile}
             />
 
+            <CogsDetailTab
+              profitData={profitData}
+              calculations={calculations}
+              showDetailedBreakdown={showDetailedBreakdown}
+              isMobile={isMobile}
+            />
+
             {/* TODO: Add other tab contents */}
-            {/* CogsDetailTab */}
             {/* OpexDetailTab */}
             {/* AnalysisTab */}
 

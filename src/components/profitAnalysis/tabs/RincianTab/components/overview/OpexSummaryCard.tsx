@@ -1,10 +1,9 @@
-// src/components/profitAnalysis/tabs/rincianTab/components/overview/OpexSummaryCard.tsx
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Building } from 'lucide-react';
+import { Building, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 import { OpexSummaryCardProps } from '../../types/components';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
@@ -18,7 +17,38 @@ export const OpexSummaryCard: React.FC<OpexSummaryCardProps> = ({
   isMobile
 }) => {
   const colors = CARD_COLORS.OPEX;
+
+  // Validasi profitMarginData dan revenue
+  if (!profitMarginData || typeof profitMarginData.revenue !== 'number' || isNaN(profitMarginData.revenue)) {
+    logger.warn('OpexSummaryCard: profitMarginData tidak valid atau revenue tidak tersedia', { profitMarginData });
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-32">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-gray-500">Data pendapatan tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const revenue = profitMarginData.revenue;
+
+  // Cegah pembagian dengan nol
+  if (revenue === 0) {
+    logger.warn('OpexSummaryCard: revenue adalah nol', { profitMarginData });
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-32">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-gray-500">Pendapatan nol, tidak dapat menghitung persentase</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

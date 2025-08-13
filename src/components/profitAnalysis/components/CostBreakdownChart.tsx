@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/components/CostBreakdownChart.tsx
+// src/components/profitAnalysis/components/CostBreakdownChart.tsx
 // ✅ KOMPONEN CHART BREAKDOWN BIAYA
 
 import React from 'react';

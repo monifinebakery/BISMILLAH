@@ -105,6 +105,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       async (event, session) => {
         if (!mounted) return;
         
+    // Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
         logger.debug('AuthGuard: Auth state changed:', event, session?.user?.email);
         
         if (event === 'SIGNED_OUT' || !session) {
@@ -138,9 +143,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
     return () => {
       mounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
 

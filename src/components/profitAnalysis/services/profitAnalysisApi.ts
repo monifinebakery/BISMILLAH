@@ -109,17 +109,28 @@ export const integrateFinancialData = async (
     if (productionRecordsResult.error) {
       logger.warn('Failed to fetch production records:', productionRecordsResult.error);
     }
+    if (!Array.isArray(costsResult)) {
+      logger.warn('integrateFinancialData: operationalCosts bukan array', { costsResult });
+    }
 
     return {
-      transactions: transactionsResult || [],
-      operationalCosts: costsResult || [],
-      materials: materialsResult || [],
-      recipes: recipesResult || [],
-      materialUsage: materialUsageResult.data || [],
-      productionRecords: productionRecordsResult.data || []
+      transactions: Array.isArray(transactionsResult) ? transactionsResult : [],
+      operationalCosts: Array.isArray(costsResult) ? costsResult : [],
+      materials: Array.isArray(materialsResult) ? materialsResult : [],
+      recipes: Array.isArray(recipesResult) ? recipesResult : [],
+      materialUsage: Array.isArray(materialUsageResult.data) ? materialUsageResult.data : [],
+      productionRecords: Array.isArray(productionRecordsResult.data) ? productionRecordsResult.data : []
     };
   } catch (error) {
-    throw new Error(`Data integration failed: ${error.message}`);
+    logger.error('Data integration failed:', error);
+    return {
+      transactions: [],
+      operationalCosts: [],
+      materials: [],
+      recipes: [],
+      materialUsage: [],
+      productionRecords: []
+    };
   }
 };
 
@@ -450,7 +461,6 @@ export const exportProfitAnalysis = async (
     }
 
     // Implementasi ekspor berdasarkan format
-    // Ini contoh sederhana, implementasi sebenarnya bergantung pada library ekspor
     const exportData = {
       period: analysis.profitMarginData.period.label,
       revenue: analysis.profitMarginData.revenue,

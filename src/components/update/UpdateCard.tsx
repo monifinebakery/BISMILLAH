@@ -6,12 +6,14 @@ import { useUpdates } from './UpdateContext';
 interface UpdateCardProps {
   update: AppUpdate;
   isLatest?: boolean;
+  isUnread?: boolean; // Tambah prop untuk konsistensi
 }
 
-export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false }) => {
+export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false, isUnread }) => {
   const { unseenUpdates, markAsSeen } = useUpdates();
-  
-  const isUnseen = unseenUpdates.some(u => u.id === update.id);
+
+  // Gunakan prop isUnread jika disediakan, jika tidak gunakan logika dari unseenUpdates
+  const isUnseen = isUnread ?? unseenUpdates.some(u => u.id === update.id);
 
   const getPriorityConfig = (priority: string) => {
     switch (priority) {
@@ -23,7 +25,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
           textColor: 'text-red-800',
           iconColor: 'text-red-600',
           badgeColor: 'bg-red-100 text-red-800',
-          label: 'CRITICAL'
+          label: 'CRITICAL',
         };
       case 'high':
         return {
@@ -33,7 +35,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
           textColor: 'text-orange-800',
           iconColor: 'text-orange-600',
           badgeColor: 'bg-orange-100 text-orange-800',
-          label: 'HIGH'
+          label: 'HIGH',
         };
       case 'normal':
         return {
@@ -43,7 +45,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
           textColor: 'text-blue-800',
           iconColor: 'text-blue-600',
           badgeColor: 'bg-blue-100 text-blue-800',
-          label: 'NORMAL'
+          label: 'NORMAL',
         };
       default:
         return {
@@ -53,7 +55,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
           textColor: 'text-gray-800',
           iconColor: 'text-gray-600',
           badgeColor: 'bg-gray-100 text-gray-800',
-          label: 'LOW'
+          label: 'LOW',
         };
     }
   };
@@ -66,24 +68,23 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const handleMarkAsSeen = () => {
+  const handleMarkAsSeen = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Hentikan event agar tidak mengganggu onClick card
     if (isUnseen) {
       markAsSeen(update.id);
     }
   };
 
   return (
-    <div 
+    <div
       className={`relative bg-white rounded-lg border transition-all duration-200 hover:shadow-lg ${
-        isUnseen 
-          ? `${config.borderColor} border-l-4 shadow-md` 
-          : 'border-gray-200 hover:border-gray-300'
+        isUnseen ? `${config.borderColor} border-l-4 shadow-md` : 'border-gray-200 hover:border-gray-300'
       }`}
-      onClick={handleMarkAsSeen}
+      onClick={handleMarkAsSeen} // Klik card untuk tandai sebagai sudah dibaca
     >
       {/* Latest badge */}
       {isLatest && (
@@ -95,20 +96,23 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
       {/* Unseen indicator */}
       {isUnseen && (
         <div className="absolute top-4 right-4">
-          <div className={`w-3 h-3 rounded-full ${
-            update.priority === 'critical' ? 'bg-red-500' :
-            update.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
-          } animate-pulse`}></div>
+          <div
+            className={`w-3 h-3 rounded-full ${
+              update.priority === 'critical'
+                ? 'bg-red-500'
+                : update.priority === 'high'
+                ? 'bg-orange-500'
+                : 'bg-blue-500'
+            } animate-pulse`}
+          ></div>
         </div>
       )}
 
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start gap-4 mb-4">
-          <div className={`${config.iconColor} mt-1`}>
-            {config.icon}
-          </div>
-          
+          <div className={`${config.iconColor} mt-1`}>{config.icon}</div>
+
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-xl font-bold text-gray-900">{update.title}</h3>
@@ -118,7 +122,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
                 </div>
               )}
             </div>
-            
+
             {/* Badges */}
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center gap-1 bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
@@ -134,9 +138,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
 
         {/* Description */}
         <div className="mb-4">
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {update.description}
-          </p>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{update.description}</p>
         </div>
 
         {/* Footer */}
@@ -153,13 +155,10 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
               </div>
             )}
           </div>
-          
+
           {isUnseen && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                markAsSeen(update.id);
-              }}
+              onClick={handleMarkAsSeen}
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
             >
               <CheckCircle2 className="w-4 h-4" />

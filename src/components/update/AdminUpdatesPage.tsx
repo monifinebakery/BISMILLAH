@@ -28,7 +28,7 @@ export const AdminUpdatesPage: React.FC = () => {
   const [stats, setStats] = useState({
     totalUpdates: 0,
     activeUpdates: 0,
-    totalViews: 0
+    totalViews: 0,
   });
 
   // ✅ SAFE: Check admin status with proper error handling
@@ -86,7 +86,7 @@ export const AdminUpdatesPage: React.FC = () => {
       setStats({
         totalUpdates: total,
         activeUpdates: active,
-        totalViews: 0 // You can implement view tracking later
+        totalViews: 0, // Placeholder, bisa diperbarui dengan view tracking nanti
       });
     } catch (error) {
       console.error('Error in fetchUpdates:', error);
@@ -150,7 +150,7 @@ export const AdminUpdatesPage: React.FC = () => {
         month: 'long',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch (error) {
       return 'Invalid Date';
@@ -163,7 +163,7 @@ export const AdminUpdatesPage: React.FC = () => {
       critical: 'bg-red-100 text-red-800 border-red-200',
       high: 'bg-orange-100 text-orange-800 border-orange-200',
       normal: 'bg-blue-100 text-blue-800 border-blue-200',
-      low: 'bg-gray-100 text-gray-800 border-gray-200'
+      low: 'bg-gray-100 text-gray-800 border-gray-200',
     };
     return configs[priority as keyof typeof configs] || configs.normal;
   }, []);
@@ -236,7 +236,10 @@ export const AdminUpdatesPage: React.FC = () => {
             </div>
             
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditingUpdate(null);
+                setShowForm(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               <Plus className="w-5 h-5" />
@@ -283,12 +286,17 @@ export const AdminUpdatesPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {showForm ? (
           <div className="mb-8">
-            <UpdateForm 
+            <UpdateForm
               onSuccess={() => {
                 setShowForm(false);
+                setEditingUpdate(null);
                 fetchUpdates();
               }}
-              onCancel={() => setShowForm(false)}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingUpdate(null);
+              }}
+              initialData={editingUpdate}
             />
           </div>
         ) : (
@@ -303,7 +311,10 @@ export const AdminUpdatesPage: React.FC = () => {
                   Mulai dengan membuat pembaruan aplikasi pertama
                 </p>
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={() => {
+                    setEditingUpdate(null);
+                    setShowForm(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   <Plus className="w-4 h-4" />
@@ -320,7 +331,9 @@ export const AdminUpdatesPage: React.FC = () => {
                         <span className="text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded-full font-medium">
                           v{update.version}
                         </span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium border ${getPriorityBadge(update.priority)}`}>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-medium border ${getPriorityBadge(update.priority)}`}
+                        >
                           {update.priority.toUpperCase()}
                         </span>
                         {update.is_active ? (
@@ -348,8 +361,8 @@ export const AdminUpdatesPage: React.FC = () => {
                       <button
                         onClick={() => toggleUpdateStatus(update.id, update.is_active)}
                         className={`p-2 rounded-lg transition-colors ${
-                          update.is_active 
-                            ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                          update.is_active
+                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                         title={update.is_active ? 'Nonaktifkan' : 'Aktifkan'}
@@ -358,7 +371,10 @@ export const AdminUpdatesPage: React.FC = () => {
                       </button>
                       
                       <button
-                        onClick={() => setEditingUpdate(update)}
+                        onClick={() => {
+                          setEditingUpdate(update);
+                          setShowForm(true);
+                        }}
                         className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
                         title="Edit"
                       >

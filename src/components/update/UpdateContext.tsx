@@ -8,51 +8,42 @@ import { UpdateNotification } from './UpdateNotification';
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const [latestUpdate, setLatestUpdate] = useState<AppUpdate | null>(null);
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set());
 
-  // ✅ SAFE: Memoize fetch function to prevent infinite re-renders
   const fetchUpdates = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.id || !isReady) {
+      console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      
-      // ✅ SAFE: Check admin status with error handling
+      console.log('Fetching updates for user:', user.id);
+
       let isAdmin = false;
       try {
-        const { data: isAdminData, error: adminError } = await supabase
-          .rpc('is_user_admin');
-
-        if (!adminError && isAdminData) {
-          isAdmin = true;
-        }
+        const { data: isAdminData, error: adminError } = await supabase.rpc('is_user_admin');
+        if (!adminError && isAdminData) isAdmin = true;
       } catch (adminCheckError) {
-        console.warn('Could not check admin status:', adminCheckError);
-        // Continue as regular user
+        console.warn('Could not check admin status, assuming non-admin:', adminCheckError);
       }
 
-      // ✅ SAFE: Fetch updates with proper error handling
       let query = supabase.from('app_updates').select('*');
-      
       if (isAdmin) {
-        // Admin can see all updates
         query = query.order('release_date', { ascending: false });
       } else {
-        // Regular users only see active updates
         query = query.eq('is_active', true).order('release_date', { ascending: false });
       }
 
       const { data: updates, error: updatesError } = await query;
-
       if (updatesError) {
-        console.error('Error fetching updates:', updatesError);
+        console.error('Error fetching updates:', updatesError.message);
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -60,172 +51,128 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (!updates || updates.length === 0) {
+        console.log('No updates found');
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
         return;
       }
 
-      // ✅ SAFE: Fetch user seen updates with error handling
-      const { data: seenUpdates, error: seenError } = await supabase
-        .from('user_seen_updates')
-        .select('update_id')
-        .eq('user_id', user.id);
-
-      if (seenError) {
-        console.error('Error fetching seen updates:', seenError);
-        // Continue without seen updates data
-      }
-
-      const seenUpdateIds = new Set(seenUpdates?.map(seen => seen.update_id) || []);
-      const unseen = updates.filter(update => !seenUpdateIds.has(update.id));
-
       setLatestUpdate(updates[0]);
-      setUnseenUpdates(unseen);
-      setHasUnseenUpdates(unseen.length > 0);
+      const newUnseen = updates.filter(update => !seenUpdateIds.has(update.id));
+      setUnseenUpdates(newUnseen);
+      setHasUnseenUpdates(newUnseen.length > 0);
 
-      // ✅ SAFE: Show popup only for non-admin users and critical updates
-      if (!isAdmin && unseen.length > 0) {
-        const criticalUnseen = unseen.filter(update => 
-          update.priority === 'critical' || update.priority === 'high'
-        );
-
-        if (criticalUnseen.length > 0) {
-          // ✅ SAFE: Add delay to prevent immediate popup
-          setTimeout(() => {
-            showUpdateNotification(criticalUnseen[0]);
-          }, 1000);
-        }
+      if (!isAdmin && newUnseen.length > 0) {
+        console.log('Triggering popup for all unseen updates:', newUnseen.map(u => u.title));
+        setTimeout(() => showUpdateNotification(newUnseen), 1000); // Tampilkan semua unseen updates
+      } else {
+        console.log('No popup: Admin or no unseen updates');
       }
     } catch (error) {
       console.error('Error in fetchUpdates:', error);
-      // ✅ SAFE: Don't show toast error immediately to prevent spam
-      setTimeout(() => {
-        toast.error('Gagal memuat pembaruan terbaru');
-      }, 2000);
+      setTimeout(() => toast.error('Gagal memuat pembaruan terbaru'), 2000);
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // ✅ SAFE: Only depend on user.id, not entire user object
+  }, [user?.id, isReady, seenUpdateIds]);
 
-  // ✅ SAFE: Separate notification function
-  const showUpdateNotification = useCallback((update: AppUpdate) => {
+  const showUpdateNotification = useCallback((updates: AppUpdate[]) => {
     try {
       toast.custom((t) => (
-        <UpdateNotification 
-          update={update} 
-          onDismiss={() => {
-            toast.dismiss(t);
-            markAsSeen(update.id);
-          }}
-        />
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+          <h3 className="font-bold text-lg text-gray-900 mb-2">Pembaruan Baru Tersedia</h3>
+          <div className="space-y-4 max-h-64 overflow-y-auto">
+            {updates.map((update) => (
+              <div key={update.id} className="border-b border-gray-100 pb-2 last:border-b-0">
+                <UpdateNotification update={update} onDismiss={() => {}} /> {/* onDismiss di-handle di parent */}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              updates.forEach(update => markAsSeen(update.id));
+              toast.dismiss(t);
+            }}
+            className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Tutup & Tandai Semua Dibaca
+          </button>
+        </div>
       ), {
-        duration: update.priority === 'critical' ? 20000 : 15000,
+        duration: 20000, // Durasi lebih lama karena menampilkan banyak update
         position: 'top-right',
       });
+      console.log('Notification shown for all unseen updates:', updates.map(u => u.title));
     } catch (error) {
       console.error('Error showing notification:', error);
     }
   }, []);
 
-  // ✅ SAFE: Mark as seen with proper error handling
   const markAsSeen = useCallback(async (updateId: string) => {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('user_seen_updates')
-        .upsert({
-          user_id: user.id,
-          update_id: updateId,
-          seen_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Error marking update as seen:', error);
-        return;
-      }
-
-      // ✅ SAFE: Update local state safely
+      setSeenUpdateIds(prev => new Set(prev).add(updateId));
       setUnseenUpdates(prev => prev.filter(update => update.id !== updateId));
       setHasUnseenUpdates(prev => {
         const newUnseen = unseenUpdates.filter(update => update.id !== updateId);
         return newUnseen.length > 0;
       });
+      console.log('Marked as seen:', updateId);
     } catch (error) {
       console.error('Error in markAsSeen:', error);
     }
   }, [user?.id, unseenUpdates]);
 
-  // ✅ SAFE: Mark all as seen
   const markAllAsSeen = useCallback(async () => {
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
-      const insertData = unseenUpdates.map(update => ({
-        user_id: user.id,
-        update_id: update.id,
-        seen_at: new Date().toISOString()
-      }));
-
-      const { error } = await supabase
-        .from('user_seen_updates')
-        .upsert(insertData);
-
-      if (error) {
-        console.error('Error marking all updates as seen:', error);
-        toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
-        return;
-      }
-
+      const newSeenIds = new Set(seenUpdateIds);
+      unseenUpdates.forEach(update => newSeenIds.add(update.id));
+      setSeenUpdateIds(newSeenIds);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
+      console.log('Marked all as seen');
     } catch (error) {
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
-  }, [user?.id, unseenUpdates]);
+  }, [user?.id, unseenUpdates, seenUpdateIds]);
 
-  // ✅ SAFE: Refresh function
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
   }, [fetchUpdates]);
 
-  // ✅ SAFE: Initial fetch with proper dependency
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isReady) {
+      console.log('Auth ready, fetching updates...', { userId: user.id });
       fetchUpdates();
     } else {
       setLoading(false);
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
+      setSeenUpdateIds(new Set());
+      console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
-  }, [user?.id, fetchUpdates]);
+  }, [user?.id, isReady, fetchUpdates]);
 
-  // ✅ SAFE: Real-time subscription with cleanup
   useEffect(() => {
     if (!user?.id) return;
 
     let channel: any = null;
-
     try {
       channel = supabase
         .channel('app_updates_changes')
         .on(
           'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'app_updates'
-          },
+          { event: '*', schema: 'public', table: 'app_updates' },
           (payload) => {
             console.log('Real-time update received:', payload);
-            // ✅ SAFE: Add delay to prevent rapid updates
-            setTimeout(() => {
-              fetchUpdates();
-            }, 500);
+            setTimeout(() => fetchUpdates(), 500);
           }
         )
         .subscribe();
@@ -244,7 +191,6 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [user?.id, fetchUpdates]);
 
-  // ✅ SAFE: Provide context value
   const contextValue: UpdateContextType = {
     latestUpdate,
     unseenUpdates,
@@ -252,7 +198,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     markAsSeen,
     markAllAsSeen,
     refreshUpdates,
-    loading
+    loading,
   };
 
   return (

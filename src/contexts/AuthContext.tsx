@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - MOBILE OPTIMIZED
+// src/contexts/AuthContext.tsx - FIXED CONFLICTING REDIRECT
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -261,7 +261,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // ✅ ENHANCED: Auth state change handler with sanitization
+    // ✅ FIXED: Auth state change handler - REMOVED REDIRECT LOGIC
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -295,27 +295,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         
-        // ✅ MOBILE: Enhanced redirect handling with delay for mobile
-        if (event === 'SIGNED_IN' && validSession?.user) {
-          if (window.location.pathname === '/auth') {
-            logger.info('AuthContext: Redirecting to dashboard after valid sign in');
-            
-            // ✅ MOBILE: Longer delay for mobile devices to ensure session is stable
-            const capabilities = detectDeviceCapabilities();
-            const redirectDelay = capabilities.isSlowDevice ? 2000 : 1000;
-            
-            setTimeout(() => {
-              if (mounted) {
-                window.location.href = '/';
-              }
-            }, redirectDelay);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          if (window.location.pathname !== '/auth') {
-            logger.info('AuthContext: Redirecting to auth after sign out');
-            window.location.href = '/auth';
-          }
-        }
+        // ✅ CRITICAL FIX: REMOVED ALL REDIRECT LOGIC
+        // Let AuthGuard handle all redirects consistently
+        // AuthContext should only manage state, not navigation
+        
+        logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
       }
     );
 

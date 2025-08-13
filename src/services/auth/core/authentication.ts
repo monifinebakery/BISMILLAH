@@ -1,4 +1,4 @@
-// src/services/auth/core/authentication.ts - ENHANCED with Better Error Handling
+// src/services/auth/core/authentication.ts - CLEANED UP
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -133,24 +133,9 @@ export const signOut = async (): Promise<boolean> => {
   }
 };
 
-export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    logger.info('[Auth] Auth state changed:', { 
-      event, 
-      email: session?.user?.email,
-      userId: session?.user?.id 
-    });
-    
-    // Clear session cache on auth state change
-    if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-      clearSessionCache();
-    }
-    
-    callback(event, session);
-  });
-  
-  return () => subscription.unsubscribe();
-};
+// ✅ SIMPLIFIED: Remove the problematic onAuthStateChange export
+// Components should use AuthContext instead of this service for auth state changes
+// This service is for utility functions only
 
 // ✅ NEW: Debug auth state
 export const debugAuthState = async () => {
@@ -179,6 +164,9 @@ export const debugAuthState = async () => {
   }
 };
 
+// ✅ REMOVED: onAuthStateChange and onAuthStateChangeWithPaymentLinking exports
+// These were causing conflicts with AuthContext
+// Components should use AuthContext.useAuth() hook instead
+
 // Aliases for backward compatibility
 export const hasValidSession = isAuthenticated;
-export const onAuthStateChangeWithPaymentLinking = onAuthStateChange;

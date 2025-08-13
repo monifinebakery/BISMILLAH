@@ -1,7 +1,7 @@
 // src/components/profitAnalysis/tabs/rincianTab/index.ts
 
 // Main component export
-export { RincianTab } from './index';
+export { RincianTab } from './RincianTab';
 
 // Hook exports
 export { 

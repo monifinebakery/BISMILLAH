@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { 
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
-  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell 
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -49,6 +49,9 @@ import { useOperationalCost } from "@/components/operational-costs/context/Opera
 // ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
+
+// ✅ NEW: Import Update System
+import { UpdateBadge } from "@/components/update";
 
 // --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -117,6 +120,8 @@ export function AppSidebar() {
 
   const settingsItems = [
     { title: "Pengaturan", url: "/pengaturan", icon: Settings },
+    // ✅ NEW: Add Updates menu item  
+    { title: "Pembaruan", url: "/updates", icon: Bell },
   ];
 
   const confirmLogout = async () => {
@@ -155,29 +160,38 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName);
   };
 
-  // ✅ Simple menu item rendering with orange hover and active - using style override
-  const renderMenuItem = (item, isActive) => (
-    <SidebarMenuButton
-      onClick={() => navigate(item.url)}
-      isActive={isActive}
-      style={{
-        '--hover-bg': '#fed7aa', // orange-200
-        '--hover-text': '#ea580c', // orange-600
-        '--active-bg': '#fdba74', // orange-300
-        '--active-text': '#c2410c', // orange-700
-      }}
-      className={cn(
-        "w-full justify-start px-3 transition-all duration-200",
-        "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
-        "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
-        "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
-        isActive && "!bg-orange-100 !text-orange-600 !border-orange-200"
-      )}
-    >
-      <item.icon className="h-5 w-5 flex-shrink-0" />
-      <span className="ml-3">{item.title}</span>
-    </SidebarMenuButton>
-  );
+  // ✅ Enhanced menu item rendering with Update Badge support
+  const renderMenuItem = (item, isActive) => {
+    const isUpdatesMenu = item.url === "/updates";
+    
+    return (
+      <SidebarMenuButton
+        onClick={() => navigate(item.url)}
+        isActive={isActive}
+        style={{
+          '--hover-bg': '#fed7aa', // orange-200
+          '--hover-text': '#ea580c', // orange-600
+          '--active-bg': '#fdba74', // orange-300
+          '--active-text': '#c2410c', // orange-700
+        }}
+        className={cn(
+          "w-full justify-start px-3 transition-all duration-200 relative",
+          "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
+          "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
+          "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
+          isActive && "!bg-orange-100 !text-orange-600 !border-orange-200"
+        )}
+      >
+        {/* ✅ NEW: Use UpdateBadge for Updates menu */}
+        {isUpdatesMenu ? (
+          <UpdateBadge className="flex-shrink-0" />
+        ) : (
+          <item.icon className="h-5 w-5 flex-shrink-0" />
+        )}
+        <span className="ml-3">{item.title}</span>
+      </SidebarMenuButton>
+    );
+  };
 
   // ✅ Simple action button rendering with orange hover and active - using style override
   const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => (
@@ -270,7 +284,7 @@ export function AppSidebar() {
             )}
           </SidebarMenuItem>
           
-          {/* Settings */}
+          {/* Settings and Updates */}
           {settingsItems.map((item) => (
             <SidebarMenuItem 
               key={item.title}

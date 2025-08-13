@@ -1,19 +1,22 @@
 // src/components/profitAnalysis/tabs/RincianTab/hooks/useTargetAnalysis.ts
 
 import { useMemo } from 'react';
+import { logger } from '@/utils/logger'; // ✅ Import logger
 import { ProfitAnalysisResult } from '../../types';
 import { CostStructureAnalysis, Recommendation } from '../types/calculations';
 import { calculateCostAnalysis } from '../utils/calculations';
 import { analyzeCostStructure, generateRecommendations, getTargetStatus } from '../utils/targetAnalysis';
-import { validateProfitData } from '../utils/validators';
+import { validateProfitData } from '../utils/validators'; // ✅ Import validator
 import { ANALYSIS_TARGETS } from '../constants/targets';
 
 /**
  * Hook for comprehensive target analysis
  */
-export const useTargetAnalysis = (profitData: ProfitAnalysisResult | null) => {
+export const useTargetAnalysis = (profitData: ProfitAnalysisResult | null | undefined) => {
   return useMemo(() => {
+    // ✅ VALIDASI DATA YANG DIPERKUAT MENGGUNAKAN VALIDATOR TERPUSAT
     if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useTargetAnalysis: Data profit tidak valid atau tidak lengkap', { profitData: !!profitData });
       return null;
     }
 
@@ -31,7 +34,7 @@ export const useTargetAnalysis = (profitData: ProfitAnalysisResult | null) => {
         costAnalysis
       };
     } catch (error) {
-      console.error('Error in useTargetAnalysis:', error);
+      logger.error('Error in useTargetAnalysis:', error);
       return null;
     }
   }, [profitData]);
@@ -40,80 +43,137 @@ export const useTargetAnalysis = (profitData: ProfitAnalysisResult | null) => {
 /**
  * Hook for individual target status analysis
  */
-export const useIndividualTargetAnalysis = (profitData: ProfitAnalysisResult | null) => {
+export const useIndividualTargetAnalysis = (profitData: ProfitAnalysisResult | null | undefined) => {
   return useMemo(() => {
-    if (!profitData) return null;
+    // ✅ VALIDASI DATA YANG DIPERKUAT MENGGUNAKAN VALIDATOR TERPUSAT
+    if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useIndividualTargetAnalysis: Data profit tidak valid atau tidak lengkap', { profitData: !!profitData });
+      return null;
+    }
 
-    const costAnalysis = calculateCostAnalysis(profitData);
-    
-    return {
-      material: {
-        analysis: getTargetStatus(costAnalysis.materialRatio, ANALYSIS_TARGETS.MATERIAL.target),
-        target: ANALYSIS_TARGETS.MATERIAL,
-        actual: costAnalysis.materialRatio
-      },
-      labor: {
-        analysis: getTargetStatus(costAnalysis.laborRatio, ANALYSIS_TARGETS.LABOR.target),
-        target: ANALYSIS_TARGETS.LABOR,
-        actual: costAnalysis.laborRatio
-      },
-      cogs: {
-        analysis: getTargetStatus(costAnalysis.cogsRatio, ANALYSIS_TARGETS.COGS.target),
-        target: ANALYSIS_TARGETS.COGS,
-        actual: costAnalysis.cogsRatio
-      },
-      opex: {
-        analysis: getTargetStatus(costAnalysis.opexRatio, ANALYSIS_TARGETS.OPEX.target),
-        target: ANALYSIS_TARGETS.OPEX,
-        actual: costAnalysis.opexRatio
-      },
-      netMargin: {
-        analysis: getTargetStatus(profitData.profitMarginData.netMargin, ANALYSIS_TARGETS.NET_MARGIN.target),
-        target: ANALYSIS_TARGETS.NET_MARGIN,
-        actual: profitData.profitMarginData.netMargin
+    // ✅ Validasi properti yang dibutuhkan untuk perhitungan target
+    if (
+      !profitData.profitMarginData ||
+      !profitData.cogsBreakdown ||
+      !profitData.opexBreakdown
+    ) {
+       logger.warn('useIndividualTargetAnalysis: Struktur profitData tidak lengkap untuk target analysis', { 
+        hasProfitMarginData: !!profitData.profitMarginData,
+        hasCogsBreakdown: !!profitData.cogsBreakdown,
+        hasOpexBreakdown: !!profitData.opexBreakdown
+      });
+      return null;
+    }
+
+    try {
+      const costAnalysis = calculateCostAnalysis(profitData);
+      
+      if (!costAnalysis) {
+        logger.warn('useIndividualTargetAnalysis: calculateCostAnalysis mengembalikan null/undefined');
+        return null;
       }
-    };
+
+      return {
+        material: {
+          analysis: getTargetStatus(costAnalysis.materialRatio, ANALYSIS_TARGETS.MATERIAL.target),
+          target: ANALYSIS_TARGETS.MATERIAL,
+          actual: costAnalysis.materialRatio
+        },
+        labor: {
+          analysis: getTargetStatus(costAnalysis.laborRatio, ANALYSIS_TARGETS.LABOR.target),
+          target: ANALYSIS_TARGETS.LABOR,
+          actual: costAnalysis.laborRatio
+        },
+        cogs: {
+          analysis: getTargetStatus(costAnalysis.cogsRatio, ANALYSIS_TARGETS.COGS.target),
+          target: ANALYSIS_TARGETS.COGS,
+          actual: costAnalysis.cogsRatio
+        },
+        opex: {
+          analysis: getTargetStatus(costAnalysis.opexRatio, ANALYSIS_TARGETS.OPEX.target),
+          target: ANALYSIS_TARGETS.OPEX,
+          actual: costAnalysis.opexRatio
+        },
+        netMargin: {
+          analysis: getTargetStatus(profitData.profitMarginData.netMargin, ANALYSIS_TARGETS.NET_MARGIN.target),
+          target: ANALYSIS_TARGETS.NET_MARGIN,
+          actual: profitData.profitMarginData.netMargin
+        }
+      };
+    } catch (error) {
+      logger.error('Error in useIndividualTargetAnalysis:', error);
+      return null;
+    }
   }, [profitData]);
 };
 
 /**
  * Hook for priority-based action planning
  */
-export const useActionPlan = (profitData: ProfitAnalysisResult | null) => {
+export const useActionPlan = (profitData: ProfitAnalysisResult | null | undefined) => {
   return useMemo(() => {
-    if (!profitData) return null;
+    // ✅ VALIDASI DATA YANG DIPERKUAT MENGGUNAKAN VALIDATOR TERPUSAT
+    if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useActionPlan: Data profit tidak valid atau tidak lengkap', { profitData: !!profitData });
+      return null;
+    }
 
-    const costAnalysis = calculateCostAnalysis(profitData);
-    const costStructureAnalysis = analyzeCostStructure(costAnalysis);
-    const recommendations = generateRecommendations(
-      costAnalysis,
-      profitData.cogsBreakdown.dataSource || 'estimated'
-    );
+    // ✅ Validasi properti yang dibutuhkan untuk perhitungan action plan
+    if (
+      !profitData.profitMarginData ||
+      !profitData.cogsBreakdown ||
+      !profitData.opexBreakdown
+    ) {
+       logger.warn('useActionPlan: Struktur profitData tidak lengkap untuk action plan', { 
+        hasProfitMarginData: !!profitData.profitMarginData,
+        hasCogsBreakdown: !!profitData.cogsBreakdown,
+        hasOpexBreakdown: !!profitData.opexBreakdown
+      });
+      return null;
+    }
 
-    // Create action plan based on priority
-    const actionPlan = {
-      immediate: recommendations.filter(r => r.priority === 'high'),
-      shortTerm: recommendations.filter(r => r.priority === 'medium'),
-      longTerm: recommendations.filter(r => r.priority === 'low'),
+    try {
+      const costAnalysis = calculateCostAnalysis(profitData);
       
-      // Critical issues requiring immediate attention
-      criticalIssues: costStructureAnalysis.overall.criticalIssues
-        .filter(issue => issue.severity === 'critical')
-        .map(issue => ({
-          area: issue.name,
-          description: issue.message,
-          impact: 'high',
-          timeline: 'immediate'
-        })),
+      if (!costAnalysis) {
+        logger.warn('useActionPlan: calculateCostAnalysis mengembalikan null/undefined');
+        return null;
+      }
 
-      // Quick wins (high impact, low effort)
-      quickWins: identifyQuickWins(costAnalysis, profitData),
+      const costStructureAnalysis = analyzeCostStructure(costAnalysis);
+      const recommendations = generateRecommendations(
+        costAnalysis,
+        profitData.cogsBreakdown.dataSource || 'estimated'
+      );
 
-      // Investment opportunities (high impact, high effort)
-      investments: identifyInvestmentOpportunities(costAnalysis, profitData)
-    };
+      // Create action plan based on priority
+      const actionPlan = {
+        immediate: recommendations.filter(r => r.priority === 'high'),
+        shortTerm: recommendations.filter(r => r.priority === 'medium'),
+        longTerm: recommendations.filter(r => r.priority === 'low'),
+        
+        // Critical issues requiring immediate attention
+        criticalIssues: (costStructureAnalysis.overall.criticalIssues || [])
+          .filter(issue => issue.severity === 'critical')
+          .map(issue => ({
+            area: issue.name,
+            description: issue.message,
+            impact: 'high',
+            timeline: 'immediate'
+          })),
 
-    return actionPlan;
+        // Quick wins (high impact, low effort)
+        quickWins: identifyQuickWins(costAnalysis, profitData),
+
+        // Investment opportunities (high impact, high effort)
+        investments: identifyInvestmentOpportunities(costAnalysis, profitData)
+      };
+
+      return actionPlan;
+    } catch (error) {
+      logger.error('Error in useActionPlan:', error);
+      return null;
+    }
   }, [profitData]);
 };
 
@@ -121,7 +181,7 @@ export const useActionPlan = (profitData: ProfitAnalysisResult | null) => {
  * Hook for goal setting and tracking
  */
 export const useGoalTracking = (
-  profitData: ProfitAnalysisResult | null,
+  profitData: ProfitAnalysisResult | null | undefined,
   customTargets?: {
     materialTarget?: number;
     laborTarget?: number;
@@ -131,67 +191,112 @@ export const useGoalTracking = (
   }
 ) => {
   return useMemo(() => {
-    if (!profitData) return null;
+    // ✅ VALIDASI DATA YANG DIPERKUAT MENGGUNAKAN VALIDATOR TERPUSAT
+    if (!profitData || !validateProfitData(profitData)) {
+      logger.warn('useGoalTracking: Data profit tidak valid atau tidak lengkap', { profitData: !!profitData });
+      return null;
+    }
 
-    const costAnalysis = calculateCostAnalysis(profitData);
-    const targets = {
-      material: customTargets?.materialTarget ?? ANALYSIS_TARGETS.MATERIAL.target,
-      labor: customTargets?.laborTarget ?? ANALYSIS_TARGETS.LABOR.target,
-      cogs: customTargets?.cogsTarget ?? ANALYSIS_TARGETS.COGS.target,
-      opex: customTargets?.opexTarget ?? ANALYSIS_TARGETS.OPEX.target,
-      margin: customTargets?.marginTarget ?? ANALYSIS_TARGETS.NET_MARGIN.target
-    };
+    // ✅ Validasi properti yang dibutuhkan untuk perhitungan goal tracking
+    if (
+      !profitData.profitMarginData ||
+      !profitData.cogsBreakdown ||
+      !profitData.opexBreakdown
+    ) {
+       logger.warn('useGoalTracking: Struktur profitData tidak lengkap untuk goal tracking', { 
+        hasProfitMarginData: !!profitData.profitMarginData,
+        hasCogsBreakdown: !!profitData.cogsBreakdown,
+        hasOpexBreakdown: !!profitData.opexBreakdown
+      });
+      return null;
+    }
 
-    const goalTracking = {
-      material: {
-        current: costAnalysis.materialRatio,
-        target: targets.material,
-        gap: costAnalysis.materialRatio - targets.material,
-        progress: Math.max(0, Math.min(100, (targets.material / costAnalysis.materialRatio) * 100)),
-        achievable: Math.abs(costAnalysis.materialRatio - targets.material) <= 10
-      },
-      labor: {
-        current: costAnalysis.laborRatio,
-        target: targets.labor,
-        gap: costAnalysis.laborRatio - targets.labor,
-        progress: Math.max(0, Math.min(100, (targets.labor / costAnalysis.laborRatio) * 100)),
-        achievable: Math.abs(costAnalysis.laborRatio - targets.labor) <= 5
-      },
-      cogs: {
-        current: costAnalysis.cogsRatio,
-        target: targets.cogs,
-        gap: costAnalysis.cogsRatio - targets.cogs,
-        progress: Math.max(0, Math.min(100, (targets.cogs / costAnalysis.cogsRatio) * 100)),
-        achievable: Math.abs(costAnalysis.cogsRatio - targets.cogs) <= 15
-      },
-      opex: {
-        current: costAnalysis.opexRatio,
-        target: targets.opex,
-        gap: costAnalysis.opexRatio - targets.opex,
-        progress: Math.max(0, Math.min(100, (targets.opex / costAnalysis.opexRatio) * 100)),
-        achievable: Math.abs(costAnalysis.opexRatio - targets.opex) <= 10
-      },
-      margin: {
-        current: profitData.profitMarginData.netMargin,
-        target: targets.margin,
-        gap: profitData.profitMarginData.netMargin - targets.margin,
-        progress: Math.max(0, Math.min(100, (profitData.profitMarginData.netMargin / targets.margin) * 100)),
-        achievable: profitData.profitMarginData.netMargin >= targets.margin * 0.7
+    try {
+      const costAnalysis = calculateCostAnalysis(profitData);
+      
+      if (!costAnalysis) {
+        logger.warn('useGoalTracking: calculateCostAnalysis mengembalikan null/undefined');
+        return null;
       }
-    };
 
-    return {
-      goals: goalTracking,
-      summary: {
-        achievableGoals: Object.values(goalTracking).filter(g => g.achievable).length,
-        totalGoals: Object.keys(goalTracking).length,
-        averageProgress: Object.values(goalTracking).reduce((sum, g) => sum + g.progress, 0) / Object.keys(goalTracking).length,
-        priorityAreas: Object.entries(goalTracking)
-          .filter(([, goal]) => goal.gap > 5)
-          .sort(([, a], [, b]) => Math.abs(b.gap) - Math.abs(a.gap))
-          .map(([area]) => area)
-      }
-    };
+      const targets = {
+        material: customTargets?.materialTarget ?? ANALYSIS_TARGETS.MATERIAL.target,
+        labor: customTargets?.laborTarget ?? ANALYSIS_TARGETS.LABOR.target,
+        cogs: customTargets?.cogsTarget ?? ANALYSIS_TARGETS.COGS.target,
+        opex: customTargets?.opexTarget ?? ANALYSIS_TARGETS.OPEX.target,
+        margin: customTargets?.marginTarget ?? ANALYSIS_TARGETS.NET_MARGIN.target
+      };
+
+      // ✅ Validasi nilai-nilai kritis untuk perhitungan goal
+      const currentMaterialRatio = costAnalysis.materialRatio;
+      const currentLaborRatio = costAnalysis.laborRatio;
+      const currentCogsRatio = costAnalysis.cogsRatio;
+      const currentOpexRatio = costAnalysis.opexRatio;
+      const currentNetMargin = profitData.profitMarginData.netMargin;
+
+      // Pastikan tidak ada pembagian dengan nol atau nilai tidak valid
+      const safeTargets = {
+        material: targets.material !== 0 ? targets.material : 1,
+        labor: targets.labor !== 0 ? targets.labor : 1,
+        cogs: targets.cogs !== 0 ? targets.cogs : 1,
+        opex: targets.opex !== 0 ? targets.opex : 1,
+        margin: targets.margin !== 0 ? targets.margin : 1
+      };
+
+      const goalTracking = {
+        material: {
+          current: currentMaterialRatio,
+          target: targets.material,
+          gap: currentMaterialRatio - targets.material,
+          progress: Math.max(0, Math.min(100, (targets.material / Math.abs(currentMaterialRatio || 1)) * 100)),
+          achievable: Math.abs(currentMaterialRatio - targets.material) <= 10
+        },
+        labor: {
+          current: currentLaborRatio,
+          target: targets.labor,
+          gap: currentLaborRatio - targets.labor,
+          progress: Math.max(0, Math.min(100, (targets.labor / Math.abs(currentLaborRatio || 1)) * 100)),
+          achievable: Math.abs(currentLaborRatio - targets.labor) <= 5
+        },
+        cogs: {
+          current: currentCogsRatio,
+          target: targets.cogs,
+          gap: currentCogsRatio - targets.cogs,
+          progress: Math.max(0, Math.min(100, (targets.cogs / Math.abs(currentCogsRatio || 1)) * 100)),
+          achievable: Math.abs(currentCogsRatio - targets.cogs) <= 15
+        },
+        opex: {
+          current: currentOpexRatio,
+          target: targets.opex,
+          gap: currentOpexRatio - targets.opex,
+          progress: Math.max(0, Math.min(100, (targets.opex / Math.abs(currentOpexRatio || 1)) * 100)),
+          achievable: Math.abs(currentOpexRatio - targets.opex) <= 10
+        },
+        margin: {
+          current: currentNetMargin,
+          target: targets.margin,
+          gap: currentNetMargin - targets.margin,
+          progress: Math.max(0, Math.min(100, (currentNetMargin / Math.abs(targets.margin || 1)) * 100)),
+          achievable: currentNetMargin >= (targets.margin * 0.7)
+        }
+      };
+
+      return {
+        goals: goalTracking,
+        summary: {
+          achievableGoals: Object.values(goalTracking).filter(g => g.achievable).length,
+          totalGoals: Object.keys(goalTracking).length,
+          averageProgress: Object.values(goalTracking).reduce((sum, g) => sum + (g.progress || 0), 0) / Object.keys(goalTracking).length,
+          priorityAreas: Object.entries(goalTracking)
+            .filter(([, goal]) => Math.abs(goal.gap) > 5)
+            .sort(([, a], [, b]) => Math.abs(b.gap) - Math.abs(a.gap))
+            .map(([area]) => area)
+        }
+      };
+    } catch (error) {
+      logger.error('Error in useGoalTracking:', error);
+      return null;
+    }
   }, [profitData, customTargets]);
 };
 
@@ -208,7 +313,7 @@ const identifyQuickWins = (costAnalysis: any, profitData: ProfitAnalysisResult):
   const quickWins = [];
 
   // Material procurement optimization
-  if (costAnalysis.materialRatio > 45) {
+  if ((costAnalysis.materialRatio || 0) > 45) {
     quickWins.push({
       area: 'Material Procurement',
       description: 'Renegotiate with top 3 suppliers for better rates',
@@ -219,7 +324,7 @@ const identifyQuickWins = (costAnalysis: any, profitData: ProfitAnalysisResult):
   }
 
   // Administrative cost reduction
-  if (costAnalysis.opexRatio > 25) {
+  if ((costAnalysis.opexRatio || 0) > 25) {
     quickWins.push({
       area: 'Administrative Efficiency',
       description: 'Automate repetitive administrative tasks',
@@ -257,7 +362,7 @@ const identifyInvestmentOpportunities = (costAnalysis: any, profitData: ProfitAn
   const investments = [];
 
   // Automation opportunities
-  if (costAnalysis.laborRatio > 20) {
+  if ((costAnalysis.laborRatio || 0) > 20) {
     investments.push({
       area: 'Production Automation',
       description: 'Implement automated production systems',

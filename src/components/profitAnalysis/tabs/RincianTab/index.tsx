@@ -1,5 +1,7 @@
 // src/components/profitAnalysis/tabs/rincianTab/index.ts
 
+export { default as RincianTab } from './RincianTab';
+
 // Hook exports
 export { 
   useRincianCalculations, 

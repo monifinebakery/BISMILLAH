@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/components/LoadingSkeleton.tsx
+// src/components/profitAnalysis/components/LoadingSkeleton.tsx
 // ✅ KOMPONEN LOADING SKELETON
 
 import React from 'react';

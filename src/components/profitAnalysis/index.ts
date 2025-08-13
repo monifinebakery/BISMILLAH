@@ -1,4 +1,4 @@
-// src/components/financial/profit-analysis/index.ts
+// src/components/profitAnalysis/index.ts
 // ✅ BARREL EXPORT - Export semua components
 
 // Main Dialog

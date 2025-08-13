@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 // Hooks
 import { useProfitMargin } from './hooks/useProfitMargin';
@@ -90,10 +91,13 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   // ✅ HANDLERS
   const handleCalculate = async () => {
     try {
+      logger.info('Starting profit calculation', { period });
       setIsCalculating(true);
       await calculateProfit();
       toast.success('Analisis profit margin berhasil dihitung');
+      logger.info('Profit calculation completed successfully');
     } catch (error: any) {
+      logger.error('Failed to calculate profit margin', error);
       toast.error(error.message || 'Gagal menghitung profit margin');
     } finally {
       setIsCalculating(false);
@@ -103,10 +107,12 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
     if (!profitData) {
       toast.error('Tidak ada data untuk diekspor');
+      logger.warn('Export attempted with no data');
       return;
     }
 
     try {
+      logger.info('Starting export', { format, period });
       // Siapkan data untuk export
       const exportData = prepareExportData(profitData, period);
       const filename = generateExportFilename(format, period);
@@ -121,12 +127,15 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
       };
       
       toast.success(`Laporan ${formatLabels[format]} berhasil diekspor`);
+      logger.info('Export completed successfully', { format, filename });
     } catch (error: any) {
+      logger.error('Export failed', { format, error });
       toast.error(error.message || 'Gagal mengekspor laporan');
     }
   };
 
   const handleClose = () => {
+    logger.debug('Closing profit analysis dialog');
     setActiveTab('ringkasan');
     onClose();
   };
@@ -316,4 +325,5 @@ export const ProfitAnalysisDialog: React.FC<ProfitAnalysisDialogProps> = ({
   );
 };
 
-export default ProfitAnalysisDialog;
+// Export sebagai named export
+export { ProfitAnalysisDialog };

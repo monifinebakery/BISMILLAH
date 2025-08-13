@@ -1,7 +1,8 @@
-// src/components/auth/EmailAuthPage.tsx - OPTIMIZED VERSION
+// src/components/auth/EmailAuthPage.tsx - FIXED TIMING ISSUES
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { sendEmailOtp, verifyEmailOtp } from '@/services/auth'; // ✅ Sudah benar
+import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,7 @@ interface EmailAuthPageProps {
 }
 
 // ✅ Simplified Auth States
-type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired';
+type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired' | 'redirecting';
 
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   appName = 'Sistem HPP',
@@ -51,39 +52,47 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
   const [hCaptchaLoaded, setHCaptchaLoaded] = useState(false);
   
-  // ✅ Refs for OTP inputs and timer
+  // ✅ Refs for OTP inputs, timer, and mounted state
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   // ✅ Load hCaptcha dynamically
   useEffect(() => {
     if (HCAPTCHA_ENABLED && !HCaptcha) {
       import('@hcaptcha/react-hcaptcha')
         .then((module) => {
-          HCaptcha = module.default;
-          setHCaptchaLoaded(true);
-          setHCaptchaKey(1);
+          if (mountedRef.current) {
+            HCaptcha = module.default;
+            setHCaptchaLoaded(true);
+            setHCaptchaKey(1);
+          }
         })
         .catch((error) => {
           logger.error('Failed to load hCaptcha:', error);
-          setHCaptchaLoaded(false);
+          if (mountedRef.current) {
+            setHCaptchaLoaded(false);
+          }
         });
     } else if (!HCAPTCHA_ENABLED) {
       setHCaptchaLoaded(true);
     }
   }, []);
 
-  // ✅ Cleanup timer on unmount
+  // ✅ Cleanup timer and set mounted state on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
   }, []);
 
-  // ✅ Simplified Cooldown Timer
+  // ✅ Simplified Cooldown Timer with mounted check
   const startCooldown = (seconds: number) => {
+    if (!mountedRef.current) return;
+    
     setCooldownTime(seconds);
     
     if (timerRef.current) {
@@ -91,6 +100,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     
     timerRef.current = setInterval(() => {
+      if (!mountedRef.current) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        return;
+      }
+      
       setCooldownTime((prev) => {
         if (prev <= 1) {
           if (timerRef.current) {
@@ -106,6 +122,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // ✅ Reset Form State
   const resetForm = () => {
+    if (!mountedRef.current) return;
+    
     setOtp(['', '', '', '', '', '']);
     setError('');
     setAuthState('idle');
@@ -114,6 +132,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // ✅ Reset hCaptcha
   const resetHCaptcha = () => {
+    if (!mountedRef.current) return;
+    
     if (HCAPTCHA_ENABLED && hCaptchaLoaded) {
       setHCaptchaToken(null);
       setHCaptchaKey(prev => prev + 1);
@@ -140,8 +160,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ Send OTP with correct parameter order
+  // ✅ Send OTP with mounted check
   const handleSendOtp = async () => {
+    if (!mountedRef.current) return;
+    
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -161,13 +183,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError('');
 
     try {
-      // ✅ FIXED: Use correct parameter order for authService (SUDAH BENAR!)
       const success = await sendEmailOtp(
-        email,                                    // email (required)
-        HCAPTCHA_ENABLED ? hCaptchaToken : null, // captchaToken  
-        true,                                    // allowSignup
-        false                                    // skipCaptcha
+        email,
+        HCAPTCHA_ENABLED ? hCaptchaToken : null,
+        true,
+        false
       );
+      
+      if (!mountedRef.current) return;
       
       if (success) {
         setAuthState('sent');
@@ -176,7 +199,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         
         // Focus first OTP input
         setTimeout(() => {
-          inputRefs.current[0]?.focus();
+          if (mountedRef.current) {
+            inputRefs.current[0]?.focus();
+          }
         }, 100);
       } else {
         setAuthState('error');
@@ -185,14 +210,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       }
     } catch (error) {
       logger.error('Error sending OTP:', error);
-      setAuthState('error');
-      setError('Terjadi kesalahan saat mengirim kode OTP.');
-      startCooldown(30);
+      if (mountedRef.current) {
+        setAuthState('error');
+        setError('Terjadi kesalahan saat mengirim kode OTP.');
+        startCooldown(30);
+      }
     }
   };
 
-  // ✅ Resend OTP (skip captcha for better UX)
+  // ✅ Resend OTP with mounted check
   const handleResendOtp = async () => {
+    if (!mountedRef.current) return;
+    
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
@@ -203,13 +232,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(['', '', '', '', '', '']);
 
     try {
-      // ✅ FIXED: Skip captcha for resend (better UX) (SUDAH BENAR!)
       const success = await sendEmailOtp(
-        email,  // email
-        null,   // captchaToken (skip for resend)
-        true,   // allowSignup  
-        true    // skipCaptcha (true for resend)
+        email,
+        null,
+        true,
+        true
       );
+      
+      if (!mountedRef.current) return;
       
       if (success) {
         setAuthState('sent');
@@ -223,14 +253,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       }
     } catch (error) {
       logger.error('Error resending OTP:', error);
-      setAuthState('error');
-      setError('Terjadi kesalahan saat mengirim ulang kode OTP.');
-      startCooldown(30);
+      if (mountedRef.current) {
+        setAuthState('error');
+        setError('Terjadi kesalahan saat mengirim ulang kode OTP.');
+        startCooldown(30);
+      }
     }
   };
 
   // ✅ Handle OTP Input Change
   const handleOtpChange = (index: number, value: string) => {
+    if (!mountedRef.current) return;
+    
     // Only allow single character
     if (value.length > 1) return;
     
@@ -264,8 +298,41 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ FIXED: Verify OTP with complete logic (SUDAH BENAR!)
+  // ✅ FIXED: Session Confirmation Helper
+  const waitForSession = async (maxRetries = 15, delayMs = 300): Promise<boolean> => {
+    logger.debug('EmailAuth: Waiting for session to be set...');
+    
+    for (let i = 0; i < maxRetries; i++) {
+      if (!mountedRef.current) return false;
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          logger.error('EmailAuth: Error checking session:', error);
+          continue;
+        }
+        
+        if (session && session.user) {
+          logger.debug('EmailAuth: Session confirmed after', i + 1, 'attempts');
+          return true;
+        }
+        
+        // Wait before next attempt
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } catch (error) {
+        logger.error('EmailAuth: Session check error:', error);
+      }
+    }
+    
+    logger.warn('EmailAuth: Session not found after', maxRetries, 'attempts');
+    return false;
+  };
+
+  // ✅ FIXED: Verify OTP with session confirmation
   const handleVerifyOtp = async () => {
+    if (!mountedRef.current) return;
+    
     const otpCode = otp.join('');
     
     if (otpCode.length !== 6) {
@@ -277,33 +344,60 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError('');
 
     try {
+      logger.debug('EmailAuth: Starting OTP verification...');
       const result = await verifyEmailOtp(email, otpCode);
       
+      if (!mountedRef.current) return;
+      
       if (result === true) {
-        // Success
-        toast.success('Login berhasil!');
+        logger.debug('EmailAuth: OTP verification successful, waiting for session...');
+        setAuthState('redirecting');
         
-        if (onLoginSuccess) {
-          onLoginSuccess();
+        // ✅ CRITICAL FIX: Wait for session to be properly set
+        const sessionConfirmed = await waitForSession();
+        
+        if (!mountedRef.current) return;
+        
+        if (sessionConfirmed) {
+          toast.success('Login berhasil!');
+          
+          // ✅ Additional check: Verify session one more time before redirect
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session && session.user) {
+            logger.debug('EmailAuth: Session double-confirmed, redirecting to:', redirectUrl);
+            
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            } else {
+              // ✅ Safer redirect with session confirmation
+              setTimeout(() => {
+                if (mountedRef.current) {
+                  window.location.href = redirectUrl;
+                }
+              }, 500); // Reduced delay since session is confirmed
+            }
+          } else {
+            logger.error('EmailAuth: Session lost during double-check');
+            setAuthState('error');
+            setError('Login berhasil tapi sesi tidak stabil. Silakan coba login lagi.');
+          }
         } else {
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1000);
+          logger.error('EmailAuth: Session confirmation failed');
+          setAuthState('error');
+          setError('Login berhasil tapi sesi tidak tersimpan. Silakan refresh halaman dan coba lagi.');
         }
       } else if (result === 'expired') {
-        // Expired
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else if (result === 'rate_limited') {
-        // Rate limited
         setAuthState('error');
         setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        // Invalid
         setAuthState('error');
         setError('Kode OTP tidak valid. Silakan coba lagi.');
         setOtp(['', '', '', '', '', '']);
@@ -311,18 +405,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       }
     } catch (error) {
       logger.error('Error verifying OTP:', error);
-      setAuthState('error');
-      setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
-      setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      if (mountedRef.current) {
+        setAuthState('error');
+        setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
     }
   };
 
   // ✅ Get Button States
-  const isLoading = authState === 'sending' || authState === 'verifying';
+  const isLoading = authState === 'sending' || authState === 'verifying' || authState === 'redirecting';
   const isSent = authState === 'sent' || authState === 'expired';
   const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
-  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying';
+  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying' && authState !== 'redirecting';
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
@@ -381,17 +477,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     key={hCaptchaKey}
                     sitekey={HCAPTCHA_SITE_KEY}
                     onVerify={(token: string) => {
-                      setHCaptchaToken(token);
-                      logger.info('hCaptcha verified');
+                      if (mountedRef.current) {
+                        setHCaptchaToken(token);
+                        logger.info('hCaptcha verified');
+                      }
                     }}
                     onExpire={() => {
-                      setHCaptchaToken(null);
-                      logger.info('hCaptcha expired');
+                      if (mountedRef.current) {
+                        setHCaptchaToken(null);
+                        logger.info('hCaptcha expired');
+                      }
                     }}
                     onError={(error: any) => {
                       logger.error('hCaptcha error:', error);
-                      setHCaptchaToken(null);
-                      toast.error('Captcha gagal dimuat. Refresh halaman dan coba lagi.');
+                      if (mountedRef.current) {
+                        setHCaptchaToken(null);
+                        toast.error('Captcha gagal dimuat. Refresh halaman dan coba lagi.');
+                      }
                     }}
                     theme="light"
                     size="normal"
@@ -464,6 +566,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               )}
 
+              {/* Redirecting Message */}
+              {authState === 'redirecting' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
+                    <span className="text-sm text-green-800">
+                      Login berhasil! Sedang mengarahkan ke dashboard...
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* OTP Input */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-gray-700 block text-center">
@@ -483,7 +597,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                      disabled={authState === 'verifying'}
+                      disabled={authState === 'verifying' || authState === 'redirecting'}
                     />
                   ))}
                 </div>
@@ -499,6 +613,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Memverifikasi...
+                  </>
+                ) : authState === 'redirecting' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Mengarahkan...
                   </>
                 ) : (
                   'Verifikasi Kode'

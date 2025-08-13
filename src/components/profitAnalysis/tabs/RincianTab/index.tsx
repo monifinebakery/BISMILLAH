@@ -6,7 +6,7 @@ export {
   useCostAnalysis, 
   useEfficiencyMetrics, 
   useTargetAnalysis 
-} from './hooks/useRincianCalculations';
+} from './hooks';
 
 export {
   useCostAnalysisWithMetadata,

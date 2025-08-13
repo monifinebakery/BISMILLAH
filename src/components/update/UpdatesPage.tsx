@@ -6,7 +6,7 @@ import { UpdateCard } from './UpdateCard';
 import { Loader2, RefreshCw, CheckCircle2, Bell, Filter } from 'lucide-react';
 
 export const UpdatesPage: React.FC = () => {
-  const { markAllAsSeen, hasUnseenUpdates, refreshUpdates, loading: contextLoading } = useUpdates();
+  const { markAllAsSeen, hasUnseenUpdates, refreshUpdates, loading: contextLoading, unseenUpdates } = useUpdates();
   const [updates, setUpdates] = useState<AppUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -37,7 +37,7 @@ export const UpdatesPage: React.FC = () => {
   const handleRefresh = async () => {
     await Promise.all([
       fetchAllUpdates(),
-      refreshUpdates()
+      refreshUpdates(),
     ]);
   };
 
@@ -52,18 +52,15 @@ export const UpdatesPage: React.FC = () => {
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  // Filter updates based on selected filters
+  // Filter updates based on selected filters and unread status
   const filteredUpdates = updates.filter(update => {
-    // Priority filter
-    if (priorityFilter !== 'all' && update.priority !== priorityFilter) {
-      return false;
-    }
-    
-    return true;
+    const matchesPriority = priorityFilter === 'all' || update.priority === priorityFilter;
+    const matchesFilter = filter === 'all' || (filter === 'unread' && unseenUpdates.some(u => u.id === update.id));
+    return matchesPriority && matchesFilter;
   });
 
   if (loading || contextLoading) {
@@ -107,6 +104,7 @@ export const UpdatesPage: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                disabled={loading || contextLoading}
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -121,6 +119,15 @@ export const UpdatesPage: React.FC = () => {
               <span className="text-sm font-medium text-gray-700">Filter:</span>
             </div>
             
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as 'all' | 'unread')}
+              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-4"
+            >
+              <option value="all">Semua</option>
+              <option value="unread">Belum Dibaca</option>
+            </select>
+
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as any)}
@@ -145,7 +152,7 @@ export const UpdatesPage: React.FC = () => {
               Belum Ada Pembaruan
             </h3>
             <p className="text-gray-600">
-              {updates.length === 0 
+              {updates.length === 0
                 ? "Belum ada pembaruan aplikasi. Pantau terus halaman ini untuk mendapatkan info terbaru!"
                 : "Tidak ada pembaruan yang sesuai dengan filter yang dipilih."
               }
@@ -154,10 +161,11 @@ export const UpdatesPage: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {filteredUpdates.map((update, index) => (
-              <UpdateCard 
-                key={update.id} 
-                update={update} 
+              <UpdateCard
+                key={update.id}
+                update={update}
                 isLatest={index === 0}
+                isUnread={unseenUpdates.some(u => u.id === update.id)}
               />
             ))}
           </div>

@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 
 // Hook imports
-import { useProfitMargin, profitMarginQueryKeys } from '@/hooks/useProfitMargin';
+import { useProfitMargin, profitMarginQueryKeys } from '../hooks/useProfitMargin';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Type imports

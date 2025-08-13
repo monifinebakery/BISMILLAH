@@ -1,6 +1,3 @@
-// src/components/profitAnalysis/components/ProfitMarginWidget.tsx
-// ✅ PROFIT MARGIN WIDGET - Dashboard Integration
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Hooks
 import { useProfitMargin, useProfitDashboard } from '../hooks/useProfitMargin';
@@ -36,19 +34,19 @@ import { ProfitMarginData, ProfitInsight } from '../types';
 // ✅ LOADING SKELETON
 const ProfitSkeleton = () => (
   <Card>
-    <CardHeader>
+    <CardHeader className={cn("p-4", isMobile && "p-3")}>
       <div className="flex items-center justify-between">
-        <div className="bg-gray-200 rounded h-6 w-32 animate-pulse" />
-        <div className="bg-gray-200 rounded h-8 w-8 animate-pulse" />
+        <div className={cn("bg-gray-200 rounded h-6 w-32 animate-pulse", isMobile && "h-5 w-24")} />
+        <div className={cn("bg-gray-200 rounded h-8 w-8 animate-pulse", isMobile && "h-6 w-6")} />
       </div>
     </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-200 rounded h-16 animate-pulse" />
-        <div className="bg-gray-200 rounded h-16 animate-pulse" />
+    <CardContent className={cn("space-y-4 p-4", isMobile && "space-y-3 p-3")}>
+      <div className="grid grid-cols-1 gap-4">
+        <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
+        <div className={cn("bg-gray-200 rounded h-16 animate-pulse", isMobile && "h-12")} />
       </div>
-      <div className="bg-gray-200 rounded h-4 animate-pulse" />
-      <div className="bg-gray-200 rounded h-4 animate-pulse" />
+      <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
+      <div className={cn("bg-gray-200 rounded h-4 animate-pulse", isMobile && "h-3")} />
     </CardContent>
   </Card>
 );
@@ -59,6 +57,7 @@ const MarginStatus: React.FC<{
   type: 'gross' | 'net';
   label: string;
 }> = ({ margin, type, label }) => {
+  const isMobile = useIsMobile();
   const getStatus = (margin: number, type: 'gross' | 'net') => {
     const thresholds = {
       gross: { excellent: 40, good: 25, acceptable: 15, poor: 5 },
@@ -78,21 +77,21 @@ const MarginStatus: React.FC<{
   const progress = Math.min(margin, type === 'gross' ? 50 : 20); // Cap progress for visual
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", isMobile && "space-y-1")}>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{label}</span>
-        <span className={cn("text-lg font-bold", status.text)}>
+        <span className={cn("text-sm font-medium", isMobile && "text-xs")}>{label}</span>
+        <span className={cn("text-lg font-bold", status.text, isMobile && "text-base")}>
           {margin.toFixed(1)}%
         </span>
       </div>
       <Progress 
         value={progress} 
         max={type === 'gross' ? 50 : 20}
-        className="h-2"
+        className={cn("h-2", isMobile && "h-1.5")}
       />
       <Badge 
         variant={status.status === 'excellent' || status.status === 'good' ? 'default' : 'secondary'}
-        className={cn("text-xs", status.text)}
+        className={cn("text-xs", status.text, isMobile && "text-[0.65rem]")}
       >
         {status.status === 'excellent' && 'Sangat Baik'}
         {status.status === 'good' && 'Baik'}
@@ -110,26 +109,19 @@ const CostBreakdown: React.FC<{
   cogs: number;
   opex: number;
 }> = ({ revenue, cogs, opex }) => {
+  const isMobile = useIsMobile();
   if (revenue === 0) return null;
 
   const cogsPercentage = (cogs / revenue) * 100;
   const opexPercentage = (opex / revenue) * 100;
   const profitPercentage = 100 - cogsPercentage - opexPercentage;
 
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('id-ID', { 
-      style: 'currency', 
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-medium">Breakdown Biaya</h4>
+    <div className={cn("space-y-3", isMobile && "space-y-2")}>
+      <h4 className={cn("text-sm font-medium", isMobile && "text-xs")}>Breakdown Biaya</h4>
       
       {/* Visual breakdown bar */}
-      <div className="flex h-4 bg-gray-100 rounded-full overflow-hidden">
+      <div className={cn("flex h-4 bg-gray-100 rounded-full overflow-hidden", isMobile && "h-3")}>
         <div 
           className="bg-red-500" 
           style={{ width: `${cogsPercentage}%` }}
@@ -148,23 +140,23 @@ const CostBreakdown: React.FC<{
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-3 gap-2 text-xs">
+      <div className={cn("grid grid-cols-3 gap-2 text-xs", isMobile && "text-[0.65rem] gap-1")}>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-red-500 rounded" />
+          <div className={cn("w-2 h-2 bg-red-500 rounded", isMobile && "w-1.5 h-1.5")} />
           <span>COGS</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-orange-500 rounded" />
+          <div className={cn("w-2 h-2 bg-orange-500 rounded", isMobile && "w-1.5 h-1.5")} />
           <span>OPEX</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-green-500 rounded" />
+          <div className={cn("w-2 h-2 bg-green-500 rounded", isMobile && "w-1.5 h-1.5")} />
           <span>Profit</span>
         </div>
       </div>
 
       {/* Values */}
-      <div className="space-y-1 text-xs text-gray-600">
+      <div className={cn("space-y-1 text-xs text-gray-600", isMobile && "text-[0.65rem]")}>
         <div className="flex justify-between">
           <span>Revenue:</span>
           <span className="font-medium">{formatCurrency(revenue)}</span>
@@ -187,14 +179,15 @@ const InsightsDisplay: React.FC<{
   insights: ProfitInsight[];
   maxShow?: number;
 }> = ({ insights, maxShow = 3 }) => {
+  const isMobile = useIsMobile();
   if (!insights || insights.length === 0) return null;
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'critical': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case 'success': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      default: return <Info className="h-4 w-4 text-blue-500" />;
+      case 'critical': return <AlertTriangle className={cn("h-4 w-4 text-red-500", isMobile && "h-3 w-3")} />;
+      case 'warning': return <AlertTriangle className={cn("h-4 w-4 text-yellow-500", isMobile && "h-3 w-3")} />;
+      case 'success': return <TrendingUp className={cn("h-4 w-4 text-green-500", isMobile && "h-3 w-3")} />;
+      default: return <Info className={cn("h-4 w-4 text-blue-500", isMobile && "h-3 w-3")} />;
     }
   };
 
@@ -206,18 +199,18 @@ const InsightsDisplay: React.FC<{
     .slice(0, maxShow);
 
   return (
-    <div className="space-y-2">
-      <h4 className="text-sm font-medium">Insights</h4>
-      <div className="space-y-2">
+    <div className={cn("space-y-2", isMobile && "space-y-1")}>
+      <h4 className={cn("text-sm font-medium", isMobile && "text-xs")}>Insights</h4>
+      <div className={cn("space-y-2", isMobile && "space-y-1")}>
         {priorityInsights.map((insight, index) => (
           <div 
             key={index}
-            className="flex items-start gap-2 p-2 bg-gray-50 rounded text-xs"
+            className={cn("flex items-start gap-2 p-2 bg-gray-50 rounded text-xs", isMobile && "gap-1 p-1.5 text-[0.65rem]")}
           >
             {getIcon(insight.type)}
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{insight.title}</p>
-              <p className="text-gray-600 text-xs">{insight.message}</p>
+              <p className={cn("font-medium truncate", isMobile && "text-[0.65rem]")}>{insight.title}</p>
+              <p className={cn("text-gray-600 text-xs", isMobile && "text-[0.6rem]")}>{insight.message}</p>
             </div>
           </div>
         ))}
@@ -231,6 +224,7 @@ export const ProfitMarginWidget: React.FC<{
   dateRange?: { from: Date; to: Date };
   className?: string;
 }> = ({ dateRange, className }) => {
+  const isMobile = useIsMobile();
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Use dashboard summary for quick overview
@@ -281,16 +275,20 @@ export const ProfitMarginWidget: React.FC<{
   if (error) {
     return (
       <Card className={className}>
-        <CardContent className="p-6">
+        <CardContent className={cn("p-6", isMobile && "p-4")}>
           <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className="h-6 w-6" />
+            <AlertTriangle className={cn("h-6 w-6", isMobile && "h-5 w-5")} />
             <div>
-              <h3 className="font-medium">Gagal Memuat Profit Margin</h3>
-              <p className="text-sm text-red-500 mt-1">{error}</p>
+              <h3 className={cn("font-medium", isMobile && "text-sm")}>Gagal Memuat Profit Margin</h3>
+              <p className={cn("text-sm text-red-500 mt-1", isMobile && "text-xs")}>{error}</p>
             </div>
           </div>
-          <Button onClick={() => refetch()} variant="outline" className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
+          <Button 
+            onClick={() => refetch()} 
+            variant="outline" 
+            className={cn("mt-4", isMobile && "mt-3 text-xs w-full")}
+          >
+            <RefreshCw className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
             Coba Lagi
           </Button>
         </CardContent>
@@ -305,21 +303,25 @@ export const ProfitMarginWidget: React.FC<{
   if (!displayData) {
     return (
       <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+        <CardHeader className={cn("p-4", isMobile && "p-3")}>
+          <CardTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
+            <Calculator className={cn("h-5 w-5", isMobile && "h-4 w-4")} />
             Real Profit Margin
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-600 mb-2">Belum Ada Data</h3>
-            <p className="text-sm text-gray-500 mb-4">
+        <CardContent className={cn("p-4", isMobile && "p-3")}>
+          <div className={cn("text-center py-8", isMobile && "py-6")}>
+            <Calculator className={cn("h-12 w-12 text-gray-400 mx-auto mb-4", isMobile && "h-8 w-8 mb-3")} />
+            <h3 className={cn("font-medium text-gray-600 mb-2", isMobile && "text-sm")}>Belum Ada Data</h3>
+            <p className={cn("text-sm text-gray-500 mb-4", isMobile && "text-xs mb-3")}>
               Tambahkan transaksi dan biaya operasional untuk melihat analisis profit margin.
             </p>
-            <Button onClick={handleRecalculate} disabled={isCalculating}>
-              <Calculator className="mr-2 h-4 w-4" />
+            <Button 
+              onClick={handleRecalculate} 
+              disabled={isCalculating}
+              className={cn(isMobile && "text-xs w-full")}
+            >
+              <Calculator className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
               Hitung Profit Margin
             </Button>
           </div>
@@ -330,24 +332,25 @@ export const ProfitMarginWidget: React.FC<{
 
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className={cn("p-4", isMobile && "p-3")}>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+          <CardTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
+            <Calculator className={cn("h-5 w-5", isMobile && "h-4 w-4")} />
             Real Profit Margin
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className={cn("text-xs", isMobile && "text-[0.65rem]")}>
               {currentPeriod.label}
             </Badge>
           </CardTitle>
           
-          <div className="flex items-center gap-1">
+          <div className={cn("flex items-center gap-1", isMobile && "gap-0.5")}>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleRecalculate}
               disabled={isCalculating}
+              className={cn(isMobile && "p-1")}
             >
-              <RefreshCw className={cn("h-4 w-4", isCalculating && "animate-spin")} />
+              <RefreshCw className={cn("h-4 w-4", isCalculating && "animate-spin", isMobile && "h-3 w-3")} />
             </Button>
             
             {profitData && (
@@ -355,17 +358,18 @@ export const ProfitMarginWidget: React.FC<{
                 variant="ghost" 
                 size="sm" 
                 onClick={handleExport}
+                className={cn(isMobile && "p-1")}
               >
-                <Download className="h-4 w-4" />
+                <Download className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
               </Button>
             )}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className={cn("space-y-6 p-4", isMobile && "space-y-4 p-3")}>
         {/* ✅ MAIN METRICS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <MarginStatus 
             margin={displayData.grossMargin || 0}
             type="gross"
@@ -394,10 +398,10 @@ export const ProfitMarginWidget: React.FC<{
 
         {/* ✅ ALERT INDICATORS */}
         {summary?.alerts && summary.alerts.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+          <div className={cn("bg-yellow-50 border border-yellow-200 rounded p-3", isMobile && "p-2")}>
             <div className="flex items-center gap-2 text-yellow-700">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm font-medium">
+              <AlertTriangle className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
+              <span className={cn("text-sm font-medium", isMobile && "text-xs")}>
                 {summary.alerts.length} peringatan ditemukan
               </span>
             </div>
@@ -405,8 +409,8 @@ export const ProfitMarginWidget: React.FC<{
         )}
 
         {/* ✅ HELP TEXT */}
-        <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
-          <p className="font-medium text-blue-700 mb-1">💡 Real Profit Margin</p>
+        <div className={cn("text-xs text-gray-500 bg-blue-50 p-3 rounded", isMobile && "text-[0.65rem] p-2")}>
+          <p className={cn("font-medium text-blue-700 mb-1", isMobile && "text-[0.65rem]")}>💡 Real Profit Margin</p>
           <p>Berbeda dari cash flow, ini menghitung profit sesungguhnya:</p>
           <p><strong>Gross Margin</strong> = (Revenue - HPP) / Revenue</p>
           <p><strong>Net Margin</strong> = (Revenue - HPP - OPEX) / Revenue</p>

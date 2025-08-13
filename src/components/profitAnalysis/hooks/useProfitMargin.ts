@@ -1,9 +1,12 @@
+// src/hooks/useProfitMargin.ts
+// ✅ PROFIT MARGIN REACT HOOK
+
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 
 // API imports
-import profitAnalysisApi, { createDatePeriods } from '../services/profitAnalysisApi';
+import profitAnalysisApi, { createDatePeriods } from '@/services/profitAnalysisApi';
 
 // Type imports
 import {
@@ -13,9 +16,9 @@ import {
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
   ProfitChartData
-} from '../types';
+} from '@/types/profitAnalysis';
 
-import { prepareProfitChartData } from '../utils/profitCalculations';
+import { prepareProfitChartData } from '@/utils/profitCalculations';
 
 // ===========================================
 // ✅ QUERY KEYS
@@ -64,7 +67,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     retry: 2,
-    enabled: !!defaultPeriod && !isCalculating, // Prevent re-fetch during mutation
+    enabled: !!defaultPeriod
   });
 
   // ===========================================
@@ -170,6 +173,7 @@ export const useProfitMargin = (period?: DatePeriod) => {
       mapping?: Partial<CategoryMapping> 
     }) => {
       setIsCalculating(true);
+      
       const result = await profitAnalysisApi.calculateProfitMargin(period, mapping);
       
       if (!result.success) {
@@ -179,11 +183,16 @@ export const useProfitMargin = (period?: DatePeriod) => {
       return result.data;
     },
     onSuccess: (data, variables) => {
-      // Update cache without invalidating unrelated queries
+      // Update cache
       queryClient.setQueryData(
         profitMarginQueryKeys.analysis(variables.period),
         data
       );
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: profitMarginQueryKeys.dashboard()
+      });
     },
     onError: (error) => {
       logger.error('Profit calculation failed:', error);
@@ -209,7 +218,14 @@ export const useProfitMargin = (period?: DatePeriod) => {
     },
     onSuccess: (_, variables) => {
       setCategoryMapping(variables.categoryMapping);
+      
+      // Update config cache
       queryClient.setQueryData(profitMarginQueryKeys.config(), variables);
+      
+      // Invalidate all profit queries to recalculate with new mapping
+      queryClient.invalidateQueries({
+        queryKey: profitMarginQueryKeys.all
+      });
     }
   });
 
@@ -237,6 +253,8 @@ export const useProfitMargin = (period?: DatePeriod) => {
   const updateCategoryMapping = useCallback((mapping: Partial<CategoryMapping>) => {
     const newMapping = { ...categoryMapping, ...mapping };
     setCategoryMapping(newMapping);
+    
+    // Auto-save configuration
     if (configQuery.data) {
       saveConfigMutation.mutate({
         ...configQuery.data,
@@ -252,11 +270,14 @@ export const useProfitMargin = (period?: DatePeriod) => {
     if (!analysisData && !profitAnalysisQuery.data) {
       throw new Error('No analysis data to export');
     }
+    
     const dataToExport = analysisData || profitAnalysisQuery.data!;
     const result = await profitAnalysisApi.exportProfitAnalysis(dataToExport, format);
+    
     if (!result.success) {
       throw new Error(result.error || 'Export failed');
     }
+    
     return result.data;
   }, [profitAnalysisQuery.data]);
 
@@ -266,12 +287,14 @@ export const useProfitMargin = (period?: DatePeriod) => {
 
   const profitData = profitAnalysisQuery.data;
   const isLoading = profitAnalysisQuery.isLoading || isCalculating;
-  const error = profitAnalysisQuery.error?.message || null;
+  const error = profitAnalysisQuery.error;
 
+  // Chart data preparation
   const chartData: ProfitChartData | null = profitData 
     ? prepareProfitChartData([profitData])
     : null;
 
+  // Key metrics for quick access
   const keyMetrics = profitData ? {
     revenue: profitData.profitMarginData.revenue,
     grossMargin: profitData.profitMarginData.grossMargin,
@@ -286,21 +309,30 @@ export const useProfitMargin = (period?: DatePeriod) => {
   // ===========================================
 
   return {
+    // Data
     profitData,
     keyMetrics,
     chartData,
     categoryMapping,
     config: configQuery.data,
+    
+    // State
     isLoading,
     isCalculating,
     error,
+    
+    // Actions
     calculateProfit,
     refreshAnalysis,
     updateCategoryMapping,
     exportAnalysis,
+    
+    // Nested hooks
     useProfitComparison,
     useProfitTrend,
     useDashboardSummary,
+    
+    // Query objects for advanced usage
     profitAnalysisQuery,
     configQuery,
     calculateProfitMutation,
@@ -312,9 +344,13 @@ export const useProfitMargin = (period?: DatePeriod) => {
 // ✅ SPECIALIZED HOOKS
 // ===========================================
 
+/**
+ * Hook for dashboard widget - simplified data
+ */
 export const useProfitDashboard = () => {
   const { useDashboardSummary } = useProfitMargin();
   const dashboardQuery = useDashboardSummary();
+  
   return {
     summary: dashboardQuery.data,
     isLoading: dashboardQuery.isLoading,
@@ -323,9 +359,16 @@ export const useProfitDashboard = () => {
   };
 };
 
-export const useProfitComparison = (currentPeriod: DatePeriod, previousPeriod?: DatePeriod) => {
+/**
+ * Hook for profit comparison between periods
+ */
+export const useProfitComparison = (
+  currentPeriod: DatePeriod,
+  previousPeriod?: DatePeriod
+) => {
   const { useProfitComparison: useComparison } = useProfitMargin();
   const comparisonQuery = useComparison(currentPeriod, previousPeriod);
+  
   return {
     comparison: comparisonQuery.data,
     isLoading: comparisonQuery.isLoading,
@@ -334,10 +377,16 @@ export const useProfitComparison = (currentPeriod: DatePeriod, previousPeriod?: 
   };
 };
 
+/**
+ * Hook for profit trend analysis
+ */
 export const useProfitTrend = (periods: DatePeriod[]) => {
   const { useProfitTrend: useTrend } = useProfitMargin();
   const trendQuery = useTrend(periods);
+  
+  // Generate chart-ready data
   const trendData = trendQuery.data ? prepareProfitChartData(trendQuery.data) : null;
+  
   return {
     trend: trendQuery.data,
     trendData,
@@ -347,9 +396,13 @@ export const useProfitTrend = (periods: DatePeriod[]) => {
   };
 };
 
+/**
+ * Hook for monthly profit analysis (common use case)
+ */
 export const useMonthlyProfit = (year?: number, month?: number) => {
   const targetYear = year || new Date().getFullYear();
   const targetMonth = month || new Date().getMonth();
+  
   const period: DatePeriod = {
     from: new Date(targetYear, targetMonth, 1),
     to: new Date(targetYear, targetMonth + 1, 0),
@@ -358,28 +411,43 @@ export const useMonthlyProfit = (year?: number, month?: number) => {
       month: 'long'
     })
   };
+  
   return useProfitMargin(period);
 };
 
+/**
+ * Hook for quarterly profit analysis
+ */
 export const useQuarterlyProfit = (year?: number, quarter?: number) => {
   const targetYear = year || new Date().getFullYear();
   const targetQuarter = quarter || Math.floor(new Date().getMonth() / 3) + 1;
+  
   const startMonth = (targetQuarter - 1) * 3;
   const period: DatePeriod = {
     from: new Date(targetYear, startMonth, 1),
     to: new Date(targetYear, startMonth + 3, 0),
     label: `Q${targetQuarter} ${targetYear}`
   };
+  
   return useProfitMargin(period);
 };
 
+// ===========================================
+// ✅ UTILITY FUNCTIONS
+// ===========================================
+
+/**
+ * Create standard periods for trend analysis
+ */
 export const createTrendPeriods = {
   last6Months: (): DatePeriod[] => {
     const periods: DatePeriod[] = [];
     const now = new Date();
+    
     for (let i = 5; i >= 0; i--) {
       const periodStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const periodEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      
       periods.push({
         from: periodStart,
         to: periodEnd,
@@ -389,31 +457,41 @@ export const createTrendPeriods = {
         })
       });
     }
+    
     return periods;
   },
+  
   last4Quarters: (): DatePeriod[] => {
     const periods: DatePeriod[] = [];
     const now = new Date();
     const currentQuarter = Math.floor(now.getMonth() / 3);
+    
     for (let i = 3; i >= 0; i--) {
       const quarterIndex = currentQuarter - i;
       let year = now.getFullYear();
       let quarter = quarterIndex + 1;
+      
       if (quarterIndex < 0) {
         year--;
-        quarter = quarterIndex + 5;
+        quarter = quarterIndex + 5; // 4 quarters + 1
       }
+      
       const startMonth = (quarter - 1) * 3;
+      
       periods.push({
         from: new Date(year, startMonth, 1),
         to: new Date(year, startMonth + 3, 0),
         label: `Q${quarter} ${year}`
       });
     }
+    
     return periods;
   }
 };
 
+/**
+ * Invalidate all profit-related cache
+ */
 export const invalidateProfitCache = (queryClient: any) => {
   return queryClient.invalidateQueries({
     queryKey: profitMarginQueryKeys.all

@@ -23,14 +23,56 @@ export const AdminUpdatesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [stats, setStats] = useState({
     totalUpdates: 0,
     activeUpdates: 0,
     totalViews: 0
   });
 
+  // ✅ FIXED: Check admin status using RPC function
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('is_user_admin');
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data || false);
+        }
+      } catch (error) {
+        console.error('Error in admin check:', error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
+
+  // Show loading while checking admin status
+  if (checkingAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Memverifikasi akses admin...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Check admin access
-  if (!user || user.user_metadata?.role !== 'admin') {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md p-6 bg-red-50 border border-red-200 rounded-lg">

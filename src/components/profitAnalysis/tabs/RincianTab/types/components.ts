@@ -1,184 +1,154 @@
-// src/components/profitAnalysis/tabs/rincianTab/types/components.ts
+// src/components/profitAnalysis/tabs/RincianTab/types/components.ts
 
 import { ProfitAnalysisResult } from '../../types';
-import { RincianCalculations } from './calculations';
 
-/**
- * Base props for rincian components
- */
+// ===========================================
+// ✅ BASE PROPS
+// ===========================================
+
 export interface BaseRincianProps {
   profitData: ProfitAnalysisResult;
-  calculations: RincianCalculations;
   isMobile?: boolean;
   className?: string;
 }
 
-/**
- * Tab navigation props
- */
-export interface TabNavigationProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  isMobile?: boolean;
+// ===========================================
+// ✅ OVERVIEW COMPONENTS
+// ===========================================
+
+export interface CostOverviewProps extends BaseRincianProps {
+  calculations?: any;
 }
 
-/**
- * Data quality indicator props
- */
-export interface DataQualityIndicatorProps {
-  profitData: ProfitAnalysisResult;
-  dataQuality: RincianCalculations['dataQuality'];
-  showDetailedBreakdown: boolean;
-  onToggleDetailed: () => void;
-  isMobile?: boolean;
-  className?: string;
-}
-
-/**
- * Cost overview props
- */
-export interface CostOverviewProps extends BaseRincianProps {}
-
-/**
- * Quick ratio analysis props
- */
-export interface QuickRatioAnalysisProps {
-  costAnalysis: RincianCalculations['costAnalysis'];
-  costStructureAnalysis: RincianCalculations['costStructureAnalysis'];
-  isMobile?: boolean;
-  className?: string;
-}
-
-/**
- * HPP summary card props
- */
 export interface HppSummaryCardProps {
-  cogsBreakdown: ProfitAnalysisResult['cogsBreakdown'];
-  costAnalysis: RincianCalculations['costAnalysis'];
+  cogsBreakdown: any;
+  costAnalysis: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * OPEX summary card props
- */
 export interface OpexSummaryCardProps {
-  opexBreakdown: ProfitAnalysisResult['opexBreakdown'];
-  profitMarginData: ProfitAnalysisResult['profitMarginData'];
-  opexComposition: RincianCalculations['opexComposition'];
+  opexBreakdown: any;
+  profitMarginData: any;
+  opexComposition: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * COGS detail tab props
- */
+export interface QuickRatioAnalysisProps {
+  costAnalysis: any;
+  costStructureAnalysis: any;
+  isMobile?: boolean;
+  className?: string;
+}
+
+// ===========================================
+// ✅ COGS DETAIL COMPONENTS
+// ===========================================
+
 export interface CogsDetailTabProps extends BaseRincianProps {
-  showDetailedBreakdown: boolean;
+  calculations?: any;
+  showDetailedBreakdown?: boolean;
 }
 
-/**
- * Material costs card props
- */
 export interface MaterialCostsCardProps {
-  materialCosts: ProfitAnalysisResult['cogsBreakdown']['materialCosts'];
+  materialCosts: any[];
   totalMaterialCost: number;
-  costAnalysis: RincianCalculations['costAnalysis'];
+  costAnalysis: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Labor costs card props
- */
 export interface LaborCostsCardProps {
-  directLaborCosts: ProfitAnalysisResult['cogsBreakdown']['directLaborCosts'];
+  directLaborCosts: any[];
   totalDirectLaborCost: number;
-  costAnalysis: RincianCalculations['costAnalysis'];
+  costAnalysis: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Material usage analytics props
- */
 export interface MaterialUsageAnalyticsProps {
-  materialUsageStats: RincianCalculations['materialUsageStats'];
+  materialUsageStats: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * OPEX detail tab props
- */
-export interface OpexDetailTabProps extends BaseRincianProps {}
+// ===========================================
+// ✅ OPEX DETAIL COMPONENTS
+// ===========================================
 
-/**
- * Expense card props (for admin/selling/general)
- */
+export interface OpexDetailTabProps extends BaseRincianProps {
+  calculations?: any;
+}
+
 export interface ExpenseCardProps {
   title: string;
   expenses: any[];
   total: number;
   revenue: number;
   colorScheme: 'blue' | 'green' | 'purple';
-  icon: React.ComponentType<any>;
+  icon: any;
   isMobile?: boolean;
 }
 
-/**
- * Analysis tab props
- */
-export interface AnalysisTabProps extends BaseRincianProps {}
+// ===========================================
+// ✅ ANALYSIS COMPONENTS
+// ===========================================
 
-/**
- * Efficiency metrics card props
- */
+export interface AnalysisTabProps extends BaseRincianProps {
+  calculations?: any;
+  costAnalysis?: any;
+  efficiencyMetrics?: any;
+  targetAnalysis?: any;
+  actionPlan?: any;
+}
+
 export interface EfficiencyMetricsCardProps {
-  efficiencyMetrics: RincianCalculations['efficiencyMetrics'];
-  costAnalysis: RincianCalculations['costAnalysis'];
+  efficiencyMetrics: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Target vs actual cards props
- */
 export interface TargetVsActualCardsProps {
-  costStructureAnalysis: RincianCalculations['costStructureAnalysis'];
-  profitMarginData: ProfitAnalysisResult['profitMarginData'];
-  opexBreakdown: ProfitAnalysisResult['opexBreakdown'];
-  costAnalysis: RincianCalculations['costAnalysis'];
+  targetAnalysis: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Recommendations card props
- */
 export interface RecommendationsCardProps {
-  recommendations: RincianCalculations['recommendations'];
-  costStructureAnalysis: RincianCalculations['costStructureAnalysis'];
-  dataSource: string;
+  recommendations: any[];
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Action items card props
- */
 export interface ActionItemsCardProps {
-  profitData: ProfitAnalysisResult;
-  costAnalysis: RincianCalculations['costAnalysis'];
-  costStructureAnalysis: RincianCalculations['costStructureAnalysis'];
+  actionPlan: any;
   isMobile?: boolean;
+  className?: string;
 }
 
-/**
- * Tab content type
- */
-export type TabKey = 'overview' | 'cogs' | 'opex' | 'analysis';
+// ===========================================
+// ✅ UTILITY TYPES
+// ===========================================
 
-/**
- * Metric card data
- */
 export interface MetricCardData {
   label: string;
   value: number;
   target: number;
   unit: string;
-  status: 'on-target' | 'above-target' | 'below-target';
-  color: 'green' | 'blue' | 'red';
+  status: string;
+  color: string;
 }
+
+export interface TabNavigationProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  isMobile?: boolean;
+}
+
+export interface DataQualityIndicatorProps {
+  profitData: ProfitAnalysisResult;
+  className?: string;
+}
+
+export type TabKey = 'overview' | 'cogs' | 'opex' | 'analysis';

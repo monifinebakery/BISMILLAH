@@ -1,4 +1,4 @@
-// useProfitAnalysis.ts - Fixed Dependencies
+// useProfitAnalysis.ts - Fixed Dependencies & React Error #310
 // ==============================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -131,11 +131,16 @@ export const useProfitAnalysis = (
     },
   });
 
-  // ✅ COMPUTED VALUES: Profit metrics - Fixed dependencies
+  // ✅ FIX #1: Extract primitive values first to avoid nested object references
+  const currentData = currentAnalysisQuery.data;
+  const revenue = currentData?.revenue_data?.total ?? 0;
+  const cogs = currentData?.cogs_data?.total ?? 0;
+  const opex = currentData?.opex_data?.total ?? 0;
+  const calculatedAt = currentData?.calculated_at ?? null;
+
+  // ✅ FIX #2: Use extracted primitive values in useMemo dependencies
   const profitMetrics = useMemo(() => {
-    const data = currentAnalysisQuery.data;
-    
-    if (!data) {
+    if (!currentData) {
       return {
         grossProfit: 0,
         netProfit: 0,
@@ -148,9 +153,6 @@ export const useProfitAnalysis = (
     }
 
     try {
-      const revenue = data.revenue_data?.total || 0;
-      const cogs = data.cogs_data?.total || 0;
-      const opex = data.opex_data?.total || 0;
       const grossProfit = revenue - cogs;
       const netProfit = grossProfit - opex;
       const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
@@ -177,11 +179,7 @@ export const useProfitAnalysis = (
         opex: 0
       };
     }
-  }, [
-    currentAnalysisQuery.data?.revenue_data?.total,
-    currentAnalysisQuery.data?.cogs_data?.total,
-    currentAnalysisQuery.data?.opex_data?.total
-  ]); // Only depend on specific primitive values
+  }, [revenue, cogs, opex, currentData]); // ✅ Now using primitive values
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
@@ -243,34 +241,33 @@ export const useProfitAnalysis = (
     setCurrentPeriodState(period);
   }, []);
 
-  // ✅ DATA FRESHNESS - Fixed dependencies
+  // ✅ FIX #3: Use primitive calculatedAt value
   const isDataStale = useMemo(() => {
-    const data = currentAnalysisQuery.data;
-    if (!data?.calculated_at) return true;
+    if (!calculatedAt) return true;
     
     try {
-      const calculatedAt = new Date(data.calculated_at);
+      const calculatedAtDate = new Date(calculatedAt);
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      return calculatedAt < fiveMinutesAgo;
+      return calculatedAtDate < fiveMinutesAgo;
     } catch (err) {
       logger.error('Error checking data freshness:', err);
       return true;
     }
-  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at string
+  }, [calculatedAt]); // ✅ Using primitive string value
 
+  // ✅ FIX #4: Memoize the Date object creation to avoid re-creation on every render
   const lastCalculated = useMemo(() => {
-    const data = currentAnalysisQuery.data;
-    if (!data?.calculated_at) return null;
+    if (!calculatedAt) return null;
     
     try {
-      return new Date(data.calculated_at);
+      return new Date(calculatedAt);
     } catch (err) {
       logger.error('Error parsing calculated_at:', err);
       return null;
     }
-  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at string
+  }, [calculatedAt]); // ✅ Using primitive string value
 
-  // ✅ AUTO-LOAD HISTORY on mount - Fixed dependencies
+  // ✅ AUTO-LOAD HISTORY on mount
   useEffect(() => {
     if (autoCalculate) {
       loadProfitHistory();
@@ -279,7 +276,7 @@ export const useProfitAnalysis = (
 
   return {
     // State
-    currentAnalysis: currentAnalysisQuery.data || null,
+    currentAnalysis: currentData || null,
     profitHistory,
     loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending,
     error: error || currentAnalysisQuery.error?.message || null,

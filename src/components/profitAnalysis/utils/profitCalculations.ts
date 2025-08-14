@@ -1,793 +1,684 @@
 // ==============================================
-// ENHANCED PROFIT CALCULATIONS
+// UPDATED PROFIT CALCULATIONS - Compatible with Actual Schema
 // ==============================================
-// Advanced profit analysis calculations and business intelligence
 
-import { 
-  RealTimeProfitCalculation, 
-  ProfitAnalysis,
-  RevenueBreakdown,
-  COGSBreakdown,
-  OpExBreakdown 
-} from '../types/profitAnalysis.types';
-import { FinancialTransaction } from '@/components/financial/types/financial';
-import { BahanBakuFrontend } from '@/components/warehouse/types';
-import { OperationalCost } from '@/components/operational-costs/types';
+import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS } from '../constants/profitConstants';
 
-// ==============================================
-// ENHANCED CALCULATION INTERFACES
-// ==============================================
-
-export interface AdvancedProfitMetrics {
-  // Basic Metrics
-  grossProfitMargin: number;
-  netProfitMargin: number;
-  operatingMargin: number;
-  ebitdaMargin: number;
-  
-  // Efficiency Ratios
-  revenuePerEmployee: number;
-  profitPerEmployee: number;
-  assetTurnover: number;
-  
-  // Cost Analysis
-  cogsPercentage: number;
-  opexPercentage: number;
-  variableCostRatio: number;
-  fixedCostRatio: number;
-  
-  // Trend Analysis
-  monthlyGrowthRate: number;
-  quarterlyGrowthRate: number;
-  seasonalityIndex: number;
-  
-  // Performance Indicators
-  breakEvenPoint: number;
-  marginOfSafety: number;
-  operatingLeverage: number;
-  
-  // Quality Metrics
-  dataCompleteness: number;
-  calculationAccuracy: number;
-  confidenceScore: number;
+// ✅ Updated interfaces to match actual schema
+interface FinancialTransactionActual {
+  id: string;
+  user_id: string;
+  type: string; // 'income' | 'expense'
+  category: string | null;
+  amount: number | null;
+  description: string | null;
+  date: string | null; // TIMESTAMPTZ as string
+  created_at: string;
+  updated_at: string;
+  notes: string | null;
+  related_id: string | null;
 }
 
-export interface ProfitForecast {
-  nextMonth: {
-    revenue: number;
-    profit: number;
-    margin: number;
-    confidence: number;
-  };
-  nextQuarter: {
-    revenue: number;
-    profit: number;
-    margin: number;
-    confidence: number;
-  };
-  nextYear: {
-    revenue: number;
-    profit: number;
-    margin: number;
-    confidence: number;
-  };
-  assumptions: string[];
-  risks: string[];
-  opportunities: string[];
+interface BahanBakuActual {
+  id: string;
+  user_id: string;
+  nama: string | null;
+  kategori: string | null;
+  stok: number | null;
+  satuan: string | null;
+  minimum: number | null;
+  harga_satuan: number | null;
+  supplier: string | null;
+  tanggal_kadaluwarsa: string | null;
+  created_at: string;
+  updated_at: string;
+  jumlah_beli_kemasan: number | null;
+  satuan_kemasan: string | null;
+  harga_total_beli_kemasan: number | null;
+  isi_per_kemasan: number | null;
 }
 
-export interface ProfitBenchmark {
-  industry: {
-    averageGrossMargin: number;
-    averageNetMargin: number;
-    topQuartileMargin: number;
-  };
-  company: {
-    historicalAverage: number;
-    bestPeriod: number;
-    worstPeriod: number;
-  };
-  competitive: {
-    position: 'excellent' | 'above-average' | 'average' | 'below-average' | 'poor';
-    percentile: number;
-    gapToLeader: number;
-  };
+interface OperationalCostActual {
+  id: string;
+  user_id: string;
+  nama_biaya: string;
+  jumlah_per_bulan: number;
+  jenis: string; // 'tetap' | 'variabel'
+  status: string; // 'aktif' | 'nonaktif'
+  created_at: string;
+  updated_at: string;
+  cost_category: string | null;
 }
-
-export interface CostOptimizationRecommendations {
-  immediate: Array<{
-    action: string;
-    impact: number;
-    effort: 'low' | 'medium' | 'high';
-    timeframe: string;
-    category: 'cogs' | 'opex' | 'revenue';
-  }>;
-  mediumTerm: Array<{
-    action: string;
-    impact: number;
-    effort: 'low' | 'medium' | 'high';
-    timeframe: string;
-    category: 'cogs' | 'opex' | 'revenue';
-  }>;
-  longTerm: Array<{
-    action: string;
-    impact: number;
-    effort: 'low' | 'medium' | 'high';
-    timeframe: string;
-    category: 'cogs' | 'opex' | 'revenue';
-  }>;
-}
-
-// ==============================================
-// ENHANCED CALCULATION FUNCTIONS
-// ==============================================
 
 /**
- * Calculate advanced profit metrics with business intelligence
+ * ✅ ENHANCED: Calculate real-time profit analysis with actual schema
  */
-export const calculateAdvancedProfitMetrics = (
-  history: RealTimeProfitCalculation[],
-  currentAnalysis: RealTimeProfitCalculation,
-  employeeCount: number = 0,
-  totalAssets: number = 0
-): AdvancedProfitMetrics => {
+export const calculateRealTimeProfit = (
+  period: string,
+  transactions: FinancialTransactionActual[],
+  materials: BahanBakuActual[],
+  operationalCosts: OperationalCostActual[]
+): RealTimeProfitCalculation => {
   
-  const revenue = currentAnalysis.revenue_data.total;
-  const cogs = currentAnalysis.cogs_data.total;
-  const opex = currentAnalysis.opex_data.total;
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
+  // Filter transactions by period (YYYY-MM format)
+  const periodTransactions = filterTransactionsByPeriod(transactions, period);
   
-  // Basic Margins
-  const grossProfitMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-  const netProfitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-  const operatingMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0; // Simplified
-  const ebitdaMargin = operatingMargin; // Simplified (no depreciation data)
+  // ✅ Calculate Revenue from financial_transactions where type = 'income'
+  const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
+  const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // Efficiency Ratios
-  const revenuePerEmployee = employeeCount > 0 ? revenue / employeeCount : 0;
-  const profitPerEmployee = employeeCount > 0 ? netProfit / employeeCount : 0;
-  const assetTurnover = totalAssets > 0 ? revenue / totalAssets : 0;
+  // ✅ Calculate COGS from financial_transactions where type = 'expense' and category contains material keywords
+  const cogsTransactions = periodTransactions.filter(t => 
+    t.type === 'expense' && (
+      (t.category && (
+        t.category.toLowerCase().includes('bahan baku') ||
+        t.category.toLowerCase().includes('material') ||
+        t.category.toLowerCase().includes('pembelian')
+      )) ||
+      (t.description && (
+        t.description.toLowerCase().includes('bahan baku') ||
+        t.description.toLowerCase().includes('material')
+      ))
+    )
+  );
+  const totalCOGS = cogsTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // Cost Analysis
-  const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
-  const opexPercentage = revenue > 0 ? (opex / revenue) * 100 : 0;
+  // ✅ Calculate OpEx from operational_costs where status = 'aktif'
+  const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
+  const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
   
-  // Separate fixed and variable costs (simplified)
-  const operationalCosts = currentAnalysis.opex_data.costs || [];
-  const fixedCosts = operationalCosts.filter(c => c.jenis === 'tetap').reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
-  const variableCosts = cogs + operationalCosts.filter(c => c.jenis === 'variabel').reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
-  
-  const variableCostRatio = revenue > 0 ? (variableCosts / revenue) * 100 : 0;
-  const fixedCostRatio = revenue > 0 ? (fixedCosts / revenue) * 100 : 0;
-  
-  // Growth Analysis
-  const monthlyGrowthRate = calculateGrowthRate(history, 'monthly');
-  const quarterlyGrowthRate = calculateGrowthRate(history, 'quarterly');
-  const seasonalityIndex = calculateSeasonality(history);
-  
-  // Business Metrics
-  const contributionMargin = revenue - variableCosts;
-  const breakEvenPoint = contributionMargin > 0 ? fixedCosts / (contributionMargin / revenue) : 0;
-  const marginOfSafety = revenue > breakEvenPoint ? ((revenue - breakEvenPoint) / revenue) * 100 : 0;
-  const operatingLeverage = calculateOperatingLeverage(history);
-  
-  // Quality Assessment
-  const dataCompleteness = assessDataCompleteness(currentAnalysis);
-  const calculationAccuracy = assessCalculationAccuracy(currentAnalysis);
-  const confidenceScore = (dataCompleteness + calculationAccuracy) / 2;
+  // ✅ Enhanced transaction parsing for better categorization
+  const enhancedRevenueTransactions = revenueTransactions.map(t => ({
+    category: t.category || 'Uncategorized',
+    amount: Number(t.amount) || 0,
+    description: t.description || '',
+    date: t.date,
+    id: t.id
+  }));
+
+  const enhancedCOGSTransactions = cogsTransactions.map(t => ({
+    name: extractMaterialName(t.description || t.category || 'Material Cost'),
+    cost: Number(t.amount) || 0,
+    category: t.category || 'Direct Material',
+    date: t.date,
+    id: t.id
+  }));
+
+  const enhancedOpExCosts = activeCosts.map(c => ({
+    nama_biaya: c.nama_biaya,
+    jumlah_per_bulan: Number(c.jumlah_per_bulan),
+    jenis: c.jenis,
+    cost_category: c.cost_category || 'general',
+    id: c.id
+  }));
   
   return {
-    grossProfitMargin,
-    netProfitMargin,
-    operatingMargin,
-    ebitdaMargin,
-    revenuePerEmployee,
-    profitPerEmployee,
-    assetTurnover,
-    cogsPercentage,
-    opexPercentage,
-    variableCostRatio,
-    fixedCostRatio,
-    monthlyGrowthRate,
-    quarterlyGrowthRate,
-    seasonalityIndex,
-    breakEvenPoint,
-    marginOfSafety,
-    operatingLeverage,
-    dataCompleteness,
-    calculationAccuracy,
-    confidenceScore
+    period,
+    revenue_data: {
+      total: totalRevenue,
+      transactions: enhancedRevenueTransactions
+    },
+    cogs_data: {
+      total: totalCOGS,
+      materials: enhancedCOGSTransactions
+    },
+    opex_data: {
+      total: totalOpEx,
+      costs: enhancedOpExCosts
+    },
+    calculated_at: new Date().toISOString()
   };
 };
 
 /**
- * Generate profit forecast using multiple methods
+ * ✅ ENHANCED: Calculate profit margins with validation
  */
-export const generateProfitForecast = (
-  history: RealTimeProfitCalculation[],
-  currentAnalysis: RealTimeProfitCalculation,
-  externalFactors?: {
-    marketGrowth?: number;
-    seasonality?: number;
-    competitiveFactors?: number;
-  }
-): ProfitForecast => {
+export const calculateMargins = (revenue: number, cogs: number, opex: number) => {
+  // Validate inputs
+  const validRevenue = Math.max(0, Number(revenue) || 0);
+  const validCOGS = Math.max(0, Number(cogs) || 0);
+  const validOpEx = Math.max(0, Number(opex) || 0);
   
-  if (history.length < 3) {
+  const grossProfit = validRevenue - validCOGS;
+  const netProfit = grossProfit - validOpEx;
+  
+  const grossMargin = validRevenue > 0 ? (grossProfit / validRevenue) * 100 : 0;
+  const netMargin = validRevenue > 0 ? (netProfit / validRevenue) * 100 : 0;
+  
+  return {
+    grossProfit,
+    netProfit,
+    grossMargin,
+    netMargin,
+    // Additional metrics
+    cogsPercentage: validRevenue > 0 ? (validCOGS / validRevenue) * 100 : 0,
+    opexPercentage: validRevenue > 0 ? (validOpEx / validRevenue) * 100 : 0,
+    totalCostPercentage: validRevenue > 0 ? ((validCOGS + validOpEx) / validRevenue) * 100 : 0
+  };
+};
+
+/**
+ * ✅ ENHANCED: Filter transactions by period with timezone handling
+ */
+export const filterTransactionsByPeriod = (
+  transactions: FinancialTransactionActual[], 
+  period: string
+): FinancialTransactionActual[] => {
+  return transactions.filter(t => {
+    if (!t.date) return false;
+    
+    try {
+      // Handle TIMESTAMPTZ format from Supabase
+      const transactionDate = new Date(t.date);
+      const transactionPeriod = transactionDate.toISOString().slice(0, 7); // YYYY-MM
+      return transactionPeriod === period;
+    } catch (error) {
+      console.warn('Invalid date format:', t.date);
+      return false;
+    }
+  });
+};
+
+/**
+ * ✅ ENHANCED: Get margin rating based on improved thresholds
+ */
+export const getMarginRating = (margin: number, type: 'gross' | 'net'): string => {
+  const thresholds = PROFIT_CONSTANTS.MARGIN_THRESHOLDS;
+  
+  if (margin >= thresholds.EXCELLENT[type] * 100) return 'excellent';
+  if (margin >= thresholds.GOOD[type] * 100) return 'good';  
+  if (margin >= thresholds.FAIR[type] * 100) return 'fair';
+  return 'poor';
+};
+
+/**
+ * ✅ ENHANCED: Extract material name from transaction description
+ */
+const extractMaterialName = (description: string): string => {
+  if (!description) return 'Unknown Material';
+  
+  // Enhanced patterns for Indonesian context
+  const patterns = [
+    /(?:beli|pembelian|bahan)\s+(.+)/i,
+    /(.+?)(?:\s+(?:kg|gram|liter|ml|pcs|dus|pak))/i,
+    /material\s+(.+)/i,
+    /(.+?)(?:\s+untuk)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = description.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+
+  // Fallback: take first 3 words
+  return description.split(' ').slice(0, 3).join(' ') || 'Material';
+};
+
+/**
+ * ✅ NEW: Calculate inventory-based COGS (future enhancement)
+ */
+export const calculateInventoryBasedCOGS = (
+  materials: BahanBakuActual[],
+  usageData?: { materialId: string; quantityUsed: number }[]
+): { totalCOGS: number; breakdown: any[] } => {
+  
+  if (!usageData || usageData.length === 0) {
+    // Fallback: estimate based on current inventory value
+    const totalInventoryValue = materials.reduce((sum, m) => {
+      const stock = Number(m.stok) || 0;
+      const price = Number(m.harga_satuan) || 0;
+      return sum + (stock * price);
+    }, 0);
+    
     return {
-      nextMonth: { revenue: 0, profit: 0, margin: 0, confidence: 0 },
-      nextQuarter: { revenue: 0, profit: 0, margin: 0, confidence: 0 },
-      nextYear: { revenue: 0, profit: 0, margin: 0, confidence: 0 },
-      assumptions: ['Insufficient historical data for reliable forecast'],
-      risks: ['High uncertainty due to limited data'],
-      opportunities: ['Establish baseline for future forecasting']
+      totalCOGS: totalInventoryValue * 0.1, // Estimate 10% of inventory used per month
+      breakdown: materials.map(m => ({
+        material_name: m.nama || 'Unknown',
+        estimated_usage: (Number(m.stok) || 0) * 0.1,
+        unit_price: Number(m.harga_satuan) || 0,
+        total_cost: ((Number(m.stok) || 0) * 0.1) * (Number(m.harga_satuan) || 0),
+        percentage: 0 // Will be calculated later
+      }))
     };
   }
   
-  // Multiple forecasting methods
-  const trendForecast = calculateTrendForecast(history);
-  const seasonalForecast = calculateSeasonalForecast(history);
-  const regressionForecast = calculateRegressionForecast(history);
+  const breakdown = usageData.map(usage => {
+    const material = materials.find(m => m.id === usage.materialId);
+    if (!material) return null;
+    
+    const unitPrice = Number(material.harga_satuan) || 0;
+    const totalCost = usage.quantityUsed * unitPrice;
+    
+    return {
+      material_name: material.nama || 'Unknown',
+      quantity_used: usage.quantityUsed,
+      unit_price: unitPrice,
+      total_cost: totalCost,
+      percentage: 0 // Will be calculated after total
+    };
+  }).filter(Boolean);
   
-  // Weighted average with external factors
-  const marketGrowth = externalFactors?.marketGrowth || 0;
-  const seasonality = externalFactors?.seasonality || 1;
-  const competitive = externalFactors?.competitiveFactors || 1;
+  const totalCOGS = breakdown.reduce((sum, item) => sum + (item?.total_cost || 0), 0);
   
-  // Next Month Forecast
-  const nextMonthRevenue = (
-    trendForecast.nextMonth * 0.4 +
-    seasonalForecast.nextMonth * 0.3 +
-    regressionForecast.nextMonth * 0.3
-  ) * seasonality * competitive;
+  // Calculate percentages
+  breakdown.forEach(item => {
+    if (item && totalCOGS > 0) {
+      item.percentage = (item.total_cost / totalCOGS) * 100;
+    }
+  });
   
-  const nextMonthProfit = nextMonthRevenue * (currentAnalysis.revenue_data.total > 0 
-    ? ((currentAnalysis.revenue_data.total - currentAnalysis.cogs_data.total - currentAnalysis.opex_data.total) / currentAnalysis.revenue_data.total)
-    : 0);
+  return { totalCOGS, breakdown };
+};
+
+/**
+ * ✅ NEW: Analyze cost structure
+ */
+export const analyzeCostStructure = (
+  operationalCosts: OperationalCostActual[]
+): {
+  fixedCosts: number;
+  variableCosts: number;
+  totalCosts: number;
+  fixedCostRatio: number;
+  variableCostRatio: number;
+  costsByCategory: Record<string, number>;
+} => {
   
-  const nextMonthMargin = nextMonthRevenue > 0 ? (nextMonthProfit / nextMonthRevenue) * 100 : 0;
+  const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   
-  // Confidence calculation
-  const dataQuality = Math.min(history.length / 12, 1); // More data = higher confidence
-  const trendConsistency = calculateTrendConsistency(history);
-  const nextMonthConfidence = (dataQuality * 0.5 + trendConsistency * 0.5) * 100;
+  const fixedCosts = activeCosts
+    .filter(c => c.jenis === 'tetap')
+    .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
+    
+  const variableCosts = activeCosts
+    .filter(c => c.jenis === 'variabel')
+    .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
+    
+  const totalCosts = fixedCosts + variableCosts;
   
-  // Similar calculations for quarter and year (simplified)
-  const nextQuarterRevenue = nextMonthRevenue * 3 * (1 + marketGrowth / 100);
-  const nextQuarterProfit = nextQuarterRevenue * (nextMonthMargin / 100);
-  
-  const nextYearRevenue = nextMonthRevenue * 12 * (1 + marketGrowth / 100);
-  const nextYearProfit = nextYearRevenue * (nextMonthMargin / 100);
+  const costsByCategory = activeCosts.reduce((acc, cost) => {
+    const category = cost.cost_category || 'general';
+    acc[category] = (acc[category] || 0) + Number(cost.jumlah_per_bulan);
+    return acc;
+  }, {} as Record<string, number>);
   
   return {
-    nextMonth: {
-      revenue: nextMonthRevenue,
-      profit: nextMonthProfit,
-      margin: nextMonthMargin,
-      confidence: nextMonthConfidence
-    },
-    nextQuarter: {
-      revenue: nextQuarterRevenue,
-      profit: nextQuarterProfit,
-      margin: nextMonthMargin,
-      confidence: Math.max(nextMonthConfidence - 20, 0)
-    },
-    nextYear: {
-      revenue: nextYearRevenue,
-      profit: nextYearProfit,
-      margin: nextMonthMargin,
-      confidence: Math.max(nextMonthConfidence - 40, 0)
-    },
-    assumptions: [
-      'Historical trends continue',
-      'No major market disruptions',
-      'Current cost structure maintained',
-      `Market growth: ${marketGrowth}%`,
-      'Seasonal patterns repeat'
-    ],
-    risks: [
-      'Economic downturn impact',
-      'Increased competition',
-      'Supply chain disruptions',
-      'Cost inflation',
-      'Customer behavior changes'
-    ],
-    opportunities: [
-      'Market expansion potential',
-      'Operational efficiency gains',
-      'New product/service launch',
-      'Strategic partnerships',
-      'Technology improvements'
-    ]
+    fixedCosts,
+    variableCosts,
+    totalCosts,
+    fixedCostRatio: totalCosts > 0 ? (fixedCosts / totalCosts) * 100 : 0,
+    variableCostRatio: totalCosts > 0 ? (variableCosts / totalCosts) * 100 : 0,
+    costsByCategory
   };
 };
 
 /**
- * Generate cost optimization recommendations
+ * ✅ NEW: Calculate break-even analysis
  */
-export const generateCostOptimizationRecommendations = (
-  currentAnalysis: RealTimeProfitCalculation,
-  metrics: AdvancedProfitMetrics,
-  history: RealTimeProfitCalculation[]
-): CostOptimizationRecommendations => {
+export const calculateBreakEvenAnalysis = (
+  fixedCosts: number,
+  variableCostPercentage: number, // as percentage of revenue
+  averageSellingPrice?: number,
+  targetUnits?: number
+): {
+  breakEvenRevenue: number;
+  breakEvenUnits: number;
+  contributionMarginPercentage: number;
+  marginOfSafety: number;
+} => {
   
-  const recommendations: CostOptimizationRecommendations = {
-    immediate: [],
-    mediumTerm: [],
-    longTerm: []
+  const contributionMarginPercentage = 100 - variableCostPercentage;
+  const breakEvenRevenue = contributionMarginPercentage > 0 
+    ? (fixedCosts / contributionMarginPercentage) * 100
+    : 0;
+    
+  const breakEvenUnits = averageSellingPrice && averageSellingPrice > 0
+    ? breakEvenRevenue / averageSellingPrice
+    : 0;
+    
+  const marginOfSafety = targetUnits && breakEvenUnits > 0
+    ? ((targetUnits - breakEvenUnits) / targetUnits) * 100
+    : 0;
+  
+  return {
+    breakEvenRevenue,
+    breakEvenUnits,
+    contributionMarginPercentage,
+    marginOfSafety
   };
-  
-  const revenue = currentAnalysis.revenue_data.total;
-  const grossMargin = metrics.grossProfitMargin;
-  const netMargin = metrics.netProfitMargin;
-  const cogsRatio = metrics.cogsPercentage;
-  const opexRatio = metrics.opexPercentage;
-  
-  // Immediate Actions (1-3 months)
-  if (grossMargin < 30) {
-    recommendations.immediate.push({
-      action: 'Review supplier contracts and negotiate better terms',
-      impact: revenue * 0.05, // 5% of revenue potential saving
-      effort: 'medium',
-      timeframe: '1-2 months',
-      category: 'cogs'
-    });
-  }
-  
-  if (opexRatio > 40) {
-    recommendations.immediate.push({
-      action: 'Audit and eliminate unnecessary operational expenses',
-      impact: revenue * 0.03,
-      effort: 'low',
-      timeframe: '2-4 weeks',
-      category: 'opex'
-    });
-  }
-  
-  if (netMargin < 10) {
-    recommendations.immediate.push({
-      action: 'Implement pricing strategy review and optimization',
-      impact: revenue * 0.07,
-      effort: 'medium',
-      timeframe: '1-3 months',
-      category: 'revenue'
-    });
-  }
-  
-  // Medium Term Actions (3-12 months)
-  if (cogsRatio > 60) {
-    recommendations.mediumTerm.push({
-      action: 'Invest in process automation to reduce direct costs',
-      impact: revenue * 0.10,
-      effort: 'high',
-      timeframe: '6-12 months',
-      category: 'cogs'
-    });
-  }
-  
-  recommendations.mediumTerm.push({
-    action: 'Implement activity-based costing for better cost allocation',
-    impact: revenue * 0.04,
-    effort: 'medium',
-    timeframe: '3-6 months',
-    category: 'opex'
-  });
-  
-  if (metrics.revenuePerEmployee < revenue / 10) { // Assuming 10 employees baseline
-    recommendations.mediumTerm.push({
-      action: 'Optimize workforce productivity through training and tools',
-      impact: revenue * 0.08,
-      effort: 'medium',
-      timeframe: '4-8 months',
-      category: 'revenue'
-    });
-  }
-  
-  // Long Term Actions (1+ years)
-  recommendations.longTerm.push({
-    action: 'Develop strategic supplier partnerships for cost reduction',
-    impact: revenue * 0.15,
-    effort: 'high',
-    timeframe: '12-24 months',
-    category: 'cogs'
-  });
-  
-  recommendations.longTerm.push({
-    action: 'Implement comprehensive ERP system for operational efficiency',
-    impact: revenue * 0.12,
-    effort: 'high',
-    timeframe: '18-36 months',
-    category: 'opex'
-  });
-  
-  recommendations.longTerm.push({
-    action: 'Diversify revenue streams to improve overall margins',
-    impact: revenue * 0.20,
-    effort: 'high',
-    timeframe: '12-36 months',
-    category: 'revenue'
-  });
-  
-  return recommendations;
 };
 
 /**
- * Perform competitive benchmarking
+ * ✅ NEW: Generate period comparison
  */
-export const performCompetitiveBenchmarking = (
-  currentMetrics: AdvancedProfitMetrics,
+export const comparePeriods = (
+  currentPeriod: RealTimeProfitCalculation,
+  previousPeriod: RealTimeProfitCalculation | null
+): {
+  revenueGrowth: number;
+  profitGrowth: number;
+  marginChange: number;
+  trend: 'improving' | 'declining' | 'stable';
+  insights: string[];
+} => {
+  
+  if (!previousPeriod) {
+    return {
+      revenueGrowth: 0,
+      profitGrowth: 0,
+      marginChange: 0,
+      trend: 'stable',
+      insights: ['Tidak ada data periode sebelumnya untuk perbandingan']
+    };
+  }
+  
+  const currentRevenue = currentPeriod.revenue_data.total;
+  const previousRevenue = previousPeriod.revenue_data.total;
+  const revenueGrowth = previousRevenue > 0 
+    ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
+    : 0;
+
+  const currentProfit = currentRevenue - currentPeriod.cogs_data.total - currentPeriod.opex_data.total;
+  const previousProfit = previousRevenue - previousPeriod.cogs_data.total - previousPeriod.opex_data.total;
+  const profitGrowth = previousProfit !== 0 
+    ? ((currentProfit - previousProfit) / Math.abs(previousProfit)) * 100 
+    : 0;
+
+  const currentMargin = currentRevenue > 0 ? (currentProfit / currentRevenue) * 100 : 0;
+  const previousMargin = previousRevenue > 0 ? (previousProfit / previousRevenue) * 100 : 0;
+  const marginChange = currentMargin - previousMargin;
+
+  let trend: 'improving' | 'declining' | 'stable' = 'stable';
+  if (profitGrowth > 5) trend = 'improving';
+  else if (profitGrowth < -5) trend = 'declining';
+
+  const insights: string[] = [];
+  
+  if (revenueGrowth > 10) insights.push('Revenue mengalami pertumbuhan yang kuat');
+  else if (revenueGrowth < -10) insights.push('Revenue mengalami penurunan signifikan');
+  
+  if (marginChange > 2) insights.push('Margin profit meningkat');
+  else if (marginChange < -2) insights.push('Margin profit menurun');
+  
+  if (trend === 'improving') insights.push('Tren profit menunjukkan perbaikan');
+  else if (trend === 'declining') insights.push('Tren profit memerlukan perhatian');
+
+  return {
+    revenueGrowth,
+    profitGrowth,
+    marginChange,
+    trend,
+    insights
+  };
+};
+
+/**
+ * ✅ NEW: Validate data quality
+ */
+export const validateDataQuality = (
+  calculation: RealTimeProfitCalculation
+): {
+  score: number;
+  issues: string[];
+  recommendations: string[];
+} => {
+  
+  let score = 100;
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  
+  // Check revenue data
+  if (calculation.revenue_data.total <= 0) {
+    score -= 30;
+    issues.push('Tidak ada data revenue');
+    recommendations.push('Tambahkan transaksi pemasukan');
+  } else if (calculation.revenue_data.transactions.length === 0) {
+    score -= 10;
+    issues.push('Data revenue tidak memiliki breakdown detail');
+    recommendations.push('Pastikan transaksi memiliki kategori yang jelas');
+  }
+  
+  // Check COGS data
+  if (calculation.cogs_data.total <= 0) {
+    score -= 20;
+    issues.push('Tidak ada data COGS');
+    recommendations.push('Tambahkan transaksi pembelian bahan baku');
+  }
+  
+  // Check OpEx data
+  if (calculation.opex_data.total <= 0) {
+    score -= 20;
+    issues.push('Tidak ada data biaya operasional');
+    recommendations.push('Konfigurasi biaya operasional di menu operational costs');
+  }
+  
+  // Check business logic consistency
+  const revenue = calculation.revenue_data.total;
+  const cogs = calculation.cogs_data.total;
+  const opex = calculation.opex_data.total;
+  
+  if (cogs > revenue) {
+    score -= 15;
+    issues.push('COGS lebih besar dari revenue (tidak wajar)');
+    recommendations.push('Review kategorisasi transaksi expense');
+  }
+  
+  if (opex > revenue * 0.8) {
+    score -= 10;
+    issues.push('Biaya operasional terlalu tinggi (>80% revenue)');
+    recommendations.push('Review efisiensi biaya operasional');
+  }
+  
+  const netProfit = revenue - cogs - opex;
+  if (netProfit < 0 && Math.abs(netProfit) > revenue * 0.2) {
+    score -= 10;
+    issues.push('Kerugian signifikan (>20% revenue)');
+    recommendations.push('Fokus pada optimasi biaya dan peningkatan revenue');
+  }
+  
+  return {
+    score: Math.max(0, score),
+    issues,
+    recommendations
+  };
+};
+
+/**
+ * ✅ NEW: Generate executive insights
+ */
+export const generateExecutiveInsights = (
+  calculation: RealTimeProfitCalculation,
+  previousCalculation?: RealTimeProfitCalculation
+): {
+  keyHighlights: string[];
+  criticalIssues: string[];
+  opportunities: string[];
+  recommendedActions: string[];
+} => {
+  
+  const revenue = calculation.revenue_data.total;
+  const cogs = calculation.cogs_data.total;
+  const opex = calculation.opex_data.total;
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - opex;
+  const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  const keyHighlights: string[] = [];
+  const criticalIssues: string[] = [];
+  const opportunities: string[] = [];
+  const recommendedActions: string[] = [];
+  
+  // Revenue Analysis
+  if (revenue > 0) {
+    keyHighlights.push(`Revenue: ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(revenue)}`);
+  } else {
+    criticalIssues.push('Tidak ada revenue dalam periode ini');
+    recommendedActions.push('Fokus pada aktivitas penjualan dan marketing');
+  }
+  
+  // Margin Analysis
+  if (grossMargin >= 50) {
+    keyHighlights.push(`Gross margin sangat baik: ${grossMargin.toFixed(1)}%`);
+  } else if (grossMargin >= 30) {
+    keyHighlights.push(`Gross margin sehat: ${grossMargin.toFixed(1)}%`);
+  } else if (grossMargin >= 15) {
+    opportunities.push(`Gross margin dapat ditingkatkan dari ${grossMargin.toFixed(1)}%`);
+    recommendedActions.push('Review harga jual dan efisiensi produksi');
+  } else {
+    criticalIssues.push(`Gross margin rendah: ${grossMargin.toFixed(1)}%`);
+    recommendedActions.push('Urgent: optimasi COGS dan review pricing strategy');
+  }
+  
+  if (netMargin >= 20) {
+    keyHighlights.push(`Net margin excellent: ${netMargin.toFixed(1)}%`);
+  } else if (netMargin >= 10) {
+    keyHighlights.push(`Net margin baik: ${netMargin.toFixed(1)}%`);
+  } else if (netMargin >= 5) {
+    opportunities.push(`Net margin dapat ditingkatkan dari ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('Optimasi biaya operasional');
+  } else if (netMargin < 0) {
+    criticalIssues.push(`Bisnis mengalami kerugian: ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('Action plan recovery: reduce costs, increase sales');
+  } else {
+    criticalIssues.push(`Net margin sangat rendah: ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('Review struktur biaya dan strategi pricing');
+  }
+  
+  // Cost Structure Analysis
+  const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
+  const opexPercentage = revenue > 0 ? (opex / revenue) * 100 : 0;
+  
+  if (cogsPercentage > 70) {
+    criticalIssues.push(`COGS terlalu tinggi: ${cogsPercentage.toFixed(1)}% dari revenue`);
+    recommendedActions.push('Review supplier dan proses produksi');
+  } else if (cogsPercentage > 50) {
+    opportunities.push(`COGS dapat dioptimasi: ${cogsPercentage.toFixed(1)}% dari revenue`);
+  }
+  
+  if (opexPercentage > 40) {
+    criticalIssues.push(`Biaya operasional tinggi: ${opexPercentage.toFixed(1)}% dari revenue`);
+    recommendedActions.push('Audit dan streamline operasional expenses');
+  } else if (opexPercentage > 25) {
+    opportunities.push(`Efisiensi operasional dapat ditingkatkan: ${opexPercentage.toFixed(1)}%`);
+  }
+  
+  // Growth Analysis (if previous data available)
+  if (previousCalculation) {
+    const comparison = comparePeriods(calculation, previousCalculation);
+    
+    if (comparison.revenueGrowth > 15) {
+      keyHighlights.push(`Revenue growth sangat baik: +${comparison.revenueGrowth.toFixed(1)}%`);
+    } else if (comparison.revenueGrowth > 5) {
+      keyHighlights.push(`Revenue growth positif: +${comparison.revenueGrowth.toFixed(1)}%`);
+    } else if (comparison.revenueGrowth < -10) {
+      criticalIssues.push(`Revenue menurun signifikan: ${comparison.revenueGrowth.toFixed(1)}%`);
+      recommendedActions.push('Analisis penyebab penurunan dan action plan recovery');
+    }
+    
+    if (comparison.trend === 'improving') {
+      keyHighlights.push('Tren profit menunjukkan perbaikan');
+    } else if (comparison.trend === 'declining') {
+      criticalIssues.push('Tren profit menurun');
+      recommendedActions.push('Identifikasi faktor penyebab penurunan profit');
+    }
+  }
+  
+  // Business Health Assessment
+  if (netProfit > 0 && grossMargin > 30 && netMargin > 10) {
+    opportunities.push('Bisnis dalam kondisi sehat, siap untuk ekspansi');
+    recommendedActions.push('Pertimbangkan investasi untuk growth');
+  } else if (netProfit > 0) {
+    opportunities.push('Bisnis profitable, fokus pada peningkatan efisiensi');
+  }
+  
+  // Data Quality Assessment
+  const dataQuality = validateDataQuality(calculation);
+  if (dataQuality.score < 70) {
+    opportunities.push('Tingkatkan kualitas data untuk analisis yang lebih akurat');
+    recommendedActions.push('Lengkapi data transaksi dan kategorisasi');
+  }
+  
+  return {
+    keyHighlights,
+    criticalIssues,
+    opportunities,
+    recommendedActions
+  };
+};
+
+/**
+ * ✅ ENHANCED: Format currency for Indonesian Rupiah
+ */
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+/**
+ * ✅ ENHANCED: Format percentage with proper rounding
+ */
+export const formatPercentage = (value: number, decimals: number = 1): string => {
+  return `${value.toFixed(decimals)}%`;
+};
+
+/**
+ * ✅ NEW: Calculate rolling averages for trend analysis
+ */
+export const calculateRollingAverages = (
   history: RealTimeProfitCalculation[],
-  industryData?: {
-    averageGrossMargin?: number;
-    averageNetMargin?: number;
-    topQuartile?: number;
+  periods: number = 3
+): {
+  revenueAverage: number;
+  profitAverage: number;
+  marginAverage: number;
+  volatility: number;
+} => {
+  
+  if (history.length < periods) {
+    return {
+      revenueAverage: 0,
+      profitAverage: 0,
+      marginAverage: 0,
+      volatility: 0
+    };
   }
-): ProfitBenchmark => {
   
-  // Industry benchmarks (default values - in real app, fetch from database)
-  const industry = {
-    averageGrossMargin: industryData?.averageGrossMargin || 45,
-    averageNetMargin: industryData?.averageNetMargin || 15,
-    topQuartileMargin: industryData?.topQuartile || 25
-  };
+  const recentHistory = history.slice(-periods);
   
-  // Company historical performance
-  const historicalMargins = history.map(h => {
+  const revenues = recentHistory.map(h => h.revenue_data.total);
+  const profits = recentHistory.map(h => {
+    const revenue = h.revenue_data.total;
+    const costs = h.cogs_data.total + h.opex_data.total;
+    return revenue - costs;
+  });
+  const margins = recentHistory.map(h => {
     const revenue = h.revenue_data.total;
     const profit = revenue - h.cogs_data.total - h.opex_data.total;
     return revenue > 0 ? (profit / revenue) * 100 : 0;
   });
   
-  const company = {
-    historicalAverage: historicalMargins.length > 0 
-      ? historicalMargins.reduce((sum, m) => sum + m, 0) / historicalMargins.length 
-      : 0,
-    bestPeriod: historicalMargins.length > 0 ? Math.max(...historicalMargins) : 0,
-    worstPeriod: historicalMargins.length > 0 ? Math.min(...historicalMargins) : 0
-  };
-  
-  // Competitive position
-  const currentNetMargin = currentMetrics.netProfitMargin;
-  let position: 'excellent' | 'above-average' | 'average' | 'below-average' | 'poor';
-  let percentile: number;
-  
-  if (currentNetMargin >= industry.topQuartileMargin) {
-    position = 'excellent';
-    percentile = 90;
-  } else if (currentNetMargin >= industry.averageNetMargin * 1.2) {
-    position = 'above-average';
-    percentile = 75;
-  } else if (currentNetMargin >= industry.averageNetMargin * 0.8) {
-    position = 'average';
-    percentile = 50;
-  } else if (currentNetMargin >= industry.averageNetMargin * 0.5) {
-    position = 'below-average';
-    percentile = 25;
-  } else {
-    position = 'poor';
-    percentile = 10;
-  }
-  
-  const gapToLeader = Math.max(0, industry.topQuartileMargin - currentNetMargin);
-  
-  return {
-    industry,
-    company,
-    competitive: {
-      position,
-      percentile,
-      gapToLeader
-    }
-  };
-};
-
-// ==============================================
-// HELPER FUNCTIONS
-// ==============================================
-
-const calculateGrowthRate = (history: RealTimeProfitCalculation[], period: 'monthly' | 'quarterly'): number => {
-  if (history.length < 2) return 0;
-  
-  const periods = period === 'monthly' ? 1 : 3;
-  const recentPeriods = history.slice(-periods - 1);
-  
-  if (recentPeriods.length < 2) return 0;
-  
-  const latest = recentPeriods[recentPeriods.length - 1].revenue_data.total;
-  const previous = recentPeriods[0].revenue_data.total;
-  
-  return previous > 0 ? ((latest - previous) / previous) * 100 : 0;
-};
-
-const calculateSeasonality = (history: RealTimeProfitCalculation[]): number => {
-  if (history.length < 12) return 1; // No seasonality data
-  
-  // Simple seasonality calculation based on monthly variance
-  const monthlyRevenues = history.map(h => h.revenue_data.total);
-  const average = monthlyRevenues.reduce((sum, r) => sum + r, 0) / monthlyRevenues.length;
-  const variance = monthlyRevenues.reduce((sum, r) => sum + Math.pow(r - average, 2), 0) / monthlyRevenues.length;
-  const standardDeviation = Math.sqrt(variance);
-  
-  return average > 0 ? standardDeviation / average : 0;
-};
-
-const calculateOperatingLeverage = (history: RealTimeProfitCalculation[]): number => {
-  if (history.length < 2) return 1;
-  
-  const latest = history[history.length - 1];
-  const previous = history[history.length - 2];
-  
-  const revenueChange = ((latest.revenue_data.total - previous.revenue_data.total) / previous.revenue_data.total) * 100;
-  const profitChange = (((latest.revenue_data.total - latest.cogs_data.total - latest.opex_data.total) - 
-                        (previous.revenue_data.total - previous.cogs_data.total - previous.opex_data.total)) / 
-                       (previous.revenue_data.total - previous.cogs_data.total - previous.opex_data.total)) * 100;
-  
-  return revenueChange !== 0 ? profitChange / revenueChange : 1;
-};
-
-const assessDataCompleteness = (analysis: RealTimeProfitCalculation): number => {
-  let score = 0;
-  let maxScore = 0;
-  
-  // Revenue data
-  maxScore += 25;
-  if (analysis.revenue_data.total > 0) score += 25;
-  
-  // COGS data
-  maxScore += 25;
-  if (analysis.cogs_data.total >= 0) score += 25;
-  
-  // OpEx data
-  maxScore += 25;
-  if (analysis.opex_data.total > 0) score += 25;
-  
-  // Detailed breakdown
-  maxScore += 25;
-  if (analysis.revenue_data.transactions && analysis.revenue_data.transactions.length > 0) score += 15;
-  if (analysis.opex_data.costs && analysis.opex_data.costs.length > 0) score += 10;
-  
-  return maxScore > 0 ? (score / maxScore) * 100 : 0;
-};
-
-const assessCalculationAccuracy = (analysis: RealTimeProfitCalculation): number => {
-  let score = 100; // Start with perfect score
-  
-  // Check for logical inconsistencies
-  if (analysis.revenue_data.total < 0) score -= 20;
-  if (analysis.cogs_data.total < 0) score -= 15;
-  if (analysis.opex_data.total < 0) score -= 15;
-  
-  // Check proportional reasonableness
-  const revenue = analysis.revenue_data.total;
-  const cogs = analysis.cogs_data.total;
-  const opex = analysis.opex_data.total;
-  
-  if (revenue > 0) {
-    // COGS should typically be less than revenue
-    if (cogs > revenue) score -= 25;
-    
-    // OpEx should be reasonable relative to revenue
-    if (opex > revenue * 0.8) score -= 15; // OpEx > 80% of revenue is suspicious
-    
-    // Total costs shouldn't exceed revenue by too much (some loss is acceptable)
-    if ((cogs + opex) > revenue * 1.5) score -= 20;
-  }
-  
-  return Math.max(0, score);
-};
-
-const calculateTrendForecast = (history: RealTimeProfitCalculation[]): { nextMonth: number } => {
-  if (history.length < 2) return { nextMonth: 0 };
-  
-  const revenues = history.map(h => h.revenue_data.total);
-  const n = revenues.length;
-  
-  // Simple linear trend
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  
-  for (let i = 0; i < n; i++) {
-    sumX += i;
-    sumY += revenues[i];
-    sumXY += i * revenues[i];
-    sumX2 += i * i;
-  }
-  
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-  const intercept = (sumY - slope * sumX) / n;
-  
-  return { nextMonth: slope * n + intercept };
-};
-
-const calculateSeasonalForecast = (history: RealTimeProfitCalculation[]): { nextMonth: number } => {
-  if (history.length < 12) return { nextMonth: history[history.length - 1]?.revenue_data.total || 0 };
-  
-  // Use same month from previous year as baseline
-  const currentMonth = new Date().getMonth();
-  const lastYearSameMonth = history.find(h => {
-    const period = new Date(h.period + '-01');
-    return period.getMonth() === currentMonth;
-  });
-  
-  if (!lastYearSameMonth) return { nextMonth: history[history.length - 1].revenue_data.total };
-  
-  // Apply growth trend
-  const recentGrowth = calculateGrowthRate(history, 'monthly');
-  return { nextMonth: lastYearSameMonth.revenue_data.total * (1 + recentGrowth / 100) };
-};
-
-const calculateRegressionForecast = (history: RealTimeProfitCalculation[]): { nextMonth: number } => {
-  if (history.length < 3) return { nextMonth: 0 };
-  
-  // Simple moving average with trend adjustment
-  const recent3 = history.slice(-3);
-  const average = recent3.reduce((sum, h) => sum + h.revenue_data.total, 0) / 3;
-  
-  // Calculate trend from last 3 periods
-  const trend = (recent3[2].revenue_data.total - recent3[0].revenue_data.total) / 2;
-  
-  return { nextMonth: average + trend };
-};
-
-const calculateTrendConsistency = (history: RealTimeProfitCalculation[]): number => {
-  if (history.length < 3) return 0;
-  
-  const revenues = history.map(h => h.revenue_data.total);
-  const changes = [];
-  
-  for (let i = 1; i < revenues.length; i++) {
-    if (revenues[i - 1] !== 0) {
-      changes.push((revenues[i] - revenues[i - 1]) / revenues[i - 1]);
-    }
-  }
-  
-  if (changes.length === 0) return 0;
-  
-  // Calculate variance of changes (lower variance = higher consistency)
-  const avgChange = changes.reduce((sum, c) => sum + c, 0) / changes.length;
-  const variance = changes.reduce((sum, c) => sum + Math.pow(c - avgChange, 2), 0) / changes.length;
-  
-  // Convert to consistency score (0-1, where 1 is most consistent)
-  return Math.max(0, 1 - Math.sqrt(variance));
-};
-
-/**
- * Calculate profit volatility and risk metrics
- */
-export const calculateProfitRiskMetrics = (history: RealTimeProfitCalculation[]) => {
-  if (history.length < 3) {
-    return {
-      volatility: 0,
-      valueAtRisk: 0,
-      maxDrawdown: 0,
-      sharpeRatio: 0,
-      consistencyScore: 0
-    };
-  }
-  
-  const profits = history.map(h => {
-    const revenue = h.revenue_data.total;
-    const costs = h.cogs_data.total + h.opex_data.total;
-    return revenue - costs;
-  });
+  const revenueAverage = revenues.reduce((sum, r) => sum + r, 0) / revenues.length;
+  const profitAverage = profits.reduce((sum, p) => sum + p, 0) / profits.length;
+  const marginAverage = margins.reduce((sum, m) => sum + m, 0) / margins.length;
   
   // Calculate volatility (standard deviation of profits)
-  const avgProfit = profits.reduce((sum, p) => sum + p, 0) / profits.length;
-  const variance = profits.reduce((sum, p) => sum + Math.pow(p - avgProfit, 2), 0) / profits.length;
+  const profitMean = profitAverage;
+  const variance = profits.reduce((sum, p) => sum + Math.pow(p - profitMean, 2), 0) / profits.length;
   const volatility = Math.sqrt(variance);
   
-  // Value at Risk (5th percentile)
-  const sortedProfits = [...profits].sort((a, b) => a - b);
-  const varIndex = Math.floor(sortedProfits.length * 0.05);
-  const valueAtRisk = sortedProfits[varIndex] || 0;
-  
-  // Maximum Drawdown
-  let peak = profits[0];
-  let maxDrawdown = 0;
-  
-  for (const profit of profits) {
-    if (profit > peak) {
-      peak = profit;
-    } else {
-      const drawdown = (peak - profit) / peak;
-      maxDrawdown = Math.max(maxDrawdown, drawdown);
-    }
-  }
-  
-  // Sharpe Ratio (simplified - assuming risk-free rate of 5%)
-  const riskFreeRate = avgProfit * 0.05; // 5% annually
-  const sharpeRatio = volatility > 0 ? (avgProfit - riskFreeRate) / volatility : 0;
-  
-  // Consistency Score (percentage of profitable periods)
-  const profitablePeriods = profits.filter(p => p > 0).length;
-  const consistencyScore = (profitablePeriods / profits.length) * 100;
-  
   return {
-    volatility,
-    valueAtRisk,
-    maxDrawdown: maxDrawdown * 100, // Convert to percentage
-    sharpeRatio,
-    consistencyScore
-  };
-};
-
-/**
- * Generate executive summary insights
- */
-export const generateExecutiveSummary = (
-  currentAnalysis: RealTimeProfitCalculation,
-  metrics: AdvancedProfitMetrics,
-  forecast: ProfitForecast,
-  benchmark: ProfitBenchmark
-) => {
-  const insights = [];
-  const alerts = [];
-  const opportunities = [];
-  
-  const revenue = currentAnalysis.revenue_data.total;
-  const netMargin = metrics.netProfitMargin;
-  const grossMargin = metrics.grossProfitMargin;
-  
-  // Performance Insights
-  if (netMargin >= 20) {
-    insights.push(`Excellent profitability with ${netMargin.toFixed(1)}% net margin`);
-  } else if (netMargin >= 10) {
-    insights.push(`Healthy profitability at ${netMargin.toFixed(1)}% net margin`);
-  } else if (netMargin >= 5) {
-    insights.push(`Moderate profitability at ${netMargin.toFixed(1)}% net margin`);
-  } else {
-    alerts.push(`Low profitability: ${netMargin.toFixed(1)}% net margin needs improvement`);
-  }
-  
-  // Competitive Position
-  if (benchmark.competitive.position === 'excellent') {
-    insights.push(`Top-tier performance - ${benchmark.competitive.percentile}th percentile in industry`);
-  } else if (benchmark.competitive.position === 'poor') {
-    alerts.push(`Below industry standards - ${benchmark.competitive.gapToLeader.toFixed(1)}% gap to leaders`);
-  }
-  
-  // Growth Trajectory
-  if (metrics.monthlyGrowthRate > 10) {
-    insights.push(`Strong growth momentum at ${metrics.monthlyGrowthRate.toFixed(1)}% monthly`);
-  } else if (metrics.monthlyGrowthRate < -5) {
-    alerts.push(`Revenue declining at ${Math.abs(metrics.monthlyGrowthRate).toFixed(1)}% monthly`);
-  }
-  
-  // Cost Structure
-  if (metrics.cogsPercentage > 70) {
-    alerts.push(`High COGS at ${metrics.cogsPercentage.toFixed(1)}% - review supplier costs`);
-  }
-  
-  if (metrics.opexPercentage > 40) {
-    alerts.push(`High operational costs at ${metrics.opexPercentage.toFixed(1)}% - optimize operations`);
-  }
-  
-  // Opportunities
-  if (grossMargin > 40 && netMargin < 15) {
-    opportunities.push('Strong gross margins suggest potential for operational efficiency gains');
-  }
-  
-  if (metrics.breakEvenPoint > 0 && revenue > metrics.breakEvenPoint * 1.5) {
-    opportunities.push('Strong margin of safety allows for strategic investments');
-  }
-  
-  if (forecast.nextMonth.confidence > 70) {
-    opportunities.push('Predictable revenue patterns support strategic planning');
-  }
-  
-  return {
-    insights,
-    alerts,
-    opportunities,
-    keyMetrics: {
-      currentRevenue: revenue,
-      netMargin,
-      grossMargin,
-      monthlyGrowth: metrics.monthlyGrowthRate,
-      competitivePosition: benchmark.competitive.position,
-      forecastConfidence: forecast.nextMonth.confidence
-    }
+    revenueAverage,
+    profitAverage,
+    marginAverage,
+    volatility
   };
 };
 
@@ -796,19 +687,33 @@ export const generateExecutiveSummary = (
 // ==============================================
 
 export {
-  calculateAdvancedProfitMetrics,
-  generateProfitForecast,
-  generateCostOptimizationRecommendations,
-  performCompetitiveBenchmarking,
-  calculateProfitRiskMetrics,
-  generateExecutiveSummary
+  calculateRealTimeProfit,
+  calculateMargins,
+  filterTransactionsByPeriod,
+  getMarginRating,
+  calculateInventoryBasedCOGS,
+  analyzeCostStructure,
+  calculateBreakEvenAnalysis,
+  comparePeriods,
+  validateDataQuality,
+  generateExecutiveInsights,
+  formatCurrency,
+  formatPercentage,
+  calculateRollingAverages
 };
 
 export default {
-  calculateAdvancedProfitMetrics,
-  generateProfitForecast,
-  generateCostOptimizationRecommendations,
-  performCompetitiveBenchmarking,
-  calculateProfitRiskMetrics,
-  generateExecutiveSummary
+  calculateRealTimeProfit,
+  calculateMargins,
+  filterTransactionsByPeriod,
+  getMarginRating,
+  calculateInventoryBasedCOGS,
+  analyzeCostStructure,
+  calculateBreakEvenAnalysis,
+  comparePeriods,
+  validateDataQuality,
+  generateExecutiveInsights,
+  formatCurrency,
+  formatPercentage,
+  calculateRollingAverages
 };

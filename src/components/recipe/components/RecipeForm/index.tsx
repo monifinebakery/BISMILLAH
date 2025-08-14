@@ -1,5 +1,4 @@
-// src/components/recipe/components/RecipeForm/index.tsx - with useQuery
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,6 @@ import {
   Save, 
   AlertCircle,
   CheckCircle,
-  Info,
   Calculator
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +23,7 @@ import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
 import { RECIPE_CATEGORIES } from '../../types';
 import type { Recipe, NewRecipe, RecipeFormStep, BahanResep } from '../../types';
+
 // Query Keys
 export const RECIPE_QUERY_KEYS = {
   all: ['recipes'] as const,
@@ -33,6 +32,7 @@ export const RECIPE_QUERY_KEYS = {
   details: () => [...RECIPE_QUERY_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...RECIPE_QUERY_KEYS.details(), id] as const,
 } as const;
+
 interface RecipeFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,11 +40,13 @@ interface RecipeFormProps {
   onSuccess?: (recipe: Recipe, isEdit: boolean) => void;
   isLoading?: boolean;
 }
+
 const STEPS: { key: RecipeFormStep; title: string; description: string }[] = [
   { key: 'basic', title: 'Informasi Dasar', description: 'Nama, kategori, dan deskripsi resep' },
   { key: 'ingredients', title: 'Bahan-bahan', description: 'Daftar bahan dan takaran yang dibutuhkan' },
   { key: 'costs', title: 'Kalkulasi HPP', description: 'Biaya produksi dan margin keuntungan' },
 ];
+
 const RecipeForm: React.FC<RecipeFormProps> = ({
   isOpen,
   onOpenChange,
@@ -55,7 +57,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [currentStep, setCurrentStep] = useState<RecipeFormStep>('basic');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   const queryClient = useQueryClient();
+  const contentRef = useRef<HTMLDivElement>(null);
+
   // Form data state
   const [formData, setFormData] = useState<NewRecipe>({
     namaResep: '',
@@ -69,18 +74,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     marginKeuntunganPersen: 25,
     jumlahPcsPerPorsi: 1,
   });
+
   const isEditMode = !!initialData;
   const currentStepIndex = STEPS.findIndex(step => step.key === currentStep);
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === STEPS.length - 1;
-  // ✅ useQuery: Create Recipe Mutation
+
+  // Create Recipe Mutation
   const createRecipeMutation = useMutation({
     mutationFn: async (data: NewRecipe) => {
-      // ✅ Perbarui: Tidak perlu membungkus dengan ApiResponse karena recipeApi sudah melempar error
       return await recipeApi.createRecipe(data);
     },
     onSuccess: (newRecipe) => {
-      // ✅ TAMBAHKAN: Validasi data dari API
       if (!newRecipe) {
         const errorMsg = 'Data resep baru tidak diterima dari server';
         logger.error('RecipeForm: No recipe data received from create API');
@@ -94,9 +99,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         return;
       }
 
-      // Invalidate and refetch recipes list
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
-      // Add to cache optimistically
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(newRecipe.id), 
         newRecipe
@@ -110,14 +113,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       toast.error(error.message || 'Gagal menambahkan resep');
     },
   });
-  // ✅ useQuery: Update Recipe Mutation
+
+  // Update Recipe Mutation
   const updateRecipeMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<NewRecipe> }) => {
-      // ✅ Perbarui: Tidak perlu membungkus dengan ApiResponse karena recipeApi sudah melempar error
       return await recipeApi.updateRecipe(id, data);
     },
     onSuccess: (updatedRecipe) => {
-      // ✅ TAMBAHKAN: Validasi data dari API
       if (!updatedRecipe) {
         const errorMsg = 'Data resep tidak diterima dari server';
         logger.error('RecipeForm: No recipe data received from update API');
@@ -131,14 +133,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         return;
       }
 
-      // Invalidate and refetch recipes list
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
-      // Update specific recipe in cache
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(updatedRecipe.id), 
         updatedRecipe
       );
-      // Update any cached lists that contain this recipe
       queryClient.setQueriesData(
         { queryKey: RECIPE_QUERY_KEYS.lists() },
         (oldData: Recipe[] | undefined) => {
@@ -157,9 +156,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       toast.error(error.message || 'Gagal memperbarui resep');
     },
   });
-  // Check if any mutation is loading
+
   const isMutationLoading = createRecipeMutation.isPending || updateRecipeMutation.isPending;
   const isLoading = externalLoading || isMutationLoading;
+
   // Initialize form data
   useEffect(() => {
     if (isOpen) {
@@ -182,7 +182,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           hargaJualPerPcs: initialData.hargaJualPerPcs,
         });
       } else {
-        // Reset form for new recipe
         setFormData({
           namaResep: '',
           jumlahPorsi: 1,
@@ -198,16 +197,41 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       }
       setCurrentStep('basic');
       setErrors({});
+      setIsFooterVisible(false); // Reset footer visibility
     }
   }, [isOpen, initialData]);
+
+  // Scroll handler for footer visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      if (contentRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
+        setIsFooterVisible(isAtBottom);
+      }
+    };
+
+    const contentElement = contentRef.current;
+    if (contentElement) {
+      contentElement.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial check
+    }
+
+    return () => {
+      if (contentElement) {
+        contentElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [isOpen]);
+
   // Update form field
   const updateField = (field: keyof NewRecipe, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
   // Auto-calculate HPP when relevant fields change
   useEffect(() => {
     if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
@@ -246,6 +270,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
   ]);
+
   // Validate current step
   const validateCurrentStep = (): boolean => {
     const stepErrors: { [key: string]: string } = {};
@@ -293,6 +318,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
+
   // Navigate to next step
   const handleNext = () => {
     if (!validateCurrentStep()) {
@@ -304,6 +330,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       setCurrentStep(STEPS[nextIndex].key);
     }
   };
+
   // Navigate to previous step
   const handlePrevious = () => {
     const prevIndex = currentStepIndex - 1;
@@ -311,9 +338,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       setCurrentStep(STEPS[prevIndex].key);
     }
   };
-  // ✅ Submit form with useQuery mutations
+
+  // Submit form
   const handleSubmit = async () => {
-    // Validate all data
     const validation = validateRecipeData(formData);
     if (!validation.isValid) {
       toast.error(`Form tidak valid: ${validation.errors[0]}`);
@@ -321,20 +348,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }
     try {
       if (isEditMode && initialData?.id) {
-        // Update existing recipe
         await updateRecipeMutation.mutateAsync({
           id: initialData.id,
           data: formData
         });
       } else {
-        // Create new recipe
         await createRecipeMutation.mutateAsync(formData);
       }
     } catch (error) {
-      // Error handling is done in mutation callbacks
       logger.error('RecipeForm: Error in handleSubmit:', error);
     }
   };
+
   // Render step content
   const renderStepContent = () => {
     const commonProps = {
@@ -354,7 +379,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         return null;
     }
   };
+
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white">
@@ -414,13 +441,17 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           </div>
         </CardHeader>
         {/* Content with Mobile-Safe Padding */}
-        <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]">
-          <div className="p-6 pb-32 sm:pb-6">
+        <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]" ref={contentRef}>
+          <div className="p-6">
             {renderStepContent()}
           </div>
         </CardContent>
-        {/* Footer - Fixed Position for Mobile with Safe Area */}
-        <div className="border-t bg-gray-50 p-4 relative sm:static fixed bottom-16 sm:bottom-0 left-0 right-0 z-60 shadow-lg sm:shadow-none">
+        {/* Footer - Conditionally shown based on scroll position */}
+        <div
+          className={`border-t bg-gray-50 p-4 fixed bottom-0 left-0 right-0 z-60 shadow-lg transition-opacity duration-300 ${
+            isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          } sm:static sm:opacity-100 sm:pointer-events-auto`}
+        >
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             {/* Left side - HPP Preview (on cost step) */}
             <div className="flex-1">
@@ -506,4 +537,5 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     </div>
   );
 };
+
 export default RecipeForm;

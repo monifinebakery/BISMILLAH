@@ -12,7 +12,6 @@ export interface AppUpdate {
 }
 
 export interface UserSeenUpdate {
-  id: string;
   user_id: string;
   update_id: string;
   seen_at: string;

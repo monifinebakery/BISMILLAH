@@ -117,7 +117,6 @@ export {
   comparePeriods,
   validateDataQuality,
   generateExecutiveInsights,
-  calculateRollingAverages
 } from './utils/profitCalculations';
 
 // ===== CONVENIENT DEFAULT EXPORT =====

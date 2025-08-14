@@ -5,7 +5,7 @@ import {
   COGSBreakdown,
   OpExBreakdown,
   ProfitChartData 
-} from '../types/profitAnalysis.types';
+} from '../../types/profitAnalysis.types';
 
 /**
  * Transform financial transactions to revenue breakdown
@@ -353,21 +353,53 @@ export const getCurrentPeriod = (periodType: 'monthly' | 'quarterly' | 'yearly' 
   return `${year}-${month.toString().padStart(2, '0')}`;
 };
 
-// Export semua fungsi
-export {
-  transformToRevenueBreakdown,
-  transformToCOGSBreakdown,
-  transformToOpExBreakdown,
-  transformToProfitAnalysis,
-  transformToChartData,
-  formatCurrency,
-  formatPercentage,
-  formatLargeNumber,
-  formatPeriodLabel,
-  getShortPeriodLabel,
-  calculateGrowth,
-  getGrowthStatus,
-  generatePeriodOptions,
-  isValidPeriod,
-  getCurrentPeriod
+/**
+ * Calculate rolling averages for trend analysis
+ */
+export const calculateRollingAverages = (
+  history: RealTimeProfitCalculation[],
+  periods: number = 3
+): {
+  revenueAverage: number;
+  profitAverage: number;
+  marginAverage: number;
+  volatility: number;
+} => {
+  if (history.length < periods) {
+    return {
+      revenueAverage: 0,
+      profitAverage: 0,
+      marginAverage: 0,
+      volatility: 0
+    };
+  }
+  
+  const recentHistory = history.slice(-periods);
+  
+  const revenues = recentHistory.map(h => h.revenue_data.total);
+  const profits = recentHistory.map(h => {
+    const revenue = h.revenue_data.total;
+    const costs = h.cogs_data.total + h.opex_data.total;
+    return revenue - costs;
+  });
+  const margins = recentHistory.map(h => {
+    const revenue = h.revenue_data.total;
+    const profit = revenue - h.cogs_data.total - h.opex_data.total;
+    return revenue > 0 ? (profit / revenue) * 100 : 0;
+  });
+  
+  const revenueAverage = revenues.reduce((sum, r) => sum + r, 0) / revenues.length;
+  const profitAverage = profits.reduce((sum, p) => sum + p, 0) / profits.length;
+  const marginAverage = margins.reduce((sum, m) => sum + m, 0) / margins.length;
+  
+  const profitMean = profitAverage;
+  const variance = profits.reduce((sum, p) => sum + Math.pow(p - profitMean, 2), 0) / profits.length;
+  const volatility = Math.sqrt(variance);
+  
+  return {
+    revenueAverage,
+    profitAverage,
+    marginAverage,
+    volatility
+  };
 };

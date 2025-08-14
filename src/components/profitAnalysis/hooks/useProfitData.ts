@@ -1,7 +1,7 @@
-// 3. useProfitData.ts - Data processing utilities
+// useProfitData.ts - Fixed Dependencies
 // ==============================================
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ProfitChartData, ProfitTrendData, RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 
 export interface UseProfitDataOptions {
@@ -35,57 +35,100 @@ export const useProfitData = (
 ): UseProfitDataReturn => {
   const { history = [], currentAnalysis } = options;
 
-  // ✅ UTILITIES (moved up to fix dependency)
+  // ✅ UTILITIES - No dependencies needed for static function
   const formatPeriodLabel = useCallback((period: string): string => {
-    // Convert "2024-01" to "Jan 2024"
-    const [year, month] = period.split('-');
-    const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    
-    return `${monthNames[parseInt(month) - 1]} ${year}`;
+    try {
+      if (!period || typeof period !== 'string') return period || '';
+      
+      const [year, month] = period.split('-');
+      if (!year || !month) return period;
+      
+      const monthNames = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      
+      const monthIndex = parseInt(month) - 1;
+      if (monthIndex < 0 || monthIndex >= monthNames.length) return period;
+      
+      return `${monthNames[monthIndex]} ${year}`;
+    } catch (error) {
+      console.error('Error formatting period label:', error);
+      return period || '';
+    }
   }, []);
 
-  // ✅ CHART DATA PROCESSING
+  // ✅ CHART DATA PROCESSING - Fixed error handling
   const chartData = useMemo((): ProfitChartData[] => {
-    return history.map(analysis => {
-      const revenue = analysis.revenue_data.total;
-      const cogs = analysis.cogs_data.total;
-      const opex = analysis.opex_data.total;
-      const grossProfit = revenue - cogs;
-      const netProfit = grossProfit - opex;
-      const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-      const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    if (!Array.isArray(history) || history.length === 0) return [];
+    
+    try {
+      return history.map(analysis => {
+        if (!analysis) return null;
+        
+        const revenue = analysis.revenue_data?.total || 0;
+        const cogs = analysis.cogs_data?.total || 0;
+        const opex = analysis.opex_data?.total || 0;
+        const grossProfit = revenue - cogs;
+        const netProfit = grossProfit - opex;
+        const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+        const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-      return {
-        period: analysis.period,
-        revenue,
-        cogs,
-        opex,
-        gross_profit: grossProfit,
-        net_profit: netProfit,
-        gross_margin: grossMargin,
-        net_margin: netMargin
-      };
-    });
-  }, [history]);
+        return {
+          period: analysis.period || '',
+          revenue,
+          cogs,
+          opex,
+          gross_profit: grossProfit,
+          net_profit: netProfit,
+          gross_margin: grossMargin,
+          net_margin: netMargin
+        };
+      }).filter(Boolean) as ProfitChartData[];
+    } catch (error) {
+      console.error('Error processing chart data:', error);
+      return [];
+    }
+  }, [history]); // Only depend on history array
 
-  // ✅ TREND DATA
+  // ✅ TREND DATA - Fixed dependencies
   const trendData = useMemo((): ProfitTrendData => {
-    const labels = chartData.map(d => formatPeriodLabel(d.period));
-    const datasets = {
-      revenue: chartData.map(d => d.revenue),
-      gross_profit: chartData.map(d => d.gross_profit),
-      net_profit: chartData.map(d => d.net_profit)
-    };
+    if (!Array.isArray(chartData) || chartData.length === 0) {
+      return { 
+        labels: [], 
+        datasets: { 
+          revenue: [], 
+          gross_profit: [], 
+          net_profit: [] 
+        } 
+      };
+    }
+    
+    try {
+      const labels = chartData.map(d => formatPeriodLabel(d?.period || ''));
+      const datasets = {
+        revenue: chartData.map(d => d?.revenue || 0),
+        gross_profit: chartData.map(d => d?.gross_profit || 0),
+        net_profit: chartData.map(d => d?.net_profit || 0)
+      };
 
-    return { labels, datasets };
-  }, [chartData, formatPeriodLabel]);
+      return { labels, datasets };
+    } catch (error) {
+      console.error('Error processing trend data:', error);
+      return { 
+        labels: [], 
+        datasets: { 
+          revenue: [], 
+          gross_profit: [], 
+          net_profit: [] 
+        } 
+      };
+    }
+  }, [chartData, formatPeriodLabel]); // Depend on chartData and formatPeriodLabel
 
-  // ✅ SUMMARY CALCULATIONS
+  // ✅ SUMMARY CALCULATIONS - Fixed error handling
   const summaryMetrics = useMemo(() => {
-    if (history.length === 0) {
+    if (!Array.isArray(history) || history.length === 0) {
       return {
         totalRevenue: 0,
         totalProfit: 0,
@@ -95,80 +138,124 @@ export const useProfitData = (
       };
     }
 
-    const totalRevenue = history.reduce((sum, h) => sum + h.revenue_data.total, 0);
-    const totalProfit = history.reduce((sum, h) => {
-      const profit = h.revenue_data.total - h.cogs_data.total - h.opex_data.total;
-      return sum + profit;
-    }, 0);
+    try {
+      const totalRevenue = history.reduce((sum, h) => {
+        return sum + (h?.revenue_data?.total || 0);
+      }, 0);
+      
+      const totalProfit = history.reduce((sum, h) => {
+        const revenue = h?.revenue_data?.total || 0;
+        const cogs = h?.cogs_data?.total || 0;
+        const opex = h?.opex_data?.total || 0;
+        const profit = revenue - cogs - opex;
+        return sum + profit;
+      }, 0);
 
-    const averageMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+      const averageMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
-    // Find best and worst performing periods
-    const periodsWithProfit = history.map(h => ({
-      ...h,
-      profit: h.revenue_data.total - h.cogs_data.total - h.opex_data.total
-    }));
+      // Find best and worst performing periods
+      const periodsWithProfit = history
+        .filter(h => h && h.revenue_data && h.cogs_data && h.opex_data)
+        .map(h => ({
+          ...h,
+          profit: (h.revenue_data?.total || 0) - (h.cogs_data?.total || 0) - (h.opex_data?.total || 0)
+        }));
 
-    const bestPerformingPeriod = periodsWithProfit.reduce((best, current) => 
-      current.profit > best.profit ? current : best
-    );
+      let bestPerformingPeriod = null;
+      let worstPerformingPeriod = null;
 
-    const worstPerformingPeriod = periodsWithProfit.reduce((worst, current) => 
-      current.profit < worst.profit ? current : worst
-    );
+      if (periodsWithProfit.length > 0) {
+        bestPerformingPeriod = periodsWithProfit.reduce((best, current) => 
+          current.profit > best.profit ? current : best
+        );
 
-    return {
-      totalRevenue,
-      totalProfit,
-      averageMargin,
-      bestPerformingPeriod,
-      worstPerformingPeriod
-    };
-  }, [history]);
+        worstPerformingPeriod = periodsWithProfit.reduce((worst, current) => 
+          current.profit < worst.profit ? current : worst
+        );
+      }
 
-  // ✅ BREAKDOWN DATA
+      return {
+        totalRevenue,
+        totalProfit,
+        averageMargin,
+        bestPerformingPeriod,
+        worstPerformingPeriod
+      };
+    } catch (error) {
+      console.error('Error calculating summary metrics:', error);
+      return {
+        totalRevenue: 0,
+        totalProfit: 0,
+        averageMargin: 0,
+        bestPerformingPeriod: null,
+        worstPerformingPeriod: null
+      };
+    }
+  }, [history]); // Only depend on history
+
+  // ✅ BREAKDOWN DATA - Fixed error handling
   const revenueBreakdown = useMemo(() => {
-    if (!currentAnalysis) return [];
+    if (!currentAnalysis?.revenue_data?.transactions) return [];
 
-    const total = currentAnalysis.revenue_data.total;
-    return currentAnalysis.revenue_data.transactions.map(t => ({
-      category: t.category,
-      amount: t.amount,
-      percentage: total > 0 ? (t.amount / total) * 100 : 0
-    }));
-  }, [currentAnalysis]);
+    try {
+      const total = currentAnalysis.revenue_data.total || 0;
+      return (currentAnalysis.revenue_data.transactions || []).map(t => ({
+        category: t?.category || 'Unknown',
+        amount: t?.amount || 0,
+        percentage: total > 0 ? ((t?.amount || 0) / total) * 100 : 0
+      }));
+    } catch (error) {
+      console.error('Error processing revenue breakdown:', error);
+      return [];
+    }
+  }, [currentAnalysis?.revenue_data?.transactions, currentAnalysis?.revenue_data?.total]);
 
   const costBreakdown = useMemo(() => {
     if (!currentAnalysis) return [];
 
-    const totalCosts = currentAnalysis.cogs_data.total + currentAnalysis.opex_data.total;
-    const breakdown = [
-      {
-        category: 'COGS',
-        amount: currentAnalysis.cogs_data.total,
-        percentage: totalCosts > 0 ? (currentAnalysis.cogs_data.total / totalCosts) * 100 : 0
-      },
-      {
-        category: 'OpEx',
-        amount: currentAnalysis.opex_data.total,
-        percentage: totalCosts > 0 ? (currentAnalysis.opex_data.total / totalCosts) * 100 : 0
-      }
-    ];
+    try {
+      const cogsTotal = currentAnalysis.cogs_data?.total || 0;
+      const opexTotal = currentAnalysis.opex_data?.total || 0;
+      const totalCosts = cogsTotal + opexTotal;
+      
+      const breakdown = [
+        {
+          category: 'HPP',
+          amount: cogsTotal,
+          percentage: totalCosts > 0 ? (cogsTotal / totalCosts) * 100 : 0
+        },
+        {
+          category: 'Biaya Ops',
+          amount: opexTotal,
+          percentage: totalCosts > 0 ? (opexTotal / totalCosts) * 100 : 0
+        }
+      ];
 
-    return breakdown;
-  }, [currentAnalysis]);
+      return breakdown;
+    } catch (error) {
+      console.error('Error processing cost breakdown:', error);
+      return [];
+    }
+  }, [currentAnalysis?.cogs_data?.total, currentAnalysis?.opex_data?.total]);
 
   const exportData = useCallback(() => {
-    return chartData.map(data => ({
-      Period: formatPeriodLabel(data.period),
-      Revenue: data.revenue,
-      COGS: data.cogs,
-      OpEx: data.opex,
-      'Gross Profit': data.gross_profit,
-      'Net Profit': data.net_profit,
-      'Gross Margin %': data.gross_margin.toFixed(2),
-      'Net Margin %': data.net_margin.toFixed(2)
-    }));
+    if (!Array.isArray(chartData) || chartData.length === 0) return [];
+    
+    try {
+      return chartData.map(data => ({
+        Period: formatPeriodLabel(data?.period || ''),
+        Revenue: data?.revenue || 0,
+        COGS: data?.cogs || 0,
+        OpEx: data?.opex || 0,
+        'Gross Profit': data?.gross_profit || 0,
+        'Net Profit': data?.net_profit || 0,
+        'Gross Margin %': (data?.gross_margin || 0).toFixed(2),
+        'Net Margin %': (data?.net_margin || 0).toFixed(2)
+      }));
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      return [];
+    }
   }, [chartData, formatPeriodLabel]);
 
   return {

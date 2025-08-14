@@ -107,7 +107,7 @@ export interface PurchaseContextType {
   purchases: Purchase[];
   isLoading: boolean;
   error: string | null;
-  isProcessing: boolean;
+  // isProcessing?: boolean; // (opsional; kalau mau disediakan)
 
   // Core actions
   addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
@@ -189,6 +189,7 @@ export interface PurchaseHeaderProps {
   onExport?: () => void;
   onSettings?: () => void;
   className?: string;
+  isExporting?: boolean;
 }
 
 export interface DataWarningBannerProps {
@@ -294,40 +295,3 @@ export interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
 }
-
-// Export all types
-export type {
-  PurchaseItem,
-  Purchase,
-  PurchaseStatus,
-  CalculationMethod,
-  StatusOption,
-  PurchaseFormData,
-  PurchaseContextType,
-  PurchaseTableContextType,
-  PurchaseStats,
-  PurchaseApiResponse,
-  CreatePurchaseRequest,
-  UsePurchaseReturn,
-  UsePurchaseTableReturn,
-  UsePurchaseStatsReturn,
-  UsePurchaseStatusProps,
-  UsePurchaseStatusReturn,
-  PurchaseDialogProps,
-  PurchaseTablePropsExtended,
-  PurchaseHeaderProps,
-  DataWarningBannerProps,
-  PurchaseDetailDialogProps,
-  StatusDropdownProps,
-  BulkActionsToolbarProps,
-  PurchaseFilters,
-  PaginationState,
-  PurchaseExportData,
-  PurchaseValidationError,
-  PurchaseValidationResult,
-  PurchaseEventHandler,
-  PurchaseStatusEventHandler,
-  PurchaseBulkEventHandler,
-  LoadingStates,
-  EmptyStateProps,
-};

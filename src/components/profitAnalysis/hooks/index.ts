@@ -1,4 +1,4 @@
-// sic › components › profitAnalysis › hooks › index.ts
+// src › components › profitAnalysis › hooks › index.ts
 // ==============================================
 
 // Direct exports untuk menghindari masalah "not defined"

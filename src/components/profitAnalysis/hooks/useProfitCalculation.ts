@@ -1,28 +1,15 @@
-// useProfitCalculation.ts - Fixed Dependencies
+// useProfitCalculation.ts - Fixed Dynamic Import Issues
 // ==============================================
 
 import { useCallback } from 'react';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 
-// Import with fallback
-let calculateMargins, getMarginRating, filterTransactionsByPeriod;
-
-try {
-  const calculations = require('../utils/profitCalculations');
-  calculateMargins = calculations.calculateMargins;
-  getMarginRating = calculations.getMarginRating;
-  filterTransactionsByPeriod = calculations.filterTransactionsByPeriod;
-} catch (error) {
-  console.warn('Profit calculations not available, using fallbacks');
-  calculateMargins = (revenue: number, cogs: number, opex: number) => ({
-    grossProfit: revenue - cogs,
-    netProfit: revenue - cogs - opex,
-    grossMargin: revenue > 0 ? ((revenue - cogs) / revenue) * 100 : 0,
-    netMargin: revenue > 0 ? ((revenue - cogs - opex) / revenue) * 100 : 0
-  });
-  getMarginRating = (margin: number) => margin > 0.2 ? 'good' : 'poor';
-  filterTransactionsByPeriod = (transactions: any[], period: string) => transactions || [];
-}
+// ✅ FIX: Use static imports instead of dynamic require
+import { 
+  calculateMargins, 
+  getMarginRating, 
+  filterTransactionsByPeriod 
+} from '../utils/profitCalculations';
 
 // Types for external dependencies
 interface FinancialTransaction {

@@ -109,13 +109,28 @@ export const integrateFinancialData = async (
     if (productionRecordsResult.error) {
       logger.warn('Failed to fetch production records:', productionRecordsResult.error);
     }
+    
+    // Validasi costsResult dengan logging yang lebih spesifik
     if (!Array.isArray(costsResult)) {
-      logger.warn('integrateFinancialData: operationalCosts bukan array', { costsResult });
+      logger.error('integrateFinancialData: operationalCosts bukan array', { 
+        costsResult,
+        type: typeof costsResult,
+        isNull: costsResult === null,
+        isUndefined: costsResult === undefined
+      });
+      return {
+        transactions: Array.isArray(transactionsResult) ? transactionsResult : [],
+        operationalCosts: [],
+        materials: Array.isArray(materialsResult) ? materialsResult : [],
+        recipes: Array.isArray(recipesResult) ? recipesResult : [],
+        materialUsage: Array.isArray(materialUsageResult.data) ? materialUsageResult.data : [],
+        productionRecords: Array.isArray(productionRecordsResult.data) ? productionRecordsResult.data : []
+      };
     }
 
     return {
       transactions: Array.isArray(transactionsResult) ? transactionsResult : [],
-      operationalCosts: Array.isArray(costsResult) ? costsResult : [],
+      operationalCosts: costsResult,
       materials: Array.isArray(materialsResult) ? materialsResult : [],
       recipes: Array.isArray(recipesResult) ? recipesResult : [],
       materialUsage: Array.isArray(materialUsageResult.data) ? materialUsageResult.data : [],
@@ -177,7 +192,7 @@ export const calculateProfitMargin = async (
     const result = await calculateProfitMargins(input, categoryMapping, allocationSettings);
 
     // Validasi hasil untuk memastikan profitMarginData valid
-    if (!result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
+    if (!result?.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
       logger.error('calculateProfitMargin: Hasil profitMarginData tidak valid', { result });
       return {
         data: null,
@@ -240,7 +255,7 @@ export const compareProfitMargins = async (
     }
 
     // Validasi hasil
-    if (!currentResult.profitMarginData || typeof currentResult.profitMarginData.revenue !== 'number') {
+    if (!currentResult?.profitMarginData || typeof currentResult.profitMarginData.revenue !== 'number') {
       return {
         data: null,
         error: 'Hasil perhitungan periode saat ini tidak valid',
@@ -290,7 +305,7 @@ export const getProfitTrend = async (
 
     // Validasi setiap hasil
     const validResults = results.filter(result => 
-      result.profitMarginData && typeof result.profitMarginData.revenue === 'number' && !isNaN(result.profitMarginData.revenue)
+      result?.profitMarginData && typeof result.profitMarginData.revenue === 'number' && !isNaN(result.profitMarginData.revenue)
     );
 
     if (validResults.length === 0) {
@@ -338,9 +353,15 @@ export const getDashboardSummary = async (): Promise<ProfitAnalysisApiResponse<a
 
     const result = await calculateProfitMargins(input);
 
-    // Validasi hasil
+    // Validasi hasil dengan logging yang lebih spesifik
     if (!result || !result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
-      logger.error('getDashboardSummary: Hasil perhitungan tidak valid', { result });
+      logger.error('getDashboardSummary: Hasil perhitungan tidak valid', { 
+        result,
+        hasResult: !!result,
+        hasProfitMarginData: !!result?.profitMarginData,
+        revenueType: result?.profitMarginData ? typeof result.profitMarginData.revenue : 'undefined',
+        isRevenueNaN: result?.profitMarginData ? isNaN(result.profitMarginData.revenue) : true
+      });
       return {
         data: null,
         error: 'Hasil perhitungan dashboard summary tidak valid',
@@ -357,8 +378,27 @@ export const getDashboardSummary = async (): Promise<ProfitAnalysisApiResponse<a
         netMargin: result.profitMarginData.netMargin || 0,
         cogs: result.profitMarginData.cogs || 0,
         opex: result.profitMarginData.opex || 0,
-        cogsBreakdown: result.cogsBreakdown || { materialCosts: [], totalMaterialCost: 0, directLaborCosts: [], totalDirectLaborCost: 0, manufacturingOverhead: 0, overheadAllocationMethod: 'activity_based', totalCOGS: 0, actualMaterialUsage: [], productionData: [], dataSource: 'estimated' },
-        opexBreakdown: result.opexBreakdown || { administrativeExpenses: [], totalAdministrative: 0, sellingExpenses: [], totalSelling: 0, generalExpenses: [], totalGeneral: 0, totalOPEX: 0 },
+        cogsBreakdown: result.cogsBreakdown || { 
+          materialCosts: [], 
+          totalMaterialCost: 0, 
+          directLaborCosts: [], 
+          totalDirectLaborCost: 0, 
+          manufacturingOverhead: 0, 
+          overheadAllocationMethod: 'activity_based', 
+          totalCOGS: 0, 
+          actualMaterialUsage: [], 
+          productionData: [], 
+          dataSource: 'estimated' 
+        },
+        opexBreakdown: result.opexBreakdown || { 
+          administrativeExpenses: [], 
+          totalAdministrative: 0, 
+          sellingExpenses: [], 
+          totalSelling: 0, 
+          generalExpenses: [], 
+          totalGeneral: 0, 
+          totalOPEX: 0 
+        },
         insights: result.insights || [],
         period: result.profitMarginData.period || currentMonth
       },

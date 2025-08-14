@@ -1,3 +1,4 @@
+// src › components › profitAnalysis › components › index.ts
 // Index file untuk semua komponen analisis profit dalam Bahasa Indonesia
 
 // HANYA ini yang digunakan - tidak perlu bagian bawah

@@ -60,28 +60,18 @@ export const calculateRealTimeProfit = (
   operationalCosts: OperationalCostActual[]
 ): RealTimeProfitCalculation => {
   const periodTransactions = filterTransactionsByPeriod(transactions, period);
-  
+
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  
-  const cogsTransactions = periodTransactions.filter(t => 
-    t.type === 'expense' && (
-      (t.category && (
-        t.category.toLowerCase().includes('bahan baku') ||
-        t.category.toLowerCase().includes('material') ||
-        t.category.toLowerCase().includes('pembelian')
-      )) ||
-      (t.description && (
-        t.description.toLowerCase().includes('bahan baku') ||
-        t.description.toLowerCase().includes('material')
-      ))
-    )
-  );
-  const totalCOGS = cogsTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  
+  // Calculate COGS based on material stock and unit price
+  const {
+    totalCOGS,
+    breakdown: materialBreakdown
+  } = calculateInventoryBasedCOGS(materials);
+
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
-  
+
   const enhancedRevenueTransactions = revenueTransactions.map(t => ({
     category: t.category || 'Uncategorized',
     amount: Number(t.amount) || 0,
@@ -90,12 +80,12 @@ export const calculateRealTimeProfit = (
     id: t.id
   }));
 
-  const enhancedCOGSTransactions = cogsTransactions.map(t => ({
-    name: extractMaterialName(t.description || t.category || 'Material Cost'),
-    cost: Number(t.amount) || 0,
-    category: t.category || 'Direct Material',
-    date: t.date,
-    id: t.id
+  const enhancedCOGSTransactions = materialBreakdown.map(item => ({
+    name: item.material_name,
+    cost: item.total_cost,
+    unit_price: item.unit_price,
+    quantity: item.quantity_used ?? item.estimated_usage ?? 0,
+    category: 'Direct Material'
   }));
 
   const enhancedOpExCosts = activeCosts.map(c => ({

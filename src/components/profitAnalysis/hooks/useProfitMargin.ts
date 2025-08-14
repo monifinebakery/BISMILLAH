@@ -67,8 +67,12 @@ export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
       }
 
       // Validasi response data
-      if (!response.data.profitMarginData || typeof response.data.profitMarginData.revenue !== 'number') {
-        logger.error('Invalid profit margin data received', { data: response.data });
+      if (!response.data?.profitMarginData || typeof response.data.profitMarginData.revenue !== 'number' || isNaN(response.data.profitMarginData.revenue)) {
+        logger.error('Invalid profit margin data received', { 
+          data: response.data,
+          hasProfitMarginData: !!response.data?.profitMarginData,
+          revenueType: response.data?.profitMarginData ? typeof response.data.profitMarginData.revenue : 'undefined'
+        });
         throw new Error('Data profit margin tidak valid');
       }
 
@@ -230,9 +234,14 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
         throw new Error(response.error || 'Gagal memuat dashboard summary');
       }
 
-      // Validasi response data
+      // Validasi response data dengan logging yang lebih spesifik
       if (!response.data || typeof response.data.revenue !== 'number' || isNaN(response.data.revenue)) {
-        logger.error('Invalid dashboard summary data received', { data: response.data });
+        logger.error('Invalid dashboard summary data received', { 
+          data: response.data,
+          hasData: !!response.data,
+          revenueType: response.data ? typeof response.data.revenue : 'undefined',
+          isRevenueNaN: response.data ? isNaN(response.data.revenue) : true
+        });
         throw new Error('Data ringkasan dashboard tidak valid');
       }
 

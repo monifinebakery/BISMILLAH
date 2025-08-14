@@ -1,6 +1,5 @@
 // 4. src/components/profitAnalysis/index.ts - MAIN EXPORT
 // ==============================================
-
 // Types
 export type {
   ProfitAnalysis,
@@ -59,12 +58,20 @@ export {
   transformToProfitAnalysis
 } from './utils/profitTransformers';
 
+// Profit Calculations - Updated to match actual available functions
 export {
-  calculateAdvancedProfitMetrics,
-  generateProfitForecast,
-  generateCostOptimizationRecommendations,
-  performCompetitiveBenchmarking,
-  generateExecutiveSummary
+  calculateRealTimeProfit,
+  calculateMargins,
+  filterTransactionsByPeriod,
+  getMarginRating,
+  extractMaterialName,
+  calculateInventoryBasedCOGS,
+  analyzeCostStructure,
+  calculateBreakEvenAnalysis,
+  comparePeriods,
+  validateDataQuality,
+  generateExecutiveInsights,
+  calculateRollingAverages
 } from './utils/profitCalculations';
 
 // Default export for convenience

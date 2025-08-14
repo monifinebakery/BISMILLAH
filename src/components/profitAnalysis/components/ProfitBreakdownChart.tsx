@@ -31,15 +31,15 @@ interface ChartData {
 
 interface BarChartData {
   category: string;
-  Revenue: number;
-  COGS: number;
-  OpEx: number;
-  'Gross Profit': number;
-  'Net Profit': number;
+  Pendapatan: number;
+  HPP: number;
+  BiayaOps: number;
+  'Laba Kotor': number;
+  'Laba Bersih': number;
 }
 
 // ==============================================
-// PROFIT BREAKDOWN CHART COMPONENT
+// KOMPONEN GRAFIK BREAKDOWN PROFIT
 // ==============================================
 
 const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
@@ -50,7 +50,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
   className = ''
 }) => {
 
-  // ✅ CALCULATE METRICS
+  // ✅ HITUNG METRIK
   const metrics = useMemo(() => {
     if (!currentAnalysis) {
       return {
@@ -77,21 +77,21 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     };
   }, [currentAnalysis]);
 
-  // ✅ BAR CHART DATA
+  // ✅ DATA GRAFIK BAR
   const barChartData = useMemo((): BarChartData[] => {
     return [
       {
-        category: 'Financial Breakdown',
-        Revenue: metrics.revenue,
-        COGS: metrics.cogs,
-        OpEx: metrics.opex,
-        'Gross Profit': metrics.grossProfit,
-        'Net Profit': metrics.netProfit
+        category: 'Breakdown Keuangan',
+        Pendapatan: metrics.revenue,
+        HPP: metrics.cogs,
+        BiayaOps: metrics.opex,
+        'Laba Kotor': metrics.grossProfit,
+        'Laba Bersih': metrics.netProfit
       }
     ];
   }, [metrics]);
 
-  // ✅ PIE CHART DATA
+  // ✅ DATA GRAFIK PIE
   const pieChartData = useMemo((): ChartData[] => {
     const totalRevenue = metrics.revenue;
     
@@ -101,19 +101,19 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
 
     const data = [
       {
-        name: 'Net Profit',
+        name: 'Laba Bersih',
         value: metrics.netProfit,
         percentage: (metrics.netProfit / totalRevenue) * 100,
         color: CHART_CONFIG.colors.net_profit
       },
       {
-        name: 'COGS',
+        name: 'HPP',
         value: metrics.cogs,
         percentage: (metrics.cogs / totalRevenue) * 100,
         color: CHART_CONFIG.colors.cogs
       },
       {
-        name: 'OpEx',
+        name: 'Biaya Operasional',
         value: metrics.opex,
         percentage: (metrics.opex / totalRevenue) * 100,
         color: CHART_CONFIG.colors.opex
@@ -123,7 +123,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     return data.filter(item => item.value > 0);
   }, [metrics]);
 
-  // ✅ CUSTOM TOOLTIP FOR BAR CHART
+  // ✅ TOOLTIP KUSTOM UNTUK GRAFIK BAR
   const CustomBarTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
 
@@ -146,7 +146,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   };
 
-  // ✅ CUSTOM TOOLTIP FOR PIE CHART
+  // ✅ TOOLTIP KUSTOM UNTUK GRAFIK PIE
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
 
@@ -162,19 +162,19 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   };
 
-  // ✅ CUSTOM PIE LABEL
+  // ✅ LABEL PIE KUSTOM
   const renderPieLabel = (entry: ChartData) => {
     return `${entry.name}: ${entry.percentage.toFixed(1)}%`;
   };
 
-  // ✅ LOADING STATE
+  // ✅ STATUS LOADING
   if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Profit Breakdown</CardTitle>
+          <CardTitle>Breakdown Profit</CardTitle>
           <CardDescription>
-            Financial breakdown showing revenue, costs, and profit margins
+            Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -184,22 +184,22 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   }
 
-  // ✅ NO DATA STATE
+  // ✅ STATUS TIDAK ADA DATA
   if (!currentAnalysis || metrics.revenue === 0) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Profit Breakdown</CardTitle>
+          <CardTitle>Breakdown Profit</CardTitle>
           <CardDescription>
-            Financial breakdown showing revenue, costs, and profit margins
+            Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">No Data Available</div>
+              <div className="text-gray-400 text-lg mb-2">Data Tidak Tersedia</div>
               <div className="text-gray-500 text-sm">
-                Select a period with financial data to view the breakdown
+                Pilih periode yang memiliki data keuangan untuk melihat breakdown
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   }
 
-  // ✅ BAR CHART RENDER
+  // ✅ RENDER GRAFIK BAR
   const renderBarChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart 
@@ -232,37 +232,37 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
           iconType="circle"
         />
         
-        {/* Revenue Bar */}
+        {/* Bar Pendapatan */}
         <Bar 
-          dataKey="Revenue" 
+          dataKey="Pendapatan" 
           fill={CHART_CONFIG.colors.revenue}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* COGS Bar */}
+        {/* Bar HPP */}
         <Bar 
-          dataKey="COGS" 
+          dataKey="HPP" 
           fill={CHART_CONFIG.colors.cogs}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* OpEx Bar */}
+        {/* Bar Biaya Ops */}
         <Bar 
-          dataKey="OpEx" 
+          dataKey="BiayaOps" 
           fill={CHART_CONFIG.colors.opex}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Gross Profit Bar */}
+        {/* Bar Laba Kotor */}
         <Bar 
-          dataKey="Gross Profit" 
+          dataKey="Laba Kotor" 
           fill={CHART_CONFIG.colors.gross_profit}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Net Profit Bar */}
+        {/* Bar Laba Bersih */}
         <Bar 
-          dataKey="Net Profit" 
+          dataKey="Laba Bersih" 
           fill={CHART_CONFIG.colors.net_profit}
           radius={[2, 2, 0, 0]}
         />
@@ -270,7 +270,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     </ResponsiveContainer>
   );
 
-  // ✅ PIE CHART RENDER
+  // ✅ RENDER GRAFIK PIE
   const renderPieChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <PieChart>
@@ -294,7 +294,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     </ResponsiveContainer>
   );
 
-  // ✅ SUMMARY STATS
+  // ✅ STATISTIK RINGKASAN
   const summaryStats = useMemo(() => {
     const grossMargin = metrics.revenue > 0 ? (metrics.grossProfit / metrics.revenue) * 100 : 0;
     const netMargin = metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue) * 100 : 0;
@@ -304,28 +304,28 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     return { grossMargin, netMargin, cogsRatio, opexRatio };
   }, [metrics]);
 
-  // ✅ MAIN RENDER
+  // ✅ RENDER UTAMA
   return (
     <Card className={className}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Profit Breakdown</CardTitle>
+            <CardTitle>Breakdown Profit</CardTitle>
             <CardDescription>
               {chartType === 'bar' 
-                ? 'Financial breakdown showing revenue, costs, and profit margins'
-                : 'Revenue allocation between costs and profit'
+                ? 'Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit'
+                : 'Alokasi pendapatan antara biaya dan profit'
               }
             </CardDescription>
           </div>
           
-          {/* Quick Stats */}
+          {/* Statistik Cepat */}
           <div className="text-right">
-            <div className="text-sm text-gray-600">Gross Margin</div>
+            <div className="text-sm text-gray-600">Margin Kotor</div>
             <div className="text-lg font-bold text-blue-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600 mt-1">Net Margin</div>
+            <div className="text-sm text-gray-600 mt-1">Margin Bersih</div>
             <div className="text-lg font-bold text-purple-600">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
@@ -334,42 +334,42 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Chart */}
+        {/* Grafik */}
         <div className="mb-4">
           {chartType === 'bar' ? renderBarChart() : renderPieChart()}
         </div>
 
-        {/* Summary Cards */}
+        {/* Kartu Ringkasan */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-sm text-gray-600">Revenue</div>
+            <div className="text-sm text-gray-600">Pendapatan</div>
             <div className="text-lg font-bold text-green-600">
               {formatCurrency(metrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">COGS</div>
+            <div className="text-sm text-gray-600">HPP</div>
             <div className="text-lg font-bold text-amber-600">
               {formatCurrency(metrics.cogs)}
             </div>
             <div className="text-xs text-gray-500">
-              {summaryStats.cogsRatio.toFixed(1)}% of revenue
+              {summaryStats.cogsRatio.toFixed(1)}% dari pendapatan
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">OpEx</div>
+            <div className="text-sm text-gray-600">Biaya Ops</div>
             <div className="text-lg font-bold text-red-600">
               {formatCurrency(metrics.opex)}
             </div>
             <div className="text-xs text-gray-500">
-              {summaryStats.opexRatio.toFixed(1)}% of revenue
+              {summaryStats.opexRatio.toFixed(1)}% dari pendapatan
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">Net Profit</div>
+            <div className="text-sm text-gray-600">Laba Bersih</div>
             <div className={`text-lg font-bold ${
               metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>

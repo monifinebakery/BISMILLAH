@@ -51,12 +51,6 @@ export const usePurchaseItemManager = ({
       return;
     }
 
-    const isDuplicate = items.some((item) => item.bahanBakuId === newItem.bahanBakuId);
-    if (isDuplicate) {
-      toast.error('Bahan baku sudah ada dalam daftar pembelian');
-      return;
-    }
-
     addItem({
       bahanBakuId: newItem.bahanBakuId!,
       nama: newItem.nama!,

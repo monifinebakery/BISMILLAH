@@ -1,6 +1,6 @@
 // src/components/purchase/components/PurchaseDialog.tsx - Enhanced for Edit Mode
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,7 @@ import { id } from 'date-fns/locale';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
+import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 
@@ -83,18 +84,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
-  // Local state for new item form
-  const [newItem, setNewItem] = useState<Partial<PurchaseItem>>({
-    bahanBakuId: '',
-    nama: '',
-    kuantitas: 0,
-    satuan: '',
-    hargaSatuan: 0,
-    keterangan: '',
+  // Item management
+  const {
+    newItem,
+    setNewItem,
+    showAddItem,
+    setShowAddItem,
+    editingItemIndex,
+    handleBahanBakuSelect,
+    handleAddItem,
+    handleEditItem,
+    handleSaveEditedItem,
+    handleCancelEditItem,
+  } = usePurchaseItemManager({
+    bahanBaku,
+    items: formData.items,
+    addItem,
+    updateItem,
   });
-
-  const [showAddItem, setShowAddItem] = useState(false);
-  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   // Reset form states when dialog opens/closes
   useEffect(() => {
@@ -108,86 +115,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         keterangan: '',
       });
       setShowAddItem(false);
-      setEditingItemIndex(null);
+      handleCancelEditItem();
     }
-  }, [isOpen]);
-
-  // ✅ Handle bahan baku selection
-  const handleBahanBakuSelect = (bahanBakuId: string) => {
-    const selectedBahan = bahanBaku.find(b => b.id === bahanBakuId);
-    if (selectedBahan) {
-      setNewItem(prev => ({
-        ...prev,
-        bahanBakuId,
-        nama: selectedBahan.nama,
-        satuan: selectedBahan.satuan,
-      }));
-    }
-  };
-
-  // ✅ Add new item to purchase
-  const handleAddItem = () => {
-    if (!newItem.bahanBakuId || !newItem.nama || !newItem.kuantitas || !newItem.hargaSatuan) {
-      toast.error('Lengkapi data item terlebih dahulu');
-      return;
-    }
-
-    // Check for duplicate items
-    const isDuplicate = formData.items.some(item => item.bahanBakuId === newItem.bahanBakuId);
-    if (isDuplicate) {
-      toast.error('Bahan baku sudah ada dalam daftar pembelian');
-      return;
-    }
-
-    addItem({
-      bahanBakuId: newItem.bahanBakuId!,
-      nama: newItem.nama!,
-      kuantitas: newItem.kuantitas!,
-      satuan: newItem.satuan!,
-      hargaSatuan: newItem.hargaSatuan!,
-      keterangan: newItem.keterangan,
-    });
-
-    // Reset form
-    setNewItem({
-      bahanBakuId: '',
-      nama: '',
-      kuantitas: 0,
-      satuan: '',
-      hargaSatuan: 0,
-      keterangan: '',
-    });
-    setShowAddItem(false);
-    toast.success('Item berhasil ditambahkan');
-  };
-
-  // ✅ NEW: Start editing existing item
-  const handleEditItem = (index: number) => {
-    setEditingItemIndex(index);
-    toast.info('Mode edit item aktif');
-  };
-
-  // ✅ NEW: Save edited item
-  const handleSaveEditedItem = (index: number, updatedItem: Partial<PurchaseItem>) => {
-    if (!updatedItem.kuantitas || !updatedItem.hargaSatuan) {
-      toast.error('Kuantitas dan harga satuan harus diisi');
-      return;
-    }
-
-    updateItem(index, {
-      ...formData.items[index],
-      ...updatedItem,
-      subtotal: (updatedItem.kuantitas || 0) * (updatedItem.hargaSatuan || 0)
-    });
-
-    setEditingItemIndex(null);
-    toast.success('Item berhasil diperbarui');
-  };
-
-  // ✅ NEW: Cancel editing item
-  const handleCancelEditItem = () => {
-    setEditingItemIndex(null);
-  };
+  }, [isOpen, setNewItem, setShowAddItem, handleCancelEditItem]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {

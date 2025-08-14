@@ -1,4 +1,4 @@
-/ 2. CONSTANTS - src/components/profitAnalysis/constants/profitConstants.ts
+// 2. CONSTANTS - src/components/profitAnalysis/constants/profitConstants.ts
 // ==============================================
 
 export const PROFIT_CONSTANTS = {

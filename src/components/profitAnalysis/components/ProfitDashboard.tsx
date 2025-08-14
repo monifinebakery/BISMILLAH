@@ -59,30 +59,34 @@ export interface ProfitDashboardProps {
 
 // Fungsi kalkulasi metrik profit lanjutan
 const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: any) => {
-  if (!currentAnalysis) return null;
+  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data) {
+    return null;
+  }
   
-  const revenue = currentAnalysis.revenue_data.total;
-  const cogs = currentAnalysis.cogs_data.total;
-  const opex = currentAnalysis.opex_data.total;
+  const revenue = currentAnalysis.revenue_data.total || 0;
+  const cogs = currentAnalysis.cogs_data.total || 0;
+  const opex = currentAnalysis.opex_data.total || 0;
   const margins = calculateMargins(revenue, cogs, opex);
   
-  const rollingAverages = calculateRollingAverages(profitHistory, 3);
+  const rollingAverages = profitHistory && profitHistory.length > 0 ? calculateRollingAverages(profitHistory, 3) : { revenueAverage: 0, profitAverage: 0, marginAverage: 0, volatility: 0 };
   
   return {
     grossProfitMargin: margins.grossMargin,
     netProfitMargin: margins.netMargin,
-    monthlyGrowthRate: rollingAverages.marginAverage,
+    monthlyGrowthRate: rollingAverages.marginAverage || 0,
     marginOfSafety: 0, // Akan dihitung oleh analisis break-even
     cogsPercentage: margins.cogsPercentage,
     opexPercentage: margins.opexPercentage,
-    confidenceScore: validateDataQuality(currentAnalysis).score,
+    confidenceScore: validateDataQuality(currentAnalysis).score || 0,
     operatingLeverage: revenue > 0 ? (margins.grossProfit / revenue) * 100 : 0,
   };
 };
 
 // Fungsi generate forecast profit
 const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
-  if (profitHistory.length < 3) return null;
+  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data || profitHistory.length < 3) {
+    return null;
+  }
   
   const rollingAverages = calculateRollingAverages(profitHistory, 3);
   const currentMargins = calculateMargins(
@@ -91,53 +95,45 @@ const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
     currentAnalysis.opex_data.total
   );
   
-  // Forecast sederhana berdasarkan rata-rata bergulir
-  const baseRevenue = rollingAverages.revenueAverage;
-  const baseProfit = rollingAverages.profitAverage;
-  const baseMargin = rollingAverages.marginAverage;
+  const baseRevenue = rollingAverages.revenueAverage || 0;
+  const baseProfit = rollingAverages.profitAverage || 0;
+  const baseMargin = currentMargins.netMargin || 0;
   
   return {
     nextMonth: {
-      profit: baseProfit * 1.02, // Asumsi pertumbuhan 2%
+      profit: baseProfit * 1.02,
       margin: baseMargin,
-      confidence: 75
+      confidence: 75,
     },
     nextQuarter: {
-      profit: baseProfit * 3 * 1.05, // Pertumbuhan kuartalan 5%
+      profit: baseProfit * 3 * 1.05,
       margin: baseMargin * 1.01,
-      confidence: 65
+      confidence: 65,
     },
     nextYear: {
-      profit: baseProfit * 12 * 1.15, // Pertumbuhan tahunan 15%
+      profit: baseProfit * 12 * 1.15,
       margin: baseMargin * 1.05,
-      confidence: 45
-    }
+      confidence: 45,
+    },
   };
 };
 
 // Fungsi benchmarking kompetitif
 const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any[]) => {
-  if (!advancedMetrics) return null;
+  if (!advancedMetrics || !advancedMetrics.netProfitMargin) return null;
   
-  // Rata-rata industri (dalam implementasi nyata, ini akan datang dari data eksternal)
   const industryAverages = {
-    averageNetMargin: 15, // 15% rata-rata industri
-    topQuartileMargin: 25, // 25% kuartil atas
+    averageNetMargin: 15,
+    topQuartileMargin: 25,
   };
   
   const currentNetMargin = advancedMetrics.netProfitMargin;
   
-  // Hitung posisi persentil
-  let percentile = 50; // Default ke median
-  if (currentNetMargin >= industryAverages.topQuartileMargin) {
-    percentile = 90;
-  } else if (currentNetMargin >= industryAverages.averageNetMargin) {
-    percentile = 75;
-  } else if (currentNetMargin >= industryAverages.averageNetMargin * 0.7) {
-    percentile = 50;
-  } else {
-    percentile = 25;
-  }
+  let percentile = 50;
+  if (currentNetMargin >= industryAverages.topQuartileMargin) percentile = 90;
+  else if (currentNetMargin >= industryAverages.averageNetMargin) percentile = 75;
+  else if (currentNetMargin >= industryAverages.averageNetMargin * 0.7) percentile = 50;
+  else percentile = 25;
   
   let position = 'kurang';
   if (percentile >= 90) position = 'sangat baik';
@@ -149,21 +145,21 @@ const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any
     competitive: {
       percentile,
       position,
-      gapToLeader: Math.max(0, industryAverages.topQuartileMargin - currentNetMargin)
-    }
+      gapToLeader: Math.max(0, industryAverages.topQuartileMargin - currentNetMargin),
+    },
   };
 };
 
 // Fungsi generate ringkasan eksekutif
 const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, forecast: any, benchmark: any) => {
-  if (!currentAnalysis || !advancedMetrics) return null;
+  if (!currentAnalysis || !advancedMetrics || !forecast || !benchmark) return null;
   
   const executiveInsights = generateExecutiveInsights(currentAnalysis);
   
   return {
     insights: executiveInsights.keyHighlights,
     alerts: executiveInsights.criticalIssues,
-    opportunities: executiveInsights.opportunities
+    opportunities: executiveInsights.opportunities,
   };
 };
 
@@ -185,16 +181,13 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     currentPeriod,
     setCurrentPeriod,
     refreshAnalysis,
-    profitMetrics,
-    isDataStale,
-    lastCalculated,
   } = useProfitAnalysis({
     defaultPeriod: defaultPeriod || getCurrentPeriod(),
     autoCalculate: true,
     enableRealTime: true,
   });
 
-  const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast } = useProfitCalculation();
+  const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast: generateForecastHook } = useProfitCalculation();
   const { formatPeriodLabel, exportData } = useProfitData({
     history: profitHistory,
     currentAnalysis,
@@ -210,17 +203,17 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // Kalkulasi Lanjutan
   const advancedMetrics = useMemo(() => {
     if (!currentAnalysis || !showAdvancedMetrics) return null;
-    return calculateAdvancedProfitMetrics(profitHistory, currentAnalysis);
+    return calculateAdvancedProfitMetrics(profitHistory || [], currentAnalysis);
   }, [currentAnalysis, profitHistory, showAdvancedMetrics]);
 
   const forecast = useMemo(() => {
-    if (!currentAnalysis || profitHistory.length < 3) return null;
+    if (!currentAnalysis || !profitHistory || profitHistory.length < 3) return null;
     return generateProfitForecast(profitHistory, currentAnalysis);
   }, [currentAnalysis, profitHistory]);
 
   const benchmark = useMemo(() => {
     if (!advancedMetrics) return null;
-    return performCompetitiveBenchmarking(advancedMetrics, profitHistory);
+    return performCompetitiveBenchmarking(advancedMetrics, profitHistory || []);
   }, [advancedMetrics, profitHistory]);
 
   const executiveSummary = useMemo(() => {
@@ -230,7 +223,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   // Analisis Periode Sebelumnya untuk Perbandingan
   const previousAnalysis = useMemo(() => {
-    if (!currentPeriod || profitHistory.length === 0) return null;
+    if (!currentPeriod || !profitHistory || profitHistory.length === 0) return null;
     const [year, month] = currentPeriod.split('-');
     const currentDate = new Date(parseInt(year), parseInt(month) - 1);
     const previousDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);

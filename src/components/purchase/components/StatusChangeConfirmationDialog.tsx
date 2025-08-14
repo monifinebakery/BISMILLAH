@@ -69,7 +69,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
       return {
         icon: <Package className="h-4 w-4" />,
         title: 'Dampak Penyelesaian Purchase',
-        description: 'Stok bahan baku akan otomatis ditambahkan ke warehouse',
+        description: 'Stok gudang otomatis bertambah dan harga rata-rata (WAC) dihitung oleh sistem.',
         type: 'success' as const
       };
     }
@@ -78,7 +78,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
       return {
         icon: <TrendingUp className="h-4 w-4" />,
         title: 'Dampak Pembatalan Penyelesaian',
-        description: 'Stok bahan baku akan dikurangi dari warehouse',
+        description: 'Efek stok sebelumnya akan dikoreksi otomatis (dikurangi) oleh sistem.',
         type: 'warning' as const
       };
     }

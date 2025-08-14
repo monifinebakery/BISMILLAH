@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { UpdateFormData, UpdatePriority } from './types';
+import { AppUpdate, UpdateFormData, UpdatePriority } from './types';
 import { Save, X, AlertTriangle, Info, Bell, Zap, Eye, EyeOff } from 'lucide-react';
 
 interface UpdateFormProps {
@@ -21,7 +21,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
     title: initialData?.title || '',
     description: initialData?.description || '',
     priority: initialData?.priority || 'normal',
-    is_active: initialData?.is_active || true,
+    is_active: initialData?.is_active ?? true,
   });
 
   useEffect(() => {

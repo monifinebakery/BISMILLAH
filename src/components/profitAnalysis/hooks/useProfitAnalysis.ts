@@ -177,7 +177,11 @@ export const useProfitAnalysis = (
         opex: 0
       };
     }
-  }, [currentAnalysisQuery.data]); // Only depend on the data
+  }, [
+    currentAnalysisQuery.data?.revenue_data?.total,
+    currentAnalysisQuery.data?.cogs_data?.total,
+    currentAnalysisQuery.data?.opex_data?.total
+  ]); // Only depend on specific primitive values
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
@@ -252,7 +256,7 @@ export const useProfitAnalysis = (
       logger.error('Error checking data freshness:', err);
       return true;
     }
-  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at
+  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at string
 
   const lastCalculated = useMemo(() => {
     const data = currentAnalysisQuery.data;
@@ -264,7 +268,7 @@ export const useProfitAnalysis = (
       logger.error('Error parsing calculated_at:', err);
       return null;
     }
-  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at
+  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at string
 
   // ✅ AUTO-LOAD HISTORY on mount - Fixed dependencies
   useEffect(() => {

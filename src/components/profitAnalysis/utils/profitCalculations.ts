@@ -1,4 +1,4 @@
-import { RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
+import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS } from '../constants/profitConstants';
 
 // Interfaces matching the actual schema

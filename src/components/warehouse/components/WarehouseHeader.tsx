@@ -244,7 +244,8 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
                 </span>
               </div>
 
-              {stats?.totalValue && (
+              {/* ✅ UPDATE: Render condition untuk total value */}
+              {stats && stats.totalValue !== undefined && (
                 <div className="flex flex-col">
                   <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Value</span>
                   <span className="font-bold text-lg">

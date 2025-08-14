@@ -1,32 +1,46 @@
-// 1. src/components/profitAnalysis/hooks/index.ts
+// hooks/index.ts
 // ==============================================
 
-// Export hooks
-export { useProfitAnalysis, PROFIT_QUERY_KEYS } from './useProfitAnalysis';
-export { useProfitCalculation } from './useProfitCalculation';
-export { useProfitData } from './useProfitData';
+// Import all hooks first to ensure they're available
+import { useProfitAnalysis, PROFIT_QUERY_KEYS } from './useProfitAnalysis';
+import { useProfitCalculation } from './useProfitCalculation';
+import { useProfitData } from './useProfitData';
 
-// Export types from useProfitAnalysis
-export type {
+// Import all types
+import type {
   UseProfitAnalysisOptions,
   UseProfitAnalysisReturn
 } from './useProfitAnalysis';
 
-// Export types from useProfitCalculation
-export type {
+import type {
   UseProfitCalculationOptions,
   UseProfitCalculationReturn
 } from './useProfitCalculation';
 
-// Export types from useProfitData
-export type {
+import type {
   UseProfitDataOptions,
   UseProfitDataReturn
 } from './useProfitData';
 
-// Default export - aggregated hooks object
+// Named exports - Re-export everything
+export { useProfitAnalysis, PROFIT_QUERY_KEYS };
+export { useProfitCalculation };
+export { useProfitData };
+
+// Type exports
+export type {
+  UseProfitAnalysisOptions,
+  UseProfitAnalysisReturn,
+  UseProfitCalculationOptions,
+  UseProfitCalculationReturn,
+  UseProfitDataOptions,
+  UseProfitDataReturn
+};
+
+// Default export - All hooks aggregated
 export default {
   useProfitAnalysis,
   useProfitCalculation,
-  useProfitData
+  useProfitData,
+  PROFIT_QUERY_KEYS
 };

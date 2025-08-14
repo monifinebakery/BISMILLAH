@@ -1,5 +1,3 @@
-// src › components › profitAnalysis › utils › index.ts
-// ==============================================
 // Export semua utilitas untuk modul analisis profit
 
 // Export profit calculations
@@ -8,29 +6,35 @@ export {
   calculateMargins,
   filterTransactionsByPeriod,
   getMarginRating,
-  extractMaterialName,
+  extractMaterialName as extractMaterialNameCalc,
   calculateInventoryBasedCOGS,
   analyzeCostStructure,
   calculateBreakEvenAnalysis,
   comparePeriods,
   validateDataQuality,
   generateExecutiveInsights,
+  formatCurrency as formatCurrencyCalc,
+  formatPercentage as formatPercentageCalc,
   calculateRollingAverages
 } from './profitCalculations';
 
 // Export profit transformers
 export {
-  formatCurrency,
-  formatPercentage,
-  formatLargeNumber,
-  calculateGrowth,
-  generatePeriodOptions,
-  getCurrentPeriod,
-  getShortPeriodLabel,
   transformToRevenueBreakdown,
+  transformToCOGSBreakdown,
   transformToOpExBreakdown,
   transformToProfitAnalysis,
-  getGrowthStatus
+  transformToChartData,
+  formatCurrency as formatCurrencyTrans,
+  formatPercentage as formatPercentageTrans,
+  formatLargeNumber,
+  formatPeriodLabel,
+  getShortPeriodLabel,
+  calculateGrowth,
+  getGrowthStatus,
+  generatePeriodOptions,
+  isValidPeriod,
+  getCurrentPeriod
 } from './profitTransformers';
 
 // Export types

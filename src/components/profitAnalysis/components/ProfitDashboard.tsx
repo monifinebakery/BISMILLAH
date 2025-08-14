@@ -27,9 +27,16 @@ import DetailedBreakdownTable from './DetailedBreakdownTable';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
-import { generatePeriodOptions, getCurrentPeriod } from '../utils/profitTransformers';
 
-// Import fungsi kalkulasi
+// Import dari profitTransformers
+import { 
+  generatePeriodOptions, 
+  getCurrentPeriod,
+  calculateRollingAverages,
+  formatPeriodLabel as formatPeriodLabelTransformer
+} from '../utils/profitTransformers';
+
+// Import dari profitCalculations
 import {
   calculateMargins,
   comparePeriods,
@@ -39,7 +46,6 @@ import {
   generateExecutiveInsights,
   formatCurrency,
   formatPercentage,
-  calculateRollingAverages,
   getMarginRating,
 } from '../utils/profitCalculations';
 
@@ -609,7 +615,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-4 h-4 text-green-600" />
-            <span>Analisis selesai untuk {formatPeriodLabel(currentPeriod)}</span>
+            <span>Analisis selesai untuk {formatPeriodLabel ? formatPeriodLabel(currentPeriod) : formatPeriodLabelTransformer(currentPeriod)}</span>
           </div>
           <span>•</span>
           <span>Pendapatan: {formatCurrency(currentAnalysis.revenue_data.total)}</span>

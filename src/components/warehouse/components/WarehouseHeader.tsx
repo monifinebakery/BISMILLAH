@@ -24,7 +24,7 @@ const headerQueryKeys = {
 
 const fetchWarehouseStats = async () => {
   try {
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
@@ -68,7 +68,7 @@ const fetchWarehouseStats = async () => {
 
 const fetchWarehouseAlerts = async () => {
   try {
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
     const service = await warehouseApi.createService('alert', {
       userId: user?.id,
@@ -95,7 +95,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   onRefresh
 }) => {
   const {
-     data: stats,
+    data: stats,
     isLoading: statsLoading,
     error: statsError,
     refetch: refetchStats
@@ -108,7 +108,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   });
 
   const {
-     alerts,
+    data: alerts,
     isLoading: alertsLoading,
   } = useQuery({
     queryKey: headerQueryKeys.alerts,

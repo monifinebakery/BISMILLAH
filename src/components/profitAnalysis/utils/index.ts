@@ -6,20 +6,20 @@ export {
   calculateMargins,
   filterTransactionsByPeriod,
   getMarginRating,
-  extractMaterialName as extractMaterialNameCalc,
+  extractMaterialName,
   calculateInventoryBasedCOGS,
   analyzeCostStructure,
   calculateBreakEvenAnalysis,
   comparePeriods,
   validateDataQuality,
   generateExecutiveInsights,
-  formatCurrency as formatCurrencyCalc,
-  formatPercentage as formatPercentageCalc,
-  calculateRollingAverages
+  formatCurrency,
+  formatPercentage
 } from './profitCalculations';
 
 // Export profit transformers
 export {
+  calculateRollingAverages, // TETAP ADA DI SINI
   transformToRevenueBreakdown,
   transformToCOGSBreakdown,
   transformToOpExBreakdown,

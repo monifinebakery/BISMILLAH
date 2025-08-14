@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import { 
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText, 
-  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell 
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
+  BarChart3 // ✅ NEW: Icon for Profit Analysis
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -53,6 +54,9 @@ import { useAuth } from "@/contexts/AuthContext";
 // ✅ NEW: Import Update System
 import { UpdateBadge } from "@/components/update";
 
+// ✅ NEW: Import Profit Analysis Hook
+import { useProfitAnalysis } from "@/components/profitAnalysis";
+
 // --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
 
@@ -84,6 +88,16 @@ export function AppSidebar() {
     enableRealtime: false // No need for realtime in sidebar
   });
 
+  // ✅ NEW: Use profit analysis hook for export data
+  const { 
+    currentAnalysis: profitAnalysis, 
+    profitHistory,
+    loading: profitLoading 
+  } = useProfitAnalysis({
+    autoCalculate: false, // Don't auto-calculate in sidebar
+    enableRealTime: false // No real-time updates in sidebar
+  });
+
   const menuGroups = [
     {
       label: "Dashboard",
@@ -109,9 +123,10 @@ export function AppSidebar() {
       ]
     },
     {
-      label: "Laporan & Aset",
+      label: "Laporan & Analisis", // ✅ UPDATED: Changed label to include analysis
       items: [
         { title: "Laporan Keuangan", url: "/laporan", icon: TrendingUp },
+        { title: "Analisis Profit", url: "/analisis-profit", icon: BarChart3 }, // ✅ NEW: Profit Analysis menu
         { title: "Manajemen Aset", url: "/aset", icon: Building2 },
         { title: "Invoice", url: "/invoice", icon: Receipt },
       ]
@@ -141,6 +156,7 @@ export function AppSidebar() {
       return;
     }
 
+    // ✅ NEW: Include profit analysis data in export
     const allAppData = {
       bahanBaku,
       suppliers,
@@ -155,6 +171,9 @@ export function AppSidebar() {
       operationalCosts: operationalCostState.costs,
       allocationSettings: operationalCostState.allocationSettings,
       costSummary: operationalCostState.summary,
+      // ✅ NEW: Add profit analysis data
+      profitAnalysis,
+      profitHistory,
     };
     
     exportAllDataToExcel(allAppData, settings.businessName);
@@ -280,7 +299,8 @@ export function AppSidebar() {
             {renderActionButton(
               handleExportAllData,
               Download,
-              assetsLoading ? "Memuat Data..." : "Export Semua Data"
+              // ✅ NEW: Show loading state for both assets and profit data
+              (assetsLoading || profitLoading) ? "Memuat Data..." : "Export Semua Data"
             )}
           </SidebarMenuItem>
           

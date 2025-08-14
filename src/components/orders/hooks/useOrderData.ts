@@ -639,8 +639,19 @@ export const useOrderData = (
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-      
+
       if (error) throw new Error(error.message);
+
+      // Delete related financial transactions
+      try {
+        await supabase
+          .from('financial_transactions')
+          .delete()
+          .eq('related_id', id)
+          .eq('user_id', user.id);
+      } catch (finError) {
+        logger.error('OrderData', 'Error deleting related transactions:', finError);
+      }
 
       if (typeof addActivity === 'function') {
         try {
@@ -706,11 +717,22 @@ export const useOrderData = (
 
       if (error) throw new Error(error.message);
 
+      // Delete related financial transactions
+      try {
+        await supabase
+          .from('financial_transactions')
+          .delete()
+          .in('related_id', orderIds)
+          .eq('user_id', user.id);
+      } catch (finError) {
+        logger.error('OrderData', 'Error deleting related transactions:', finError);
+      }
+
       toast.success(`${orderIds.length} pesanan berhasil dihapus`);
-      
+
       // Refresh data to reflect deletions
       await fetchOrders(true);
-      
+
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);

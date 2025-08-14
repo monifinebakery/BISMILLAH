@@ -1,3 +1,6 @@
+// profitTransformers.ts - Data transformation utilities
+// ==============================================
+
 import { 
   ProfitAnalysis, 
   RealTimeProfitCalculation, 
@@ -168,6 +171,74 @@ export const transformToChartData = (
       net_margin: netMargin
     };
   });
+};
+
+/**
+ * Calculate rolling averages for trend analysis
+ */
+export const calculateRollingAverages = (
+  profitHistory: any[],
+  periods: number
+): {
+  revenueAverage: number;
+  profitAverage: number;
+  marginAverage: number;
+  volatility: number;
+} => {
+  if (!profitHistory || profitHistory.length === 0) {
+    return {
+      revenueAverage: 0,
+      profitAverage: 0,
+      marginAverage: 0,
+      volatility: 0
+    };
+  }
+
+  const recentData = profitHistory.slice(-periods);
+  
+  const revenueAverage = recentData.reduce((sum, d) => {
+    const revenue = d.revenue_data?.total || d.revenue || 0;
+    return sum + revenue;
+  }, 0) / recentData.length;
+
+  const profitAverage = recentData.reduce((sum, d) => {
+    const revenue = d.revenue_data?.total || d.revenue || 0;
+    const cogs = d.cogs_data?.total || d.cogs || 0;
+    const opex = d.opex_data?.total || d.opex || 0;
+    const profit = revenue - cogs - opex;
+    return sum + profit;
+  }, 0) / recentData.length;
+
+  const marginAverage = recentData.reduce((sum, d) => {
+    const revenue = d.revenue_data?.total || d.revenue || 0;
+    const cogs = d.cogs_data?.total || d.cogs || 0;
+    const opex = d.opex_data?.total || d.opex || 0;
+    const profit = revenue - cogs - opex;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    return sum + margin;
+  }, 0) / recentData.length;
+
+  // Calculate volatility (standard deviation of margins)
+  const margins = recentData.map(d => {
+    const revenue = d.revenue_data?.total || d.revenue || 0;
+    const cogs = d.cogs_data?.total || d.cogs || 0;
+    const opex = d.opex_data?.total || d.opex || 0;
+    const profit = revenue - cogs - opex;
+    return revenue > 0 ? (profit / revenue) * 100 : 0;
+  });
+
+  const variance = margins.reduce((sum, margin) => {
+    return sum + Math.pow(margin - marginAverage, 2);
+  }, 0) / margins.length;
+
+  const volatility = Math.sqrt(variance);
+
+  return {
+    revenueAverage,
+    profitAverage,
+    marginAverage,
+    volatility
+  };
 };
 
 /**
@@ -351,55 +422,4 @@ export const getCurrentPeriod = (periodType: 'monthly' | 'quarterly' | 'yearly' 
   
   // Monthly
   return `${year}-${month.toString().padStart(2, '0')}`;
-};
-
-/**
- * Calculate rolling averages for trend analysis
- */
-export const calculateRollingAverages = (
-  history: RealTimeProfitCalculation[],
-  periods: number = 3
-): {
-  revenueAverage: number;
-  profitAverage: number;
-  marginAverage: number;
-  volatility: number;
-} => {
-  if (history.length < periods) {
-    return {
-      revenueAverage: 0,
-      profitAverage: 0,
-      marginAverage: 0,
-      volatility: 0
-    };
-  }
-  
-  const recentHistory = history.slice(-periods);
-  
-  const revenues = recentHistory.map(h => h.revenue_data.total);
-  const profits = recentHistory.map(h => {
-    const revenue = h.revenue_data.total;
-    const costs = h.cogs_data.total + h.opex_data.total;
-    return revenue - costs;
-  });
-  const margins = recentHistory.map(h => {
-    const revenue = h.revenue_data.total;
-    const profit = revenue - h.cogs_data.total - h.opex_data.total;
-    return revenue > 0 ? (profit / revenue) * 100 : 0;
-  });
-  
-  const revenueAverage = revenues.reduce((sum, r) => sum + r, 0) / revenues.length;
-  const profitAverage = profits.reduce((sum, p) => sum + p, 0) / profits.length;
-  const marginAverage = margins.reduce((sum, m) => sum + m, 0) / margins.length;
-  
-  const profitMean = profitAverage;
-  const variance = profits.reduce((sum, p) => sum + Math.pow(p - profitMean, 2), 0) / profits.length;
-  const volatility = Math.sqrt(variance);
-  
-  return {
-    revenueAverage,
-    profitAverage,
-    marginAverage,
-    volatility
-  };
 };

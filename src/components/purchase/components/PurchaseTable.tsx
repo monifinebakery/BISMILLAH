@@ -470,15 +470,14 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
             Edit
           </DropdownMenuItem>
           
-          {/* ✅ Delete Menu Item */}
+          {/* ✅ Delete Menu Item - Always Enabled */}
           <DropdownMenuItem 
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               actionHandlers.delete(purchase);
             }}
-            disabled={purchase.status === 'completed'}
-            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm"
             role="menuitem"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -854,11 +853,23 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                   </div>
                   <div className="text-gray-600">
                     {new Date(dialogState.deleteConfirmation.purchase.tanggal).toLocaleDateString('id-ID')} • {' '}
-                    {formatCurrency(dialogState.deleteConfirmation.purchase.totalNilai)}
+                    {formatCurrency(dialogState.deleteConfirmation.purchase.totalNilai)} • {' '}
+                    Status: <span className="font-medium">{getStatusDisplayText(dialogState.deleteConfirmation.purchase.status)}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {dialogState.deleteConfirmation.purchase.items?.length || 0} item
                   </div>
+                </div>
+              )}
+              {dialogState.deleteConfirmation.purchase?.status === 'completed' && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">Perhatian</span>
+                  </div>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Pembelian ini sudah selesai. Menghapus akan mempengaruhi laporan dan data stok yang sudah tercatat.
+                  </p>
                 </div>
               )}
               <p className="text-red-600 text-sm font-medium">
@@ -914,7 +925,8 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                   <span className="font-medium">Peringatan</span>
                 </div>
                 <p className="text-sm text-yellow-700 mt-1">
-                  Semua data pembelian yang dipilih akan dihapus permanen dan tidak dapat dikembalikan.
+                  Semua data pembelian yang dipilih akan dihapus permanen. Jika ada pembelian dengan status "Selesai", 
+                  hal ini dapat mempengaruhi laporan dan data stok yang sudah tercatat.
                 </p>
               </div>
               <p className="text-red-600 text-sm font-medium">

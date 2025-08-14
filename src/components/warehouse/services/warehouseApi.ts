@@ -17,7 +17,8 @@ interface ServiceConfig {
 }
 
 // ✅ ENHANCED: Data transformation helpers with package content support
-const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
+// ✅ UPDATE: Tambahkan support untuk harga_rata_rata dan harga_rata2
+const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
   const frontendItem: BahanBakuFrontend = {
     id: dbItem.id,
     userId: dbItem.user_id,
@@ -26,6 +27,9 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
     stok: Number(dbItem.stok) || 0, // ✅ FIXED: Ensure numeric conversion
     minimum: Number(dbItem.minimum) || 0,
     satuan: dbItem.satuan,
+    // ⬇⬇⬇ penting: ambil WAC dari dua kemungkinan kolom
+    hargaRataRata: dbItem.harga_rata_rata ?? dbItem.harga_rata2 ?? null,
+    // fallback harga input satuan
     harga: Number(dbItem.harga_satuan) || 0,
     supplier: dbItem.supplier,
     expiry: dbItem.tanggal_kadaluwarsa,
@@ -130,7 +134,8 @@ class CrudService {
       let query = supabase.from('bahan_baku').select(`
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at, jumlah_beli_kemasan,
-        isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan
+        isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan,
+        harga_rata_rata, harga_rata2  // ✅ TAMBAH: ambil kedua field WAC
       `);
       
       // Filter by user_id if provided
@@ -270,7 +275,9 @@ class CrudService {
     try {
       let query = supabase
         .from('bahan_baku')
-        .select('*')
+        .select(`
+          *, harga_rata_rata, harga_rata2  // ✅ TAMBAH: ambil kedua field WAC
+        `)
         .eq('id', id);
 
       if (this.config.userId) {
@@ -485,7 +492,7 @@ class SubscriptionService {
           logger.debug('Subscription update:', payload);
           // Transform and handle real-time updates here
           if (payload.new) {
-            const transformedData = transformToFrontend(payload.new as BahanBaku);
+            const transformedData = transformToFrontend(payload.new);
             // Handle the transformed data
           }
         })

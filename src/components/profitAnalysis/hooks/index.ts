@@ -24,7 +24,7 @@ export type {
   UseProfitDataReturn
 } from './useProfitData';
 
-// Default export
+// Default export - aggregated hooks object
 export default {
   useProfitAnalysis,
   useProfitCalculation,

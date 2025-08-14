@@ -1,629 +1,435 @@
 // src/components/purchase/context/PurchaseContext.tsx
-// ✅ FIXED VERSION - Using React Query pattern to eliminate fetch loops
+// ✅ PERFORMANCE & MERGED CORE: Context ini sudah menggabungkan fungsionalitas usePurchaseCore
+// - Optimistic updates untuk create/update/status/delete
+// - Stats, bulk ops, validate prerequisites
+// - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus trigger DB)
+// - Realtime aman (hindari refetch berlebih)
 
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-// Core context imports
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
-import { createPurchaseWarehouseService } from '../services/purchaseWarehouseService';
 
-// Types and utilities
-import { Purchase, PurchaseContextType } from '../types/purchase.types';
+import type { Purchase, PurchaseContextType, PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
-
-// Transform utilities
 import {
   transformPurchaseFromDB,
   transformPurchaseForDB,
   transformPurchaseUpdateForDB,
   transformPurchasesFromDB,
 } from '../utils/purchaseTransformers';
+import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHelpers';
 
-// Helper utilities
-import {
-  validatePurchaseData,
-  getStatusDisplayText,
-} from '../utils/purchaseHelpers';
-
-// ✅ Query Keys
+// ------------------- Query Keys -------------------
 const purchaseQueryKeys = {
   all: ['purchases'] as const,
-  lists: () => [...purchaseQueryKeys.all, 'list'] as const,
-  list: (userId?: string) => [...purchaseQueryKeys.lists(), userId] as const,
+  list: (userId?: string) => [...purchaseQueryKeys.all, 'list', userId] as const,
 } as const;
 
-// ✅ Transform functions (stable, no useCallback needed)
-const transformRealtimePayload = (payload: any): Purchase | null => {
-  try {
-    if (!payload.new) return null;
-    return transformPurchaseFromDB(payload.new);
-  } catch (error) {
-    logger.error('Error transforming realtime payload:', error);
-    return null;
-  }
-};
-
-// ✅ API Functions
+// ------------------- API helpers -------------------
 const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
-  logger.info('🔄 Fetching purchases for user:', userId);
-  
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
     .eq('user_id', userId)
     .order('tanggal', { ascending: false });
 
-  if (error) {
-    logger.error('❌ Error fetching purchases:', error);
-    throw new Error(error.message);
-  }
-
-  const purchases = transformPurchasesFromDB(data || []);
-  logger.success('✅ Purchases fetched successfully:', purchases.length, 'items');
-  return purchases;
+  if (error) throw new Error(error.message);
+  return transformPurchasesFromDB(data || []);
 };
 
-const createPurchase = async (
-  purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, 
-  userId: string
-): Promise<void> => {
-  logger.info('🔄 Creating purchase for supplier:', purchase.supplier);
-  
-  const purchaseDataForRPC = transformPurchaseForDB(purchase, userId);
-
-  const { error } = await supabase.rpc('add_purchase_and_update_stock', {
-    purchase_data: purchaseDataForRPC,
-  });
-
-  if (error) {
-    logger.error('❌ Error creating purchase:', error);
-    throw new Error(error.message);
-  }
-
-  logger.success('✅ Purchase created successfully');
+// Insert biasa (status awal umumnya 'pending'); trigger DB akan apply ketika status==completed
+const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
+  const db = transformPurchaseForDB(payload, userId);
+  const { data, error } = await supabase.from('purchases').insert(db).select('*').single();
+  if (error) throw new Error(error.message);
+  return transformPurchaseFromDB(data);
 };
 
-const updatePurchase = async (
-  id: string, 
-  updates: Partial<Purchase>
-): Promise<void> => {
-  logger.info('🔄 Updating purchase:', id);
-  
-  const purchaseToUpdate = transformPurchaseUpdateForDB(updates);
+const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>) => {
+  const patch = transformPurchaseUpdateForDB(updates);
+  const { data, error } = await supabase.from('purchases').update(patch).eq('id', id).select('*').single();
+  if (error) throw new Error(error.message);
+  return transformPurchaseFromDB(data);
+};
 
-  const { error } = await supabase
+// Pakai UPDATE kolom status; trigger DB akan urus stok/WAC apply/rollback/re-apply
+const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
+  const { data, error } = await supabase
     .from('purchases')
-    .update(purchaseToUpdate)
-    .eq('id', id);
-
-  if (error) {
-    logger.error('❌ Error updating purchase:', error);
-    throw new Error(error.message);
-  }
-
-  logger.success('✅ Purchase updated successfully:', id);
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  return transformPurchaseFromDB(data);
 };
 
-const deletePurchase = async (id: string): Promise<void> => {
-  logger.info('🔄 Deleting purchase:', id);
-  
-  const { error } = await supabase
-    .from('purchases')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    logger.error('❌ Error deleting purchase:', error);
-    throw new Error(error.message);
-  }
-
-  logger.success('✅ Purchase deleted successfully:', id);
+const apiDeletePurchase = async (id: string) => {
+  const { error } = await supabase.from('purchases').delete().eq('id', id);
+  if (error) throw new Error(error.message);
 };
 
-// ✅ Notification helper (stable function)
-const createPurchaseNotification = async (
-  addNotification: any,
-  title: string,
-  message: string,
-  type: 'success' | 'info' | 'warning' | 'error' = 'success',
-  priority: number = 2,
-  purchaseId?: string
-) => {
-  try {
-    if (!addNotification || typeof addNotification !== 'function') {
-      return;
-    }
-
-    await addNotification({
-      title,
-      message,
-      type,
-      icon: 'shopping-cart',
-      priority,
-      related_type: 'purchase',
-      related_id: purchaseId,
-      action_url: '/pembelian',
-      is_read: false,
-      is_archived: false,
-    });
-  } catch (error) {
-    logger.error('Error creating purchase notification:', error);
-  }
-};
-
+// ------------------- Context -------------------
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
 export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const { addActivity } = useActivity();
   const { addTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  const warehouseContext = useBahanBaku();
-  const queryClient = useQueryClient();
+  const { bahanBaku } = useBahanBaku();
 
-  const warehouseService = useMemo(() => {
-    if (!user?.id) return null;
-    return createPurchaseWarehouseService(warehouseContext, user.id);
-  }, [warehouseContext, user?.id]);
-
-  logger.debug('🔍 PurchaseProvider rendered', {
-    userId: user?.id,
-    timestamp: new Date().toISOString()
-  });
-
-  // ✅ Memoized supplier lookup (stable)
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
-      if (!supplierId || !Array.isArray(suppliers)) return 'Supplier';
-      const supplier = suppliers.find(s => s.id === supplierId);
-      return supplier?.nama || 'Supplier';
-    } catch (error) {
-      logger.error('Error getting supplier name:', error);
+      const s = suppliers?.find((x: any) => x.id === supplierId);
+      return s?.nama || 'Supplier';
+    } catch {
       return 'Supplier';
     }
   }, [suppliers]);
 
-  // ✅ useQuery for fetching purchases
+  // ------------------- Query (list) -------------------
   const {
     data: purchases = [],
     isLoading,
     error,
-    refetch
   } = useQuery({
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: (failureCount, error: any) => {
-      if (error?.status >= 400 && error?.status < 500) {
-        return false;
-      }
-      return failureCount < 3;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 2 * 60 * 1000,
+    retry: (count, err: any) => (err?.status >= 400 && err?.status < 500 ? false : count < 3),
+    retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
   });
 
-  // ✅ Mutations for CRUD operations
+  // ------------------- Optimistic helpers -------------------
+  const setCacheList = useCallback((updater: (old: Purchase[]) => Purchase[]) => {
+    queryClient.setQueryData(purchaseQueryKeys.list(user?.id), (old: Purchase[] | undefined) => {
+      return updater(old || []);
+    });
+  }, [queryClient, user?.id]);
+
+  const findPurchase = useCallback((id: string) => purchases.find((p) => p.id === id), [purchases]);
+
+  // ------------------- Stats (memo) -------------------
+  const stats = useMemo(() => {
+    const total = purchases.length;
+    const totalValue = purchases.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0);
+    const statusCounts = purchases.reduce((acc: Record<string, number>, p) => {
+      acc[p.status] = (acc[p.status] || 0) + 1;
+      return acc;
+    }, {});
+    return {
+      total,
+      totalValue,
+      byStatus: {
+        pending: statusCounts.pending || 0,
+        completed: statusCounts.completed || 0,
+        cancelled: statusCounts.cancelled || 0,
+      },
+      completionRate: total ? ((statusCounts.completed || 0) / total) * 100 : 0,
+    };
+  }, [purchases]);
+
+  // ------------------- Mutations -------------------
+
+  // CREATE (optimistic append)
   const createMutation = useMutation({
-    mutationFn: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => 
-      createPurchase(purchase, user!.id),
-    onSuccess: async (result, variables) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
+    mutationFn: (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => apiCreatePurchase(payload, user!.id),
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+      const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
+      const temp: Purchase = {
+        id: `temp-${Date.now()}`,
+        userId: user!.id,
+        supplier: payload.supplier,
+        tanggal: payload.tanggal,
+        totalNilai: payload.totalNilai,
+        items: payload.items,
+        status: payload.status ?? 'pending',
+        metodePerhitungan: payload.metodePerhitungan ?? 'FIFO',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setCacheList((old) => [temp, ...old]);
+      return { prev, tempId: temp.id };
+    },
+    onSuccess: (newRow, _payload, ctx) => {
+      // swap temp with real
+      setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
+      // Info
+      const totalValue = formatCurrency(newRow.totalNilai);
+      toast.success(`Pembelian dibuat (${getSupplierName(newRow.supplier)} • ${totalValue})`);
+      addActivity?.({ title: 'Pembelian Ditambahkan', description: `Pembelian dari ${getSupplierName(newRow.supplier)} senilai ${totalValue}`, type: 'purchase', value: null });
+      addNotification?.({
+        title: '📦 Pembelian Baru',
+        message: `Pembelian dari ${getSupplierName(newRow.supplier)} senilai ${totalValue}`,
+        type: 'success',
+        icon: 'shopping-cart',
+        priority: 2,
+        related_type: 'purchase',
+        related_id: newRow.id,
+        action_url: '/pembelian',
+        is_read: false,
+        is_archived: false,
+      });
+    },
+    onError: (err, _payload, ctx) => {
+      // rollback
+      if (ctx?.prev) queryClient.setQueryData(purchaseQueryKeys.list(user?.id), ctx.prev);
+      toast.error(`Gagal membuat pembelian: ${err instanceof Error ? err.message : 'Error'}`);
+    },
+    // tidak perlu invalidate di onSettled karena kita sudah set cache dengan data hasil insert
+  });
 
-      const supplierName = getSupplierName(variables.supplier);
-      const itemCount = variables.items?.length || 0;
-      const totalValue = formatCurrency(variables.totalNilai);
+  // UPDATE (optimistic merge)
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => apiUpdatePurchase(id, updates),
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+      const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
+      setCacheList((old) =>
+        old.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: new Date() } as Purchase : p))
+      );
+      return { prev, id };
+    },
+    onSuccess: (fresh, _vars, ctx) => {
+      setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
+      toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(purchaseQueryKeys.list(user?.id), ctx.prev);
+      toast.error(`Gagal memperbarui pembelian: ${err instanceof Error ? err.message : 'Error'}`);
+    },
+  });
 
-      // Activity log
-      if (addActivity && typeof addActivity === 'function') {
-        addActivity({
-          title: 'Pembelian Ditambahkan',
-          description: `Pembelian dari ${supplierName} senilai ${totalValue}`,
-          type: 'purchase',
-          value: null,
+  // SET STATUS (optimistic)
+  const statusMutation = useMutation({
+    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) =>
+      apiSetStatus(id, user!.id, newStatus),
+    onMutate: async ({ id, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+      const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
+      setCacheList((old) => old.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
+      return { prev, id, newStatus };
+    },
+    onSuccess: (fresh, _vars, ctx) => {
+      setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
+      toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
+      // Catatan keuangan: contoh sederhana (opsional)
+      // Bila mau, tambahkan addTransaction saat completed, dan hapus saat revert—mirip kode kamu sebelumnya.
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(purchaseQueryKeys.list(user?.id), ctx.prev);
+      toast.error(`Gagal mengubah status: ${err instanceof Error ? err.message : 'Error'}`);
+    },
+  });
+
+  // DELETE (optimistic remove)
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiDeletePurchase(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+      const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
+      setCacheList((old) => old.filter((p) => p.id !== id));
+      return { prev, id };
+    },
+    onSuccess: (_res, id, ctx) => {
+      const p = ctx?.prev?.find((x) => x.id === id);
+      if (p) {
+        const supplierName = getSupplierName(p.supplier);
+        const totalValue = formatCurrency(p.totalNilai);
+        toast.success('Pembelian dihapus. Stok gudang disesuaikan otomatis.');
+        addActivity?.({ title: 'Pembelian Dihapus', description: `Pembelian dari ${supplierName} telah dihapus.`, type: 'purchase', value: null });
+        addNotification?.({
+          title: '🗑️ Pembelian Dihapus',
+          message: `Pembelian dari ${supplierName} senilai ${totalValue} telah dihapus`,
+          type: 'warning',
+          icon: 'trash',
+          priority: 2,
+          related_type: 'purchase',
+          related_id: id,
+          action_url: '/pembelian',
+          is_read: false,
+          is_archived: false,
         });
       }
-
-      // Success notification
-      await createPurchaseNotification(
-        addNotification,
-        '📦 Pembelian Baru Dibuat!',
-        `Pembelian dari ${supplierName} senilai ${totalValue} dengan ${itemCount} item berhasil dibuat`,
-        'success',
-        2
-      );
-
-      toast.success('Pembelian berhasil diproses dan stok telah diperbarui!');
-      logger.info('🎉 Create purchase mutation success');
     },
-    onError: async (error: Error, variables) => {
-      logger.error('❌ Create purchase mutation error:', error.message);
-      
-      await createPurchaseNotification(
-        addNotification,
-        '❌ Pembelian Gagal',
-        `Gagal memproses pembelian: ${error.message}`,
-        'error',
-        4
-      );
-      
-      toast.error(`Gagal memproses pembelian: ${error.message}`);
+    onError: (err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(purchaseQueryKeys.list(user?.id), ctx.prev);
+      toast.error(`Gagal menghapus pembelian: ${err instanceof Error ? err.message : 'Error'}`);
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => 
-      updatePurchase(id, updates),
-    onMutate: async ({ id }) => {
-      // Find the old purchase for status handling
-      const oldPurchase = purchases.find(p => p.id === id);
-      return { oldPurchase };
-    },
-    onSuccess: async (result, { id, updates }, context) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
-
-      const oldPurchase = context?.oldPurchase;
-      if (!oldPurchase) return;
-
-      const supplierName = getSupplierName(oldPurchase.supplier);
-      const oldStatus = oldPurchase.status;
-      const newStatus = updates.status;
-      const totalValue = formatCurrency(oldPurchase.totalNilai);
-      let wasExpenseRecorded = false;
-
-      // Handle completion status
-      if (oldStatus !== 'completed' && newStatus === 'completed') {
-        try {
-          if (addTransaction && typeof addTransaction === 'function') {
-            const successFinancial = await addTransaction({
-              type: 'expense',
-              category: 'Pembelian Bahan Baku',
-              description: `Pembelian dari ${supplierName}`,
-              amount: oldPurchase.totalNilai,
-              date: new Date(oldPurchase.tanggal),
-              relatedId: oldPurchase.id,
-            });
-
-            if (successFinancial) {
-              wasExpenseRecorded = true;
-
-              if (addActivity && typeof addActivity === 'function') {
-                addActivity({
-                  title: 'Pengeluaran Dicatat',
-                  description: `Pengeluaran ${totalValue} untuk pembelian dari ${supplierName}.`,
-                  type: 'keuangan',
-                  value: oldPurchase.totalNilai.toString(),
-                });
-              }
-
-              await createPurchaseNotification(
-                addNotification,
-                '✅ Pembelian Selesai!',
-                `Pembelian dari ${supplierName} senilai ${totalValue} telah selesai dan pengeluaran tercatat`,
-                'success',
-                2,
-                id
-              );
-            } else {
-              await createPurchaseNotification(
-                addNotification,
-                '⚠️ Pembelian Diperbarui, Pengeluaran Gagal',
-                `Status pembelian dari ${supplierName} berhasil diubah, tetapi gagal mencatat pengeluaran ${totalValue}`,
-                'warning',
-                3,
-                id
-              );
-            }
-          }
-        } catch (financialError) {
-          logger.error('Error recording financial transaction:', financialError);
-        }
-      }
-
-      // Remove financial record if reverting from completed
-      if (oldStatus === 'completed' && newStatus && newStatus !== 'completed') {
-        try {
-          await supabase
-            .from('financial_transactions')
-            .delete()
-            .eq('related_id', id)
-            .eq('user_id', user!.id);
-        } catch (financialError) {
-          logger.error('Error removing financial transaction:', financialError);
-        }
-      }
-
-      // Sync warehouse stock based on status change
-      if (warehouseService && newStatus && oldStatus !== newStatus) {
-        try {
-          const updatedPurchase: Purchase = { ...oldPurchase, ...updates, status: newStatus };
-          await warehouseService.handlePurchaseStatusChange(updatedPurchase, oldStatus, newStatus);
-        } catch (warehouseError) {
-          logger.error('Error syncing warehouse stock:', warehouseError);
-        }
-      }
-
-      // Success feedback
-      if (wasExpenseRecorded) {
-        toast.success('Status diubah & pengeluaran berhasil dicatat.');
-      } else {
-        toast.success('Pembelian berhasil diperbarui.');
-
-        // Status change notification
-        if (newStatus && oldStatus !== newStatus) {
-          await createPurchaseNotification(
-            addNotification,
-            '📝 Status Pembelian Diubah',
-            `Pembelian dari ${supplierName} diubah dari "${getStatusDisplayText(oldStatus)}" menjadi "${getStatusDisplayText(newStatus)}"`,
-            'info',
-            2,
-            id
-          );
-        }
-      }
-
-      logger.info('🎉 Update purchase mutation success');
-    },
-    onError: async (error: Error, { id }) => {
-      logger.error('❌ Update purchase mutation error:', error.message);
-      
-      const oldPurchase = purchases.find(p => p.id === id);
-      const supplierName = oldPurchase ? getSupplierName(oldPurchase.supplier) : 'Unknown';
-      
-      await createPurchaseNotification(
-        addNotification,
-        '❌ Update Gagal',
-        `Gagal memperbarui pembelian dari ${supplierName}: ${error.message}`,
-        'error',
-        4,
-        id
-      );
-      
-      toast.error(`Gagal memperbarui pembelian: ${error.message}`);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deletePurchase(id),
-    onMutate: async (id) => {
-      // Find purchase for activity log
-      const purchaseToDelete = purchases.find(p => p.id === id);
-      return { purchaseToDelete };
-    },
-    onSuccess: async (result, id, context) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
-
-      if (context?.purchaseToDelete) {
-        const supplierName = getSupplierName(context.purchaseToDelete.supplier);
-        const totalValue = formatCurrency(context.purchaseToDelete.totalNilai);
-
-        // Remove related financial transaction
-        try {
-          await supabase
-            .from('financial_transactions')
-            .delete()
-            .eq('related_id', context.purchaseToDelete.id)
-            .eq('user_id', user!.id);
-        } catch (finError) {
-          logger.error('Error deleting purchase transaction:', finError);
-        }
-
-        // Reduce warehouse stock if needed
-        if (warehouseService && context.purchaseToDelete.status === 'completed') {
-          try {
-            await warehouseService.handlePurchaseStatusChange(
-              context.purchaseToDelete,
-              'completed',
-              'cancelled'
-            );
-          } catch (warehouseError) {
-            logger.error('Error reverting warehouse stock:', warehouseError);
-          }
-        }
-
-        // Activity log
-        if (addActivity && typeof addActivity === 'function') {
-          addActivity({
-            title: 'Pembelian Dihapus',
-            description: `Pembelian dari ${supplierName} telah dihapus.`,
-            type: 'purchase',
-            value: null,
-          });
-        }
-
-        // Success notification
-        await createPurchaseNotification(
-          addNotification,
-          '🗑️ Pembelian Dihapus',
-          `Pembelian dari ${supplierName} senilai ${totalValue} telah dihapus dari sistem`,
-          'warning',
-          2
-        );
-
-        toast.success('Pembelian berhasil dihapus.');
-      }
-
-      logger.info('🎉 Delete purchase mutation success');
-    },
-    onError: async (error: Error, id) => {
-      logger.error('❌ Delete purchase mutation error:', error.message);
-      
-      const purchaseToDelete = purchases.find(p => p.id === id);
-      const supplierName = purchaseToDelete ? getSupplierName(purchaseToDelete.supplier) : 'Unknown';
-      
-      await createPurchaseNotification(
-        addNotification,
-        '❌ Hapus Gagal',
-        `Gagal menghapus pembelian dari ${supplierName}: ${error.message}`,
-        'error',
-        4,
-        id
-      );
-      
-      toast.error(`Gagal menghapus pembelian: ${error.message}`);
-    },
-  });
-
-  // ✅ Real-time subscription using useEffect (stable dependencies)
-  React.useEffect(() => {
-    if (!user?.id) return;
-
-    logger.info('🔄 Setting up real-time subscription for purchases');
-
-    const channel = supabase
-      .channel(`realtime-purchases-${user.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'purchases',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        logger.info('📡 Real-time purchase event received:', payload.eventType);
-
-        // Invalidate queries to refetch fresh data
-        queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.lists() });
-      })
-      .subscribe();
-
-    return () => {
-      logger.debug('🧹 Cleaning up purchase real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]); // ✅ Stable dependencies only
-
-  // ✅ Context action functions using mutations
-  const addPurchase = useCallback(async (
-    purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
-  ): Promise<boolean> => {
-    if (!user) {
-      logger.warn('🔐 Add purchase attempted without authentication');
-      toast.error('Anda harus login untuk menambahkan pembelian');
-      return false;
-    }
-
-    // Early validation
-    const validationErrors = validatePurchaseData(purchase);
-    if (validationErrors.length > 0) {
-      toast.error(validationErrors[0]);
-      return false;
-    }
-
+  // ------------------- Public actions -------------------
+  const addPurchase = useCallback(async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) { toast.error('Anda harus login'); return false; }
+    const errs = validatePurchaseData(purchase);
+    if (errs.length) { toast.error(errs[0]); return false; }
     try {
       await createMutation.mutateAsync(purchase);
       return true;
-    } catch (error) {
-      logger.error('❌ Add purchase failed:', error);
+    } catch (e) {
+      logger.error('Add purchase failed', e);
       return false;
     }
   }, [user, createMutation]);
 
-  const updatePurchaseAction = useCallback(async (
-    id: string,
-    updatedData: Partial<Purchase>
-  ): Promise<boolean> => {
-    if (!user) {
-      logger.warn('🔐 Update purchase attempted without authentication');
-      toast.error('Anda harus login.');
+  // Edit diperbolehkan walau completed — trigger DB akan rekalkulasi stok jika perlu
+  const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
+    if (!user) { toast.error('Anda harus login'); return false; }
+    try {
+      await updateMutation.mutateAsync({ id, updates: updated });
+      return true;
+    } catch (e) {
+      logger.error('Update purchase failed', e);
       return false;
     }
+  }, [user, updateMutation]);
 
-    if (!id || typeof id !== 'string') {
-      toast.error('ID pembelian tidak valid');
-      return false;
-    }
+  const setStatus = useCallback(async (id: string, newStatus: PurchaseStatus) => {
+    if (!user) { toast.error('Anda harus login'); return false; }
+    const p = findPurchase(id);
+    if (!p) { toast.error('Pembelian tidak ditemukan'); return false; }
 
-    // Check if purchase exists
-    const oldPurchase = purchases.find(p => p.id === id);
-    if (!oldPurchase) {
-      toast.error('Data pembelian lama tidak ditemukan.');
-      return false;
+    // Validasi ringan
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    if (p.status === newStatus) warnings.push('Status tidak berubah');
+    if (newStatus === 'completed') {
+      if (!p.items?.length) errors.push('Tidak dapat selesai tanpa item');
+      if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
+      if (!p.supplier) errors.push('Supplier wajib diisi');
+      const invalid = p.items.filter((it: any) => !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan);
+      if (invalid.length) errors.push(`Ada ${invalid.length} item tidak lengkap`);
     }
+    if (p.status === 'completed' && newStatus !== 'completed') {
+      warnings.push('Mengubah dari "Selesai" akan mengoreksi stok gudang otomatis.');
+    }
+    if (errors.length) { toast.error(errors[0]); return false; }
+    warnings.forEach((w) => toast.warning(w));
 
     try {
-      await updateMutation.mutateAsync({ id, updates: updatedData });
+      await statusMutation.mutateAsync({ id, newStatus });
       return true;
-    } catch (error) {
-      logger.error('❌ Update purchase failed:', error);
+    } catch (e) {
+      logger.error('Set status failed', e);
       return false;
     }
-  }, [user, purchases, updateMutation]);
+  }, [user, findPurchase, statusMutation]);
 
-  const deletePurchaseAction = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) {
-      logger.warn('🔐 Delete purchase attempted without authentication');
-      toast.error('Anda harus login.');
-      return false;
-    }
-
-    if (!id || typeof id !== 'string') {
-      toast.error('ID pembelian tidak valid');
-      return false;
-    }
-
-    // Check if purchase exists
-    const purchaseToDelete = purchases.find(p => p.id === id);
-    if (!purchaseToDelete) {
-      toast.error('Data pembelian tidak ditemukan.');
-      return false;
-    }
-
+  const deletePurchaseAction = useCallback(async (id: string) => {
+    if (!user) { toast.error('Anda harus login'); return false; }
     try {
       await deleteMutation.mutateAsync(id);
       return true;
-    } catch (error) {
-      logger.error('❌ Delete purchase failed:', error);
+    } catch (e) {
+      logger.error('Delete purchase failed', e);
       return false;
     }
-  }, [user, purchases, deleteMutation]);
+  }, [user, deleteMutation]);
 
-  const refreshPurchases = useCallback(async (): Promise<void> => {
-    logger.info('🔄 Manual refresh purchases requested');
-    await refetch();
-  }, [refetch]);
-
-  // ✅ Handle query error with notification
-  React.useEffect(() => {
-    if (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      createPurchaseNotification(
-        addNotification,
-        '❌ Error Sistem',
-        `Gagal memuat data pembelian: ${errorMessage}`,
-        'error',
-        4
-      );
+  // Bulk ops (loop saja, manfaatkan optimistic dari mutation)
+  const bulkDelete = useCallback(async (ids: string[]) => {
+    let success = 0;
+    for (const id of ids) {
+      const ok = await deletePurchaseAction(id);
+      if (ok) success++;
     }
-  }, [error, addNotification]);
+    toast.success(`${success}/${ids.length} pembelian terhapus`);
+  }, [deletePurchaseAction]);
 
-  // ✅ Context value with enhanced state from useQuery
-  const contextValue: PurchaseContextType = {
+  const bulkStatusUpdate = useCallback(async (ids: string[], newStatus: PurchaseStatus) => {
+    let success = 0;
+    for (const id of ids) {
+      const ok = await setStatus(id, newStatus);
+      if (ok) success++;
+    }
+    toast.success(`${success}/${ids.length} status berhasil diubah`);
+  }, [setStatus]);
+
+  // Prasyarat data (buat tombol "Tambah")
+  const validatePrerequisites = useCallback(() => {
+    const hasSuppliers = (suppliers?.length || 0) > 0;
+    const hasBahanBaku = (bahanBaku?.length || 0) > 0;
+    if (!hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
+    if (!hasBahanBaku) { toast.warning('Data bahan baku kosong. Tambahkan bahan baku untuk hasil optimal'); }
+    return true;
+  }, [suppliers?.length, bahanBaku?.length]);
+
+  const refreshPurchases = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+  }, [queryClient, user?.id]);
+
+  // ------------------- Realtime (debounced/guarded) -------------------
+  const blockRealtimeRef = useRef(false);
+  // blok sementara saat bulk
+  const setBulkProcessing = useCallback((v: boolean) => { blockRealtimeRef.current = v; }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`realtime-purchases-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases', filter: `user_id=eq.${user.id}` },
+        (_payload) => {
+          if (blockRealtimeRef.current) return;
+          // ringan: cukup soft-invalidate
+          queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, queryClient]);
+
+  // ------------------- Context value -------------------
+  const contextValue: PurchaseContextType & {
+    // tambahan API hasil penggabungan core
+    stats: {
+      total: number;
+      totalValue: number;
+      byStatus: { pending: number; completed: number; cancelled: number };
+      completionRate: number;
+    };
+    setStatus: (id: string, status: PurchaseStatus) => Promise<boolean>;
+    bulkDelete: (ids: string[]) => Promise<void>;
+    bulkStatusUpdate: (ids: string[], status: PurchaseStatus) => Promise<void>;
+    findPurchase: (id: string) => Purchase | undefined;
+    validatePrerequisites: () => boolean;
+    setBulkProcessing: (v: boolean) => void;
+    getSupplierName: (id: string) => string;
+  } = {
+    // from original type
     purchases,
-    isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
     error: error ? (error as Error).message : null,
+
     addPurchase,
     updatePurchase: updatePurchaseAction,
     deletePurchase: deletePurchaseAction,
     refreshPurchases,
-  };
 
-  logger.debug('🎯 PurchaseContext value prepared:', {
-    purchasesCount: purchases.length,
-    isLoading: contextValue.isLoading,
-    hasError: !!contextValue.error
-  });
+    // merged core api
+    stats,
+    setStatus,
+    bulkDelete,
+    bulkStatusUpdate,
+    findPurchase,
+    validatePrerequisites,
+    setBulkProcessing,
+    getSupplierName,
+  };
 
   return (
     <PurchaseContext.Provider value={contextValue}>
@@ -633,9 +439,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const usePurchase = () => {
-  const context = useContext(PurchaseContext);
-  if (context === undefined) {
-    throw new Error('usePurchase must be used within a PurchaseProvider');
-  }
-  return context;
+  const ctx = useContext(PurchaseContext);
+  if (!ctx) throw new Error('usePurchase must be used within a PurchaseProvider');
+  return ctx;
 };

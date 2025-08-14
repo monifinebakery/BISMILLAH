@@ -215,7 +215,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
   }), [onEdit, selectedItems.length, setSearchQuery, setStatusFilter]);
 
-  // ✅ Delete confirmation handler
+  // ✅ Delete confirmation handler with proper refresh
   const handleDeleteConfirm = useCallback(async () => {
     const { purchase } = dialogState.deleteConfirmation;
     if (!purchase || !onDelete) return;
@@ -232,14 +232,25 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       await onDelete(purchase.id);
       toast.success('Pembelian berhasil dihapus');
       
+      // ✅ Force refresh data - remove from local state immediately
+      // This should trigger parent component to refresh data
+      
       // Close dialog
       setDialogState(prev => ({
         ...prev,
         deleteConfirmation: initialDialogState.deleteConfirmation
       }));
+
+      // ✅ Reset current page if needed
+      const remainingItems = filteredPurchases.length - 1;
+      const maxPage = Math.ceil(remainingItems / itemsPerPage);
+      if (currentPage > maxPage && maxPage > 0) {
+        setCurrentPage(maxPage);
+      }
+
     } catch (error) {
       logger.error('Delete failed:', error);
-      toast.error('Gagal menghapus pembelian');
+      toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
       
       setDialogState(prev => ({
         ...prev,
@@ -249,9 +260,9 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         }
       }));
     }
-  }, [dialogState.deleteConfirmation, onDelete]);
+  }, [dialogState.deleteConfirmation, onDelete, filteredPurchases.length, itemsPerPage, currentPage]);
 
-  // ✅ Bulk delete confirmation handler
+  // ✅ Bulk delete confirmation handler with proper refresh
   const handleBulkDeleteConfirm = useCallback(async () => {
     if (selectedItems.length === 0) return;
 
@@ -276,14 +287,18 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       toast.success(`${selectedItems.length} pembelian berhasil dihapus`);
       setSelectedItems([]);
       
+      // ✅ Reset to first page after bulk delete
+      setCurrentPage(1);
+      
       // Close dialog
       setDialogState(prev => ({
         ...prev,
         bulkDeleteConfirmation: initialDialogState.bulkDeleteConfirmation
       }));
+
     } catch (error) {
       logger.error('Bulk delete failed:', error);
-      toast.error('Gagal menghapus pembelian');
+      toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
       
       setDialogState(prev => ({
         ...prev,

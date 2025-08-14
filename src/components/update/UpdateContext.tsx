@@ -21,8 +21,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const seenUpdateIdsRef = useRef<Set<string>>(new Set());
-
+  const seenUpdateIds = useRef<Set<string>>(new Set());
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
       console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
@@ -84,7 +83,11 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       setLatestUpdate(updates[0]);
-      const newUnseen = updates.filter(update => !seenIdsSet.has(update.id));
+      
+      const newUnseen = updates.filter(
+        (update) => !seenUpdateIds.current.has(update.id)
+      );
+
       setUnseenUpdates(newUnseen);
       setHasUnseenUpdates(newUnseen.length > 0);
 
@@ -101,67 +104,6 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(false);
     }
   }, [user?.id, isReady]);
-
-  const markAsSeen = useCallback(async (updateId: string) => {
-    if (!user?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_seen_updates')
-        .upsert(
-          { user_id: user.id, update_id: updateId, seen_at: new Date().toISOString() },
-          { onConflict: 'user_id,update_id' }
-        );
-
-      if (error) throw error;
-
-      setSeenUpdateIds(prev => {
-        const newSet = new Set(prev);
-        newSet.add(updateId);
-        return newSet;
-      });
-
-      setUnseenUpdates(prev => {
-        const updated = prev.filter(update => update.id !== updateId);
-        setHasUnseenUpdates(updated.length > 0);
-        return updated;
-      });
-
-      console.log('Marked as seen:', updateId);
-    } catch (error) {
-      console.error('Error in markAsSeen:', error);
-      toast.error('Gagal menandai pembaruan sebagai sudah dibaca');
-    }
-  }, [user?.id]);
-
-  const markAllAsSeen = useCallback(async () => {
-    if (!user?.id || unseenUpdates.length === 0) return;
-
-    try {
-      const updatesPayload = unseenUpdates.map(update => ({
-        user_id: user.id,
-        update_id: update.id,
-        seen_at: new Date().toISOString(),
-      }));
-
-      const { error } = await supabase
-        .from('user_seen_updates')
-        .upsert(updatesPayload, { onConflict: 'user_id,update_id' });
-
-      if (error) throw error;
-
-      const newSeenIds = new Set(seenUpdateIds);
-      unseenUpdates.forEach(update => newSeenIds.add(update.id));
-      setSeenUpdateIds(newSeenIds);
-      setUnseenUpdates([]);
-      setHasUnseenUpdates(false);
-      toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
-      console.log('Marked all as seen');
-    } catch (error) {
-      console.error('Error in markAllAsSeen:', error);
-      toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
-    }
-  }, [user?.id, unseenUpdates, seenUpdateIds]);
 
   const showUpdateNotification = useCallback((updates: AppUpdate[]) => {
     try {
@@ -193,7 +135,42 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Error showing notification:', error);
     }
-  }, [markAllAsSeen]);
+  }, []);
+
+  const markAsSeen = useCallback(
+    async (updateId: string) => {
+      if (!user?.id) return;
+
+      try {
+        seenUpdateIds.current.add(updateId);
+        setUnseenUpdates((prev) => {
+          const filtered = prev.filter((update) => update.id !== updateId);
+          setHasUnseenUpdates(filtered.length > 0);
+          return filtered;
+        });
+        console.log('Marked as seen:', updateId);
+      } catch (error) {
+        console.error('Error in markAsSeen:', error);
+      }
+    },
+    [user?.id]
+  );
+
+  const markAllAsSeen = useCallback(async () => {
+    if (!user?.id || unseenUpdates.length === 0) return;
+
+    try {
+      unseenUpdates.forEach((update) => seenUpdateIds.current.add(update.id));
+      setUnseenUpdates([]);
+      setHasUnseenUpdates(false);
+      toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
+      console.log('Marked all as seen');
+    } catch (error) {
+      console.error('Error in markAllAsSeen:', error);
+      toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
+    }
+  }, [user?.id, unseenUpdates]);
+              
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
   }, [fetchUpdates]);
@@ -207,7 +184,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
-      seenUpdateIdsRef.current = new Set();
+      seenUpdateIds.current = new Set();
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);

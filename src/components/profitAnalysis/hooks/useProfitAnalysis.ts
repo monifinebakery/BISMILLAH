@@ -13,7 +13,7 @@ import {
   ProfitApiResponse 
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
-import { PROFIT_CONSTANTS } from '../constants/profitConstants';
+import { PROFIT_CONSTANTS } from '../constants';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {

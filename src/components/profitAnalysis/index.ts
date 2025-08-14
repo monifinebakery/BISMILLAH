@@ -65,7 +65,7 @@ export {
   generateCostOptimizationRecommendations,
   performCompetitiveBenchmarking,
   generateExecutiveSummary
-} from './utils/enhancedProfitCalculations';
+} from './utils/ProfitCalculations';
 
 // Default export for convenience
 export default {

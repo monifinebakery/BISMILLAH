@@ -17,26 +17,32 @@ interface ServiceConfig {
 }
 
 // ✅ ENHANCED: Data transformation helpers with package content support
-// ✅ UPDATE: Tambahkan support untuk harga_rata_rata dan harga_rata2
+// ✅ UPDATE: Tambahkan support untuk WAC yang benar
 const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
+  // ✅ A. Tambahkan mapping WAC yang benar
+  const wac =
+    dbItem.harga_rata_rata != null
+      ? Number(dbItem.harga_rata_rata)
+      : dbItem.harga_rata2 != null
+        ? Number(dbItem.harga_rata2)
+        : null;
+
   const frontendItem: BahanBakuFrontend = {
     id: dbItem.id,
     userId: dbItem.user_id,
     nama: dbItem.nama,
     kategori: dbItem.kategori,
-    stok: Number(dbItem.stok) || 0, // ✅ FIXED: Ensure numeric conversion
+    stok: Number(dbItem.stok) || 0,
     minimum: Number(dbItem.minimum) || 0,
     satuan: dbItem.satuan,
-    // ⬇⬇⬇ penting: ambil WAC dari dua kemungkinan kolom
-    hargaRataRata: dbItem.harga_rata_rata ?? dbItem.harga_rata2 ?? null,
-    // fallback harga input satuan
     harga: Number(dbItem.harga_satuan) || 0,
+    hargaRataRata: wac,                 // ✅ ← ini yang hilang
     supplier: dbItem.supplier,
     expiry: dbItem.tanggal_kadaluwarsa,
     createdAt: dbItem.created_at,
     updatedAt: dbItem.updated_at,
     jumlahBeliKemasan: Number(dbItem.jumlah_beli_kemasan) || 0,
-    isiPerKemasan: Number(dbItem.isi_per_kemasan) || 1, // ✅ Default to 1
+    isiPerKemasan: Number(dbItem.isi_per_kemasan) || 1,
     satuanKemasan: dbItem.satuan_kemasan,
     hargaTotalBeliKemasan: Number(dbItem.harga_total_beli_kemasan) || 0,
   };
@@ -53,8 +59,8 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     satuan: frontendItem.satuan,
     harga_satuan: frontendItem.harga,
     supplier: frontendItem.supplier,
-    tanggal_kadaluwarsa: frontendItem.expiry || null, // ✅ Pastikan null jika tidak ada
-    jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan || null, // ✅ Gunakan null jika 0
+    tanggal_kadaluwarsa: frontendItem.expiry || null,
+    jumlah_beli_kemasan: frontendItem.jumlahBeliKemasan || null,
     isi_per_kemasan: frontendItem.isiPerKemasan || null,
     satuan_kemasan: frontendItem.satuanKemasan || null,
     harga_total_beli_kemasan: frontendItem.hargaTotalBeliKemasan || null,
@@ -136,7 +142,7 @@ class CrudService {
         tanggal_kadaluwarsa, created_at, updated_at, jumlah_beli_kemasan,
         isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan,
         harga_rata_rata, harga_rata2
-      `);
+      `); // ✅ B. Pastikan select-nya benar tanpa komentar
       
       // Filter by user_id if provided
       if (this.config.userId) {
@@ -516,11 +522,11 @@ class SubscriptionService {
  * Cache Service - Simple in-memory caching (Enhanced)
  */
 class CacheService {
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private cache = new Map<string, {  any; timestamp: number; ttl: number }>();
 
   constructor(private config: ServiceConfig) {}
 
-  set(key: string, data: any, ttlMinutes: number = 5) {
+  set(key: string,  any, ttlMinutes: number = 5) {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),

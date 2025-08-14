@@ -16,7 +16,7 @@ import { CHART_CONFIG } from '../constants/profitConstants';
 // TYPES
 // ==============================================
 
-interface ProfitTrendChartProps {
+export interface ProfitTrendChartProps {
   profitHistory: RealTimeProfitCalculation[];
   isLoading: boolean;
   chartType?: 'line' | 'area';
@@ -86,7 +86,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       return {
         revenueGrowth: 0,
         profitGrowth: 0,
-        marginTrend: 'stable',
+        marginTrend: 'stable' as const,
         bestMonth: null,
         worstMonth: null
       };
@@ -104,8 +104,8 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       : 0;
 
     // Margin trend analysis
-    const marginTrend = lastPeriod.netMargin > firstPeriod.netMargin + 2 ? 'improving' :
-                       lastPeriod.netMargin < firstPeriod.netMargin - 2 ? 'declining' : 'stable';
+    const marginTrend = lastPeriod.netMargin > firstPeriod.netMargin + 2 ? 'improving' as const :
+                       lastPeriod.netMargin < firstPeriod.netMargin - 2 ? 'declining' as const : 'stable' as const;
 
     // Best and worst performing months
     const bestMonth = trendData.reduce((best, current) => 

@@ -1,120 +1,116 @@
-// src/components/profitAnalysis/tabs/rincianTab/utils/formatters.ts
+// src/components/profitAnalysis/tabs/RincianTab/utils/formatters.ts
 
-/**
- * Enhanced currency formatter for Indonesian Rupiah
- */
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', { 
-    style: 'currency', 
+export const formatCurrency = (amount: number | null | undefined): string => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return 'Rp 0';
+  }
+  
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount);
 };
 
-/**
- * Format percentage with configurable decimal places
- */
-export const formatPercentage = (value: number, decimals: number = 1): string => {
-  return `${value.toFixed(decimals)}%`;
-};
-
-/**
- * Format number with thousand separators
- */
-export const formatNumber = (value: number, decimals: number = 0): string => {
-  return new Intl.NumberFormat('id-ID', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  }).format(value);
-};
-
-/**
- * Format ratio/multiplier (e.g., 2.5x)
- */
-export const formatRatio = (value: number, decimals: number = 2): string => {
-  return `${value.toFixed(decimals)}x`;
-};
-
-/**
- * Format compact currency for large numbers
- */
-export const formatCompactCurrency = (amount: number): string => {
-  if (amount >= 1e9) {
-    return `Rp ${(amount / 1e9).toFixed(1)}B`;
+export const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '0.0%';
   }
-  if (amount >= 1e6) {
-    return `Rp ${(amount / 1e6).toFixed(1)}M`;
+  
+  return `${value.toFixed(1)}%`;
+};
+
+export const formatNumber = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '0';
   }
-  if (amount >= 1e3) {
+  
+  return new Intl.NumberFormat('id-ID').format(value);
+};
+
+export const formatRatio = (numerator: number, denominator: number): string => {
+  if (denominator === 0 || isNaN(numerator) || isNaN(denominator)) {
+    return '0:1';
+  }
+  
+  const ratio = numerator / denominator;
+  return `${ratio.toFixed(2)}:1`;
+};
+
+export const formatCompactCurrency = (amount: number | null | undefined): string => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return 'Rp 0';
+  }
+  
+  const absAmount = Math.abs(amount);
+  
+  if (absAmount >= 1e9) {
+    return `Rp ${(amount / 1e9).toFixed(1)}M`;
+  } else if (absAmount >= 1e6) {
+    return `Rp ${(amount / 1e6).toFixed(1)}Jt`;
+  } else if (absAmount >= 1e3) {
     return `Rp ${(amount / 1e3).toFixed(1)}K`;
   }
+  
   return formatCurrency(amount);
 };
 
-/**
- * Format data source label
- */
-export const formatDataSource = (source: string): string => {
-  const sourceMap: Record<string, string> = {
+export const formatDataSource = (dataSource: string): string => {
+  const mapping = {
     'actual': 'Aktual',
-    'mixed': 'Campuran', 
-    'estimated': 'Estimasi'
+    'estimated': 'Estimasi',
+    'mixed': 'Campuran'
   };
-  return sourceMap[source] || source;
+  
+  return mapping[dataSource as keyof typeof mapping] || dataSource;
 };
 
-/**
- * Format allocation method label
- */
 export const formatAllocationMethod = (method: string): string => {
-  const methodMap: Record<string, string> = {
-    'direct': 'Langsung',
-    'activity_based': 'Berbasis Aktivitas',
-    'proportional': 'Proporsional',
-    'fixed_rate': 'Tarif Tetap'
+  const mapping = {
+    'activity_based': 'Activity-Based',
+    'direct_allocation': 'Direct Allocation',
+    'percentage_based': 'Percentage-Based',
+    'unit_based': 'Unit-Based'
   };
-  return methodMap[method] || method;
+  
+  return mapping[method as keyof typeof mapping] || method;
 };
 
-/**
- * Format cost type label
- */
 export const formatCostType = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    'tetap': 'Biaya Tetap',
-    'variabel': 'Biaya Variabel',
-    'fixed': 'Biaya Tetap',
-    'variable': 'Biaya Variabel'
+  const mapping = {
+    'tetap': 'Tetap',
+    'variabel': 'Variabel',
+    'semi_variabel': 'Semi Variabel'
   };
-  return typeMap[type] || type;
+  
+  return mapping[type as keyof typeof mapping] || type;
 };
 
-/**
- * Format usage type label
- */
 export const formatUsageType = (type: string): string => {
-  const typeMap: Record<string, string> = {
+  const mapping = {
     'production': 'Produksi',
-    'maintenance': 'Pemeliharaan',
-    'quality_control': 'Quality Control',
-    'packaging': 'Packaging',
-    'waste': 'Waste/Sisa'
+    'sale': 'Penjualan',
+    'adjustment': 'Penyesuaian',
+    'waste': 'Waste'
   };
-  return typeMap[type] || type;
+  
+  return mapping[type as keyof typeof mapping] || type;
 };
 
-/**
- * Truncate text with ellipsis
- */
 export const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return `${text.substring(0, maxLength)}...`;
+  if (text.length <= maxLength) {
+    return text;
+  }
+  
+  return text.substring(0, maxLength - 3) + '...';
 };
 
-/**
- * Format material ID for display
- */
-export const formatMaterialId = (id: string, maxLength: number = 12): string => {
-  return truncateText(id, maxLength);
+export const formatMaterialId = (materialId: string): string => {
+  // Format material ID for display
+  if (materialId.length > 8) {
+    return `${materialId.substring(0, 8)}...`;
+  }
+  
+  return materialId;
 };

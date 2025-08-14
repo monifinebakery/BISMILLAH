@@ -315,12 +315,12 @@ export const profitAnalysisApi = {
       
       const [
         transactions,
-        materials, 
+        materials,
         operationalCosts
       ] = await Promise.all([
         financialApi.getFinancialTransactions(userId),
         getWarehouseData(userId),
-        operationalCostApi.getCosts()
+        operationalCostApi.getCosts(undefined, userId)
       ]);
 
       // Handle potential errors from data sources
@@ -415,7 +415,7 @@ export const profitAnalysisApi = {
       if (error) {
         // Fallback to direct API call
         logger.warn('OpEx breakdown function failed, using fallback');
-        const opexResult = await operationalCostApi.getCosts();
+        const opexResult = await operationalCostApi.getCosts(undefined, userId);
         const activeCosts = (opexResult.data || []).filter(c => c.status === 'aktif');
         const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
 

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +20,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set());
+  const seenUpdateIdsRef = useRef<Set<string>>(new Set());
 
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
@@ -59,7 +66,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       setLatestUpdate(updates[0]);
-      const newUnseen = updates.filter(update => !seenUpdateIds.has(update.id));
+      const newUnseen = updates.filter(
+        (update) => !seenUpdateIdsRef.current.has(update.id)
+      );
       setUnseenUpdates(newUnseen);
       setHasUnseenUpdates(newUnseen.length > 0);
 
@@ -75,7 +84,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isReady, seenUpdateIds]);
+  }, [user?.id, isReady]);
 
   const showUpdateNotification = useCallback((updates: AppUpdate[]) => {
     try {
@@ -113,7 +122,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user?.id) return;
 
     try {
-      setSeenUpdateIds(prev => new Set(prev).add(updateId));
+      seenUpdateIdsRef.current.add(updateId);
       setUnseenUpdates(prev => prev.filter(update => update.id !== updateId));
       setHasUnseenUpdates(prev => {
         const newUnseen = unseenUpdates.filter(update => update.id !== updateId);
@@ -129,9 +138,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
-      const newSeenIds = new Set(seenUpdateIds);
-      unseenUpdates.forEach(update => newSeenIds.add(update.id));
-      setSeenUpdateIds(newSeenIds);
+      unseenUpdates.forEach(update => seenUpdateIdsRef.current.add(update.id));
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
@@ -140,7 +147,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
-  }, [user?.id, unseenUpdates, seenUpdateIds]);
+  }, [user?.id, unseenUpdates]);
 
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
@@ -155,7 +162,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
-      setSeenUpdateIds(new Set());
+      seenUpdateIdsRef.current = new Set();
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);

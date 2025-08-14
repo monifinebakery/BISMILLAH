@@ -1,5 +1,3 @@
-// src/components/recipe/dialogs/DuplicateRecipeDialog.tsx
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +29,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
 
   useEffect(() => {
     if (isOpen && recipe) {
-      // Auto-generate duplicate name
       const suggestedName = `${recipe.namaResep} (Copy)`;
       setNewName(suggestedName);
       setError('');
@@ -39,18 +36,10 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
   }, [isOpen, recipe]);
 
   const validateName = (name: string): string => {
-    if (!name.trim()) {
-      return 'Nama resep tidak boleh kosong';
-    }
-    if (name.trim().length < 3) {
-      return 'Nama resep minimal 3 karakter';
-    }
-    if (name.trim().length > 100) {
-      return 'Nama resep maksimal 100 karakter';
-    }
-    if (recipe && name.trim() === recipe.namaResep) {
-      return 'Nama resep harus berbeda dari aslinya';
-    }
+    if (!name.trim()) return 'Nama resep tidak boleh kosong';
+    if (name.trim().length < 3) return 'Nama resep minimal 3 karakter';
+    if (name.trim().length > 100) return 'Nama resep maksimal 100 karakter';
+    if (recipe && name.trim() === recipe.namaResep) return 'Nama resep harus berbeda dari aslinya';
     return '';
   };
 
@@ -91,7 +80,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg bg-white shadow-xl">
-        
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-50">
           <div className="flex items-center gap-3">
@@ -117,14 +105,12 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
           </Button>
         </div>
 
-        <CardContent className="p-6">
-          
+        <CardContent className="p-6 max-h-[70vh] overflow-y-auto">
           {/* Original Recipe Info */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-700 mb-3">
               Resep yang akan diduplikasi:
             </h3>
-            
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -134,7 +120,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                   <h4 className="font-semibold text-gray-900 truncate">
                     {recipe.namaResep}
                   </h4>
-                  
                   <div className="flex items-center gap-2 mt-2">
                     {recipe.kategoriResep && (
                       <Badge variant="outline" className="text-xs">
@@ -142,7 +127,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                       </Badge>
                     )}
                   </div>
-                  
                   {recipe.deskripsi && (
                     <p className="text-sm text-gray-600 mt-2 line-clamp-2">
                       {recipe.deskripsi}
@@ -150,8 +134,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                   )}
                 </div>
               </div>
-
-              {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -162,7 +144,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                     {recipe.jumlahPorsi}
                   </p>
                 </div>
-
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <DollarSign className="w-3 h-3 text-gray-500" />
@@ -172,7 +153,6 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                     {formatCurrency(recipe.hppPerPorsi)}
                   </p>
                 </div>
-
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <ChefHat className="w-3 h-3 text-gray-500" />
@@ -215,14 +195,12 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                 </div>
               )}
             </div>
-            
             {error && (
               <div className="flex items-center gap-2 mt-2">
                 <AlertCircle className="w-4 h-4 text-red-500" />
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-            
             <p className="text-xs text-gray-500 mt-2">
               Nama harus unik dan berbeda dari resep aslinya
             </p>
@@ -279,7 +257,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-6">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}

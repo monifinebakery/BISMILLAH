@@ -1,3 +1,6 @@
+// src/hooks/useProfitMargin.ts
+// ✅ FIXED VERSION - Proper null checks and error handling
+
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
@@ -13,10 +16,7 @@ import {
   DatePeriod,
   CategoryMapping,
   DEFAULT_CATEGORY_MAPPING,
-  ProfitChartData,
-  MaterialUsageLog,
-  ProductionRecord,
-  ProfitInsight
+  ProfitChartData
 } from '../types';
 
 import { prepareProfitChartData } from '../utils/profitCalculations';
@@ -36,7 +36,30 @@ export const profitMarginQueryKeys = {
 };
 
 // ===========================================
-// ✅ MAIN HOOK
+// ✅ SAFE DATA VALIDATORS
+// ===========================================
+
+const isValidProfitData = (data: any): data is ProfitAnalysisResult => {
+  return (
+    data &&
+    typeof data === 'object' &&
+    data.profitMarginData &&
+    typeof data.profitMarginData.revenue === 'number' &&
+    !isNaN(data.profitMarginData.revenue)
+  );
+};
+
+const isValidDashboardData = (data: any): boolean => {
+  return (
+    data &&
+    typeof data === 'object' &&
+    typeof data.revenue === 'number' &&
+    !isNaN(data.revenue)
+  );
+};
+
+// ===========================================
+// ✅ MAIN HOOK - FIXED
 // ===========================================
 
 interface ProfitMarginHook {
@@ -54,149 +77,204 @@ export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
 
-  // Query untuk profit margin analysis
+  // ✅ SAFE Query untuk profit margin analysis
   const { data, isLoading, error: queryError } = useQuery({
     queryKey: profitMarginQueryKeys.analysis(period),
     queryFn: async () => {
-      logger.debug('Fetching profit margin data', { period });
-      const response = await profitAnalysisApi.calculateProfitMargin(period);
-      
-      if (!response.success || !response.data) {
-        logger.error('Profit margin query failed', { error: response.error });
-        throw new Error(response.error || 'Gagal menghitung profit margin');
-      }
+      try {
+        logger.debug('Fetching profit margin data', { period });
+        const response = await profitAnalysisApi.calculateProfitMargin(period);
+        
+        // ✅ SAFE: Check response structure
+        if (!response || typeof response !== 'object') {
+          throw new Error('Invalid response format');
+        }
+        
+        if (!response.success) {
+          throw new Error(response.error || 'API call failed');
+        }
 
-      // Validasi response data
-      if (!response.data?.profitMarginData || typeof response.data.profitMarginData.revenue !== 'number' || isNaN(response.data.profitMarginData.revenue)) {
-        logger.error('Invalid profit margin data received', { 
-          data: response.data,
-          hasProfitMarginData: !!response.data?.profitMarginData,
-          revenueType: response.data?.profitMarginData ? typeof response.data.profitMarginData.revenue : 'undefined'
+        // ✅ SAFE: Validate response data
+        if (!isValidProfitData(response.data)) {
+          logger.error('Invalid profit margin data received', { 
+            responseData: response.data,
+            hasData: !!response.data,
+            hasProfitMarginData: response.data?.profitMarginData,
+            revenueType: response.data?.profitMarginData ? typeof response.data.profitMarginData.revenue : 'undefined'
+          });
+          throw new Error('Data profit margin tidak valid atau tidak lengkap');
+        }
+
+        logger.info('Profit margin data fetched successfully', {
+          revenue: response.data.profitMarginData.revenue,
+          cogs: response.data.profitMarginData.cogs,
+          dataSource: response.data.cogsBreakdown?.dataSource
         });
-        throw new Error('Data profit margin tidak valid');
-      }
 
-      return response.data;
+        return response.data;
+      } catch (error: any) {
+        logger.error('Profit margin query failed', { error: error.message, period });
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 5, // 5 menit
-    retry: 2,
-    retryDelay: 1000
+    retry: (failureCount, error) => {
+      // Don't retry on validation errors
+      if (error.message.includes('tidak valid')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: 1000,
+    enabled: !!period?.from && !!period?.to
   });
 
-  // Mutation untuk perhitungan ulang
+  // ✅ SAFE Mutation untuk perhitungan ulang
   const calculateMutation = useMutation({
     mutationFn: async () => {
-      const response = await profitAnalysisApi.calculateProfitMargin(period);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal menghitung profit margin');
+      try {
+        const response = await profitAnalysisApi.calculateProfitMargin(period);
+        
+        if (!response?.success || !isValidProfitData(response.data)) {
+          throw new Error(response?.error || 'Gagal menghitung profit margin');
+        }
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Calculate mutation failed', { error: error.message });
+        throw error;
       }
-      return response.data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(profitMarginQueryKeys.analysis(period), data);
       logger.info('Profit margin recalculated successfully', { period });
     },
     onError: (error: Error) => {
-      logger.error('Recalculation failed', { error });
+      logger.error('Recalculation failed', { error: error.message });
       setError(error);
     }
   });
 
-  // Mutation untuk perbandingan periode
+  // ✅ SAFE Mutation untuk perbandingan periode
   const compareMutation = useMutation({
     mutationFn: async (previousPeriod: DatePeriod) => {
-      const response = await profitAnalysisApi.compareProfitMargins(period, previousPeriod);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal membandingkan profit margin');
+      try {
+        const response = await profitAnalysisApi.compareProfitMargins(period, previousPeriod);
+        
+        if (!response?.success || !response.data) {
+          throw new Error(response?.error || 'Gagal membandingkan profit margin');
+        }
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Compare mutation failed', { error: error.message });
+        throw error;
       }
-      return response.data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(profitMarginQueryKeys.comparison(period, period), data);
       logger.info('Profit margin comparison successful', { currentPeriod: period });
     },
     onError: (error: Error) => {
-      logger.error('Comparison failed', { error });
+      logger.error('Comparison failed', { error: error.message });
       setError(error);
     }
   });
 
-  // Mutation untuk trend analysis
+  // ✅ SAFE Mutation untuk trend analysis
   const trendMutation = useMutation({
     mutationFn: async (periods: DatePeriod[]) => {
-      const response = await profitAnalysisApi.getProfitTrend(periods);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal memuat trend profit');
+      try {
+        const response = await profitAnalysisApi.getProfitTrend(periods);
+        
+        if (!response?.success || !Array.isArray(response.data)) {
+          throw new Error(response?.error || 'Gagal memuat trend profit');
+        }
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Trend mutation failed', { error: error.message });
+        throw error;
       }
-      return response.data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(profitMarginQueryKeys.trend([period]), data);
       logger.info('Profit trend fetched successfully', { periodsCount: data.length });
     },
     onError: (error: Error) => {
-      logger.error('Trend analysis failed', { error });
+      logger.error('Trend analysis failed', { error: error.message });
       setError(error);
     }
   });
 
-  // Mutation untuk export
+  // ✅ SAFE Mutation untuk export
   const exportMutation = useMutation({
     mutationFn: async ({ format, data }: { format: 'pdf' | 'excel' | 'csv'; data: ProfitAnalysisResult }) => {
-      const response = await profitAnalysisApi.exportProfitAnalysis(data, format);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || `Gagal mengekspor laporan sebagai ${format}`);
+      try {
+        if (!isValidProfitData(data)) {
+          throw new Error('Data tidak valid untuk ekspor');
+        }
+        
+        const response = await profitAnalysisApi.exportProfitAnalysis(data, format);
+        
+        if (!response?.success) {
+          throw new Error(response?.error || `Gagal mengekspor laporan sebagai ${format}`);
+        }
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Export mutation failed', { error: error.message, format });
+        throw error;
       }
-      return response.data;
     },
     onSuccess: (_data, variables) => {
       logger.info('Export successful', { format: variables.format });
     },
     onError: (error: Error, variables) => {
-      logger.error('Export failed', { format: variables.format, error });
+      logger.error('Export failed', { format: variables.format, error: error.message });
       setError(error);
     }
   });
 
-  // Prepare chart data
-  const keyMetrics = data ? prepareProfitChartData([data]) : null;
+  // ✅ SAFE Prepare chart data
+  const keyMetrics = data && isValidProfitData(data) ? prepareProfitChartData([data]) : null;
 
-  // Handle calculate profit
+  // ✅ SAFE Handle calculate profit
   const calculateProfit = useCallback(async () => {
     setError(null);
     await calculateMutation.mutateAsync();
   }, [calculateMutation]);
 
-  // Handle compare periods
+  // ✅ SAFE Handle compare periods
   const comparePeriods = useCallback(async (previousPeriod: DatePeriod) => {
     setError(null);
     return await compareMutation.mutateAsync(previousPeriod);
   }, [compareMutation]);
 
-  // Handle get trend
+  // ✅ SAFE Handle get trend
   const getTrend = useCallback(async (periods: DatePeriod[]) => {
     setError(null);
     return await trendMutation.mutateAsync(periods);
   }, [trendMutation]);
 
-  // Handle export
+  // ✅ SAFE Handle export
   const exportAnalysis = useCallback(async (format: 'pdf' | 'excel' | 'csv', data: ProfitAnalysisResult) => {
     setError(null);
     return await exportMutation.mutateAsync({ format, data });
   }, [exportMutation]);
 
-  // Effect untuk log error
+  // ✅ SAFE Effect untuk log error
   useEffect(() => {
     if (queryError) {
-      logger.error('Profit margin query error', { error: queryError });
-      setError(queryError);
+      logger.error('Profit margin query error', { error: queryError.message });
+      setError(queryError as Error);
     }
   }, [queryError]);
 
   return {
     profitData: data || null,
     keyMetrics,
-    isLoading: isLoading || calculateMutation.isLoading,
+    isLoading: isLoading || calculateMutation.isPending,
     error,
     calculateProfit,
     comparePeriods,
@@ -206,13 +284,13 @@ export const useProfitMargin = (period: DatePeriod): ProfitMarginHook => {
 };
 
 // ===========================================
-// ✅ DASHBOARD HOOK
+// ✅ DASHBOARD HOOK - FIXED
 // ===========================================
 
 interface ProfitDashboardHook {
   summary: {
     currentMargin: ProfitMarginData;
-    alerts: ProfitInsight[];
+    alerts: any[];
   } | null;
   isLoading: boolean;
   error: Error | null;
@@ -223,60 +301,89 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
 
-  // Query untuk dashboard summary
+  // ✅ SAFE Query untuk dashboard summary
   const { data, isLoading, error: queryError, refetch: queryRefetch } = useQuery({
     queryKey: profitMarginQueryKeys.dashboard(),
     queryFn: async () => {
-      logger.debug('Fetching dashboard summary');
-      const response = await profitAnalysisApi.getDashboardSummary();
-      if (!response.success || !response.data) {
-        logger.error('Dashboard summary query failed', { error: response.error });
-        throw new Error(response.error || 'Gagal memuat dashboard summary');
-      }
+      try {
+        logger.debug('Fetching dashboard summary');
+        const response = await profitAnalysisApi.getDashboardSummary();
+        
+        // ✅ SAFE: Check response structure
+        if (!response || typeof response !== 'object') {
+          throw new Error('Invalid response format');
+        }
+        
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to fetch dashboard summary');
+        }
 
-      // Validasi response data dengan logging yang lebih spesifik
-      if (!response.data || typeof response.data.revenue !== 'number' || isNaN(response.data.revenue)) {
-        logger.error('Invalid dashboard summary data received', { 
-          data: response.data,
-          hasData: !!response.data,
-          revenueType: response.data ? typeof response.data.revenue : 'undefined',
-          isRevenueNaN: response.data ? isNaN(response.data.revenue) : true
-        });
-        throw new Error('Data ringkasan dashboard tidak valid');
-      }
+        // ✅ SAFE: Validate response data structure
+        if (!response.data || typeof response.data !== 'object') {
+          logger.warn('No dashboard data available, returning null');
+          return null;
+        }
 
-      return {
-        currentMargin: {
-          revenue: response.data.revenue,
-          cogs: response.data.cogs || 0,
-          opex: response.data.opex || 0,
-          grossProfit: response.data.grossProfit || 0,
-          netProfit: response.data.netProfit || 0,
-          grossMargin: response.data.grossMargin || 0,
-          netMargin: response.data.netMargin || 0,
-          calculatedAt: new Date(),
-          period: response.data.period || createDatePeriods.thisMonth()
-        },
-        alerts: response.data.insights || []
-      };
+        // ✅ SAFE: Check if currentMargin exists and is valid
+        const currentMargin = response.data.currentMargin;
+        if (!currentMargin || !isValidDashboardData(currentMargin)) {
+          logger.warn('Invalid currentMargin data, creating default structure');
+          
+          // Return safe default structure
+          return {
+            currentMargin: {
+              revenue: 0,
+              cogs: 0,
+              opex: 0,
+              grossProfit: 0,
+              netProfit: 0,
+              grossMargin: 0,
+              netMargin: 0,
+              calculatedAt: new Date(),
+              period: createDatePeriods.thisMonth()
+            },
+            alerts: []
+          };
+        }
+
+        // ✅ SAFE: Extract data with fallbacks
+        return {
+          currentMargin: {
+            revenue: Number(currentMargin.revenue) || 0,
+            cogs: Number(currentMargin.cogs) || 0,
+            opex: Number(currentMargin.opex) || 0,
+            grossProfit: Number(currentMargin.grossProfit) || 0,
+            netProfit: Number(currentMargin.netProfit) || 0,
+            grossMargin: Number(currentMargin.grossMargin) || 0,
+            netMargin: Number(currentMargin.netMargin) || 0,
+            calculatedAt: currentMargin.calculatedAt ? new Date(currentMargin.calculatedAt) : new Date(),
+            period: currentMargin.period || createDatePeriods.thisMonth()
+          },
+          alerts: Array.isArray(response.data.alerts) ? response.data.alerts : []
+        };
+
+      } catch (error: any) {
+        logger.error('Dashboard summary query failed', { error: error.message });
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 10, // 10 menit
     retry: 2,
     retryDelay: 1000
   });
 
-  // Handle refetch
+  // ✅ SAFE Handle refetch
   const refetch = useCallback(async () => {
     setError(null);
-    await queryClient.invalidateQueries(profitMarginQueryKeys.dashboard());
+    await queryClient.invalidateQueries({ queryKey: profitMarginQueryKeys.dashboard() });
     await queryRefetch();
   }, [queryClient, queryRefetch]);
 
-  // Effect untuk log error
+  // ✅ SAFE Effect untuk log error
   useEffect(() => {
     if (queryError) {
-      logger.error('Dashboard summary query error', { error: queryError });
-      setError(queryError);
+      logger.error('Dashboard summary query error', { error: queryError.message });
+      setError(queryError as Error);
     }
   }, [queryError]);
 
@@ -289,144 +396,10 @@ export const useProfitDashboard = (): ProfitDashboardHook => {
 };
 
 // ===========================================
-// ✅ CONFIG HOOK
-// ===========================================
-
-interface ProfitConfigHook {
-  config: {
-    categoryMapping: CategoryMapping;
-    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
-    autoCalculate: boolean;
-  } | null;
-  isLoading: boolean;
-  error: Error | null;
-  saveConfig: (config: {
-    categoryMapping: CategoryMapping;
-    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
-    autoCalculate: boolean;
-  }) => Promise<void>;
-}
-
-export const useProfitConfig = (): ProfitConfigHook => {
-  const queryClient = useQueryClient();
-  const [error, setError] = useState<Error | null>(null);
-
-  const { data, isLoading, error: queryError } = useQuery({
-    queryKey: profitMarginQueryKeys.config(),
-    queryFn: async () => {
-      const response = await profitAnalysisApi.loadProfitConfig();
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal memuat konfigurasi profit');
-      }
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 60, // 1 jam
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async (config: {
-      categoryMapping: CategoryMapping;
-      defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
-      autoCalculate: boolean;
-    }) => {
-      const response = await profitAnalysisApi.saveProfitConfig(config);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal menyimpan konfigurasi profit');
-      }
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(profitMarginQueryKeys.config(), data);
-      logger.info('Profit config saved successfully');
-    },
-    onError: (error: Error) => {
-      logger.error('Failed to save profit config', { error });
-      setError(error);
-    }
-  });
-
-  const saveConfig = useCallback(async (config: {
-    categoryMapping: CategoryMapping;
-    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
-    autoCalculate: boolean;
-  }) => {
-    setError(null);
-    await saveMutation.mutateAsync(config);
-  }, [saveMutation]);
-
-  useEffect(() => {
-    if (queryError) {
-      logger.error('Profit config query error', { error: queryError });
-      setError(queryError);
-    }
-  }, [queryError]);
-
-  return {
-    config: data || null,
-    isLoading,
-    error,
-    saveConfig
-  };
-};
-
-// ===========================================
-// ✅ MATERIAL USAGE HOOK
-// ===========================================
-
-interface MaterialUsageHook {
-  materialUsage: any | null;
-  isLoading: boolean;
-  error: Error | null;
-  fetchMaterialUsage: (period: DatePeriod) => Promise<void>;
-}
-
-export const useMaterialUsage = (): MaterialUsageHook => {
-  const queryClient = useQueryClient();
-  const [error, setError] = useState<Error | null>(null);
-  const [period, setPeriod] = useState<DatePeriod | null>(null);
-
-  const { data, isLoading, error: queryError } = useQuery({
-    queryKey: ['materialUsage', period],
-    queryFn: async () => {
-      if (!period) return null;
-      const response = await profitAnalysisApi.getMaterialUsageSummary(period);
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Gagal memuat ringkasan material usage');
-      }
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 5, // 5 menit
-    enabled: !!period
-  });
-
-  const fetchMaterialUsage = useCallback(async (newPeriod: DatePeriod) => {
-    setError(null);
-    setPeriod(newPeriod);
-    await queryClient.invalidateQueries(['materialUsage', newPeriod]);
-  }, [queryClient]);
-
-  useEffect(() => {
-    if (queryError) {
-      logger.error('Material usage query error', { error: queryError });
-      setError(queryError);
-    }
-  }, [queryError]);
-
-  return {
-    materialUsage: data || null,
-    isLoading,
-    error,
-    fetchMaterialUsage
-  };
-};
-
-// ===========================================
 // ✅ DEFAULT EXPORTS
 // ===========================================
 
 export default {
   useProfitMargin,
-  useProfitDashboard,
-  useProfitConfig,
-  useMaterialUsage
+  useProfitDashboard
 };

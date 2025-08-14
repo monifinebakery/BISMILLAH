@@ -173,6 +173,35 @@ const generatePeriods = (from: Date, to: Date, periodType: 'monthly' | 'quarterl
   return periods;
 };
 
+/**
+ * Convert a period string (e.g., 2024-05, 2024-Q1, 2024) into a date range
+ */
+const getDateRangeFromPeriod = (period: string): { from: Date; to: Date } => {
+  if (period.includes('-Q')) {
+    const [yearStr, quarterStr] = period.split('-Q');
+    const year = Number(yearStr);
+    const quarter = Number(quarterStr);
+    const startMonth = (quarter - 1) * 3;
+    const from = new Date(year, startMonth, 1);
+    const to = new Date(year, startMonth + 3, 0);
+    return { from, to };
+  }
+
+  if (period.length === 7) {
+    const [yearStr, monthStr] = period.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr) - 1;
+    const from = new Date(year, month, 1);
+    const to = new Date(year, month + 1, 0);
+    return { from, to };
+  }
+
+  const year = Number(period);
+  const from = new Date(year, 0, 1);
+  const to = new Date(year, 11, 31);
+  return { from, to };
+};
+
 // ===== FALLBACK FUNCTIONS =====
 
 /**
@@ -183,17 +212,14 @@ const getRevenueBreakdownFallback = async (
   period: string
 ): Promise<ProfitApiResponse<RevenueBreakdown[]>> => {
   try {
-    const transactions = await financialApi.getFinancialTransactions(userId);
-    const periodTransactions = transactions.filter(t => {
-      if (!t.date || t.type !== 'income') return false;
-      const transactionPeriod = new Date(t.date).toISOString().slice(0, 7);
-      return transactionPeriod === period;
-    });
+    const { from, to } = getDateRangeFromPeriod(period);
+    const transactions = await financialApi.getTransactionsByDateRange(userId, from, to);
+    const incomeTransactions = transactions.filter(t => t.type === 'income');
 
-    const totalRevenue = periodTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-    
+    const totalRevenue = incomeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+
     // Group by category
-    const categoryGroups = periodTransactions.reduce((groups, transaction) => {
+    const categoryGroups = incomeTransactions.reduce((groups, transaction) => {
       const category = transaction.category || 'Uncategorized';
       if (!groups[category]) {
         groups[category] = { total: 0, count: 0 };
@@ -313,15 +339,17 @@ export const profitAnalysisApi = {
       // ✅ FALLBACK METHOD 2: Use API integration (compatibility)
       logger.info('🔄 Using API integration fallback');
       
-      const [
-        transactions,
-        materials, 
-        operationalCosts
-      ] = await Promise.all([
-        financialApi.getFinancialTransactions(userId),
-        getWarehouseData(userId),
-        operationalCostApi.getCosts()
-      ]);
+        const { from, to } = getDateRangeFromPeriod(period);
+
+        const [
+          transactions,
+          materials,
+          operationalCosts
+        ] = await Promise.all([
+          financialApi.getTransactionsByDateRange(userId, from, to),
+          getWarehouseData(userId),
+          operationalCostApi.getCosts(undefined, userId)
+        ]);
 
       // Handle potential errors from data sources
       if (!Array.isArray(transactions)) {
@@ -415,7 +443,7 @@ export const profitAnalysisApi = {
       if (error) {
         // Fallback to direct API call
         logger.warn('OpEx breakdown function failed, using fallback');
-        const opexResult = await operationalCostApi.getCosts();
+        const opexResult = await operationalCostApi.getCosts(undefined, userId);
         const activeCosts = (opexResult.data || []).filter(c => c.status === 'aktif');
         const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
 

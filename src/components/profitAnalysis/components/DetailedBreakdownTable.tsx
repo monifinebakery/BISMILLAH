@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,40 +48,150 @@ interface BreakdownItem {
 }
 
 // ==============================================
+// MEMOIZED SUB-COMPONENTS
+// ==============================================
+
+const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }) => {
+  const Icon = section.icon;
+  
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center space-x-3">
+        <div className={`p-2 rounded-lg ${section.bgColor}`}>
+          <Icon className={`w-5 h-5 ${section.color}`} />
+        </div>
+        <div>
+          <h4 className={`font-semibold ${section.color}`}>
+            {section.title}
+          </h4>
+          <p className="text-sm text-gray-600">
+            Total: {formatCurrency(section.total)}
+          </p>
+        </div>
+      </div>
+      
+      <Badge variant="secondary">
+        {sortedItemsLength} item
+      </Badge>
+    </div>
+  );
+});
+
+const MemoizedTableRow = React.memo(({ item, itemIndex }) => {
+  return (
+    <TableRow key={itemIndex} className="hover:bg-white hover:bg-opacity-50 transition-colors">
+      <TableCell className="font-medium">
+        {item.name}
+      </TableCell>
+      
+      <TableCell className="text-right font-semibold">
+        {formatCurrency(item.amount)}
+      </TableCell>
+      
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end space-x-2">
+          <span className="font-medium">
+            {formatPercentage(item.percentage)}
+          </span>
+          
+          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-300 bg-current opacity-60"
+              style={{ 
+                width: `${Math.min(item.percentage, 100)}%`
+              }}
+            />
+          </div>
+        </div>
+      </TableCell>
+      
+      <TableCell className="text-center">
+        <Badge variant="outline" className="text-xs">
+          {item.type ? (
+            item.type === 'tetap' ? 'Tetap' : 
+            item.type === 'variabel' ? 'Variabel' : 
+            item.type === 'Bahan Langsung' ? 'Bahan Langsung' :
+            item.type === 'Tenaga Kerja Langsung' ? 'Tenaga Kerja' :
+            item.type
+          ) : (
+            item.count ? `${item.count} transaksi` : 'N/A'
+          )}
+        </Badge>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+const MemoizedSectionSummary = React.memo(({ section, sortedItems }) => {
+  return (
+    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <span className="text-gray-600">Total Item:</span>
+          <span className="ml-2 font-semibold">{sortedItems.length}</span>
+        </div>
+        
+        <div>
+          <span className="text-gray-600">Total Jumlah:</span>
+          <span className="ml-2 font-semibold">{formatCurrency(section.total)}</span>
+        </div>
+        
+        <div>
+          <span className="text-gray-600">Rata-rata per Item:</span>
+          <span className="ml-2 font-semibold">
+            {formatCurrency(sortedItems.length > 0 ? section.total / sortedItems.length : 0)}
+          </span>
+        </div>
+        
+        <div>
+          <span className="text-gray-600">Item Terbesar:</span>
+          <span className="ml-2 font-semibold">
+            {sortedItems.length > 0 
+              ? formatPercentage(Math.max(...sortedItems.map(i => i.percentage)))
+              : '0%'
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ==============================================
 // KOMPONEN TABEL BREAKDOWN DETAIL
 // ==============================================
 
-const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
+const DetailedBreakdownTable = ({
   currentAnalysis,
   isLoading,
   showExport = true,
   className = ''
 }) => {
   
-  const [activeTab, setActiveTab] = useState<'revenue' | 'cogs' | 'opex' | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'amount' | 'percentage'>('amount');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [activeTab, setActiveTab] = useState('all');
+  const [sortBy, setSortBy] = useState('amount');
+  const [sortOrder, setSortOrder] = useState('desc');
 
-  // ✅ EXTRACT PRIMITIVE VALUES FIRST
+  // ✅ Extract primitive values first
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
   const cogs = currentAnalysis?.cogs_data?.total ?? 0;
   const opex = currentAnalysis?.opex_data?.total ?? 0;
   const revenueTransactions = currentAnalysis?.revenue_data?.transactions ?? [];
   const opexCosts = currentAnalysis?.opex_data?.costs ?? [];
 
-  // ✅ PROCESS REVENUE ITEMS
-  const revenueItems = useMemo((): BreakdownItem[] => {
+  // ✅ Process revenue items
+  const revenueItems = useMemo(() => {
     return revenueTransactions.map(t => ({
       name: t.category || 'Kategori Tidak Diketahui',
       amount: t.amount || 0,
       percentage: revenue > 0 ? ((t.amount || 0) / revenue) * 100 : 0,
       count: 1
     }));
-  }, [revenueTransactions, revenue]); // ✅ Only primitive dependencies
+  }, [revenueTransactions, revenue]);
 
-  // ✅ GROUP REVENUE BY CATEGORY
-  const groupedRevenue = useMemo((): BreakdownItem[] => {
-    return revenueItems.reduce((acc: BreakdownItem[], item) => {
+  // ✅ Group revenue by category
+  const groupedRevenue = useMemo(() => {
+    return revenueItems.reduce((acc, item) => {
       const existing = acc.find(a => a.name === item.name);
       if (existing) {
         return acc.map(a => 
@@ -98,38 +208,38 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
         return [...acc, { ...item }];
       }
     }, []);
-  }, [revenueItems, revenue]); // ✅ Proper dependencies
+  }, [revenueItems, revenue]);
 
-  // ✅ PROCESS COGS ITEMS
-  const cogsItems = useMemo((): BreakdownItem[] => {
+  // ✅ Process COGS items
+  const cogsItems = useMemo(() => {
     return [
       {
         name: 'Biaya Bahan Baku',
-        amount: cogs * 0.8, // Asumsi 80% biaya bahan baku
+        amount: cogs * 0.8,
         percentage: cogs > 0 ? 80 : 0,
         type: 'Bahan Langsung'
       },
       {
         name: 'Tenaga Kerja Langsung',
-        amount: cogs * 0.2, // Asumsi 20% tenaga kerja langsung
+        amount: cogs * 0.2,
         percentage: cogs > 0 ? 20 : 0,
         type: 'Tenaga Kerja Langsung'
       }
     ].filter(item => item.amount > 0);
-  }, [cogs]); // ✅ Only cogs dependency
+  }, [cogs]);
 
-  // ✅ PROCESS OPEX ITEMS
-  const opexItems = useMemo((): BreakdownItem[] => {
+  // ✅ Process OPEX items
+  const opexItems = useMemo(() => {
     return opexCosts.map(cost => ({
       name: cost.nama_biaya || cost.name || 'Biaya Tidak Diketahui',
       amount: cost.jumlah_per_bulan || cost.amount || 0,
       percentage: opex > 0 ? ((cost.jumlah_per_bulan || cost.amount || 0) / opex) * 100 : 0,
       type: cost.jenis || cost.type || 'Tidak Diketahui'
     }));
-  }, [opexCosts, opex]); // ✅ Proper dependencies
+  }, [opexCosts, opex]);
 
-  // ✅ BREAKDOWN SECTIONS
-  const breakdownSections = useMemo((): BreakdownSection[] => {
+  // ✅ Breakdown sections
+  const breakdownSections = useMemo(() => {
     return [
       {
         title: 'Sumber Pendapatan',
@@ -156,9 +266,9 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
         items: opexItems
       }
     ];
-  }, [groupedRevenue, cogsItems, opexItems, revenue, cogs, opex]); // ✅ All dependencies
+  }, [groupedRevenue, cogsItems, opexItems, revenue, cogs, opex]);
 
-  // ✅ FILTERED SECTIONS
+  // ✅ OPTIMASI: Memoize filtered sections
   const filteredSections = useMemo(() => {
     if (activeTab === 'all') return breakdownSections;
     
@@ -172,11 +282,10 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     return breakdownSections[sectionIndex] ? [breakdownSections[sectionIndex]] : [];
   }, [breakdownSections, activeTab]);
 
-  // ✅ SORTING FUNCTION
-  const getSortedItems = (items: BreakdownItem[]) => {
+  // ✅ OPTIMASI: Memoize sorting function
+  const getSortedItems = useCallback((items) => {
     return [...items].sort((a, b) => {
-      let aValue: number | string;
-      let bValue: number | string;
+      let aValue, bValue;
       
       switch (sortBy) {
         case 'name':
@@ -198,16 +307,16 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
       
       if (typeof aValue === 'string') {
         return sortOrder === 'asc' 
-          ? aValue.localeCompare(bValue as string)
-          : (bValue as string).localeCompare(aValue);
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
       } else {
-        return sortOrder === 'asc' ? aValue - (bValue as number) : (bValue as number) - aValue;
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
       }
     });
-  };
+  }, [sortBy, sortOrder]);
 
-  // ✅ EXPORT FUNCTION
-  const handleExport = () => {
+  // ✅ OPTIMASI: useCallback untuk event handlers
+  const handleExport = useCallback(() => {
     const exportData = breakdownSections.flatMap(section => 
       section.items.map(item => ({
         Kategori: section.title,
@@ -231,7 +340,20 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     link.download = `breakdown-profit-${currentAnalysis?.period || 'export'}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [breakdownSections, currentAnalysis?.period]);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleSortChange = useCallback((newSortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('desc');
+    }
+  }, [sortBy, sortOrder]);
 
   // ✅ LOADING STATE
   if (isLoading) {
@@ -309,7 +431,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
               key={tab.key}
               variant={activeTab === tab.key ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setActiveTab(tab.key as any)}
+              onClick={() => handleTabChange(tab.key)}
             >
               {tab.label}
             </Button>
@@ -328,14 +450,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
               key={sort.key}
               variant={sortBy === sort.key ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => {
-                if (sortBy === sort.key) {
-                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                } else {
-                  setSortBy(sort.key as any);
-                  setSortOrder('desc');
-                }
-              }}
+              onClick={() => handleSortChange(sort.key)}
             >
               {sort.label}
               {sortBy === sort.key && (
@@ -351,31 +466,15 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
       <CardContent>
         <div className="space-y-8">
           {filteredSections.map((section, sectionIndex) => {
-            const Icon = section.icon;
             const sortedItems = getSortedItems(section.items);
             
             return (
               <div key={sectionIndex}>
                 {/* Section Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${section.bgColor}`}>
-                      <Icon className={`w-5 h-5 ${section.color}`} />
-                    </div>
-                    <div>
-                      <h4 className={`font-semibold ${section.color}`}>
-                        {section.title}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        Total: {formatCurrency(section.total)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Badge variant="secondary">
-                    {sortedItems.length} item
-                  </Badge>
-                </div>
+                <MemoizedSectionHeader 
+                  section={section} 
+                  sortedItemsLength={sortedItems.length} 
+                />
 
                 {/* Items Table */}
                 <div className={`rounded-lg border ${section.bgColor} border-opacity-20`}>
@@ -397,47 +496,11 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                         </TableRow>
                       ) : (
                         sortedItems.map((item, itemIndex) => (
-                          <TableRow key={itemIndex} className="hover:bg-white hover:bg-opacity-50 transition-colors">
-                            <TableCell className="font-medium">
-                              {item.name}
-                            </TableCell>
-                            
-                            <TableCell className="text-right font-semibold">
-                              {formatCurrency(item.amount)}
-                            </TableCell>
-                            
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end space-x-2">
-                                <span className="font-medium">
-                                  {formatPercentage(item.percentage)}
-                                </span>
-                                
-                                {/* Progress Bar */}
-                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full rounded-full transition-all duration-300 bg-current opacity-60"
-                                    style={{ 
-                                      width: `${Math.min(item.percentage, 100)}%`
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </TableCell>
-                            
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="text-xs">
-                                {item.type ? (
-                                  item.type === 'tetap' ? 'Tetap' : 
-                                  item.type === 'variabel' ? 'Variabel' : 
-                                  item.type === 'Bahan Langsung' ? 'Bahan Langsung' :
-                                  item.type === 'Tenaga Kerja Langsung' ? 'Tenaga Kerja' :
-                                  item.type
-                                ) : (
-                                  item.count ? `${item.count} transaksi` : 'N/A'
-                                )}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
+                          <MemoizedTableRow
+                            key={`${item.name}-${itemIndex}`}
+                            item={item}
+                            itemIndex={itemIndex}
+                          />
                         ))
                       )}
                     </TableBody>
@@ -445,36 +508,10 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                 </div>
 
                 {/* Section Summary */}
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Total Item:</span>
-                      <span className="ml-2 font-semibold">{sortedItems.length}</span>
-                    </div>
-                    
-                    <div>
-                      <span className="text-gray-600">Total Jumlah:</span>
-                      <span className="ml-2 font-semibold">{formatCurrency(section.total)}</span>
-                    </div>
-                    
-                    <div>
-                      <span className="text-gray-600">Rata-rata per Item:</span>
-                      <span className="ml-2 font-semibold">
-                        {formatCurrency(sortedItems.length > 0 ? section.total / sortedItems.length : 0)}
-                      </span>
-                    </div>
-                    
-                    <div>
-                      <span className="text-gray-600">Item Terbesar:</span>
-                      <span className="ml-2 font-semibold">
-                        {sortedItems.length > 0 
-                          ? formatPercentage(Math.max(...sortedItems.map(i => i.percentage)))
-                          : '0%'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <MemoizedSectionSummary 
+                  section={section} 
+                  sortedItems={sortedItems} 
+                />
               </div>
             );
           })}

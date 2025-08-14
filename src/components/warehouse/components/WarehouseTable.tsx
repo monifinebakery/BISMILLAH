@@ -408,7 +408,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           <span className="text-gray-500 ml-1">{item.satuan}</span>
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {/* ✅ UPDATE: Gunakan harga efektif */}
+                          {/* ✅ UPDATE: Gunakan helper harga efektif */}
                           {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                         </div>
                         {/* ✅ ADD: WAC indicator */}
@@ -471,7 +471,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   <div>
                     <span className="text-gray-500">Harga per {item.satuan}:</span>
                     <div className="font-medium text-gray-900">
-                      {/* ✅ UPDATE: Gunakan harga efektif */}
+                      {/* ✅ UPDATE: Gunakan helper harga efektif */}
                       {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                     </div>
                     {/* ✅ ADD: WAC indicator */}
@@ -746,13 +746,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
                 <td className="px-4 py-4">
                   <span className="text-sm font-medium text-gray-900">
-                    {/* ✅ UPDATE: Gunakan harga efektif */}
+                    {/* ✅ UPDATE: Gunakan helper harga efektif */}
                     {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                   </span>
                   <div className="text-xs text-gray-500">
-                    per {item.satuan}
+                    per {item.satuan}{item.hargaRataRata != null ? ' · rata-rata' : ''}
                   </div>
-                  {/* ✅ ADD: WAC indicator */}
+                  {/* ✅ ADD: WAC indicator (opsional jika ingin tetap menampilkan) */}
                   {item.hargaRataRata != null && (
                     <div className="text-xs text-gray-500">
                       rata-rata

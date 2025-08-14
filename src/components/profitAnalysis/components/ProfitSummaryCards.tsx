@@ -13,7 +13,7 @@ import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 // TYPES
 // ==============================================
 
-interface ProfitSummaryCardsProps {
+export interface ProfitSummaryCardsProps {
   currentAnalysis: RealTimeProfitCalculation | null;
   previousAnalysis?: RealTimeProfitCalculation | null;
   isLoading: boolean;
@@ -32,7 +32,7 @@ interface MetricCard {
 }
 
 // ==============================================
-// PROFIT SUMMARY CARDS COMPONENT
+// KARTU RINGKASAN PROFIT COMPONENT
 // ==============================================
 
 const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
@@ -42,7 +42,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   className = ''
 }) => {
   
-  // ✅ CALCULATE METRICS
+  // ✅ HITUNG METRIK
   const metrics = useMemo(() => {
     if (!currentAnalysis) {
       return {
@@ -75,7 +75,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     };
   }, [currentAnalysis]);
 
-  // ✅ CALCULATE CHANGES vs PREVIOUS PERIOD
+  // ✅ HITUNG PERUBAHAN vs PERIODE SEBELUMNYA
   const changes = useMemo(() => {
     if (!previousAnalysis) {
       return {
@@ -99,11 +99,11 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     };
   }, [metrics, previousAnalysis]);
 
-  // ✅ GENERATE CARDS DATA
+  // ✅ GENERATE DATA KARTU
   const cards = useMemo((): MetricCard[] => {
     return [
       {
-        title: 'Total Revenue',
+        title: 'Total Pendapatan',
         value: metrics.revenue,
         icon: DollarSign,
         color: 'text-green-600',
@@ -112,7 +112,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         changeType: getGrowthStatus(changes.revenueChange).status
       },
       {
-        title: 'Gross Profit',
+        title: 'Laba Kotor',
         value: metrics.grossProfit,
         icon: TrendingUp,
         color: 'text-blue-600',
@@ -122,7 +122,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         changeType: getGrowthStatus(changes.grossProfitChange).status
       },
       {
-        title: 'Net Profit',
+        title: 'Laba Bersih',
         value: metrics.netProfit,
         icon: Calculator,
         color: 'text-purple-600',
@@ -132,19 +132,19 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         changeType: getGrowthStatus(changes.netProfitChange).status
       },
       {
-        title: 'Total COGS',
+        title: 'Total HPP',
         value: metrics.cogs,
         icon: ShoppingCart,
         color: 'text-amber-600',
         bgColor: 'bg-amber-50',
-        subtitle: `${formatPercentage((metrics.cogs / metrics.revenue) * 100)} of revenue`,
+        subtitle: `${formatPercentage((metrics.cogs / metrics.revenue) * 100)} dari pendapatan`,
         change: changes.cogsChange,
-        changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert for COGS (lower is better)
+        changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert untuk HPP (lebih rendah = lebih baik)
       }
     ];
   }, [metrics, changes]);
 
-  // ✅ CHANGE ICON COMPONENT
+  // ✅ KOMPONEN IKON PERUBAHAN
   const getChangeIcon = (type: 'positive' | 'negative' | 'neutral') => {
     const iconProps = "w-4 h-4";
     
@@ -158,7 +158,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     }
   };
 
-  // ✅ LOADING STATE
+  // ✅ STATUS LOADING
   if (isLoading) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
@@ -179,7 +179,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     );
   }
 
-  // ✅ NO DATA STATE
+  // ✅ STATUS TIDAK ADA DATA
   if (!currentAnalysis) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
@@ -199,7 +199,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 <div className="text-2xl font-bold text-gray-400 mb-1">
                   {formatCurrency(0)}
                 </div>
-                <p className="text-sm text-gray-400">No data available</p>
+                <p className="text-sm text-gray-400">Data tidak tersedia</p>
               </CardContent>
             </Card>
           );
@@ -208,7 +208,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     );
   }
 
-  // ✅ MAIN RENDER
+  // ✅ RENDER UTAMA
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
       {cards.map((card, index) => {
@@ -230,14 +230,14 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 {formatCurrency(card.value)}
               </div>
               
-              {/* Subtitle (margin info) */}
+              {/* Subtitle (info margin) */}
               {card.subtitle && (
                 <p className="text-sm text-gray-600 mb-1">
                   {card.subtitle}
                 </p>
               )}
               
-              {/* Change indicator */}
+              {/* Indikator perubahan */}
               {hasChange && (
                 <div className="flex items-center space-x-1">
                   {getChangeIcon(card.changeType)}
@@ -248,15 +248,15 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                     {formatPercentage(Math.abs(card.change || 0))}
                   </span>
                   <span className="text-sm text-gray-500">
-                    vs prev month
+                    vs bulan lalu
                   </span>
                 </div>
               )}
               
-              {/* No comparison data */}
+              {/* Tidak ada data perbandingan */}
               {!hasChange && previousAnalysis === undefined && (
                 <p className="text-xs text-gray-400">
-                  No previous data for comparison
+                  Tidak ada data sebelumnya untuk perbandingan
                 </p>
               )}
             </CardContent>

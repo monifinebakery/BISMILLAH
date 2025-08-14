@@ -10,7 +10,7 @@ import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 
 import { formatCurrency, formatLargeNumber, getShortPeriodLabel } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
-import { CHART_CONFIG } from '../constants/profitConstants';
+import { CHART_CONFIG } from '../constants';
 
 // ==============================================
 // TYPES

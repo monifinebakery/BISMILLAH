@@ -400,9 +400,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             <SelectValue placeholder="Pilih bahan baku" />
                           </SelectTrigger>
                           <SelectContent>
-                            {bahanBaku
-                              .filter(bahan => !formData.items.some(item => item.bahanBakuId === bahan.id))
-                              .map((bahan) => (
+                            {bahanBaku.map((bahan) => (
                               <SelectItem key={bahan.id} value={bahan.id}>
                                 {bahan.nama} ({bahan.satuan})
                               </SelectItem>

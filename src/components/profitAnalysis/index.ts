@@ -90,9 +90,10 @@ export type {
 } from './constants';
 
 // ===== UTILS & TRANSFORMERS =====
+// FIXED: Import dari file yang benar dengan alias untuk menghindari konflik
 export {
-  formatCurrency,
-  formatPercentage,
+  formatCurrency as formatCurrencyTrans,
+  formatPercentage as formatPercentageTrans,
   formatLargeNumber,
   calculateGrowth,
   generatePeriodOptions,
@@ -102,10 +103,15 @@ export {
   transformToOpExBreakdown,
   transformToProfitAnalysis,
   calculateRollingAverages,
-  getGrowthStatus
+  getGrowthStatus,
+  formatPeriodLabel,
+  isValidPeriod,
+  transformToCOGSBreakdown,
+  transformToChartData
 } from './utils/profitTransformers';
 
 // ===== PROFIT CALCULATIONS =====
+// FIXED: Import yang sudah benar dengan semua fungsi yang ada
 export {
   calculateRealTimeProfit,
   calculateMargins,
@@ -118,6 +124,15 @@ export {
   comparePeriods,
   validateDataQuality,
   generateExecutiveInsights,
+  formatCurrency,
+  formatPercentage
+} from './utils/profitCalculations';
+
+// Export types dari utils
+export type {
+  FinancialTransactionActual,
+  BahanBakuActual,
+  OperationalCostActual
 } from './utils/profitCalculations';
 
 // ===== CONVENIENT DEFAULT EXPORT =====

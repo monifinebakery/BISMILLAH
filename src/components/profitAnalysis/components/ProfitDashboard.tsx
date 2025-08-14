@@ -64,7 +64,7 @@ export interface ProfitDashboardProps {
 // ==============================================
 
 // Fungsi kalkulasi metrik profit lanjutan
-const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: any) => {
+const calculateAdvancedProfitMetrics = (profitHistory, currentAnalysis) => {
   if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data) {
     return null;
   }
@@ -89,8 +89,8 @@ const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: a
 };
 
 // Fungsi generate forecast profit
-const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
-  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data || profitHistory.length < 3) {
+const generateProfitForecast = (profitHistory, currentAnalysis) => {
+  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data || !profitHistory || profitHistory.length < 3) {
     return null;
   }
   
@@ -125,7 +125,7 @@ const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
 };
 
 // Fungsi benchmarking kompetitif
-const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any[]) => {
+const performCompetitiveBenchmarking = (advancedMetrics, profitHistory) => {
   if (!advancedMetrics || !advancedMetrics.netProfitMargin) return null;
   
   const industryAverages = {
@@ -157,7 +157,7 @@ const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any
 };
 
 // Fungsi generate ringkasan eksekutif
-const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, forecast: any, benchmark: any) => {
+const generateExecutiveSummary = (currentAnalysis, advancedMetrics, forecast, benchmark) => {
   if (!currentAnalysis || !advancedMetrics || !forecast || !benchmark) return null;
   
   const executiveInsights = generateExecutiveInsights(currentAnalysis);
@@ -173,14 +173,14 @@ const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, fo
 // KOMPONEN UTAMA DASHBOARD PROFIT
 // ==============================================
 
-const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
+const ProfitDashboard = ({
   className = '',
   defaultPeriod,
   showAdvancedMetrics = true,
 }) => {
   // State untuk variabel yang hilang
   const [isDataStale, setIsDataStale] = useState(false);
-  const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
+  const [lastCalculated, setLastCalculated] = useState(null);
 
   // Hooks
   const {
@@ -205,72 +205,34 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   // State Lokal
   const [activeTab, setActiveTab] = useState('ikhtisar');
-  const [selectedChartType, setSelectedChartType] = useState<'bar' | 'pie'>('bar');
+  const [selectedChartType, setSelectedChartType] = useState('bar');
 
   // Opsi Periode
   const periodOptions = useMemo(() => generatePeriodOptions(2023, new Date().getFullYear()), []);
 
-  // Kalkulasi Lanjutan
-  const advancedMetricsDeps = useMemo(() => [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total,
-    showAdvancedMetrics,
-    profitHistory?.length
-  ], [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total,
-    showAdvancedMetrics,
-    profitHistory?.length
-  ]);
-
+  // ✅ PERBAIKAN: Kalkulasi Lanjutan dengan dependensi yang benar
   const advancedMetrics = useMemo(() => {
     if (!currentAnalysis || !showAdvancedMetrics) return null;
     return calculateAdvancedProfitMetrics(profitHistory || [], currentAnalysis);
-  }, advancedMetricsDeps);
+  }, [currentAnalysis, showAdvancedMetrics, profitHistory]);
 
-  // Perbaiki forecast dependensi:
-  const forecastDeps = useMemo(() => [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total,
-    profitHistory?.length
-  ], [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total,
-    profitHistory?.length
-  ]);
-
+  // ✅ PERBAIKAN: Forecast dengan dependensi yang sederhana
   const forecast = useMemo(() => {
     if (!currentAnalysis || !profitHistory || profitHistory.length < 3) return null;
     return generateProfitForecast(profitHistory, currentAnalysis);
-  }, forecastDeps);
+  }, [currentAnalysis, profitHistory]);
 
-  // Perbaiki benchmark dependensi:
-  const benchmarkDeps = useMemo(() => [
-    advancedMetrics?.netProfitMargin,
-    profitHistory?.length
-  ], [
-    advancedMetrics?.netProfitMargin,
-    profitHistory?.length
-  ]);
-
+  // ✅ PERBAIKAN: Benchmark dengan dependensi yang stabil
   const benchmark = useMemo(() => {
     if (!advancedMetrics) return null;
     return performCompetitiveBenchmarking(advancedMetrics, profitHistory || []);
-  }, benchmarkDeps);
+  }, [advancedMetrics, profitHistory]);
 
+  // ✅ PERBAIKAN: Executive summary dengan dependensi yang jelas
   const executiveSummary = useMemo(() => {
     if (!currentAnalysis || !advancedMetrics || !forecast || !benchmark) return null;
     return generateExecutiveSummary(currentAnalysis, advancedMetrics, forecast, benchmark);
-  }, [
-    currentAnalysis,
-    advancedMetrics,
-    forecast,
-    benchmark
-  ]);
+  }, [currentAnalysis, advancedMetrics, forecast, benchmark]);
 
   // Analisis Periode Sebelumnya untuk Perbandingan
   const previousAnalysis = useMemo(() => {
@@ -285,7 +247,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   }, [currentPeriod, profitHistory]);
 
   // Handlers
-  const handlePeriodChange = (period: string) => {
+  const handlePeriodChange = (period) => {
     setCurrentPeriod(period);
   };
 

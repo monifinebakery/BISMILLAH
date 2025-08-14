@@ -128,6 +128,63 @@ export const usePurchaseTableDialogs = () => {
       })),
     [setDialogState]
   );
+=======
+  const openDelete = (purchase: Purchase) =>
+    setDialogState((prev) => ({
+      ...prev,
+      deleteConfirmation: { isOpen: true, purchase, isDeleting: false },
+    }));
+
+  const setDeleteLoading = (isDeleting: boolean) =>
+    setDialogState((prev) => ({
+      ...prev,
+      deleteConfirmation: { ...prev.deleteConfirmation, isDeleting },
+    }));
+
+  const resetDelete = () =>
+    setDialogState((prev) => ({
+      ...prev,
+      deleteConfirmation: initialDialogState.deleteConfirmation,
+    }));
+
+  const openBulkDelete = (selectedCount: number) =>
+    setDialogState((prev) => ({
+      ...prev,
+      bulkDeleteConfirmation: {
+        isOpen: true,
+        selectedCount,
+        isDeleting: false,
+      },
+    }));
+
+  const setBulkDeleteLoading = (isDeleting: boolean) =>
+    setDialogState((prev) => ({
+      ...prev,
+      bulkDeleteConfirmation: { ...prev.bulkDeleteConfirmation, isDeleting },
+    }));
+
+  const resetBulkDelete = () =>
+    setDialogState((prev) => ({
+      ...prev,
+      bulkDeleteConfirmation: initialDialogState.bulkDeleteConfirmation,
+    }));
+
+  const openStatus = (purchase: Purchase, newStatus: PurchaseStatus, validation: StatusValidation) =>
+    setDialogState((prev) => ({
+      ...prev,
+      statusConfirmation: {
+        isOpen: true,
+        purchase,
+        newStatus,
+        validation,
+      },
+    }));
+
+  const resetStatus = () =>
+    setDialogState((prev) => ({
+      ...prev,
+      statusConfirmation: initialDialogState.statusConfirmation,
+    }));
 
   return {
     dialogState,

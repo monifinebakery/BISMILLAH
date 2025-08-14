@@ -32,7 +32,6 @@ export const usePurchaseItemManager = ({
 
   const [showAddItem, setShowAddItem] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
-
   const handleBahanBakuSelect = useCallback(
     (bahanBakuId: string) => {
       const selectedBahan = bahanBaku.find((b) => b.id === bahanBakuId);
@@ -49,6 +48,7 @@ export const usePurchaseItemManager = ({
   );
 
   const handleAddItem = useCallback(() => {
+
     if (!newItem.bahanBakuId || !newItem.nama || !newItem.kuantitas || !newItem.hargaSatuan) {
       toast.error('Lengkapi data item terlebih dahulu');
       return;

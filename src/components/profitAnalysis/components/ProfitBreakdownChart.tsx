@@ -50,21 +50,13 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
   className = ''
 }) => {
 
-  // ✅ HITUNG METRIK
-  const metrics = useMemo(() => {
-    if (!currentAnalysis) {
-      return {
-        revenue: 0,
-        cogs: 0,
-        opex: 0,
-        grossProfit: 0,
-        netProfit: 0
-      };
-    }
+  // ✅ FIX: Extract primitive values to avoid nested object access in dependencies
+  const revenue = currentAnalysis?.revenue_data?.total ?? 0;
+  const cogs = currentAnalysis?.cogs_data?.total ?? 0;
+  const opex = currentAnalysis?.opex_data?.total ?? 0;
 
-    const revenue = currentAnalysis.revenue_data.total;
-    const cogs = currentAnalysis.cogs_data.total;
-    const opex = currentAnalysis.opex_data.total;
+  // ✅ HITUNG METRIK - Fixed dependencies
+  const metrics = useMemo(() => {
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - opex;
 
@@ -75,11 +67,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
       grossProfit,
       netProfit
     };
-  }, [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total
-  ]);
+  }, [revenue, cogs, opex]); // ✅ Use primitive values
 
   // ✅ DATA GRAFIK BAR
   const barChartData = useMemo((): BarChartData[] => {

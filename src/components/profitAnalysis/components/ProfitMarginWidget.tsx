@@ -93,7 +93,7 @@ const MarginStatus: React.FC<{
       <Progress 
         value={progress} 
         max={type === 'gross' ? 50 : 20}
-        className={cn("h-2", isMobile && "h-1.5")}
+        className={cn("h-2", status.color, isMobile && "h-1.5")}
       />
       <Badge 
         variant={status.status === 'excellent' || status.status === 'good' ? 'default' : 'secondary'}
@@ -111,241 +111,185 @@ const MarginStatus: React.FC<{
 
 // ✅ COST BREAKDOWN MINI CHART
 const CostBreakdown: React.FC<{
-  revenue: number;
   cogs: number;
   opex: number;
-}> = ({ revenue, cogs, opex }) => {
+  revenue: number;
+}> = ({ cogs, opex, revenue }) => {
   const isMobile = useIsMobile();
-  
-  if (revenue === 0) return null;
 
-  const cogsPercentage = (cogs / revenue) * 100;
-  const opexPercentage = (opex / revenue) * 100;
-  const profitPercentage = 100 - cogsPercentage - opexPercentage;
+  // Validasi input untuk mencegah NaN atau undefined
+  const validCogs = Number.isFinite(cogs) ? cogs : 0;
+  const validOpex = Number.isFinite(opex) ? opex : 0;
+  const validRevenue = Number.isFinite(revenue) && revenue > 0 ? revenue : 1; // Avoid division by zero
 
-  return (
-    <div className={cn("space-y-3", isMobile && "space-y-2")}>
-      <h4 className={cn("text-sm font-medium", isMobile && "text-xs")}>Breakdown Biaya</h4>
-      
-      {/* Visual breakdown bar */}
-      <div className={cn("flex h-4 bg-gray-100 rounded-full overflow-hidden", isMobile && "h-3")}>
-        <div 
-          className="bg-red-500" 
-          style={{ width: `${cogsPercentage}%` }}
-          title={`COGS: ${cogsPercentage.toFixed(1)}%`}
-        />
-        <div 
-          className="bg-orange-500" 
-          style={{ width: `${opexPercentage}%` }}
-          title={`OPEX: ${opexPercentage.toFixed(1)}%`}
-        />
-        <div 
-          className="bg-green-500" 
-          style={{ width: `${profitPercentage}%` }}
-          title={`Profit: ${profitPercentage.toFixed(1)}%`}
-        />
-      </div>
-
-      {/* Legend */}
-      <div className={cn("grid grid-cols-3 gap-2 text-xs", isMobile && "text-[0.65rem] gap-1")}>
-        <div className="flex items-center gap-1">
-          <div className={cn("w-2 h-2 bg-red-500 rounded", isMobile && "w-1.5 h-1.5")} />
-          <span>COGS</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className={cn("w-2 h-2 bg-orange-500 rounded", isMobile && "w-1.5 h-1.5")} />
-          <span>OPEX</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className={cn("w-2 h-2 bg-green-500 rounded", isMobile && "w-1.5 h-1.5")} />
-          <span>Profit</span>
-        </div>
-      </div>
-
-      {/* Values */}
-      <div className={cn("space-y-1 text-xs text-gray-600", isMobile && "text-[0.65rem]")}>
-        <div className="flex justify-between">
-          <span>Revenue:</span>
-          <span className="font-medium">{formatCurrency(revenue)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>COGS:</span>
-          <span className="text-red-600">{formatCurrency(cogs)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>OPEX:</span>
-          <span className="text-orange-600">{formatCurrency(opex)}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ✅ INSIGHTS DISPLAY
-const InsightsDisplay: React.FC<{
-  insights: ProfitInsight[];
-  maxShow?: number;
-}> = ({ insights, maxShow = 3 }) => {
-  const isMobile = useIsMobile();
-  
-  if (!insights || insights.length === 0) return null;
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'critical': return <AlertTriangle className={cn("h-4 w-4 text-red-500", isMobile && "h-3 w-3")} />;
-      case 'warning': return <AlertTriangle className={cn("h-4 w-4 text-yellow-500", isMobile && "h-3 w-3")} />;
-      case 'success': return <TrendingUp className={cn("h-4 w-4 text-green-500", isMobile && "h-3 w-3")} />;
-      default: return <Info className={cn("h-4 w-4 text-blue-500", isMobile && "h-3 w-3")} />;
-    }
-  };
-
-  const priorityInsights = insights
-    .sort((a, b) => {
-      const priority = { critical: 4, warning: 3, info: 2, success: 1 };
-      return priority[b.type] - priority[a.type];
-    })
-    .slice(0, maxShow);
+  const cogsPercentage = (validCogs / validRevenue) * 100;
+  const opexPercentage = (validOpex / validRevenue) * 100;
 
   return (
     <div className={cn("space-y-2", isMobile && "space-y-1")}>
-      <h4 className={cn("text-sm font-medium", isMobile && "text-xs")}>Insights</h4>
-      <div className={cn("space-y-2", isMobile && "space-y-1")}>
-        {priorityInsights.map((insight, index) => (
-          <div 
-            key={index}
-            className={cn("flex items-start gap-2 p-2 bg-gray-50 rounded text-xs", isMobile && "gap-1 p-1.5 text-[0.65rem]")}
-          >
-            {getIcon(insight.type)}
-            <div className="flex-1 min-w-0">
-              <p className={cn("font-medium truncate", isMobile && "text-[0.65rem]")}>{insight.title}</p>
-              <p className={cn("text-gray-600 text-xs", isMobile && "text-[0.6rem]")}>{insight.message}</p>
-            </div>
-          </div>
-        ))}
+      <div className="flex items-center justify-between">
+        <span className={cn("text-sm font-medium", isMobile && "text-xs")}>Struktur Biaya</span>
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className={cn("text-xs", isMobile && "text-[0.65rem]")}>COGS</span>
+          <span className={cn("text-xs font-medium", isMobile && "text-[0.65rem]")}>
+            {formatCurrency(validCogs)} ({cogsPercentage.toFixed(1)}%)
+          </span>
+        </div>
+        <Progress 
+          value={cogsPercentage} 
+          max={100}
+          className={cn("h-1.5 bg-blue-200", isMobile && "h-1", cogsPercentage > 60 ? "bg-red-200" : "bg-blue-200")} 
+        />
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className={cn("text-xs", isMobile && "text-[0.65rem]")}>OPEX</span>
+          <span className={cn("text-xs font-medium", isMobile && "text-[0.65rem]")}>
+            {formatCurrency(validOpex)} ({opexPercentage.toFixed(1)}%)
+          </span>
+        </div>
+        <Progress 
+          value={opexPercentage} 
+          max={100}
+          className={cn("h-1.5 bg-purple-200", isMobile && "h-1", opexPercentage > 30 ? "bg-red-200" : "bg-purple-200")} 
+        />
       </div>
     </div>
   );
 };
 
-// ✅ MAIN PROFIT MARGIN WIDGET
-export const ProfitMarginWidget: React.FC<{
-  dateRange?: { from: Date; to: Date };
-  className?: string;
-}> = ({ dateRange, className }) => {
+// ✅ INSIGHT ITEM
+const InsightItem: React.FC<{ insight: ProfitInsight }> = ({ insight }) => {
   const isMobile = useIsMobile();
-  const [isCalculating, setIsCalculating] = useState(false);
 
-  // Use dashboard summary for quick overview
-  const { summary, isLoading: isDashboardLoading, error: dashboardError, refetch } = useProfitDashboard();
+  const getIcon = () => {
+    switch (insight.type) {
+      case 'warning':
+        return <AlertTriangle className={cn("h-4 w-4 text-yellow-500", isMobile && "h-3 w-3")} />;
+      case 'error':
+        return <AlertTriangle className={cn("h-4 w-4 text-red-500", isMobile && "h-3 w-3")} />;
+      case 'info':
+        return <Info className={cn("h-4 w-4 text-blue-500", isMobile && "h-3 w-3")} />;
+      default:
+        return null;
+    }
+  };
 
-  // Use detailed analysis for current period
-  const currentPeriod = dateRange ? {
-    from: dateRange.from,
-    to: dateRange.to,
-    label: `${dateRange.from.toLocaleDateString('id-ID')} - ${dateRange.to.toLocaleDateString('id-ID')}`
-  } : createDatePeriods.thisMonth();
+  return (
+    <div className={cn("flex items-start space-x-2 p-2 rounded bg-gray-50", isMobile && "space-x-1 p-1.5")}>
+      {getIcon()}
+      <div>
+        <p className={cn("text-xs font-medium", isMobile && "text-[0.65rem]")}>{insight.title}</p>
+        <p className={cn("text-xs text-gray-600", isMobile && "text-[0.6rem]")}>{insight.message}</p>
+      </div>
+    </div>
+  );
+};
 
-  const { 
-    profitData, 
-    keyMetrics, 
-    calculateProfit, 
-    exportAnalysis,
-    isLoading: isProfitLoading,
-    error: profitError
-  } = useProfitMargin(currentPeriod);
+// ✅ MAIN WIDGET
+interface ProfitMarginWidgetProps {
+  period?: DatePeriod;
+}
 
-  const isLoading = isDashboardLoading || isProfitLoading;
-  const error = dashboardError || profitError;
+export const ProfitMarginWidget: React.FC<ProfitMarginWidgetProps> = ({ period = createDatePeriods.thisMonth() }) => {
+  const isMobile = useIsMobile();
+  const [exporting, setExporting] = useState(false);
+  
+  // Gunakan hook dashboard untuk data ringkas
+  const { summary, isLoading, error, refetch } = useProfitDashboard();
 
-  // ✅ HANDLERS
-  const handleRecalculate = async () => {
+  // Gunakan hook profit margin untuk perhitungan dan ekspor
+  const { profitData, calculateProfit, exportAnalysis } = useProfitMargin(period);
+
+  // Validasi data untuk mencegah error destrukturisasi
+  const displayData: ProfitMarginData = summary?.currentMargin || {
+    revenue: 0,
+    cogs: 0,
+    opex: 0,
+    grossProfit: 0,
+    netProfit: 0,
+    grossMargin: 0,
+    netMargin: 0,
+    calculatedAt: new Date(),
+    period: period
+  };
+
+  // Validasi insights
+  const insights: ProfitInsight[] = summary?.alerts || [];
+
+  // Logging untuk debugging
+  if (!summary) {
+    logger.warn('ProfitMarginWidget: Tidak ada data summary', {
+      hasSummary: !!summary,
+      hasCurrentMargin: !!summary?.currentMargin,
+      revenueType: summary?.currentMargin ? typeof summary.currentMargin.revenue : 'undefined'
+    });
+  }
+
+  // Handle refresh
+  const handleRefresh = async () => {
     try {
-      setIsCalculating(true);
-      await calculateProfit();
       await refetch();
-      toast.success('Profit margin berhasil dihitung ulang');
-      logger.info('Profit margin recalculated successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal menghitung profit margin');
-      logger.error('Failed to recalculate profit margin:', error);
-    } finally {
-      setIsCalculating(false);
+      await calculateProfit();
+      toast.success('Data profit margin diperbarui');
+    } catch (err) {
+      logger.error('Gagal memperbarui data:', err);
+      toast.error('Gagal memperbarui data profit margin');
     }
   };
 
-  const handleExport = async () => {
+  // Handle export
+  const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
+    if (!profitData) {
+      logger.warn('handleExport: Tidak ada data untuk diekspor', { period: period.label });
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+
+    setExporting(true);
     try {
-      if (!profitData) {
-        throw new Error('Tidak ada data untuk diekspor');
+      const response = await exportAnalysis(format, profitData);
+      if (response.success) {
+        toast.success(`Berhasil mengekspor laporan sebagai ${format.toUpperCase()}`);
+      } else {
+        throw new Error(response.error || 'Gagal mengekspor laporan');
       }
-      await exportAnalysis('excel', profitData);
-      toast.success('Laporan berhasil diekspor');
-      logger.info('Profit analysis exported successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal mengekspor laporan');
-      logger.error('Failed to export profit analysis:', error);
+    } catch (err) {
+      logger.error('Gagal mengekspor laporan:', err);
+      toast.error('Gagal mengekspor laporan');
+    } finally {
+      setExporting(false);
     }
   };
 
-  // ✅ LOADING STATE
   if (isLoading) {
     return <ProfitSkeleton />;
   }
 
-  // ✅ ERROR STATE
   if (error) {
+    logger.error('ProfitMarginWidget: Error memuat data', { error });
     return (
-      <Card className={className}>
-        <CardContent className={cn("p-6", isMobile && "p-4")}>
-          <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className={cn("h-6 w-6", isMobile && "h-5 w-5")} />
-            <div>
-              <h3 className={cn("font-medium", isMobile && "text-sm")}>Gagal Memuat Profit Margin</h3>
-              <p className={cn("text-sm text-red-500 mt-1", isMobile && "text-xs")}>
-                {error instanceof Error ? error.message : String(error)}
-              </p>
-            </div>
-          </div>
-          <Button 
-            onClick={handleRecalculate} 
-            variant="outline" 
-            className={cn("mt-4", isMobile && "mt-3 text-xs w-full")}
-          >
-            <RefreshCw className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
-            Coba Lagi
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Use detailed data if available, otherwise summary
-  const displayData = keyMetrics || (summary?.currentMargin as any);
-
-  // ✅ NO DATA STATE
-  if (!displayData || typeof displayData.revenue !== 'number' || isNaN(displayData.revenue)) {
-    return (
-      <Card className={className}>
+      <Card>
         <CardHeader className={cn("p-4", isMobile && "p-3")}>
-          <CardTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
-            <Calculator className={cn("h-5 w-5", isMobile && "h-4 w-4")} />
-            Real Profit Margin
+          <CardTitle className={cn("text-lg", isMobile && "text-base")}>
+            Profit Margin
           </CardTitle>
         </CardHeader>
         <CardContent className={cn("p-4", isMobile && "p-3")}>
-          <div className={cn("text-center py-8", isMobile && "py-6")}>
-            <Calculator className={cn("h-12 w-12 text-gray-400 mx-auto mb-4", isMobile && "h-8 w-8 mb-3")} />
-            <h3 className={cn("font-medium text-gray-600 mb-2", isMobile && "text-sm")}>Belum Ada Data</h3>
-            <p className={cn("text-sm text-gray-500 mb-4", isMobile && "text-xs mb-3")}>
-              Tambahkan transaksi dan biaya operasional untuk melihat analisis profit margin.
+          <div className="text-center text-red-500">
+            <p className={cn("text-sm", isMobile && "text-xs")}>
+              Gagal memuat data: {error.message}
             </p>
-            <Button 
-              onClick={handleRecalculate} 
-              disabled={isCalculating}
-              className={cn(isMobile && "text-xs w-full")}
+            <Button
+              variant="outline"
+              size={isMobile ? "sm" : "default"}
+              onClick={handleRefresh}
+              className="mt-4"
             >
-              <Calculator className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
-              Hitung Profit Margin
+              <RefreshCw className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+              Coba Lagi
             </Button>
           </div>
         </CardContent>
@@ -353,97 +297,99 @@ export const ProfitMarginWidget: React.FC<{
     );
   }
 
-  // Validate required data fields
-  const hasRequiredData = displayData.revenue !== undefined && 
-                         displayData.cogs !== undefined && 
-                         displayData.opex !== undefined;
-
   return (
-    <Card className={className}>
-      <CardHeader className={cn("p-4", isMobile && "p-3")}>
-        <div className="flex items-center justify-between">
-          <CardTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
-            <Calculator className={cn("h-5 w-5", isMobile && "h-4 w-4")} />
-            Real Profit Margin
-            <Badge variant="outline" className={cn("text-xs", isMobile && "text-[0.65rem]")}>
-              {currentPeriod.label}
-            </Badge>
-          </CardTitle>
-          
-          <div className={cn("flex items-center gap-1", isMobile && "gap-0.5")}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleRecalculate}
-              disabled={isCalculating}
-              className={cn(isMobile && "p-1")}
-              title="Hitung Ulang"
-            >
-              <RefreshCw className={cn("h-4 w-4", isCalculating && "animate-spin", isMobile && "h-3 w-3")} />
-            </Button>
-            
-            {profitData && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleExport}
-                className={cn(isMobile && "p-1")}
-                title="Ekspor"
-              >
-                <Download className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
-              </Button>
-            )}
-          </div>
+    <Card>
+      <CardHeader className={cn("p-4 flex-row items-center justify-between", isMobile && "p-3")}>
+        <CardTitle className={cn("text-lg", isMobile && "text-base")}>
+          Profit Margin - {displayData.period.label}
+        </CardTitle>
+        <div className="flex space-x-2">
+          <Button
+            variant="ghost"
+            size={isMobile ? "sm" : "icon"}
+            onClick={handleRefresh}
+            title="Perbarui Data"
+          >
+            <RefreshCw className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
+          </Button>
+          <Button
+            variant="ghost"
+            size={isMobile ? "sm" : "icon"}
+            title="Pengaturan"
+          >
+            <Settings className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
+          </Button>
         </div>
       </CardHeader>
-
-      <CardContent className={cn("space-y-6 p-4", isMobile && "space-y-4 p-3")}>
-        {/* ✅ MAIN METRICS */}
+      <CardContent className={cn("space-y-4 p-4", isMobile && "space-y-3 p-3")}>
         <div className="grid grid-cols-1 gap-4">
-          <MarginStatus 
-            margin={displayData.grossMargin || 0}
+          <MarginStatus
+            margin={displayData.grossMargin}
             type="gross"
             label="Gross Margin"
           />
-          <MarginStatus 
-            margin={displayData.netMargin || 0}
+          <MarginStatus
+            margin={displayData.netMargin}
             type="net"
             label="Net Margin"
           />
         </div>
 
-        {/* ✅ COST BREAKDOWN */}
-        {hasRequiredData && (
-          <CostBreakdown 
-            revenue={displayData.revenue}
-            cogs={displayData.cogs}
-            opex={displayData.opex}
-          />
-        )}
+        <CostBreakdown
+          cogs={displayData.cogs}
+          opex={displayData.opex}
+          revenue={displayData.revenue}
+        />
 
-        {/* ✅ INSIGHTS */}
-        {displayData.insights && (
-          <InsightsDisplay insights={displayData.insights} />
-        )}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className={cn("text-sm font-medium", isMobile && "text-xs")}>
+              Total Pendapatan
+            </span>
+            <span className={cn("text-sm font-bold", isMobile && "text-xs")}>
+              {formatCurrency(displayData.revenue)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={cn("text-sm font-medium", isMobile && "text-xs")}>
+              Total Keuntungan
+            </span>
+            <span className={cn("text-sm font-bold", getMarginColor(displayData.netProfit), isMobile && "text-xs")}>
+              {formatCurrency(displayData.netProfit)}
+            </span>
+          </div>
+        </div>
 
-        {/* ✅ ALERT INDICATORS */}
-        {summary?.alerts && summary.alerts.length > 0 && (
-          <div className={cn("bg-yellow-50 border border-yellow-200 rounded p-3", isMobile && "p-2")}>
-            <div className="flex items-center gap-2 text-yellow-700">
-              <AlertTriangle className={cn("h-4 w-4", isMobile && "h-3 w-3")} />
-              <span className={cn("text-sm font-medium", isMobile && "text-xs")}>
-                {summary.alerts.length} peringatan ditemukan
-              </span>
-            </div>
+        {insights.length > 0 && (
+          <div className={cn("space-y-2", isMobile && "space-y-1")}>
+            <span className={cn("text-sm font-medium", isMobile && "text-xs")}>
+              Insights
+            </span>
+            {insights.slice(0, 2).map((insight, index) => (
+              <InsightItem key={index} insight={insight} />
+            ))}
           </div>
         )}
 
-        {/* ✅ HELP TEXT */}
-        <div className={cn("text-xs text-gray-500 bg-blue-50 p-3 rounded", isMobile && "text-[0.65rem] p-2")}>
-          <p className={cn("font-medium text-blue-700 mb-1", isMobile && "text-[0.65rem]")}>💡 Real Profit Margin</p>
-          <p>Berbeda dari cash flow, ini menghitung profit sesungguhnya:</p>
-          <p><strong>Gross Margin</strong> = (Revenue - HPP) / Revenue</p>
-          <p><strong>Net Margin</strong> = (Revenue - HPP - OPEX) / Revenue</p>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            onClick={() => calculateProfit()}
+            disabled={isLoading}
+          >
+            <Calculator className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+            Hitung Ulang
+          </Button>
+          <Button
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            onClick={() => handleExport('csv')}
+            disabled={exporting || !profitData}
+          >
+            <Download className={cn("mr-2 h-4 w-4", isMobile && "h-3 w-3")} />
+            Ekspor
+          </Button>
         </div>
       </CardContent>
     </Card>

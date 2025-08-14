@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -39,10 +39,121 @@ interface BarChartData {
 }
 
 // ==============================================
-// KOMPONEN GRAFIK BREAKDOWN PROFIT
+// HELPER FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
+const calculateMetrics = (revenue, cogs, opex) => {
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - opex;
+
+  return {
+    revenue,
+    cogs,
+    opex,
+    grossProfit,
+    netProfit
+  };
+};
+
+const generateBarChartData = (metrics) => {
+  return [
+    {
+      category: 'Breakdown Keuangan',
+      Pendapatan: metrics.revenue,
+      HPP: metrics.cogs,
+      BiayaOps: metrics.opex,
+      'Laba Kotor': metrics.grossProfit,
+      'Laba Bersih': metrics.netProfit
+    }
+  ];
+};
+
+const generatePieChartData = (metrics) => {
+  const totalRevenue = metrics.revenue;
+  
+  if (totalRevenue === 0) {
+    return [];
+  }
+
+  const data = [
+    {
+      name: 'Laba Bersih',
+      value: metrics.netProfit,
+      percentage: (metrics.netProfit / totalRevenue) * 100,
+      color: CHART_CONFIG.colors.net_profit
+    },
+    {
+      name: 'HPP',
+      value: metrics.cogs,
+      percentage: (metrics.cogs / totalRevenue) * 100,
+      color: CHART_CONFIG.colors.cogs
+    },
+    {
+      name: 'Biaya Operasional',
+      value: metrics.opex,
+      percentage: (metrics.opex / totalRevenue) * 100,
+      color: CHART_CONFIG.colors.opex
+    }
+  ];
+
+  return data.filter(item => item.value > 0);
+};
+
+const calculateSummaryStats = (metrics) => {
+  const grossMargin = metrics.revenue > 0 ? (metrics.grossProfit / metrics.revenue) * 100 : 0;
+  const netMargin = metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue) * 100 : 0;
+  const cogsRatio = metrics.revenue > 0 ? (metrics.cogs / metrics.revenue) * 100 : 0;
+  const opexRatio = metrics.revenue > 0 ? (metrics.opex / metrics.revenue) * 100 : 0;
+
+  return { grossMargin, netMargin, cogsRatio, opexRatio };
+};
+
+// ==============================================
+// TOOLTIP COMPONENTS
+// ==============================================
+
+const CustomBarTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+      <p className="font-semibold text-gray-800 mb-2">{label}</p>
+      {payload.map((entry, index) => (
+        <div key={index} className="flex items-center space-x-2 mb-1">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+          <span className="text-sm font-medium">
+            {formatCurrency(entry.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const CustomPieTooltip = ({ active, payload }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const data = payload[0].payload;
+  
+  return (
+    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+      <p className="font-semibold text-gray-800">{data.name}</p>
+      <p className="text-sm text-gray-600">
+        {formatCurrency(data.value)} ({data.percentage.toFixed(1)}%)
+      </p>
+    </div>
+  );
+};
+
+// ==============================================
+// MAIN COMPONENT
+// ==============================================
+
+const ProfitBreakdownChart = ({
   currentAnalysis,
   isLoading,
   chartType = 'bar',
@@ -50,116 +161,23 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
   className = ''
 }) => {
 
-  // ✅ FIX: Extract primitive values to avoid nested object access in dependencies
+  // ✅ NO useMemo - Calculate directly on each render
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
   const cogs = currentAnalysis?.cogs_data?.total ?? 0;
   const opex = currentAnalysis?.opex_data?.total ?? 0;
 
-  // ✅ HITUNG METRIK - Fixed dependencies
-  const metrics = useMemo(() => {
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
+  // Calculate all metrics directly
+  const metrics = calculateMetrics(revenue, cogs, opex);
+  const barChartData = generateBarChartData(metrics);
+  const pieChartData = generatePieChartData(metrics);
+  const summaryStats = calculateSummaryStats(metrics);
 
-    return {
-      revenue,
-      cogs,
-      opex,
-      grossProfit,
-      netProfit
-    };
-  }, [revenue, cogs, opex]); // ✅ Use primitive values
-
-  // ✅ DATA GRAFIK BAR
-  const barChartData = useMemo((): BarChartData[] => {
-    return [
-      {
-        category: 'Breakdown Keuangan',
-        Pendapatan: metrics.revenue,
-        HPP: metrics.cogs,
-        BiayaOps: metrics.opex,
-        'Laba Kotor': metrics.grossProfit,
-        'Laba Bersih': metrics.netProfit
-      }
-    ];
-  }, [metrics]);
-
-  // ✅ DATA GRAFIK PIE
-  const pieChartData = useMemo((): ChartData[] => {
-    const totalRevenue = metrics.revenue;
-    
-    if (totalRevenue === 0) {
-      return [];
-    }
-
-    const data = [
-      {
-        name: 'Laba Bersih',
-        value: metrics.netProfit,
-        percentage: (metrics.netProfit / totalRevenue) * 100,
-        color: CHART_CONFIG.colors.net_profit
-      },
-      {
-        name: 'HPP',
-        value: metrics.cogs,
-        percentage: (metrics.cogs / totalRevenue) * 100,
-        color: CHART_CONFIG.colors.cogs
-      },
-      {
-        name: 'Biaya Operasional',
-        value: metrics.opex,
-        percentage: (metrics.opex / totalRevenue) * 100,
-        color: CHART_CONFIG.colors.opex
-      }
-    ];
-
-    return data.filter(item => item.value > 0);
-  }, [metrics]);
-
-  // ✅ TOOLTIP KUSTOM UNTUK GRAFIK BAR
-  const CustomBarTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-800 mb-2">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center space-x-2 mb-1">
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-sm text-gray-600">{entry.dataKey}:</span>
-            <span className="text-sm font-medium">
-              {formatCurrency(entry.value)}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // ✅ TOOLTIP KUSTOM UNTUK GRAFIK PIE
-  const CustomPieTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
-
-    const data = payload[0].payload;
-    
-    return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-800">{data.name}</p>
-        <p className="text-sm text-gray-600">
-          {formatCurrency(data.value)} ({data.percentage.toFixed(1)}%)
-        </p>
-      </div>
-    );
-  };
-
-  // ✅ LABEL PIE KUSTOM
-  const renderPieLabel = (entry: ChartData) => {
+  // ✅ PIE LABEL FUNCTION
+  const renderPieLabel = (entry) => {
     return `${entry.name}: ${entry.percentage.toFixed(1)}%`;
   };
 
-  // ✅ STATUS LOADING
+  // ✅ LOADING STATE
   if (isLoading) {
     return (
       <Card className={className}>
@@ -176,7 +194,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   }
 
-  // ✅ STATUS TIDAK ADA DATA
+  // ✅ NO DATA STATE
   if (!currentAnalysis || metrics.revenue === 0) {
     return (
       <Card className={className}>
@@ -200,7 +218,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     );
   }
 
-  // ✅ RENDER GRAFIK BAR
+  // ✅ BAR CHART RENDER
   const renderBarChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart 
@@ -262,7 +280,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     </ResponsiveContainer>
   );
 
-  // ✅ RENDER GRAFIK PIE
+  // ✅ PIE CHART RENDER
   const renderPieChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <PieChart>
@@ -286,17 +304,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
     </ResponsiveContainer>
   );
 
-  // ✅ STATISTIK RINGKASAN
-  const summaryStats = useMemo(() => {
-    const grossMargin = metrics.revenue > 0 ? (metrics.grossProfit / metrics.revenue) * 100 : 0;
-    const netMargin = metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue) * 100 : 0;
-    const cogsRatio = metrics.revenue > 0 ? (metrics.cogs / metrics.revenue) * 100 : 0;
-    const opexRatio = metrics.revenue > 0 ? (metrics.opex / metrics.revenue) * 100 : 0;
-
-    return { grossMargin, netMargin, cogsRatio, opexRatio };
-  }, [metrics]);
-
-  // ✅ RENDER UTAMA
+  // ✅ MAIN RENDER
   return (
     <Card className={className}>
       <CardHeader>
@@ -311,7 +319,7 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
             </CardDescription>
           </div>
           
-          {/* Statistik Cepat */}
+          {/* Quick Stats */}
           <div className="text-right">
             <div className="text-sm text-gray-600">Margin Kotor</div>
             <div className="text-lg font-bold text-blue-600">
@@ -326,12 +334,12 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Grafik */}
+        {/* Charts */}
         <div className="mb-4">
           {chartType === 'bar' ? renderBarChart() : renderPieChart()}
         </div>
 
-        {/* Kartu Ringkasan */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
           <div className="text-center">
             <div className="text-sm text-gray-600">Pendapatan</div>

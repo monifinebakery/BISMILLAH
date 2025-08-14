@@ -1,7 +1,7 @@
 // src/components/purchase/context/PurchaseContext.tsx
 // ✅ FIXED VERSION - Using React Query pattern to eliminate fetch loops
 
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,8 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { createPurchaseWarehouseService } from '../services/purchaseWarehouseService';
 
 // Types and utilities
 import { Purchase, PurchaseContextType } from '../types/purchase.types';
@@ -166,7 +168,13 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
+  const warehouseContext = useBahanBaku();
   const queryClient = useQueryClient();
+
+  const warehouseService = useMemo(() => {
+    if (!user?.id) return null;
+    return createPurchaseWarehouseService(warehouseContext, user.id);
+  }, [warehouseContext, user?.id]);
 
   logger.debug('🔍 PurchaseProvider rendered', {
     userId: user?.id,
@@ -324,6 +332,29 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
+      // Remove financial record if reverting from completed
+      if (oldStatus === 'completed' && newStatus && newStatus !== 'completed') {
+        try {
+          await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('related_id', id)
+            .eq('user_id', user!.id);
+        } catch (financialError) {
+          logger.error('Error removing financial transaction:', financialError);
+        }
+      }
+
+      // Sync warehouse stock based on status change
+      if (warehouseService && newStatus && oldStatus !== newStatus) {
+        try {
+          const updatedPurchase: Purchase = { ...oldPurchase, ...updates, status: newStatus };
+          await warehouseService.handlePurchaseStatusChange(updatedPurchase, oldStatus, newStatus);
+        } catch (warehouseError) {
+          logger.error('Error syncing warehouse stock:', warehouseError);
+        }
+      }
+
       // Success feedback
       if (wasExpenseRecorded) {
         toast.success('Status diubah & pengeluaran berhasil dicatat.');
@@ -378,6 +409,30 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (context?.purchaseToDelete) {
         const supplierName = getSupplierName(context.purchaseToDelete.supplier);
         const totalValue = formatCurrency(context.purchaseToDelete.totalNilai);
+
+        // Remove related financial transaction
+        try {
+          await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('related_id', context.purchaseToDelete.id)
+            .eq('user_id', user!.id);
+        } catch (finError) {
+          logger.error('Error deleting purchase transaction:', finError);
+        }
+
+        // Reduce warehouse stock if needed
+        if (warehouseService && context.purchaseToDelete.status === 'completed') {
+          try {
+            await warehouseService.handlePurchaseStatusChange(
+              context.purchaseToDelete,
+              'completed',
+              'cancelled'
+            );
+          } catch (warehouseError) {
+            logger.error('Error reverting warehouse stock:', warehouseError);
+          }
+        }
 
         // Activity log
         if (addActivity && typeof addActivity === 'function') {

@@ -26,6 +26,44 @@ import {
 } from '../types';
 
 // ===========================================
+// ✅ VALIDATION FUNCTION
+// ===========================================
+
+export const validateProfitAnalysisInput = (input: ProfitAnalysisInput): {
+  isValid: boolean;
+  errors: string[];
+} => {
+  const errors: string[] = [];
+
+  if (!input.period) {
+    errors.push('Periode tidak ditentukan');
+  }
+  if (!Array.isArray(input.transactions)) {
+    errors.push('Transaksi bukan array');
+  }
+  if (!Array.isArray(input.operationalCosts)) {
+    errors.push('Operational costs bukan array');
+  }
+  if (!Array.isArray(input.materials)) {
+    errors.push('Materials bukan array');
+  }
+  if (!Array.isArray(input.recipes)) {
+    errors.push('Recipes bukan array');
+  }
+  if (!Array.isArray(input.materialUsage)) {
+    errors.push('Material usage bukan array');
+  }
+  if (!Array.isArray(input.productionRecords)) {
+    errors.push('Production records bukan array');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+// ===========================================
 // ✅ MAIN PROFIT CALCULATION FUNCTION
 // ===========================================
 
@@ -49,7 +87,12 @@ export const calculateProfitMargins = (
 
     // Validasi input operationalCosts
     if (!Array.isArray(input.operationalCosts)) {
-      logger.warn('calculateProfitMargins: operationalCosts bukan array', { operationalCosts: input.operationalCosts });
+      logger.error('calculateProfitMargins: operationalCosts bukan array', { 
+        operationalCosts: input.operationalCosts,
+        type: typeof input.operationalCosts,
+        isNull: input.operationalCosts === null,
+        isUndefined: input.operationalCosts === undefined
+      });
       input.operationalCosts = [];
     }
 
@@ -63,21 +106,24 @@ export const calculateProfitMargins = (
     // Calculate revenue from financial transactions
     const revenue = calculateRevenue(periodTransactions);
 
-    // Validasi revenue
+    // Default profitMarginData untuk kasus kosong
+    const defaultProfitMarginData: ProfitMarginData = {
+      revenue: 0,
+      cogs: 0,
+      opex: 0,
+      grossProfit: 0,
+      netProfit: 0,
+      grossMargin: 0,
+      netMargin: 0,
+      calculatedAt: new Date(),
+      period: input.period
+    };
+
+    // Jika tidak ada pendapatan, kembalikan hasil default
     if (revenue === 0) {
       logger.warn('calculateProfitMargins: Tidak ada pendapatan untuk periode ini', { period: input.period });
       return {
-        profitMarginData: {
-          revenue: 0,
-          cogs: 0,
-          opex: 0,
-          grossProfit: 0,
-          netProfit: 0,
-          grossMargin: 0,
-          netMargin: 0,
-          calculatedAt: new Date(),
-          period: input.period
-        },
+        profitMarginData: defaultProfitMarginData,
         cogsBreakdown: {
           materialCosts: [],
           totalMaterialCost: 0,
@@ -166,6 +212,55 @@ export const calculateProfitMargins = (
       }
     };
 
+    // Validasi hasil akhir
+    if (!result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
+      logger.error('calculateProfitMargins: profitMarginData tidak valid', { 
+        result,
+        hasProfitMarginData: !!result.profitMarginData,
+        revenueType: result.profitMarginData ? typeof result.profitMarginData.revenue : 'undefined',
+        isRevenueNaN: result.profitMarginData ? isNaN(result.profitMarginData.revenue) : true
+      });
+      return {
+        profitMarginData: defaultProfitMarginData,
+        cogsBreakdown: {
+          materialCosts: [],
+          totalMaterialCost: 0,
+          directLaborCosts: [],
+          totalDirectLaborCost: 0,
+          manufacturingOverhead: 0,
+          overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
+          totalCOGS: 0,
+          actualMaterialUsage: input.materialUsage || [],
+          productionData: input.productionRecords || [],
+          dataSource: input.materialUsage?.length ? 'actual' : 'estimated'
+        },
+        opexBreakdown: {
+          administrativeExpenses: [],
+          totalAdministrative: 0,
+          sellingExpenses: [],
+          totalSelling: 0,
+          generalExpenses: [],
+          totalGeneral: 0,
+          totalOPEX: 0
+        },
+        insights: [{
+          type: 'error',
+          category: 'calculation',
+          title: 'Perhitungan Gagal',
+          message: 'Hasil perhitungan profit margin tidak valid',
+          impact: 'critical'
+        }],
+        rawData: {
+          transactions: periodTransactions,
+          operationalCosts: input.operationalCosts,
+          materials: input.materials,
+          recipes: input.recipes,
+          materialUsage: input.materialUsage,
+          productionRecords: input.productionRecords
+        }
+      };
+    }
+
     if (process.env.NODE_ENV === 'development') {
       logger.info('Profit margin calculation completed with material usage', {
         revenue,
@@ -181,7 +276,58 @@ export const calculateProfitMargins = (
 
   } catch (error) {
     logger.error('Error calculating profit margins:', error);
-    throw new Error(`Perhitungan profit gagal: ${error.message}`);
+    // Kembalikan hasil default jika terjadi error
+    const defaultProfitMarginData: ProfitMarginData = {
+      revenue: 0,
+      cogs: 0,
+      opex: 0,
+      grossProfit: 0,
+      netProfit: 0,
+      grossMargin: 0,
+      netMargin: 0,
+      calculatedAt: new Date(),
+      period: input.period
+    };
+
+    return {
+      profitMarginData: defaultProfitMarginData,
+      cogsBreakdown: {
+        materialCosts: [],
+        totalMaterialCost: 0,
+        directLaborCosts: [],
+        totalDirectLaborCost: 0,
+        manufacturingOverhead: 0,
+        overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
+        totalCOGS: 0,
+        actualMaterialUsage: input.materialUsage || [],
+        productionData: input.productionRecords || [],
+        dataSource: input.materialUsage?.length ? 'actual' : 'estimated'
+      },
+      opexBreakdown: {
+        administrativeExpenses: [],
+        totalAdministrative: 0,
+        sellingExpenses: [],
+        totalSelling: 0,
+        generalExpenses: [],
+        totalGeneral: 0,
+        totalOPEX: 0
+      },
+      insights: [{
+        type: 'error',
+        category: 'calculation',
+        title: 'Perhitungan Gagal',
+        message: `Perhitungan profit gagal: ${error.message}`,
+        impact: 'critical'
+      }],
+      rawData: {
+        transactions: input.transactions || [],
+        operationalCosts: input.operationalCosts || [],
+        materials: input.materials || [],
+        recipes: input.recipes || [],
+        materialUsage: input.materialUsage || [],
+        productionRecords: input.productionRecords || []
+      }
+    };
   }
 };
 
@@ -191,7 +337,12 @@ export const calculateProfitMargins = (
 
 export const calculateRevenue = (transactions: FinancialTransaction[]): number => {
   if (!Array.isArray(transactions)) {
-    logger.warn('calculateRevenue: transactions bukan array', { transactions });
+    logger.warn('calculateRevenue: transactions bukan array', { 
+      transactions,
+      type: typeof transactions,
+      isNull: transactions === null,
+      isUndefined: transactions === undefined
+    });
     return 0;
   }
   return transactions
@@ -213,273 +364,111 @@ export const calculateCOGS = (
   categoryMapping: CategoryMapping,
   allocationSettings?: AllocationSettings
 ): COGSBreakdown => {
-  // Validasi operationalCosts
-  if (!Array.isArray(operationalCosts)) {
-    logger.warn('calculateCOGS: operationalCosts bukan array', { operationalCosts });
-    operationalCosts = [];
-  }
+  try {
+    const materialCosts: MaterialCostDetail[] = [];
+    let totalMaterialCost = 0;
+    const directLaborCosts: LaborCostDetail[] = [];
+    let totalDirectLaborCost = 0;
+    let manufacturingOverhead = 0;
 
-  // Prioritize actual material usage over transaction estimates
-  const materialCosts = calculateActualMaterialCosts(
-    materialUsage, 
-    materials, 
-    transactions, 
-    categoryMapping
-  );
-  
-  // Direct labor costs from operational costs
-  const directLaborCosts = calculateDirectLaborCosts(operationalCosts, categoryMapping);
-  
-  // Manufacturing overhead allocation
-  const manufacturingOverhead = calculateManufacturingOverhead(
-    operationalCosts,
-    allocationSettings,
-    materialCosts.totalMaterialCost
-  );
-
-  const totalCOGS = materialCosts.totalMaterialCost + 
-                   directLaborCosts.totalDirectLaborCost + 
-                   manufacturingOverhead.amount;
-
-  return {
-    materialCosts: materialCosts.details,
-    totalMaterialCost: materialCosts.totalMaterialCost,
-    directLaborCosts: directLaborCosts.details,
-    totalDirectLaborCost: directLaborCosts.totalDirectLaborCost,
-    manufacturingOverhead: manufacturingOverhead.amount,
-    overheadAllocationMethod: manufacturingOverhead.method,
-    totalCOGS,
-    actualMaterialUsage: materialUsage || [],
-    productionData: productionRecords || [],
-    dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
-  };
-};
-
-// ===========================================
-// ✅ CALCULATE MATERIAL COSTS
-// ===========================================
-
-const calculateActualMaterialCosts = (
-  materialUsage: MaterialUsageLog[],
-  materials: BahanBakuFrontend[],
-  transactions: FinancialTransaction[],
-  categoryMapping: CategoryMapping
-) => {
-  const details: MaterialCostDetail[] = [];
-  let totalMaterialCost = 0;
-
-  if (materialUsage && materialUsage.length > 0) {
-    logger.info(`Using actual material usage data: ${materialUsage.length} records`);
-    
-    const materialMap = new Map<string, MaterialCostDetail>();
-
-    materialUsage.forEach(usage => {
-      const material = materials.find(m => m.id === usage.material_id);
-      
-      const key = usage.material_id;
-      
-      if (materialMap.has(key)) {
-        const existing = materialMap.get(key)!;
-        existing.quantityUsed += usage.quantity_used;
-        existing.totalCost += usage.total_cost;
-      } else {
-        const detail: MaterialCostDetail = {
-          materialId: usage.material_id,
-          materialName: material?.nama || 'Unknown Material',
-          quantityUsed: usage.quantity_used,
-          unitCost: usage.unit_cost,
-          totalCost: usage.total_cost,
-          supplier: material?.supplier || 'Unknown',
-          category: 'Material Usage',
-          usageType: usage.usage_type,
-          isEstimate: false,
-          referenceInfo: {
-            referenceType: usage.reference_type,
-            referenceId: usage.reference_id,
-            notes: usage.notes
-          },
-          ...(material?.isiPerKemasan && {
-            packageInfo: {
-              fromPackageQty: material.jumlahBeliKemasan || 0,
-              packageSize: material.isiPerKemasan,
-              packageUnit: material.satuanKemasan || material.satuan
-            }
-          })
-        };
-
-        materialMap.set(key, detail);
-      }
-
-      totalMaterialCost += usage.total_cost;
-    });
-
-    return {
-      details: Array.from(materialMap.values()),
-      totalMaterialCost
-    };
-
-  } else {
-    logger.warn('No material usage data found, falling back to transaction estimates');
-    
-    return calculateMaterialCostsFromTransactions(transactions, materials, categoryMapping);
-  }
-};
-
-// ===========================================
-// ✅ FALLBACK MATERIAL COSTS
-// ===========================================
-
-const calculateMaterialCostsFromTransactions = (
-  transactions: FinancialTransaction[],
-  materials: BahanBakuFrontend[],
-  categoryMapping: CategoryMapping
-) => {
-  if (!Array.isArray(transactions)) {
-    logger.warn('calculateMaterialCostsFromTransactions: transactions bukan array', { transactions });
-    return { details: [], totalMaterialCost: 0 };
-  }
-
-  const materialTransactions = transactions.filter(t => 
-    t.type === 'expense' && 
-    categoryMapping.cogsCategories.includes(t.category || '')
-  );
-
-  const details: MaterialCostDetail[] = [];
-  let totalMaterialCost = 0;
-
-  const materialMap = new Map<string, MaterialCostDetail>();
-
-  materialTransactions.forEach(transaction => {
-    const material = materials.find(m => 
-      transaction.description?.toLowerCase().includes(m.nama.toLowerCase()) ||
-      transaction.description?.toLowerCase().includes(m.supplier.toLowerCase())
-    );
-
-    const key = material ? material.id : transaction.description || 'Unknown';
-    
-    if (materialMap.has(key)) {
-      const existing = materialMap.get(key)!;
-      existing.totalCost += transaction.amount || 0;
-    } else {
-      const detail: MaterialCostDetail = {
-        materialId: material?.id || `trans_${transaction.id}`,
-        materialName: material?.nama || transaction.description || 'Material',
-        quantityUsed: 0,
-        unitCost: material?.harga || 0,
-        totalCost: transaction.amount || 0,
-        supplier: material?.supplier || 'Unknown',
-        category: transaction.category || 'Material Estimate',
-        isEstimate: true,
-        ...(material?.isiPerKemasan && {
-          packageInfo: {
-            fromPackageQty: material.jumlahBeliKemasan || 0,
-            packageSize: material.isiPerKemasan,
-            packageUnit: material.satuanKemasan || material.satuan
-          }
-        })
-      };
-
-      if (detail.unitCost > 0) {
-        detail.quantityUsed = detail.totalCost / detail.unitCost;
-      }
-
-      materialMap.set(key, detail);
+    // Validasi input
+    if (!Array.isArray(operationalCosts)) {
+      logger.error('calculateCOGS: operationalCosts bukan array', { 
+        operationalCosts,
+        type: typeof operationalCosts,
+        isNull: operationalCosts === null,
+        isUndefined: operationalCosts === undefined
+      });
+      operationalCosts = [];
     }
 
-    totalMaterialCost += transaction.amount || 0;
-  });
+    // Calculate material costs from material usage logs
+    if (materialUsage.length > 0) {
+      materialUsage.forEach(usage => {
+        const material = materials.find(m => m.id === usage.material_id);
+        if (material) {
+          materialCosts.push({
+            materialId: usage.material_id,
+            materialName: material.nama,
+            quantityUsed: usage.quantity_used,
+            unitCost: usage.unit_cost,
+            totalCost: usage.total_cost
+          });
+          totalMaterialCost += usage.total_cost;
+        }
+      });
+    } else {
+      // Estimate material costs from recipes and production records
+      productionRecords.forEach(record => {
+        const recipe = recipes.find(r => r.id === record.recipe_id);
+        if (recipe && recipe.bahan_baku) {
+          recipe.bahan_baku.forEach(bahan => {
+            const material = materials.find(m => m.id === bahan.materialId);
+            if (material) {
+              const cost = material.harga * bahan.quantity * record.quantity_produced;
+              materialCosts.push({
+                materialId: material.id,
+                materialName: material.nama,
+                quantityUsed: bahan.quantity * record.quantity_produced,
+                unitCost: material.harga,
+                totalCost: cost
+              });
+              totalMaterialCost += cost;
+            }
+          });
+        }
+      });
+    }
 
-  return {
-    details: Array.from(materialMap.values()),
-    totalMaterialCost
-  };
-};
+    // Calculate direct labor costs
+    const laborCosts = operationalCosts
+      .filter(cost => cost.category === 'direct_labor')
+      .map(cost => ({
+        costId: cost.id,
+        description: cost.description,
+        amount: cost.amount,
+        date: cost.date
+      }));
 
-// ===========================================
-// ✅ DIRECT LABOR COST CALCULATION
-// ===========================================
+    totalDirectLaborCost = laborCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    directLaborCosts.push(...laborCosts);
 
-const calculateDirectLaborCosts = (
-  operationalCosts: OperationalCost[],
-  categoryMapping: CategoryMapping
-) => {
-  if (!Array.isArray(operationalCosts)) {
-    logger.warn('calculateDirectLaborCosts: operationalCosts bukan array', { operationalCosts });
-    return { details: [], totalDirectLaborCost: 0 };
-  }
+    // Calculate manufacturing overhead
+    manufacturingOverhead = calculateOverheadPerUnit(
+      operationalCosts,
+      productionRecords.length,
+      allocationSettings
+    );
 
-  const directLaborCosts = operationalCosts.filter(cost => 
-    cost.status === 'aktif' &&
-    categoryMapping.directLaborCategories.some(category =>
-      cost.nama_biaya.toLowerCase().includes(category.toLowerCase())
-    )
-  );
+    const totalCOGS = totalMaterialCost + totalDirectLaborCost + manufacturingOverhead;
 
-  const details: LaborCostDetail[] = directLaborCosts.map(cost => ({
-    costId: cost.id,
-    costName: cost.nama_biaya,
-    costType: cost.jenis,
-    monthlyAmount: Number(cost.jumlah_per_bulan),
-    allocatedAmount: Number(cost.jumlah_per_bulan),
-    allocationBasis: cost.jenis === 'tetap' ? 'fixed monthly' : 'variable per unit'
-  }));
-
-  const totalDirectLaborCost = details.reduce((sum, detail) => 
-    sum + detail.allocatedAmount, 0
-  );
-
-  return {
-    details,
-    totalDirectLaborCost
-  };
-};
-
-// ===========================================
-// ✅ MANUFACTURING OVERHEAD CALCULATION
-// ===========================================
-
-const calculateManufacturingOverhead = (
-  operationalCosts: OperationalCost[],
-  allocationSettings?: AllocationSettings,
-  materialCost: number = 0
-) => {
-  if (!Array.isArray(operationalCosts)) {
-    logger.warn('calculateManufacturingOverhead: operationalCosts bukan array', { operationalCosts });
-    return { amount: 0, method: 'per_unit' as const };
-  }
-
-  const overheadCosts = operationalCosts.filter(cost => 
-    cost.status === 'aktif' &&
-    !cost.nama_biaya.toLowerCase().includes('gaji') &&
-    !cost.nama_biaya.toLowerCase().includes('administrasi') &&
-    (
-      cost.nama_biaya.toLowerCase().includes('listrik pabrik') ||
-      cost.nama_biaya.toLowerCase().includes('pemeliharaan mesin') ||
-      cost.nama_biaya.toLowerCase().includes('depresiasi') ||
-      cost.nama_biaya.toLowerCase().includes('air') ||
-      cost.nama_biaya.toLowerCase().includes('bahan bakar')
-    )
-  );
-
-  const totalOverheadCosts = calculateTotalActiveCosts(overheadCosts);
-
-  if (!allocationSettings) {
     return {
-      amount: totalOverheadCosts * 0.5,
-      method: 'per_unit' as const
+      materialCosts,
+      totalMaterialCost,
+      directLaborCosts,
+      totalDirectLaborCost,
+      manufacturingOverhead,
+      overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
+      totalCOGS,
+      actualMaterialUsage: materialUsage,
+      productionData: productionRecords,
+      dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
+    };
+  } catch (error) {
+    logger.error('Error calculating COGS:', error);
+    return {
+      materialCosts: [],
+      totalMaterialCost: 0,
+      directLaborCosts: [],
+      totalDirectLaborCost: 0,
+      manufacturingOverhead: 0,
+      overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
+      totalCOGS: 0,
+      actualMaterialUsage: materialUsage || [],
+      productionData: productionRecords || [],
+      dataSource: 'estimated'
     };
   }
-
-  const overheadPerUnit = calculateOverheadPerUnit(
-    totalOverheadCosts,
-    allocationSettings,
-    materialCost
-  );
-
-  return {
-    amount: overheadPerUnit,
-    method: allocationSettings.metode
-  };
 };
 
 // ===========================================
@@ -491,96 +480,66 @@ export const calculateOPEX = (
   operationalCosts: OperationalCost[],
   categoryMapping: CategoryMapping
 ): OPEXBreakdown => {
-  if (!Array.isArray(transactions)) {
-    logger.warn('calculateOPEX: transactions bukan array', { transactions });
-    transactions = [];
-  }
-
-  if (!Array.isArray(operationalCosts)) {
-    logger.warn('calculateOPEX: operationalCosts bukan array', { operationalCosts });
-    operationalCosts = [];
-  }
-
-  const opexTransactions = transactions.filter(t => 
-    t.type === 'expense' && 
-    categoryMapping.opexCategories.includes(t.category || '')
-  );
-
-  const opexCosts = operationalCosts.filter(cost => 
-    cost.status === 'aktif' &&
-    categoryMapping.operationalExpenseCategories.some(category =>
-      cost.nama_biaya.toLowerCase().includes(category.toLowerCase())
-    )
-  );
-
-  const administrativeExpenses: OperationalExpenseDetail[] = [];
-  const sellingExpenses: OperationalExpenseDetail[] = [];
-  const generalExpenses: OperationalExpenseDetail[] = [];
-
-  opexCosts.forEach(cost => {
-    const expense: OperationalExpenseDetail = {
-      costId: cost.id,
-      costName: cost.nama_biaya,
-      costType: cost.jenis,
-      monthlyAmount: Number(cost.jumlah_per_bulan),
-      category: categorizeCost(cost.nama_biaya),
-      percentage: 0
-    };
-
-    switch (expense.category) {
-      case 'administrative':
-        administrativeExpenses.push(expense);
-        break;
-      case 'selling':
-        sellingExpenses.push(expense);
-        break;
-      default:
-        generalExpenses.push(expense);
+  try {
+    if (!Array.isArray(operationalCosts)) {
+      logger.error('calculateOPEX: operationalCosts bukan array', { 
+        operationalCosts,
+        type: typeof operationalCosts,
+        isNull: operationalCosts === null,
+        isUndefined: operationalCosts === undefined
+      });
+      operationalCosts = [];
     }
-  });
 
-  opexTransactions.forEach(transaction => {
-    const expense: OperationalExpenseDetail = {
-      costId: transaction.id,
-      costName: transaction.description || transaction.category || 'Expense',
-      costType: 'variabel',
-      monthlyAmount: transaction.amount || 0,
-      category: categorizeTransactionExpense(transaction.category || ''),
-      percentage: 0
-    };
+    const administrativeExpenses: OperationalExpenseDetail[] = [];
+    const sellingExpenses: OperationalExpenseDetail[] = [];
+    const generalExpenses: OperationalExpenseDetail[] = [];
 
-    switch (expense.category) {
-      case 'administrative':
+    operationalCosts.forEach(cost => {
+      const mappedCategory = categoryMapping[cost.category] || cost.category;
+      const expense: OperationalExpenseDetail = {
+        costId: cost.id,
+        description: cost.description,
+        amount: cost.amount,
+        date: cost.date,
+        category: mappedCategory
+      };
+
+      if (mappedCategory.includes('admin')) {
         administrativeExpenses.push(expense);
-        break;
-      case 'selling':
+      } else if (mappedCategory.includes('selling')) {
         sellingExpenses.push(expense);
-        break;
-      default:
+      } else {
         generalExpenses.push(expense);
-    }
-  });
+      }
+    });
 
-  const totalAdministrative = administrativeExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
-  const totalSelling = sellingExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
-  const totalGeneral = generalExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
-  const totalOPEX = totalAdministrative + totalSelling + totalGeneral;
+    const totalAdministrative = calculateTotalActiveCosts(administrativeExpenses);
+    const totalSelling = calculateTotalActiveCosts(sellingExpenses);
+    const totalGeneral = calculateTotalActiveCosts(generalExpenses);
+    const totalOPEX = totalAdministrative + totalSelling + totalGeneral;
 
-  if (totalOPEX > 0) {
-    administrativeExpenses.forEach(exp => exp.percentage = (exp.monthlyAmount / totalOPEX) * 100);
-    sellingExpenses.forEach(exp => exp.percentage = (exp.monthlyAmount / totalOPEX) * 100);
-    generalExpenses.forEach(exp => exp.percentage = (exp.monthlyAmount / totalOPEX) * 100);
+    return {
+      administrativeExpenses,
+      totalAdministrative,
+      sellingExpenses,
+      totalSelling,
+      generalExpenses,
+      totalGeneral,
+      totalOPEX
+    };
+  } catch (error) {
+    logger.error('Error calculating OPEX:', error);
+    return {
+      administrativeExpenses: [],
+      totalAdministrative: 0,
+      sellingExpenses: [],
+      totalSelling: 0,
+      generalExpenses: [],
+      totalGeneral: 0,
+      totalOPEX: 0
+    };
   }
-
-  return {
-    administrativeExpenses,
-    totalAdministrative,
-    sellingExpenses,
-    totalSelling,
-    generalExpenses,
-    totalGeneral,
-    totalOPEX
-  };
 };
 
 // ===========================================
@@ -593,23 +552,37 @@ export const calculateMargins = (
   opex: number,
   period: DatePeriod
 ): ProfitMarginData => {
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
-  
-  const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  try {
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - opex;
+    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-  return {
-    revenue,
-    cogs,
-    opex,
-    grossProfit,
-    netProfit,
-    grossMargin,
-    netMargin,
-    calculatedAt: new Date(),
-    period
-  };
+    return {
+      revenue,
+      cogs,
+      opex,
+      grossProfit,
+      netProfit,
+      grossMargin,
+      netMargin,
+      calculatedAt: new Date(),
+      period
+    };
+  } catch (error) {
+    logger.error('Error calculating margins:', error);
+    return {
+      revenue: 0,
+      cogs: 0,
+      opex: 0,
+      grossProfit: 0,
+      netProfit: 0,
+      grossMargin: 0,
+      netMargin: 0,
+      calculatedAt: new Date(),
+      period
+    };
+  }
 };
 
 // ===========================================
@@ -617,364 +590,195 @@ export const calculateMargins = (
 // ===========================================
 
 export const generateInsights = (
-  profitData: ProfitMarginData,
+  profitMarginData: ProfitMarginData,
   cogsBreakdown: COGSBreakdown,
   opexBreakdown: OPEXBreakdown
 ): ProfitInsight[] => {
   const insights: ProfitInsight[] = [];
 
-  // Data quality insight
-  if (cogsBreakdown.dataSource === 'actual') {
-    insights.push({
-      type: 'success',
-      category: 'efficiency',
-      title: 'Data COGS Akurat',
-      message: 'Perhitungan COGS menggunakan data material usage yang akurat',
-      impact: 'high'
-    });
-  } else if (cogsBreakdown.dataSource === 'estimated') {
-    insights.push({
-      type: 'info',
-      category: 'efficiency',
-      title: 'COGS Berdasarkan Estimasi',
-      message: 'Perhitungan COGS menggunakan estimasi dari transaksi. Tambahkan data material usage untuk akurasi lebih baik',
-      recommendation: 'Setup tracking material usage untuk analisis yang lebih akurat',
-      impact: 'medium'
-    });
-  }
+  try {
+    // Revenue-based insights
+    if (profitMarginData.revenue === 0) {
+      insights.push({
+        type: 'warning',
+        category: 'revenue',
+        title: 'Tidak Ada Pendapatan',
+        message: 'Tidak ada transaksi pemasukan untuk periode ini',
+        impact: 'high'
+      });
+    }
 
-  // Gross margin analysis
-  if (profitData.grossMargin < PROFIT_MARGIN_THRESHOLDS.grossMargin.poor) {
-    insights.push({
-      type: 'critical',
-      category: 'margin',
-      title: 'Gross Margin Sangat Rendah',
-      message: `Gross margin ${profitData.grossMargin.toFixed(1)}% berada di bawah standar industri`,
-      recommendation: 'Evaluasi harga jual atau efisiensi produksi',
-      impact: 'high'
-    });
-  } else if (profitData.grossMargin >= PROFIT_MARGIN_THRESHOLDS.grossMargin.excellent) {
-    insights.push({
-      type: 'success',
-      category: 'margin',
-      title: 'Gross Margin Excellent',
-      message: `Gross margin ${profitData.grossMargin.toFixed(1)}% sangat baik`,
-      impact: 'high'
-    });
-  }
+    // Gross Margin insights
+    if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.gross.poor) {
+      insights.push({
+        type: 'critical',
+        category: 'gross_margin',
+        title: 'Margin Kotor Rendah',
+        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.gross.poor}%)`,
+        impact: 'high'
+      });
+    } else if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.gross.acceptable) {
+      insights.push({
+        type: 'warning',
+        category: 'gross_margin',
+        title: 'Margin Kotor Perlu Perhatian',
+        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.gross.acceptable}%)`,
+        impact: 'medium'
+      });
+    }
 
-  // Net margin analysis
-  if (profitData.netMargin < PROFIT_MARGIN_THRESHOLDS.netMargin.poor) {
-    insights.push({
-      type: 'warning',
-      category: 'margin',
-      title: 'Net Margin Perlu Perhatian',
-      message: `Net margin ${profitData.netMargin.toFixed(1)}% cukup rendah`,
-      recommendation: 'Optimalkan biaya operasional',
-      impact: 'medium'
-    });
-  }
+    // Net Margin insights
+    if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.net.poor) {
+      insights.push({
+        type: 'critical',
+        category: 'net_margin',
+        title: 'Margin Bersih Rendah',
+        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.net.poor}%)`,
+        impact: 'high'
+      });
+    } else if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.net.acceptable) {
+      insights.push({
+        type: 'warning',
+        category: 'net_margin',
+        title: 'Margin Bersih Perlu Perhatian',
+        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.net.acceptable}%)`,
+        impact: 'medium'
+      });
+    }
 
-  // COGS analysis
-  const cogsPercentage = profitData.revenue > 0 ? (profitData.cogs / profitData.revenue) * 100 : 0;
-  if (cogsPercentage > 70) {
-    insights.push({
-      type: 'warning',
-      category: 'cogs',
-      title: 'COGS Terlalu Tinggi',
-      message: `COGS ${cogsPercentage.toFixed(1)}% dari revenue`,
-      recommendation: 'Review efisiensi produksi dan harga supplier',
-      impact: 'high'
-    });
-  }
-
-  // OPEX analysis
-  const opexPercentage = profitData.revenue > 0 ? (profitData.opex / profitData.revenue) * 100 : 0;
-  if (opexPercentage > 30) {
-    insights.push({
-      type: 'info',
-      category: 'opex',
-      title: 'OPEX Relatif Tinggi',
-      message: `Biaya operasional ${opexPercentage.toFixed(1)}% dari revenue`,
-      recommendation: 'Evaluasi efisiensi operasional',
-      impact: 'medium'
-    });
-  }
-
-  // Material usage insights
-  if (cogsBreakdown.actualMaterialUsage && cogsBreakdown.actualMaterialUsage.length > 0) {
-    const materialCostPercentage = (cogsBreakdown.totalMaterialCost / profitData.revenue) * 100;
-    
-    if (materialCostPercentage > 50) {
+    // COGS breakdown insights
+    if (cogsBreakdown.totalMaterialCost > profitMarginData.revenue * 0.6) {
       insights.push({
         type: 'warning',
         category: 'cogs',
         title: 'Biaya Material Tinggi',
-        message: `Biaya material ${materialCostPercentage.toFixed(1)}% dari revenue`,
-        recommendation: 'Review supplier dan optimasi penggunaan material',
-        impact: 'high'
+        message: 'Biaya material melebihi 60% dari pendapatan. Pertimbangkan optimalisasi penggunaan bahan baku.',
+        impact: 'medium'
       });
     }
+
+    // OPEX breakdown insights
+    if (opexBreakdown.totalOPEX > profitMarginData.revenue * 0.3) {
+      insights.push({
+        type: 'warning',
+        category: 'opex',
+        title: 'Biaya Operasional Tinggi',
+        message: 'Biaya operasional melebihi 30% dari pendapatan. Pertimbangkan efisiensi operasional.',
+        impact: 'medium'
+      });
+    }
+
+    // Data source insight
+    if (cogsBreakdown.dataSource === 'estimated') {
+      insights.push({
+        type: 'info',
+        category: 'data_source',
+        title: 'Data Estimasi',
+        message: 'Perhitungan COGS menggunakan data estimasi karena kurangnya log penggunaan material.',
+        impact: 'low'
+      });
+    }
+
+  } catch (error) {
+    logger.error('Error generating insights:', error);
+    insights.push({
+      type: 'error',
+      category: 'insights',
+      title: 'Gagal Membuat Insights',
+      message: 'Tidak dapat menghasilkan insights karena kesalahan data',
+      impact: 'high'
+    });
   }
 
   return insights;
 };
 
 // ===========================================
-// ✅ HELPER FUNCTIONS
+// ✅ FORMAT AND COLOR UTILITIES
 // ===========================================
 
-const categorizeCost = (costName: string): 'administrative' | 'selling' | 'general' => {
-  const name = costName.toLowerCase();
-  
-  if (name.includes('administrasi') || name.includes('gaji admin') || name.includes('sewa kantor')) {
-    return 'administrative';
-  }
-  
-  if (name.includes('marketing') || name.includes('promosi') || name.includes('penjualan')) {
-    return 'selling';
-  }
-  
-  return 'general';
+export const formatProfitMarginForDisplay = (margin: number): string => {
+  return `${margin.toFixed(1)}%`;
 };
 
-const categorizeTransactionExpense = (category: string): 'administrative' | 'selling' | 'general' => {
-  const cat = category.toLowerCase();
-  
-  if (cat.includes('administrasi') || cat.includes('gaji admin')) {
-    return 'administrative';
-  }
-  
-  if (cat.includes('marketing') || cat.includes('transportasi') || cat.includes('promosi')) {
-    return 'selling';
-  }
-  
-  return 'general';
-};
-
-// ===========================================
-// ✅ VALIDATION FUNCTIONS
-// ===========================================
-
-export const validateProfitAnalysisInput = (input: ProfitAnalysisInput) => {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const suggestions: string[] = [];
-
-  // Validate date period
-  if (!input.period || !input.period.from || !input.period.to) {
-    errors.push('Period tanggal harus diisi');
-  } else if (input.period.from > input.period.to) {
-    errors.push('Tanggal mulai tidak boleh lebih besar dari tanggal akhir');
-  }
-
-  // Validate transactions
-  if (!Array.isArray(input.transactions)) {
-    warnings.push('Tidak ada transaksi dalam periode ini');
-    input.transactions = [];
-  } else if (input.transactions.length === 0) {
-    warnings.push('Tidak ada transaksi dalam periode ini');
-  } else {
-    const hasIncome = input.transactions.some(t => t.type === 'income');
-    const hasExpense = input.transactions.some(t => t.type === 'expense');
-    
-    if (!hasIncome) {
-      warnings.push('Tidak ada transaksi pemasukan dalam periode ini');
-    }
-    if (!hasExpense) {
-      warnings.push('Tidak ada transaksi pengeluaran dalam periode ini');
-    }
-  }
-
-  // Validate operational costs
-  if (!Array.isArray(input.operationalCosts)) {
-    warnings.push('Data biaya operasional tidak valid');
-    suggestions.push('Pastikan data biaya operasional tersedia dan dalam format array');
-    input.operationalCosts = [];
-  } else if (input.operationalCosts.length === 0) {
-    warnings.push('Tidak ada data biaya operasional');
-    suggestions.push('Tambahkan biaya operasional untuk analisis yang lebih akurat');
-  } else {
-    const activeCosts = input.operationalCosts.filter(c => c.status === 'aktif');
-    if (activeCosts.length === 0) {
-      warnings.push('Tidak ada biaya operasional yang aktif');
-    }
-  }
-
-  // Validate materials
-  if (!Array.isArray(input.materials) || input.materials.length === 0) {
-    warnings.push('Tidak ada data bahan baku');
-    suggestions.push('Tambahkan data warehouse untuk tracking HPP yang akurat');
-  }
-
-  // Validate recipes
-  if (!Array.isArray(input.recipes)) {
-    warnings.push('Data resep tidak tersedia');
-    suggestions.push('Tambahkan data resep untuk analisis yang lebih komprehensif');
-  }
-
-  // Validate material usage
-  if (!Array.isArray(input.materialUsage) || input.materialUsage.length === 0) {
-    warnings.push('Tidak ada data material usage');
-    suggestions.push('Setup tracking material usage untuk COGS calculation yang akurat');
-  } else {
-    const productionUsage = input.materialUsage.filter(u => u.usage_type === 'production');
-    if (productionUsage.length === 0) {
-      warnings.push('Tidak ada material usage untuk produksi');
-    }
-  }
-
-  // Validate production records
-  if (!Array.isArray(input.productionRecords) || input.productionRecords.length === 0) {
-    suggestions.push('Tambahkan production records untuk tracking produksi yang lebih baik');
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings,
-    suggestions
-  };
-};
-
-// ===========================================
-// ✅ COMPARISON FUNCTIONS
-// ===========================================
-
-export const compareProfitMargins = (
-  current: ProfitMarginData,
-  previous?: ProfitMarginData,
-  budget?: ProfitMarginData
-) => {
-  const comparison: any = {
-    variance: {
-      revenueGrowth: 0,
-      marginImprovement: 0,
-      costReduction: 0
-    }
-  };
-
-  if (previous) {
-    comparison.previousPeriod = previous;
-    comparison.variance.revenueGrowth = previous.revenue > 0 
-      ? ((current.revenue - previous.revenue) / previous.revenue) * 100 
-      : 0;
-    comparison.variance.marginImprovement = current.netMargin - previous.netMargin;
-    comparison.variance.costReduction = previous.revenue > 0 && current.revenue > 0
-      ? ((previous.cogs + previous.opex) / previous.revenue - (current.cogs + current.opex) / current.revenue) * 100
-      : 0;
-  }
-
-  if (budget) {
-    comparison.budgetPlan = budget;
-  }
-
-  return comparison;
-};
-
-// ===========================================
-// ✅ EXPORT UTILITIES
-// ===========================================
-
-export const formatProfitMarginForDisplay = (data: ProfitMarginData) => {
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-
-  const formatPercentage = (value: number) => 
-    `${value.toFixed(1)}%`;
-
-  return {
-    revenue: formatCurrency(data.revenue),
-    cogs: formatCurrency(data.cogs),
-    opex: formatCurrency(data.opex),
-    grossProfit: formatCurrency(data.grossProfit),
-    netProfit: formatCurrency(data.netProfit),
-    grossMargin: formatPercentage(data.grossMargin),
-    netMargin: formatPercentage(data.netMargin),
-    period: data.period.label
-  };
-};
-
-export const getProfitMarginColor = (margin: number, type: 'gross' | 'net') => {
-  const thresholds = type === 'gross' 
-    ? PROFIT_MARGIN_THRESHOLDS.grossMargin 
-    : PROFIT_MARGIN_THRESHOLDS.netMargin;
-
-  if (margin >= thresholds.excellent) return 'green';
-  if (margin >= thresholds.good) return 'blue';
-  if (margin >= thresholds.acceptable) return 'yellow';
-  if (margin >= thresholds.poor) return 'orange';
-  return 'red';
+export const getProfitMarginColor = (margin: number, type: 'gross' | 'net'): string => {
+  const thresholds = PROFIT_MARGIN_THRESHOLDS[type];
+  if (margin >= thresholds.excellent) return 'text-green-500';
+  if (margin >= thresholds.good) return 'text-blue-500';
+  if (margin >= thresholds.acceptable) return 'text-yellow-500';
+  if (margin >= thresholds.poor) return 'text-orange-500';
+  return 'text-red-500';
 };
 
 // ===========================================
 // ✅ CHART DATA PREPARATION
 // ===========================================
 
-export const prepareProfitChartData = (results: ProfitAnalysisResult[]) => {
-  return {
-    marginTrend: results.map(result => ({
-      date: result.profitMarginData.period.label,
+export const prepareProfitChartData = (results: ProfitAnalysisResult[]): ProfitChartData[] => {
+  return results.map(result => {
+    if (!result?.profitMarginData) {
+      logger.error('prepareProfitChartData: profitMarginData tidak valid', { result });
+      return {
+        period: result?.profitMarginData?.period?.label || 'Unknown',
+        revenue: 0,
+        cogs: 0,
+        opex: 0,
+        grossProfit: 0,
+        netProfit: 0,
+        grossMargin: 0,
+        netMargin: 0,
+        insights: [{
+          type: 'error',
+          category: 'calculation',
+          title: 'Data Tidak Valid',
+          message: 'Data profit margin tidak tersedia untuk periode ini',
+          impact: 'critical'
+        }]
+      };
+    }
+
+    return {
+      period: result.profitMarginData.period.label,
+      revenue: result.profitMarginData.revenue,
+      cogs: result.profitMarginData.cogs,
+      opex: result.profitMarginData.opex,
+      grossProfit: result.profitMarginData.grossProfit,
+      netProfit: result.profitMarginData.netProfit,
       grossMargin: result.profitMarginData.grossMargin,
-      netMargin: result.profitMarginData.netMargin
-    })),
-    
-    costBreakdown: results.length > 0 ? [
-      {
-        category: 'Material Costs',
-        amount: results[0].cogsBreakdown.totalMaterialCost,
-        percentage: results[0].profitMarginData.revenue > 0 
-          ? (results[0].cogsBreakdown.totalMaterialCost / results[0].profitMarginData.revenue) * 100 
-          : 0,
-        type: 'cogs' as const
-      },
-      {
-        category: 'Direct Labor',
-        amount: results[0].cogsBreakdown.totalDirectLaborCost,
-        percentage: results[0].profitMarginData.revenue > 0 
-          ? (results[0].cogsBreakdown.totalDirectLaborCost / results[0].profitMarginData.revenue) * 100 
-          : 0,
-        type: 'cogs' as const
-      },
-      {
-        category: 'Manufacturing Overhead',
-        amount: results[0].cogsBreakdown.manufacturingOverhead,
-        percentage: results[0].profitMarginData.revenue > 0 
-          ? (results[0].cogsBreakdown.manufacturingOverhead / results[0].profitMarginData.revenue) * 100 
-          : 0,
-        type: 'cogs' as const
-      },
-      {
-        category: 'Operating Expenses',
-        amount: results[0].opexBreakdown.totalOPEX,
-        percentage: results[0].profitMarginData.revenue > 0 
-          ? (results[0].opexBreakdown.totalOPEX / results[0].profitMarginData.revenue) * 100 
-          : 0,
-        type: 'opex' as const
-      }
-    ] : [],
-    
-    profitWaterfall: results.length > 0 ? [
-      {
-        category: 'Revenue',
-        value: results[0].profitMarginData.revenue,
-        cumulative: results[0].profitMarginData.revenue
-      },
-      {
-        category: 'COGS',
-        value: -results[0].profitMarginData.cogs,
-        cumulative: results[0].profitMarginData.grossProfit
-      },
-      {
-        category: 'OPEX',
-        value: -results[0].profitMarginData.opex,
-        cumulative: results[0].profitMarginData.netProfit
-      }
-    ] : []
+      netMargin: result.profitMarginData.netMargin,
+      insights: result.insights
+    };
+  });
+};
+
+// ===========================================
+// ✅ COMPARE PROFIT MARGINS
+// ===========================================
+
+export const compareProfitMargins = (
+  current: ProfitMarginData,
+  previous?: ProfitMarginData
+): { current: ProfitMarginData; previous?: ProfitMarginData; changes: any } => {
+  const changes = {
+    revenueChange: 0,
+    grossMarginChange: 0,
+    netMarginChange: 0,
+    cogsChange: 0,
+    opexChange: 0
+  };
+
+  if (previous) {
+    changes.revenueChange = ((current.revenue - previous.revenue) / previous.revenue) * 100;
+    changes.grossMarginChange = current.grossMargin - previous.grossMargin;
+    changes.netMarginChange = current.netMargin - previous.netMargin;
+    changes.cogsChange = ((current.cogs - previous.cogs) / previous.cogs) * 100;
+    changes.opexChange = ((current.opex - previous.opex) / previous.opex) * 100;
+  }
+
+  return {
+    current,
+    previous,
+    changes
   };
 };
 

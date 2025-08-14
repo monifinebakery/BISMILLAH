@@ -1,11 +1,11 @@
 // src/components/financial/FinancialReportPage.tsx
-// ✅ ENHANCED VERSION - With Real Profit Margin Integration
+// ✅ SIMPLIFIED VERSION - Only Financial Reports and Charts
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Settings, RefreshCw, AlertCircle, Calculator, TrendingUp } from 'lucide-react';
+import { Plus, Settings, RefreshCw, AlertCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 // UI utilities
@@ -18,9 +18,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ EXISTING COMPONENTS - Reuse what's already available
 import DateRangePicker from '@/components/ui/DateRangePicker';
-
-// ✅ NEW PROFIT MARGIN COMPONENTS
-import { ProfitMarginWidget } from '@/components/profitAnalysis/components/ProfitMarginWidget';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
@@ -73,16 +70,6 @@ const CategoryManagementDialog = React.lazy(() =>
   })
 );
 
-// ✅ UPDATED LAZY IMPORT - Menggunakan path baru
-const ProfitAnalysisDialog = React.lazy(() => 
-  import('@/components/profitAnalysis/ProfitAnalysisDialog').then(module => ({ default: module.ProfitAnalysisDialog })).catch((error) => {
-    logger.error('Failed to load ProfitAnalysisDialog', error);
-    return {
-      default: () => null
-    };
-  })
-);
-
 // Loading components
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
@@ -95,15 +82,14 @@ const ChartSkeleton = () => (
   </Card>
 );
 
-// ✅ ENHANCED Summary Cards Component with Profit Margin
+// ✅ SIMPLIFIED Summary Cards Component - Only basic financial data
 const SummaryCards: React.FC<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
   isLoading?: boolean;
   onRefresh?: () => void;
-  onShowProfitAnalysis?: () => void;
-}> = ({ totalIncome, totalExpense, balance, isLoading, onRefresh, onShowProfitAnalysis }) => {
+}> = ({ totalIncome, totalExpense, balance, isLoading, onRefresh }) => {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 
@@ -125,12 +111,12 @@ const SummaryCards: React.FC<{
       title: 'Saldo Akhir', 
       value: balance, 
       color: balance >= 0 ? 'green' : 'red',
-      icon: Calculator
+      icon: TrendingUp
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card, index) => (
         <Card key={index} className="border-l-4 border-blue-500">
           <CardHeader className="pb-2">
@@ -159,30 +145,6 @@ const SummaryCards: React.FC<{
           </CardContent>
         </Card>
       ))}
-      
-      {/* ✅ NEW PROFIT MARGIN CARD */}
-      <Card className="border-l-4 border-purple-500">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
-            Real Profit Margin
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={onShowProfitAnalysis}
-            variant="outline" 
-            className="w-full"
-            disabled={isLoading}
-          >
-            <Calculator className="mr-2 h-4 w-4" />
-            Lihat Analisis
-          </Button>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Profit margin sesungguhnya vs cash flow
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 };
@@ -243,7 +205,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// ✅ MAIN COMPONENT - ENHANCED WITH PROFIT MARGIN TAB
+// ✅ MAIN COMPONENT - SIMPLIFIED WITHOUT PROFIT MARGIN
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   
@@ -273,12 +235,11 @@ const FinancialReportPage: React.FC = () => {
   // ✅ CHART DATA - Single hook
   const chartData = useFinancialChartData(filteredTransactions);
 
-  // ✅ STATE - Dialogs and active tab
-  const [activeTab, setActiveTab] = useState('overview');
+  // ✅ STATE - Dialogs and active tab (only charts and transactions)
+  const [activeTab, setActiveTab] = useState('charts');
   const [dialogs, setDialogs] = useState({
     transaction: { isOpen: false, editing: null as any },
-    category: { isOpen: false },
-    profitAnalysis: { isOpen: false }
+    category: { isOpen: false }
   });
 
   // ✅ DIALOG HANDLERS
@@ -306,16 +267,6 @@ const FinancialReportPage: React.FC = () => {
   const closeCategoryDialog = () => {
     logger.debug('Closing category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
-  };
-
-  const openProfitAnalysisDialog = () => {
-    logger.debug('Opening profit analysis dialog');
-    setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: true } }));
-  };
-
-  const closeProfitAnalysisDialog = () => {
-    logger.debug('Closing profit analysis dialog');
-    setDialogs(prev => ({ ...prev, profitAnalysis: { isOpen: false } }));
   };
 
   // ✅ TRANSACTION HANDLERS
@@ -407,12 +358,12 @@ const FinancialReportPage: React.FC = () => {
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
-        {/* ✅ ENHANCED Header */}
+        {/* ✅ SIMPLIFIED Header */}
         <div className="space-y-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
-              Analisis pemasukan, pengeluaran, saldo, dan profit margin bisnis Anda
+              Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
             </p>
           </div>
           
@@ -450,28 +401,23 @@ const FinancialReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ ENHANCED Summary Cards with Profit Margin */}
+        {/* ✅ SIMPLIFIED Summary Cards - Only basic financial data */}
         <SummaryCards 
           totalIncome={totalIncome}
           totalExpense={totalExpense}
           balance={balance}
           isLoading={isLoading}
-          onShowProfitAnalysis={openProfitAnalysisDialog}
         />
 
-        {/* ✅ NEW TABBED INTERFACE */}
+        {/* ✅ SIMPLIFIED TABBED INTERFACE - Only Charts and Transactions */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="profit-analysis">
-              <Calculator className="mr-2 h-4 w-4" />
-              Profit Margin
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="charts">Charts & Reports</TabsTrigger>
             <TabsTrigger value="transactions">Transaksi</TabsTrigger>
           </TabsList>
 
-          {/* ✅ OVERVIEW TAB - Original financial charts */}
-          <TabsContent value="overview" className="space-y-6">
+          {/* ✅ CHARTS TAB - Financial charts and category charts */}
+          <TabsContent value="charts" className="space-y-6">
             <Suspense fallback={<ChartSkeleton />}>
               <FinancialCharts 
                 filteredTransactions={filteredTransactions}
@@ -493,87 +439,6 @@ const FinancialReportPage: React.FC = () => {
             </Suspense>
           </TabsContent>
 
-          {/* ✅ NEW PROFIT ANALYSIS TAB */}
-          <TabsContent value="profit-analysis" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Main Profit Margin Widget */}
-              <div className="lg:col-span-2">
-                <Suspense fallback={<ChartSkeleton />}>
-                  <ProfitMarginWidget 
-                    dateRange={dateRangeForPicker}
-                    className="w-full"
-                  />
-                </Suspense>
-              </div>
-
-              {/* Quick Insights Cards */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Cash Flow vs Real Profit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded">
-                      <h4 className="font-medium text-blue-800 mb-2">💰 Cash Flow (Sebelumnya)</h4>
-                      <p className="text-sm text-blue-700">
-                        Pemasukan - Pengeluaran = {new Intl.NumberFormat('id-ID', { 
-                          style: 'currency', 
-                          currency: 'IDR' 
-                        }).format(balance)}
-                      </p>
-                    </div>
-                    
-                    <div className="bg-green-50 p-4 rounded">
-                      <h4 className="font-medium text-green-800 mb-2">📊 Real Profit (Sekarang)</h4>
-                      <p className="text-sm text-green-700">
-                        Revenue - HPP - OPEX = Profit sesungguhnya
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Lihat tab "Profit Margin" untuk analisis lengkap
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>🎯 Rekomendasi</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium">Tambahkan Data Warehouse</p>
-                        <p className="text-gray-600">Untuk tracking HPP yang akurat</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium">Kategorisasi Biaya</p>
-                        <p className="text-gray-600">Pisahkan COGS dari OPEX</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium">Monitor Margin</p>
-                        <p className="text-gray-600">Target: Gross 25%+, Net 10%+</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
           {/* ✅ TRANSACTIONS TAB */}
           <TabsContent value="transactions" className="space-y-6">
             <Suspense fallback={<ChartSkeleton />}>
@@ -588,7 +453,7 @@ const FinancialReportPage: React.FC = () => {
           </TabsContent>
         </Tabs>
 
-        {/* ✅ DIALOGS */}
+        {/* ✅ DIALOGS - Only transaction and category dialogs */}
         <Suspense fallback={null}>
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
@@ -609,15 +474,6 @@ const FinancialReportPage: React.FC = () => {
               toast.success('Kategori berhasil disimpan');
               logger.info('Categories saved successfully');
             }}
-          />
-        </Suspense>
-
-        {/* ✅ NEW PROFIT ANALYSIS DIALOG */}
-        <Suspense fallback={null}>
-          <ProfitAnalysisDialog
-            isOpen={dialogs.profitAnalysis.isOpen}
-            onClose={closeProfitAnalysisDialog}
-            dateRange={dateRangeForPicker}
           />
         </Suspense>
       </div>

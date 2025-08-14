@@ -24,7 +24,7 @@ const headerQueryKeys = {
 
 const fetchWarehouseStats = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {  { user } } = await supabase.auth.getUser();
     
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
@@ -45,9 +45,9 @@ const fetchWarehouseStats = async () => {
       return expiryDate <= threshold && expiryDate > new Date();
     });
     
-    // ✅ UPDATE: Calculate total value using WAC
+    // ✅ UPDATE: Calculate total value using effective price (WAC)
     const totalValue = items.reduce((sum, item) => {
-      const harga = Number(item.hargaRataRata ?? item.harga) || 0;
+      const harga = item.hargaRataRata ?? item.harga ?? 0;
       return sum + (Number(item.stok) * harga);
     }, 0);
     
@@ -68,7 +68,7 @@ const fetchWarehouseStats = async () => {
 
 const fetchWarehouseAlerts = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {  { user } } = await supabase.auth.getUser();
     
     const service = await warehouseApi.createService('alert', {
       userId: user?.id,
@@ -95,7 +95,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   onRefresh
 }) => {
   const {
-    data: stats,
+     data: stats,
     isLoading: statsLoading,
     error: statsError,
     refetch: refetchStats
@@ -108,7 +108,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   });
 
   const {
-    data: alerts,
+     alerts,
     isLoading: alertsLoading,
   } = useQuery({
     queryKey: headerQueryKeys.alerts,

@@ -21,7 +21,10 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const seenUpdateIds = useRef<Set<string>>(new Set());
+  // Track IDs we've already marked as seen. Using a ref keeps the set stable
+  // across renders without triggering re-renders when it changes.
+  const seenUpdateIdsRef = useRef<Set<string>>(new Set());
+
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
       console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
@@ -83,11 +86,10 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       setLatestUpdate(updates[0]);
-      
       const newUnseen = updates.filter(
-        (update) => !seenUpdateIds.current.has(update.id)
+        (update) => !seenUpdateIdsRef.current.has(update.id)
       );
-
+        
       setUnseenUpdates(newUnseen);
       setHasUnseenUpdates(newUnseen.length > 0);
 
@@ -142,7 +144,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!user?.id) return;
 
       try {
-        seenUpdateIds.current.add(updateId);
+        seenUpdateIdsRef.current.add(updateId);
         setUnseenUpdates((prev) => {
           const filtered = prev.filter((update) => update.id !== updateId);
           setHasUnseenUpdates(filtered.length > 0);
@@ -160,17 +162,19 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
-      unseenUpdates.forEach((update) => seenUpdateIds.current.add(update.id));
+      
+      unseenUpdates.forEach((update) => seenUpdateIdsRef.current.add(update.id));
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
       console.log('Marked all as seen');
+      
     } catch (error) {
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
   }, [user?.id, unseenUpdates]);
-              
+
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
   }, [fetchUpdates]);
@@ -184,7 +188,8 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
-      seenUpdateIds.current = new Set();
+      seenUpdateIdsRef.current = new Set();
+
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);

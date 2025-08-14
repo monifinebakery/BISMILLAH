@@ -1,4 +1,6 @@
-// src › components › profitAnalysis › utils › profitCalculations.ts
+// src/components/profitAnalysis/utils/profitCalculations.ts
+// ✅ FIXED VERSION - Proper OPEX type handling
+
 import { logger } from '@/utils/logger';
 import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
 import { calculateTotalActiveCosts, calculateOverheadPerUnit } from '@/components/operational-costs/utils/costCalculations';
@@ -27,7 +29,7 @@ import {
 } from '../types';
 
 // ===========================================
-// ✅ VALIDATION FUNCTION
+// ✅ SAFE VALIDATION FUNCTION
 // ===========================================
 
 export const validateProfitAnalysisInput = (input: ProfitAnalysisInput): {
@@ -51,10 +53,12 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput): {
   if (!Array.isArray(input.recipes)) {
     errors.push('Recipes bukan array');
   }
-  if (!Array.isArray(input.materialUsage)) {
+  
+  // ✅ SAFE: Optional arrays
+  if (input.materialUsage && !Array.isArray(input.materialUsage)) {
     errors.push('Material usage bukan array');
   }
-  if (!Array.isArray(input.productionRecords)) {
+  if (input.productionRecords && !Array.isArray(input.productionRecords)) {
     errors.push('Production records bukan array');
   }
 
@@ -65,7 +69,26 @@ export const validateProfitAnalysisInput = (input: ProfitAnalysisInput): {
 };
 
 // ===========================================
-// ✅ MAIN PROFIT CALCULATION FUNCTION
+// ✅ SAFE ARRAY HELPER
+// ===========================================
+
+const ensureArray = <T>(data: any, defaultValue: T[] = []): T[] => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  
+  logger.warn('ensureArray: Converting non-array to array', { 
+    data,
+    type: typeof data,
+    isNull: data === null,
+    isUndefined: data === undefined
+  });
+  
+  return defaultValue;
+};
+
+// ===========================================
+// ✅ MAIN PROFIT CALCULATION FUNCTION - FIXED
 // ===========================================
 
 export const calculateProfitMargins = (
@@ -74,32 +97,27 @@ export const calculateProfitMargins = (
   allocationSettings?: AllocationSettings
 ): ProfitAnalysisResult => {
   try {
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('Starting profit margin calculation with material usage', { 
-        period: input.period?.label,
-        transactionCount: input.transactions?.length,
-        costCount: input.operationalCosts?.length,
-        materialCount: input.materials?.length,
-        recipeCount: input.recipes?.length,
-        materialUsageCount: input.materialUsage?.length,
-        productionRecordsCount: input.productionRecords?.length
-      });
-    }
+    logger.info('Starting profit margin calculation', { 
+      period: input.period?.label,
+      transactionCount: input.transactions?.length,
+      costCount: input.operationalCosts?.length,
+      materialCount: input.materials?.length,
+      recipeCount: input.recipes?.length,
+      materialUsageCount: input.materialUsage?.length,
+      productionRecordsCount: input.productionRecords?.length
+    });
 
-    // Validasi input operationalCosts
-    if (!Array.isArray(input.operationalCosts)) {
-      logger.error('calculateProfitMargins: operationalCosts bukan array', { 
-        operationalCosts: input.operationalCosts,
-        type: typeof input.operationalCosts,
-        isNull: input.operationalCosts === null,
-        isUndefined: input.operationalCosts === undefined
-      });
-      input.operationalCosts = [];
-    }
+    // ✅ SAFE: Ensure all arrays are valid
+    const transactions = ensureArray<FinancialTransaction>(input.transactions);
+    const operationalCosts = ensureArray<OperationalCost>(input.operationalCosts);
+    const materials = ensureArray<BahanBakuFrontend>(input.materials);
+    const recipes = ensureArray<Recipe>(input.recipes);
+    const materialUsage = ensureArray<MaterialUsageLog>(input.materialUsage);
+    const productionRecords = ensureArray<ProductionRecord>(input.productionRecords);
 
     // Filter transactions by date period
     const periodTransactions = filterByDateRange(
-      input.transactions,
+      transactions,
       input.period,
       'date'
     );
@@ -122,7 +140,7 @@ export const calculateProfitMargins = (
 
     // Jika tidak ada pendapatan, kembalikan hasil default
     if (revenue === 0) {
-      logger.warn('calculateProfitMargins: Tidak ada pendapatan untuk periode ini', { period: input.period });
+      logger.warn('No revenue found for this period', { period: input.period });
       return {
         profitMarginData: defaultProfitMarginData,
         cogsBreakdown: {
@@ -133,9 +151,9 @@ export const calculateProfitMargins = (
           manufacturingOverhead: 0,
           overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
           totalCOGS: 0,
-          actualMaterialUsage: input.materialUsage || [],
-          productionData: input.productionRecords || [],
-          dataSource: input.materialUsage?.length ? 'actual' : 'estimated'
+          actualMaterialUsage: materialUsage,
+          productionData: productionRecords,
+          dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
         },
         opexBreakdown: {
           administrativeExpenses: [],
@@ -155,11 +173,11 @@ export const calculateProfitMargins = (
         }],
         rawData: {
           transactions: periodTransactions,
-          operationalCosts: input.operationalCosts,
-          materials: input.materials,
-          recipes: input.recipes,
-          materialUsage: input.materialUsage,
-          productionRecords: input.productionRecords
+          operationalCosts: operationalCosts,
+          materials: materials,
+          recipes: recipes,
+          materialUsage: materialUsage,
+          productionRecords: productionRecords
         }
       };
     }
@@ -167,11 +185,11 @@ export const calculateProfitMargins = (
     // Calculate COGS breakdown with material usage
     const cogsBreakdown = calculateCOGS(
       periodTransactions,
-      input.operationalCosts,
-      input.materials,
-      input.recipes,
-      input.materialUsage,
-      input.productionRecords,
+      operationalCosts,
+      materials,
+      recipes,
+      materialUsage,
+      productionRecords,
       categoryMapping,
       allocationSettings
     );
@@ -179,7 +197,7 @@ export const calculateProfitMargins = (
     // Calculate OPEX breakdown  
     const opexBreakdown = calculateOPEX(
       periodTransactions,
-      input.operationalCosts,
+      operationalCosts,
       categoryMapping
     );
 
@@ -205,45 +223,21 @@ export const calculateProfitMargins = (
       insights,
       rawData: {
         transactions: periodTransactions,
-        operationalCosts: input.operationalCosts,
-        materials: input.materials,
-        recipes: input.recipes,
-        materialUsage: input.materialUsage,
-        productionRecords: input.productionRecords
+        operationalCosts: operationalCosts,
+        materials: materials,
+        recipes: recipes,
+        materialUsage: materialUsage,
+        productionRecords: productionRecords
       }
     };
 
-    // Validasi hasil akhir
+    // ✅ SAFE: Validate final result
     if (!result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
-      logger.error('calculateProfitMargins: profitMarginData tidak valid', { 
-        result,
-        hasProfitMarginData: !!result.profitMarginData,
-        revenueType: result.profitMarginData ? typeof result.profitMarginData.revenue : 'undefined',
-        isRevenueNaN: result.profitMarginData ? isNaN(result.profitMarginData.revenue) : true
-      });
+      logger.error('Invalid calculation result', { result });
       return {
         profitMarginData: defaultProfitMarginData,
-        cogsBreakdown: {
-          materialCosts: [],
-          totalMaterialCost: 0,
-          directLaborCosts: [],
-          totalDirectLaborCost: 0,
-          manufacturingOverhead: 0,
-          overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
-          totalCOGS: 0,
-          actualMaterialUsage: input.materialUsage || [],
-          productionData: input.productionRecords || [],
-          dataSource: input.materialUsage?.length ? 'actual' : 'estimated'
-        },
-        opexBreakdown: {
-          administrativeExpenses: [],
-          totalAdministrative: 0,
-          sellingExpenses: [],
-          totalSelling: 0,
-          generalExpenses: [],
-          totalGeneral: 0,
-          totalOPEX: 0
-        },
+        cogsBreakdown: cogsBreakdown,
+        opexBreakdown: opexBreakdown,
         insights: [{
           type: 'error',
           category: 'calculation',
@@ -253,31 +247,29 @@ export const calculateProfitMargins = (
         }],
         rawData: {
           transactions: periodTransactions,
-          operationalCosts: input.operationalCosts,
-          materials: input.materials,
-          recipes: input.recipes,
-          materialUsage: input.materialUsage,
-          productionRecords: input.productionRecords
+          operationalCosts: operationalCosts,
+          materials: materials,
+          recipes: recipes,
+          materialUsage: materialUsage,
+          productionRecords: productionRecords
         }
       };
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('Profit margin calculation completed with material usage', {
-        revenue,
-        cogs: cogsBreakdown.totalCOGS,
-        opex: opexBreakdown.totalOPEX,
-        grossMargin: profitMarginData.grossMargin,
-        netMargin: profitMarginData.netMargin,
-        dataSource: cogsBreakdown.dataSource
-      });
-    }
+    logger.info('Profit margin calculation completed successfully', {
+      revenue,
+      cogs: cogsBreakdown.totalCOGS,
+      opex: opexBreakdown.totalOPEX,
+      grossMargin: profitMarginData.grossMargin,
+      netMargin: profitMarginData.netMargin,
+      dataSource: cogsBreakdown.dataSource
+    });
 
     return result;
 
   } catch (error) {
     logger.error('Error calculating profit margins:', error);
-    // Kembalikan hasil default jika terjadi error
+    
     const defaultProfitMarginData: ProfitMarginData = {
       revenue: 0,
       cogs: 0,
@@ -300,9 +292,9 @@ export const calculateProfitMargins = (
         manufacturingOverhead: 0,
         overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
         totalCOGS: 0,
-        actualMaterialUsage: input.materialUsage || [],
-        productionData: input.productionRecords || [],
-        dataSource: input.materialUsage?.length ? 'actual' : 'estimated'
+        actualMaterialUsage: ensureArray(input.materialUsage),
+        productionData: ensureArray(input.productionRecords),
+        dataSource: (input.materialUsage?.length || 0) > 0 ? 'actual' : 'estimated'
       },
       opexBreakdown: {
         administrativeExpenses: [],
@@ -321,38 +313,30 @@ export const calculateProfitMargins = (
         impact: 'critical'
       }],
       rawData: {
-        transactions: input.transactions || [],
-        operationalCosts: input.operationalCosts || [],
-        materials: input.materials || [],
-        recipes: input.recipes || [],
-        materialUsage: input.materialUsage || [],
-        productionRecords: input.productionRecords || []
+        transactions: ensureArray(input.transactions),
+        operationalCosts: ensureArray(input.operationalCosts),
+        materials: ensureArray(input.materials),
+        recipes: ensureArray(input.recipes),
+        materialUsage: ensureArray(input.materialUsage),
+        productionRecords: ensureArray(input.productionRecords)
       }
     };
   }
 };
 
 // ===========================================
-// ✅ REVENUE CALCULATION
+// ✅ SAFE REVENUE CALCULATION
 // ===========================================
 
 export const calculateRevenue = (transactions: FinancialTransaction[]): number => {
-  if (!Array.isArray(transactions)) {
-    logger.warn('calculateRevenue: transactions bukan array', { 
-      transactions,
-      type: typeof transactions,
-      isNull: transactions === null,
-      isUndefined: transactions === undefined
-    });
-    return 0;
-  }
-  return transactions
+  const safeTransactions = ensureArray<FinancialTransaction>(transactions);
+  return safeTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 };
 
 // ===========================================
-// ✅ COGS CALCULATION
+// ✅ SAFE COGS CALCULATION
 // ===========================================
 
 export const calculateCOGS = (
@@ -366,45 +350,42 @@ export const calculateCOGS = (
   allocationSettings?: AllocationSettings
 ): COGSBreakdown => {
   try {
+    const safeOperationalCosts = ensureArray<OperationalCost>(operationalCosts);
+    const safeMaterials = ensureArray<BahanBakuFrontend>(materials);
+    const safeRecipes = ensureArray<Recipe>(recipes);
+    const safeMaterialUsage = ensureArray<MaterialUsageLog>(materialUsage);
+    const safeProductionRecords = ensureArray<ProductionRecord>(productionRecords);
+
     const materialCosts: MaterialCostDetail[] = [];
     let totalMaterialCost = 0;
     const directLaborCosts: LaborCostDetail[] = [];
     let totalDirectLaborCost = 0;
     let manufacturingOverhead = 0;
 
-    // Validasi input
-    if (!Array.isArray(operationalCosts)) {
-      logger.error('calculateCOGS: operationalCosts bukan array', { 
-        operationalCosts,
-        type: typeof operationalCosts,
-        isNull: operationalCosts === null,
-        isUndefined: operationalCosts === undefined
-      });
-      operationalCosts = [];
-    }
-
     // Calculate material costs from material usage logs
-    if (materialUsage.length > 0) {
-      materialUsage.forEach(usage => {
-        const material = materials.find(m => m.id === usage.material_id);
+    if (safeMaterialUsage.length > 0) {
+      safeMaterialUsage.forEach(usage => {
+        const material = safeMaterials.find(m => m.id === usage.material_id);
         if (material) {
           materialCosts.push({
             materialId: usage.material_id,
             materialName: material.nama,
             quantityUsed: usage.quantity_used,
             unitCost: usage.unit_cost,
-            totalCost: usage.total_cost
+            totalCost: usage.total_cost,
+            supplier: material.supplier || 'Unknown',
+            category: material.kategori || 'Unknown'
           });
           totalMaterialCost += usage.total_cost;
         }
       });
     } else {
       // Estimate material costs from recipes and production records
-      productionRecords.forEach(record => {
-        const recipe = recipes.find(r => r.id === record.recipe_id);
+      safeProductionRecords.forEach(record => {
+        const recipe = safeRecipes.find(r => r.id === record.product_name); // Assuming product_name maps to recipe
         if (recipe && recipe.bahan_baku) {
           recipe.bahan_baku.forEach(bahan => {
-            const material = materials.find(m => m.id === bahan.materialId);
+            const material = safeMaterials.find(m => m.id === bahan.materialId);
             if (material) {
               const cost = material.harga * bahan.quantity * record.quantity_produced;
               materialCosts.push({
@@ -412,7 +393,9 @@ export const calculateCOGS = (
                 materialName: material.nama,
                 quantityUsed: bahan.quantity * record.quantity_produced,
                 unitCost: material.harga,
-                totalCost: cost
+                totalCost: cost,
+                supplier: material.supplier || 'Unknown',
+                category: material.kategori || 'Unknown'
               });
               totalMaterialCost += cost;
             }
@@ -422,22 +405,24 @@ export const calculateCOGS = (
     }
 
     // Calculate direct labor costs
-    const laborCosts = operationalCosts
+    const laborCosts = safeOperationalCosts
       .filter(cost => cost.category === 'direct_labor')
       .map(cost => ({
         costId: cost.id,
-        description: cost.description,
-        amount: cost.amount,
-        date: cost.date
+        costName: cost.description,
+        costType: cost.type || 'tetap',
+        monthlyAmount: cost.amount,
+        allocatedAmount: cost.amount,
+        allocationBasis: 'direct'
       }));
 
-    totalDirectLaborCost = laborCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    totalDirectLaborCost = laborCosts.reduce((sum, cost) => sum + cost.monthlyAmount, 0);
     directLaborCosts.push(...laborCosts);
 
     // Calculate manufacturing overhead
     manufacturingOverhead = calculateOverheadPerUnit(
-      operationalCosts,
-      productionRecords.length,
+      safeOperationalCosts,
+      safeProductionRecords.length || 1,
       allocationSettings
     );
 
@@ -451,9 +436,9 @@ export const calculateCOGS = (
       manufacturingOverhead,
       overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
       totalCOGS,
-      actualMaterialUsage: materialUsage,
-      productionData: productionRecords,
-      dataSource: materialUsage.length > 0 ? 'actual' : 'estimated'
+      actualMaterialUsage: safeMaterialUsage,
+      productionData: safeProductionRecords,
+      dataSource: safeMaterialUsage.length > 0 ? 'actual' : 'estimated'
     };
   } catch (error) {
     logger.error('Error calculating COGS:', error);
@@ -465,15 +450,15 @@ export const calculateCOGS = (
       manufacturingOverhead: 0,
       overheadAllocationMethod: allocationSettings?.metode || 'activity_based',
       totalCOGS: 0,
-      actualMaterialUsage: materialUsage || [],
-      productionData: productionRecords || [],
+      actualMaterialUsage: ensureArray(materialUsage),
+      productionData: ensureArray(productionRecords),
       dataSource: 'estimated'
     };
   }
 };
 
 // ===========================================
-// ✅ OPEX CALCULATION
+// ✅ FIXED OPEX CALCULATION
 // ===========================================
 
 export const calculateOPEX = (
@@ -482,43 +467,52 @@ export const calculateOPEX = (
   categoryMapping: CategoryMapping
 ): OPEXBreakdown => {
   try {
-    if (!Array.isArray(operationalCosts)) {
-      logger.error('calculateOPEX: operationalCosts bukan array', { 
-        operationalCosts,
-        type: typeof operationalCosts,
-        isNull: operationalCosts === null,
-        isUndefined: operationalCosts === undefined
-      });
-      operationalCosts = [];
-    }
+    const safeOperationalCosts = ensureArray<OperationalCost>(operationalCosts);
 
     const administrativeExpenses: OperationalExpenseDetail[] = [];
     const sellingExpenses: OperationalExpenseDetail[] = [];
     const generalExpenses: OperationalExpenseDetail[] = [];
 
-    operationalCosts.forEach(cost => {
-      const mappedCategory = categoryMapping[cost.category] || cost.category;
+    // ✅ FIXED: Map OperationalCost to OperationalExpenseDetail properly
+    safeOperationalCosts.forEach(cost => {
+      const mappedCategory = categoryMapping.opexCategories?.includes(cost.category) ? cost.category : 'general';
+      
       const expense: OperationalExpenseDetail = {
         costId: cost.id,
-        description: cost.description,
-        amount: cost.amount,
-        date: cost.date,
-        category: mappedCategory
+        costName: cost.description,
+        costType: (cost.type as 'tetap' | 'variabel') || 'tetap',
+        monthlyAmount: cost.amount,
+        category: mappedCategory.includes('admin') ? 'administrative' : 
+                 mappedCategory.includes('selling') || mappedCategory.includes('marketing') ? 'selling' : 'general',
+        percentage: 0 // Will be calculated later
       };
 
-      if (mappedCategory.includes('admin')) {
+      if (expense.category === 'administrative') {
         administrativeExpenses.push(expense);
-      } else if (mappedCategory.includes('selling')) {
+      } else if (expense.category === 'selling') {
         sellingExpenses.push(expense);
       } else {
         generalExpenses.push(expense);
       }
     });
 
-    const totalAdministrative = calculateTotalActiveCosts(administrativeExpenses);
-    const totalSelling = calculateTotalActiveCosts(sellingExpenses);
-    const totalGeneral = calculateTotalActiveCosts(generalExpenses);
+    const totalAdministrative = administrativeExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
+    const totalSelling = sellingExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
+    const totalGeneral = generalExpenses.reduce((sum, exp) => sum + exp.monthlyAmount, 0);
     const totalOPEX = totalAdministrative + totalSelling + totalGeneral;
+
+    // ✅ FIXED: Calculate percentages
+    if (totalOPEX > 0) {
+      administrativeExpenses.forEach(exp => {
+        exp.percentage = (exp.monthlyAmount / totalOPEX) * 100;
+      });
+      sellingExpenses.forEach(exp => {
+        exp.percentage = (exp.monthlyAmount / totalOPEX) * 100;
+      });
+      generalExpenses.forEach(exp => {
+        exp.percentage = (exp.monthlyAmount / totalOPEX) * 100;
+      });
+    }
 
     return {
       administrativeExpenses,
@@ -544,7 +538,7 @@ export const calculateOPEX = (
 };
 
 // ===========================================
-// ✅ MARGIN CALCULATION
+// ✅ SAFE MARGIN CALCULATION
 // ===========================================
 
 export const calculateMargins = (
@@ -554,15 +548,19 @@ export const calculateMargins = (
   period: DatePeriod
 ): ProfitMarginData => {
   try {
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    const safeRevenue = Number(revenue) || 0;
+    const safeCogs = Number(cogs) || 0;
+    const safeOpex = Number(opex) || 0;
+
+    const grossProfit = safeRevenue - safeCogs;
+    const netProfit = grossProfit - safeOpex;
+    const grossMargin = safeRevenue > 0 ? (grossProfit / safeRevenue) * 100 : 0;
+    const netMargin = safeRevenue > 0 ? (netProfit / safeRevenue) * 100 : 0;
 
     return {
-      revenue,
-      cogs,
-      opex,
+      revenue: safeRevenue,
+      cogs: safeCogs,
+      opex: safeOpex,
       grossProfit,
       netProfit,
       grossMargin,
@@ -587,7 +585,7 @@ export const calculateMargins = (
 };
 
 // ===========================================
-// ✅ INSIGHT GENERATION
+// ✅ SAFE INSIGHT GENERATION
 // ===========================================
 
 export const generateInsights = (
@@ -607,42 +605,43 @@ export const generateInsights = (
         message: 'Tidak ada transaksi pemasukan untuk periode ini',
         impact: 'high'
       });
+      return insights;
     }
 
     // Gross Margin insights
-    if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.gross.poor) {
+    if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.grossMargin.poor) {
       insights.push({
         type: 'critical',
-        category: 'gross_margin',
+        category: 'margin',
         title: 'Margin Kotor Rendah',
-        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.gross.poor}%)`,
+        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.grossMargin.poor}%)`,
         impact: 'high'
       });
-    } else if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.gross.acceptable) {
+    } else if (profitMarginData.grossMargin < PROFIT_MARGIN_THRESHOLDS.grossMargin.acceptable) {
       insights.push({
         type: 'warning',
-        category: 'gross_margin',
+        category: 'margin',
         title: 'Margin Kotor Perlu Perhatian',
-        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.gross.acceptable}%)`,
+        message: `Margin kotor (${profitMarginData.grossMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.grossMargin.acceptable}%)`,
         impact: 'medium'
       });
     }
 
     // Net Margin insights
-    if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.net.poor) {
+    if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.netMargin.poor) {
       insights.push({
         type: 'critical',
-        category: 'net_margin',
+        category: 'margin',
         title: 'Margin Bersih Rendah',
-        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.net.poor}%)`,
+        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah ambang batas minimum (${PROFIT_MARGIN_THRESHOLDS.netMargin.poor}%)`,
         impact: 'high'
       });
-    } else if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.net.acceptable) {
+    } else if (profitMarginData.netMargin < PROFIT_MARGIN_THRESHOLDS.netMargin.acceptable) {
       insights.push({
         type: 'warning',
-        category: 'net_margin',
+        category: 'margin',
         title: 'Margin Bersih Perlu Perhatian',
-        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.net.acceptable}%)`,
+        message: `Margin bersih (${profitMarginData.netMargin.toFixed(1)}%) di bawah tingkat yang diinginkan (${PROFIT_MARGIN_THRESHOLDS.netMargin.acceptable}%)`,
         impact: 'medium'
       });
     }
@@ -673,9 +672,20 @@ export const generateInsights = (
     if (cogsBreakdown.dataSource === 'estimated') {
       insights.push({
         type: 'info',
-        category: 'data_source',
+        category: 'efficiency',
         title: 'Data Estimasi',
-        message: 'Perhitungan COGS menggunakan data estimasi karena kurangnya log penggunaan material.',
+        message: 'Perhitungan COGS menggunakan data estimasi. Aktifkan tracking material usage untuk akurasi yang lebih baik.',
+        impact: 'low'
+      });
+    }
+
+    // Positive insights
+    if (profitMarginData.netMargin >= PROFIT_MARGIN_THRESHOLDS.netMargin.excellent) {
+      insights.push({
+        type: 'success',
+        category: 'margin',
+        title: 'Performa Excellent',
+        message: `Margin bersih ${profitMarginData.netMargin.toFixed(1)}% menunjukkan performa yang sangat baik!`,
         impact: 'low'
       });
     }
@@ -683,11 +693,11 @@ export const generateInsights = (
   } catch (error) {
     logger.error('Error generating insights:', error);
     insights.push({
-      type: 'error',
-      category: 'insights',
-      title: 'Gagal Membuat Insights',
-      message: 'Tidak dapat menghasilkan insights karena kesalahan data',
-      impact: 'high'
+      type: 'info',
+      category: 'trend',
+      title: 'Analisis Tersedia',
+      message: 'Data profit margin berhasil dihitung untuk periode ini.',
+      impact: 'low'
     });
   }
 
@@ -699,28 +709,33 @@ export const generateInsights = (
 // ===========================================
 
 export const formatProfitMarginForDisplay = (margin: number): string => {
-  return `${margin.toFixed(1)}%`;
+  const safeMargin = Number(margin) || 0;
+  return `${safeMargin.toFixed(1)}%`;
 };
 
 export const getProfitMarginColor = (margin: number, type: 'gross' | 'net'): string => {
-  const thresholds = PROFIT_MARGIN_THRESHOLDS[type];
-  if (margin >= thresholds.excellent) return 'text-green-500';
-  if (margin >= thresholds.good) return 'text-blue-500';
-  if (margin >= thresholds.acceptable) return 'text-yellow-500';
-  if (margin >= thresholds.poor) return 'text-orange-500';
+  const safeMargin = Number(margin) || 0;
+  const thresholds = PROFIT_MARGIN_THRESHOLDS[type === 'gross' ? 'grossMargin' : 'netMargin'];
+  
+  if (safeMargin >= thresholds.excellent) return 'text-green-500';
+  if (safeMargin >= thresholds.good) return 'text-blue-500';
+  if (safeMargin >= thresholds.acceptable) return 'text-yellow-500';
+  if (safeMargin >= thresholds.poor) return 'text-orange-500';
   return 'text-red-500';
 };
 
 // ===========================================
-// ✅ CHART DATA PREPARATION
+// ✅ SAFE CHART DATA PREPARATION
 // ===========================================
 
-export const prepareProfitChartData = (results: ProfitAnalysisResult[]): ProfitChartData[] => {
-  return results.map(result => {
+export const prepareProfitChartData = (results: ProfitAnalysisResult[]): any => {
+  const safeResults = ensureArray<ProfitAnalysisResult>(results);
+  
+  return safeResults.map(result => {
     if (!result?.profitMarginData) {
-      logger.error('prepareProfitChartData: profitMarginData tidak valid', { result });
+      logger.error('prepareProfitChartData: Invalid profit margin data', { result });
       return {
-        period: result?.profitMarginData?.period?.label || 'Unknown',
+        period: 'Unknown',
         revenue: 0,
         cogs: 0,
         opex: 0,
@@ -739,21 +754,21 @@ export const prepareProfitChartData = (results: ProfitAnalysisResult[]): ProfitC
     }
 
     return {
-      period: result.profitMarginData.period.label,
-      revenue: result.profitMarginData.revenue,
-      cogs: result.profitMarginData.cogs,
-      opex: result.profitMarginData.opex,
-      grossProfit: result.profitMarginData.grossProfit,
-      netProfit: result.profitMarginData.netProfit,
-      grossMargin: result.profitMarginData.grossMargin,
-      netMargin: result.profitMarginData.netMargin,
-      insights: result.insights
+      period: result.profitMarginData.period?.label || 'Unknown',
+      revenue: result.profitMarginData.revenue || 0,
+      cogs: result.profitMarginData.cogs || 0,
+      opex: result.profitMarginData.opex || 0,
+      grossProfit: result.profitMarginData.grossProfit || 0,
+      netProfit: result.profitMarginData.netProfit || 0,
+      grossMargin: result.profitMarginData.grossMargin || 0,
+      netMargin: result.profitMarginData.netMargin || 0,
+      insights: result.insights || []
     };
   });
 };
 
 // ===========================================
-// ✅ COMPARE PROFIT MARGINS
+// ✅ SAFE COMPARE PROFIT MARGINS
 // ===========================================
 
 export const compareProfitMargins = (
@@ -768,12 +783,17 @@ export const compareProfitMargins = (
     opexChange: 0
   };
 
-  if (previous) {
+  if (previous && previous.revenue > 0) {
     changes.revenueChange = ((current.revenue - previous.revenue) / previous.revenue) * 100;
     changes.grossMarginChange = current.grossMargin - previous.grossMargin;
     changes.netMarginChange = current.netMargin - previous.netMargin;
-    changes.cogsChange = ((current.cogs - previous.cogs) / previous.cogs) * 100;
-    changes.opexChange = ((current.opex - previous.opex) / previous.opex) * 100;
+    
+    if (previous.cogs > 0) {
+      changes.cogsChange = ((current.cogs - previous.cogs) / previous.cogs) * 100;
+    }
+    if (previous.opex > 0) {
+      changes.opexChange = ((current.opex - previous.opex) / previous.opex) * 100;
+    }
   }
 
   return {

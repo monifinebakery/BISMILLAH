@@ -1,4 +1,4 @@
-// constants/index.ts
+// src › components › profitAnalysis › constants › index.ts
 // ==============================================
 // Index file untuk semua konstanta analisis profit dalam Bahasa Indonesia
 

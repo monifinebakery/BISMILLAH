@@ -37,7 +37,7 @@ interface TrendData {
 }
 
 // ==============================================
-// PROFIT TREND CHART COMPONENT
+// KOMPONEN GRAFIK TREN PROFIT
 // ==============================================
 
 const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
@@ -51,12 +51,12 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['revenue', 'grossProfit', 'netProfit']);
   const [viewType, setViewType] = useState<'values' | 'margins'>('values');
 
-  // ✅ PROCESS TREND DATA
+  // ✅ PROSES DATA TREN
   const trendData = useMemo((): TrendData[] => {
     if (!profitHistory || profitHistory.length === 0) return [];
 
     return profitHistory
-      .sort((a, b) => a.period.localeCompare(b.period)) // Sort by period
+      .sort((a, b) => a.period.localeCompare(b.period)) // Urutkan berdasarkan periode
       .map(analysis => {
         const revenue = analysis.revenue_data.total;
         const cogs = analysis.cogs_data.total;
@@ -80,13 +80,13 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       });
   }, [profitHistory]);
 
-  // ✅ TREND ANALYSIS
+  // ✅ ANALISIS TREN
   const trendAnalysis = useMemo(() => {
     if (trendData.length < 2) {
       return {
         revenueGrowth: 0,
         profitGrowth: 0,
-        marginTrend: 'stable' as const,
+        marginTrend: 'stabil' as const,
         bestMonth: null,
         worstMonth: null
       };
@@ -103,11 +103,11 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       ? ((lastPeriod.netProfit - firstPeriod.netProfit) / firstPeriod.netProfit) * 100 
       : 0;
 
-    // Margin trend analysis
-    const marginTrend = lastPeriod.netMargin > firstPeriod.netMargin + 2 ? 'improving' as const :
-                       lastPeriod.netMargin < firstPeriod.netMargin - 2 ? 'declining' as const : 'stable' as const;
+    // Analisis tren margin
+    const marginTrend = lastPeriod.netMargin > firstPeriod.netMargin + 2 ? 'membaik' as const :
+                       lastPeriod.netMargin < firstPeriod.netMargin - 2 ? 'menurun' as const : 'stabil' as const;
 
-    // Best and worst performing months
+    // Bulan dengan performa terbaik dan terburuk
     const bestMonth = trendData.reduce((best, current) => 
       current.netProfit > best.netProfit ? current : best
     );
@@ -125,7 +125,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     };
   }, [trendData]);
 
-  // ✅ CUSTOM TOOLTIP
+  // ✅ TOOLTIP KUSTOM
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
 
@@ -153,18 +153,18 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     );
   };
 
-  // ✅ METRIC CONFIGURATIONS
+  // ✅ KONFIGURASI METRIK
   const metricConfigs = {
-    revenue: { key: 'revenue', label: 'Revenue', color: CHART_CONFIG.colors.revenue },
-    grossProfit: { key: 'grossProfit', label: 'Gross Profit', color: CHART_CONFIG.colors.gross_profit },
-    netProfit: { key: 'netProfit', label: 'Net Profit', color: CHART_CONFIG.colors.net_profit },
-    cogs: { key: 'cogs', label: 'COGS', color: CHART_CONFIG.colors.cogs },
-    opex: { key: 'opex', label: 'OpEx', color: CHART_CONFIG.colors.opex },
-    grossMargin: { key: 'grossMargin', label: 'Gross Margin', color: CHART_CONFIG.colors.gross_profit },
-    netMargin: { key: 'netMargin', label: 'Net Margin', color: CHART_CONFIG.colors.net_profit }
+    revenue: { key: 'revenue', label: 'Pendapatan', color: CHART_CONFIG.colors.revenue },
+    grossProfit: { key: 'grossProfit', label: 'Laba Kotor', color: CHART_CONFIG.colors.gross_profit },
+    netProfit: { key: 'netProfit', label: 'Laba Bersih', color: CHART_CONFIG.colors.net_profit },
+    cogs: { key: 'cogs', label: 'HPP', color: CHART_CONFIG.colors.cogs },
+    opex: { key: 'opex', label: 'Biaya Ops', color: CHART_CONFIG.colors.opex },
+    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.gross_profit },
+    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: CHART_CONFIG.colors.net_profit }
   };
 
-  // ✅ TOGGLE METRIC
+  // ✅ TOGGLE METRIK
   const toggleMetric = (metric: string) => {
     setSelectedMetrics(prev => 
       prev.includes(metric) 
@@ -173,14 +173,14 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     );
   };
 
-  // ✅ LOADING STATE
+  // ✅ STATUS LOADING
   if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Profit Trends</CardTitle>
+          <CardTitle>Tren Profit</CardTitle>
           <CardDescription>
-            Historical profit performance and trends over time
+            Performa historis profit dan tren dari waktu ke waktu
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,22 +190,22 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     );
   }
 
-  // ✅ NO DATA STATE
+  // ✅ STATUS TIDAK ADA DATA
   if (!trendData || trendData.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Profit Trends</CardTitle>
+          <CardTitle>Tren Profit</CardTitle>
           <CardDescription>
-            Historical profit performance and trends over time
+            Performa historis profit dan tren dari waktu ke waktu
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">No Historical Data</div>
+              <div className="text-gray-400 text-lg mb-2">Tidak Ada Data Historis</div>
               <div className="text-gray-500 text-sm">
-                Profit trends will appear once you have data from multiple periods
+                Tren profit akan muncul setelah Anda memiliki data dari beberapa periode
               </div>
             </div>
           </div>
@@ -214,7 +214,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     );
   }
 
-  // ✅ LINE CHART RENDER
+  // ✅ RENDER GRAFIK GARIS
   const renderLineChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -235,7 +235,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           iconType="circle"
         />
         
-        {/* Render selected metrics */}
+        {/* Render metrik yang dipilih */}
         {selectedMetrics.map(metric => {
           const config = metricConfigs[metric as keyof typeof metricConfigs];
           if (!config) return null;
@@ -257,7 +257,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     </ResponsiveContainer>
   );
 
-  // ✅ AREA CHART RENDER
+  // ✅ RENDER GRAFIK AREA
   const renderAreaChart = () => (
     <ResponsiveContainer width="100%" height={350}>
       <AreaChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -278,7 +278,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           iconType="circle"
         />
         
-        {/* Revenue Area */}
+        {/* Area Pendapatan */}
         {selectedMetrics.includes('revenue') && (
           <Area
             type="monotone"
@@ -287,11 +287,11 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.revenue.color}
             fill={metricConfigs.revenue.color}
             fillOpacity={0.6}
-            name="Revenue"
+            name="Pendapatan"
           />
         )}
         
-        {/* COGS Area */}
+        {/* Area HPP */}
         {selectedMetrics.includes('cogs') && (
           <Area
             type="monotone"
@@ -300,11 +300,11 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.cogs.color}
             fill={metricConfigs.cogs.color}
             fillOpacity={0.6}
-            name="COGS"
+            name="HPP"
           />
         )}
         
-        {/* OpEx Area */}
+        {/* Area Biaya Ops */}
         {selectedMetrics.includes('opex') && (
           <Area
             type="monotone"
@@ -313,45 +313,45 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.opex.color}
             fill={metricConfigs.opex.color}
             fillOpacity={0.6}
-            name="OpEx"
+            name="Biaya Ops"
           />
         )}
       </AreaChart>
     </ResponsiveContainer>
   );
 
-  // ✅ MAIN RENDER
+  // ✅ RENDER UTAMA
   return (
     <Card className={className}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Profit Trends</CardTitle>
+            <CardTitle>Tren Profit</CardTitle>
             <CardDescription>
-              Historical profit performance and trends over time ({trendData.length} periods)
+              Performa historis profit dan tren dari waktu ke waktu ({trendData.length} periode)
             </CardDescription>
           </div>
           
-          {/* Controls */}
+          {/* Kontrol */}
           <div className="flex space-x-2">
             <Button
               variant={viewType === 'values' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewType('values')}
             >
-              Values
+              Nilai
             </Button>
             <Button
               variant={viewType === 'margins' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewType('margins')}
             >
-              Margins
+              Margin
             </Button>
           </div>
         </div>
 
-        {/* Metric Toggles */}
+        {/* Toggle Metrik */}
         <div className="flex flex-wrap gap-2 mt-4">
           {(viewType === 'values' 
             ? ['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex'] 
@@ -380,15 +380,15 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Chart */}
+        {/* Grafik */}
         <div className="mb-6">
           {chartType === 'line' ? renderLineChart() : renderAreaChart()}
         </div>
 
-        {/* Trend Analysis */}
+        {/* Analisis Tren */}
         {trendData.length >= 2 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            {/* Revenue Growth */}
+            {/* Pertumbuhan Pendapatan */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 {trendAnalysis.revenueGrowth >= 0 ? (
@@ -396,7 +396,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                 ) : (
                   <TrendingDown className="w-4 h-4 text-red-600" />
                 )}
-                <span className="text-sm text-gray-600">Revenue Growth</span>
+                <span className="text-sm text-gray-600">Pertumbuhan Pendapatan</span>
               </div>
               <div className={`text-lg font-bold ${
                 trendAnalysis.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'
@@ -405,7 +405,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
               </div>
             </div>
 
-            {/* Profit Growth */}
+            {/* Pertumbuhan Profit */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 {trendAnalysis.profitGrowth >= 0 ? (
@@ -413,7 +413,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                 ) : (
                   <TrendingDown className="w-4 h-4 text-red-600" />
                 )}
-                <span className="text-sm text-gray-600">Profit Growth</span>
+                <span className="text-sm text-gray-600">Pertumbuhan Profit</span>
               </div>
               <div className={`text-lg font-bold ${
                 trendAnalysis.profitGrowth >= 0 ? 'text-green-600' : 'text-red-600'
@@ -422,11 +422,11 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
               </div>
             </div>
 
-            {/* Best Month */}
+            {/* Bulan Terbaik */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 <BarChart3 className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-gray-600">Best Month</span>
+                <span className="text-sm text-gray-600">Bulan Terbaik</span>
               </div>
               <div className="text-lg font-bold text-blue-600">
                 {trendAnalysis.bestMonth?.periodLabel}

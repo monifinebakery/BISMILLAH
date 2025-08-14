@@ -135,7 +135,7 @@ class CrudService {
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at, jumlah_beli_kemasan,
         isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan,
-        harga_rata_rata, harga_rata2  // ✅ TAMBAH: ambil kedua field WAC
+        harga_rata_rata, harga_rata2
       `);
       
       // Filter by user_id if provided

@@ -15,7 +15,7 @@ interface AddEditDialogProps {
   onClose: () => void;
   mode: 'add' | 'edit';
   item?: BahanBakuFrontend;
-  onSave: ( any) => Promise<void>;
+  onSave: (any) => Promise<void>;
   availableCategories: string[];
   availableSuppliers: string[];
 }
@@ -97,7 +97,7 @@ const parsePackageInfo = (satuanKemasan: string | null): { isiPerKemasan: number
 
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     const service = await warehouseApi.createService('crud', { userId: user?.id });
     const items = await service.fetchBahanBaku();
     const field = type === 'categories' ? 'kategori' : 'supplier';
@@ -129,14 +129,14 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   const isEditMode = mode === 'edit' || !!item;
 
-  const {  queriedCategories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
+  const { data: queriedCategories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
     queryKey: ['dialog-categories'],
     queryFn: () => fetchDialogData('categories'),
     enabled: isOpen,
     staleTime: 5 * 60 * 1000,
   });
 
-  const {  queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
+  const { data: queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
     queryKey: ['dialog-suppliers'],
     queryFn: () => fetchDialogData('suppliers'),
     enabled: isOpen,

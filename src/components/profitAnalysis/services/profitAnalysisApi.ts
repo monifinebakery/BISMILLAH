@@ -1,3 +1,6 @@
+// src/components/profitAnalysis/services/profitAnalysisApi.ts
+// ✅ COMPLETE UPDATED API - Material Usage Integration
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
@@ -52,7 +55,7 @@ const handleApiError = (operation: string, error: any): ProfitAnalysisApiRespons
 };
 
 // ===========================================
-// ✅ INTEGRATION FUNCTION
+// ✅ UPDATED INTEGRATION FUNCTION
 // ===========================================
 
 export const integrateFinancialData = async (
@@ -63,10 +66,11 @@ export const integrateFinancialData = async (
   operationalCosts: OperationalCost[];
   materials: BahanBakuFrontend[];
   recipes: Recipe[];
-  materialUsage: MaterialUsageLog[];
-  productionRecords: ProductionRecord[];
+  materialUsage: MaterialUsageLog[]; // ✅ NEW
+  productionRecords: ProductionRecord[]; // ✅ NEW
 }> => {
   try {
+    // Dynamic imports to avoid circular dependencies
     const [financialApi, operationalApi, warehouseApi, recipeApi] = await Promise.all([
       import('@/components/financial/services/financialApi'),
       import('@/components/operational-costs/services/operationalCostApi'),
@@ -74,6 +78,7 @@ export const integrateFinancialData = async (
       import('@/components/recipe/services/recipeApi')
     ]);
 
+    // ✅ FETCH ALL DATA INCLUDING MATERIAL USAGE
     const [
       transactionsResult, 
       costsResult, 
@@ -86,6 +91,8 @@ export const integrateFinancialData = async (
       operationalApi.operationalCostApi.getCosts(),
       warehouseApi.warehouseApi.createService('crud', { userId }).then(service => service.fetchBahanBaku()),
       recipeApi.recipeApi.getRecipes(),
+      
+      // ✅ NEW: Fetch material usage from database
       supabase
         .from('material_usage_log')
         .select('*')
@@ -93,6 +100,8 @@ export const integrateFinancialData = async (
         .gte('usage_date', period.from.toISOString())
         .lte('usage_date', period.to.toISOString())
         .order('usage_date', { ascending: false }),
+        
+      // ✅ NEW: Fetch production records from database  
       supabase
         .from('production_records')
         .select('*')
@@ -102,50 +111,68 @@ export const integrateFinancialData = async (
         .order('production_date', { ascending: false })
     ]);
 
-    // Validasi hasil query
-    if (materialUsageResult.error) {
+    // ✅ PROCESS MATERIAL USAGE DATA
+    let materialUsage: MaterialUsageLog[] = [];
+    if (materialUsageResult.data && !materialUsageResult.error) {
+      materialUsage = materialUsageResult.data.map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        material_id: record.material_id,
+        usage_type: record.usage_type,
+        quantity_used: Number(record.quantity_used),
+        unit_cost: Number(record.unit_cost),
+        total_cost: Number(record.total_cost),
+        usage_date: new Date(record.usage_date),
+        reference_type: record.reference_type,
+        reference_id: record.reference_id,
+        notes: record.notes,
+        batch_number: record.batch_number,
+        created_at: new Date(record.created_at),
+        updated_at: new Date(record.updated_at)
+      }));
+      
+      logger.info(`Fetched ${materialUsage.length} material usage records for period ${period.label}`);
+    } else {
       logger.warn('Failed to fetch material usage:', materialUsageResult.error);
     }
-    if (productionRecordsResult.error) {
+
+    // ✅ PROCESS PRODUCTION RECORDS DATA
+    let productionRecords: ProductionRecord[] = [];
+    if (productionRecordsResult.data && !productionRecordsResult.error) {
+      productionRecords = productionRecordsResult.data.map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        product_name: record.product_name,
+        quantity_produced: Number(record.quantity_produced),
+        production_date: new Date(record.production_date),
+        total_material_cost: Number(record.total_material_cost),
+        total_labor_cost: Number(record.total_labor_cost),
+        total_overhead_cost: Number(record.total_overhead_cost),
+        unit_cost: Number(record.unit_cost || 0),
+        batch_number: record.batch_number,
+        quality_grade: record.quality_grade,
+        notes: record.notes,
+        status: record.status,
+        created_at: new Date(record.created_at),
+        updated_at: new Date(record.updated_at)
+      }));
+      
+      logger.info(`Fetched ${productionRecords.length} production records for period ${period.label}`);
+    } else {
       logger.warn('Failed to fetch production records:', productionRecordsResult.error);
-    }
-    
-    // Validasi costsResult dengan logging yang lebih spesifik
-    if (!Array.isArray(costsResult)) {
-      logger.error('integrateFinancialData: operationalCosts bukan array', { 
-        costsResult,
-        type: typeof costsResult,
-        isNull: costsResult === null,
-        isUndefined: costsResult === undefined
-      });
-      return {
-        transactions: Array.isArray(transactionsResult) ? transactionsResult : [],
-        operationalCosts: [],
-        materials: Array.isArray(materialsResult) ? materialsResult : [],
-        recipes: Array.isArray(recipesResult) ? recipesResult : [],
-        materialUsage: Array.isArray(materialUsageResult.data) ? materialUsageResult.data : [],
-        productionRecords: Array.isArray(productionRecordsResult.data) ? productionRecordsResult.data : []
-      };
     }
 
     return {
-      transactions: Array.isArray(transactionsResult) ? transactionsResult : [],
-      operationalCosts: costsResult,
-      materials: Array.isArray(materialsResult) ? materialsResult : [],
-      recipes: Array.isArray(recipesResult) ? recipesResult : [],
-      materialUsage: Array.isArray(materialUsageResult.data) ? materialUsageResult.data : [],
-      productionRecords: Array.isArray(productionRecordsResult.data) ? productionRecordsResult.data : []
+      transactions: transactionsResult || [],
+      operationalCosts: costsResult.data || [],
+      materials: materialsResult || [],
+      recipes: recipesResult || [],
+      materialUsage, // ✅ NEW
+      productionRecords // ✅ NEW
     };
   } catch (error) {
-    logger.error('Data integration failed:', error);
-    return {
-      transactions: [],
-      operationalCosts: [],
-      materials: [],
-      recipes: [],
-      materialUsage: [],
-      productionRecords: []
-    };
+    logger.error('Error integrating financial data:', error);
+    throw new Error(`Data integration failed: ${error.message}`);
   }
 };
 
@@ -153,494 +180,500 @@ export const integrateFinancialData = async (
 // ✅ MAIN API FUNCTIONS
 // ===========================================
 
-export const calculateProfitMargin = async (
-  period: DatePeriod,
-  categoryMapping: CategoryMapping = DEFAULT_CATEGORY_MAPPING,
-  allocationSettings?: AllocationSettings
-): Promise<ProfitAnalysisApiResponse<ProfitAnalysisResult>> => {
-  try {
+export const profitAnalysisApi = {
+  /**
+   * ✅ UPDATED: Calculate profit margins with material usage
+   */
+  async calculateProfitMargin(
+    period: DatePeriod,
+    categoryMapping?: Partial<CategoryMapping>
+  ): Promise<ProfitAnalysisApiResponse<ProfitAnalysisResult>> {
     const startTime = Date.now();
-    const userId = await getCurrentUserId();
     
-    if (!userId) {
-      return handleApiError('Calculate profit margin', new Error('User not authenticated'));
-    }
-
-    const financialData = await integrateFinancialData(userId, period);
-
-    const input: ProfitAnalysisInput = {
-      period,
-      transactions: financialData.transactions,
-      operationalCosts: financialData.operationalCosts,
-      materials: financialData.materials,
-      recipes: financialData.recipes,
-      materialUsage: financialData.materialUsage,
-      productionRecords: financialData.productionRecords
-    };
-
-    // Validasi input
-    const validation = validateProfitAnalysisInput(input);
-    if (!validation.isValid) {
-      return {
-        data: null,
-        error: `Input tidak valid: ${validation.errors.join(', ')}`,
-        success: false
-      };
-    }
-
-    // Hitung profit margin
-    const result = await calculateProfitMargins(input, categoryMapping, allocationSettings);
-
-    // Validasi hasil untuk memastikan profitMarginData valid
-    if (!result?.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
-      logger.error('calculateProfitMargin: Hasil profitMarginData tidak valid', { result });
-      return {
-        data: null,
-        error: 'Hasil perhitungan profit margin tidak valid',
-        success: false
-      };
-    }
-
-    return {
-      data: result,
-      success: true,
-      calculationTime: Date.now() - startTime
-    };
-  } catch (error) {
-    return handleApiError('Calculate profit margin', error);
-  }
-};
-
-export const compareProfitMargins = async (
-  currentPeriod: DatePeriod,
-  previousPeriod?: DatePeriod,
-  categoryMapping: CategoryMapping = DEFAULT_CATEGORY_MAPPING
-): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Compare profit margins', new Error('User not authenticated'));
-    }
-
-    const [currentData, previousData] = await Promise.all([
-      integrateFinancialData(userId, currentPeriod),
-      previousPeriod ? integrateFinancialData(userId, previousPeriod) : Promise.resolve(null)
-    ]);
-
-    const currentInput: ProfitAnalysisInput = {
-      period: currentPeriod,
-      transactions: currentData.transactions,
-      operationalCosts: currentData.operationalCosts,
-      materials: currentData.materials,
-      recipes: currentData.recipes,
-      materialUsage: currentData.materialUsage,
-      productionRecords: currentData.productionRecords
-    };
-
-    const currentResult = await calculateProfitMargins(currentInput, categoryMapping);
-
-    let previousResult: ProfitMarginData | undefined;
-    if (previousPeriod && previousData) {
-      const previousInput: ProfitAnalysisInput = {
-        period: previousPeriod,
-        transactions: previousData.transactions,
-        operationalCosts: previousData.operationalCosts,
-        materials: previousData.materials,
-        recipes: previousData.recipes,
-        materialUsage: previousData.materialUsage,
-        productionRecords: previousData.productionRecords
-      };
-      previousResult = (await calculateProfitMargins(previousInput, categoryMapping)).profitMarginData;
-    }
-
-    // Validasi hasil
-    if (!currentResult?.profitMarginData || typeof currentResult.profitMarginData.revenue !== 'number') {
-      return {
-        data: null,
-        error: 'Hasil perhitungan periode saat ini tidak valid',
-        success: false
-      };
-    }
-
-    const comparison = compareProfitMargins(currentResult.profitMarginData, previousResult);
-
-    return {
-      data: comparison,
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Compare profit margins', error);
-  }
-};
-
-export const getProfitTrend = async (
-  periods: DatePeriod[],
-  categoryMapping: CategoryMapping = DEFAULT_CATEGORY_MAPPING
-): Promise<ProfitAnalysisApiResponse<ProfitAnalysisResult[]>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Get profit trend', new Error('User not authenticated'));
-    }
-
-    const results = await Promise.all(
-      periods.map(async (period) => {
-        const financialData = await integrateFinancialData(userId, period);
-        
-        const input: ProfitAnalysisInput = {
-          period,
-          transactions: financialData.transactions,
-          operationalCosts: financialData.operationalCosts,
-          materials: financialData.materials,
-          recipes: financialData.recipes,
-          materialUsage: financialData.materialUsage,
-          productionRecords: financialData.productionRecords
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: null,
+          error: 'User tidak ditemukan. Silakan login kembali.',
+          success: false
         };
+      }
 
-        return calculateProfitMargins(input, categoryMapping);
-      })
-    );
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Starting profit margin calculation with material usage', { userId, period });
+      }
 
-    // Validasi setiap hasil
-    const validResults = results.filter(result => 
-      result?.profitMarginData && typeof result.profitMarginData.revenue === 'number' && !isNaN(result.profitMarginData.revenue)
-    );
+      // ✅ INTEGRATE DATA INCLUDING MATERIAL USAGE
+      const integratedData = await integrateFinancialData(userId, period);
 
-    if (validResults.length === 0) {
-      return {
-        data: [],
-        error: 'Tidak ada data profit margin yang valid untuk periode yang diminta',
-        success: false
+      // ✅ PREPARE ANALYSIS INPUT WITH NEW FIELDS
+      const analysisInput: ProfitAnalysisInput = {
+        ...integratedData,
+        period
       };
-    }
 
-    return {
-      data: validResults,
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Get profit trend', error);
-  }
-};
+      // Validate input
+      const validation = validateProfitAnalysisInput(analysisInput);
+      if (!validation.isValid) {
+        return {
+          data: null,
+          error: `Validasi gagal: ${validation.errors.join(', ')}`,
+          success: false
+        };
+      }
 
-export const getDashboardSummary = async (): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Get dashboard summary', new Error('User not authenticated'));
-    }
+      // Get allocation settings
+      const allocationSettings = await profitAnalysisApi.getAllocationSettings();
 
-    const currentMonth: DatePeriod = {
-      from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-      label: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })
-    };
-
-    const financialData = await integrateFinancialData(userId, currentMonth);
-    
-    const input: ProfitAnalysisInput = {
-      period: currentMonth,
-      transactions: financialData.transactions,
-      operationalCosts: financialData.operationalCosts,
-      materials: financialData.materials,
-      recipes: financialData.recipes,
-      materialUsage: financialData.materialUsage,
-      productionRecords: financialData.productionRecords
-    };
-
-    const result = await calculateProfitMargins(input);
-
-    // Validasi hasil dengan logging yang lebih spesifik
-    if (!result || !result.profitMarginData || typeof result.profitMarginData.revenue !== 'number' || isNaN(result.profitMarginData.revenue)) {
-      logger.error('getDashboardSummary: Hasil perhitungan tidak valid', { 
-        result,
-        hasResult: !!result,
-        hasProfitMarginData: !!result?.profitMarginData,
-        revenueType: result?.profitMarginData ? typeof result.profitMarginData.revenue : 'undefined',
-        isRevenueNaN: result?.profitMarginData ? isNaN(result.profitMarginData.revenue) : true
-      });
-      return {
-        data: null,
-        error: 'Hasil perhitungan dashboard summary tidak valid',
-        success: false
+      // Merge category mapping with defaults
+      const finalCategoryMapping: CategoryMapping = {
+        ...DEFAULT_CATEGORY_MAPPING,
+        ...categoryMapping
       };
-    }
 
-    return {
-      data: {
-        revenue: result.profitMarginData.revenue,
-        grossProfit: result.profitMarginData.grossProfit || 0,
-        netProfit: result.profitMarginData.netProfit || 0,
-        grossMargin: result.profitMarginData.grossMargin || 0,
-        netMargin: result.profitMarginData.netMargin || 0,
-        cogs: result.profitMarginData.cogs || 0,
-        opex: result.profitMarginData.opex || 0,
-        cogsBreakdown: result.cogsBreakdown || { 
-          materialCosts: [], 
-          totalMaterialCost: 0, 
-          directLaborCosts: [], 
-          totalDirectLaborCost: 0, 
-          manufacturingOverhead: 0, 
-          overheadAllocationMethod: 'activity_based', 
-          totalCOGS: 0, 
-          actualMaterialUsage: [], 
-          productionData: [], 
-          dataSource: 'estimated' 
-        },
-        opexBreakdown: result.opexBreakdown || { 
-          administrativeExpenses: [], 
-          totalAdministrative: 0, 
-          sellingExpenses: [], 
-          totalSelling: 0, 
-          generalExpenses: [], 
-          totalGeneral: 0, 
-          totalOPEX: 0 
-        },
-        insights: result.insights || [],
-        period: result.profitMarginData.period || currentMonth
-      },
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Get dashboard summary', error);
-  }
-};
+      // ✅ CALCULATE WITH UPDATED FUNCTION
+      const result = calculateProfitMargins(
+        analysisInput,
+        finalCategoryMapping,
+        allocationSettings.data || undefined
+      );
 
-export const loadProfitConfig = async (): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Load profit config', new Error('User not authenticated'));
-    }
+      const calculationTime = Date.now() - startTime;
 
-    const { data, error } = await supabase
-      .from('profit_config')
-      .select('category_mapping, default_period, auto_calculate')
-      .eq('user_id', userId)
-      .single();
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Profit margin calculation completed with material usage', {
+          userId,
+          calculationTime,
+          revenue: result.profitMarginData.revenue,
+          cogs: result.profitMarginData.cogs,
+          materialUsageRecords: integratedData.materialUsage.length,
+          productionRecords: integratedData.productionRecords.length,
+          dataSource: result.cogsBreakdown.dataSource
+        });
+      }
 
-    if (error) {
-      logger.warn('No profit config found, returning default config', { error });
       return {
-        data: {
-          categoryMapping: DEFAULT_CATEGORY_MAPPING,
-          defaultPeriod: 'monthly',
-          autoCalculate: false
-        },
-        success: true
+        data: result,
+        success: true,
+        message: 'Analisis profit margin berhasil dengan data material usage',
+        calculationTime
       };
+
+    } catch (error) {
+      return handleApiError('Perhitungan profit margin', error);
     }
-
-    return {
-      data: {
-        categoryMapping: data.category_mapping || DEFAULT_CATEGORY_MAPPING,
-        defaultPeriod: data.default_period || 'monthly',
-        autoCalculate: data.auto_calculate || false
-      },
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Load profit config', error);
-  }
-};
-
-export const saveProfitConfig = async (config: {
-  categoryMapping: CategoryMapping;
-  defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
-  autoCalculate: boolean;
-}): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Save profit config', new Error('User not authenticated'));
-    }
-
-    const { data, error } = await supabase
-      .from('profit_config')
-      .upsert({
-        user_id: userId,
-        category_mapping: config.categoryMapping,
-        default_period: config.defaultPeriod,
-        auto_calculate: config.autoCalculate
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return handleApiError('Save profit config', error);
-    }
-
-    return {
-      data,
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Save profit config', error);
-  }
-};
-
-export const exportProfitAnalysis = async (
-  analysis: ProfitAnalysisResult,
-  format: 'pdf' | 'excel' | 'csv'
-): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    // Validasi analysis
-    if (!analysis || !analysis.profitMarginData || typeof analysis.profitMarginData.revenue !== 'number') {
-      return {
-        data: null,
-        error: 'Data analisis tidak valid untuk ekspor',
-        success: false
-      };
-    }
-
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Export profit analysis', new Error('User not authenticated'));
-    }
-
-    // Implementasi ekspor berdasarkan format
-    const exportData = {
-      period: analysis.profitMarginData.period.label,
-      revenue: analysis.profitMarginData.revenue,
-      cogs: analysis.profitMarginData.cogs,
-      opex: analysis.profitMarginData.opex,
-      grossProfit: analysis.profitMarginData.grossProfit,
-      netProfit: analysis.profitMarginData.netProfit,
-      grossMargin: analysis.profitMarginData.grossMargin,
-      netMargin: analysis.profitMarginData.netMargin,
-      cogsBreakdown: analysis.cogsBreakdown,
-      opexBreakdown: analysis.opexBreakdown,
-      insights: analysis.insights
-    };
-
-    // Simulasi ekspor (ganti dengan implementasi nyata)
-    logger.info(`Exporting profit analysis in ${format} format`, { period: analysis.profitMarginData.period.label });
-
-    return {
-      data: exportData,
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Export profit analysis', error);
-  }
-};
-
-export const getMaterialUsageSummary = async (
-  period: DatePeriod
-): Promise<ProfitAnalysisApiResponse<any>> => {
-  try {
-    const userId = await getCurrentUserId();
-    
-    if (!userId) {
-      return handleApiError('Get material usage summary', new Error('User not authenticated'));
-    }
-
-    const { data, error } = await supabase
-      .from('material_usage_log')
-      .select(`
-        *,
-        bahan_baku:nama_material (nama, supplier)
-      `)
-      .eq('user_id', userId)
-      .gte('usage_date', period.from.toISOString())
-      .lte('usage_date', period.to.toISOString())
-      .order('usage_date', { ascending: false });
-
-    if (error) {
-      return handleApiError('Get material usage summary', error);
-    }
-
-    const summary = {
-      totalUsageRecords: data.length,
-      totalCost: data.reduce((sum: number, record: any) => sum + (record.total_cost || 0), 0),
-      byMaterial: data.reduce((acc: Record<string, any>, record: any) => {
-        const materialId = record.material_id;
-        if (!acc[materialId]) {
-          acc[materialId] = {
-            materialName: record.bahan_baku?.nama || 'Unknown',
-            supplier: record.bahan_baku?.supplier || 'Unknown',
-            totalQuantity: 0,
-            totalCost: 0,
-            usageCount: 0
-          };
-        }
-        acc[materialId].totalQuantity += record.quantity_used || 0;
-        acc[materialId].totalCost += record.total_cost || 0;
-        acc[materialId].usageCount += 1;
-        return acc;
-      }, {})
-    };
-
-    return {
-      data: summary,
-      success: true
-    };
-  } catch (error) {
-    return handleApiError('Get material usage summary', error);
-  }
-};
-
-// ===========================================
-// ✅ DATE PERIOD UTILITIES
-// ===========================================
-
-export const createDatePeriods = {
-  thisMonth: (): DatePeriod => {
-    const now = new Date();
-    return {
-      from: new Date(now.getFullYear(), now.getMonth(), 1),
-      to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
-      label: now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })
-    };
   },
 
+  /**
+   * Get allocation settings for overhead calculation
+   */
+  async getAllocationSettings(): Promise<ProfitAnalysisApiResponse<AllocationSettings | null>> {
+    try {
+      const { allocationApi } = await import('@/components/operational-costs/services/operationalCostApi');
+      const result = await allocationApi.getSettings();
+      
+      return {
+        data: result.data,
+        error: result.error,
+        success: !result.error
+      };
+    } catch (error) {
+      return handleApiError('Pengambilan pengaturan alokasi', error);
+    }
+  },
+
+  /**
+   * Compare profit margins between periods
+   */
+  async compareProfitMargins(
+    currentPeriod: DatePeriod,
+    previousPeriod?: DatePeriod,
+    categoryMapping?: Partial<CategoryMapping>
+  ): Promise<ProfitAnalysisApiResponse<{
+    current: ProfitAnalysisResult;
+    previous?: ProfitAnalysisResult;
+    comparison: any;
+  }>> {
+    try {
+      // Calculate current period
+      const currentResult = await profitAnalysisApi.calculateProfitMargin(
+        currentPeriod,
+        categoryMapping
+      );
+
+      if (!currentResult.success || !currentResult.data) {
+        return currentResult as any;
+      }
+
+      let previousResult: ProfitAnalysisResult | undefined;
+      let comparison: any = {};
+
+      // Calculate previous period if provided
+      if (previousPeriod) {
+        const prevResult = await profitAnalysisApi.calculateProfitMargin(
+          previousPeriod,
+          categoryMapping
+        );
+
+        if (prevResult.success && prevResult.data) {
+          previousResult = prevResult.data;
+          comparison = compareProfitMargins(
+            currentResult.data.profitMarginData,
+            previousResult.profitMarginData
+          );
+        }
+      }
+
+      return {
+        data: {
+          current: currentResult.data,
+          previous: previousResult,
+          comparison
+        },
+        success: true,
+        message: 'Perbandingan profit margin berhasil'
+      };
+
+    } catch (error) {
+      return handleApiError('Perbandingan profit margin', error);
+    }
+  },
+
+  /**
+   * Get profit trend for multiple periods
+   */
+  async getProfitTrend(
+    periods: DatePeriod[],
+    categoryMapping?: Partial<CategoryMapping>
+  ): Promise<ProfitAnalysisApiResponse<ProfitAnalysisResult[]>> {
+    try {
+      const results: ProfitAnalysisResult[] = [];
+      
+      // Calculate profit for each period
+      for (const period of periods) {
+        const result = await profitAnalysisApi.calculateProfitMargin(
+          period,
+          categoryMapping
+        );
+
+        if (result.success && result.data) {
+          results.push(result.data);
+        } else {
+          logger.warn(`Failed to calculate profit for period ${period.label}:`, result.error);
+        }
+      }
+
+      return {
+        data: results,
+        success: true,
+        message: `Berhasil menghitung profit untuk ${results.length} dari ${periods.length} periode`
+      };
+
+    } catch (error) {
+      return handleApiError('Trend profit margin', error);
+    }
+  },
+
+  /**
+   * ✅ NEW: Get material usage summary for period
+   */
+  async getMaterialUsageSummary(
+    period: DatePeriod
+  ): Promise<ProfitAnalysisApiResponse<{
+    totalMaterialCost: number;
+    materialUsageCount: number;
+    topMaterials: Array<{
+      materialId: string;
+      materialName: string;
+      totalCost: number;
+      quantityUsed: number;
+    }>;
+  }>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: null,
+          error: 'User tidak ditemukan',
+          success: false
+        };
+      }
+
+      const { materialUsage } = await integrateFinancialData(userId, period);
+
+      const totalMaterialCost = materialUsage.reduce((sum, usage) => sum + usage.total_cost, 0);
+      const materialUsageCount = materialUsage.length;
+
+      // Group by material and calculate totals
+      const materialMap = new Map<string, { totalCost: number; quantityUsed: number; materialName: string }>();
+      
+      materialUsage.forEach(usage => {
+        const key = usage.material_id;
+        if (materialMap.has(key)) {
+          const existing = materialMap.get(key)!;
+          existing.totalCost += usage.total_cost;
+          existing.quantityUsed += usage.quantity_used;
+        } else {
+          materialMap.set(key, {
+            totalCost: usage.total_cost,
+            quantityUsed: usage.quantity_used,
+            materialName: 'Material' // Would need to join with materials to get actual name
+          });
+        }
+      });
+
+      const topMaterials = Array.from(materialMap.entries())
+        .map(([materialId, data]) => ({
+          materialId,
+          materialName: data.materialName,
+          totalCost: data.totalCost,
+          quantityUsed: data.quantityUsed
+        }))
+        .sort((a, b) => b.totalCost - a.totalCost)
+        .slice(0, 10);
+
+      return {
+        data: {
+          totalMaterialCost,
+          materialUsageCount,
+          topMaterials
+        },
+        success: true,
+        message: 'Material usage summary berhasil dimuat'
+      };
+
+    } catch (error) {
+      return handleApiError('Material usage summary', error);
+    }
+  },
+
+  /**
+   * Save profit analysis configuration
+   */
+  async saveProfitConfig(
+    config: {
+      categoryMapping: CategoryMapping;
+      defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
+      autoCalculate: boolean;
+    }
+  ): Promise<ProfitAnalysisApiResponse<boolean>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: false,
+          error: 'User tidak ditemukan. Silakan login kembali.',
+          success: false
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('profit_analysis_config')
+        .upsert({
+          user_id: userId,
+          category_mapping: config.categoryMapping,
+          default_period: config.defaultPeriod,
+          auto_calculate: config.autoCalculate,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+
+      return {
+        data: true,
+        success: true,
+        message: 'Konfigurasi profit analysis berhasil disimpan'
+      };
+
+    } catch (error) {
+      return handleApiError('Penyimpanan konfigurasi', error);
+    }
+  },
+
+  /**
+   * Load profit analysis configuration
+   */
+  async loadProfitConfig(): Promise<ProfitAnalysisApiResponse<{
+    categoryMapping: CategoryMapping;
+    defaultPeriod: 'monthly' | 'quarterly' | 'yearly';
+    autoCalculate: boolean;
+  }>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return {
+          data: {
+            categoryMapping: DEFAULT_CATEGORY_MAPPING,
+            defaultPeriod: 'monthly',
+            autoCalculate: false
+          },
+          success: true,
+          message: 'Menggunakan konfigurasi default'
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('profit_analysis_config')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        return {
+          data: {
+            categoryMapping: DEFAULT_CATEGORY_MAPPING,
+            defaultPeriod: 'monthly',
+            autoCalculate: false
+          },
+          success: true,
+          message: 'Konfigurasi tidak ditemukan, menggunakan default'
+        };
+      }
+
+      return {
+        data: {
+          categoryMapping: data.category_mapping || DEFAULT_CATEGORY_MAPPING,
+          defaultPeriod: data.default_period || 'monthly',
+          autoCalculate: data.auto_calculate || false
+        },
+        success: true,
+        message: 'Konfigurasi berhasil dimuat'
+      };
+
+    } catch (error) {
+      return handleApiError('Pemuatan konfigurasi', error);
+    }
+  },
+
+  /**
+   * Get profit analysis summary for dashboard
+   */
+  async getDashboardSummary(
+    period?: DatePeriod
+  ): Promise<ProfitAnalysisApiResponse<{
+    currentMargin: ProfitMarginData;
+    trends: Array<{ period: string; margin: number }>;
+    alerts: Array<{ type: string; message: string }>;
+  }>> {
+    try {
+      // Default to current month if no period specified
+      const defaultPeriod: DatePeriod = period || {
+        from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        to: new Date(),
+        label: 'Bulan Ini'
+      };
+
+      const result = await profitAnalysisApi.calculateProfitMargin(defaultPeriod);
+
+      if (!result.success || !result.data) {
+        return result as any;
+      }
+
+      // Generate alerts based on insights
+      const alerts = result.data.insights
+        .filter(insight => insight.type === 'warning' || insight.type === 'critical')
+        .map(insight => ({
+          type: insight.type,
+          message: insight.message
+        }));
+
+      // Generate trend data (last 3 months)
+      const trends: Array<{ period: string; margin: number }> = [];
+      const currentDate = new Date();
+      
+      for (let i = 2; i >= 0; i--) {
+        const periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
+        
+        const periodLabel = periodStart.toLocaleDateString('id-ID', { 
+          year: 'numeric', 
+          month: 'short' 
+        });
+
+        try {
+          const periodResult = await profitAnalysisApi.calculateProfitMargin({
+            from: periodStart,
+            to: periodEnd,
+            label: periodLabel
+          });
+
+          if (periodResult.success && periodResult.data) {
+            trends.push({
+              period: periodLabel,
+              margin: periodResult.data.profitMarginData.netMargin
+            });
+          }
+        } catch (error) {
+          logger.warn(`Failed to get trend for ${periodLabel}:`, error);
+        }
+      }
+
+      return {
+        data: {
+          currentMargin: result.data.profitMarginData,
+          trends,
+          alerts
+        },
+        success: true,
+        message: 'Dashboard summary berhasil dimuat'
+      };
+
+    } catch (error) {
+      return handleApiError('Dashboard summary', error);
+    }
+  }
+};
+
+// ===========================================
+// ✅ UTILITY FUNCTIONS
+// ===========================================
+
+/**
+ * Create standard date periods
+ */
+export const createDatePeriods = {
+  thisMonth: (): DatePeriod => ({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    to: new Date(),
+    label: 'Bulan Ini'
+  }),
+
   lastMonth: (): DatePeriod => {
-    const now = new Date();
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
     return {
-      from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-      to: new Date(now.getFullYear(), now.getMonth(), 0),
-      label: new Date(now.getFullYear(), now.getMonth() - 1).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })
+      from: new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1),
+      to: new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0),
+      label: 'Bulan Lalu'
     };
   },
 
   thisQuarter: (): DatePeriod => {
     const now = new Date();
     const quarter = Math.floor(now.getMonth() / 3);
-    const startMonth = quarter * 3;
     return {
-      from: new Date(now.getFullYear(), startMonth, 1),
-      to: new Date(now.getFullYear(), startMonth + 3, 0),
+      from: new Date(now.getFullYear(), quarter * 3, 1),
+      to: now,
       label: `Q${quarter + 1} ${now.getFullYear()}`
     };
   },
 
-  lastQuarter: (): DatePeriod => {
-    const now = new Date();
-    const quarter = Math.floor(now.getMonth() / 3);
-    const year = quarter === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const startMonth = quarter === 0 ? 9 : (quarter - 1) * 3;
-    return {
-      from: new Date(year, startMonth, 1),
-      to: new Date(year, startMonth + 3, 0),
-      label: `Q${quarter === 0 ? 4 : quarter} ${year}`
-    };
-  }
+  thisYear: (): DatePeriod => ({
+    from: new Date(new Date().getFullYear(), 0, 1),
+    to: new Date(),
+    label: `Tahun ${new Date().getFullYear()}`
+  }),
+
+  custom: (from: Date, to: Date, label?: string): DatePeriod => ({
+    from,
+    to,
+    label: label || `${from.toLocaleDateString('id-ID')} - ${to.toLocaleDateString('id-ID')}`
+  })
 };
 
-export default {
-  calculateProfitMargin,
-  compareProfitMargins,
-  getProfitTrend,
-  getDashboardSummary,
-  loadProfitConfig,
-  saveProfitConfig,
-  exportProfitAnalysis,
-  getMaterialUsageSummary,
-  createDatePeriods
-};
+export default profitAnalysisApi;

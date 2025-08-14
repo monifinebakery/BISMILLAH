@@ -33,6 +33,213 @@ const getCurrentUserId = async (): Promise<string | null> => {
   return user.id;
 };
 
+// ===== HELPER FUNCTIONS (PISAHKAN DARI OBJECT LITERAL) =====
+
+/**
+ * Parse revenue transactions from JSONB
+ */
+const parseTransactions = (transactionsJson: any): any[] => {
+  try {
+    if (!transactionsJson) return [];
+    const transactions = Array.isArray(transactionsJson) ? transactionsJson : JSON.parse(transactionsJson);
+    return transactions.map((t: any) => ({
+      category: t.category || 'Uncategorized',
+      amount: Number(t.amount) || 0,
+      description: t.description || '',
+      date: t.date
+    }));
+  } catch (error) {
+    logger.warn('Error parsing transactions JSON:', error);
+    return [];
+  }
+};
+
+/**
+ * Parse COGS transactions from JSONB
+ */
+const parseCOGSTransactions = (transactionsJson: any): any[] => {
+  try {
+    if (!transactionsJson) return [];
+    const transactions = Array.isArray(transactionsJson) ? transactionsJson : JSON.parse(transactionsJson);
+    return transactions.map((t: any) => ({
+      name: t.description || t.category || 'Material Cost',
+      cost: Number(t.amount) || 0,
+      category: t.category || 'Direct Material'
+    }));
+  } catch (error) {
+    logger.warn('Error parsing COGS transactions JSON:', error);
+    return [];
+  }
+};
+
+/**
+ * Parse operational costs from JSONB
+ */
+const parseOpExCosts = (costsJson: any): any[] => {
+  try {
+    if (!costsJson) return [];
+    const costs = Array.isArray(costsJson) ? costsJson : JSON.parse(costsJson);
+    return costs.map((c: any) => ({
+      nama_biaya: c.name || c.nama_biaya,
+      jumlah_per_bulan: Number(c.amount) || 0,
+      jenis: c.type || 'tetap',
+      cost_category: c.category || 'general'
+    }));
+  } catch (error) {
+    logger.warn('Error parsing OpEx costs JSON:', error);
+    return [];
+  }
+};
+
+/**
+ * Assess data quality
+ */
+const assessDataQuality = (calculation: RealTimeProfitCalculation): {
+  score: number;
+  issues: string[];
+  recommendations: string[];
+} => {
+  let score = 100;
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  
+  // Check revenue data
+  if (calculation.revenue_data.total <= 0) {
+    score -= 30;
+    issues.push('Tidak ada data revenue');
+    recommendations.push('Tambahkan transaksi pemasukan');
+  }
+  
+  // Check COGS data
+  if (calculation.cogs_data.total <= 0) {
+    score -= 20;
+    issues.push('Tidak ada data COGS');
+    recommendations.push('Tambahkan transaksi pembelian bahan baku');
+  }
+  
+  // Check OpEx data
+  if (calculation.opex_data.total <= 0) {
+    score -= 20;
+    issues.push('Tidak ada data biaya operasional');
+    recommendations.push('Konfigurasi biaya operasional');
+  }
+  
+  // Business logic validation
+  const revenue = calculation.revenue_data.total;
+  const cogs = calculation.cogs_data.total;
+  const opex = calculation.opex_data.total;
+  
+  if (cogs > revenue) {
+    score -= 15;
+    issues.push('COGS lebih besar dari revenue');
+    recommendations.push('Review kategorisasi transaksi');
+  }
+  
+  if (opex > revenue * 0.8) {
+    score -= 10;
+    issues.push('Biaya operasional terlalu tinggi');
+    recommendations.push('Review efisiensi operasional');
+  }
+  
+  return {
+    score: Math.max(0, score),
+    issues,
+    recommendations
+  };
+};
+
+/**
+ * Generate period strings based on date range
+ */
+const generatePeriods = (from: Date, to: Date, periodType: 'monthly' | 'quarterly' | 'yearly'): string[] => {
+  const periods: string[] = [];
+  const current = new Date(from);
+  const end = new Date(to);
+
+  while (current <= end) {
+    if (periodType === 'monthly') {
+      periods.push(current.toISOString().slice(0, 7)); // YYYY-MM
+      current.setMonth(current.getMonth() + 1);
+    } else if (periodType === 'quarterly') {
+      const quarter = Math.floor(current.getMonth() / 3) + 1;
+      periods.push(`${current.getFullYear()}-Q${quarter}`);
+      current.setMonth(current.getMonth() + 3);
+    } else if (periodType === 'yearly') {
+      periods.push(current.getFullYear().toString());
+      current.setFullYear(current.getFullYear() + 1);
+    }
+  }
+
+  return periods;
+};
+
+// ===== FALLBACK FUNCTIONS =====
+
+/**
+ * Fallback revenue breakdown using direct API calls
+ */
+const getRevenueBreakdownFallback = async (
+  userId: string,
+  period: string
+): Promise<ProfitApiResponse<RevenueBreakdown[]>> => {
+  try {
+    const transactions = await financialApi.getFinancialTransactions(userId);
+    const periodTransactions = transactions.filter(t => {
+      if (!t.date || t.type !== 'income') return false;
+      const transactionPeriod = new Date(t.date).toISOString().slice(0, 7);
+      return transactionPeriod === period;
+    });
+
+    const totalRevenue = periodTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    // Group by category
+    const categoryGroups = periodTransactions.reduce((groups, transaction) => {
+      const category = transaction.category || 'Uncategorized';
+      if (!groups[category]) {
+        groups[category] = { total: 0, count: 0 };
+      }
+      groups[category].total += transaction.amount || 0;
+      groups[category].count += 1;
+      return groups;
+    }, {} as Record<string, { total: number; count: number }>);
+
+    const breakdown: RevenueBreakdown[] = Object.entries(categoryGroups).map(([category, data]) => ({
+      category,
+      amount: data.total,
+      percentage: totalRevenue > 0 ? (data.total / totalRevenue) * 100 : 0,
+      transaction_count: data.count
+    }));
+
+    return {
+      data: breakdown,
+      success: true
+    };
+
+  } catch (error) {
+    logger.error('❌ Error in revenue breakdown fallback:', error);
+    return {
+      data: [],
+      error: error instanceof Error ? error.message : 'Gagal mengambil breakdown revenue',
+      success: false
+    };
+  }
+};
+
+/**
+ * Get warehouse data helper (compatibility with existing API)
+ */
+const getWarehouseData = async (userId: string) => {
+  try {
+    const service = await warehouseApi.createService('crud', { userId });
+    return await service.fetchBahanBaku();
+  } catch (error) {
+    logger.warn('⚠️ Failed to fetch warehouse data:', error);
+    return [];
+  }
+};
+
+// ===== MAIN API OBJECT =====
+
 /**
  * Enhanced Profit Analysis API - Hybrid Approach (Stored Functions + API Integration)
  */
@@ -73,15 +280,15 @@ export const profitAnalysisApi = {
             period,
             revenue_data: {
               total: Number(result.total_revenue) || 0,
-              transactions: this.parseTransactions(result.revenue_transactions)
+              transactions: parseTransactions(result.revenue_transactions)
             },
             cogs_data: {
               total: Number(result.total_cogs) || 0,
-              materials: this.parseCOGSTransactions(result.cogs_transactions)
+              materials: parseCOGSTransactions(result.cogs_transactions)
             },
             opex_data: {
               total: Number(result.total_opex) || 0,
-              costs: this.parseOpExCosts(result.opex_costs)
+              costs: parseOpExCosts(result.opex_costs)
             },
             calculated_at: new Date().toISOString()
           };
@@ -112,7 +319,7 @@ export const profitAnalysisApi = {
         operationalCosts
       ] = await Promise.all([
         financialApi.getFinancialTransactions(userId),
-        this.getWarehouseData(userId),
+        getWarehouseData(userId),
         operationalCostApi.getCosts()
       ]);
 
@@ -172,7 +379,7 @@ export const profitAnalysisApi = {
       if (error) {
         // Fallback to manual calculation
         logger.warn('Revenue breakdown function failed, using fallback');
-        return this.getRevenueBreakdownFallback(userId, period);
+        return getRevenueBreakdownFallback(userId, period);
       }
 
       const breakdown: RevenueBreakdown[] = (data || []).map((item: any) => ({
@@ -189,57 +396,7 @@ export const profitAnalysisApi = {
 
     } catch (error) {
       logger.error('❌ Error getting revenue breakdown:', error);
-      return this.getRevenueBreakdownFallback(userId, period);
-    }
-  },
-
-  /**
-   * ✅ Fallback revenue breakdown using direct API calls
-   */
-  async getRevenueBreakdownFallback(
-    userId: string,
-    period: string
-  ): Promise<ProfitApiResponse<RevenueBreakdown[]>> {
-    try {
-      const transactions = await financialApi.getFinancialTransactions(userId);
-      const periodTransactions = transactions.filter(t => {
-        if (!t.date || t.type !== 'income') return false;
-        const transactionPeriod = new Date(t.date).toISOString().slice(0, 7);
-        return transactionPeriod === period;
-      });
-
-      const totalRevenue = periodTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-      
-      // Group by category
-      const categoryGroups = periodTransactions.reduce((groups, transaction) => {
-        const category = transaction.category || 'Uncategorized';
-        if (!groups[category]) {
-          groups[category] = { total: 0, count: 0 };
-        }
-        groups[category].total += transaction.amount || 0;
-        groups[category].count += 1;
-        return groups;
-      }, {} as Record<string, { total: number; count: number }>);
-
-      const breakdown: RevenueBreakdown[] = Object.entries(categoryGroups).map(([category, data]) => ({
-        category,
-        amount: data.total,
-        percentage: totalRevenue > 0 ? (data.total / totalRevenue) * 100 : 0,
-        transaction_count: data.count
-      }));
-
-      return {
-        data: breakdown,
-        success: true
-      };
-
-    } catch (error) {
-      logger.error('❌ Error in revenue breakdown fallback:', error);
-      return {
-        data: [],
-        error: error instanceof Error ? error.message : 'Gagal mengambil breakdown revenue',
-        success: false
-      };
+      return getRevenueBreakdownFallback(userId, period);
     }
   },
 
@@ -298,19 +455,6 @@ export const profitAnalysisApi = {
   },
 
   /**
-   * ✅ Get warehouse data helper (compatibility with existing API)
-   */
-  async getWarehouseData(userId: string) {
-    try {
-      const service = await warehouseApi.createService('crud', { userId });
-      return await service.fetchBahanBaku();
-    } catch (error) {
-      logger.warn('⚠️ Failed to fetch warehouse data:', error);
-      return [];
-    }
-  },
-
-  /**
    * ✅ Enhanced profit history with hybrid approach
    */
   async getProfitHistory(
@@ -327,7 +471,7 @@ export const profitAnalysisApi = {
       }
 
       // Generate periods based on date range
-      const periods = this.generatePeriods(dateRange.from, dateRange.to, dateRange.period_type);
+      const periods = generatePeriods(dateRange.from, dateRange.to, dateRange.period_type);
       
       if (periods.length === 0) {
         return {
@@ -481,7 +625,7 @@ export const profitAnalysisApi = {
       }
 
       // Calculate data quality
-      const dataQuality = this.assessDataQuality(basicCalc.data);
+      const dataQuality = assessDataQuality(basicCalc.data);
 
       const detailedAnalysis = {
         ...basicCalc.data,
@@ -606,151 +750,11 @@ export const profitAnalysisApi = {
   },
 
   /**
-   * ✅ Generate period strings based on date range
-   */
-  generatePeriods(from: Date, to: Date, periodType: 'monthly' | 'quarterly' | 'yearly'): string[] {
-    const periods: string[] = [];
-    const current = new Date(from);
-    const end = new Date(to);
-
-    while (current <= end) {
-      if (periodType === 'monthly') {
-        periods.push(current.toISOString().slice(0, 7)); // YYYY-MM
-        current.setMonth(current.getMonth() + 1);
-      } else if (periodType === 'quarterly') {
-        const quarter = Math.floor(current.getMonth() / 3) + 1;
-        periods.push(`${current.getFullYear()}-Q${quarter}`);
-        current.setMonth(current.getMonth() + 3);
-      } else if (periodType === 'yearly') {
-        periods.push(current.getFullYear().toString());
-        current.setFullYear(current.getFullYear() + 1);
-      }
-    }
-
-    return periods;
-  },
-
-  /**
    * ✅ Get current month profit analysis
    */
   async getCurrentMonthProfit(): Promise<ProfitApiResponse<RealTimeProfitCalculation>> {
     const currentPeriod = new Date().toISOString().slice(0, 7);
     return this.calculateProfitAnalysis(currentPeriod, 'monthly');
-  },
-
-  // ===== HELPER FUNCTIONS =====
-
-  /**
-   * Parse revenue transactions from JSONB
-   */
-  parseTransactions(transactionsJson: any): any[] {
-    try {
-      if (!transactionsJson) return [];
-      const transactions = Array.isArray(transactionsJson) ? transactionsJson : JSON.parse(transactionsJson);
-      return transactions.map((t: any) => ({
-        category: t.category || 'Uncategorized',
-        amount: Number(t.amount) || 0,
-        description: t.description || '',
-        date: t.date
-      }));
-    } catch (error) {
-      logger.warn('Error parsing transactions JSON:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Parse COGS transactions from JSONB
-   */
-  parseCOGSTransactions(transactionsJson: any): any[] {
-    try {
-      if (!transactionsJson) return [];
-      const transactions = Array.isArray(transactionsJson) ? transactionsJson : JSON.parse(transactionsJson);
-      return transactions.map((t: any) => ({
-        name: t.description || t.category || 'Material Cost',
-        cost: Number(t.amount) || 0,
-        category: t.category || 'Direct Material'
-      }));
-    } catch (error) {
-      logger.warn('Error parsing COGS transactions JSON:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Parse operational costs from JSONB
-   */
-  parseOpExCosts(costsJson: any): any[] {
-    try {
-      if (!costsJson) return [];
-      const costs = Array.isArray(costsJson) ? costsJson : JSON.parse(costsJson);
-      return costs.map((c: any) => ({
-        nama_biaya: c.name || c.nama_biaya,
-        jumlah_per_bulan: Number(c.amount) || 0,
-        jenis: c.type || 'tetap',
-        cost_category: c.category || 'general'
-      }));
-    } catch (error) {
-      logger.warn('Error parsing OpEx costs JSON:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Assess data quality
-   */
-  assessDataQuality(calculation: RealTimeProfitCalculation): {
-    score: number;
-    issues: string[];
-    recommendations: string[];
-  } {
-    let score = 100;
-    const issues: string[] = [];
-    const recommendations: string[] = [];
-    
-    // Check revenue data
-    if (calculation.revenue_data.total <= 0) {
-      score -= 30;
-      issues.push('Tidak ada data revenue');
-      recommendations.push('Tambahkan transaksi pemasukan');
-    }
-    
-    // Check COGS data
-    if (calculation.cogs_data.total <= 0) {
-      score -= 20;
-      issues.push('Tidak ada data COGS');
-      recommendations.push('Tambahkan transaksi pembelian bahan baku');
-    }
-    
-    // Check OpEx data
-    if (calculation.opex_data.total <= 0) {
-      score -= 20;
-      issues.push('Tidak ada data biaya operasional');
-      recommendations.push('Konfigurasi biaya operasional');
-    }
-    
-    // Business logic validation
-    const revenue = calculation.revenue_data.total;
-    const cogs = calculation.cogs_data.total;
-    const opex = calculation.opex_data.total;
-    
-    if (cogs > revenue) {
-      score -= 15;
-      issues.push('COGS lebih besar dari revenue');
-      recommendations.push('Review kategorisasi transaksi');
-    }
-    
-    if (opex > revenue * 0.8) {
-      score -= 10;
-      issues.push('Biaya operasional terlalu tinggi');
-      recommendations.push('Review efisiensi operasional');
-    }
-    
-    return {
-      score: Math.max(0, score),
-      issues,
-      recommendations
-    };
   }
 };
 

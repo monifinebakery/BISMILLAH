@@ -276,7 +276,7 @@ class CrudService {
       let query = supabase
         .from('bahan_baku')
         .select(`
-          *, harga_rata_rata, harga_rata2  // ✅ TAMBAH: ambil kedua field WAC
+          *, harga_rata_rata, harga_rata2
         `)
         .eq('id', id);
 

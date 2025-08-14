@@ -19,17 +19,17 @@ import {
   Lightbulb,
 } from 'lucide-react';
 
-// Import Profit Analysis components
+// Import komponen Analisis Profit
 import ProfitSummaryCards from './ProfitSummaryCards';
 import ProfitBreakdownChart from './ProfitBreakdownChart';
 import ProfitTrendChart from './ProfitTrendChart';
 import DetailedBreakdownTable from './DetailedBreakdownTable';
 
-// Import hooks and utilities
+// Import hooks dan utilities
 import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
 import { generatePeriodOptions, getCurrentPeriod } from '../utils/profitTransformers';
 
-// Import calculation functions
+// Import fungsi kalkulasi
 import {
   calculateMargins,
   comparePeriods,
@@ -54,10 +54,10 @@ export interface ProfitDashboardProps {
 }
 
 // ==============================================
-// HELPER FUNCTIONS
+// FUNGSI HELPER
 // ==============================================
 
-// Advanced metrics calculation function
+// Fungsi kalkulasi metrik profit lanjutan
 const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: any) => {
   if (!currentAnalysis) return null;
   
@@ -72,7 +72,7 @@ const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: a
     grossProfitMargin: margins.grossMargin,
     netProfitMargin: margins.netMargin,
     monthlyGrowthRate: rollingAverages.marginAverage,
-    marginOfSafety: 0, // Will be calculated by break-even analysis
+    marginOfSafety: 0, // Akan dihitung oleh analisis break-even
     cogsPercentage: margins.cogsPercentage,
     opexPercentage: margins.opexPercentage,
     confidenceScore: validateDataQuality(currentAnalysis).score,
@@ -80,7 +80,7 @@ const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: a
   };
 };
 
-// Forecast generation function
+// Fungsi generate forecast profit
 const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
   if (profitHistory.length < 3) return null;
   
@@ -91,44 +91,44 @@ const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
     currentAnalysis.opex_data.total
   );
   
-  // Simple forecast based on rolling averages
+  // Forecast sederhana berdasarkan rata-rata bergulir
   const baseRevenue = rollingAverages.revenueAverage;
   const baseProfit = rollingAverages.profitAverage;
   const baseMargin = rollingAverages.marginAverage;
   
   return {
     nextMonth: {
-      profit: baseProfit * 1.02, // 2% growth assumption
+      profit: baseProfit * 1.02, // Asumsi pertumbuhan 2%
       margin: baseMargin,
       confidence: 75
     },
     nextQuarter: {
-      profit: baseProfit * 3 * 1.05, // 5% quarterly growth
+      profit: baseProfit * 3 * 1.05, // Pertumbuhan kuartalan 5%
       margin: baseMargin * 1.01,
       confidence: 65
     },
     nextYear: {
-      profit: baseProfit * 12 * 1.15, // 15% yearly growth
+      profit: baseProfit * 12 * 1.15, // Pertumbuhan tahunan 15%
       margin: baseMargin * 1.05,
       confidence: 45
     }
   };
 };
 
-// Competitive benchmarking function
+// Fungsi benchmarking kompetitif
 const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any[]) => {
   if (!advancedMetrics) return null;
   
-  // Industry averages (these would come from external data in real implementation)
+  // Rata-rata industri (dalam implementasi nyata, ini akan datang dari data eksternal)
   const industryAverages = {
-    averageNetMargin: 15, // 15% industry average
-    topQuartileMargin: 25, // 25% top quartile
+    averageNetMargin: 15, // 15% rata-rata industri
+    topQuartileMargin: 25, // 25% kuartil atas
   };
   
   const currentNetMargin = advancedMetrics.netProfitMargin;
   
-  // Calculate percentile position
-  let percentile = 50; // Default to median
+  // Hitung posisi persentil
+  let percentile = 50; // Default ke median
   if (currentNetMargin >= industryAverages.topQuartileMargin) {
     percentile = 90;
   } else if (currentNetMargin >= industryAverages.averageNetMargin) {
@@ -139,10 +139,10 @@ const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any
     percentile = 25;
   }
   
-  let position = 'poor';
-  if (percentile >= 90) position = 'excellent';
-  else if (percentile >= 75) position = 'good';
-  else if (percentile >= 50) position = 'average';
+  let position = 'kurang';
+  if (percentile >= 90) position = 'sangat baik';
+  else if (percentile >= 75) position = 'baik';
+  else if (percentile >= 50) position = 'rata-rata';
   
   return {
     industry: industryAverages,
@@ -154,7 +154,7 @@ const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any
   };
 };
 
-// Executive summary generation function
+// Fungsi generate ringkasan eksekutif
 const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, forecast: any, benchmark: any) => {
   if (!currentAnalysis || !advancedMetrics) return null;
   
@@ -168,7 +168,7 @@ const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, fo
 };
 
 // ==============================================
-// MAIN PROFIT DASHBOARD COMPONENT
+// KOMPONEN UTAMA DASHBOARD PROFIT
 // ==============================================
 
 const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
@@ -200,14 +200,14 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     currentAnalysis,
   });
 
-  // Local State
-  const [activeTab, setActiveTab] = useState('overview');
+  // State Lokal
+  const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState<'bar' | 'pie'>('bar');
 
-  // Period Options
+  // Opsi Periode
   const periodOptions = useMemo(() => generatePeriodOptions(2023, new Date().getFullYear()), []);
 
-  // Advanced Calculations
+  // Kalkulasi Lanjutan
   const advancedMetrics = useMemo(() => {
     if (!currentAnalysis || !showAdvancedMetrics) return null;
     return calculateAdvancedProfitMetrics(profitHistory, currentAnalysis);
@@ -228,7 +228,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     return generateExecutiveSummary(currentAnalysis, advancedMetrics, forecast, benchmark);
   }, [currentAnalysis, advancedMetrics, forecast, benchmark]);
 
-  // Previous Period for Comparison
+  // Analisis Periode Sebelumnya untuk Perbandingan
   const previousAnalysis = useMemo(() => {
     if (!currentPeriod || profitHistory.length === 0) return null;
     const [year, month] = currentPeriod.split('-');
@@ -259,23 +259,23 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `profit-analysis-${currentPeriod}.csv`;
+    link.download = `analisis-profit-${currentPeriod}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  // Executive Summary Component
+  // Komponen Seksi Ringkasan Eksekutif
   const ExecutiveSummarySection = () => {
     if (!executiveSummary) return null;
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Key Insights */}
+        {/* Insight Utama */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center">
               <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-              Key Insights
+              Insight Utama
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -290,12 +290,12 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           </CardContent>
         </Card>
 
-        {/* Alerts */}
+        {/* Peringatan */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center">
               <AlertTriangle className="w-5 h-5 text-amber-600 mr-2" />
-              Action Items
+              Item Tindakan
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -308,18 +308,18 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-gray-500 italic">No critical issues detected</div>
+                <div className="text-sm text-gray-500 italic">Tidak ada masalah kritis yang terdeteksi</div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Opportunities */}
+        {/* Peluang */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center">
               <Lightbulb className="w-5 h-5 text-blue-600 mr-2" />
-              Opportunities
+              Peluang
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -337,35 +337,35 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     );
   };
 
-  // Forecast Section
+  // Seksi Forecast
   const ForecastSection = () => {
     if (!forecast) return null;
 
     return (
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Profit Forecast</CardTitle>
-          <CardDescription>AI-powered predictions based on historical trends and market analysis</CardDescription>
+          <CardTitle>Prediksi Profit</CardTitle>
+          <CardDescription>Prediksi bertenaga AI berdasarkan tren historis dan analisis pasar</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Next Month</div>
+              <div className="text-sm text-gray-600 mb-1">Bulan Depan</div>
               <div className="text-2xl font-bold text-blue-700 mb-1">{formatCurrency(forecast.nextMonth.profit)}</div>
               <div className="text-sm text-blue-600">{formatPercentage(forecast.nextMonth.margin)} margin</div>
-              <div className="text-xs text-gray-500 mt-2">{forecast.nextMonth.confidence.toFixed(0)}% confidence</div>
+              <div className="text-xs text-gray-500 mt-2">{forecast.nextMonth.confidence.toFixed(0)}% keyakinan</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Next Quarter</div>
+              <div className="text-sm text-gray-600 mb-1">Kuartal Depan</div>
               <div className="text-2xl font-bold text-green-700 mb-1">{formatCurrency(forecast.nextQuarter.profit)}</div>
               <div className="text-sm text-green-600">{formatPercentage(forecast.nextQuarter.margin)} margin</div>
-              <div className="text-xs text-gray-500 mt-2">{forecast.nextQuarter.confidence.toFixed(0)}% confidence</div>
+              <div className="text-xs text-gray-500 mt-2">{forecast.nextQuarter.confidence.toFixed(0)}% keyakinan</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Next Year</div>
+              <div className="text-sm text-gray-600 mb-1">Tahun Depan</div>
               <div className="text-2xl font-bold text-purple-700 mb-1">{formatCurrency(forecast.nextYear.profit)}</div>
               <div className="text-sm text-purple-600">{formatPercentage(forecast.nextYear.margin)} margin</div>
-              <div className="text-xs text-gray-500 mt-2">{forecast.nextYear.confidence.toFixed(0)}% confidence</div>
+              <div className="text-xs text-gray-500 mt-2">{forecast.nextYear.confidence.toFixed(0)}% keyakinan</div>
             </div>
           </div>
         </CardContent>
@@ -373,19 +373,19 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     );
   };
 
-  // Main Render
+  // Render Utama
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Profit Analysis</h1>
-          <p className="text-gray-600">Comprehensive profit analysis with real-time calculations and business intelligence</p>
+          <h1 className="text-3xl font-bold tracking-tight">Analisis Profit</h1>
+          <p className="text-gray-600">Analisis profit komprehensif dengan kalkulasi real-time dan business intelligence</p>
         </div>
         <div className="flex items-center space-x-4 mt-4 lg:mt-0">
           <Select value={currentPeriod} onValueChange={handlePeriodChange}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select period" />
+              <SelectValue placeholder="Pilih periode" />
             </SelectTrigger>
             <SelectContent>
               {periodOptions.map((option) => (
@@ -418,32 +418,32 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </div>
       </div>
 
-      {/* Status Indicators */}
+      {/* Indikator Status */}
       <div className="flex items-center space-x-4">
         {isDataStale && (
           <Badge variant="secondary" className="flex items-center space-x-1">
             <AlertTriangle className="w-3 h-3" />
-            <span>Data may be outdated</span>
+            <span>Data mungkin sudah usang</span>
           </Badge>
         )}
         {lastCalculated && (
           <Badge variant="outline" className="flex items-center space-x-1">
             <CheckCircle className="w-3 h-3" />
-            <span>Updated: {lastCalculated.toLocaleTimeString()}</span>
+            <span>Diperbarui: {lastCalculated.toLocaleTimeString()}</span>
           </Badge>
         )}
         {benchmark?.competitive.position && (
           <Badge
-            variant={benchmark.competitive.position === 'excellent' ? 'default' : 'secondary'}
+            variant={benchmark.competitive.position === 'sangat baik' ? 'default' : 'secondary'}
             className="flex items-center space-x-1"
           >
             <Target className="w-3 h-3" />
-            <span>{benchmark.competitive.position} performance</span>
+            <span>performa {benchmark.competitive.position}</span>
           </Badge>
         )}
       </div>
 
-      {/* Error Alert */}
+      {/* Alert Error */}
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -451,25 +451,25 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </Alert>
       )}
 
-      {/* Executive Summary */}
+      {/* Ringkasan Eksekutif */}
       {showAdvancedMetrics && <ExecutiveSummarySection />}
 
-      {/* Summary Cards */}
+      {/* Kartu Ringkasan */}
       <ProfitSummaryCards currentAnalysis={currentAnalysis} previousAnalysis={previousAnalysis} isLoading={loading} />
 
-      {/* Forecast Section */}
+      {/* Seksi Forecast */}
       {showAdvancedMetrics && <ForecastSection />}
 
-      {/* Main Content Tabs */}
+      {/* Tab Konten Utama */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="ikhtisar">Ikhtisar</TabsTrigger>
+          <TabsTrigger value="tren">Tren</TabsTrigger>
           <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="wawasan">Wawasan</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="ikhtisar" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ProfitBreakdownChart currentAnalysis={currentAnalysis} isLoading={loading} chartType={selectedChartType} />
             <ProfitTrendChart
@@ -481,7 +481,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           </div>
         </TabsContent>
 
-        <TabsContent value="trends" className="space-y-6">
+        <TabsContent value="tren" className="space-y-6">
           <ProfitTrendChart
             profitHistory={profitHistory}
             isLoading={loading}
@@ -494,70 +494,70 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           <DetailedBreakdownTable currentAnalysis={currentAnalysis} isLoading={loading} showExport={true} />
         </TabsContent>
 
-        <TabsContent value="insights" className="space-y-6">
-          {/* Advanced Metrics */}
+        <TabsContent value="wawasan" className="space-y-6">
+          {/* Metrik Lanjutan */}
           {advancedMetrics && (
             <Card>
               <CardHeader>
-                <CardTitle>Advanced Analytics</CardTitle>
-                <CardDescription>Deep dive into financial performance metrics</CardDescription>
+                <CardTitle>Analitik Lanjutan</CardTitle>
+                <CardDescription>Mendalami metrik performa keuangan</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{formatPercentage(advancedMetrics.grossProfitMargin)}</div>
-                    <div className="text-sm text-gray-600">Gross Margin</div>
+                    <div className="text-sm text-gray-600">Margin Kotor</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">{formatPercentage(advancedMetrics.netProfitMargin)}</div>
-                    <div className="text-sm text-gray-600">Net Margin</div>
+                    <div className="text-sm text-gray-600">Margin Bersih</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">{formatPercentage(advancedMetrics.monthlyGrowthRate)}</div>
-                    <div className="text-sm text-gray-600">Monthly Growth</div>
+                    <div className="text-sm text-gray-600">Pertumbuhan Bulanan</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-amber-600">{formatPercentage(advancedMetrics.marginOfSafety)}</div>
-                    <div className="text-sm text-gray-600">Margin of Safety</div>
+                    <div className="text-sm text-gray-600">Margin Keamanan</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Competitive Benchmark */}
+          {/* Benchmark Kompetitif */}
           {benchmark && (
             <Card>
               <CardHeader>
-                <CardTitle>Competitive Benchmarking</CardTitle>
-                <CardDescription>How your performance compares to industry standards</CardDescription>
+                <CardTitle>Benchmarking Kompetitif</CardTitle>
+                <CardDescription>Bagaimana performa Anda dibandingkan dengan standar industri</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-2">Industry Average</div>
+                    <div className="text-sm text-gray-600 mb-2">Rata-rata Industri</div>
                     <div className="text-xl font-bold text-gray-700 mb-1">
                       {formatPercentage(benchmark.industry.averageNetMargin)}
                     </div>
-                    <div className="text-xs text-gray-500">Net Margin</div>
+                    <div className="text-xs text-gray-500">Margin Bersih</div>
                   </div>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-2">Your Position</div>
-                    <div className="text-xl font-bold text-blue-700 mb-1">{benchmark.competitive.percentile}th</div>
-                    <div className="text-xs text-gray-500">Percentile</div>
+                    <div className="text-sm text-gray-600 mb-2">Posisi Anda</div>
+                    <div className="text-xl font-bold text-blue-700 mb-1">{benchmark.competitive.percentile}</div>
+                    <div className="text-xs text-gray-500">Persentil</div>
                     <Badge
-                      variant={benchmark.competitive.position === 'excellent' ? 'default' : 'secondary'}
+                      variant={benchmark.competitive.position === 'sangat baik' ? 'default' : 'secondary'}
                       className="mt-2"
                     >
                       {benchmark.competitive.position}
                     </Badge>
                   </div>
                   <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-2">Gap to Top Quartile</div>
+                    <div className="text-sm text-gray-600 mb-2">Gap ke Kuartil Atas</div>
                     <div className="text-xl font-bold text-amber-700 mb-1">
                       {formatPercentage(benchmark.competitive.gapToLeader)}
                     </div>
-                    <div className="text-xs text-gray-500">Margin Points</div>
+                    <div className="text-xs text-gray-500">Poin Margin</div>
                   </div>
                 </div>
               </CardContent>
@@ -566,18 +566,18 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </TabsContent>
       </Tabs>
 
-      {/* Footer Status */}
+      {/* Status Footer */}
       {currentAnalysis && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-4 h-4 text-green-600" />
-            <span>Analysis completed for {formatPeriodLabel(currentPeriod)}</span>
+            <span>Analisis selesai untuk {formatPeriodLabel(currentPeriod)}</span>
           </div>
           <span>•</span>
-          <span>Revenue: {formatCurrency(currentAnalysis.revenue_data.total)}</span>
+          <span>Pendapatan: {formatCurrency(currentAnalysis.revenue_data.total)}</span>
           <span>•</span>
           <span>
-            Net Profit:{' '}
+            Laba Bersih:{' '}
             {formatCurrency(
               currentAnalysis.revenue_data.total - currentAnalysis.cogs_data.total - currentAnalysis.opex_data.total
             )}

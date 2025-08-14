@@ -1,6 +1,6 @@
-// src/components/purchase/components/PurchaseDialog.tsx
+// src/components/purchase/components/PurchaseDialog.tsx - Enhanced for Edit Mode
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,10 @@ import {
   Package,
   Calculator,
   ShoppingCart,
-  X 
+  X,
+  Edit3,
+  Save,
+  RotateCcw
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -40,6 +43,7 @@ import { id } from 'date-fns/locale';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
+import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 
@@ -68,7 +72,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     mode,
     initialData: purchase,
     onSuccess: () => {
-      toast.success(mode === 'create' ? 'Pembelian berhasil dibuat!' : 'Pembelian berhasil diperbarui!');
+      toast.success(
+        mode === 'create' 
+          ? 'Pembelian berhasil dibuat!' 
+          : 'Pembelian berhasil diperbarui!'
+      );
       onClose();
     },
     onError: (error) => {
@@ -76,19 +84,26 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
-  // Local state for new item form
-  const [newItem, setNewItem] = useState<Partial<PurchaseItem>>({
-    bahanBakuId: '',
-    nama: '',
-    kuantitas: 0,
-    satuan: '',
-    hargaSatuan: 0,
-    keterangan: '',
+  // Item management
+  const {
+    newItem,
+    setNewItem,
+    showAddItem,
+    setShowAddItem,
+    editingItemIndex,
+    handleBahanBakuSelect,
+    handleAddItem,
+    handleEditItem,
+    handleSaveEditedItem,
+    handleCancelEditItem,
+  } = usePurchaseItemManager({
+    bahanBaku,
+    items: formData.items,
+    addItem,
+    updateItem,
   });
 
-  const [showAddItem, setShowAddItem] = useState(false);
-
-  // Reset new item form when dialog opens/closes
+  // Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setNewItem({
@@ -100,57 +115,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         keterangan: '',
       });
       setShowAddItem(false);
+      handleCancelEditItem();
     }
-  }, [isOpen]);
+  }, [isOpen, setNewItem, setShowAddItem, handleCancelEditItem]);
 
-  // Handle bahan baku selection
-  const handleBahanBakuSelect = (bahanBakuId: string) => {
-    const selectedBahan = bahanBaku.find(b => b.id === bahanBakuId);
-    if (selectedBahan) {
-      setNewItem(prev => ({
-        ...prev,
-        bahanBakuId,
-        nama: selectedBahan.nama,
-        satuan: selectedBahan.satuan,
-      }));
-    }
-  };
-
-  // Add new item to purchase
-  const handleAddItem = () => {
-    if (!newItem.bahanBakuId || !newItem.nama || !newItem.kuantitas || !newItem.hargaSatuan) {
-      toast.error('Lengkapi data item terlebih dahulu');
+  // ✅ Handle form submission
+  const onSubmit = async () => {
+    if (formData.items.length === 0) {
+      toast.error('Minimal harus ada 1 item dalam pembelian');
       return;
     }
 
-    addItem({
-      bahanBakuId: newItem.bahanBakuId!,
-      nama: newItem.nama!,
-      kuantitas: newItem.kuantitas!,
-      satuan: newItem.satuan!,
-      hargaSatuan: newItem.hargaSatuan!,
-      keterangan: newItem.keterangan,
-    });
-
-    // Reset form
-    setNewItem({
-      bahanBakuId: '',
-      nama: '',
-      kuantitas: 0,
-      satuan: '',
-      hargaSatuan: 0,
-      keterangan: '',
-    });
-    setShowAddItem(false);
-    toast.success('Item berhasil ditambahkan');
-  };
-
-  // Handle form submission
-  const onSubmit = async () => {
     await handleSubmit();
   };
 
-  // Handle cancel
+  // ✅ Handle cancel with unsaved changes warning
   const handleCancel = () => {
     if (isDirty) {
       if (confirm('Ada perubahan yang belum disimpan. Yakin ingin keluar?')) {
@@ -162,23 +141,72 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   };
 
+  // ✅ Reset form to initial state
+  const handleResetForm = () => {
+    if (confirm('Reset semua perubahan ke kondisi awal?')) {
+      handleReset();
+      setShowAddItem(false);
+      setEditingItemIndex(null);
+      toast.info('Form direset ke kondisi awal');
+    }
+  };
+
+  // ✅ Check if purchase can be edited (not completed)
+  const canEdit = !purchase || purchase.status !== 'completed';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5" />
-            {mode === 'create' ? 'Tambah Pembelian Baru' : 'Edit Pembelian'}
+            {mode === 'create' ? (
+              <>
+                <ShoppingCart className="h-5 w-5" />
+                Tambah Pembelian Baru
+              </>
+            ) : (
+              <>
+                <Edit3 className="h-5 w-5" />
+                Edit Pembelian
+                {purchase && (
+                  <Badge 
+                    variant="outline" 
+                    className={`ml-2 ${
+                      purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {purchase.status}
+                  </Badge>
+                )}
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
             {mode === 'create' 
               ? 'Buat pembelian bahan baku baru dari supplier' 
-              : 'Perbarui informasi pembelian yang sudah ada'
+              : canEdit 
+                ? 'Perbarui informasi pembelian yang sudah ada'
+                : 'Pembelian yang sudah selesai tidak dapat diedit'
             }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* ✅ Edit Warning for Completed Purchase */}
+          {mode === 'edit' && !canEdit && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription>
+                <div className="font-medium text-red-800">Pembelian Sudah Selesai</div>
+                <p className="text-red-700 text-sm mt-1">
+                  Pembelian dengan status "Selesai" tidak dapat diedit untuk menjaga integritas data.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Validation Errors */}
           {validation.errors.length > 0 && (
             <Alert className="border-red-200 bg-red-50">
@@ -215,7 +243,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Informasi Dasar</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Informasi Dasar</CardTitle>
+                {mode === 'edit' && isDirty && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetForm}
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset Form
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -227,8 +269,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     onValueChange={(value) => 
                       setFormData({ ...formData, supplier: value })
                     }
+                    disabled={!canEdit}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
                       <SelectValue placeholder="Pilih supplier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -248,7 +291,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className={`w-full justify-start text-left font-normal ${!canEdit ? 'opacity-50' : ''}`}
+                        disabled={!canEdit}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.tanggal ? (
@@ -266,6 +310,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           date && setFormData({ ...formData, tanggal: date })
                         }
                         initialFocus
+                        disabled={!canEdit}
                       />
                     </PopoverContent>
                   </Popover>
@@ -280,8 +325,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   onValueChange={(value: 'FIFO' | 'LIFO' | 'AVERAGE') =>
                     setFormData({ ...formData, metodePerhitungan: value })
                   }
+                  disabled={!canEdit}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -301,23 +347,43 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
                   Item Pembelian ({formData.items.length})
+                  {mode === 'edit' && isDirty && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      Modified
+                    </Badge>
+                  )}
                 </CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddItem(!showAddItem)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Tambah Item
-                </Button>
+                {canEdit && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddItem(!showAddItem)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Tambah Item
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add New Item Form */}
-              {showAddItem && (
-                <Card className="border-dashed">
-                  <CardContent className="pt-4">
+              {canEdit && showAddItem && (
+                <Card className="border-dashed border-blue-300 bg-blue-50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-blue-900">Tambah Item Baru</h4>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAddItem(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                       {/* Bahan Baku Selection */}
                       <div className="space-y-2">
@@ -330,7 +396,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             <SelectValue placeholder="Pilih bahan baku" />
                           </SelectTrigger>
                           <SelectContent>
-                            {bahanBaku.map((bahan) => (
+                            {bahanBaku
+                              .filter(bahan => !formData.items.some(item => item.bahanBakuId === bahan.id))
+                              .map((bahan) => (
                               <SelectItem key={bahan.id} value={bahan.id}>
                                 {bahan.nama} ({bahan.satuan})
                               </SelectItem>
@@ -396,7 +464,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
                     {/* Subtotal Preview */}
                     {newItem.kuantitas && newItem.hargaSatuan && (
-                      <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="bg-blue-100 p-3 rounded-lg mb-4">
                         <div className="text-sm text-blue-800">
                           <strong>Subtotal: </strong>
                           {formatCurrency((newItem.kuantitas || 0) * (newItem.hargaSatuan || 0))}
@@ -404,24 +472,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                       </div>
                     )}
 
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={handleAddItem}
-                        disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
-                        className="flex-1"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Tambah ke Daftar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowAddItem(false)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleAddItem}
+                      disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah ke Daftar
+                    </Button>
                   </CardContent>
                 </Card>
               )}
@@ -431,43 +490,73 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Belum ada item ditambahkan</p>
-                  <p className="text-sm">Klik "Tambah Item" untuk mulai menambahkan bahan baku</p>
+                  <p className="text-sm">
+                    {canEdit 
+                      ? 'Klik "Tambah Item" untuk mulai menambahkan bahan baku'
+                      : 'Tidak ada item dalam pembelian ini'
+                    }
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {formData.items.map((item, index) => (
                     <Card key={index} className="relative">
                       <CardContent className="pt-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                              <div className="font-medium">{item.nama}</div>
-                              <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                        {editingItemIndex === index && canEdit ? (
+                          // ✅ EDIT MODE for existing item
+                          <EditItemForm
+                            item={item}
+                            onSave={(updatedItem) => handleSaveEditedItem(index, updatedItem)}
+                            onCancel={handleCancelEditItem}
+                          />
+                        ) : (
+                          // ✅ DISPLAY MODE for existing item
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div>
+                                <div className="font-medium">{item.nama}</div>
+                                <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">{item.kuantitas} {item.satuan}</div>
+                                <div className="text-sm text-gray-600">Kuantitas</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">{formatCurrency(item.hargaSatuan)}</div>
+                                <div className="text-sm text-gray-600">Harga Satuan</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-green-600">{formatCurrency(item.subtotal)}</div>
+                                <div className="text-sm text-gray-600">Subtotal</div>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <div className="font-medium">{item.kuantitas} {item.satuan}</div>
-                              <div className="text-sm text-gray-600">Kuantitas</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">{formatCurrency(item.hargaSatuan)}</div>
-                              <div className="text-sm text-gray-600">Harga Satuan</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-green-600">{formatCurrency(item.subtotal)}</div>
-                              <div className="text-sm text-gray-600">Subtotal</div>
-                            </div>
+                            
+                            {canEdit && (
+                              <div className="flex items-center gap-2 ml-4">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditItem(index)}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeItem(index)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeItem(index)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-4"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        {item.keterangan && (
+                        )}
+                        
+                        {item.keterangan && editingItemIndex !== index && (
                           <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
                             <strong>Keterangan:</strong> {item.keterangan}
                           </div>
@@ -488,6 +577,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <div className="flex items-center gap-2">
                     <Calculator className="h-5 w-5 text-green-600" />
                     <span className="font-medium text-green-800">Total Pembelian</span>
+                    {mode === 'edit' && isDirty && (
+                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                        Updated
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-2xl font-bold text-green-600">
                     {formatCurrency(totalValue)}
@@ -512,27 +606,168 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             Batal
           </Button>
           
-          <Button
-            type="button"
-            onClick={onSubmit}
-            disabled={isSubmitting || !validation.isValid || formData.items.length === 0}
-            className="min-w-[120px]"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                {mode === 'create' ? 'Membuat...' : 'Menyimpan...'}
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                {mode === 'create' ? 'Buat Pembelian' : 'Simpan Perubahan'}
-              </>
-            )}
-          </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              onClick={onSubmit}
+              disabled={isSubmitting || !validation.isValid || formData.items.length === 0}
+              className="min-w-[120px]"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  {mode === 'create' ? 'Membuat...' : 'Menyimpan...'}
+                </>
+              ) : (
+                <>
+                  {mode === 'create' ? (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Buat Pembelian
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Simpan Perubahan
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// ✅ NEW: Edit Item Form Component
+const EditItemForm: React.FC<{
+  item: PurchaseItem;
+  onSave: (item: Partial<PurchaseItem>) => void;
+  onCancel: () => void;
+}> = ({ item, onSave, onCancel }) => {
+  const [editedItem, setEditedItem] = useState({
+    kuantitas: item.kuantitas,
+    hargaSatuan: item.hargaSatuan,
+    keterangan: item.keterangan || '',
+  });
+
+  const handleSave = () => {
+    onSave(editedItem);
+  };
+
+  const subtotal = editedItem.kuantitas * editedItem.hargaSatuan;
+
+  return (
+    <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-blue-900">Edit Item: {item.nama}</h4>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSave}
+            disabled={!editedItem.kuantitas || !editedItem.hargaSatuan}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Simpan
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quantity */}
+        <div className="space-y-2">
+          <Label>Kuantitas *</Label>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={editedItem.kuantitas}
+              onChange={(e) =>
+                setEditedItem(prev => ({
+                  ...prev,
+                  kuantitas: parseFloat(e.target.value) || 0
+                }))
+              }
+              placeholder="0"
+            />
+            <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
+              {item.satuan}
+            </div>
+          </div>
+        </div>
+
+        {/* Unit Price */}
+        <div className="space-y-2">
+          <Label>Harga Satuan *</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={editedItem.hargaSatuan}
+            onChange={(e) =>
+              setEditedItem(prev => ({
+                ...prev,
+                hargaSatuan: parseFloat(e.target.value) || 0
+              }))
+            }
+            placeholder="0"
+          />
+        </div>
+
+        {/* Subtotal Preview */}
+        <div className="space-y-2">
+          <Label>Subtotal</Label>
+          <div className="flex items-center h-10 px-3 bg-green-100 border border-green-300 rounded text-green-800 font-medium">
+            {formatCurrency(subtotal)}
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <Label>Keterangan</Label>
+        <Textarea
+          value={editedItem.keterangan}
+          onChange={(e) =>
+            setEditedItem(prev => ({ ...prev, keterangan: e.target.value }))
+          }
+          placeholder="Keterangan tambahan (opsional)"
+          rows={2}
+        />
+      </div>
+
+      {/* Changes Summary */}
+      <div className="bg-blue-100 p-3 rounded-lg">
+        <div className="text-sm text-blue-800">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Sebelum:</strong>
+              <div>Qty: {item.kuantitas} {item.satuan}</div>
+              <div>Harga: {formatCurrency(item.hargaSatuan)}</div>
+              <div>Subtotal: {formatCurrency(item.subtotal)}</div>
+            </div>
+            <div>
+              <strong>Sesudah:</strong>
+              <div>Qty: {editedItem.kuantitas} {item.satuan}</div>
+              <div>Harga: {formatCurrency(editedItem.hargaSatuan)}</div>
+              <div>Subtotal: {formatCurrency(subtotal)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

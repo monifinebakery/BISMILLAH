@@ -1,4 +1,4 @@
-// src/components/purchase/PurchasePage.tsx - Optimized Dependencies (12 → 7)
+// src/components/purchase/PurchasePage.tsx - Fixed Delete with Proper Refresh
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -74,8 +74,6 @@ const BulkDeleteDialog = React.lazy(() =>
 // ✅ UTILITY: Keep essential utility
 import { exportPurchasesToCSV } from './utils/purchaseHelpers';
 
-// ❌ REMOVED: Individual hook imports now handled by usePurchaseCore
-
 interface PurchasePageProps {
   className?: string;
 }
@@ -92,6 +90,7 @@ interface AppState {
   };
   ui: {
     isExporting: boolean;
+    isDeleting: boolean; // ✅ NEW: Track delete state
   };
 }
 
@@ -105,7 +104,8 @@ const initialAppState: AppState = {
     dataWarning: { isVisible: false, hasShownToast: false }
   },
   ui: {
-    isExporting: false
+    isExporting: false,
+    isDeleting: false // ✅ NEW: Track delete state
   }
 };
 
@@ -126,7 +126,7 @@ const QuickLoader = () => (
   </div>
 );
 
-// ✅ MAIN COMPONENT: Dramatically simplified
+// ✅ MAIN COMPONENT: Fixed delete handling
 const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) => {
   // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
@@ -181,7 +181,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           }));
         }
       },
-      close: () => {
+      close: async () => {
         setAppState(prev => ({
           ...prev,
           dialogs: {
@@ -189,6 +189,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             purchase: { isOpen: false, editing: null, mode: 'create' }
           }
         }));
+        
+        // ✅ React Query automatically handles data refresh through mutations
+        // No need to manually call refresh here
       }
     },
     detail: {
@@ -232,16 +235,56 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         }));
       }
     }
-  }), [purchaseCore]);
+  }), [purchaseCore, purchaseContext.refreshPurchases]);
 
-  // ✅ CONSOLIDATED: Business logic handlers
+  // ✅ FIXED: Enhanced business logic handlers with proper React Query mutations
   const businessHandlers = useMemo(() => ({
     delete: async (purchaseId: string) => {
-      const result = await purchaseCore.handleDelete(purchaseId);
-      if (result.success) {
-        toast.success('Pembelian berhasil dihapus');
-      } else {
-        toast.error(result.error || 'Gagal menghapus pembelian');
+      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: true } }));
+
+      try {
+        // ✅ CRITICAL: Use correct function name from context
+        const success = await purchaseContext.deletePurchase(purchaseId);
+        
+        if (!success) {
+          throw new Error('Delete operation failed');
+        }
+
+        // ✅ React Query automatically invalidates and refetches data
+        // No need to manually call refresh - the mutation handles it
+        
+        // Success message is handled by the mutation
+        
+      } catch (error) {
+        console.error('Delete failed:', error);
+        // Error message is handled by the mutation
+      } finally {
+        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
+      }
+    },
+
+    bulkDelete: async (purchaseIds: string[]) => {
+      if (!purchaseIds.length) return;
+
+      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: true } }));
+
+      try {
+        // ✅ CRITICAL: Call delete one by one since no bulk delete in context
+        for (const purchaseId of purchaseIds) {
+          const success = await purchaseContext.deletePurchase(purchaseId);
+          if (!success) {
+            throw new Error(`Failed to delete purchase ${purchaseId}`);
+          }
+        }
+
+        // ✅ React Query automatically handles data refresh
+        toast.success(`${purchaseIds.length} pembelian berhasil dihapus`);
+
+      } catch (error) {
+        console.error('Bulk delete failed:', error);
+        toast.error(error?.message || 'Gagal menghapus beberapa pembelian');
+      } finally {
+        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
     },
     
@@ -280,7 +323,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     settings: () => {
       toast.info('Pengaturan pembelian akan segera tersedia');
     }
-  }), [purchaseCore, purchaseContext.purchases]);
+  }), [purchaseCore, purchaseContext]);
 
   // ✅ OPTIMIZED: Warning effect with cleanup
   useEffect(() => {
@@ -381,6 +424,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
               onEdit={dialogActions.purchase.openEdit}
               onStatusChange={purchaseCore.updateStatus}
               onDelete={businessHandlers.delete}
+              onBulkDelete={businessHandlers.bulkDelete}
               onViewDetails={dialogActions.detail.open}
               validateStatusChange={purchaseCore.validateStatusChange}
             />
@@ -419,13 +463,15 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         </Suspense>
       )}
 
-      {/* Processing overlay */}
-      {purchaseCore.isProcessing && (
+      {/* ✅ ENHANCED: Processing overlay with delete state */}
+      {(purchaseCore.isProcessing || appState.ui.isDeleting || appState.ui.isExporting) && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">
-              {appState.ui.isExporting ? 'Mengexport data...' : 'Mengupdate status...'}
+              {appState.ui.isDeleting ? 'Menghapus pembelian...' :
+               appState.ui.isExporting ? 'Mengexport data...' : 
+               'Mengupdate status...'}
             </span>
           </div>
         </div>

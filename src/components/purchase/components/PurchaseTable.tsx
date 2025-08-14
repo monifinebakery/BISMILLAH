@@ -1,4 +1,4 @@
-// src/components/purchase/components/PurchaseTable.tsx - Optimized Dependencies & Performance
+// src/components/purchase/components/PurchaseTable.tsx - Enhanced with Delete & Edit
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,8 +41,7 @@ import {
   Search, 
   MoreHorizontal, 
   Edit, 
-  Trash2, 
-  Eye,
+  Trash2,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -40,14 +49,16 @@ import {
   Calendar,
   User,
   Receipt,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 
-// ✅ CONSOLIDATED: Type imports
-import { PurchaseTablePropsExtended, PurchaseStatus } from '../types/purchase.types';
+// ✅ Type imports
+import { PurchaseTablePropsExtended, PurchaseStatus, Purchase } from '../types/purchase.types';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
+import { usePurchaseTableDialogs } from '../hooks/usePurchaseTableDialogs';
 
-// ✅ CONSOLIDATED: Utility imports
+// ✅ Utility imports
 import { formatCurrency } from '@/utils/formatUtils';
 import { 
   getStatusColor, 
@@ -55,12 +66,13 @@ import {
   getFormattedTotalQuantities 
 } from '../utils/purchaseHelpers';
 
-// ✅ COMPONENTS: Direct imports
+// ✅ Component imports
 import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 import { logger } from '@/utils/logger';
+import { toast } from 'sonner';
 
-// ✅ CONSTANTS: Moved to top level for better performance
+// ✅ Constants
 const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
   { value: 'pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   { value: 'completed', label: 'Selesai', color: 'bg-green-100 text-green-800 border-green-200' },
@@ -74,33 +86,16 @@ const ITEMS_PER_PAGE_OPTIONS = [
   { value: '50', label: '50' }
 ];
 
-// ✅ INTERFACES: Consolidated dialog state
-interface DialogState {
-  confirmation: {
-    isOpen: boolean;
-    purchase: any | null;
-    newStatus: PurchaseStatus | null;
-    validation: any | null;
-  };
-}
 
-const initialDialogState: DialogState = {
-  confirmation: {
-    isOpen: false,
-    purchase: null,
-    newStatus: null,
-    validation: null
-  }
-};
-
+// ✅ Enhanced PurchaseTable with delete and edit functionality
 const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({ 
   onEdit, 
   onStatusChange,
   onDelete,
-  onViewDetails,
+  onBulkDelete,
   validateStatusChange
 }) => {
-  // ✅ CONTEXT: Purchase table operations
+  // ✅ Context
   const {
     filteredPurchases,
     selectedItems,
@@ -118,13 +113,23 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     getSupplierName,
   } = usePurchaseTable();
 
-  // ✅ STATE: Consolidated local state
+  // ✅ Local state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
-  const [dialogState, setDialogState] = useState<DialogState>(initialDialogState);
+  const {
+    dialogState,
+    openDelete,
+    setDeleteLoading,
+    resetDelete,
+    openBulkDelete,
+    setBulkDeleteLoading,
+    resetBulkDelete,
+    openStatus,
+    resetStatus,
+  } = usePurchaseTableDialogs();
 
-  // ✅ MEMOIZED: Pagination calculations
+  // ✅ Pagination calculations
   const paginationData = useMemo(() => {
     const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -141,32 +146,25 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     };
   }, [filteredPurchases, currentPage, itemsPerPage]);
 
-  // ✅ MEMOIZED: Action handlers
+  // ✅ Action handlers
   const actionHandlers = useMemo(() => ({
-    edit: (purchase: any) => {
+    edit: (purchase: Purchase) => {
       logger.context('PurchaseTable', 'Edit clicked for:', purchase.id);
-      onEdit(purchase);
-    },
-
-    delete: (purchaseId: string) => {
-      logger.context('PurchaseTable', 'Delete clicked for:', purchaseId);
-      if (confirm('Yakin ingin menghapus pembelian ini?')) {
-        if (onDelete) {
-          onDelete(purchaseId);
-        } else {
-          // Fallback: use bulk delete with single item
-          setSelectedItems([purchaseId]);
-        }
-      }
-    },
-
-    viewDetails: (purchase: any) => {
-      logger.context('PurchaseTable', 'View details clicked for:', purchase.id);
-      if (onViewDetails) {
-        onViewDetails(purchase);
+      if (onEdit) {
+        onEdit(purchase);
       } else {
-        logger.context('PurchaseTable', 'View details:', purchase);
+        toast.info('Fungsi edit belum tersedia');
       }
+    },
+
+    delete: (purchase: Purchase) => {
+      logger.context('PurchaseTable', 'Delete clicked for:', purchase.id);
+      openDelete(purchase);
+    },
+
+    bulkDelete: () => {
+      logger.context('PurchaseTable', 'Bulk delete clicked for:', selectedItems.length, 'items');
+      openBulkDelete(selectedItems.length);
     },
 
     resetFilters: () => {
@@ -174,58 +172,112 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       setStatusFilter('all');
       setCurrentPage(1);
     }
-  }), [onEdit, onDelete, onViewDetails, setSelectedItems, setSearchQuery, setStatusFilter]);
+  }), [onEdit, selectedItems.length, setSearchQuery, setStatusFilter, openDelete, openBulkDelete]);
 
-  // ✅ OPTIMIZED: Status change handler with validation
+  // ✅ Delete confirmation handler with proper refresh
+  const handleDeleteConfirm = useCallback(async () => {
+    const { purchase } = dialogState.deleteConfirmation;
+    if (!purchase || !onDelete) return;
+
+    setDeleteLoading(true);
+
+    try {
+      await onDelete(purchase.id);
+      toast.success('Pembelian berhasil dihapus');
+      
+      // ✅ Force refresh data - remove from local state immediately
+      // This should trigger parent component to refresh data
+      
+      // Close dialog
+      resetDelete();
+
+      // ✅ Reset current page if needed
+      const remainingItems = filteredPurchases.length - 1;
+      const maxPage = Math.ceil(remainingItems / itemsPerPage);
+      if (currentPage > maxPage && maxPage > 0) {
+        setCurrentPage(maxPage);
+      }
+
+    } catch (error) {
+      logger.error('Delete failed:', error);
+      toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
+      
+      setDeleteLoading(false);
+    }
+  }, [dialogState.deleteConfirmation, onDelete, filteredPurchases.length, itemsPerPage, currentPage, setDeleteLoading, resetDelete]);
+
+  // ✅ Bulk delete confirmation handler with proper refresh
+  const handleBulkDeleteConfirm = useCallback(async () => {
+    if (selectedItems.length === 0) return;
+
+    setBulkDeleteLoading(true);
+
+    try {
+      if (onBulkDelete) {
+        await onBulkDelete(selectedItems);
+      } else if (onDelete) {
+        // Fallback: delete one by one
+        for (const purchaseId of selectedItems) {
+          await onDelete(purchaseId);
+        }
+      }
+
+      toast.success(`${selectedItems.length} pembelian berhasil dihapus`);
+      setSelectedItems([]);
+      
+      // ✅ Reset to first page after bulk delete
+      setCurrentPage(1);
+      
+      // Close dialog
+      resetBulkDelete();
+
+    } catch (error) {
+      logger.error('Bulk delete failed:', error);
+      toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
+      
+      setBulkDeleteLoading(false);
+    }
+  }, [selectedItems, onBulkDelete, onDelete, setSelectedItems, setBulkDeleteLoading, resetBulkDelete]);
+
+  // ✅ Status change handler
   const handleStatusChange = useCallback(async (purchaseId: string, newStatus: PurchaseStatus) => {
     const purchase = filteredPurchases.find(p => p.id === purchaseId);
     if (!purchase) return;
 
-    // Early return if status is the same
     if (purchase.status === newStatus) {
       setEditingStatusId(null);
       return;
     }
 
     try {
-      // Validate status change if validation function is provided
       let validation = { canChange: true, warnings: [], errors: [] };
       if (validateStatusChange) {
         validation = await validateStatusChange(purchaseId, newStatus);
       }
 
-      // Direct update if validation passes and no warnings
       if (validation.canChange && validation.warnings.length === 0) {
         if (onStatusChange) {
           await onStatusChange(purchaseId, newStatus);
         }
         setEditingStatusId(null);
       } else {
-        // Show confirmation dialog with warnings/errors
-        setDialogState({
-          confirmation: {
-            isOpen: true,
-            purchase,
-            newStatus,
-            validation
-          }
-        });
+        openStatus(purchase, newStatus, validation);
       }
     } catch (error) {
       logger.error('Status change validation failed:', error);
       setEditingStatusId(null);
     }
-  }, [filteredPurchases, validateStatusChange, onStatusChange]);
+  }, [filteredPurchases, validateStatusChange, onStatusChange, openStatus]);
 
-  // ✅ OPTIMIZED: Dialog handlers
+  // ✅ Dialog handlers
   const dialogHandlers = useMemo(() => ({
     confirmStatusChange: async () => {
-      const { purchase, newStatus } = dialogState.confirmation;
+      const { purchase, newStatus } = dialogState.statusConfirmation;
       if (!purchase || !newStatus || !onStatusChange) return;
 
       try {
         await onStatusChange(purchase.id, newStatus);
-        setDialogState({ confirmation: initialDialogState.confirmation });
+        resetStatus();
         setEditingStatusId(null);
       } catch (error) {
         logger.error('Status change failed:', error);
@@ -233,12 +285,20 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     },
 
     cancelStatusChange: () => {
-      setDialogState({ confirmation: initialDialogState.confirmation });
+      resetStatus();
       setEditingStatusId(null);
-    }
-  }), [dialogState.confirmation, onStatusChange]);
+    },
 
-  // ✅ OPTIMIZED: Sort icon renderer
+    cancelDelete: () => {
+      resetDelete();
+    },
+
+    cancelBulkDelete: () => {
+      resetBulkDelete();
+    }
+  }), [dialogState.statusConfirmation, onStatusChange, resetStatus, resetDelete, resetBulkDelete]);
+
+  // ✅ Sort icon renderer
   const renderSortIcon = useCallback((field: string) => {
     if (sortField !== field) {
       return <ArrowUpDown className="h-4 w-4 opacity-50" />;
@@ -248,13 +308,12 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       <ArrowDown className="h-4 w-4" />;
   }, [sortField, sortOrder]);
 
-  // ✅ COMPONENT: Status dropdown - memoized for performance
-  const StatusDropdown = React.memo<{ 
-    purchase: any; 
-    isEditing: boolean; 
+  // ✅ Status dropdown component
+  const StatusDropdown = React.memo<{
+    purchase: Purchase;
+    isEditing: boolean;
     onStartEdit: () => void;
-    onCancelEdit: () => void;
-  }>(({ purchase, isEditing, onStartEdit, onCancelEdit }) => {
+  }>(({ purchase, isEditing, onStartEdit }) => {
     if (!isEditing) {
       return (
         <Button
@@ -278,11 +337,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       <Select
         value={purchase.status}
         onValueChange={(value: PurchaseStatus) => handleStatusChange(purchase.id, value)}
-        onOpenChange={(open) => {
-          if (!open) {
-            logger.debug('Edit clicked for purchase:', purchase.id);
-          }
-        }}
         defaultOpen={true}
       >
         <SelectTrigger className="w-[120px] h-8">
@@ -302,8 +356,8 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     );
   });
 
-  // ✅ COMPONENT: Action buttons - memoized for performance
-  const ActionButtons = React.memo<{ purchase: any }>(({ purchase }) => {
+  // ✅ Action buttons component - ENHANCED with only Edit and Delete
+  const ActionButtons = React.memo<{ purchase: Purchase }>(({ purchase }) => {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -319,32 +373,18 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="end" 
-          className="w-[160px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
+          className="w-[140px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
           side="bottom"
           sideOffset={4}
           avoidCollisions={true}
           collisionPadding={8}
         >
+          {/* ✅ Edit Menu Item */}
           <DropdownMenuItem 
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              actionHandlers.viewDetails(purchase);
-            }}
-            className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm"
-            role="menuitem"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Lihat Detail
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (purchase.status !== 'completed') {
-                actionHandlers.edit(purchase);
-              }
+              actionHandlers.edit(purchase);
             }}
             disabled={purchase.status === 'completed'}
             className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -354,16 +394,14 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
             Edit
           </DropdownMenuItem>
           
+          {/* ✅ Delete Menu Item - Always Enabled */}
           <DropdownMenuItem 
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (purchase.status !== 'completed') {
-                actionHandlers.delete(purchase.id);
-              }
+              actionHandlers.delete(purchase);
             }}
-            disabled={purchase.status === 'completed'}
-            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm"
             role="menuitem"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -374,7 +412,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     );
   });
 
-  // ✅ EARLY RETURN: Empty state for no data at all
+  // ✅ Early return for empty state
   if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
     return (
       <EmptyState 
@@ -387,7 +425,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
   return (
     <div className="space-y-4">
-      {/* ✅ OPTIMIZED: Filters and Search */}
+      {/* ✅ Filters and Search */}
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           {/* Search */}
@@ -403,7 +441,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
           {/* Filters */}
           <div className="flex gap-2">
-            {/* Status Filter */}
             <Select value={statusFilter} onValueChange={(value: PurchaseStatus | 'all') => setStatusFilter(value)}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
@@ -421,7 +458,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
               </SelectContent>
             </Select>
 
-            {/* Items per page */}
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
               <SelectTrigger className="w-[100px]">
                 <SelectValue />
@@ -446,7 +482,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
           </div>
         )}
 
-        {/* ✅ OPTIMIZED: Bulk Actions */}
+        {/* ✅ ENHANCED: Bulk Actions with Delete */}
         {selectedItems.length > 0 && (
           <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
@@ -457,7 +493,13 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                 <Button size="sm" variant="outline" onClick={() => setSelectedItems([])}>
                   Batal Pilih
                 </Button>
-                <Button size="sm" variant="destructive">
+                <Button 
+                  size="sm" 
+                  variant="destructive"
+                  onClick={actionHandlers.bulkDelete}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
                   Hapus Terpilih
                 </Button>
               </div>
@@ -466,10 +508,9 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         )}
       </Card>
 
-      {/* ✅ OPTIMIZED: Table */}
+      {/* ✅ Table */}
       <Card>
         {!paginationData.hasData ? (
-          // No results state
           <div className="p-12 text-center">
             <div className="max-w-md mx-auto">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
@@ -489,7 +530,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  {/* Select All Checkbox */}
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={isAllSelected}
@@ -498,7 +538,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                     />
                   </TableHead>
 
-                  {/* ✅ OPTIMIZED: Sortable columns */}
                   <TableHead>
                     <Button
                       variant="ghost"
@@ -565,14 +604,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                   <TableRow 
                     key={purchase.id} 
                     className="hover:bg-gray-50"
-                    onClick={(e) => {
-                      // Prevent row click when clicking action buttons
-                      if (e.target.closest('button, [role="menuitem"]')) {
-                        e.stopPropagation();
-                      }
-                    }}
                   >
-                    {/* Select Checkbox */}
                     <TableCell>
                       <Checkbox
                         checked={selectedItems.includes(purchase.id)}
@@ -581,7 +613,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       />
                     </TableCell>
 
-                    {/* Date */}
                     <TableCell>
                       <div>
                         <div className="font-medium">
@@ -597,7 +628,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       </div>
                     </TableCell>
 
-                    {/* Supplier */}
                     <TableCell>
                       <div>
                         <div className="font-medium">
@@ -609,7 +639,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       </div>
                     </TableCell>
 
-                    {/* ✅ OPTIMIZED: Items Summary */}
                     <TableCell>
                       <div>
                         <div className="font-medium text-base text-gray-900">
@@ -628,24 +657,20 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       </div>
                     </TableCell>
 
-                    {/* Total Value */}
                     <TableCell className="text-right">
                       <div className="font-bold text-green-600">
                         {formatCurrency(purchase.totalNilai)}
                       </div>
                     </TableCell>
 
-                    {/* Status with Dropdown */}
                     <TableCell>
                       <StatusDropdown
                         purchase={purchase}
                         isEditing={editingStatusId === purchase.id}
                         onStartEdit={() => setEditingStatusId(purchase.id)}
-                        onCancelEdit={() => setEditingStatusId(null)}
                       />
                     </TableCell>
 
-                    {/* Actions */}
                     <TableCell>
                       <ActionButtons purchase={purchase} />
                     </TableCell>
@@ -654,7 +679,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
               </TableBody>
             </Table>
 
-            {/* ✅ OPTIMIZED: Pagination */}
+            {/* Pagination */}
             {paginationData.showPagination && (
               <div className="flex items-center justify-between px-4 py-3 border-t">
                 <div className="text-sm text-gray-700">
@@ -721,16 +746,144 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         )}
       </Card>
 
-      {/* ✅ OPTIMIZED: Status Change Confirmation Dialog */}
+      {/* ✅ Status Change Confirmation Dialog */}
       <StatusChangeConfirmationDialog
-        isOpen={dialogState.confirmation.isOpen}
-        purchase={dialogState.confirmation.purchase}
-        newStatus={dialogState.confirmation.newStatus!}
-        validation={dialogState.confirmation.validation}
+        isOpen={dialogState.statusConfirmation.isOpen}
+        purchase={dialogState.statusConfirmation.purchase}
+        newStatus={dialogState.statusConfirmation.newStatus!}
+        validation={dialogState.statusConfirmation.validation}
         isUpdating={false}
         onConfirm={dialogHandlers.confirmStatusChange}
         onCancel={dialogHandlers.cancelStatusChange}
       />
+
+      {/* ✅ NEW: Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={dialogState.deleteConfirmation.isOpen} 
+        onOpenChange={dialogHandlers.cancelDelete}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Konfirmasi Hapus Pembelian
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Apakah Anda yakin ingin menghapus pembelian ini?</p>
+              {dialogState.deleteConfirmation.purchase && (
+                <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                  <div className="font-medium">
+                    {getSupplierName(dialogState.deleteConfirmation.purchase.supplier)}
+                  </div>
+                  <div className="text-gray-600">
+                    {new Date(dialogState.deleteConfirmation.purchase.tanggal).toLocaleDateString('id-ID')} • {' '}
+                    {formatCurrency(dialogState.deleteConfirmation.purchase.totalNilai)} • {' '}
+                    Status: <span className="font-medium">{getStatusDisplayText(dialogState.deleteConfirmation.purchase.status)}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {dialogState.deleteConfirmation.purchase.items?.length || 0} item
+                  </div>
+                </div>
+              )}
+              {dialogState.deleteConfirmation.purchase?.status === 'completed' && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">Perhatian</span>
+                  </div>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Pembelian ini sudah selesai. Menghapus akan mempengaruhi laporan dan data stok yang sudah tercatat.
+                  </p>
+                </div>
+              )}
+              <p className="text-red-600 text-sm font-medium">
+                ⚠️ Tindakan ini tidak dapat dibatalkan!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={dialogState.deleteConfirmation.isDeleting}
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={dialogState.deleteConfirmation.isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {dialogState.deleteConfirmation.isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Menghapus...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Hapus Pembelian
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ✅ NEW: Bulk Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={dialogState.bulkDeleteConfirmation.isOpen} 
+        onOpenChange={dialogHandlers.cancelBulkDelete}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Konfirmasi Hapus Massal
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Apakah Anda yakin ingin menghapus <strong>{dialogState.bulkDeleteConfirmation.selectedCount}</strong> pembelian sekaligus?
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="font-medium">Peringatan</span>
+                </div>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Semua data pembelian yang dipilih akan dihapus permanen. Jika ada pembelian dengan status "Selesai", 
+                  hal ini dapat mempengaruhi laporan dan data stok yang sudah tercatat.
+                </p>
+              </div>
+              <p className="text-red-600 text-sm font-medium">
+                ⚠️ Tindakan ini tidak dapat dibatalkan!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={dialogState.bulkDeleteConfirmation.isDeleting}
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              disabled={dialogState.bulkDeleteConfirmation.isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {dialogState.bulkDeleteConfirmation.isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Menghapus...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Hapus {dialogState.bulkDeleteConfirmation.selectedCount} Pembelian
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

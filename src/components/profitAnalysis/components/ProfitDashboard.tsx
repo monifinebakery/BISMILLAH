@@ -27,13 +27,20 @@ import DetailedBreakdownTable from './DetailedBreakdownTable';
 
 // Import hooks and utilities
 import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
-import { formatCurrency, formatPercentage, generatePeriodOptions, getCurrentPeriod } from '../utils/profitTransformers';
+import { generatePeriodOptions, getCurrentPeriod } from '../utils/profitTransformers';
+
+// Import calculation functions - Updated to match actual available functions
 import {
-  calculateAdvancedProfitMetrics,
-  generateProfitForecast,
-  generateCostOptimizationRecommendations,
-  performCompetitiveBenchmarking,
-  generateExecutiveSummary,
+  calculateMargins,
+  comparePeriods,
+  analyzeCostStructure,
+  calculateBreakEvenAnalysis,
+  validateDataQuality,
+  generateExecutiveInsights,
+  formatCurrency,
+  formatPercentage,
+  calculateRollingAverages,
+  getMarginRating,
 } from '../utils/profitCalculations';
 
 // Types
@@ -42,6 +49,190 @@ interface ProfitDashboardProps {
   defaultPeriod?: string;
   showAdvancedMetrics?: boolean;
 }
+
+// Advanced metrics calculation function (replacing the imported one)
+const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: any) => {
+  if (!currentAnalysis) return null;
+  
+  const revenue = currentAnalysis.revenue_data.total;
+  const cogs = currentAnalysis.cogs_data.total;
+  const opex = currentAnalysis.opex_data.total;
+  const margins = calculateMargins(revenue, cogs, opex);
+  
+  const rollingAverages = calculateRollingAverages(profitHistory, 3);
+  
+  return {
+    grossProfitMargin: margins.grossMargin,
+    netProfitMargin: margins.netMargin,
+    monthlyGrowthRate: rollingAverages.marginAverage,
+    marginOfSafety: 0, // Will be calculated by break-even analysis
+    cogsPercentage: margins.cogsPercentage,
+    opexPercentage: margins.opexPercentage,
+    confidenceScore: validateDataQuality(currentAnalysis).score,
+    operatingLeverage: revenue > 0 ? (margins.grossProfit / revenue) * 100 : 0,
+  };
+};
+
+// Forecast generation function (replacing the imported one)
+const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
+  if (profitHistory.length < 3) return null;
+  
+  const rollingAverages = calculateRollingAverages(profitHistory, 3);
+  const currentMargins = calculateMargins(
+    currentAnalysis.revenue_data.total,
+    currentAnalysis.cogs_data.total,
+    currentAnalysis.opex_data.total
+  );
+  
+  // Simple forecast based on rolling averages
+  const baseRevenue = rollingAverages.revenueAverage;
+  const baseProfit = rollingAverages.profitAverage;
+  const baseMargin = rollingAverages.marginAverage;
+  
+  return {
+    nextMonth: {
+      profit: baseProfit * 1.02, // 2% growth assumption
+      margin: baseMargin,
+      confidence: 75
+    },
+    nextQuarter: {
+      profit: baseProfit * 3 * 1.05, // 5% quarterly growth
+      margin: baseMargin * 1.01,
+      confidence: 65
+    },
+    nextYear: {
+      profit: baseProfit * 12 * 1.15, // 15% yearly growth
+      margin: baseMargin * 1.05,
+      confidence: 45
+    }
+  };
+};
+
+// Competitive benchmarking function (replacing the imported one)
+const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any[]) => {
+  if (!advancedMetrics) return null;
+  
+  // Industry averages (these would come from external data in real implementation)
+  const industryAverages = {
+    averageNetMargin: 15, // 15% industry average
+    topQuartileMargin: 25, // 25% top quartile
+  };
+  
+  const currentNetMargin = advancedMetrics.netProfitMargin;
+  
+  // Calculate percentile position
+  let percentile = 50; // Default to median
+  if (currentNetMargin >= industryAverages.topQuartileMargin) {
+    percentile = 90;
+  } else if (currentNetMargin >= industryAverages.averageNetMargin) {
+    percentile = 75;
+  } else if (currentNetMargin >= industryAverages.averageNetMargin * 0.7) {
+    percentile = 50;
+  } else {
+    percentile = 25;
+  }
+  
+  let position = 'poor';
+  if (percentile >= 90) position = 'excellent';
+  else if (percentile >= 75) position = 'good';
+  else if (percentile >= 50) position = 'average';
+  
+  return {
+    industry: industryAverages,
+    competitive: {
+      percentile,
+      position,
+      gapToLeader: Math.max(0, industryAverages.topQuartileMargin - currentNetMargin)
+    }
+  };
+};
+
+// Executive summary generation function (replacing the imported one)
+const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, forecast: any, benchmark: any) => {
+  if (!currentAnalysis || !advancedMetrics) return null;
+  
+  const executiveInsights = generateExecutiveInsights(currentAnalysis);
+  
+  return {
+    insights: executiveInsights.keyHighlights,
+    alerts: executiveInsights.criticalIssues,
+    opportunities: executiveInsights.opportunities
+  };
+};
+
+// Cost optimization recommendations function (replacing the imported one)
+const generateCostOptimizationRecommendations = (currentAnalysis: any, advancedMetrics: any, profitHistory: any[]) => {
+  if (!currentAnalysis || !advancedMetrics) return null;
+  
+  const revenue = currentAnalysis.revenue_data.total;
+  const cogs = currentAnalysis.cogs_data.total;
+  const opex = currentAnalysis.opex_data.total;
+  
+  const recommendations = {
+    immediate: [] as any[],
+    mediumTerm: [] as any[],
+    longTerm: [] as any[]
+  };
+  
+  // Immediate actions (1-3 months)
+  if (advancedMetrics.cogsPercentage > 60) {
+    recommendations.immediate.push({
+      action: "Negotiate better supplier terms or find alternative suppliers",
+      impact: cogs * 0.05, // 5% potential savings
+      effort: "medium",
+      timeframe: "1-2 months",
+      category: "cogs"
+    });
+  }
+  
+  if (advancedMetrics.opexPercentage > 30) {
+    recommendations.immediate.push({
+      action: "Review and eliminate non-essential operational expenses",
+      impact: opex * 0.1, // 10% potential savings
+      effort: "low",
+      timeframe: "1 month",
+      category: "opex"
+    });
+  }
+  
+  // Medium term actions (3-12 months)
+  if (advancedMetrics.grossProfitMargin < 40) {
+    recommendations.mediumTerm.push({
+      action: "Implement lean manufacturing processes to reduce waste",
+      impact: revenue * 0.03, // 3% revenue impact
+      effort: "high",
+      timeframe: "6 months",
+      category: "efficiency"
+    });
+  }
+  
+  recommendations.mediumTerm.push({
+    action: "Automate repetitive processes to reduce labor costs",
+    impact: opex * 0.15, // 15% opex savings
+    effort: "high",
+    timeframe: "6-9 months",
+    category: "automation"
+  });
+  
+  // Long term actions (12+ months)
+  recommendations.longTerm.push({
+    action: "Develop strategic supplier partnerships for better pricing",
+    impact: cogs * 0.1, // 10% COGS savings
+    effort: "high",
+    timeframe: "12-18 months",
+    category: "strategic"
+  });
+  
+  recommendations.longTerm.push({
+    action: "Invest in technology infrastructure for operational efficiency",
+    impact: revenue * 0.05, // 5% revenue improvement
+    effort: "high",
+    timeframe: "18-24 months",
+    category: "technology"
+  });
+  
+  return recommendations;
+};
 
 // Main Profit Dashboard Component
 const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
@@ -67,7 +258,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     enableRealTime: true,
   });
 
-  const { analyzeMargins, comparePeriods, generateForecast } = useProfitCalculation();
+  const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast } = useProfitCalculation();
   const { formatPeriodLabel, exportData } = useProfitData({
     history: profitHistory,
     currentAnalysis,
@@ -83,7 +274,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // Advanced Calculations
   const advancedMetrics = useMemo(() => {
     if (!currentAnalysis || !showAdvancedMetrics) return null;
-    return calculateAdvancedProfitMetrics(profitHistory, currentAnalysis, 0, 0);
+    return calculateAdvancedProfitMetrics(profitHistory, currentAnalysis);
   }, [currentAnalysis, profitHistory, showAdvancedMetrics]);
 
   const forecast = useMemo(() => {

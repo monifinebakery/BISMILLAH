@@ -1,3 +1,4 @@
+// src › components › profitAnalysis › utils › profitCalculations.ts
 import { logger } from '@/utils/logger';
 import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
 import { calculateTotalActiveCosts, calculateOverheadPerUnit } from '@/components/operational-costs/utils/costCalculations';

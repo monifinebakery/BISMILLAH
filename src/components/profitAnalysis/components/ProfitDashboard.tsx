@@ -1,4 +1,15 @@
-import React, { useState, useMemo } from 'react';
+// ==============================================
+// PERBAIKAN UNTUK REACT ERROR #310
+// ==============================================
+
+// MASALAH UTAMA: Dependencies yang tidak stabil dan circular references
+// SOLUSI: Gunakan primitive values dan stabilkan object references
+
+// ==============================================
+// 1. FIXED ProfitDashboard.tsx
+// ==============================================
+
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,129 +60,13 @@ import {
   getMarginRating,
 } from '../utils/profitCalculations';
 
-// ==============================================
-// TYPES
-// ==============================================
-
-export interface ProfitDashboardProps {
-  className?: string;
-  defaultPeriod?: string;
-  showAdvancedMetrics?: boolean;
-}
-
-// ==============================================
-// FUNGSI HELPER
-// ==============================================
-
-// Fungsi kalkulasi metrik profit lanjutan
-const calculateAdvancedProfitMetrics = (profitHistory, currentAnalysis) => {
-  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data) {
-    return null;
-  }
-  
-  const revenue = currentAnalysis.revenue_data.total || 0;
-  const cogs = currentAnalysis.cogs_data.total || 0;
-  const opex = currentAnalysis.opex_data.total || 0;
-  const margins = calculateMargins(revenue, cogs, opex);
-  
-  const rollingAverages = profitHistory && profitHistory.length > 0 ? calculateRollingAverages(profitHistory, 3) : { revenueAverage: 0, profitAverage: 0, marginAverage: 0, volatility: 0 };
-  
-  return {
-    grossProfitMargin: margins.grossMargin,
-    netProfitMargin: margins.netMargin,
-    monthlyGrowthRate: rollingAverages.marginAverage || 0,
-    marginOfSafety: 0, // Akan dihitung oleh analisis break-even
-    cogsPercentage: margins.cogsPercentage,
-    opexPercentage: margins.opexPercentage,
-    confidenceScore: validateDataQuality(currentAnalysis).score || 0,
-    operatingLeverage: revenue > 0 ? (margins.grossProfit / revenue) * 100 : 0,
-  };
-};
-
-// Fungsi generate forecast profit
-const generateProfitForecast = (profitHistory, currentAnalysis) => {
-  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data || !profitHistory || profitHistory.length < 3) {
-    return null;
-  }
-  
-  const rollingAverages = calculateRollingAverages(profitHistory, 3);
-  const currentMargins = calculateMargins(
-    currentAnalysis.revenue_data.total,
-    currentAnalysis.cogs_data.total,
-    currentAnalysis.opex_data.total
-  );
-  
-  const baseRevenue = rollingAverages.revenueAverage || 0;
-  const baseProfit = rollingAverages.profitAverage || 0;
-  const baseMargin = currentMargins.netMargin || 0;
-  
-  return {
-    nextMonth: {
-      profit: baseProfit * 1.02,
-      margin: baseMargin,
-      confidence: 75,
-    },
-    nextQuarter: {
-      profit: baseProfit * 3 * 1.05,
-      margin: baseMargin * 1.01,
-      confidence: 65,
-    },
-    nextYear: {
-      profit: baseProfit * 12 * 1.15,
-      margin: baseMargin * 1.05,
-      confidence: 45,
-    },
-  };
-};
-
-// Fungsi benchmarking kompetitif
-const performCompetitiveBenchmarking = (advancedMetrics, profitHistory) => {
-  if (!advancedMetrics || !advancedMetrics.netProfitMargin) return null;
-  
-  const industryAverages = {
-    averageNetMargin: 15,
-    topQuartileMargin: 25,
-  };
-  
-  const currentNetMargin = advancedMetrics.netProfitMargin;
-  
-  let percentile = 50;
-  if (currentNetMargin >= industryAverages.topQuartileMargin) percentile = 90;
-  else if (currentNetMargin >= industryAverages.averageNetMargin) percentile = 75;
-  else if (currentNetMargin >= industryAverages.averageNetMargin * 0.7) percentile = 50;
-  else percentile = 25;
-  
-  let position = 'kurang';
-  if (percentile >= 90) position = 'sangat baik';
-  else if (percentile >= 75) position = 'baik';
-  else if (percentile >= 50) position = 'rata-rata';
-  
-  return {
-    industry: industryAverages,
-    competitive: {
-      percentile,
-      position,
-      gapToLeader: Math.max(0, industryAverages.topQuartileMargin - currentNetMargin),
-    },
-  };
-};
-
-// Fungsi generate ringkasan eksekutif
-const generateExecutiveSummary = (currentAnalysis, advancedMetrics, forecast, benchmark) => {
-  if (!currentAnalysis || !advancedMetrics || !forecast || !benchmark) return null;
-  
-  const executiveInsights = generateExecutiveInsights(currentAnalysis);
-  
-  return {
-    insights: executiveInsights.keyHighlights,
-    alerts: executiveInsights.criticalIssues,
-    opportunities: executiveInsights.opportunities,
-  };
-};
-
-// ==============================================
-// KOMPONEN UTAMA DASHBOARD PROFIT
-// ==============================================
+// Import fungsi helper
+import {
+  calculateAdvancedProfitMetrics,
+  generateProfitForecast,
+  performCompetitiveBenchmarking,
+  generateExecutiveSummary
+} from '../utils/profitHelpers';
 
 const ProfitDashboard = ({
   className = '',

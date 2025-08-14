@@ -1,6 +1,6 @@
 // ===== 1. UPDATE WarehouseTable.tsx =====
 // src/components/warehouse/components/WarehouseTable.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Edit2, 
@@ -67,6 +67,17 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [showMobileActions, setShowMobileActions] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ✅ TAMBAH: Debug log untuk verifikasi WAC
+  useEffect(() => {
+    if (import.meta.env.DEV && items.length > 0) {
+      console.debug('[WAC check]', items.slice(0,3).map(i => ({
+        nama: i.nama,
+        hargaRataRata: i.hargaRataRata,
+        harga: i.harga
+      })));
+    }
+  }, [items]);
 
   const handleRefresh = async () => {
     if (onRefresh) {
@@ -150,6 +161,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         minimumType: typeof item.minimum,
         harga: item.harga,
         hargaType: typeof item.harga,
+        hargaRataRata: item.hargaRataRata,
         stockLevel: getStockLevel(item),
         isLowStock: isLowStockItem(item),
         isOutOfStock: isOutOfStockItem(item),
@@ -158,7 +170,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     }
   };
 
-  // ✅ UPDATE: Enhanced empty state dengan refresh
   if (!isLoading && items.length === 0) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     
@@ -400,6 +411,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           {/* ✅ UPDATE: Use WAC for price display */}
                           {warehouseUtils.formatCurrency(Number(item.hargaRataRata ?? item.harga) || 0)}
                         </div>
+                        {/* ✅ ADD: WAC indicator */}
+                        {item.hargaRataRata != null && (
+                          <div className="text-xs text-gray-500">
+                            rata-rata
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

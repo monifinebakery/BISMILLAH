@@ -198,7 +198,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     if (!formData.supplier.trim()) errors.push('Supplier harus diisi');
     if (!formData.satuan.trim()) errors.push('Satuan harus diisi');
     if (formData.stok < 0) errors.push('Stok tidak boleh negatif');
-    if (formData.minimum < 0) errors.push('Minimum stok tidak bole stres negatif');
+    if (formData.minimum < 0) errors.push('Minimum stok tidak boleh negatif');
     if (formData.harga <= 0) errors.push('Harga per satuan harus lebih dari 0');
 
     const hasPackageData = formData.jumlahBeliKemasan > 0 || 

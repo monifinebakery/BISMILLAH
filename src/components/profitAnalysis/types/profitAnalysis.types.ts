@@ -1,5 +1,6 @@
-// 1. TYPES - src/components/profitAnalysis/types/profitAnalysis.types.ts
+// src/components/profitAnalysis/types/profitAnalysis.types.ts
 // ==============================================
+// Fixed Types with Compatibility
 
 export interface ProfitAnalysis {
   id: string;
@@ -104,6 +105,57 @@ export interface RealTimeProfitCalculation {
   calculated_at: string;
 }
 
+// Advanced metrics types
+export interface AdvancedProfitMetrics {
+  grossProfitMargin: number;
+  netProfitMargin: number;
+  monthlyGrowthRate: number;
+  marginOfSafety: number;
+  cogsPercentage: number;
+  opexPercentage: number;
+  confidenceScore: number;
+  operatingLeverage: number;
+}
+
+export interface ProfitForecast {
+  nextMonth: {
+    profit: number;
+    margin: number;
+    confidence: number;
+  };
+  nextQuarter: {
+    profit: number;
+    margin: number;
+    confidence: number;
+  };
+  nextYear: {
+    profit: number;
+    margin: number;
+    confidence: number;
+  };
+}
+
+export interface CostOptimizationRecommendations {
+  category: string;
+  currentCost: number;
+  recommendedCost: number;
+  potentialSavings: number;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface ProfitBenchmark {
+  industry: {
+    averageNetMargin: number;
+    topQuartileMargin: number;
+  };
+  competitive: {
+    percentile: number;
+    position: string;
+    gapToLeader: number;
+  };
+}
+
 // API Response Types
 export interface ProfitApiResponse<T = any> {
   data: T;
@@ -112,20 +164,27 @@ export interface ProfitApiResponse<T = any> {
   success: boolean;
 }
 
-// Context Types
+// ✅ FIXED: Context Types - Use RealTimeProfitCalculation instead of ProfitAnalysis
 export interface ProfitAnalysisContextType {
-  // State
-  profitData: ProfitAnalysis[];
-  currentAnalysis: ProfitAnalysis | null;
+  // State - ✅ Fixed to use RealTimeProfitCalculation
+  profitData: RealTimeProfitCalculation[]; // Changed from ProfitAnalysis[]
+  currentAnalysis: RealTimeProfitCalculation | null; // Changed from ProfitAnalysis
   isLoading: boolean;
   error: string | null;
+  lastUpdated: Date | null;
   
   // Actions
   calculateProfit: (period: string, periodType?: 'monthly' | 'quarterly' | 'yearly') => Promise<boolean>;
   loadProfitHistory: (dateRange?: DateRangeFilter) => Promise<void>;
   refreshAnalysis: () => Promise<void>;
+  clearError: () => void;
+  resetState: () => void;
   
   // Utilities
-  getProfitByPeriod: (period: string) => ProfitAnalysis | undefined;
+  getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined; // Changed return type
   calculateRealTimeProfit: (period: string) => Promise<RealTimeProfitCalculation>;
+  
+  // Query status
+  isRefreshing: boolean;
+  isCalculating: boolean;
 }

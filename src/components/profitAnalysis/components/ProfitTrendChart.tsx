@@ -55,29 +55,30 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
   const trendData = useMemo((): TrendData[] => {
     if (!profitHistory || profitHistory.length === 0) return [];
 
-    return profitHistory
-      .sort((a, b) => a.period.localeCompare(b.period)) // Urutkan berdasarkan periode
-      .map(analysis => {
-        const revenue = analysis.revenue_data.total;
-        const cogs = analysis.cogs_data.total;
-        const opex = analysis.opex_data.total;
-        const grossProfit = revenue - cogs;
-        const netProfit = grossProfit - opex;
-        const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-        const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    // Buat salinan array untuk menghindari mutasi
+    const sortedHistory = [...profitHistory].sort((a, b) => a.period.localeCompare(b.period));
+    
+    return sortedHistory.map(analysis => {
+      const revenue = analysis.revenue_data?.total || 0;
+      const cogs = analysis.cogs_data?.total || 0;
+      const opex = analysis.opex_data?.total || 0;
+      const grossProfit = revenue - cogs;
+      const netProfit = grossProfit - opex;
+      const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+      const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-        return {
-          period: analysis.period,
-          periodLabel: getShortPeriodLabel(analysis.period),
-          revenue,
-          cogs,
-          opex,
-          grossProfit,
-          netProfit,
-          grossMargin,
-          netMargin
-        };
-      });
+      return {
+        period: analysis.period,
+        periodLabel: getShortPeriodLabel(analysis.period),
+        revenue,
+        cogs,
+        opex,
+        grossProfit,
+        netProfit,
+        grossMargin,
+        netMargin
+      };
+    });
   }, [profitHistory]);
 
   // ✅ ANALISIS TREN

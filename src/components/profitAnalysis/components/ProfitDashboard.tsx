@@ -1,15 +1,4 @@
-// ==============================================
-// PERBAIKAN UNTUK REACT ERROR #310
-// ==============================================
-
-// MASALAH UTAMA: Dependencies yang tidak stabil dan circular references
-// SOLUSI: Gunakan primitive values dan stabilkan object references
-
-// ==============================================
-// 1. FIXED ProfitDashboard.tsx
-// ==============================================
-
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -60,34 +49,143 @@ import {
   getMarginRating,
 } from '../utils/profitCalculations';
 
-// Import fungsi helper
-import {
-  calculateAdvancedProfitMetrics,
-  generateProfitForecast,
-  performCompetitiveBenchmarking,
-  generateExecutiveSummary
-} from '../utils/profitHelpers';
+// ==============================================
+// TYPES
+// ==============================================
+
+export interface ProfitDashboardProps {
+  className?: string;
+  defaultPeriod?: string;
+  showAdvancedMetrics?: boolean;
+}
+
+// ==============================================
+// FUNGSI HELPER
+// ==============================================
+
+// Fungsi kalkulasi metrik profit lanjutan
+const calculateAdvancedProfitMetrics = (profitHistory, currentAnalysis) => {
+  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data) {
+    return null;
+  }
+  
+  const revenue = currentAnalysis.revenue_data.total || 0;
+  const cogs = currentAnalysis.cogs_data.total || 0;
+  const opex = currentAnalysis.opex_data.total || 0;
+  const margins = calculateMargins(revenue, cogs, opex);
+  
+  const rollingAverages = profitHistory && profitHistory.length > 0 ? calculateRollingAverages(profitHistory, 3) : { revenueAverage: 0, profitAverage: 0, marginAverage: 0, volatility: 0 };
+  
+  return {
+    grossProfitMargin: margins.grossMargin,
+    netProfitMargin: margins.netMargin,
+    monthlyGrowthRate: rollingAverages.marginAverage || 0,
+    marginOfSafety: 0,
+    cogsPercentage: margins.cogsPercentage,
+    opexPercentage: margins.opexPercentage,
+    confidenceScore: validateDataQuality(currentAnalysis).score || 0,
+    operatingLeverage: revenue > 0 ? (margins.grossProfit / revenue) * 100 : 0,
+  };
+};
+
+// Fungsi generate forecast profit
+const generateProfitForecast = (profitHistory, currentAnalysis) => {
+  if (!currentAnalysis || !currentAnalysis.revenue_data || !currentAnalysis.cogs_data || !currentAnalysis.opex_data || !profitHistory || profitHistory.length < 3) {
+    return null;
+  }
+  
+  const rollingAverages = calculateRollingAverages(profitHistory, 3);
+  const currentMargins = calculateMargins(
+    currentAnalysis.revenue_data.total,
+    currentAnalysis.cogs_data.total,
+    currentAnalysis.opex_data.total
+  );
+  
+  const baseRevenue = rollingAverages.revenueAverage || 0;
+  const baseProfit = rollingAverages.profitAverage || 0;
+  const baseMargin = currentMargins.netMargin || 0;
+  
+  return {
+    nextMonth: {
+      profit: baseProfit * 1.02,
+      margin: baseMargin,
+      confidence: 75,
+    },
+    nextQuarter: {
+      profit: baseProfit * 3 * 1.05,
+      margin: baseMargin * 1.01,
+      confidence: 65,
+    },
+    nextYear: {
+      profit: baseProfit * 12 * 1.15,
+      margin: baseMargin * 1.05,
+      confidence: 45,
+    },
+  };
+};
+
+// Fungsi benchmarking kompetitif
+const performCompetitiveBenchmarking = (advancedMetrics, profitHistory) => {
+  if (!advancedMetrics || !advancedMetrics.netProfitMargin) return null;
+  
+  const industryAverages = {
+    averageNetMargin: 15,
+    topQuartileMargin: 25,
+  };
+  
+  const currentNetMargin = advancedMetrics.netProfitMargin;
+  
+  let percentile = 50;
+  if (currentNetMargin >= industryAverages.topQuartileMargin) percentile = 90;
+  else if (currentNetMargin >= industryAverages.averageNetMargin) percentile = 75;
+  else if (currentNetMargin >= industryAverages.averageNetMargin * 0.7) percentile = 50;
+  else percentile = 25;
+  
+  let position = 'kurang';
+  if (percentile >= 90) position = 'sangat baik';
+  else if (percentile >= 75) position = 'baik';
+  else if (percentile >= 50) position = 'rata-rata';
+  
+  return {
+    industry: industryAverages,
+    competitive: {
+      percentile,
+      position,
+      gapToLeader: Math.max(0, industryAverages.topQuartileMargin - currentNetMargin),
+    },
+  };
+};
+
+// Fungsi generate ringkasan eksekutif
+const generateExecutiveSummary = (currentAnalysis, advancedMetrics, forecast, benchmark) => {
+  if (!currentAnalysis || !advancedMetrics) return null;
+  
+  const executiveInsights = generateExecutiveInsights(currentAnalysis);
+  
+  return {
+    insights: executiveInsights.keyHighlights || [],
+    alerts: executiveInsights.criticalIssues || [],
+    opportunities: executiveInsights.opportunities || [],
+  };
+};
+
+// ==============================================
+// KOMPONEN UTAMA DASHBOARD PROFIT
+// ==============================================
 
 const ProfitDashboard = ({
   className = '',
   defaultPeriod,
   showAdvancedMetrics = true,
 }) => {
-  
-  // ✅ FIX: Gunakan ref untuk mencegah re-creation object
-  const stableCurrentAnalysis = useRef(null);
-  const stableProfitHistory = useRef([]);
-
-  // State lokal
+  // State untuk variabel
   const [isDataStale, setIsDataStale] = useState(false);
   const [lastCalculated, setLastCalculated] = useState(null);
-  const [activeTab, setActiveTab] = useState('ikhtisar');
-  const [selectedChartType, setSelectedChartType] = useState('bar');
 
   // Hooks
   const {
-    currentAnalysis: rawCurrentAnalysis,
-    profitHistory: rawProfitHistory,
+    currentAnalysis,
+    profitHistory,
     loading,
     error,
     currentPeriod,
@@ -99,34 +197,32 @@ const ProfitDashboard = ({
     enableRealTime: true,
   });
 
-  // ✅ FIX: Update refs only when data actually changes
-  if (rawCurrentAnalysis !== stableCurrentAnalysis.current) {
-    stableCurrentAnalysis.current = rawCurrentAnalysis;
-  }
-  if (rawProfitHistory !== stableProfitHistory.current) {
-    stableProfitHistory.current = rawProfitHistory;
-  }
+  const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast: generateForecastHook } = useProfitCalculation();
+  const { formatPeriodLabel, exportData } = useProfitData({
+    history: profitHistory,
+    currentAnalysis,
+  });
 
-  // ✅ FIX: Extract ALL primitive values to avoid nested access
-  const currentAnalysis = stableCurrentAnalysis.current;
-  const profitHistory = stableProfitHistory.current;
-  
-  // Extract primitive values safely
+  // State Lokal
+  const [activeTab, setActiveTab] = useState('ikhtisar');
+  const [selectedChartType, setSelectedChartType] = useState('bar');
+
+  // ✅ Extract primitive values untuk menghindari nested access dalam dependencies
   const revenue = currentAnalysis?.revenue_data?.total || 0;
   const cogs = currentAnalysis?.cogs_data?.total || 0;
   const opex = currentAnalysis?.opex_data?.total || 0;
-  const hasCurrentData = Boolean(currentAnalysis && revenue > 0);
-  const hasProfitHistory = Boolean(profitHistory && profitHistory.length > 0);
+  const hasValidData = Boolean(currentAnalysis && revenue > 0);
+  const hasHistoryData = Boolean(profitHistory && profitHistory.length > 0);
   const hasEnoughHistory = Boolean(profitHistory && profitHistory.length >= 3);
 
-  // ✅ FIX: Stable period options
+  // Opsi Periode
   const periodOptions = useMemo(() => {
     return generatePeriodOptions(2023, new Date().getFullYear());
-  }, []); // Empty deps - only changes when component mounts
+  }, []);
 
-  // ✅ FIX: Advanced metrics with stable dependencies
+  // ✅ Kalkulasi Lanjutan dengan dependensi yang stabil
   const advancedMetrics = useMemo(() => {
-    if (!hasCurrentData || !showAdvancedMetrics) return null;
+    if (!hasValidData || !showAdvancedMetrics) return null;
     
     try {
       return calculateAdvancedProfitMetrics(profitHistory || [], currentAnalysis);
@@ -134,11 +230,11 @@ const ProfitDashboard = ({
       console.error('Error calculating advanced metrics:', error);
       return null;
     }
-  }, [hasCurrentData, showAdvancedMetrics, profitHistory, currentAnalysis]);
+  }, [hasValidData, showAdvancedMetrics, profitHistory, currentAnalysis]);
 
-  // ✅ FIX: Forecast with stable dependencies
+  // ✅ Forecast dengan dependensi yang sederhana
   const forecast = useMemo(() => {
-    if (!hasCurrentData || !hasEnoughHistory) return null;
+    if (!hasValidData || !hasEnoughHistory) return null;
     
     try {
       return generateProfitForecast(profitHistory, currentAnalysis);
@@ -146,11 +242,11 @@ const ProfitDashboard = ({
       console.error('Error generating forecast:', error);
       return null;
     }
-  }, [hasCurrentData, hasEnoughHistory, profitHistory, currentAnalysis]);
+  }, [hasValidData, hasEnoughHistory, profitHistory, currentAnalysis]);
 
-  // ✅ FIX: Benchmark with stable dependencies
+  // ✅ Benchmark dengan dependensi yang stabil
   const benchmark = useMemo(() => {
-    if (!advancedMetrics || !hasProfitHistory) return null;
+    if (!advancedMetrics || !hasHistoryData) return null;
     
     try {
       return performCompetitiveBenchmarking(advancedMetrics, profitHistory || []);
@@ -158,11 +254,11 @@ const ProfitDashboard = ({
       console.error('Error performing benchmark:', error);
       return null;
     }
-  }, [advancedMetrics, hasProfitHistory, profitHistory]);
+  }, [advancedMetrics, hasHistoryData, profitHistory]);
 
-  // ✅ FIX: Executive summary with null checks
+  // ✅ Executive summary dengan null safety
   const executiveSummary = useMemo(() => {
-    if (!hasCurrentData || !advancedMetrics) return null;
+    if (!hasValidData || !advancedMetrics) return null;
     
     try {
       return generateExecutiveSummary(currentAnalysis, advancedMetrics, forecast, benchmark);
@@ -170,11 +266,11 @@ const ProfitDashboard = ({
       console.error('Error generating executive summary:', error);
       return null;
     }
-  }, [hasCurrentData, advancedMetrics, forecast, benchmark, currentAnalysis]);
+  }, [hasValidData, advancedMetrics, forecast, benchmark, currentAnalysis]);
 
-  // ✅ FIX: Previous analysis with stable dependencies
+  // Analisis Periode Sebelumnya untuk Perbandingan
   const previousAnalysis = useMemo(() => {
-    if (!currentPeriod || !hasProfitHistory) return null;
+    if (!currentPeriod || !hasHistoryData) return null;
     
     try {
       const [year, month] = currentPeriod.split('-');
@@ -188,9 +284,9 @@ const ProfitDashboard = ({
       console.error('Error finding previous analysis:', error);
       return null;
     }
-  }, [currentPeriod, hasProfitHistory, profitHistory]);
+  }, [currentPeriod, hasHistoryData, profitHistory]);
 
-  // ✅ FIX: useCallback untuk semua handlers
+  // ✅ useCallback untuk semua handlers
   const handlePeriodChange = useCallback((period) => {
     setCurrentPeriod(period);
   }, [setCurrentPeriod]);
@@ -208,9 +304,8 @@ const ProfitDashboard = ({
     if (!currentAnalysis) return;
     
     try {
-      // Safer export logic
       const data = {
-        period: currentAnalysis.period,
+        period: currentAnalysis.period || currentPeriod,
         revenue: revenue,
         cogs: cogs,
         opex: opex,
@@ -231,7 +326,7 @@ const ProfitDashboard = ({
     }
   }, [currentAnalysis, currentPeriod, revenue, cogs, opex]);
 
-  // ✅ FIX: Stable component references
+  // Komponen Seksi Ringkasan Eksekutif
   const ExecutiveSummarySection = useCallback(() => {
     if (!executiveSummary) return null;
 
@@ -304,6 +399,7 @@ const ProfitDashboard = ({
     );
   }, [executiveSummary]);
 
+  // Seksi Forecast
   const ForecastSection = useCallback(() => {
     if (!forecast) return null;
 
@@ -315,43 +411,56 @@ const ProfitDashboard = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { key: 'nextMonth', label: 'Bulan Depan', color: 'blue' },
-              { key: 'nextQuarter', label: 'Kuartal Depan', color: 'green' },
-              { key: 'nextYear', label: 'Tahun Depan', color: 'purple' }
-            ].map(({ key, label, color }) => {
-              const data = forecast[key];
-              if (!data) return null;
-              
-              return (
-                <div key={key} className={`text-center p-4 bg-${color}-50 rounded-lg`}>
-                  <div className="text-sm text-gray-600 mb-1">{label}</div>
-                  <div className={`text-2xl font-bold text-${color}-700 mb-1`}>
-                    {formatCurrency(data.profit || 0)}
-                  </div>
-                  <div className={`text-sm text-${color}-600`}>
-                    {formatPercentage(data.margin || 0)} margin
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    {(data.confidence || 0).toFixed(0)}% keyakinan
-                  </div>
-                </div>
-              );
-            })}
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-sm text-gray-600 mb-1">Bulan Depan</div>
+              <div className="text-2xl font-bold text-blue-700 mb-1">
+                {formatCurrency(forecast.nextMonth?.profit || 0)}
+              </div>
+              <div className="text-sm text-blue-600">
+                {formatPercentage(forecast.nextMonth?.margin || 0)} margin
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {(forecast.nextMonth?.confidence || 0).toFixed(0)}% keyakinan
+              </div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-sm text-gray-600 mb-1">Kuartal Depan</div>
+              <div className="text-2xl font-bold text-green-700 mb-1">
+                {formatCurrency(forecast.nextQuarter?.profit || 0)}
+              </div>
+              <div className="text-sm text-green-600">
+                {formatPercentage(forecast.nextQuarter?.margin || 0)} margin
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {(forecast.nextQuarter?.confidence || 0).toFixed(0)}% keyakinan
+              </div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-sm text-gray-600 mb-1">Tahun Depan</div>
+              <div className="text-2xl font-bold text-purple-700 mb-1">
+                {formatCurrency(forecast.nextYear?.profit || 0)}
+              </div>
+              <div className="text-sm text-purple-600">
+                {formatPercentage(forecast.nextYear?.margin || 0)} margin
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {(forecast.nextYear?.confidence || 0).toFixed(0)}% keyakinan
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }, [forecast]);
 
-  // ✅ RENDER UTAMA dengan error boundaries
+  // Render Utama
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Analisis Profit</h1>
-          <p className="text-gray-600">Analisis profit komprehensif dengan kalkulasi real-time</p>
+          <p className="text-gray-600">Analisis profit komprehensif dengan kalkulasi real-time dan business intelligence</p>
         </div>
         <div className="flex items-center space-x-4 mt-4 lg:mt-0">
           <Select value={currentPeriod} onValueChange={handlePeriodChange}>
@@ -371,23 +480,50 @@ const ProfitDashboard = ({
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
+            className="flex items-center space-x-2"
           >
-            <RotateCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportData}
-            disabled={!hasCurrentData}
+            disabled={!hasValidData}
+            className="flex items-center space-x-2"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-4 h-4" />
+            <span>Export</span>
           </Button>
         </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Indikator Status */}
+      <div className="flex items-center space-x-4">
+        {isDataStale && (
+          <Badge variant="secondary" className="flex items-center space-x-1">
+            <AlertTriangle className="w-3 h-3" />
+            <span>Data mungkin sudah usang</span>
+          </Badge>
+        )}
+        {lastCalculated && (
+          <Badge variant="outline" className="flex items-center space-x-1">
+            <CheckCircle className="w-3 h-3" />
+            <span>Diperbarui: {lastCalculated.toLocaleTimeString()}</span>
+          </Badge>
+        )}
+        {benchmark?.competitive?.position && (
+          <Badge
+            variant={benchmark.competitive.position === 'sangat baik' ? 'default' : 'secondary'}
+            className="flex items-center space-x-1"
+          >
+            <Target className="w-3 h-3" />
+            <span>performa {benchmark.competitive.position}</span>
+          </Badge>
+        )}
+      </div>
+
+      {/* Alert Error */}
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -395,11 +531,11 @@ const ProfitDashboard = ({
         </Alert>
       )}
 
-      {/* Conditional Rendering dengan Guards */}
+      {/* Ringkasan Eksekutif */}
       {showAdvancedMetrics && executiveSummary && <ExecutiveSummarySection />}
 
-      {/* Summary Cards */}
-      {hasCurrentData && (
+      {/* Kartu Ringkasan */}
+      {hasValidData && (
         <ProfitSummaryCards 
           currentAnalysis={currentAnalysis} 
           previousAnalysis={previousAnalysis} 
@@ -407,10 +543,10 @@ const ProfitDashboard = ({
         />
       )}
 
-      {/* Forecast Section */}
+      {/* Seksi Forecast */}
       {showAdvancedMetrics && forecast && <ForecastSection />}
 
-      {/* Tabs with Loading States */}
+      {/* Tab Konten Utama */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="ikhtisar">Ikhtisar</TabsTrigger>
@@ -453,12 +589,12 @@ const ProfitDashboard = ({
         </TabsContent>
 
         <TabsContent value="wawasan" className="space-y-6">
-          {/* Advanced Metrics */}
+          {/* Metrik Lanjutan */}
           {advancedMetrics && (
             <Card>
               <CardHeader>
                 <CardTitle>Analitik Lanjutan</CardTitle>
-                <CardDescription>Metrik performa keuangan detail</CardDescription>
+                <CardDescription>Mendalami metrik performa keuangan</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -491,12 +627,12 @@ const ProfitDashboard = ({
             </Card>
           )}
 
-          {/* Competitive Benchmark */}
+          {/* Benchmark Kompetitif */}
           {benchmark && (
             <Card>
               <CardHeader>
                 <CardTitle>Benchmarking Kompetitif</CardTitle>
-                <CardDescription>Performa vs standar industri</CardDescription>
+                <CardDescription>Bagaimana performa Anda dibandingkan dengan standar industri</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -513,9 +649,15 @@ const ProfitDashboard = ({
                       {benchmark.competitive?.percentile || 0}
                     </div>
                     <div className="text-xs text-gray-500">Persentil</div>
+                    <Badge
+                      variant={benchmark.competitive?.position === 'sangat baik' ? 'default' : 'secondary'}
+                      className="mt-2"
+                    >
+                      {benchmark.competitive?.position || 'Tidak diketahui'}
+                    </Badge>
                   </div>
                   <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-2">Gap ke Leader</div>
+                    <div className="text-sm text-gray-600 mb-2">Gap ke Kuartil Atas</div>
                     <div className="text-xl font-bold text-amber-700 mb-1">
                       {formatPercentage(benchmark.competitive?.gapToLeader || 0)}
                     </div>
@@ -529,16 +671,20 @@ const ProfitDashboard = ({
       </Tabs>
 
       {/* Status Footer */}
-      {hasCurrentData && !loading && (
+      {hasValidData && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-4 h-4 text-green-600" />
-            <span>Analisis selesai untuk {currentPeriod}</span>
+            <span>
+              Analisis selesai untuk {formatPeriodLabel ? formatPeriodLabel(currentPeriod) : formatPeriodLabelTransformer(currentPeriod)}
+            </span>
           </div>
           <span>•</span>
           <span>Pendapatan: {formatCurrency(revenue)}</span>
           <span>•</span>
-          <span>Laba Bersih: {formatCurrency(revenue - cogs - opex)}</span>
+          <span>
+            Laba Bersih: {formatCurrency(revenue - cogs - opex)}
+          </span>
           <span>•</span>
           <span>
             Margin: {formatPercentage(revenue > 0 ? ((revenue - cogs - opex) / revenue) * 100 : 0)}

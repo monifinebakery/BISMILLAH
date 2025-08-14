@@ -47,8 +47,9 @@ interface BreakdownItem {
   type?: string;
 }
 
-// Rest of the component code remains the same...
-// (I'll keep the original implementation from the document)
+// ==============================================
+// KOMPONEN TABEL BREAKDOWN DETAIL
+// ==============================================
 
 const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
   currentAnalysis,
@@ -61,7 +62,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
   const [sortBy, setSortBy] = useState<'name' | 'amount' | 'percentage'>('amount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // ✅ PROCESS BREAKDOWN DATA
+  // ✅ PROSES DATA BREAKDOWN
   const breakdownSections = useMemo((): BreakdownSection[] => {
     if (!currentAnalysis) return [];
 
@@ -69,15 +70,15 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     const cogs = currentAnalysis.cogs_data.total;
     const opex = currentAnalysis.opex_data.total;
 
-    // Revenue Breakdown
+    // Breakdown Pendapatan
     const revenueItems: BreakdownItem[] = currentAnalysis.revenue_data.transactions?.map(t => ({
-      name: t.category || 'Unknown Category',
+      name: t.category || 'Kategori Tidak Diketahui',
       amount: t.amount || 0,
       percentage: revenue > 0 ? ((t.amount || 0) / revenue) * 100 : 0,
       count: 1
     })) || [];
 
-    // Group by category for revenue
+    // Grup berdasarkan kategori untuk pendapatan
     const groupedRevenue = revenueItems.reduce((acc, item) => {
       const existing = acc.find(a => a.name === item.name);
       if (existing) {
@@ -90,33 +91,33 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
       return acc;
     }, [] as BreakdownItem[]);
 
-    // COGS Breakdown (simplified - in real app, this would be more detailed)
+    // Breakdown HPP (disederhanakan - dalam aplikasi nyata, ini akan lebih detail)
     const cogsItems: BreakdownItem[] = [
       {
-        name: 'Material Costs',
-        amount: cogs * 0.8, // Assume 80% material costs
+        name: 'Biaya Bahan Baku',
+        amount: cogs * 0.8, // Asumsi 80% biaya bahan baku
         percentage: cogs > 0 ? 80 : 0,
-        type: 'Direct Material'
+        type: 'Bahan Langsung'
       },
       {
-        name: 'Direct Labor',
-        amount: cogs * 0.2, // Assume 20% direct labor
+        name: 'Tenaga Kerja Langsung',
+        amount: cogs * 0.2, // Asumsi 20% tenaga kerja langsung
         percentage: cogs > 0 ? 20 : 0,
-        type: 'Direct Labor'
+        type: 'Tenaga Kerja Langsung'
       }
     ].filter(item => item.amount > 0);
 
-    // OpEx Breakdown
+    // Breakdown Biaya Operasional
     const opexItems: BreakdownItem[] = currentAnalysis.opex_data.costs?.map(cost => ({
-      name: cost.nama_biaya || cost.name || 'Unknown Cost',
+      name: cost.nama_biaya || cost.name || 'Biaya Tidak Diketahui',
       amount: cost.jumlah_per_bulan || cost.amount || 0,
       percentage: opex > 0 ? ((cost.jumlah_per_bulan || cost.amount || 0) / opex) * 100 : 0,
-      type: cost.jenis || cost.type || 'Unknown'
+      type: cost.jenis || cost.type || 'Tidak Diketahui'
     })) || [];
 
     return [
       {
-        title: 'Revenue Sources',
+        title: 'Sumber Pendapatan',
         icon: DollarSign,
         color: 'text-green-700',
         bgColor: 'bg-green-50',
@@ -124,7 +125,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
         items: groupedRevenue
       },
       {
-        title: 'Cost of Goods Sold (COGS)',
+        title: 'Harga Pokok Penjualan (HPP)',
         icon: ShoppingCart,
         color: 'text-amber-700',
         bgColor: 'bg-amber-50',
@@ -132,7 +133,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
         items: cogsItems
       },
       {
-        title: 'Operational Expenses',
+        title: 'Biaya Operasional',
         icon: Calculator,
         color: 'text-red-700',
         bgColor: 'bg-red-50',
@@ -142,7 +143,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     ];
   }, [currentAnalysis]);
 
-  // ✅ FILTERED SECTIONS
+  // ✅ SEKSI YANG DIFILTER
   const filteredSections = useMemo(() => {
     if (activeTab === 'all') return breakdownSections;
     
@@ -156,7 +157,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     return breakdownSections[sectionIndex] ? [breakdownSections[sectionIndex]] : [];
   }, [breakdownSections, activeTab]);
 
-  // ✅ SORTED ITEMS
+  // ✅ ITEM YANG DIURUTKAN
   const getSortedItems = (items: BreakdownItem[]) => {
     return [...items].sort((a, b) => {
       let aValue: number | string;
@@ -190,21 +191,21 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     });
   };
 
-  // ✅ EXPORT FUNCTION
+  // ✅ FUNGSI EXPORT
   const handleExport = () => {
     const exportData = breakdownSections.flatMap(section => 
       section.items.map(item => ({
-        Category: section.title,
+        Kategori: section.title,
         Item: item.name,
-        Amount: item.amount,
-        Percentage: item.percentage,
-        Type: item.type || 'N/A',
-        Count: item.count || 1
+        Jumlah: item.amount,
+        Persentase: item.percentage,
+        Tipe: item.type || 'N/A',
+        Jumlah_Transaksi: item.count || 1
       }))
     );
 
     const csvContent = [
-      Object.keys(exportData[0]).join(','),
+      Object.keys(exportData[0] || {}).join(','),
       ...exportData.map(row => Object.values(row).join(','))
     ].join('\n');
 
@@ -212,19 +213,19 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `profit-breakdown-${currentAnalysis?.period || 'export'}.csv`;
+    link.download = `breakdown-profit-${currentAnalysis?.period || 'export'}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  // ✅ LOADING STATE
+  // ✅ STATUS LOADING
   if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Detailed Breakdown</CardTitle>
+          <CardTitle>Breakdown Detail</CardTitle>
           <CardDescription>
-            Complete breakdown of revenue sources and cost components
+            Breakdown lengkap sumber pendapatan dan komponen biaya
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -238,21 +239,21 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     );
   }
 
-  // ✅ NO DATA STATE
+  // ✅ STATUS TIDAK ADA DATA
   if (!currentAnalysis || breakdownSections.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Detailed Breakdown</CardTitle>
+          <CardTitle>Breakdown Detail</CardTitle>
           <CardDescription>
-            Complete breakdown of revenue sources and cost components
+            Breakdown lengkap sumber pendapatan dan komponen biaya
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="text-gray-400 text-lg mb-2">No Breakdown Data</div>
+            <div className="text-gray-400 text-lg mb-2">Tidak Ada Data Breakdown</div>
             <div className="text-gray-500 text-sm">
-              Select a period with financial data to view detailed breakdown
+              Pilih periode dengan data keuangan untuk melihat breakdown detail
             </div>
           </div>
         </CardContent>
@@ -260,25 +261,75 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     );
   }
 
-  // ✅ MAIN RENDER - Simplified version for artifact size
+  // ✅ RENDER UTAMA
   return (
     <Card className={className}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Detailed Breakdown</CardTitle>
+            <CardTitle>Breakdown Detail</CardTitle>
             <CardDescription>
-              Complete breakdown of revenue sources and cost components for {currentAnalysis.period}
+              Breakdown lengkap sumber pendapatan dan komponen biaya untuk {currentAnalysis.period}
             </CardDescription>
           </div>
           
-          {/* Export Button */}
+          {/* Tombol Export */}
           {showExport && (
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Export CSV
             </Button>
           )}
+        </div>
+
+        {/* Navigasi Tab */}
+        <div className="flex space-x-2 mt-4">
+          {[
+            { key: 'all', label: 'Semua Kategori' },
+            { key: 'revenue', label: 'Pendapatan' },
+            { key: 'cogs', label: 'HPP' },
+            { key: 'opex', label: 'Biaya Ops' }
+          ].map(tab => (
+            <Button
+              key={tab.key}
+              variant={activeTab === tab.key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab(tab.key as any)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Kontrol Urutan */}
+        <div className="flex space-x-2 mt-2">
+          <span className="text-sm text-gray-600 py-2">Urutkan berdasarkan:</span>
+          {[
+            { key: 'amount', label: 'Jumlah' },
+            { key: 'percentage', label: 'Persentase' },
+            { key: 'name', label: 'Nama' }
+          ].map(sort => (
+            <Button
+              key={sort.key}
+              variant={sortBy === sort.key ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => {
+                if (sortBy === sort.key) {
+                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setSortBy(sort.key as any);
+                  setSortOrder('desc');
+                }
+              }}
+            >
+              {sort.label}
+              {sortBy === sort.key && (
+                <span className="ml-1">
+                  {sortOrder === 'desc' ? '↓' : '↑'}
+                </span>
+              )}
+            </Button>
+          ))}
         </div>
       </CardHeader>
       
@@ -290,7 +341,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
             
             return (
               <div key={sectionIndex}>
-                {/* Section Header */}
+                {/* Header Seksi */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className={`p-2 rounded-lg ${section.bgColor}`}>
@@ -307,31 +358,35 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                   </div>
                   
                   <Badge variant="secondary">
-                    {sortedItems.length} items
+                    {sortedItems.length} item
                   </Badge>
                 </div>
 
-                {/* Items Table */}
+                {/* Tabel Item */}
                 <div className={`rounded-lg border ${section.bgColor} border-opacity-20`}>
                   <Table>
                     <TableHeader>
                       <TableRow className="border-b border-gray-200">
                         <TableHead className="font-semibold">Item</TableHead>
-                        <TableHead className="font-semibold text-right">Amount</TableHead>
-                        <TableHead className="font-semibold text-right">Percentage</TableHead>
-                        <TableHead className="font-semibold text-center">Details</TableHead>
+                        <TableHead className="font-semibold text-right">Jumlah</TableHead>
+                        <TableHead className="font-semibold text-right">Persentase</TableHead>
+                        <TableHead className="font-semibold text-center">Detail</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sortedItems.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                            No items found for {section.title.toLowerCase()}
+                            Tidak ada item ditemukan untuk {section.title.toLowerCase()}
                           </TableCell>
                         </TableRow>
                       ) : (
                         sortedItems.map((item, itemIndex) => (
                           <TableRow key={itemIndex} className="hover:bg-white hover:bg-opacity-50 transition-colors">
+                            <TableCell className="font-medium">
+                              {item.name}
+                            </TableCell>
+                            
                             <TableCell className="text-right font-semibold">
                               {formatCurrency(item.amount)}
                             </TableCell>
@@ -356,7 +411,15 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                             
                             <TableCell className="text-center">
                               <Badge variant="outline" className="text-xs">
-                                {item.type || (item.count ? `${item.count} transaction${(item.count || 0) > 1 ? 's' : ''}` : 'N/A')}
+                                {item.type ? (
+                                  item.type === 'tetap' ? 'Tetap' : 
+                                  item.type === 'variabel' ? 'Variabel' : 
+                                  item.type === 'Bahan Langsung' ? 'Bahan Langsung' :
+                                  item.type === 'Tenaga Kerja Langsung' ? 'Tenaga Kerja' :
+                                  item.type
+                                ) : (
+                                  item.count ? `${item.count} transaksi` : 'N/A'
+                                )}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -366,28 +429,28 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                   </Table>
                 </div>
 
-                {/* Section Summary */}
+                {/* Ringkasan Seksi */}
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">Total Items:</span>
+                      <span className="text-gray-600">Total Item:</span>
                       <span className="ml-2 font-semibold">{sortedItems.length}</span>
                     </div>
                     
                     <div>
-                      <span className="text-gray-600">Total Amount:</span>
+                      <span className="text-gray-600">Total Jumlah:</span>
                       <span className="ml-2 font-semibold">{formatCurrency(section.total)}</span>
                     </div>
                     
                     <div>
-                      <span className="text-gray-600">Average per Item:</span>
+                      <span className="text-gray-600">Rata-rata per Item:</span>
                       <span className="ml-2 font-semibold">
                         {formatCurrency(sortedItems.length > 0 ? section.total / sortedItems.length : 0)}
                       </span>
                     </div>
                     
                     <div>
-                      <span className="text-gray-600">Largest Item:</span>
+                      <span className="text-gray-600">Item Terbesar:</span>
                       <span className="ml-2 font-semibold">
                         {sortedItems.length > 0 
                           ? formatPercentage(Math.max(...sortedItems.map(i => i.percentage)))
@@ -402,37 +465,37 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
           })}
         </div>
 
-        {/* Overall Summary */}
+        {/* Ringkasan Keseluruhan */}
         {activeTab === 'all' && breakdownSections.length > 0 && (
           <div className="mt-8 pt-6 border-t">
-            <h4 className="font-semibold text-gray-800 mb-4">Overall Summary</h4>
+            <h4 className="font-semibold text-gray-800 mb-4">Ringkasan Keseluruhan</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Revenue Summary */}
+              {/* Ringkasan Pendapatan */}
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-700 mb-1">
                   {formatCurrency(breakdownSections[0]?.total || 0)}
                 </div>
-                <div className="text-sm text-green-600">Total Revenue</div>
+                <div className="text-sm text-green-600">Total Pendapatan</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  From {breakdownSections[0]?.items.length || 0} sources
+                  Dari {breakdownSections[0]?.items.length || 0} sumber
                 </div>
               </div>
 
-              {/* Costs Summary */}
+              {/* Ringkasan Biaya */}
               <div className="text-center p-4 bg-red-50 rounded-lg">
                 <div className="text-2xl font-bold text-red-700 mb-1">
                   {formatCurrency(
                     (breakdownSections[1]?.total || 0) + (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-red-600">Total Costs</div>
+                <div className="text-sm text-red-600">Total Biaya</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  COGS + OpEx
+                  HPP + Biaya Ops
                 </div>
               </div>
 
-              {/* Profit Summary */}
+              {/* Ringkasan Profit */}
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-700 mb-1">
                   {formatCurrency(
@@ -441,7 +504,7 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
                     (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-blue-600">Net Profit</div>
+                <div className="text-sm text-blue-600">Laba Bersih</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {formatPercentage(
                     breakdownSections[0]?.total > 0

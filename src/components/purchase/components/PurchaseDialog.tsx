@@ -117,7 +117,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setShowAddItem(false);
       handleCancelEditItem();
     }
-  }, [isOpen, setNewItem, setShowAddItem, handleCancelEditItem]);
+    // We intentionally only depend on `isOpen` to avoid resetting
+    // state on every render which would prevent the add-item form
+    // from toggling correctly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {

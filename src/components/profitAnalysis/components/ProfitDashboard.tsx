@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -60,7 +60,7 @@ export interface ProfitDashboardProps {
 }
 
 // ==============================================
-// HELPER FUNCTIONS - MOVED OUTSIDE COMPONENT
+// HELPER FUNCTIONS - PURE FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
 const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
@@ -187,6 +187,23 @@ const generateExecutiveSummaryHelper = (currentAnalysis, advancedMetrics) => {
   }
 };
 
+const findPreviousAnalysis = (currentPeriod, profitHistory) => {
+  if (!currentPeriod || !profitHistory?.length) return null;
+  
+  try {
+    const [year, month] = currentPeriod.split('-');
+    const currentDate = new Date(parseInt(year), parseInt(month) - 1);
+    const previousDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);
+    const previousPeriod = `${previousDate.getFullYear()}-${(previousDate.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}`;
+    return profitHistory.find((h) => h.period === previousPeriod) || null;
+  } catch (error) {
+    console.error('Error finding previous analysis:', error);
+    return null;
+  }
+};
+
 // ==============================================
 // MAIN COMPONENT
 // ==============================================
@@ -196,13 +213,13 @@ const ProfitDashboard = ({
   defaultPeriod,
   showAdvancedMetrics = true,
 }) => {
-  // State
+  // ✅ SEMUA STATE HOOKS DI ATAS - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
   const [isDataStale, setIsDataStale] = useState(false);
   const [lastCalculated, setLastCalculated] = useState(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  // Hooks
+  // ✅ SEMUA CUSTOM HOOKS DI SINI - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
   const {
     currentAnalysis,
     profitHistory,
@@ -218,15 +235,16 @@ const ProfitDashboard = ({
   });
 
   const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast: generateForecastHook } = useProfitCalculation();
+  
   const { formatPeriodLabel, exportData } = useProfitData({
     history: profitHistory,
     currentAnalysis,
   });
 
-  // ✅ NO useMemo - Calculate on every render (React can handle this)
+  // ✅ SEMUA CALCULATIONS SETELAH HOOKS - TANPA CONDITIONAL HOOKS
   const periodOptions = generatePeriodOptions(2023, new Date().getFullYear());
   
-  // ✅ Direct calculations without useMemo
+  // Calculate derived data
   const advancedMetrics = showAdvancedMetrics ? 
     calculateAdvancedMetricsHelper(profitHistory, currentAnalysis) : null;
   
@@ -239,37 +257,26 @@ const ProfitDashboard = ({
   const executiveSummary = showAdvancedMetrics ? 
     generateExecutiveSummaryHelper(currentAnalysis, advancedMetrics) : null;
 
-  // Previous analysis calculation
-  let previousAnalysis = null;
-  if (currentPeriod && profitHistory?.length > 0) {
-    try {
-      const [year, month] = currentPeriod.split('-');
-      const currentDate = new Date(parseInt(year), parseInt(month) - 1);
-      const previousDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);
-      const previousPeriod = `${previousDate.getFullYear()}-${(previousDate.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}`;
-      previousAnalysis = profitHistory.find((h) => h.period === previousPeriod) || null;
-    } catch (error) {
-      console.error('Error finding previous analysis:', error);
-    }
-  }
+  const previousAnalysis = findPreviousAnalysis(currentPeriod, profitHistory);
 
-  // ✅ Simple event handlers with useCallback
-  const handlePeriodChange = useCallback((period) => {
+  // Check if we have valid data
+  const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
+
+  // ✅ EVENT HANDLERS - TIDAK MENGGUNAKAN useCallback UNTUK MENGHINDARI HOOK ISSUES
+  const handlePeriodChange = (period) => {
     setCurrentPeriod(period);
-  }, [setCurrentPeriod]);
+  };
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = async () => {
     try {
       await refreshAnalysis();
       setLastCalculated(new Date());
     } catch (error) {
       console.error('Error refreshing:', error);
     }
-  }, [refreshAnalysis]);
+  };
 
-  const handleExportData = useCallback(() => {
+  const handleExportData = () => {
     if (!currentAnalysis) return;
     
     try {
@@ -290,9 +297,9 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
     } catch (error) {
       console.error('Error exporting:', error);
     }
-  }, [currentAnalysis, currentPeriod]);
+  };
 
-  // ✅ Simple render functions without useMemo/useCallback
+  // ✅ RENDER FUNCTIONS - SIMPLE FUNCTIONS TANPA HOOKS
   const renderExecutiveSummary = () => {
     if (!executiveSummary || !showAdvancedMetrics) return null;
 
@@ -424,9 +431,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
     );
   };
 
-  // ✅ Check if we have valid data
-  const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
-
+  // ✅ MAIN RENDER - PASTIKAN TIDAK ADA CONDITIONAL HOOKS
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}

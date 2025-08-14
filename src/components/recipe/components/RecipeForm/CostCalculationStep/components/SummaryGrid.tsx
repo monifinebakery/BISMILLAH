@@ -11,7 +11,7 @@ interface SummaryGridProps {
   breakEvenPoint: number;
   totalRevenue: number;
   jumlahPorsi: number;
-  jumlahPcsPerPorsi: number; // ✅ NEW: Added to show per-pcs calculations
+  jumlahPcsPerPorsi: number; // ✅ Sesuai dengan kolom database: jumlah_pcs_per_porsi
   marginKeuntunganPersen: number;
 }
 
@@ -22,7 +22,7 @@ interface SummaryCardProps {
   subtitle: string;
   bgColor: string;
   iconColor: string;
-  badge?: string; // ✅ NEW: Optional badge for additional info
+  badge?: string; // ✅ Optional badge for additional info
 }
 
 const SummaryCardItem: React.FC<SummaryCardProps> = ({
@@ -35,7 +35,7 @@ const SummaryCardItem: React.FC<SummaryCardProps> = ({
   badge,
 }) => (
   <div className="bg-white rounded-lg p-4 border border-gray-200 relative">
-    {/* ✅ NEW: Badge for special indicators */}
+    {/* ✅ Badge for special indicators */}
     {badge && (
       <div className="absolute top-2 right-2">
         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
@@ -71,10 +71,10 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
   breakEvenPoint,
   totalRevenue,
   jumlahPorsi,
-  jumlahPcsPerPorsi,
+  jumlahPcsPerPorsi, // ✅ Gunakan props yang sudah ada
   marginKeuntunganPersen,
 }) => {
-  // ✅ Calculate total pieces for better context
+  // ✅ Calculate total pieces untuk konteks yang lebih baik
   const totalPieces = jumlahPorsi * jumlahPcsPerPorsi;
   const showPerPcsData = jumlahPcsPerPorsi > 1;
 
@@ -113,22 +113,22 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
     }
   ];
 
-  // ✅ NEW: Additional HPP per unit breakdown cards
+  // ✅ HPP per unit breakdown cards - sesuaikan dengan struktur database
   const hppBreakdownItems = [
     {
       icon: <Utensils className="w-4 h-4" />,
       title: "HPP PER PORSI",
-      value: formatCurrency(costBreakdown.costPerPortion),
+      value: formatCurrency(costBreakdown.costPerPortion || costBreakdown.hppPerPorsi), // ✅ Fallback untuk hpp_per_porsi
       subtitle: `${jumlahPcsPerPorsi} pcs per porsi`,
       bgColor: "bg-indigo-100",
       iconColor: "text-indigo-600",
       badge: "Per Porsi"
     },
-    // ✅ Only show per-pcs if there are multiple pieces per portion
+    // ✅ Hanya tampilkan per-pcs jika ada multiple pieces per portion
     ...(showPerPcsData ? [{
       icon: <Package className="w-4 h-4" />,
       title: "HPP PER PCS",
-      value: formatCurrency(costBreakdown.costPerPiece),
+      value: formatCurrency(costBreakdown.costPerPiece || costBreakdown.hppPerPcs), // ✅ Fallback untuk hpp_per_pcs
       subtitle: `Total ${totalPieces} pcs`,
       bgColor: "bg-teal-100",
       iconColor: "text-teal-600",
@@ -137,17 +137,17 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
     {
       icon: <DollarSign className="w-4 h-4" />,
       title: "HARGA JUAL PORSI",
-      value: formatCurrency(profitAnalysis.sellingPricePerPortion),
+      value: formatCurrency(profitAnalysis.sellingPricePerPortion || profitAnalysis.hargaJualPorsi), // ✅ Fallback untuk harga_jual_porsi
       subtitle: `Profit: ${formatCurrency(profitAnalysis.profitPerPortion)}`,
       bgColor: "bg-emerald-100",
       iconColor: "text-emerald-600",
       badge: "Jual Porsi"
     },
-    // ✅ Only show selling price per pcs if there are multiple pieces
+    // ✅ Hanya tampilkan selling price per pcs jika ada multiple pieces
     ...(showPerPcsData ? [{
       icon: <Package className="w-4 h-4" />,
       title: "HARGA JUAL PCS",
-      value: formatCurrency(profitAnalysis.sellingPricePerPiece),
+      value: formatCurrency(profitAnalysis.sellingPricePerPiece || profitAnalysis.hargaJualPerPcs), // ✅ Fallback untuk harga_jual_per_pcs
       subtitle: `Profit: ${formatCurrency(profitAnalysis.profitPerPiece)}`,
       bgColor: "bg-cyan-100",
       iconColor: "text-cyan-600",
@@ -182,7 +182,7 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
         </CardContent>
       </Card>
 
-      {/* ✅ NEW: HPP & Pricing Breakdown */}
+      {/* ✅ HPP & Pricing Breakdown */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -213,7 +213,7 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
             ))}
           </div>
 
-          {/* ✅ NEW: Quick comparison table when per-pcs data exists */}
+          {/* ✅ Quick comparison table when per-pcs data exists */}
           {showPerPcsData && (
             <div className="mt-6 bg-white rounded-lg p-4 border border-blue-200">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -222,18 +222,26 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
               </h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
-                  <div className="font-medium text-gray-800 border-b pb-1">Per Porsi ({jumlahPcsPerPorsi} pcs)</div>
+                  <div className="font-medium text-gray-800 border-b pb-1">
+                    Per Porsi ({jumlahPcsPerPorsi} pcs)
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">HPP:</span>
-                    <span className="font-medium">{formatCurrency(costBreakdown.costPerPortion)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(costBreakdown.costPerPortion || costBreakdown.hppPerPorsi)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Harga Jual:</span>
-                    <span className="font-medium text-green-700">{formatCurrency(profitAnalysis.sellingPricePerPortion)}</span>
+                    <span className="font-medium text-green-700">
+                      {formatCurrency(profitAnalysis.sellingPricePerPortion || profitAnalysis.hargaJualPorsi)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Profit:</span>
-                    <span className="font-medium text-purple-700">{formatCurrency(profitAnalysis.profitPerPortion)}</span>
+                    <span className="font-medium text-purple-700">
+                      {formatCurrency(profitAnalysis.profitPerPortion)}
+                    </span>
                   </div>
                 </div>
                 
@@ -241,15 +249,21 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
                   <div className="font-medium text-gray-800 border-b pb-1">Per Pcs</div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">HPP:</span>
-                    <span className="font-medium">{formatCurrency(costBreakdown.costPerPiece)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(costBreakdown.costPerPiece || costBreakdown.hppPerPcs)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Harga Jual:</span>
-                    <span className="font-medium text-green-700">{formatCurrency(profitAnalysis.sellingPricePerPiece)}</span>
+                    <span className="font-medium text-green-700">
+                      {formatCurrency(profitAnalysis.sellingPricePerPiece || profitAnalysis.hargaJualPerPcs)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Profit:</span>
-                    <span className="font-medium text-purple-700">{formatCurrency(profitAnalysis.profitPerPiece)}</span>
+                    <span className="font-medium text-purple-700">
+                      {formatCurrency(profitAnalysis.profitPerPiece)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -257,7 +271,9 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
               {/* ✅ Total calculation summary */}
               <div className="mt-4 pt-3 border-t border-gray-200">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">Total untuk {jumlahPorsi} porsi ({totalPieces} pcs):</span>
+                  <span className="text-gray-600">
+                    Total untuk {jumlahPorsi} porsi ({totalPieces} pcs):
+                  </span>
                   <div className="space-x-4">
                     <span className="text-gray-800">
                       HPP: <span className="font-medium">{formatCurrency(costBreakdown.totalProductionCost)}</span>

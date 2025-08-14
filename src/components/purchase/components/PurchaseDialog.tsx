@@ -117,7 +117,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setShowAddItem(false);
       handleCancelEditItem();
     }
-  }, [isOpen, setNewItem, setShowAddItem, handleCancelEditItem]);
+    // We intentionally only depend on `isOpen` to avoid resetting
+    // state on every render which would prevent the add-item form
+    // from toggling correctly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -396,9 +400,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             <SelectValue placeholder="Pilih bahan baku" />
                           </SelectTrigger>
                           <SelectContent>
-                            {bahanBaku
-                              .filter(bahan => !formData.items.some(item => item.bahanBakuId === bahan.id))
-                              .map((bahan) => (
+                            {bahanBaku.map((bahan) => (
                               <SelectItem key={bahan.id} value={bahan.id}>
                                 {bahan.nama} ({bahan.satuan})
                               </SelectItem>

@@ -1,23 +1,17 @@
 // src/components/purchase/services/purchaseApi.ts
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { Purchase, CreatePurchaseRequest, PurchaseApiResponse } from '../types/purchase.types';
-import { 
-  transformPurchasesFromDB, 
+import type { Purchase } from '../types/purchase.types';
+import {
+  transformPurchasesFromDB,
   transformPurchaseFromDB,
   transformPurchaseForDB,
-  transformPurchaseUpdateForDB 
+  transformPurchaseUpdateForDB
 } from '../utils/purchaseTransformers';
 
-/**
- * API service class for purchase operations
- */
 export class PurchaseApiService {
-  /**
-   * Fetch all purchases for a user
-   */
-  static async fetchPurchases(userId: string): Promise<PurchaseApiResponse> {
+  /** Get all purchases */
+  static async fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
     try {
       const { data, error } = await supabase
         .from('purchases')
@@ -25,28 +19,15 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .order('tanggal', { ascending: false });
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const transformedData = data ? transformPurchasesFromDB(data) : [];
-
-      return {
-        data: transformedData,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error fetching purchases:', error);
-      return {
-        data: null,
-        error: error.message || 'Gagal memuat data pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { data: transformPurchasesFromDB(data ?? []), error: null };
+    } catch (err: any) {
+      logger.error('Error fetching purchases:', err);
+      return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
 
-  /**
-   * Fetch single purchase by ID
-   */
+  /** Get one purchase */
   static async fetchPurchaseById(id: string, userId: string): Promise<{ data: Purchase | null; error: string | null }> {
     try {
       const { data, error } = await supabase
@@ -56,60 +37,38 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const transformedData = data ? transformPurchaseFromDB(data) : null;
-
-      return {
-        data: transformedData,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error fetching purchase:', error);
-      return {
-        data: null,
-        error: error.message || 'Gagal memuat data pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { data: data ? transformPurchaseFromDB(data) : null, error: null };
+    } catch (err: any) {
+      logger.error('Error fetching purchase:', err);
+      return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
 
-  /**
-   * Create new purchase using RPC function
-   */
+  /** Create purchase (status biasanya 'pending' dulu) */
   static async createPurchase(
     purchaseData: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
     userId: string
   ): Promise<{ success: boolean; error: string | null; purchaseId?: string }> {
     try {
-      const transformedData = transformPurchaseForDB(purchaseData, userId);
+      const payload = transformPurchaseForDB(purchaseData, userId);
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert(payload)
+        .select('id')
+        .single();
 
-      // Use RPC function for complex purchase creation with stock update
-      const { data, error } = await supabase.rpc('add_purchase_and_update_stock', {
-        purchase_data: transformedData,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        success: true,
-        error: null,
-        purchaseId: data,
-      };
-    } catch (error: any) {
-      logger.error('Error creating purchase:', error);
-      return {
-        success: false,
-        error: error.message || 'Gagal membuat pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { success: true, error: null, purchaseId: data?.id };
+    } catch (err: any) {
+      logger.error('Error creating purchase:', err);
+      return { success: false, error: err.message || 'Gagal membuat pembelian' };
     }
   }
 
   /**
-   * Update existing purchase
+   * Update purchase (BOLEH meski sudah completed).
+   * Perubahan items/total/status akan otomatis disinkronkan ke stok & WAC oleh trigger di DB.
    */
   static async updatePurchase(
     id: string,
@@ -117,33 +76,53 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      const transformedData = transformPurchaseUpdateForDB(updatedData);
-
+      const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
-        .update(transformedData)
+        .update(payload)
         .eq('id', id)
         .eq('user_id', userId);
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        success: true,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error updating purchase:', error);
-      return {
-        success: false,
-        error: error.message || 'Gagal memperbarui pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { success: true, error: null };
+    } catch (err: any) {
+      logger.error('Error updating purchase:', err);
+      return { success: false, error: err.message || 'Gagal memperbarui pembelian' };
     }
   }
 
   /**
-   * Delete purchase
+   * Set status (pending/completed/cancelled).
+   * Saat set ke 'completed', trigger DB akan:
+   * - menambah stok,
+   * - hitung WAC (harga_rata_rata),
+   * - tandai applied_at,
+   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+   */
+  static async setPurchaseStatus(
+    id: string,
+    userId: string,
+    newStatus: Purchase['status']
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { error } = await supabase
+        .from('purchases')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) throw new Error(error.message);
+      return { success: true, error: null };
+    } catch (err: any) {
+      logger.error('Error updating status:', err);
+      return { success: false, error: err.message || 'Gagal update status' };
+    }
+  }
+
+  /**
+   * Delete purchase.
+   * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
+   * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
    */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
@@ -153,131 +132,67 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId);
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        success: true,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error deleting purchase:', error);
-      return {
-        success: false,
-        error: error.message || 'Gagal menghapus pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { success: true, error: null };
+    } catch (err: any) {
+      logger.error('Error deleting purchase:', err);
+      return { success: false, error: err.message || 'Gagal menghapus pembelian' };
     }
   }
 
-  /**
-   * Bulk delete purchases
-   */
-  static async bulkDeletePurchases(ids: string[], userId: string): Promise<{ 
-    success: boolean; 
-    error: string | null; 
-    results?: { successful: number; failed: number } 
-  }> {
+  /** Bulk delete */
+  static async bulkDeletePurchases(
+    ids: string[],
+    userId: string
+  ): Promise<{ success: boolean; error: string | null; results?: { successful: number; failed: number } }> {
     try {
-      const deletePromises = ids.map(id => this.deletePurchase(id, userId));
+      const deletePromises = ids.map((id) => this.deletePurchase(id, userId));
       const results = await Promise.allSettled(deletePromises);
-
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+      const successful = results.filter((r) => r.status === 'fulfilled' && (r as any).value.success).length;
       const failed = results.length - successful;
 
       return {
         success: successful > 0,
         error: failed > 0 ? `${failed} dari ${results.length} gagal dihapus` : null,
-        results: { successful, failed },
+        results: { successful, failed }
       };
-    } catch (error: any) {
-      logger.error('Error bulk deleting purchases:', error);
-      return {
-        success: false,
-        error: error.message || 'Gagal menghapus pembelian',
-      };
+    } catch (err: any) {
+      logger.error('Error bulk deleting purchases:', err);
+      return { success: false, error: err.message || 'Gagal menghapus pembelian' };
     }
   }
 
-  /**
-   * Get purchase statistics using RPC function
-   */
-  static async getPurchaseStats(userId: string): Promise<{
-    data: {
-      total_purchases: number;
-      total_value: number;
-      pending_count: number;
-      completed_count: number;
-      cancelled_count: number;
-    } | null;
-    error: string | null;
-  }> {
+  /** Stats via RPC (optional, kalau sudah ada function-nya) */
+  static async getPurchaseStats(userId: string) {
     try {
-      const { data, error } = await supabase.rpc('get_purchase_stats', {
-        p_user_id: userId,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        data: data?.[0] || null,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error getting purchase stats:', error);
-      return {
-        data: null,
-        error: error.message || 'Gagal memuat statistik pembelian',
-      };
+      const { data, error } = await supabase.rpc('get_purchase_stats', { p_user_id: userId });
+      if (error) throw new Error(error.message);
+      return { data: data?.[0] || null, error: null as string | null };
+    } catch (err: any) {
+      logger.error('Error getting purchase stats:', err);
+      return { data: null, error: err.message || 'Gagal memuat statistik pembelian' };
     }
   }
 
-  /**
-   * Get purchases by date range using RPC function
-   */
-  static async getPurchasesByDateRange(
-    userId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<PurchaseApiResponse> {
+  /** Date range via RPC (optional, kalau sudah ada function-nya) */
+  static async getPurchasesByDateRange(userId: string, startDate: Date, endDate: Date) {
     try {
       const { data, error } = await supabase.rpc('get_purchases_by_date_range', {
         p_user_id: userId,
-        p_start_date: startDate.toISOString().split('T')[0],
-        p_end_date: endDate.toISOString().split('T')[0],
+        p_start_date: startDate.toISOString().slice(0, 10),
+        p_end_date: endDate.toISOString().slice(0, 10)
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const transformedData = data ? transformPurchasesFromDB(data) : [];
-
-      return {
-        data: transformedData,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error fetching purchases by date range:', error);
-      return {
-        data: null,
-        error: error.message || 'Gagal memuat data pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { data: transformPurchasesFromDB(data ?? []), error: null };
+    } catch (err: any) {
+      logger.error('Error fetching purchases by date range:', err);
+      return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
 
-  /**
-   * Search purchases by query
-   */
-  static async searchPurchases(
-    userId: string,
-    query: string,
-    limit: number = 50
-  ): Promise<PurchaseApiResponse> {
+  /** Simple search */
+  static async searchPurchases(userId: string, query: string, limit = 50) {
     try {
-      // Simple text search in supplier and items
       const { data, error } = await supabase
         .from('purchases')
         .select('*')
@@ -286,35 +201,19 @@ export class PurchaseApiService {
         .order('tanggal', { ascending: false })
         .limit(limit);
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const transformedData = data ? transformPurchasesFromDB(data) : [];
-
-      return {
-        data: transformedData,
-        error: null,
-      };
-    } catch (error: any) {
-      logger.error('Error searching purchases:', error);
-      return {
-        data: null,
-        error: error.message || 'Gagal mencari data pembelian',
-      };
+      if (error) throw new Error(error.message);
+      return { data: transformPurchasesFromDB(data ?? []), error: null };
+    } catch (err: any) {
+      logger.error('Error searching purchases:', err);
+      return { data: null, error: err.message || 'Gagal mencari data pembelian' };
     }
   }
 }
 
-/**
- * Real-time subscription manager for purchases
- */
+/** Realtime (purchases). Tambahkan realtime bahan_baku di Warehouse context agar stok auto-refresh */
 export class PurchaseRealtimeService {
   private static channels: Map<string, any> = new Map();
 
-  /**
-   * Subscribe to real-time purchase changes
-   */
   static subscribe(
     userId: string,
     callbacks: {
@@ -325,67 +224,49 @@ export class PurchaseRealtimeService {
     }
   ): () => void {
     const channelName = `purchases-${userId}`;
-    
-    // Remove existing channel if it exists
-    if (this.channels.has(channelName)) {
-      this.unsubscribe(userId);
-    }
+    if (this.channels.has(channelName)) this.unsubscribe(userId);
 
     const channel = supabase
       .channel(channelName)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'purchases',
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        try {
-          if (payload.eventType === 'INSERT' && payload.new) {
-            const newPurchase = transformPurchaseFromDB(payload.new);
-            callbacks.onInsert?.(newPurchase);
-          } else if (payload.eventType === 'UPDATE' && payload.new) {
-            const updatedPurchase = transformPurchaseFromDB(payload.new);
-            callbacks.onUpdate?.(updatedPurchase);
-          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-            callbacks.onDelete?.(payload.old.id);
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'purchases', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          try {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              callbacks.onInsert?.(transformPurchaseFromDB(payload.new));
+            } else if (payload.eventType === 'UPDATE' && payload.new) {
+              callbacks.onUpdate?.(transformPurchaseFromDB(payload.new));
+            } else if (payload.eventType === 'DELETE' && (payload.old as any)?.id) {
+              callbacks.onDelete?.((payload.old as any).id);
+            }
+          } catch (e) {
+            logger.error('Realtime update error:', e);
+            callbacks.onError?.(e);
           }
-        } catch (error) {
-          logger.error('Real-time update error:', error);
-          callbacks.onError?.(error);
         }
-      })
+      )
       .subscribe();
 
     this.channels.set(channelName, channel);
-
-    // Return unsubscribe function
     return () => this.unsubscribe(userId);
   }
 
-  /**
-   * Unsubscribe from real-time changes
-   */
-  static unsubscribe(userId: string): void {
+  static unsubscribe(userId: string) {
     const channelName = `purchases-${userId}`;
     const channel = this.channels.get(channelName);
-    
     if (channel) {
       supabase.removeChannel(channel);
       this.channels.delete(channelName);
     }
   }
 
-  /**
-   * Unsubscribe from all channels
-   */
-  static unsubscribeAll(): void {
-    this.channels.forEach((channel) => {
-      supabase.removeChannel(channel);
-    });
+  static unsubscribeAll() {
+    this.channels.forEach((ch) => supabase.removeChannel(ch));
     this.channels.clear();
   }
 }
 
-// Export convenience functions
+// Aliases
 export const purchaseApi = PurchaseApiService;
 export const purchaseRealtime = PurchaseRealtimeService;

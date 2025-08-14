@@ -41,15 +41,32 @@ export interface PurchaseFormData {
   metodePerhitungan: CalculationMethod;
 }
 
-// Context types
-export interface PurchaseContextType {
-  purchases: Purchase[];
-  isLoading: boolean;
+// Stats types
+export interface PurchaseStats {
+  total: number;
+  totalValue: number;
+  byStatus: {
+    pending: number;
+    completed: number;
+    cancelled: number;
+  };
+  completionRate: number;
+}
+
+// API types
+export interface PurchaseApiResponse {
+  data: Purchase[] | null;
   error: string | null;
-  addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updatePurchase: (id: string, purchase: Partial<Purchase>) => Promise<boolean>;
-  deletePurchase: (id: string) => Promise<boolean>;
-  refreshPurchases: () => Promise<void>;
+}
+
+export interface CreatePurchaseRequest {
+  user_id: string;
+  supplier: string;
+  tanggal: string;
+  total_nilai: number;
+  items: PurchaseItem[];
+  status?: PurchaseStatus;
+  metode_perhitungan?: CalculationMethod;
 }
 
 // Enhanced table context types with filtering and sorting
@@ -84,31 +101,37 @@ export interface PurchaseTableContextType {
   getSupplierName: (supplierId: string) => string;
 }
 
-// Stats types
-export interface PurchaseStats {
-  total: number;
-  totalValue: number;
-  byStatus: {
-    pending: number;
-    completed: number;
-    cancelled: number;
-  };
-}
-
-// API types
-export interface PurchaseApiResponse {
-  data: Purchase[] | null;
+// Context types - DIPERBARUI
+export interface PurchaseContextType {
+  // State
+  purchases: Purchase[];
+  isLoading: boolean;
   error: string | null;
-}
+  // isProcessing?: boolean; // (opsional; kalau mau disediakan)
 
-export interface CreatePurchaseRequest {
-  user_id: string;
-  supplier: string;
-  tanggal: string;
-  total_nilai: number;
-  items: PurchaseItem[];
-  status?: PurchaseStatus;
-  metode_perhitungan?: CalculationMethod;
+  // Core actions
+  addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
+  updatePurchase: (id: string, updates: Partial<Purchase>) => Promise<boolean>;
+  deletePurchase: (id: string) => Promise<boolean>;
+  refreshPurchases: () => Promise<void>;
+
+  // Enhanced utils
+  stats: PurchaseStats;
+  validatePrerequisites: () => boolean;
+  getSupplierName: (id: string) => string;
+
+  // Status handling (pakai trigger DB untuk stok & WAC)
+  setStatus: (id: string, status: PurchaseStatus) => Promise<boolean>;
+
+  // Bulk ops
+  bulkDelete: (ids: string[]) => Promise<void>;
+  bulkStatusUpdate: (ids: string[], status: PurchaseStatus) => Promise<void>;
+
+  // Finders
+  findPurchase: (id: string) => Purchase | undefined;
+
+  // Realtime guard (opsional dipakai saat bulk)
+  setBulkProcessing: (v: boolean) => void;
 }
 
 // Hook types
@@ -144,12 +167,18 @@ export interface PurchaseDialogProps {
   onClose: () => void;
 }
 
-// Enhanced PurchaseTable props with new handlers
-export interface PurchaseTableProps {
+// Enhanced PurchaseTable props with new handlers - DIPERBARUI
+export interface PurchaseTablePropsExtended {
   onEdit: (purchase: Purchase) => void;
   onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
   onDelete?: (purchaseId: string) => Promise<void>;
+  onBulkDelete?: (purchaseIds: string[]) => Promise<void>;
   onViewDetails?: (purchase: Purchase) => void;
+  validateStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<{
+    canChange: boolean;
+    warnings: string[];
+    errors: string[];
+  }>;
 }
 
 export interface PurchaseHeaderProps {
@@ -160,6 +189,7 @@ export interface PurchaseHeaderProps {
   onExport?: () => void;
   onSettings?: () => void;
   className?: string;
+  isExporting?: boolean;
 }
 
 export interface DataWarningBannerProps {
@@ -265,40 +295,3 @@ export interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
 }
-
-// Export all types
-export type {
-  PurchaseItem,
-  Purchase,
-  PurchaseStatus,
-  CalculationMethod,
-  StatusOption,
-  PurchaseFormData,
-  PurchaseContextType,
-  PurchaseTableContextType,
-  PurchaseStats,
-  PurchaseApiResponse,
-  CreatePurchaseRequest,
-  UsePurchaseReturn,
-  UsePurchaseTableReturn,
-  UsePurchaseStatsReturn,
-  UsePurchaseStatusProps,
-  UsePurchaseStatusReturn,
-  PurchaseDialogProps,
-  PurchaseTableProps,
-  PurchaseHeaderProps,
-  DataWarningBannerProps,
-  PurchaseDetailDialogProps,
-  StatusDropdownProps,
-  BulkActionsToolbarProps,
-  PurchaseFilters,
-  PaginationState,
-  PurchaseExportData,
-  PurchaseValidationError,
-  PurchaseValidationResult,
-  PurchaseEventHandler,
-  PurchaseStatusEventHandler,
-  PurchaseBulkEventHandler,
-  LoadingStates,
-  EmptyStateProps,
-};

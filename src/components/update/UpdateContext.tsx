@@ -1,9 +1,17 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppUpdate, UpdateContextType } from './types';
 import { UpdateNotification } from './UpdateNotification';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 
@@ -13,7 +21,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set());
+  // Track IDs we've already marked as seen. Using a ref keeps the set stable
+  // across renders without triggering re-renders when it changes.
+  const seenUpdateIdsRef = useRef<Set<string>>(new Set());
 
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
@@ -58,8 +68,28 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
+      let seenIdsSet = new Set<string>();
+      try {
+        const { data: seenData, error: seenError } = await supabase
+          .from('user_seen_updates')
+          .select('update_id')
+          .eq('user_id', user.id);
+        if (seenError) throw seenError;
+        const ids = (seenData ?? []).map((s: { update_id: string }) => s.update_id);
+        seenIdsSet = new Set(ids);
+        setSeenUpdateIds(seenIdsSet);
+      } catch (err) {
+        const error = err as Error;
+        console.error('Error fetching seen updates:', error.message);
+        toast.error('Gagal memuat status pembaruan');
+        setSeenUpdateIds(new Set());
+      }
+
       setLatestUpdate(updates[0]);
-      const newUnseen = updates.filter(update => !seenUpdateIds.has(update.id));
+      const newUnseen = updates.filter(
+        (update) => !seenUpdateIdsRef.current.has(update.id)
+      );
+        
       setUnseenUpdates(newUnseen);
       setHasUnseenUpdates(newUnseen.length > 0);
 
@@ -75,7 +105,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isReady, seenUpdateIds]);
+  }, [user?.id, isReady]);
 
   const showUpdateNotification = useCallback((updates: AppUpdate[]) => {
     try {
@@ -85,13 +115,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           <div className="space-y-4 max-h-64 overflow-y-auto">
             {updates.map((update) => (
               <div key={update.id} className="border-b border-gray-100 pb-2 last:border-b-0">
-                <UpdateNotification update={update} onDismiss={() => {}} /> {/* onDismiss di-handle di parent */}
+                <UpdateNotification update={update} onDismiss={() => {}} />
               </div>
             ))}
           </div>
           <button
             onClick={() => {
-              updates.forEach(update => markAsSeen(update.id));
+              markAllAsSeen();
               toast.dismiss(t);
             }}
             className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -109,38 +139,41 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  const markAsSeen = useCallback(async (updateId: string) => {
-    if (!user?.id) return;
+  const markAsSeen = useCallback(
+    async (updateId: string) => {
+      if (!user?.id) return;
 
-    try {
-      setSeenUpdateIds(prev => new Set(prev).add(updateId));
-      setUnseenUpdates(prev => prev.filter(update => update.id !== updateId));
-      setHasUnseenUpdates(prev => {
-        const newUnseen = unseenUpdates.filter(update => update.id !== updateId);
-        return newUnseen.length > 0;
-      });
-      console.log('Marked as seen:', updateId);
-    } catch (error) {
-      console.error('Error in markAsSeen:', error);
-    }
-  }, [user?.id, unseenUpdates]);
+      try {
+        seenUpdateIdsRef.current.add(updateId);
+        setUnseenUpdates((prev) => {
+          const filtered = prev.filter((update) => update.id !== updateId);
+          setHasUnseenUpdates(filtered.length > 0);
+          return filtered;
+        });
+        console.log('Marked as seen:', updateId);
+      } catch (error) {
+        console.error('Error in markAsSeen:', error);
+      }
+    },
+    [user?.id]
+  );
 
   const markAllAsSeen = useCallback(async () => {
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
-      const newSeenIds = new Set(seenUpdateIds);
-      unseenUpdates.forEach(update => newSeenIds.add(update.id));
-      setSeenUpdateIds(newSeenIds);
+      
+      unseenUpdates.forEach((update) => seenUpdateIdsRef.current.add(update.id));
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
       console.log('Marked all as seen');
+      
     } catch (error) {
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
     }
-  }, [user?.id, unseenUpdates, seenUpdateIds]);
+  }, [user?.id, unseenUpdates]);
 
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
@@ -155,7 +188,8 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
-      setSeenUpdateIds(new Set());
+      seenUpdateIdsRef.current = new Set();
+
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);
@@ -163,7 +197,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (!user?.id) return;
 
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     try {
       channel = supabase
         .channel('app_updates_changes')

@@ -11,9 +11,6 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
-// ✅ CONSOLIDATED: Hook import (if exists, otherwise keep individual imports)
-import { usePurchaseCore } from './hooks/usePurchaseCore';
-
 // ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
 import {
   LoadingState,
@@ -133,34 +130,32 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   const { suppliers } = useSupplier();
   const { bahanBaku } = useBahanBaku();
 
-  // ✅ CONSOLIDATED: Core purchase operations
-  const purchaseCore = usePurchaseCore({
-    purchaseContext,
-    suppliers,
-    bahanBaku
-  });
+  // ✅ pakai API dari context langsung
+  const {
+    purchases,
+    stats,
+    setStatus,
+    deletePurchase,
+    bulkDelete,
+    validatePrerequisites,
+    getSupplierName,
+  } = purchaseContext;
 
   // ✅ SINGLE STATE: Consolidated app state
   const [appState, setAppState] = useState<AppState>(initialAppState);
 
   // ✅ MEMOIZED: Data validation
-  const dataStatus = useMemo(() => {
-    const missingSuppliers = !suppliers?.length;
-    const missingBahanBaku = !bahanBaku?.length;
-    const hasMissingData = missingSuppliers || missingBahanBaku;
-
-    return {
-      missingSuppliers,
-      missingBahanBaku,
-      hasMissingData
-    };
-  }, [suppliers, bahanBaku]);
+  const dataStatus = useMemo(() => ({
+    missingSuppliers: !suppliers?.length,
+    missingBahanBaku: !bahanBaku?.length,
+    hasMissingData: !suppliers?.length || !bahanBaku?.length
+  }), [suppliers, bahanBaku]);
 
   // ✅ CONSOLIDATED: All dialog actions
   const dialogActions = useMemo(() => ({
     purchase: {
       openAdd: () => {
-        if (purchaseCore.validatePrerequisites()) {
+        if (validatePrerequisites()) {
           setAppState(prev => ({
             ...prev,
             dialogs: {
@@ -171,15 +166,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         }
       },
       openEdit: (purchase: any) => {
-        if (purchaseCore.canEdit(purchase)) {
-          setAppState(prev => ({
-            ...prev,
-            dialogs: {
-              ...prev.dialogs,
-              purchase: { isOpen: true, editing: purchase, mode: 'edit' }
-            }
-          }));
-        }
+        // edit selalu diperbolehkan (stok/WAC diurus trigger DB)
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            purchase: { isOpen: true, editing: purchase, mode: 'edit' }
+          }
+        }));
       },
       close: async () => {
         setAppState(prev => ({
@@ -189,9 +183,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             purchase: { isOpen: false, editing: null, mode: 'create' }
           }
         }));
-        
-        // ✅ React Query automatically handles data refresh through mutations
-        // No need to manually call refresh here
       }
     },
     detail: {
@@ -235,7 +226,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         }));
       }
     }
-  }), [purchaseCore, purchaseContext.refreshPurchases]);
+  }), [validatePrerequisites]);
 
   // ✅ FIXED: Enhanced business logic handlers with proper React Query mutations
   const businessHandlers = useMemo(() => ({
@@ -243,21 +234,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: true } }));
 
       try {
-        // ✅ CRITICAL: Use correct function name from context
-        const success = await purchaseContext.deletePurchase(purchaseId);
-        
-        if (!success) {
-          throw new Error('Delete operation failed');
-        }
-
-        // ✅ React Query automatically invalidates and refetches data
-        // No need to manually call refresh - the mutation handles it
-        
-        // Success message is handled by the mutation
-        
+        const success = await deletePurchase(purchaseId);
+        if (!success) throw new Error('Delete operation failed');
       } catch (error) {
         console.error('Delete failed:', error);
-        // Error message is handled by the mutation
+        toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
       } finally {
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
@@ -269,27 +250,22 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: true } }));
 
       try {
-        // ✅ CRITICAL: Call delete one by one since no bulk delete in context
-        for (const purchaseId of purchaseIds) {
-          const success = await purchaseContext.deletePurchase(purchaseId);
-          if (!success) {
-            throw new Error(`Failed to delete purchase ${purchaseId}`);
-          }
-        }
-
-        // ✅ React Query automatically handles data refresh
+        // ✅ REALTIME BLOCKING: Prevent spam during bulk operations
+        purchaseContext.setBulkProcessing(true);
+        
+        await bulkDelete(purchaseIds);
         toast.success(`${purchaseIds.length} pembelian berhasil dihapus`);
-
       } catch (error) {
         console.error('Bulk delete failed:', error);
-        toast.error(error?.message || 'Gagal menghapus beberapa pembelian');
+        toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
       } finally {
+        purchaseContext.setBulkProcessing(false);
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
     },
     
     export: async () => {
-      if (!purchaseContext.purchases.length) {
+      if (!purchases.length) {
         toast.info('Tidak ada data pembelian untuk di-export');
         return;
       }
@@ -297,7 +273,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: true } }));
 
       try {
-        const csvContent = exportPurchasesToCSV(purchaseContext.purchases);
+        const csvContent = exportPurchasesToCSV(purchases);
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -323,7 +299,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     settings: () => {
       toast.info('Pengaturan pembelian akan segera tersedia');
     }
-  }), [purchaseCore, purchaseContext]);
+  }), [deletePurchase, bulkDelete, purchaseContext, purchases]);
 
   // ✅ OPTIMIZED: Warning effect with cleanup
   useEffect(() => {
@@ -396,9 +372,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
 
       {/* Header */}
       <PurchaseHeader
-        totalPurchases={purchaseCore.stats.total}
-        totalValue={purchaseCore.stats.totalValue}
-        pendingCount={purchaseCore.stats.byStatus.pending}
+        totalPurchases={stats.total}
+        totalValue={stats.totalValue}
+        pendingCount={stats.byStatus.pending}
         onAddPurchase={dialogActions.purchase.openAdd}
         onExport={businessHandlers.export}
         onSettings={businessHandlers.settings}
@@ -407,14 +383,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       />
 
       {/* Main content */}
-      {!purchaseContext.purchases.length ? (
+      {!purchases.length ? (
         <EmptyState
           onAddPurchase={dialogActions.purchase.openAdd}
           hasSuppliers={!dataStatus.missingSuppliers}
           hasBahanBaku={!dataStatus.missingBahanBaku}
         />
       ) : (
-        <PurchaseTableProvider purchases={purchaseContext.purchases} suppliers={suppliers}>
+        <PurchaseTableProvider purchases={purchases} suppliers={suppliers}>
           <Suspense fallback={<QuickLoader />}>
             <BulkActionsToolbar />
           </Suspense>
@@ -422,11 +398,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
             <PurchaseTable 
               onEdit={dialogActions.purchase.openEdit}
-              onStatusChange={purchaseCore.updateStatus}
+              onStatusChange={setStatus}
               onDelete={businessHandlers.delete}
               onBulkDelete={businessHandlers.bulkDelete}
               onViewDetails={dialogActions.detail.open}
-              validateStatusChange={purchaseCore.validateStatusChange}
+              validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
             />
           </Suspense>
 
@@ -464,7 +440,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       )}
 
       {/* ✅ ENHANCED: Processing overlay with delete state */}
-      {(purchaseCore.isProcessing || appState.ui.isDeleting || appState.ui.isExporting) && (
+      {(purchaseContext.isProcessing || appState.ui.isDeleting || appState.ui.isExporting) && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />

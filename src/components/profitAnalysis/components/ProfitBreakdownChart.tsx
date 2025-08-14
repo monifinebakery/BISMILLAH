@@ -75,7 +75,11 @@ const ProfitBreakdownChart: React.FC<ProfitBreakdownChartProps> = ({
       grossProfit,
       netProfit
     };
-  }, [currentAnalysis]);
+  }, [
+    currentAnalysis?.revenue_data?.total,
+    currentAnalysis?.cogs_data?.total,
+    currentAnalysis?.opex_data?.total
+  ]);
 
   // ✅ DATA GRAFIK BAR
   const barChartData = useMemo((): BarChartData[] => {

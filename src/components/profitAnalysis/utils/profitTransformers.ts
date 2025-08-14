@@ -5,7 +5,7 @@ import {
   COGSBreakdown,
   OpExBreakdown,
   ProfitChartData 
-} from '../../types/profitAnalysis.types';
+} from '../types/profitAnalysis.types';
 
 /**
  * Transform financial transactions to revenue breakdown

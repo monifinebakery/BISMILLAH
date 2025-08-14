@@ -1,36 +1,50 @@
-// 4. src/components/profitAnalysis/index.ts - MAIN EXPORT
+// src/components/profitAnalysis/index.ts - MAIN EXPORT
 // ==============================================
-// Types
+// Export utama untuk modul analisis profit dalam Bahasa Indonesia
+
+// ===== TYPES =====
 export type {
   ProfitAnalysis,
   RealTimeProfitCalculation,
   ProfitAnalysisContextType,
   DateRangeFilter,
   ProfitChartData,
+  ProfitTrendData,
   RevenueBreakdown,
   COGSBreakdown,
   OpExBreakdown,
   AdvancedProfitMetrics,
   ProfitForecast,
   CostOptimizationRecommendations,
-  ProfitBenchmark
+  ProfitBenchmark,
+  ProfitApiResponse
 } from './types/profitAnalysis.types';
 
-// Context & Provider
+// ===== CONTEXT & PROVIDER =====
 export { 
   ProfitAnalysisProvider, 
-  useProfitAnalysis as useProfitAnalysisContext,
+  useProfitAnalysisContext,
   PROFIT_ANALYSIS_QUERY_KEYS 
-} from './contexts/ProfitAnalysisContext';
+} from './contexts';
 
-// Hooks
+// ===== HOOKS =====
 export {
   useProfitAnalysis,
   useProfitCalculation,
   useProfitData
 } from './hooks';
 
-// Components
+// Export types dari hooks
+export type {
+  UseProfitAnalysisOptions,
+  UseProfitAnalysisReturn,
+  UseProfitCalculationOptions,
+  UseProfitCalculationReturn,
+  UseProfitDataOptions,
+  UseProfitDataReturn
+} from './hooks';
+
+// ===== COMPONENTS =====
 export {
   ProfitSummaryCards,
   ProfitBreakdownChart,
@@ -39,13 +53,44 @@ export {
   ProfitDashboard
 } from './components';
 
-// API
+// Export types dari components
+export type {
+  ProfitSummaryCardsProps,
+  ProfitBreakdownChartProps,
+  ProfitTrendChartProps,
+  DetailedBreakdownTableProps,
+  ProfitDashboardProps
+} from './components';
+
+// ===== API SERVICE =====
 export { default as profitAnalysisApi } from './services/profitAnalysisApi';
 
-// Constants
-export { PROFIT_CONSTANTS, CHART_CONFIG } from './constants';
+// ===== CONSTANTS =====
+export {
+  PROFIT_CONSTANTS,
+  REVENUE_CATEGORIES,
+  OPEX_CATEGORIES,
+  CHART_CONFIG,
+  CURRENCY_CONFIG,
+  PERIOD_OPTIONS,
+  VALIDATION_RULES,
+  getMonthName
+} from './constants';
 
-// Utils & Transformers
+// Export types dari constants
+export type {
+  PeriodType,
+  CalculationMethod,
+  RevenueCategoryType,
+  OpexCategoryType,
+  MarginRating,
+  PerformanceStatus,
+  ProfitColorKey,
+  MarginColorKey,
+  PeriodOption
+} from './constants';
+
+// ===== UTILS & TRANSFORMERS =====
 export {
   formatCurrency,
   formatPercentage,
@@ -53,12 +98,14 @@ export {
   calculateGrowth,
   generatePeriodOptions,
   getCurrentPeriod,
+  getShortPeriodLabel,
   transformToRevenueBreakdown,
   transformToOpExBreakdown,
-  transformToProfitAnalysis
+  transformToProfitAnalysis,
+  getGrowthStatus
 } from './utils/profitTransformers';
 
-// Profit Calculations - Updated to match actual available functions
+// ===== PROFIT CALCULATIONS =====
 export {
   calculateRealTimeProfit,
   calculateMargins,
@@ -74,20 +121,32 @@ export {
   calculateRollingAverages
 } from './utils/profitCalculations';
 
-// Default export for convenience
+// ===== CONVENIENT DEFAULT EXPORT =====
+// Import langsung untuk menghindari masalah "not defined"
+import { ProfitAnalysisProvider } from './contexts/ProfitAnalysisContext';
+import { useProfitAnalysis } from './hooks/useProfitAnalysis';
+import { ProfitDashboard } from './components/ProfitDashboard';
+import profitAnalysisApi from './services/profitAnalysisApi';
+import { PROFIT_CONSTANTS } from './constants/profitConstants';
+import { PROFIT_ANALYSIS_QUERY_KEYS } from './contexts/ProfitAnalysisContext';
+
+// Default export untuk kemudahan penggunaan
 export default {
-  // Provider
+  // Provider utama
   Provider: ProfitAnalysisProvider,
   
-  // Main Hook
+  // Hook utama
   useProfitAnalysis,
   
-  // Main Component
+  // Komponen utama
   Dashboard: ProfitDashboard,
   
-  // API
+  // API service
   api: profitAnalysisApi,
   
-  // Constants
-  constants: PROFIT_CONSTANTS
+  // Konstanta
+  constants: PROFIT_CONSTANTS,
+  
+  // Query keys
+  queryKeys: PROFIT_ANALYSIS_QUERY_KEYS
 };

@@ -28,14 +28,14 @@ interface ProfitAnalysisState {
   profitData: ProfitAnalysis[];
   currentAnalysis: ProfitAnalysis | null;
   error: string | null;
-  lastUpdated: Date | null;
+  lastUpdated: string | null; // Ubah ke string untuk menghindari masalah reference
 }
 
 type ProfitAnalysisAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_CURRENT_ANALYSIS'; payload: ProfitAnalysis | null }
   | { type: 'SET_PROFIT_DATA'; payload: ProfitAnalysis[] }
-  | { type: 'SET_LAST_UPDATED'; payload: Date }
+  | { type: 'SET_LAST_UPDATED'; payload: string } // Ubah ke string
   | { type: 'RESET_STATE' };
 
 const initialState: ProfitAnalysisState = {
@@ -56,7 +56,7 @@ const profitAnalysisReducer = (
       return { 
         ...state, 
         currentAnalysis: action.payload,
-        lastUpdated: action.payload ? new Date() : state.lastUpdated
+        lastUpdated: action.payload ? new Date().toISOString() : state.lastUpdated // Simpan sebagai string
       };
     case 'SET_PROFIT_DATA':
       return { ...state, profitData: action.payload };
@@ -242,14 +242,14 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     }
   }, [user, autoRefresh, loadProfitHistory]);
 
-  // Context value
+  // Context value - Perbaiki tipe data untuk lastUpdated
   const contextValue: ProfitAnalysisContextType = {
     // State
     profitData: state.profitData,
     currentAnalysis: state.currentAnalysis,
     isLoading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending,
     error: state.error || currentAnalysisQuery.error?.message || null,
-    lastUpdated: state.lastUpdated,
+    lastUpdated: state.lastUpdated ? new Date(state.lastUpdated) : null, // Konversi kembali ke Date jika diperlukan
     
     // Actions
     calculateProfit,

@@ -101,6 +101,7 @@ export {
   transformToRevenueBreakdown,
   transformToOpExBreakdown,
   transformToProfitAnalysis,
+  calculateRollingAverages,
   getGrowthStatus
 } from './utils/profitTransformers';
 

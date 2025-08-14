@@ -14,7 +14,7 @@ import { CHART_CONFIG } from '../constants/profitConstants';
 // TYPES
 // ==============================================
 
-interface ProfitBreakdownChartProps {
+export interface ProfitBreakdownChartProps {
   currentAnalysis: RealTimeProfitCalculation | null;
   isLoading: boolean;
   chartType?: 'bar' | 'pie';

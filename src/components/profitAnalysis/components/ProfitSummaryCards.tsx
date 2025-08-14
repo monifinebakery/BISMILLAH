@@ -73,7 +73,11 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
       grossMargin,
       netMargin
     };
-  }, [currentAnalysis]);
+  }, [
+    currentAnalysis?.revenue_data?.total,
+    currentAnalysis?.cogs_data?.total,
+    currentAnalysis?.opex_data?.total
+  ]);
 
   // ✅ HITUNG PERUBAHAN vs PERIODE SEBELUMNYA
   const changes = useMemo(() => {
@@ -97,7 +101,15 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
       netProfitChange: calculateGrowth(metrics.netProfit, prevNetProfit),
       cogsChange: calculateGrowth(metrics.cogs, prevCogs)
     };
-  }, [metrics, previousAnalysis]);
+  }, [
+    metrics.revenue,
+    metrics.grossProfit,
+    metrics.netProfit,
+    metrics.cogs,
+    previousAnalysis?.revenue_data?.total,
+    previousAnalysis?.cogs_data?.total,
+    previousAnalysis?.opex_data?.total
+  ]);
 
   // ✅ GENERATE DATA KARTU
   const cards = useMemo((): MetricCard[] => {

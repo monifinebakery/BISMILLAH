@@ -1,6 +1,3 @@
-// 1. profitTransformers.ts - Data transformation utilities
-// ==============================================
-
 import { 
   ProfitAnalysis, 
   RealTimeProfitCalculation, 
@@ -8,7 +5,7 @@ import {
   COGSBreakdown,
   OpExBreakdown,
   ProfitChartData 
-} from '../types/profitAnalysis.types';
+} from '../../types/profitAnalysis.types';
 
 /**
  * Transform financial transactions to revenue breakdown
@@ -354,4 +351,23 @@ export const getCurrentPeriod = (periodType: 'monthly' | 'quarterly' | 'yearly' 
   
   // Monthly
   return `${year}-${month.toString().padStart(2, '0')}`;
+};
+
+// Export semua fungsi
+export {
+  transformToRevenueBreakdown,
+  transformToCOGSBreakdown,
+  transformToOpExBreakdown,
+  transformToProfitAnalysis,
+  transformToChartData,
+  formatCurrency,
+  formatPercentage,
+  formatLargeNumber,
+  formatPeriodLabel,
+  getShortPeriodLabel,
+  calculateGrowth,
+  getGrowthStatus,
+  generatePeriodOptions,
+  isValidPeriod,
+  getCurrentPeriod
 };

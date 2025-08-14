@@ -7,18 +7,19 @@ import {
   getMarginRating, 
   filterTransactionsByPeriod 
 } from '../utils/profitCalculations';
+import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { FinancialTransaction } from '@/components/financial/types/financial';
 import { BahanBakuFrontend } from '@/components/warehouse/types';
 import { OperationalCost } from '@/components/operational-costs/types';
 
-interface UseProfitCalculationOptions {
+export interface UseProfitCalculationOptions {
   period?: string;
   transactions?: FinancialTransaction[];
   materials?: BahanBakuFrontend[];
   operationalCosts?: OperationalCost[];
 }
 
-interface UseProfitCalculationReturn {
+export interface UseProfitCalculationReturn {
   // Calculations
   calculateLocalProfit: (
     transactions: FinancialTransaction[],

@@ -1,73 +1,65 @@
-// src/components/profitAnalysis/tabs/rincianTab/constants/messages.ts
+// src/components/profitAnalysis/tabs/RincianTab/constants/messages.ts
 
 export const TAB_LABELS = {
-  OVERVIEW: 'Overview',
-  COGS: 'HPP Detail', 
-  OPEX: 'OPEX Detail',
-  ANALYSIS: 'Analisis'
+  OVERVIEW: 'Ringkasan Biaya',
+  COGS_DETAIL: 'Detail HPP',
+  OPEX_DETAIL: 'Detail OPEX',
+  ANALYSIS: 'Analisis & Target'
 } as const;
 
 export const SECTION_TITLES = {
-  DATA_QUALITY: 'Rincian Perhitungan Profit Margin',
-  COST_ANALYSIS: 'Analisis Rincian Biaya',
-  HPP_SUMMARY: 'HPP (Harga Pokok Penjualan)',
-  OPEX_SUMMARY: 'OPEX (Biaya Operasional)',
+  // Overview
+  COST_OVERVIEW: 'Ringkasan Biaya',
+  HPP_SUMMARY: 'Ringkasan HPP',
+  OPEX_SUMMARY: 'Ringkasan OPEX',
   QUICK_RATIO: 'Quick Ratio Analysis',
-  MATERIAL_DETAIL: 'Rincian Biaya Material',
-  LABOR_DETAIL: 'Rincian Biaya Tenaga Kerja',
-  MATERIAL_ANALYTICS: 'Material Usage Analytics',
+  
+  // COGS Detail
+  MATERIAL_COSTS: 'Biaya Material',
+  LABOR_COSTS: 'Biaya Tenaga Kerja',
+  MATERIAL_USAGE: 'Analisis Penggunaan Material',
+  
+  // OPEX Detail
   ADMIN_EXPENSES: 'Biaya Administrasi',
-  SELLING_EXPENSES: 'Biaya Penjualan', 
+  SELLING_EXPENSES: 'Biaya Penjualan',
   GENERAL_EXPENSES: 'Biaya Umum',
+  
+  // Analysis
   EFFICIENCY_METRICS: 'Metrik Efisiensi',
-  TARGET_HPP: 'Target HPP',
-  TARGET_OPEX: 'Target OPEX',
-  TARGET_MARGIN: 'Target Margin',
-  RECOMMENDATIONS: 'Rekomendasi Optimisasi',
-  ACTION_ITEMS: 'Ringkasan & Action Items'
+  TARGET_VS_ACTUAL: 'Target vs Aktual',
+  RECOMMENDATIONS: 'Rekomendasi',
+  ACTION_ITEMS: 'Action Items'
 } as const;
 
 export const STATUS_MESSAGES = {
-  ON_TARGET: {
-    hpp: '✅ Dalam target yang sehat',
-    opex: '✅ Efisiensi operasional baik', 
-    margin: '✅ Margin sehat dan menguntungkan'
-  },
-  ABOVE_TARGET: {
-    hpp: '⚠️ Melebihi target, perlu optimisasi',
-    opex: '⚠️ OPEX tinggi, review efisiensi',
-    margin: '⚠️ Margin perlu ditingkatkan'
-  },
-  BELOW_TARGET: {
-    margin: '⚠️ Margin di bawah target minimum'
-  }
+  EXCELLENT: 'Sangat Baik',
+  GOOD: 'Baik',
+  FAIR: 'Cukup',
+  POOR: 'Rendah',
+  CRITICAL: 'Kritis'
 } as const;
 
 export const RECOMMENDATIONS = {
-  MATERIAL_HIGH: {
-    title: 'Optimisasi Material',
-    description: 'Review supplier dan efisiensi penggunaan material.'
-  },
-  LABOR_HIGH: {
-    title: 'Efisiensi Tenaga Kerja',
-    description: 'Evaluasi produktivitas dan otomasi proses.'
-  },
-  OPEX_HIGH: {
-    title: 'Kontrol OPEX', 
-    description: 'Review biaya operasional yang tidak esensial.'
-  },
-  DATA_QUALITY: {
-    title: 'Upgrade Data Quality',
-    description: 'Implement material usage tracking untuk akurasi HPP yang lebih tinggi dan decision making yang lebih baik.'
-  }
+  MATERIAL_HIGH: 'Biaya material tinggi - review supplier dan optimalisasi penggunaan',
+  LABOR_HIGH: 'Biaya tenaga kerja tinggi - evaluasi produktivitas dan otomasi',
+  OPEX_HIGH: 'Biaya operasional tinggi - streamline proses dan efisiensi',
+  COGS_HIGH: 'HPP tinggi - comprehensive cost reduction program',
+  DATA_ESTIMATED: 'Gunakan actual material usage untuk akurasi yang lebih baik',
+  MARGIN_LOW: 'Margin rendah - fokus pada peningkatan efisiensi dan pricing'
 } as const;
 
 export const EMPTY_STATE = {
-  title: 'Data tidak tersedia',
-  description: 'Silakan periksa kembali data input Anda'
+  NO_DATA: 'Tidak ada data tersedia',
+  NO_DETAIL: 'Detail tidak tersedia',
+  NO_BREAKDOWN: 'Breakdown tidak tersedia',
+  LOADING: 'Memuat data...',
+  ERROR: 'Terjadi kesalahan'
 } as const;
 
 export const BUTTON_LABELS = {
-  SHOW_DETAIL: 'Lihat Detail',
-  HIDE_DETAIL: 'Sembunyikan Detail'
+  REFRESH: 'Perbarui',
+  EXPORT: 'Ekspor',
+  VIEW_DETAIL: 'Lihat Detail',
+  ANALYZE: 'Analisis',
+  OPTIMIZE: 'Optimalisasi'
 } as const;

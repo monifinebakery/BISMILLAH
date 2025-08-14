@@ -1,4 +1,4 @@
-// hooks/index.ts - Safe Version
+// sic › components › profitAnalysis › hooks › index.ts
 // ==============================================
 
 // Direct exports untuk menghindari masalah "not defined"

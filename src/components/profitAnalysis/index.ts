@@ -45,13 +45,12 @@ export type {
 } from './hooks';
 
 // ===== COMPONENTS =====
-export {
-  ProfitSummaryCards,
-  ProfitBreakdownChart,
-  ProfitTrendChart,
-  DetailedBreakdownTable,
-  ProfitDashboard
-} from './components';
+// PERBAIKAN: Gunakan default export yang benar
+export { default as ProfitSummaryCards } from './components/ProfitSummaryCards';
+export { default as ProfitBreakdownChart } from './components/ProfitBreakdownChart';
+export { default as ProfitTrendChart } from './components/ProfitTrendChart';
+export { default as DetailedBreakdownTable } from './components/DetailedBreakdownTable';
+export { default as ProfitDashboard } from './components/ProfitDashboard';
 
 // Export types dari components
 export type {
@@ -122,10 +121,9 @@ export {
 } from './utils/profitCalculations';
 
 // ===== CONVENIENT DEFAULT EXPORT =====
-// Import langsung untuk menghindari masalah "not defined"
 import { ProfitAnalysisProvider } from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
-import ProfitDashboard from './components/ProfitDashboard'; // Default import karena menggunakan export default
+import ProfitDashboard from './components/ProfitDashboard';
 import profitAnalysisApi from './services/profitAnalysisApi';
 import { PROFIT_CONSTANTS } from './constants/profitConstants';
 import { PROFIT_ANALYSIS_QUERY_KEYS } from './contexts/ProfitAnalysisContext';

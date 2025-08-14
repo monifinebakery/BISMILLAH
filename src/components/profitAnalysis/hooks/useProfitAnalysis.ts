@@ -1,4 +1,4 @@
-// 1. useProfitAnalysis.ts - Main hook
+// useProfitAnalysis.ts - Fixed Dependencies
 // ==============================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -13,7 +13,6 @@ import {
   ProfitApiResponse 
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
-import { PROFIT_CONSTANTS } from '../constants';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -67,7 +66,7 @@ export const useProfitAnalysis = (
 ): UseProfitAnalysisReturn => {
   const {
     autoCalculate = true,
-    defaultPeriod = PROFIT_CONSTANTS.DEFAULT_PERIODS.CURRENT_MONTH,
+    defaultPeriod = new Date().toISOString().slice(0, 7), // Safe default
     enableRealTime = true
   } = options;
 
@@ -82,23 +81,28 @@ export const useProfitAnalysis = (
   const currentAnalysisQuery = useQuery({
     queryKey: PROFIT_QUERY_KEYS.realTime(currentPeriod),
     queryFn: async () => {
-      logger.info('🔄 Fetching profit analysis for period:', currentPeriod);
-      const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod);
-      
-      if (response.error) {
-        throw new Error(response.error);
+      try {
+        logger.info('🔄 Fetching profit analysis for period:', currentPeriod);
+        const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod);
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        logger.success('✅ Profit analysis completed:', {
+          period: currentPeriod,
+          revenue: response.data?.revenue_data?.total || 0,
+          calculatedAt: response.data?.calculated_at
+        });
+        
+        return response.data;
+      } catch (err) {
+        logger.error('❌ Query error:', err);
+        throw err;
       }
-      
-      logger.success('✅ Profit analysis completed:', {
-        period: currentPeriod,
-        revenue: response.data.revenue_data.total,
-        calculatedAt: response.data.calculated_at
-      });
-      
-      return response.data;
     },
-    enabled: !!currentPeriod && autoCalculate,
-    staleTime: 5 * 60 * 1000, // 5 minutes - profit data changes frequently
+    enabled: Boolean(currentPeriod && autoCalculate),
+    staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: enableRealTime,
     retry: 2,
   });
@@ -113,7 +117,7 @@ export const useProfitAnalysis = (
       return response.data;
     },
     onSuccess: (data, period) => {
-      logger.info('✅ Manual profit calculation successful:', { period, data });
+      logger.info('✅ Manual profit calculation successful:', { period });
       toast.success(`Analisis profit untuk ${period} berhasil dihitung`);
       
       // Update query cache
@@ -127,9 +131,11 @@ export const useProfitAnalysis = (
     },
   });
 
-  // ✅ COMPUTED VALUES: Profit metrics
+  // ✅ COMPUTED VALUES: Profit metrics - Fixed dependencies
   const profitMetrics = useMemo(() => {
-    if (!currentAnalysisQuery.data) {
+    const data = currentAnalysisQuery.data;
+    
+    if (!data) {
       return {
         grossProfit: 0,
         netProfit: 0,
@@ -141,25 +147,37 @@ export const useProfitAnalysis = (
       };
     }
 
-    const { revenue_data, cogs_data, opex_data } = currentAnalysisQuery.data;
-    const revenue = revenue_data.total;
-    const cogs = cogs_data.total;
-    const opex = opex_data.total;
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    try {
+      const revenue = data.revenue_data?.total || 0;
+      const cogs = data.cogs_data?.total || 0;
+      const opex = data.opex_data?.total || 0;
+      const grossProfit = revenue - cogs;
+      const netProfit = grossProfit - opex;
+      const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+      const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-    return {
-      grossProfit,
-      netProfit,
-      grossMargin,
-      netMargin,
-      revenue,
-      cogs,
-      opex
-    };
-  }, [currentAnalysisQuery.data]);
+      return {
+        grossProfit,
+        netProfit,
+        grossMargin,
+        netMargin,
+        revenue,
+        cogs,
+        opex
+      };
+    } catch (err) {
+      logger.error('Error calculating profit metrics:', err);
+      return {
+        grossProfit: 0,
+        netProfit: 0,
+        grossMargin: 0,
+        netMargin: 0,
+        revenue: 0,
+        cogs: 0,
+        opex: 0
+      };
+    }
+  }, [currentAnalysisQuery.data]); // Only depend on the data
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
@@ -182,7 +200,7 @@ export const useProfitAnalysis = (
       
       const response = await profitAnalysisApi.getProfitHistory(
         dateRange || {
-          from: new Date(new Date().getFullYear(), 0, 1), // Start of year
+          from: new Date(new Date().getFullYear(), 0, 1),
           to: new Date(),
           period_type: 'monthly'
         }
@@ -192,19 +210,23 @@ export const useProfitAnalysis = (
         throw new Error(response.error);
       }
       
-      setProfitHistory(response.data);
-      logger.success('✅ Profit history loaded:', response.data.length, 'periods');
+      setProfitHistory(response.data || []);
+      logger.success('✅ Profit history loaded:', (response.data || []).length, 'periods');
       
     } catch (error) {
       logger.error('❌ Load profit history failed:', error);
       setError(error instanceof Error ? error.message : 'Gagal memuat riwayat profit');
       toast.error('Gagal memuat riwayat profit');
     }
-  }, []);
+  }, []); // No dependencies needed
 
   const refreshAnalysis = useCallback(async () => {
     logger.info('🔄 Refreshing profit analysis');
-    await currentAnalysisQuery.refetch();
+    try {
+      await currentAnalysisQuery.refetch();
+    } catch (error) {
+      logger.error('❌ Refresh failed:', error);
+    }
   }, [currentAnalysisQuery]);
 
   // ✅ UTILITIES
@@ -213,27 +235,38 @@ export const useProfitAnalysis = (
   }, [profitHistory]);
 
   const setCurrentPeriod = useCallback((period: string) => {
-    logger.info('📅 Changing current period:', currentPeriod, '->', period);
+    logger.info('📅 Changing current period:', period);
     setCurrentPeriodState(period);
-  }, [currentPeriod]);
+  }, []);
 
-  // ✅ DATA FRESHNESS
+  // ✅ DATA FRESHNESS - Fixed dependencies
   const isDataStale = useMemo(() => {
-    if (!currentAnalysisQuery.data?.calculated_at) return true;
+    const data = currentAnalysisQuery.data;
+    if (!data?.calculated_at) return true;
     
-    const calculatedAt = new Date(currentAnalysisQuery.data.calculated_at);
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    
-    return calculatedAt < fiveMinutesAgo;
-  }, [currentAnalysisQuery.data?.calculated_at]);
+    try {
+      const calculatedAt = new Date(data.calculated_at);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      return calculatedAt < fiveMinutesAgo;
+    } catch (err) {
+      logger.error('Error checking data freshness:', err);
+      return true;
+    }
+  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at
 
   const lastCalculated = useMemo(() => {
-    return currentAnalysisQuery.data?.calculated_at 
-      ? new Date(currentAnalysisQuery.data.calculated_at)
-      : null;
-  }, [currentAnalysisQuery.data?.calculated_at]);
+    const data = currentAnalysisQuery.data;
+    if (!data?.calculated_at) return null;
+    
+    try {
+      return new Date(data.calculated_at);
+    } catch (err) {
+      logger.error('Error parsing calculated_at:', err);
+      return null;
+    }
+  }, [currentAnalysisQuery.data?.calculated_at]); // Only depend on calculated_at
 
-  // ✅ AUTO-LOAD HISTORY on mount
+  // ✅ AUTO-LOAD HISTORY on mount - Fixed dependencies
   useEffect(() => {
     if (autoCalculate) {
       loadProfitHistory();

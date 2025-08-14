@@ -79,17 +79,25 @@ const DetailedBreakdownTable: React.FC<DetailedBreakdownTableProps> = ({
     })) || [];
 
     // Grup berdasarkan kategori untuk pendapatan
-    const groupedRevenue = revenueItems.reduce((acc, item) => {
-      const existing = acc.find(a => a.name === item.name);
-      if (existing) {
-        existing.amount += item.amount;
-        existing.count = (existing.count || 0) + 1;
-        existing.percentage = revenue > 0 ? (existing.amount / revenue) * 100 : 0;
-      } else {
-        acc.push({ ...item });
-      }
-      return acc;
-    }, [] as BreakdownItem[]);
+    const groupedRevenue = useMemo(() => {
+      return revenueItems.reduce((acc: BreakdownItem[], item) => {
+        const existing = acc.find(a => a.name === item.name);
+        if (existing) {
+          return acc.map(a => 
+            a.name === item.name 
+              ? { 
+                  ...a, 
+                  amount: a.amount + item.amount,
+                  count: (a.count || 0) + 1,
+                  percentage: revenue > 0 ? ((a.amount + item.amount) / revenue) * 100 : 0
+                }
+              : a
+          );
+        } else {
+          return [...acc, { ...item }];
+        }
+      }, []);
+    }, [revenueItems, revenue]);
 
     // Breakdown HPP (disederhanakan - dalam aplikasi nyata, ini akan lebih detail)
     const cogsItems: BreakdownItem[] = [

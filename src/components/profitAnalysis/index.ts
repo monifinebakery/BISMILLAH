@@ -125,7 +125,7 @@ export {
 // Import langsung untuk menghindari masalah "not defined"
 import { ProfitAnalysisProvider } from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
-import { ProfitDashboard } from './components/ProfitDashboard';
+import ProfitDashboard from './components/ProfitDashboard'; // Default import karena menggunakan export default
 import profitAnalysisApi from './services/profitAnalysisApi';
 import { PROFIT_CONSTANTS } from './constants/profitConstants';
 import { PROFIT_ANALYSIS_QUERY_KEYS } from './contexts/ProfitAnalysisContext';

@@ -23,13 +23,13 @@ export const PROFIT_QUERY_KEYS = {
   realTime: (period: string) => ['profit-analysis', 'realtime', period],
 } as const;
 
-interface UseProfitAnalysisOptions {
+export interface UseProfitAnalysisOptions {
   autoCalculate?: boolean;
   defaultPeriod?: string;
   enableRealTime?: boolean;
 }
 
-interface UseProfitAnalysisReturn {
+export interface UseProfitAnalysisReturn {
   // State
   currentAnalysis: RealTimeProfitCalculation | null;
   profitHistory: RealTimeProfitCalculation[];

@@ -34,7 +34,7 @@ import {
   generateCostOptimizationRecommendations,
   performCompetitiveBenchmarking,
   generateExecutiveSummary,
-} from '../utils/enhancedProfitCalculations';
+} from '../utils/ProfitCalculations';
 
 // Types
 interface ProfitDashboardProps {

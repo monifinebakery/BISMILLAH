@@ -111,8 +111,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
-    retry: (count, err: any) => (err?.status >= 400 && err?.status < 500 ? false : count < 3),
+    retry: (count, err: any) => {
+      const code = err?.code ?? err?.status;
+      return code && code >= 400 && code < 500 ? false : count < 3;
+    },
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
+    keepPreviousData: true,
   });
 
   // ------------------- Optimistic helpers -------------------
@@ -229,8 +233,26 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: (fresh, _vars, ctx) => {
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
-      // Catatan keuangan: contoh sederhana (opsional)
-      // Bila mau, tambahkan addTransaction saat completed, dan hapus saat revert—mirip kode kamu sebelumnya.
+      
+      // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
+      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      if (prevPurchase && addTransaction) {
+        if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
+          // Tambahkan transaksi ketika status berubah ke completed
+          addTransaction({
+            type: 'pengeluaran',
+            amount: fresh.totalNilai,
+            description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
+            category: 'pembelian',
+            date: new Date(),
+            related_id: fresh.id,
+            related_type: 'purchase'
+          });
+        } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
+          // Hapus transaksi ketika status berubah dari completed
+          // Note: Ini memerlukan implementasi untuk menghapus transaksi berdasarkan related_id
+        }
+      }
     },
     onError: (err, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(purchaseQueryKeys.list(user?.id), ctx.prev);
@@ -394,26 +416,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user?.id, queryClient]);
 
   // ------------------- Context value -------------------
-  const contextValue: PurchaseContextType & {
-    // tambahan API hasil penggabungan core
-    stats: {
-      total: number;
-      totalValue: number;
-      byStatus: { pending: number; completed: number; cancelled: number };
-      completionRate: number;
-    };
-    setStatus: (id: string, status: PurchaseStatus) => Promise<boolean>;
-    bulkDelete: (ids: string[]) => Promise<void>;
-    bulkStatusUpdate: (ids: string[], status: PurchaseStatus) => Promise<void>;
-    findPurchase: (id: string) => Purchase | undefined;
-    validatePrerequisites: () => boolean;
-    setBulkProcessing: (v: boolean) => void;
-    getSupplierName: (id: string) => string;
-  } = {
+  const contextValue: PurchaseContextType = {
     // from original type
     purchases,
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
     error: error ? (error as Error).message : null,
+    isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
 
     addPurchase,
     updatePurchase: updatePurchaseAction,

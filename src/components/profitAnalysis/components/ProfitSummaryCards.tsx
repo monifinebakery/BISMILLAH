@@ -42,7 +42,16 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   className = ''
 }) => {
   
-  // ✅ HITUNG METRIK
+  // ✅ FIX: Extract primitive values to avoid nested object access in dependencies
+  const currentRevenue = currentAnalysis?.revenue_data?.total ?? 0;
+  const currentCogs = currentAnalysis?.cogs_data?.total ?? 0;
+  const currentOpex = currentAnalysis?.opex_data?.total ?? 0;
+  
+  const prevRevenue = previousAnalysis?.revenue_data?.total ?? 0;
+  const prevCogs = previousAnalysis?.cogs_data?.total ?? 0;
+  const prevOpex = previousAnalysis?.opex_data?.total ?? 0;
+
+  // ✅ HITUNG METRIK - Fixed dependencies
   const metrics = useMemo(() => {
     if (!currentAnalysis) {
       return {
@@ -56,30 +65,23 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
       };
     }
 
-    const revenue = currentAnalysis.revenue_data.total;
-    const cogs = currentAnalysis.cogs_data.total;
-    const opex = currentAnalysis.opex_data.total;
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    const grossProfit = currentRevenue - currentCogs;
+    const netProfit = grossProfit - currentOpex;
+    const grossMargin = currentRevenue > 0 ? (grossProfit / currentRevenue) * 100 : 0;
+    const netMargin = currentRevenue > 0 ? (netProfit / currentRevenue) * 100 : 0;
 
     return {
-      revenue,
-      cogs,
-      opex,
+      revenue: currentRevenue,
+      cogs: currentCogs,
+      opex: currentOpex,
       grossProfit,
       netProfit,
       grossMargin,
       netMargin
     };
-  }, [
-    currentAnalysis?.revenue_data?.total,
-    currentAnalysis?.cogs_data?.total,
-    currentAnalysis?.opex_data?.total
-  ]);
+  }, [currentRevenue, currentCogs, currentOpex, currentAnalysis]); // ✅ Use primitive values
 
-  // ✅ HITUNG PERUBAHAN vs PERIODE SEBELUMNYA
+  // ✅ HITUNG PERUBAHAN vs PERIODE SEBELUMNYA - Fixed dependencies  
   const changes = useMemo(() => {
     if (!previousAnalysis) {
       return {
@@ -90,10 +92,8 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
       };
     }
 
-    const prevRevenue = previousAnalysis.revenue_data.total;
-    const prevGrossProfit = prevRevenue - previousAnalysis.cogs_data.total;
-    const prevNetProfit = prevGrossProfit - previousAnalysis.opex_data.total;
-    const prevCogs = previousAnalysis.cogs_data.total;
+    const prevGrossProfit = prevRevenue - prevCogs;
+    const prevNetProfit = prevGrossProfit - prevOpex;
 
     return {
       revenueChange: calculateGrowth(metrics.revenue, prevRevenue),
@@ -106,10 +106,11 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     metrics.grossProfit,
     metrics.netProfit,
     metrics.cogs,
-    previousAnalysis?.revenue_data?.total,
-    previousAnalysis?.cogs_data?.total,
-    previousAnalysis?.opex_data?.total
-  ]);
+    prevRevenue,
+    prevCogs,
+    prevOpex,
+    previousAnalysis
+  ]); // ✅ Use primitive values
 
   // ✅ GENERATE DATA KARTU
   const cards = useMemo((): MetricCard[] => {

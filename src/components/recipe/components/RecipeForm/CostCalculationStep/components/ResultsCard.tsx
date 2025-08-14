@@ -271,7 +271,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
                       <th className="text-right py-2 text-blue-800">Margin</th>
                     </tr>
                   </thead>
-                  <tbody className="space-y-1">
+                  <tbody>
                     <tr className="border-b border-blue-100">
                       <td className="py-2 font-medium">Per Porsi ({jumlahPcsPerPorsi} pcs)</td>
                       <td className="text-right py-2">{formatCurrency(costBreakdown.costPerPortion)}</td>
@@ -355,3 +355,6 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
       </Card>
     </div>
   );
+}; // <-- Penutup fungsi dan komponen
+
+// Pastikan file berakhir dengan baris baru (tidak masalah jika tidak, tapi disarankan)

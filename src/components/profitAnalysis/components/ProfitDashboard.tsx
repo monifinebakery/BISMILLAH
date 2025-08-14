@@ -29,7 +29,7 @@ import DetailedBreakdownTable from './DetailedBreakdownTable';
 import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
 import { generatePeriodOptions, getCurrentPeriod } from '../utils/profitTransformers';
 
-// Import calculation functions - Updated to match actual available functions
+// Import calculation functions
 import {
   calculateMargins,
   comparePeriods,
@@ -43,14 +43,21 @@ import {
   getMarginRating,
 } from '../utils/profitCalculations';
 
-// Types
-interface ProfitDashboardProps {
+// ==============================================
+// TYPES
+// ==============================================
+
+export interface ProfitDashboardProps {
   className?: string;
   defaultPeriod?: string;
   showAdvancedMetrics?: boolean;
 }
 
-// Advanced metrics calculation function (replacing the imported one)
+// ==============================================
+// HELPER FUNCTIONS
+// ==============================================
+
+// Advanced metrics calculation function
 const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: any) => {
   if (!currentAnalysis) return null;
   
@@ -73,7 +80,7 @@ const calculateAdvancedProfitMetrics = (profitHistory: any[], currentAnalysis: a
   };
 };
 
-// Forecast generation function (replacing the imported one)
+// Forecast generation function
 const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
   if (profitHistory.length < 3) return null;
   
@@ -108,7 +115,7 @@ const generateProfitForecast = (profitHistory: any[], currentAnalysis: any) => {
   };
 };
 
-// Competitive benchmarking function (replacing the imported one)
+// Competitive benchmarking function
 const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any[]) => {
   if (!advancedMetrics) return null;
   
@@ -147,7 +154,7 @@ const performCompetitiveBenchmarking = (advancedMetrics: any, profitHistory: any
   };
 };
 
-// Executive summary generation function (replacing the imported one)
+// Executive summary generation function
 const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, forecast: any, benchmark: any) => {
   if (!currentAnalysis || !advancedMetrics) return null;
   
@@ -160,81 +167,10 @@ const generateExecutiveSummary = (currentAnalysis: any, advancedMetrics: any, fo
   };
 };
 
-// Cost optimization recommendations function (replacing the imported one)
-const generateCostOptimizationRecommendations = (currentAnalysis: any, advancedMetrics: any, profitHistory: any[]) => {
-  if (!currentAnalysis || !advancedMetrics) return null;
-  
-  const revenue = currentAnalysis.revenue_data.total;
-  const cogs = currentAnalysis.cogs_data.total;
-  const opex = currentAnalysis.opex_data.total;
-  
-  const recommendations = {
-    immediate: [] as any[],
-    mediumTerm: [] as any[],
-    longTerm: [] as any[]
-  };
-  
-  // Immediate actions (1-3 months)
-  if (advancedMetrics.cogsPercentage > 60) {
-    recommendations.immediate.push({
-      action: "Negotiate better supplier terms or find alternative suppliers",
-      impact: cogs * 0.05, // 5% potential savings
-      effort: "medium",
-      timeframe: "1-2 months",
-      category: "cogs"
-    });
-  }
-  
-  if (advancedMetrics.opexPercentage > 30) {
-    recommendations.immediate.push({
-      action: "Review and eliminate non-essential operational expenses",
-      impact: opex * 0.1, // 10% potential savings
-      effort: "low",
-      timeframe: "1 month",
-      category: "opex"
-    });
-  }
-  
-  // Medium term actions (3-12 months)
-  if (advancedMetrics.grossProfitMargin < 40) {
-    recommendations.mediumTerm.push({
-      action: "Implement lean manufacturing processes to reduce waste",
-      impact: revenue * 0.03, // 3% revenue impact
-      effort: "high",
-      timeframe: "6 months",
-      category: "efficiency"
-    });
-  }
-  
-  recommendations.mediumTerm.push({
-    action: "Automate repetitive processes to reduce labor costs",
-    impact: opex * 0.15, // 15% opex savings
-    effort: "high",
-    timeframe: "6-9 months",
-    category: "automation"
-  });
-  
-  // Long term actions (12+ months)
-  recommendations.longTerm.push({
-    action: "Develop strategic supplier partnerships for better pricing",
-    impact: cogs * 0.1, // 10% COGS savings
-    effort: "high",
-    timeframe: "12-18 months",
-    category: "strategic"
-  });
-  
-  recommendations.longTerm.push({
-    action: "Invest in technology infrastructure for operational efficiency",
-    impact: revenue * 0.05, // 5% revenue improvement
-    effort: "high",
-    timeframe: "18-24 months",
-    category: "technology"
-  });
-  
-  return recommendations;
-};
+// ==============================================
+// MAIN PROFIT DASHBOARD COMPONENT
+// ==============================================
 
-// Main Profit Dashboard Component
 const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   className = '',
   defaultPeriod,
@@ -291,11 +227,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     if (!currentAnalysis || !advancedMetrics || !forecast || !benchmark) return null;
     return generateExecutiveSummary(currentAnalysis, advancedMetrics, forecast, benchmark);
   }, [currentAnalysis, advancedMetrics, forecast, benchmark]);
-
-  const costRecommendations = useMemo(() => {
-    if (!currentAnalysis || !advancedMetrics) return null;
-    return generateCostOptimizationRecommendations(currentAnalysis, advancedMetrics, profitHistory);
-  }, [currentAnalysis, advancedMetrics, profitHistory]);
 
   // Previous Period for Comparison
   const previousAnalysis = useMemo(() => {
@@ -564,100 +495,30 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">
-          {/* Cost Recommendations */}
-          {costRecommendations && (
+          {/* Advanced Metrics */}
+          {advancedMetrics && (
             <Card>
               <CardHeader>
-                <CardTitle>Cost Optimization Recommendations</CardTitle>
-                <CardDescription>AI-generated suggestions to improve profitability</CardDescription>
+                <CardTitle>Advanced Analytics</CardTitle>
+                <CardDescription>Deep dive into financial performance metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Immediate Actions */}
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
-                      Immediate Actions (1-3 months)
-                    </h4>
-                    <div className="space-y-3">
-                      {costRecommendations.immediate.map((rec, index) => (
-                        <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <h5 className="font-medium text-gray-800">{rec.action}</h5>
-                            <Badge
-                              variant={rec.effort === 'low' ? 'default' : rec.effort === 'medium' ? 'secondary' : 'destructive'}
-                            >
-                              {rec.effort} effort
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Potential Impact:</span> {formatCurrency(rec.impact)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            <span className="font-medium">Timeline:</span> {rec.timeframe} •{' '}
-                            <span className="font-medium">Category:</span> {rec.category.toUpperCase()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{formatPercentage(advancedMetrics.grossProfitMargin)}</div>
+                    <div className="text-sm text-gray-600">Gross Margin</div>
                   </div>
-
-                  {/* Medium Term Actions */}
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>
-                      Medium Term Actions (3-12 months)
-                    </h4>
-                    <div className="space-y-3">
-                      {costRecommendations.mediumTerm.map((rec, index) => (
-                        <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <h5 className="font-medium text-gray-800">{rec.action}</h5>
-                            <Badge
-                              variant={rec.effort === 'low' ? 'default' : rec.effort === 'medium' ? 'secondary' : 'destructive'}
-                            >
-                              {rec.effort} effort
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Potential Impact:</span> {formatCurrency(rec.impact)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            <span className="font-medium">Timeline:</span> {rec.timeframe} •{' '}
-                            <span className="font-medium">Category:</span> {rec.category.toUpperCase()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{formatPercentage(advancedMetrics.netProfitMargin)}</div>
+                    <div className="text-sm text-gray-600">Net Margin</div>
                   </div>
-
-                  {/* Long Term Actions */}
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
-                      Long Term Actions (12+ months)
-                    </h4>
-                    <div className="space-y-3">
-                      {costRecommendations.longTerm.map((rec, index) => (
-                        <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <h5 className="font-medium text-gray-800">{rec.action}</h5>
-                            <Badge
-                              variant={rec.effort === 'low' ? 'default' : rec.effort === 'medium' ? 'secondary' : 'destructive'}
-                            >
-                              {rec.effort} effort
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Potential Impact:</span> {formatCurrency(rec.impact)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            <span className="font-medium">Timeline:</span> {rec.timeframe} •{' '}
-                            <span className="font-medium">Category:</span> {rec.category.toUpperCase()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{formatPercentage(advancedMetrics.monthlyGrowthRate)}</div>
+                    <div className="text-sm text-gray-600">Monthly Growth</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-amber-600">{formatPercentage(advancedMetrics.marginOfSafety)}</div>
+                    <div className="text-sm text-gray-600">Margin of Safety</div>
                   </div>
                 </div>
               </CardContent>
@@ -697,52 +558,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
                       {formatPercentage(benchmark.competitive.gapToLeader)}
                     </div>
                     <div className="text-xs text-gray-500">Margin Points</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Advanced Metrics */}
-          {advancedMetrics && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Advanced Analytics</CardTitle>
-                <CardDescription>Deep dive into financial performance metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{formatPercentage(advancedMetrics.grossProfitMargin)}</div>
-                    <div className="text-sm text-gray-600">Gross Margin</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{formatPercentage(advancedMetrics.netProfitMargin)}</div>
-                    <div className="text-sm text-gray-600">Net Margin</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{formatPercentage(advancedMetrics.monthlyGrowthRate)}</div>
-                    <div className="text-sm text-gray-600">Monthly Growth</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-amber-600">{formatPercentage(advancedMetrics.marginOfSafety)}</div>
-                    <div className="text-sm text-gray-600">Margin of Safety</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{formatPercentage(advancedMetrics.cogsPercentage)}</div>
-                    <div className="text-sm text-gray-600">COGS %</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">{formatPercentage(advancedMetrics.opexPercentage)}</div>
-                    <div className="text-sm text-gray-600">OpEx %</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-teal-600">{formatPercentage(advancedMetrics.confidenceScore)}</div>
-                    <div className="text-sm text-gray-600">Data Quality</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">{advancedMetrics.operatingLeverage.toFixed(2)}x</div>
-                    <div className="text-sm text-gray-600">Operating Leverage</div>
                   </div>
                 </div>
               </CardContent>

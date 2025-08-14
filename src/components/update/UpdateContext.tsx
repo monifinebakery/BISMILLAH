@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppUpdate, UpdateContextType } from './types';
 import { UpdateNotification } from './UpdateNotification';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 
@@ -67,10 +68,28 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
+      let seenIdsSet = new Set<string>();
+      try {
+        const { data: seenData, error: seenError } = await supabase
+          .from('user_seen_updates')
+          .select('update_id')
+          .eq('user_id', user.id);
+        if (seenError) throw seenError;
+        const ids = (seenData ?? []).map((s: { update_id: string }) => s.update_id);
+        seenIdsSet = new Set(ids);
+        setSeenUpdateIds(seenIdsSet);
+      } catch (err) {
+        const error = err as Error;
+        console.error('Error fetching seen updates:', error.message);
+        toast.error('Gagal memuat status pembaruan');
+        setSeenUpdateIds(new Set());
+      }
+
       setLatestUpdate(updates[0]);
       const newUnseen = updates.filter(
         (update) => !seenUpdateIdsRef.current.has(update.id)
       );
+        
       setUnseenUpdates(newUnseen);
       setHasUnseenUpdates(newUnseen.length > 0);
 
@@ -96,13 +115,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           <div className="space-y-4 max-h-64 overflow-y-auto">
             {updates.map((update) => (
               <div key={update.id} className="border-b border-gray-100 pb-2 last:border-b-0">
-                <UpdateNotification update={update} onDismiss={() => {}} /> {/* onDismiss di-handle di parent */}
+                <UpdateNotification update={update} onDismiss={() => {}} />
               </div>
             ))}
           </div>
           <button
             onClick={() => {
-              updates.forEach(update => markAsSeen(update.id));
+              markAllAsSeen();
               toast.dismiss(t);
             }}
             className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -143,11 +162,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
+      
       unseenUpdates.forEach((update) => seenUpdateIdsRef.current.add(update.id));
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       toast.success('Semua pembaruan telah ditandai sebagai sudah dibaca');
       console.log('Marked all as seen');
+      
     } catch (error) {
       console.error('Error in markAllAsSeen:', error);
       toast.error('Gagal menandai semua pembaruan sebagai sudah dibaca');
@@ -168,6 +189,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
       seenUpdateIdsRef.current = new Set();
+
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);
@@ -175,7 +197,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (!user?.id) return;
 
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     try {
       channel = supabase
         .channel('app_updates_changes')

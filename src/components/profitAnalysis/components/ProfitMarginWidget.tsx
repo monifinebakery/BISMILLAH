@@ -1,6 +1,3 @@
-// src/components/profitAnalysis/components/ProfitMarginWidget.tsx
-// ✅ PROFIT MARGIN WIDGET - Fixed and Enhanced Version
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -265,6 +262,7 @@ export const ProfitMarginWidget: React.FC<{
     try {
       setIsCalculating(true);
       await calculateProfit();
+      await refetch();
       toast.success('Profit margin berhasil dihitung ulang');
       logger.info('Profit margin recalculated successfully');
     } catch (error: any) {
@@ -309,7 +307,7 @@ export const ProfitMarginWidget: React.FC<{
             </div>
           </div>
           <Button 
-            onClick={() => refetch()} 
+            onClick={handleRecalculate} 
             variant="outline" 
             className={cn("mt-4", isMobile && "mt-3 text-xs w-full")}
           >
@@ -325,7 +323,7 @@ export const ProfitMarginWidget: React.FC<{
   const displayData = keyMetrics || (summary?.currentMargin as any);
 
   // ✅ NO DATA STATE
-  if (!displayData) {
+  if (!displayData || typeof displayData.revenue !== 'number' || isNaN(displayData.revenue)) {
     return (
       <Card className={className}>
         <CardHeader className={cn("p-4", isMobile && "p-3")}>

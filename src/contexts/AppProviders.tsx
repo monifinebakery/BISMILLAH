@@ -1,4 +1,4 @@
-// src/contexts/AppProviders.tsx - UPDATED WITH UPDATE PROVIDER
+// src/contexts/AppProviders.tsx - UPDATED WITH PROFIT ANALYSIS PROVIDER
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -21,20 +21,23 @@ import { OperationalCostProvider } from '@/components/operational-costs/context/
 // ✅ NEW: Import UpdateProvider
 import { UpdateProvider } from '@/components/update';
 
+// ✅ NEW: Import ProfitAnalysisProvider
+import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
+
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 /**
- * ✅ UPDATED - Add UpdateProvider to Original Working Structure
- * Keeping the exact same structure as before but adding UpdateProvider
+ * ✅ UPDATED - Add ProfitAnalysisProvider to Original Working Structure
+ * Keeping the exact same structure as before but adding ProfitAnalysisProvider
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   
   return (
     <>
-      {/* ✅ ORIGINAL STRUCTURE - Proven to work + UpdateProvider */}
+      {/* ✅ ORIGINAL STRUCTURE - Proven to work + ProfitAnalysisProvider */}
       <AuthProvider>
         <PaymentProvider>
           <NotificationProvider>
@@ -49,13 +52,16 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                             <OperationalCostProvider>
                               <PromoProvider>
                                 <FollowUpTemplateProvider>
-                                  {/* ✅ NEW: Add UpdateProvider at the end */}
-                                  <UpdateProvider>
-                                    
-                                    {/* ✅ APP CONTENT */}
-                                    {children}
-                                    
-                                  </UpdateProvider>
+                                  {/* ✅ NEW: Add ProfitAnalysisProvider */}
+                                  <ProfitAnalysisProvider>
+                                    {/* ✅ NEW: Add UpdateProvider at the end */}
+                                    <UpdateProvider>
+                                      
+                                      {/* ✅ APP CONTENT */}
+                                      {children}
+                                      
+                                    </UpdateProvider>
+                                  </ProfitAnalysisProvider>
                                 </FollowUpTemplateProvider>
                               </PromoProvider>
                             </OperationalCostProvider>

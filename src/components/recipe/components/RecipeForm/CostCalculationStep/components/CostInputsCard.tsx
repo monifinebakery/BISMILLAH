@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Zap,
   Settings,
-  AlertCircle
+  AlertCircle,
+  Package // ✅ NEW: Icon for pieces per portion
 } from 'lucide-react';
 import { ResponsiveTooltip } from './shared/ResponsiveTooltip';
 import { useOverheadManagement } from '../hooks/useOverheadManagement';
@@ -44,6 +45,10 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
     onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
   });
 
+  // ✅ Calculate per-piece costs for display
+  const totalPieces = data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1);
+  const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;
+
   return (
     <div className="xl:col-span-2 space-y-6">
       
@@ -69,8 +74,102 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 {formatCurrency(data.jumlahPorsi > 0 ? ingredientCost / data.jumlahPorsi : 0)}
               </Badge>
             </div>
+            {/* ✅ NEW: Show per-piece cost if there are multiple pieces per portion */}
+            {(data.jumlahPcsPerPorsi || 1) > 1 && (
+              <div className="flex justify-between items-center">
+                <span className="text-blue-700">Biaya per Pcs:</span>
+                <Badge variant="outline" className="text-blue-700 border-blue-300">
+                  {formatCurrency(ingredientCostPerPiece)}
+                </Badge>
+              </div>
+            )}
             <div className="text-sm text-blue-600 bg-blue-100 p-2 rounded">
               {data.bahanResep.length} bahan telah dihitung otomatis
+              {/* ✅ Show total pieces info */}
+              {(data.jumlahPcsPerPorsi || 1) > 1 && (
+                <div className="mt-1 text-xs">
+                  Total: {data.jumlahPorsi} porsi × {data.jumlahPcsPerPorsi} pcs = {totalPieces} pcs
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ✅ NEW: Portion & Pieces Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Konfigurasi Unit</CardTitle>
+          <p className="text-sm text-gray-600">
+            Atur jumlah porsi dan pieces per porsi
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          
+          {/* Jumlah Pcs per Porsi */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Package className="h-4 w-4 text-gray-500" />
+              Jumlah Pcs per Porsi
+              <ResponsiveTooltip 
+                content={
+                  <div className="space-y-2">
+                    <p className="font-semibold text-blue-300">📦 Jumlah Pcs per Porsi:</p>
+                    <p className="leading-relaxed">Berapa banyak pieces/unit individual yang ada dalam 1 porsi.</p>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="text-green-300">✅ Contoh:</p>
+                      <p className="text-gray-300 text-xs ml-4">• Donat: 6 pcs per box (porsi)</p>
+                      <p className="text-gray-300 text-xs ml-4">• Kue sus: 12 pcs per tray</p>
+                      <p className="text-gray-300 text-xs ml-4">• Nasi box: 1 pcs per porsi</p>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="font-medium text-purple-300">🎯 Manfaat:</p>
+                      <p className="text-gray-300 text-xs">Memungkinkan kalkulasi HPP dan harga jual per piece untuk fleksibilitas penjualan.</p>
+                    </div>
+                  </div>
+                }
+              >
+                <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </ResponsiveTooltip>
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                min="1"
+                max="100"
+                value={data.jumlahPcsPerPorsi || ''}
+                onChange={(e) => onUpdate('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                placeholder="1"
+                className={`${errors.jumlahPcsPerPorsi ? 'border-red-300 focus:border-red-500' : ''}`}
+                disabled={isLoading}
+              />
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                pcs
+              </span>
+            </div>
+            {errors.jumlahPcsPerPorsi && (
+              <p className="text-sm text-red-600">{errors.jumlahPcsPerPorsi}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Berapa pieces dalam 1 porsi? (Default: 1 pcs = 1 porsi)
+            </p>
+            
+            {/* Quick suggestion buttons */}
+            <div className="flex gap-1 flex-wrap items-center">
+              <p className="text-xs text-gray-400 mr-2">Coba:</p>
+              {[1, 6, 12, 24].map((pcs) => (
+                <button
+                  key={pcs}
+                  type="button"
+                  onClick={() => onUpdate('jumlahPcsPerPorsi', pcs)}
+                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                  disabled={isLoading}
+                >
+                  {pcs} pcs
+                </button>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -141,10 +240,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             )}
             <p className="text-xs text-gray-500">
               Upah pekerja untuk membuat {data.jumlahPorsi} porsi
+              {/* ✅ Show per-piece context */}
+              {(data.jumlahPcsPerPorsi || 1) > 1 && (
+                <span className="text-blue-600"> ({totalPieces} pcs total)</span>
+              )}
             </p>
           </div>
 
-          {/* Overhead Cost */}
+          {/* Overhead Cost - keeping existing implementation */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -239,6 +342,15 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                       {formatCurrency(overheadManagement.overheadCalculation.overhead_per_unit * data.jumlahPorsi)}
                     </p>
                   </div>
+                  {/* ✅ NEW: Show per-piece overhead if applicable */}
+                  {(data.jumlahPcsPerPorsi || 1) > 1 && (
+                    <div className="col-span-full">
+                      <span className="text-green-600">Overhead per Pcs:</span>
+                      <p className="font-semibold text-green-900">
+                        {formatCurrency(overheadManagement.overheadCalculation.overhead_per_unit / (data.jumlahPcsPerPorsi || 1))}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -288,10 +400,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 ? `Dihitung dari biaya operasional per unit × ${data.jumlahPorsi} porsi`
                 : "Listrik, gas, sewa tempat, dll. untuk batch ini"
               }
+              {/* ✅ Show per-piece context */}
+              {(data.jumlahPcsPerPorsi || 1) > 1 && (
+                <span className="text-blue-600"> ({totalPieces} pcs total)</span>
+              )}
             </p>
           </div>
 
-          {/* Profit Margin - ENHANCED VERSION */}
+          {/* Profit Margin - keeping existing enhanced version */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-gray-500" />
@@ -330,7 +446,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               </ResponsiveTooltip>
             </Label>
             
-            {/* 🚨 WARNING ALERT - Show when margin is empty */}
+            {/* Warning Alert - Show when margin is empty */}
             {(!data.marginKeuntunganPersen || data.marginKeuntunganPersen === 0) && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
                 <div className="flex items-center gap-2">
@@ -370,13 +486,13 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               <p className="text-sm text-red-600">{errors.marginKeuntunganPersen}</p>
             )}
             
-            {/* 🔧 ENHANCED HELP TEXT */}
+            {/* Enhanced help text */}
             <div className="space-y-1">
               <p className="text-xs text-gray-500">
                 Persentase keuntungan yang diinginkan dari total biaya produksi
               </p>
               
-              {/* Quick Suggestion Buttons */}
+              {/* Quick suggestion buttons */}
               <div className="flex gap-1 flex-wrap items-center">
                 <p className="text-xs text-gray-400 mr-2">Coba:</p>
                 {[15, 20, 25, 30, 35].map((percent) => (
@@ -393,7 +509,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               </div>
             </div>
             
-            {/* Current Margin Status */}
+            {/* Current margin status */}
             {data.marginKeuntunganPersen && data.marginKeuntunganPersen > 0 && (
               <div className={`text-xs p-2 rounded-lg border ${
                 data.marginKeuntunganPersen >= 30 ? 'bg-green-50 text-green-700 border-green-200' :

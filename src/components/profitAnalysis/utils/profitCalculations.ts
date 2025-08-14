@@ -1,5 +1,5 @@
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
-import { PROFIT_CONSTANTS } from '../constants/profitConstants';
+import { PROFIT_CONSTANTS } from '../constants';
 
 // Interfaces matching the actual schema
 interface FinancialTransactionActual {

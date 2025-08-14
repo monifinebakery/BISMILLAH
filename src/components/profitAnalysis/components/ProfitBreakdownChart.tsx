@@ -8,7 +8,7 @@ import {
 
 import { formatCurrency, formatLargeNumber } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
-import { CHART_CONFIG } from '../constants/profitConstants';
+import { CHART_CONFIG } from '../constants';
 
 // ==============================================
 // TYPES

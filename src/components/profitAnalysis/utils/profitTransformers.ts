@@ -9,15 +9,12 @@ import {
   OpExBreakdown,
   ProfitChartData 
 } from '../types/profitAnalysis.types';
-import { FinancialTransaction } from '@/components/financial/types/financial';
-import { BahanBakuFrontend } from '@/components/warehouse/types';
-import { OperationalCost } from '@/components/operational-costs/types';
 
 /**
  * Transform financial transactions to revenue breakdown
  */
 export const transformToRevenueBreakdown = (
-  transactions: FinancialTransaction[]
+  transactions: any[]
 ): RevenueBreakdown[] => {
   const incomeTransactions = transactions.filter(t => t.type === 'income');
   const totalRevenue = incomeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -34,7 +31,7 @@ export const transformToRevenueBreakdown = (
     groups[category].transactions.push(transaction);
     groups[category].total += transaction.amount || 0;
     return groups;
-  }, {} as Record<string, { transactions: FinancialTransaction[]; total: number }>);
+  }, {} as Record<string, { transactions: any[]; total: number }>);
 
   // Transform to breakdown format
   return Object.entries(categoryGroups).map(([category, data]) => ({
@@ -49,7 +46,7 @@ export const transformToRevenueBreakdown = (
  * Transform expense transactions to COGS breakdown
  */
 export const transformToCOGSBreakdown = (
-  transactions: FinancialTransaction[]
+  transactions: any[]
 ): COGSBreakdown[] => {
   const cogsTransactions = transactions.filter(t => 
     t.type === 'expense' && t.category === 'Pembelian Bahan Baku'
@@ -74,7 +71,7 @@ export const transformToCOGSBreakdown = (
     groups[materialName].quantity += 1; // Simplified - in real app, extract from transaction
     
     return groups;
-  }, {} as Record<string, { transactions: FinancialTransaction[]; total: number; quantity: number }>);
+  }, {} as Record<string, { transactions: any[]; total: number; quantity: number }>);
 
   return Object.entries(materialGroups).map(([materialName, data]) => ({
     material_name: materialName,
@@ -89,7 +86,7 @@ export const transformToCOGSBreakdown = (
  * Transform operational costs to OpEx breakdown
  */
 export const transformToOpExBreakdown = (
-  operationalCosts: OperationalCost[]
+  operationalCosts: any[]
 ): OpExBreakdown[] => {
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);

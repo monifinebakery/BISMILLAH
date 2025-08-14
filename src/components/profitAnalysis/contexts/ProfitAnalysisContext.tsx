@@ -22,18 +22,18 @@ export const PROFIT_ANALYSIS_QUERY_KEYS = {
   realTime: (period: string) => ['analisis-profit', 'realtime', period],
 } as const;
 
-// State Management
+// State Management - ✅ Fixed to use RealTimeProfitCalculation
 interface ProfitAnalysisState {
-  profitData: ProfitAnalysis[];
-  currentAnalysis: ProfitAnalysis | null;
+  profitData: RealTimeProfitCalculation[]; // ✅ Changed from ProfitAnalysis[]
+  currentAnalysis: RealTimeProfitCalculation | null; // ✅ Changed from ProfitAnalysis
   error: string | null;
-  lastUpdated: string | null; // ✅ Keep as string to avoid Date object recreation
+  lastUpdated: string | null;
 }
 
 type ProfitAnalysisAction =
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_CURRENT_ANALYSIS'; payload: ProfitAnalysis | null }
-  | { type: 'SET_PROFIT_DATA'; payload: ProfitAnalysis[] }
+  | { type: 'SET_CURRENT_ANALYSIS'; payload: RealTimeProfitCalculation | null } // ✅ Fixed type
+  | { type: 'SET_PROFIT_DATA'; payload: RealTimeProfitCalculation[] } // ✅ Fixed type
   | { type: 'SET_LAST_UPDATED'; payload: string }
   | { type: 'RESET_STATE' };
 

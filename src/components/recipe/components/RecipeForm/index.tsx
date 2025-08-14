@@ -197,7 +197,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       }
       setCurrentStep('basic');
       setErrors({});
-      setIsFooterVisible(false); // Reset footer visibility
+      setIsFooterVisible(false);
     }
   }, [isOpen, initialData]);
 
@@ -214,7 +214,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     const contentElement = contentRef.current;
     if (contentElement) {
       contentElement.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial check
+      handleScroll();
     }
 
     return () => {
@@ -446,11 +446,11 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             {renderStepContent()}
           </div>
         </CardContent>
-        {/* Footer - Conditionally shown based on scroll position */}
+        {/* Footer - Conditionally shown with offset for bottom bar */}
         <div
-          className={`border-t bg-gray-50 p-4 fixed bottom-0 left-0 right-0 z-60 shadow-lg transition-opacity duration-300 ${
+          className={`border-t bg-gray-50 p-4 fixed bottom-4 left-0 right-0 z-60 shadow-lg transition-opacity duration-300 ${
             isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          } sm:static sm:opacity-100 sm:pointer-events-auto`}
+          } sm:static sm:opacity-100 sm:pointer-events-auto [padding-bottom:calc(1rem+env(safe-area-inset-bottom))]`}
         >
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             {/* Left side - HPP Preview (on cost step) */}

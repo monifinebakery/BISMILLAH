@@ -1,199 +1,175 @@
 // src/components/purchase/utils/purchaseTransformers.ts
-
-import { Purchase, CreatePurchaseRequest } from '../types/purchase.types';
-import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
+import { Purchase, PurchaseItem } from '../types/purchase.types';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 
-/**
- * Transform database purchase data to frontend Purchase type
- */
+/** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB */
+const toYMD = (d: Date | string): string => {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return date.toISOString().slice(0, 10);
+};
+
+/** Bentuk baris DB (after select) */
+type DbPurchaseRow = {
+  id: string;
+  user_id: string;
+  supplier: string;
+  tanggal: string; // 'YYYY-MM-DD'
+  total_nilai: number;
+  items: any; // jsonb array
+  status: 'pending' | 'completed' | 'cancelled';
+  metode_perhitungan: 'FIFO' | 'LIFO' | 'AVERAGE';
+  created_at: string;
+  updated_at: string;
+  applied_at?: string | null;
+};
+
+/** Frontend <- DB */
 export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   try {
-    if (!dbItem || typeof dbItem !== 'object') {
-      logger.error('Invalid purchase data from DB:', dbItem);
-      throw new Error('Invalid purchase data format');
-    }
+    const row = dbItem as DbPurchaseRow;
+
+    const items: PurchaseItem[] = Array.isArray(row.items)
+      ? row.items.map((i: any) => ({
+          // app shape
+          bahanBakuId: i.bahan_baku_id ?? i.bahanBakuId ?? '',
+          nama: i.nama ?? '',
+          kuantitas: Number(i.jumlah ?? i.kuantitas ?? 0),
+          satuan: i.satuan ?? '',
+          hargaSatuan: Number(i.harga_per_satuan ?? i.hargaSatuan ?? 0),
+          subtotal:
+            i.subtotal !== undefined
+              ? Number(i.subtotal)
+              : Number(i.jumlah ?? 0) * Number(i.harga_per_satuan ?? 0),
+          keterangan: i.keterangan ?? undefined,
+        }))
+      : [];
 
     return {
-      id: dbItem.id || '',
-      userId: dbItem.user_id || '',
-      supplier: dbItem.supplier || '',
-      tanggal: safeParseDate(dbItem.tanggal) || new Date(),
-      totalNilai: Number(dbItem.total_nilai) || 0,
-      items: Array.isArray(dbItem.items) ? dbItem.items : [],
-      status: dbItem.status || 'pending',
-      metodePerhitungan: dbItem.metode_perhitungan || 'FIFO',
-      createdAt: safeParseDate(dbItem.created_at) || new Date(),
-      updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
+      id: row.id,
+      userId: row.user_id,
+      supplier: row.supplier,
+      tanggal: safeParseDate(row.tanggal) ?? new Date(),
+      totalNilai: Number(row.total_nilai ?? 0),
+      items,
+      status: row.status,
+      metodePerhitungan: row.metode_perhitungan,
+      createdAt: safeParseDate(row.created_at) ?? new Date(),
+      updatedAt: safeParseDate(row.updated_at) ?? new Date(),
     };
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error, dbItem);
-    
-    // Return safe fallback
     return {
-      id: dbItem?.id || 'error',
-      userId: dbItem?.user_id || '',
-      supplier: 'Error Loading',
+      id: dbItem?.id ?? 'error',
+      userId: dbItem?.user_id ?? '',
+      supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
       totalNilai: 0,
       items: [],
       status: 'pending',
-      metodePerhitungan: 'FIFO',
+      metodePerhitungan: 'AVERAGE',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 };
 
-/**
- * Transform frontend Purchase data to database format
- */
+/** DB <- Frontend (INSERT) */
 export const transformPurchaseForDB = (
-  purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
+  p: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
   userId: string
-): CreatePurchaseRequest => {
+) => {
   return {
     user_id: userId,
-    supplier: purchase.supplier,
-    tanggal: toSafeISOString(purchase.tanggal) || toSafeISOString(new Date()),
-    total_nilai: purchase.totalNilai,
-    items: purchase.items,
-    status: purchase.status || 'pending',
-    metode_perhitungan: purchase.metodePerhitungan || 'FIFO',
+    supplier: p.supplier,
+    tanggal: toYMD(p.tanggal),
+    total_nilai: p.totalNilai,
+    // IMPORTANT: bentuk yang dibaca trigger WAC
+    items: (p.items ?? []).map((i) => ({
+      bahan_baku_id: i.bahanBakuId,
+      jumlah: i.kuantitas,
+      harga_per_satuan: i.hargaSatuan,
+      // metadata tambahan (tidak dipakai trigger, aman disimpan)
+      nama: i.nama,
+      satuan: i.satuan,
+      subtotal: i.subtotal,
+      keterangan: i.keterangan ?? null,
+    })),
+    status: p.status ?? 'pending',
+    metode_perhitungan: p.metodePerhitungan ?? 'AVERAGE',
   };
 };
 
-/**
- * Transform purchase update data for database
- */
-export const transformPurchaseUpdateForDB = (
-  updatedData: Partial<Purchase>
-): { [key: string]: any } => {
-  const dbUpdate: { [key: string]: any } = {
-    updated_at: new Date().toISOString(),
-  };
+/** DB <- Frontend (UPDATE) */
+export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
+  const out: Record<string, any> = { updated_at: new Date().toISOString() };
 
-  // Map frontend fields to database fields
-  if (updatedData.supplier !== undefined) {
-    dbUpdate.supplier = updatedData.supplier;
-  }
-  
-  if (updatedData.totalNilai !== undefined) {
-    dbUpdate.total_nilai = updatedData.totalNilai;
-  }
-  
-  if (updatedData.tanggal !== undefined) {
-    dbUpdate.tanggal = toSafeISOString(updatedData.tanggal);
-  }
-  
-  if (updatedData.items !== undefined) {
-    dbUpdate.items = updatedData.items;
-  }
-  
-  if (updatedData.status !== undefined) {
-    dbUpdate.status = updatedData.status;
-  }
-  
-  if (updatedData.metodePerhitungan !== undefined) {
-    dbUpdate.metode_perhitungan = updatedData.metodePerhitungan;
-  }
+  if (p.supplier !== undefined) out.supplier = p.supplier;
+  if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
+  if (p.totalNilai !== undefined) out.total_nilai = p.totalNilai;
+  if (p.status !== undefined) out.status = p.status;
+  if (p.metodePerhitungan !== undefined) out.metode_perhitungan = p.metodePerhitungan;
 
-  return dbUpdate;
+  if (p.items !== undefined) {
+    out.items = (p.items ?? []).map((i) => ({
+      bahan_baku_id: i.bahanBakuId,
+      jumlah: i.kuantitas,
+      harga_per_satuan: i.hargaSatuan,
+      nama: i.nama,
+      satuan: i.satuan,
+      subtotal: i.subtotal,
+      keterangan: i.keterangan ?? null,
+    }));
+  }
+  return out;
 };
 
-/**
- * Safely transform array of database purchases
- */
-export const transformPurchasesFromDB = (dbItems: any[]): Purchase[] => {
-  if (!Array.isArray(dbItems)) {
-    logger.error('Expected array but got:', typeof dbItems);
-    return [];
-  }
+/** Array transform helper */
+export const transformPurchasesFromDB = (rows: any[]): Purchase[] =>
+  (rows ?? []).map(transformPurchaseFromDB);
 
-  return dbItems
-    .map(item => {
-      try {
-        return transformPurchaseFromDB(item);
-      } catch (error) {
-        logger.error('Error transforming individual purchase:', error, item);
-        return null;
-      }
-    })
-    .filter((item): item is Purchase => item !== null);
-};
+/** Utilitas tambahan (tetap dipakai di UI) */
+export const calculateItemSubtotal = (kuantitas: number, hargaSatuan: number): number =>
+  (Number(kuantitas) || 0) * (Number(hargaSatuan) || 0);
 
-/**
- * Transform real-time payload from Supabase
- */
-export const transformRealtimePayload = (payload: any): Purchase | null => {
-  try {
-    if (!payload || !payload.new) {
-      return null;
-    }
+export const calculatePurchaseTotal = (items: any[]): number =>
+  Array.isArray(items)
+    ? items.reduce(
+        (acc, it) => acc + calculateItemSubtotal(it.kuantitas, it.hargaSatuan),
+        0
+      )
+    : 0;
 
-    return transformPurchaseFromDB(payload.new);
-  } catch (error) {
-    logger.error('Error transforming realtime payload:', error, payload);
-    return null;
-  }
-};
+export const normalizePurchaseFormData = (formData: any): any => ({
+  ...formData,
+  totalNilai: Number(formData.totalNilai) || 0,
+  tanggal:
+    formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
+  items: Array.isArray(formData.items)
+    ? formData.items.map((item: any) => ({
+        ...item,
+        kuantitas: Number(item.kuantitas) || 0,
+        hargaSatuan: Number(item.hargaSatuan) || 0,
+        subtotal: calculateItemSubtotal(item.kuantitas, item.hargaSatuan),
+      }))
+    : [],
+});
 
-/**
- * Calculate item subtotal safely
- */
-export const calculateItemSubtotal = (kuantitas: number, hargaSatuan: number): number => {
-  const qty = Number(kuantitas) || 0;
-  const price = Number(hargaSatuan) || 0;
-  return qty * price;
-};
-
-/**
- * Calculate purchase total from items
- */
-export const calculatePurchaseTotal = (items: any[]): number => {
-  if (!Array.isArray(items)) return 0;
-  
-  return items.reduce((total, item) => {
-    const subtotal = calculateItemSubtotal(item.kuantitas, item.hargaSatuan);
-    return total + subtotal;
-  }, 0);
-};
-
-/**
- * Normalize purchase form data
- */
-export const normalizePurchaseFormData = (formData: any): any => {
-  return {
-    ...formData,
-    totalNilai: Number(formData.totalNilai) || 0,
-    tanggal: formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
-    items: Array.isArray(formData.items) ? formData.items.map(item => ({
-      ...item,
-      kuantitas: Number(item.kuantitas) || 0,
-      hargaSatuan: Number(item.hargaSatuan) || 0,
-      subtotal: calculateItemSubtotal(item.kuantitas, item.hargaSatuan),
-    })) : [],
-  };
-};
-
-/**
- * Sanitize purchase data for storage
- */
-export const sanitizePurchaseData = (data: any): any => {
-  return {
-    supplier: String(data.supplier || '').trim(),
-    tanggal: data.tanggal,
-    totalNilai: Math.max(0, Number(data.totalNilai) || 0),
-    items: Array.isArray(data.items) ? data.items.map(item => ({
-      bahanBakuId: String(item.bahanBakuId || ''),
-      nama: String(item.nama || '').trim(),
-      kuantitas: Math.max(0, Number(item.kuantitas) || 0),
-      satuan: String(item.satuan || '').trim(),
-      hargaSatuan: Math.max(0, Number(item.hargaSatuan) || 0),
-      subtotal: Math.max(0, Number(item.subtotal) || 0),
-      keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
-    })) : [],
-    status: data.status || 'pending',
-    metodePerhitungan: data.metodePerhitungan || 'FIFO',
-  };
-};
+export const sanitizePurchaseData = (data: any): any => ({
+  supplier: String(data.supplier || '').trim(),
+  tanggal: data.tanggal,
+  totalNilai: Math.max(0, Number(data.totalNilai) || 0),
+  items: Array.isArray(data.items)
+    ? data.items.map((item: any) => ({
+        bahanBakuId: String(item.bahanBakuId || ''),
+        nama: String(item.nama || '').trim(),
+        kuantitas: Math.max(0, Number(item.kuantitas) || 0),
+        satuan: String(item.satuan || '').trim(),
+        hargaSatuan: Math.max(0, Number(item.hargaSatuan) || 0),
+        subtotal: Math.max(0, Number(item.subtotal) || 0),
+        keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
+      }))
+    : [],
+  status: data.status || 'pending',
+  metodePerhitungan: data.metodePerhitungan || 'AVERAGE',
+});

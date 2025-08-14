@@ -1,15 +1,11 @@
-// ==============================================
-// UPDATED PROFIT CALCULATIONS - Compatible with Actual Schema
-// ==============================================
-
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS } from '../constants/profitConstants';
 
-// ✅ Updated interfaces to match actual schema
+// Interfaces matching the actual schema
 interface FinancialTransactionActual {
   id: string;
   user_id: string;
-  type: string; // 'income' | 'expense'
+  type: 'income' | 'expense';
   category: string | null;
   amount: number | null;
   description: string | null;
@@ -44,15 +40,15 @@ interface OperationalCostActual {
   user_id: string;
   nama_biaya: string;
   jumlah_per_bulan: number;
-  jenis: string; // 'tetap' | 'variabel'
-  status: string; // 'aktif' | 'nonaktif'
+  jenis: 'tetap' | 'variabel';
+  status: 'aktif' | 'nonaktif';
   created_at: string;
   updated_at: string;
   cost_category: string | null;
 }
 
 /**
- * ✅ ENHANCED: Calculate real-time profit analysis with actual schema
+ * Calculate real-time profit analysis with actual schema
  */
 export const calculateRealTimeProfit = (
   period: string,
@@ -60,15 +56,11 @@ export const calculateRealTimeProfit = (
   materials: BahanBakuActual[],
   operationalCosts: OperationalCostActual[]
 ): RealTimeProfitCalculation => {
-  
-  // Filter transactions by period (YYYY-MM format)
   const periodTransactions = filterTransactionsByPeriod(transactions, period);
   
-  // ✅ Calculate Revenue from financial_transactions where type = 'income'
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // ✅ Calculate COGS from financial_transactions where type = 'expense' and category contains material keywords
   const cogsTransactions = periodTransactions.filter(t => 
     t.type === 'expense' && (
       (t.category && (
@@ -84,11 +76,9 @@ export const calculateRealTimeProfit = (
   );
   const totalCOGS = cogsTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // ✅ Calculate OpEx from operational_costs where status = 'aktif'
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
   
-  // ✅ Enhanced transaction parsing for better categorization
   const enhancedRevenueTransactions = revenueTransactions.map(t => ({
     category: t.category || 'Uncategorized',
     amount: Number(t.amount) || 0,
@@ -132,10 +122,9 @@ export const calculateRealTimeProfit = (
 };
 
 /**
- * ✅ ENHANCED: Calculate profit margins with validation
+ * Calculate profit margins with validation
  */
 export const calculateMargins = (revenue: number, cogs: number, opex: number) => {
-  // Validate inputs
   const validRevenue = Math.max(0, Number(revenue) || 0);
   const validCOGS = Math.max(0, Number(cogs) || 0);
   const validOpEx = Math.max(0, Number(opex) || 0);
@@ -151,7 +140,6 @@ export const calculateMargins = (revenue: number, cogs: number, opex: number) =>
     netProfit,
     grossMargin,
     netMargin,
-    // Additional metrics
     cogsPercentage: validRevenue > 0 ? (validCOGS / validRevenue) * 100 : 0,
     opexPercentage: validRevenue > 0 ? (validOpEx / validRevenue) * 100 : 0,
     totalCostPercentage: validRevenue > 0 ? ((validCOGS + validOpEx) / validRevenue) * 100 : 0
@@ -159,7 +147,7 @@ export const calculateMargins = (revenue: number, cogs: number, opex: number) =>
 };
 
 /**
- * ✅ ENHANCED: Filter transactions by period with timezone handling
+ * Filter transactions by period with timezone handling
  */
 export const filterTransactionsByPeriod = (
   transactions: FinancialTransactionActual[], 
@@ -169,9 +157,8 @@ export const filterTransactionsByPeriod = (
     if (!t.date) return false;
     
     try {
-      // Handle TIMESTAMPTZ format from Supabase
       const transactionDate = new Date(t.date);
-      const transactionPeriod = transactionDate.toISOString().slice(0, 7); // YYYY-MM
+      const transactionPeriod = transactionDate.toISOString().slice(0, 7);
       return transactionPeriod === period;
     } catch (error) {
       console.warn('Invalid date format:', t.date);
@@ -181,7 +168,7 @@ export const filterTransactionsByPeriod = (
 };
 
 /**
- * ✅ ENHANCED: Get margin rating based on improved thresholds
+ * Get margin rating based on thresholds
  */
 export const getMarginRating = (margin: number, type: 'gross' | 'net'): string => {
   const thresholds = PROFIT_CONSTANTS.MARGIN_THRESHOLDS;
@@ -193,12 +180,11 @@ export const getMarginRating = (margin: number, type: 'gross' | 'net'): string =
 };
 
 /**
- * ✅ ENHANCED: Extract material name from transaction description
+ * Extract material name from transaction description
  */
-const extractMaterialName = (description: string): string => {
+export const extractMaterialName = (description: string): string => {
   if (!description) return 'Unknown Material';
   
-  // Enhanced patterns for Indonesian context
   const patterns = [
     /(?:beli|pembelian|bahan)\s+(.+)/i,
     /(.+?)(?:\s+(?:kg|gram|liter|ml|pcs|dus|pak))/i,
@@ -213,20 +199,17 @@ const extractMaterialName = (description: string): string => {
     }
   }
 
-  // Fallback: take first 3 words
   return description.split(' ').slice(0, 3).join(' ') || 'Material';
 };
 
 /**
- * ✅ NEW: Calculate inventory-based COGS (future enhancement)
+ * Calculate inventory-based COGS
  */
 export const calculateInventoryBasedCOGS = (
   materials: BahanBakuActual[],
   usageData?: { materialId: string; quantityUsed: number }[]
 ): { totalCOGS: number; breakdown: any[] } => {
-  
   if (!usageData || usageData.length === 0) {
-    // Fallback: estimate based on current inventory value
     const totalInventoryValue = materials.reduce((sum, m) => {
       const stock = Number(m.stok) || 0;
       const price = Number(m.harga_satuan) || 0;
@@ -234,13 +217,13 @@ export const calculateInventoryBasedCOGS = (
     }, 0);
     
     return {
-      totalCOGS: totalInventoryValue * 0.1, // Estimate 10% of inventory used per month
+      totalCOGS: totalInventoryValue * 0.1,
       breakdown: materials.map(m => ({
         material_name: m.nama || 'Unknown',
         estimated_usage: (Number(m.stok) || 0) * 0.1,
         unit_price: Number(m.harga_satuan) || 0,
         total_cost: ((Number(m.stok) || 0) * 0.1) * (Number(m.harga_satuan) || 0),
-        percentage: 0 // Will be calculated later
+        percentage: 0
       }))
     };
   }
@@ -257,15 +240,14 @@ export const calculateInventoryBasedCOGS = (
       quantity_used: usage.quantityUsed,
       unit_price: unitPrice,
       total_cost: totalCost,
-      percentage: 0 // Will be calculated after total
+      percentage: 0
     };
-  }).filter(Boolean);
+  }).filter((item): item is NonNullable<typeof item> => item !== null);
   
-  const totalCOGS = breakdown.reduce((sum, item) => sum + (item?.total_cost || 0), 0);
+  const totalCOGS = breakdown.reduce((sum, item) => sum + (item.total_cost || 0), 0);
   
-  // Calculate percentages
   breakdown.forEach(item => {
-    if (item && totalCOGS > 0) {
+    if (totalCOGS > 0) {
       item.percentage = (item.total_cost / totalCOGS) * 100;
     }
   });
@@ -274,7 +256,7 @@ export const calculateInventoryBasedCOGS = (
 };
 
 /**
- * ✅ NEW: Analyze cost structure
+ * Analyze cost structure
  */
 export const analyzeCostStructure = (
   operationalCosts: OperationalCostActual[]
@@ -286,7 +268,6 @@ export const analyzeCostStructure = (
   variableCostRatio: number;
   costsByCategory: Record<string, number>;
 } => {
-  
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   
   const fixedCosts = activeCosts
@@ -316,11 +297,11 @@ export const analyzeCostStructure = (
 };
 
 /**
- * ✅ NEW: Calculate break-even analysis
+ * Calculate break-even analysis
  */
 export const calculateBreakEvenAnalysis = (
   fixedCosts: number,
-  variableCostPercentage: number, // as percentage of revenue
+  variableCostPercentage: number,
   averageSellingPrice?: number,
   targetUnits?: number
 ): {
@@ -329,7 +310,6 @@ export const calculateBreakEvenAnalysis = (
   contributionMarginPercentage: number;
   marginOfSafety: number;
 } => {
-  
   const contributionMarginPercentage = 100 - variableCostPercentage;
   const breakEvenRevenue = contributionMarginPercentage > 0 
     ? (fixedCosts / contributionMarginPercentage) * 100
@@ -352,7 +332,7 @@ export const calculateBreakEvenAnalysis = (
 };
 
 /**
- * ✅ NEW: Generate period comparison
+ * Compare periods for trend analysis
  */
 export const comparePeriods = (
   currentPeriod: RealTimeProfitCalculation,
@@ -364,7 +344,6 @@ export const comparePeriods = (
   trend: 'improving' | 'declining' | 'stable';
   insights: string[];
 } => {
-  
   if (!previousPeriod) {
     return {
       revenueGrowth: 0,
@@ -416,7 +395,7 @@ export const comparePeriods = (
 };
 
 /**
- * ✅ NEW: Validate data quality
+ * Validate data quality
  */
 export const validateDataQuality = (
   calculation: RealTimeProfitCalculation
@@ -425,12 +404,10 @@ export const validateDataQuality = (
   issues: string[];
   recommendations: string[];
 } => {
-  
   let score = 100;
   const issues: string[] = [];
   const recommendations: string[] = [];
   
-  // Check revenue data
   if (calculation.revenue_data.total <= 0) {
     score -= 30;
     issues.push('Tidak ada data revenue');
@@ -441,21 +418,18 @@ export const validateDataQuality = (
     recommendations.push('Pastikan transaksi memiliki kategori yang jelas');
   }
   
-  // Check COGS data
   if (calculation.cogs_data.total <= 0) {
     score -= 20;
     issues.push('Tidak ada data COGS');
     recommendations.push('Tambahkan transaksi pembelian bahan baku');
   }
   
-  // Check OpEx data
   if (calculation.opex_data.total <= 0) {
     score -= 20;
     issues.push('Tidak ada data biaya operasional');
     recommendations.push('Konfigurasi biaya operasional di menu operational costs');
   }
   
-  // Check business logic consistency
   const revenue = calculation.revenue_data.total;
   const cogs = calculation.cogs_data.total;
   const opex = calculation.opex_data.total;
@@ -487,7 +461,7 @@ export const validateDataQuality = (
 };
 
 /**
- * ✅ NEW: Generate executive insights
+ * Generate executive insights
  */
 export const generateExecutiveInsights = (
   calculation: RealTimeProfitCalculation,
@@ -498,7 +472,6 @@ export const generateExecutiveInsights = (
   opportunities: string[];
   recommendedActions: string[];
 } => {
-  
   const revenue = calculation.revenue_data.total;
   const cogs = calculation.cogs_data.total;
   const opex = calculation.opex_data.total;
@@ -512,7 +485,6 @@ export const generateExecutiveInsights = (
   const opportunities: string[] = [];
   const recommendedActions: string[] = [];
   
-  // Revenue Analysis
   if (revenue > 0) {
     keyHighlights.push(`Revenue: ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(revenue)}`);
   } else {
@@ -520,7 +492,6 @@ export const generateExecutiveInsights = (
     recommendedActions.push('Fokus pada aktivitas penjualan dan marketing');
   }
   
-  // Margin Analysis
   if (grossMargin >= 50) {
     keyHighlights.push(`Gross margin sangat baik: ${grossMargin.toFixed(1)}%`);
   } else if (grossMargin >= 30) {
@@ -548,7 +519,6 @@ export const generateExecutiveInsights = (
     recommendedActions.push('Review struktur biaya dan strategi pricing');
   }
   
-  // Cost Structure Analysis
   const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
   const opexPercentage = revenue > 0 ? (opex / revenue) * 100 : 0;
   
@@ -566,7 +536,6 @@ export const generateExecutiveInsights = (
     opportunities.push(`Efisiensi operasional dapat ditingkatkan: ${opexPercentage.toFixed(1)}%`);
   }
   
-  // Growth Analysis (if previous data available)
   if (previousCalculation) {
     const comparison = comparePeriods(calculation, previousCalculation);
     
@@ -587,7 +556,6 @@ export const generateExecutiveInsights = (
     }
   }
   
-  // Business Health Assessment
   if (netProfit > 0 && grossMargin > 30 && netMargin > 10) {
     opportunities.push('Bisnis dalam kondisi sehat, siap untuk ekspansi');
     recommendedActions.push('Pertimbangkan investasi untuk growth');
@@ -595,7 +563,6 @@ export const generateExecutiveInsights = (
     opportunities.push('Bisnis profitable, fokus pada peningkatan efisiensi');
   }
   
-  // Data Quality Assessment
   const dataQuality = validateDataQuality(calculation);
   if (dataQuality.score < 70) {
     opportunities.push('Tingkatkan kualitas data untuk analisis yang lebih akurat');
@@ -611,7 +578,7 @@ export const generateExecutiveInsights = (
 };
 
 /**
- * ✅ ENHANCED: Format currency for Indonesian Rupiah
+ * Format currency for Indonesian Rupiah
  */
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -623,14 +590,14 @@ export const formatCurrency = (amount: number): string => {
 };
 
 /**
- * ✅ ENHANCED: Format percentage with proper rounding
+ * Format percentage with proper rounding
  */
 export const formatPercentage = (value: number, decimals: number = 1): string => {
   return `${value.toFixed(decimals)}%`;
 };
 
 /**
- * ✅ NEW: Calculate rolling averages for trend analysis
+ * Calculate rolling averages for trend analysis
  */
 export const calculateRollingAverages = (
   history: RealTimeProfitCalculation[],
@@ -641,7 +608,6 @@ export const calculateRollingAverages = (
   marginAverage: number;
   volatility: number;
 } => {
-  
   if (history.length < periods) {
     return {
       revenueAverage: 0,
@@ -669,7 +635,6 @@ export const calculateRollingAverages = (
   const profitAverage = profits.reduce((sum, p) => sum + p, 0) / profits.length;
   const marginAverage = margins.reduce((sum, m) => sum + m, 0) / margins.length;
   
-  // Calculate volatility (standard deviation of profits)
   const profitMean = profitAverage;
   const variance = profits.reduce((sum, p) => sum + Math.pow(p - profitMean, 2), 0) / profits.length;
   const volatility = Math.sqrt(variance);
@@ -680,40 +645,4 @@ export const calculateRollingAverages = (
     marginAverage,
     volatility
   };
-};
-
-// ==============================================
-// EXPORTS
-// ==============================================
-
-export {
-  calculateRealTimeProfit,
-  calculateMargins,
-  filterTransactionsByPeriod,
-  getMarginRating,
-  calculateInventoryBasedCOGS,
-  analyzeCostStructure,
-  calculateBreakEvenAnalysis,
-  comparePeriods,
-  validateDataQuality,
-  generateExecutiveInsights,
-  formatCurrency,
-  formatPercentage,
-  calculateRollingAverages
-};
-
-export default {
-  calculateRealTimeProfit,
-  calculateMargins,
-  filterTransactionsByPeriod,
-  getMarginRating,
-  calculateInventoryBasedCOGS,
-  analyzeCostStructure,
-  calculateBreakEvenAnalysis,
-  comparePeriods,
-  validateDataQuality,
-  generateExecutiveInsights,
-  formatCurrency,
-  formatPercentage,
-  calculateRollingAverages
 };

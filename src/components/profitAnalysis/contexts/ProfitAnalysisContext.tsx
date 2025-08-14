@@ -1,8 +1,7 @@
-// contexts/ProfitAnalysisContext.tsx
+// contexts/ProfitAnalysisContext.tsx - Fixed Date Reference Issues
 // ==============================================
-// Context untuk manajemen state analisis profit dalam Bahasa Indonesia
 
-import React, { createContext, useContext, useCallback, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useReducer, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,14 +27,14 @@ interface ProfitAnalysisState {
   profitData: ProfitAnalysis[];
   currentAnalysis: ProfitAnalysis | null;
   error: string | null;
-  lastUpdated: string | null; // Ubah ke string untuk menghindari masalah reference
+  lastUpdated: string | null; // ✅ Keep as string to avoid Date object recreation
 }
 
 type ProfitAnalysisAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_CURRENT_ANALYSIS'; payload: ProfitAnalysis | null }
   | { type: 'SET_PROFIT_DATA'; payload: ProfitAnalysis[] }
-  | { type: 'SET_LAST_UPDATED'; payload: string } // Ubah ke string
+  | { type: 'SET_LAST_UPDATED'; payload: string }
   | { type: 'RESET_STATE' };
 
 const initialState: ProfitAnalysisState = {
@@ -56,7 +55,7 @@ const profitAnalysisReducer = (
       return { 
         ...state, 
         currentAnalysis: action.payload,
-        lastUpdated: action.payload ? new Date().toISOString() : state.lastUpdated // Simpan sebagai string
+        lastUpdated: action.payload ? new Date().toISOString() : state.lastUpdated
       };
     case 'SET_PROFIT_DATA':
       return { ...state, profitData: action.payload };
@@ -106,7 +105,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       return response.data;
     },
     enabled: !!user,
-    staleTime: refreshInterval, // Data dianggap fresh selama interval ini
+    staleTime: refreshInterval,
     refetchInterval: autoRefresh ? refreshInterval : false,
     retry: 2,
     onSuccess: (data) => {
@@ -181,7 +180,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       
       const response = await profitAnalysisApi.getProfitHistory(
         dateRange || {
-          from: new Date(new Date().getFullYear(), 0, 1), // Awal tahun
+          from: new Date(new Date().getFullYear(), 0, 1),
           to: new Date(),
           period_type: 'monthly'
         }
@@ -242,14 +241,19 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     }
   }, [user, autoRefresh, loadProfitHistory]);
 
-  // Context value - Perbaiki tipe data untuk lastUpdated
-  const contextValue: ProfitAnalysisContextType = {
+  // ✅ FIX: Memoize lastUpdated Date conversion to prevent re-creation
+  const lastUpdatedDate = useMemo(() => {
+    return state.lastUpdated ? new Date(state.lastUpdated) : null;
+  }, [state.lastUpdated]); // Only depends on the string value
+
+  // Context value
+  const contextValue: ProfitAnalysisContextType = useMemo(() => ({
     // State
     profitData: state.profitData,
     currentAnalysis: state.currentAnalysis,
     isLoading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending,
     error: state.error || currentAnalysisQuery.error?.message || null,
-    lastUpdated: state.lastUpdated ? new Date(state.lastUpdated) : null, // Konversi kembali ke Date jika diperlukan
+    lastUpdated: lastUpdatedDate, // ✅ Use memoized Date object
     
     // Actions
     calculateProfit,
@@ -265,7 +269,23 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     // Query status
     isRefreshing: currentAnalysisQuery.isFetching,
     isCalculating: calculateProfitMutation.isPending,
-  };
+  }), [
+    state.profitData,
+    state.currentAnalysis,
+    state.error,
+    lastUpdatedDate,
+    currentAnalysisQuery.isLoading,
+    currentAnalysisQuery.isFetching,
+    currentAnalysisQuery.error?.message,
+    calculateProfitMutation.isPending,
+    calculateProfit,
+    loadProfitHistory,
+    refreshAnalysis,
+    clearError,
+    resetState,
+    getProfitByPeriod,
+    calculateRealTimeProfit
+  ]); // ✅ Properly memoized with all dependencies
 
   return (
     <ProfitAnalysisContext.Provider value={contextValue}>

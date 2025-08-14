@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +21,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [unseenUpdates, setUnseenUpdates] = useState<AppUpdate[]>([]);
   const [hasUnseenUpdates, setHasUnseenUpdates] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [seenUpdateIds, setSeenUpdateIds] = useState<Set<string>>(new Set());
+  const seenUpdateIdsRef = useRef<Set<string>>(new Set());
 
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
@@ -187,7 +194,6 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error('Error showing notification:', error);
     }
   }, [markAllAsSeen]);
-
   const refreshUpdates = useCallback(async () => {
     await fetchUpdates();
   }, [fetchUpdates]);
@@ -201,7 +207,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestUpdate(null);
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);
-      setSeenUpdateIds(new Set());
+      seenUpdateIdsRef.current = new Set();
       console.log('Auth not ready or no user:', { userId: user?.id, isReady });
     }
   }, [user?.id, isReady, fetchUpdates]);

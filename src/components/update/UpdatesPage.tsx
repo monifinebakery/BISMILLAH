@@ -46,16 +46,6 @@ export const UpdatesPage: React.FC = () => {
     await fetchAllUpdates();
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   // Filter updates based on selected filters and unread status
   const filteredUpdates = updates.filter(update => {
     const matchesPriority = priorityFilter === 'all' || update.priority === priorityFilter;

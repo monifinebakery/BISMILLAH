@@ -83,14 +83,14 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
             <h4 className="font-medium text-purple-900 mb-2">HPP per Unit</h4>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Per Porsi:</span>
+                <span className="text-sm text-gray-600">HPP per Porsi:</span>
                 <span className="font-semibold text-gray-900">
                   {formatCurrency(costBreakdown.costPerPortion)}
                 </span>
               </div>
               {jumlahPcsPerPorsi > 1 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Per Pcs:</span>
+                  <span className="text-sm text-gray-600">HPP per Pcs:</span>
                   <span className="font-semibold text-gray-900">
                     {formatCurrency(costBreakdown.costPerPiece)}
                   </span>
@@ -133,8 +133,9 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
               <div className="text-xl font-bold text-green-900">
                 {formatCurrency(profitAnalysis.sellingPricePerPortion)}
               </div>
-              <div className="text-xs text-green-600">
-                Keuntungan: {formatCurrency(profitAnalysis.profitPerPortion)}
+              <div className="text-xs text-green-600 space-y-1">
+                <div>HPP per Porsi: {formatCurrency(costBreakdown.costPerPortion)}</div>
+                <div>Keuntungan: {formatCurrency(profitAnalysis.profitPerPortion)}</div>
               </div>
             </div>
 
@@ -146,12 +147,32 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
                 <div className="text-xl font-bold text-green-900">
                   {formatCurrency(profitAnalysis.sellingPricePerPiece)}
                 </div>
-                <div className="text-xs text-green-600">
-                  Keuntungan: {formatCurrency(profitAnalysis.profitPerPiece)}
+                <div className="text-xs text-green-600 space-y-1">
+                  <div>HPP per Pcs: {formatCurrency(costBreakdown.costPerPiece)}</div>
+                  <div>Keuntungan: {formatCurrency(profitAnalysis.profitPerPiece)}</div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Summary Per Unit Breakdown */}
+          {jumlahPcsPerPorsi > 1 && (
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <h4 className="font-medium text-gray-900 mb-2 text-sm">Ringkasan Unit:</h4>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="space-y-1">
+                  <div className="text-gray-600">Per Porsi ({jumlahPcsPerPorsi} pcs):</div>
+                  <div className="font-medium">HPP: {formatCurrency(costBreakdown.costPerPortion)}</div>
+                  <div className="font-medium">Jual: {formatCurrency(profitAnalysis.sellingPricePerPortion)}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-gray-600">Per Pcs:</div>
+                  <div className="font-medium">HPP: {formatCurrency(costBreakdown.costPerPiece)}</div>
+                  <div className="font-medium">Jual: {formatCurrency(profitAnalysis.sellingPricePerPiece)}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

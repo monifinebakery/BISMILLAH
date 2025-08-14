@@ -1,15 +1,17 @@
 // src/components/financial/FinancialReportPage.tsx
-// ✅ CLEAN VERSION - Using existing DateRangePicker component
+// ✅ SIMPLIFIED VERSION - Only Financial Reports and Charts
 
 import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, RefreshCw, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Settings, RefreshCw, AlertCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 // UI utilities
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // Auth Context
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,33 +26,48 @@ import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
 // LAZY LOADED COMPONENTS
 const FinancialCharts = React.lazy(() => 
-  import('./components/FinancialCharts').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat chart</div>
-  }))
+  import('./components/FinancialCharts').catch((error) => {
+    logger.error('Failed to load FinancialCharts', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat chart</div>
+    };
+  })
 );
 
 const CategoryCharts = React.lazy(() => 
-  import('./components/CategoryCharts').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori chart</div>
-  }))
+  import('./components/CategoryCharts').catch((error) => {
+    logger.error('Failed to load CategoryCharts', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori chart</div>
+    };
+  })
 );
 
 const TransactionTable = React.lazy(() => 
-  import('./components/TransactionTable').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
-  }))
+  import('./components/TransactionTable').catch((error) => {
+    logger.error('Failed to load TransactionTable', error);
+    return {
+      default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
+    };
+  })
 );
 
 const FinancialTransactionDialog = React.lazy(() => 
-  import('./dialogs/FinancialTransactionDialog').catch(() => ({
-    default: () => null
-  }))
+  import('./dialogs/FinancialTransactionDialog').catch((error) => {
+    logger.error('Failed to load FinancialTransactionDialog', error);
+    return {
+      default: () => null
+    };
+  })
 );
 
 const CategoryManagementDialog = React.lazy(() => 
-  import('./dialogs/CategoryManagementDialog').catch(() => ({
-    default: () => null
-  }))
+  import('./dialogs/CategoryManagementDialog').catch((error) => {
+    logger.error('Failed to load CategoryManagementDialog', error);
+    return {
+      default: () => null
+    };
+  })
 );
 
 // Loading components
@@ -65,7 +82,7 @@ const ChartSkeleton = () => (
   </Card>
 );
 
-// ✅ SIMPLIFIED Summary Cards Component
+// ✅ SIMPLIFIED Summary Cards Component - Only basic financial data
 const SummaryCards: React.FC<{
   totalIncome: number;
   totalExpense: number;
@@ -77,9 +94,25 @@ const SummaryCards: React.FC<{
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 
   const cards = [
-    { title: 'Total Pemasukan', value: totalIncome, color: 'green' },
-    { title: 'Total Pengeluaran', value: totalExpense, color: 'red' },
-    { title: 'Saldo Akhir', value: balance, color: balance >= 0 ? 'green' : 'red' }
+    { 
+      title: 'Total Pemasukan', 
+      value: totalIncome, 
+      color: 'green',
+      icon: TrendingUp
+    },
+    { 
+      title: 'Total Pengeluaran', 
+      value: totalExpense, 
+      color: 'red',
+      icon: TrendingUp,
+      iconRotate: true
+    },
+    { 
+      title: 'Saldo Akhir', 
+      value: balance, 
+      color: balance >= 0 ? 'green' : 'red',
+      icon: TrendingUp
+    }
   ];
 
   return (
@@ -88,7 +121,13 @@ const SummaryCards: React.FC<{
         <Card key={index} className="border-l-4 border-blue-500">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">{card.title}</CardTitle>
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <card.icon className={cn(
+                  "h-4 w-4",
+                  card.iconRotate && "rotate-180"
+                )} />
+                {card.title}
+              </CardTitle>
               {index === 0 && onRefresh && (
                 <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
                   <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -166,7 +205,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// ✅ MAIN COMPONENT - MUCH SIMPLIFIED WITH EXISTING DateRangePicker
+// ✅ MAIN COMPONENT - SIMPLIFIED WITHOUT PROFIT MARGIN
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   
@@ -196,14 +235,16 @@ const FinancialReportPage: React.FC = () => {
   // ✅ CHART DATA - Single hook
   const chartData = useFinancialChartData(filteredTransactions);
 
-  // ✅ SIMPLE STATE - Just dialogs
+  // ✅ STATE - Dialogs and active tab (only charts and transactions)
+  const [activeTab, setActiveTab] = useState('charts');
   const [dialogs, setDialogs] = useState({
     transaction: { isOpen: false, editing: null as any },
     category: { isOpen: false }
   });
 
-  // ✅ SIMPLE HANDLERS
+  // ✅ DIALOG HANDLERS
   const openTransactionDialog = (transaction: any = null) => {
+    logger.debug('Opening transaction dialog', { editing: !!transaction });
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: true, editing: transaction }
@@ -211,6 +252,7 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const closeTransactionDialog = () => {
+    logger.debug('Closing transaction dialog');
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: false, editing: null }
@@ -218,66 +260,81 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const openCategoryDialog = () => {
+    logger.debug('Opening category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: true } }));
   };
 
   const closeCategoryDialog = () => {
+    logger.debug('Closing category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
   };
 
   // ✅ TRANSACTION HANDLERS
   const handleAddTransaction = async (transactionData: any) => {
     try {
+      logger.info('Adding new transaction', { transactionData });
       const result = await addTransaction(transactionData);
       if (result.success) {
         closeTransactionDialog();
         toast.success('Transaksi berhasil ditambahkan');
+        logger.info('Transaction added successfully');
         return true;
       } else {
         toast.error(result.error || 'Gagal menambah transaksi');
+        logger.error('Failed to add transaction', { error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while adding transaction', error);
       return false;
     }
   };
 
   const handleUpdateTransaction = async (id: string, transactionData: any) => {
     try {
+      logger.info('Updating transaction', { id, transactionData });
       const result = await updateTransaction(id, transactionData);
       if (result.success) {
         closeTransactionDialog();
         toast.success('Transaksi berhasil diperbarui');
+        logger.info('Transaction updated successfully', { id });
         return true;
       } else {
         toast.error(result.error || 'Gagal memperbarui transaksi');
+        logger.error('Failed to update transaction', { id, error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while updating transaction', error);
       return false;
     }
   };
 
   const handleDeleteTransaction = async (id: string) => {
     try {
+      logger.info('Deleting transaction', { id });
       const result = await deleteTransaction(id);
       if (result.success) {
         toast.success('Transaksi berhasil dihapus');
+        logger.info('Transaction deleted successfully', { id });
         return true;
       } else {
         toast.error(result.error || 'Gagal menghapus transaksi');
+        logger.error('Failed to delete transaction', { id, error: result.error });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Terjadi kesalahan');
+      logger.error('Exception while deleting transaction', error);
       return false;
     }
   };
 
-  // ✅ DATE RANGE HANDLER - Convert DateRangePicker format to useFinancialCore format
+  // ✅ DATE RANGE HANDLER
   const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
+    logger.debug('Date range changed', { range });
     if (range) {
       setDateRange({
         from: range.from,
@@ -344,7 +401,7 @@ const FinancialReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ SIMPLIFIED Summary Cards */}
+        {/* ✅ SIMPLIFIED Summary Cards - Only basic financial data */}
         <SummaryCards 
           totalIncome={totalIncome}
           totalExpense={totalExpense}
@@ -352,39 +409,51 @@ const FinancialReportPage: React.FC = () => {
           isLoading={isLoading}
         />
 
-        {/* ✅ SIMPLIFIED Charts */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <FinancialCharts 
-            filteredTransactions={filteredTransactions}
-            dateRange={dateRange}
-            isLoading={isLoading}
-          />
-        </Suspense>
+        {/* ✅ SIMPLIFIED TABBED INTERFACE - Only Charts and Transactions */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="charts">Charts & Reports</TabsTrigger>
+            <TabsTrigger value="transactions">Transaksi</TabsTrigger>
+          </TabsList>
 
-        <Suspense fallback={
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartSkeleton />
-            <ChartSkeleton />
-          </div>
-        }>
-          <CategoryCharts 
-            filteredTransactions={filteredTransactions}
-            isLoading={isLoading}
-          />
-        </Suspense>
+          {/* ✅ CHARTS TAB - Financial charts and category charts */}
+          <TabsContent value="charts" className="space-y-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <FinancialCharts 
+                filteredTransactions={filteredTransactions}
+                dateRange={dateRange}
+                isLoading={isLoading}
+              />
+            </Suspense>
 
-        {/* ✅ SIMPLIFIED Transaction Table */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <TransactionTable
-            transactions={filteredTransactions}
-            onEditTransaction={openTransactionDialog}
-            onAddTransaction={() => openTransactionDialog()}
-            onDeleteTransaction={handleDeleteTransaction}
-            isLoading={isLoading}
-          />
-        </Suspense>
+            <Suspense fallback={
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChartSkeleton />
+                <ChartSkeleton />
+              </div>
+            }>
+              <CategoryCharts 
+                filteredTransactions={filteredTransactions}
+                isLoading={isLoading}
+              />
+            </Suspense>
+          </TabsContent>
 
-        {/* ✅ SIMPLIFIED Dialogs */}
+          {/* ✅ TRANSACTIONS TAB */}
+          <TabsContent value="transactions" className="space-y-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <TransactionTable
+                transactions={filteredTransactions}
+                onEditTransaction={openTransactionDialog}
+                onAddTransaction={() => openTransactionDialog()}
+                onDeleteTransaction={handleDeleteTransaction}
+                isLoading={isLoading}
+              />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
+
+        {/* ✅ DIALOGS - Only transaction and category dialogs */}
         <Suspense fallback={null}>
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
@@ -403,6 +472,7 @@ const FinancialReportPage: React.FC = () => {
             settings={settings}
             saveSettings={(newSettings) => {
               toast.success('Kategori berhasil disimpan');
+              logger.info('Categories saved successfully');
             }}
           />
         </Suspense>

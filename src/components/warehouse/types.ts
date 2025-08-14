@@ -24,6 +24,7 @@ export interface BahanBaku {
   isi_per_kemasan?: number;            // ✅ VERIFIED: matches DB column
   satuan_kemasan?: string;             // ✅ VERIFIED: matches DB column
   harga_total_beli_kemasan?: number;   // ✅ VERIFIED: matches DB column
+  harga_rata_rata?: number;            // ✅ TAMBAH: WAC field from DB
 }
 
 // Frontend interface (camelCase for frontend usage)
@@ -37,6 +38,7 @@ export interface BahanBakuFrontend {
   minimum: number;
   satuan: string;
   harga: number;                       // maps to harga_satuan
+  hargaRataRata?: number;              // ✅ TAMBAH: maps to harga_rata_rata
   supplier: string;
   expiry?: string;                     // maps to tanggal_kadaluwarsa
   createdAt: string;                   // maps to created_at
@@ -265,6 +267,7 @@ export interface DatabaseFieldMapping {
   // Frontend -> Database
   userId: 'user_id';
   harga: 'harga_satuan';
+  hargaRataRata: 'harga_rata_rata';    // ✅ TAMBAH: WAC mapping
   expiry: 'tanggal_kadaluwarsa';
   createdAt: 'created_at';
   updatedAt: 'updated_at';
@@ -310,6 +313,7 @@ export const DB_COLUMNS = {
   SATUAN: 'satuan',
   MINIMUM: 'minimum',
   HARGA_SATUAN: 'harga_satuan',
+  HARGA_RATA_RATA: 'harga_rata_rata',  // ✅ TAMBAH: WAC column
   SUPPLIER: 'supplier',
   TANGGAL_KADALUWARSA: 'tanggal_kadaluwarsa',
   CREATED_AT: 'created_at',
@@ -372,6 +376,7 @@ export const FIELD_MAPPINGS = {
   frontend: {
     userId: 'user_id',
     harga: 'harga_satuan',
+    hargaRataRata: 'harga_rata_rata',    // ✅ TAMBAH: WAC mapping
     expiry: 'tanggal_kadaluwarsa',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
@@ -383,6 +388,7 @@ export const FIELD_MAPPINGS = {
   database: {
     user_id: 'userId',
     harga_satuan: 'harga',
+    harga_rata_rata: 'hargaRataRata',    // ✅ TAMBAH: WAC mapping
     tanggal_kadaluwarsa: 'expiry',
     created_at: 'createdAt',
     updated_at: 'updatedAt',

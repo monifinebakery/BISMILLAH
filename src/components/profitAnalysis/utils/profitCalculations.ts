@@ -1,8 +1,11 @@
+// profitCalculations.ts - Core calculation utilities
+// ==============================================
+
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS } from '../constants/profitConstants';
 
 // Interfaces matching the actual schema
-interface FinancialTransactionActual {
+export interface FinancialTransactionActual {
   id: string;
   user_id: string;
   type: 'income' | 'expense';
@@ -16,7 +19,7 @@ interface FinancialTransactionActual {
   related_id: string | null;
 }
 
-interface BahanBakuActual {
+export interface BahanBakuActual {
   id: string;
   user_id: string;
   nama: string | null;
@@ -35,7 +38,7 @@ interface BahanBakuActual {
   isi_per_kemasan: number | null;
 }
 
-interface OperationalCostActual {
+export interface OperationalCostActual {
   id: string;
   user_id: string;
   nama_biaya: string;
@@ -105,11 +108,11 @@ export const calculateRealTimeProfit = (
   
   return {
     period,
-    revenue_ {
+    revenue_data: {
       total: totalRevenue,
       transactions: enhancedRevenueTransactions
     },
-    cogs_ {
+    cogs_data: {
       total: totalCOGS,
       materials: enhancedCOGSTransactions
     },
@@ -486,7 +489,7 @@ export const generateExecutiveInsights = (
   const recommendedActions: string[] = [];
   
   if (revenue > 0) {
-    keyHighlights.push(`Revenue: ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(revenue)}`);
+    keyHighlights.push(`Revenue: ${formatCurrency(revenue)}`);
   } else {
     criticalIssues.push('Tidak ada revenue dalam periode ini');
     recommendedActions.push('Fokus pada aktivitas penjualan dan marketing');
@@ -595,27 +598,3 @@ export const formatCurrency = (amount: number): string => {
 export const formatPercentage = (value: number, decimals: number = 1): string => {
   return `${value.toFixed(decimals)}%`;
 };
-
-// Export semua fungsi (TANPA calculateRollingAverages)
-export {
-  calculateRealTimeProfit,
-  calculateMargins,
-  filterTransactionsByPeriod,
-  getMarginRating,
-  extractMaterialName,
-  calculateInventoryBasedCOGS,
-  analyzeCostStructure,
-  calculateBreakEvenAnalysis,
-  comparePeriods,
-  validateDataQuality,
-  generateExecutiveInsights,
-  formatCurrency,
-  formatPercentage
-} from './profitCalculations';
-
-// Export types
-export type {
-  FinancialTransactionActual,
-  BahanBakuActual,
-  OperationalCostActual
-} from './profitCalculations';

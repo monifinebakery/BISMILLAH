@@ -440,77 +440,153 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             ))}
           </div>
         </CardHeader>
-        {/* Content with Mobile-Safe Padding */}
-        <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-200px)]" ref={contentRef}>
+
+        {/* Content with extra bottom padding for mobile */}
+        <CardContent 
+          className="p-0 overflow-y-auto"
+          style={{ 
+            maxHeight: 'calc(90vh - 200px)',
+            paddingBottom: '120px' // ✅ Extra space untuk menghindari bottom bar
+          }}
+          ref={contentRef}
+        >
           <div className="p-6">
             {renderStepContent()}
           </div>
         </CardContent>
-        {/* Footer - Conditionally shown with offset for bottom bar */}
-        <div
-          className={`border-t bg-gray-50 p-4 fixed bottom-4 left-0 right-0 z-60 shadow-lg transition-opacity duration-300 ${
-            isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          } sm:static sm:opacity-100 sm:pointer-events-auto [padding-bottom:calc(1rem+env(safe-area-inset-bottom))]`}
-        >
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            {/* Left side - HPP Preview (on cost step) */}
-            <div className="flex-1">
-              {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Calculator className="h-4 w-4 text-orange-600" />
-                  <span className="text-gray-600 hidden sm:inline">HPP per porsi:</span>
-                  <Badge variant="outline" className="text-orange-700 border-orange-300">
-                    Rp {formData.hppPerPorsi.toLocaleString()}
-                  </Badge>
-                  {isCalculating && (
-                    <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Navigation buttons */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={isFirstStep || isLoading}
-                className="px-3 sm:px-4"
-              >
-                <ChevronLeft className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Sebelumnya</span>
-              </Button>
-              {isLastStep ? (
+
+        {/* ✅ Footer - Fixed positioning with proper spacing for bottom navigation */}
+        <div className="border-t bg-gray-50 p-4 sm:relative sm:bottom-auto">
+          {/* ✅ Desktop: normal footer */}
+          <div className="hidden sm:block">
+            <div className="flex items-center justify-between max-w-4xl mx-auto">
+              {/* Left side - HPP Preview (on cost step) */}
+              <div className="flex-1">
+                {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calculator className="h-4 w-4 text-orange-600" />
+                    <span className="text-gray-600">HPP per porsi:</span>
+                    <Badge variant="outline" className="text-orange-700 border-orange-300">
+                      Rp {formData.hppPerPorsi.toLocaleString()}
+                    </Badge>
+                    {isCalculating && (
+                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-3">
                 <Button
-                  onClick={handleSubmit}
-                  disabled={isLoading || isCalculating}
-                  className="bg-orange-500 hover:bg-orange-600 px-3 sm:px-4"
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={isFirstStep || isLoading}
+                  className="px-4"
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full sm:mr-2" />
-                      <span className="hidden sm:inline">Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Sebelumnya
+                </Button>
+                {isLastStep ? (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isLoading || isCalculating}
+                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
                         {isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}
-                      </span>
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleNext}
-                  disabled={isLoading}
-                  className="bg-orange-500 hover:bg-orange-600 px-3 sm:px-4"
-                >
-                  <span className="hidden sm:inline">Selanjutnya</span>
-                  <ChevronRight className="h-4 w-4 sm:ml-1" />
-                </Button>
-              )}
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={isLoading}
+                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                  >
+                    Selanjutnya
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* ✅ Mobile: Fixed footer dengan spacing untuk bottom nav */}
+          <div className="sm:hidden">
+            {/* ✅ Fixed footer positioned above bottom navigation */}
+            <div 
+              className="fixed left-0 right-0 bg-white border-t shadow-lg z-[60]"
+              style={{
+                bottom: '80px', // ✅ Positioned 80px from bottom (above bottom nav)
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+              }}
+            >
+              <div className="p-4">
+                {/* HPP Preview on mobile */}
+                {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
+                  <div className="flex items-center justify-center gap-2 text-sm mb-3 py-2 bg-orange-50 rounded-lg">
+                    <Calculator className="h-4 w-4 text-orange-600" />
+                    <span className="text-gray-600">HPP:</span>
+                    <Badge variant="outline" className="text-orange-700 border-orange-300">
+                      Rp {formData.hppPerPorsi.toLocaleString()}
+                    </Badge>
+                    {isCalculating && (
+                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
+                    )}
+                  </div>
+                )}
+
+                {/* Navigation buttons */}
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={isFirstStep || isLoading}
+                    className="flex-1"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Sebelumnya
+                  </Button>
+                  {isLastStep ? (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isLoading || isCalculating}
+                      className="bg-orange-500 hover:bg-orange-600 flex-1"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
+                          Simpan...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-1" />
+                          {isEditMode ? 'Update' : 'Simpan'}
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleNext}
+                      disabled={isLoading}
+                      className="bg-orange-500 hover:bg-orange-600 flex-1"
+                    >
+                      Selanjutnya
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Form errors summary - Mobile Optimized */}
           {Object.keys(errors).length > 0 && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg max-w-4xl mx-auto">

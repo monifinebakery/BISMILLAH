@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -32,17 +32,132 @@ interface MetricCard {
 }
 
 // ==============================================
-// KARTU RINGKASAN PROFIT COMPONENT
+// HELPER FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
+const calculateMetrics = (currentAnalysis, currentRevenue, currentCogs, currentOpex) => {
+  if (!currentAnalysis) {
+    return {
+      revenue: 0,
+      cogs: 0,
+      opex: 0,
+      grossProfit: 0,
+      netProfit: 0,
+      grossMargin: 0,
+      netMargin: 0
+    };
+  }
+
+  const grossProfit = currentRevenue - currentCogs;
+  const netProfit = grossProfit - currentOpex;
+  const grossMargin = currentRevenue > 0 ? (grossProfit / currentRevenue) * 100 : 0;
+  const netMargin = currentRevenue > 0 ? (netProfit / currentRevenue) * 100 : 0;
+
+  return {
+    revenue: currentRevenue,
+    cogs: currentCogs,
+    opex: currentOpex,
+    grossProfit,
+    netProfit,
+    grossMargin,
+    netMargin
+  };
+};
+
+const calculateChanges = (metrics, previousAnalysis, prevRevenue, prevCogs, prevOpex) => {
+  if (!previousAnalysis) {
+    return {
+      revenueChange: 0,
+      grossProfitChange: 0,
+      netProfitChange: 0,
+      cogsChange: 0
+    };
+  }
+
+  const prevGrossProfit = prevRevenue - prevCogs;
+  const prevNetProfit = prevGrossProfit - prevOpex;
+
+  return {
+    revenueChange: calculateGrowth(metrics.revenue, prevRevenue),
+    grossProfitChange: calculateGrowth(metrics.grossProfit, prevGrossProfit),
+    netProfitChange: calculateGrowth(metrics.netProfit, prevNetProfit),
+    cogsChange: calculateGrowth(metrics.cogs, prevCogs)
+  };
+};
+
+const generateCards = (metrics, changes) => {
+  return [
+    {
+      title: 'Total Pendapatan',
+      value: metrics.revenue,
+      icon: DollarSign,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      change: changes.revenueChange,
+      changeType: getGrowthStatus(changes.revenueChange).status
+    },
+    {
+      title: 'Laba Kotor',
+      value: metrics.grossProfit,
+      icon: TrendingUp,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      subtitle: `${formatPercentage(metrics.grossMargin)} margin`,
+      change: changes.grossProfitChange,
+      changeType: getGrowthStatus(changes.grossProfitChange).status
+    },
+    {
+      title: 'Laba Bersih',
+      value: metrics.netProfit,
+      icon: Calculator,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      subtitle: `${formatPercentage(metrics.netMargin)} margin`,
+      change: changes.netProfitChange,
+      changeType: getGrowthStatus(changes.netProfitChange).status
+    },
+    {
+      title: 'Total HPP',
+      value: metrics.cogs,
+      icon: ShoppingCart,
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+      subtitle: `${formatPercentage((metrics.cogs / metrics.revenue) * 100)} dari pendapatan`,
+      change: changes.cogsChange,
+      changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert untuk HPP (lebih rendah = lebih baik)
+    }
+  ];
+};
+
+// ==============================================
+// CHANGE ICON COMPONENT
+// ==============================================
+
+const getChangeIcon = (type) => {
+  const iconProps = "w-4 h-4";
+  
+  switch (type) {
+    case 'positive':
+      return <ArrowUp className={`${iconProps} text-green-600`} />;
+    case 'negative':
+      return <ArrowDown className={`${iconProps} text-red-600`} />;
+    default:
+      return <Minus className={`${iconProps} text-gray-600`} />;
+  }
+};
+
+// ==============================================
+// MAIN COMPONENT
+// ==============================================
+
+const ProfitSummaryCards = ({
   currentAnalysis,
   previousAnalysis,
   isLoading,
   className = ''
 }) => {
   
-  // ✅ FIX: Extract primitive values to avoid nested object access in dependencies
+  // ✅ NO useMemo - Extract primitive values directly
   const currentRevenue = currentAnalysis?.revenue_data?.total ?? 0;
   const currentCogs = currentAnalysis?.cogs_data?.total ?? 0;
   const currentOpex = currentAnalysis?.opex_data?.total ?? 0;
@@ -51,127 +166,12 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   const prevCogs = previousAnalysis?.cogs_data?.total ?? 0;
   const prevOpex = previousAnalysis?.opex_data?.total ?? 0;
 
-  // ✅ HITUNG METRIK - Fixed dependencies
-  const metrics = useMemo(() => {
-    if (!currentAnalysis) {
-      return {
-        revenue: 0,
-        cogs: 0,
-        opex: 0,
-        grossProfit: 0,
-        netProfit: 0,
-        grossMargin: 0,
-        netMargin: 0
-      };
-    }
+  // ✅ NO useMemo - Calculate directly
+  const metrics = calculateMetrics(currentAnalysis, currentRevenue, currentCogs, currentOpex);
+  const changes = calculateChanges(metrics, previousAnalysis, prevRevenue, prevCogs, prevOpex);
+  const cards = generateCards(metrics, changes);
 
-    const grossProfit = currentRevenue - currentCogs;
-    const netProfit = grossProfit - currentOpex;
-    const grossMargin = currentRevenue > 0 ? (grossProfit / currentRevenue) * 100 : 0;
-    const netMargin = currentRevenue > 0 ? (netProfit / currentRevenue) * 100 : 0;
-
-    return {
-      revenue: currentRevenue,
-      cogs: currentCogs,
-      opex: currentOpex,
-      grossProfit,
-      netProfit,
-      grossMargin,
-      netMargin
-    };
-  }, [currentRevenue, currentCogs, currentOpex, currentAnalysis]); // ✅ Use primitive values
-
-  // ✅ HITUNG PERUBAHAN vs PERIODE SEBELUMNYA - Fixed dependencies  
-  const changes = useMemo(() => {
-    if (!previousAnalysis) {
-      return {
-        revenueChange: 0,
-        grossProfitChange: 0,
-        netProfitChange: 0,
-        cogsChange: 0
-      };
-    }
-
-    const prevGrossProfit = prevRevenue - prevCogs;
-    const prevNetProfit = prevGrossProfit - prevOpex;
-
-    return {
-      revenueChange: calculateGrowth(metrics.revenue, prevRevenue),
-      grossProfitChange: calculateGrowth(metrics.grossProfit, prevGrossProfit),
-      netProfitChange: calculateGrowth(metrics.netProfit, prevNetProfit),
-      cogsChange: calculateGrowth(metrics.cogs, prevCogs)
-    };
-  }, [
-    metrics.revenue,
-    metrics.grossProfit,
-    metrics.netProfit,
-    metrics.cogs,
-    prevRevenue,
-    prevCogs,
-    prevOpex,
-    previousAnalysis
-  ]); // ✅ Use primitive values
-
-  // ✅ GENERATE DATA KARTU
-  const cards = useMemo((): MetricCard[] => {
-    return [
-      {
-        title: 'Total Pendapatan',
-        value: metrics.revenue,
-        icon: DollarSign,
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
-        change: changes.revenueChange,
-        changeType: getGrowthStatus(changes.revenueChange).status
-      },
-      {
-        title: 'Laba Kotor',
-        value: metrics.grossProfit,
-        icon: TrendingUp,
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        subtitle: `${formatPercentage(metrics.grossMargin)} margin`,
-        change: changes.grossProfitChange,
-        changeType: getGrowthStatus(changes.grossProfitChange).status
-      },
-      {
-        title: 'Laba Bersih',
-        value: metrics.netProfit,
-        icon: Calculator,
-        color: 'text-purple-600',
-        bgColor: 'bg-purple-50',
-        subtitle: `${formatPercentage(metrics.netMargin)} margin`,
-        change: changes.netProfitChange,
-        changeType: getGrowthStatus(changes.netProfitChange).status
-      },
-      {
-        title: 'Total HPP',
-        value: metrics.cogs,
-        icon: ShoppingCart,
-        color: 'text-amber-600',
-        bgColor: 'bg-amber-50',
-        subtitle: `${formatPercentage((metrics.cogs / metrics.revenue) * 100)} dari pendapatan`,
-        change: changes.cogsChange,
-        changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert untuk HPP (lebih rendah = lebih baik)
-      }
-    ];
-  }, [metrics, changes]);
-
-  // ✅ KOMPONEN IKON PERUBAHAN
-  const getChangeIcon = (type: 'positive' | 'negative' | 'neutral') => {
-    const iconProps = "w-4 h-4";
-    
-    switch (type) {
-      case 'positive':
-        return <ArrowUp className={`${iconProps} text-green-600`} />;
-      case 'negative':
-        return <ArrowDown className={`${iconProps} text-red-600`} />;
-      default:
-        return <Minus className={`${iconProps} text-gray-600`} />;
-    }
-  };
-
-  // ✅ STATUS LOADING
+  // ✅ LOADING STATE
   if (isLoading) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
@@ -192,7 +192,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     );
   }
 
-  // ✅ STATUS TIDAK ADA DATA
+  // ✅ NO DATA STATE
   if (!currentAnalysis) {
     return (
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
@@ -221,7 +221,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     );
   }
 
-  // ✅ RENDER UTAMA
+  // ✅ MAIN RENDER
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
       {cards.map((card, index) => {
@@ -243,14 +243,14 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 {formatCurrency(card.value)}
               </div>
               
-              {/* Subtitle (info margin) */}
+              {/* Subtitle (margin info) */}
               {card.subtitle && (
                 <p className="text-sm text-gray-600 mb-1">
                   {card.subtitle}
                 </p>
               )}
               
-              {/* Indikator perubahan */}
+              {/* Change indicator */}
               {hasChange && (
                 <div className="flex items-center space-x-1">
                   {getChangeIcon(card.changeType)}
@@ -266,7 +266,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 </div>
               )}
               
-              {/* Tidak ada data perbandingan */}
+              {/* No comparison data */}
               {!hasChange && previousAnalysis === undefined && (
                 <p className="text-xs text-gray-400">
                   Tidak ada data sebelumnya untuk perbandingan

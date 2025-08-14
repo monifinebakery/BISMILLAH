@@ -1,6 +1,7 @@
-// Export semua utilitas untuk modul analisis profit
+// index.ts - Clean profit utils export file
+// ==============================================
 
-// Export profit calculations
+// Export profit calculations (core business logic)
 export {
   calculateRealTimeProfit,
   calculateMargins,
@@ -17,16 +18,16 @@ export {
   formatPercentage
 } from './profitCalculations';
 
-// Export profit transformers
+// Export profit transformers (data transformation)
 export {
-  calculateRollingAverages, // TETAP ADA DI SINI
+  calculateRollingAverages, // TETAP ADA DI SINI - only in transformers
   transformToRevenueBreakdown,
   transformToCOGSBreakdown,
   transformToOpExBreakdown,
   transformToProfitAnalysis,
   transformToChartData,
-  formatCurrency as formatCurrencyTrans,
-  formatPercentage as formatPercentageTrans,
+  formatCurrency as formatCurrencyTrans, // Alias to avoid conflict
+  formatPercentage as formatPercentageTrans, // Alias to avoid conflict
   formatLargeNumber,
   formatPeriodLabel,
   getShortPeriodLabel,

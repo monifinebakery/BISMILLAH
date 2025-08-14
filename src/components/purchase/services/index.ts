@@ -17,7 +17,7 @@ export type {
 } from '../types/purchase.types';
 
 // ✅ WAREHOUSE INTEGRATION: For stock management
-export { purchaseWarehouseService } from './purchaseWarehouseService';
+// export { purchaseWarehouseService } from './purchaseWarehouseService';
 
 // ❌ REMOVED - Reduce dependencies:
 // - PurchaseApiService (class - use purchaseApi instance instead)

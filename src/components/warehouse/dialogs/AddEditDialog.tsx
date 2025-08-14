@@ -187,7 +187,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         }
       }
       return updated;
-    });
+    });a
     if (errors.length > 0) setErrors([]);
   };
 

@@ -1,6 +1,6 @@
 // src/components/purchase/hooks/usePurchaseForm.ts
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
 import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
@@ -78,7 +78,7 @@ export const usePurchaseForm = ({
   });
 
   // Calculate total value
-  const totalValue = calculatePurchaseTotal(formData.items);
+  const totalValue = useMemo(() => calculatePurchaseTotal(formData.items), [formData.items]);
 
   // Update form data with side effects
   const setFormData = useCallback((data: PurchaseFormData) => {
@@ -179,9 +179,10 @@ export const usePurchaseForm = ({
       } else {
         onError?.('Gagal menyimpan pembelian');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Form submission error:', error);
-      onError?.(error.message || 'Terjadi kesalahan saat menyimpan');
+      const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan';
+      onError?.(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -213,17 +214,6 @@ export const usePurchaseForm = ({
     const validationResult = validatePurchaseForm(formData);
     setValidation(validationResult);
   }, [formData]);
-
-  // Update total in form data when items change
-  useEffect(() => {
-    const newTotal = calculatePurchaseTotal(formData.items);
-    if (Math.abs(newTotal - totalValue) > 0.01) {
-      setFormDataState(current => ({
-        ...current,
-        // Note: We don't store totalNilai in formData since it's calculated
-      }));
-    }
-  }, [formData.items, totalValue]);
 
   return {
     // Form data

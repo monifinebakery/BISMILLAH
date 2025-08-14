@@ -30,17 +30,20 @@ const getCurrentUserId = async (): Promise<string | null> => {
 
 export const operationalCostApi = {
   // Get all costs with filters
-  async getCosts(filters?: CostFilters): Promise<ApiResponse<OperationalCost[]>> {
+  async getCosts(
+    filters?: CostFilters,
+    userId?: string
+  ): Promise<ApiResponse<OperationalCost[]>> {
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
+      const resolvedUserId = userId ?? await getCurrentUserId();
+      if (!resolvedUserId) {
         return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
       let query = supabase
         .from('operational_costs')
         .select('*')
-        .eq('user_id', userId) // ✅ Add user filter
+        .eq('user_id', resolvedUserId) // ✅ Add user filter
         .order('created_at', { ascending: false });
 
       if (filters?.jenis) {

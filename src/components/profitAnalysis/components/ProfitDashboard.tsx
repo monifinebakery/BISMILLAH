@@ -18,6 +18,7 @@ import {
   Info,
   Target,
   Lightbulb,
+  RotateCw,
 } from 'lucide-react';
 
 // Import komponen Analisis Profit

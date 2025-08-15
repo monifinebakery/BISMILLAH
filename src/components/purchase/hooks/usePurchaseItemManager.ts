@@ -18,15 +18,22 @@ interface UsePurchaseItemManagerProps {
 
 // Tambahan field kemasan yang kita kirim ke transformer (opsional di DB)
 type PackagingExtras = {
-  jumlahKemasan?: number;
-  isiPerKemasan?: number;
+  jumlahKemasan?: string;
+  isiPerKemasan?: string;
   satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
+  hargaTotalBeliKemasan?: string;
 };
 
-type NewItemState = Partial<PurchaseItem> & PackagingExtras;
+type NewItemState = {
+  bahanBakuId: string;
+  nama: string;
+  kuantitas: string;
+  satuan: string;
+  hargaSatuan: string;
+  keterangan?: string;
+} & PackagingExtras;
 
-const toPosNum = (v: any, def = 0) => {
+const toPosNum = (v: unknown, def = 0): number => {
   const n = Number(v);
   if (Number.isFinite(n) && n > 0) return n;
   if (n === 0) return 0;
@@ -42,15 +49,15 @@ export const usePurchaseItemManager = ({
   const [newItem, setNewItem] = useState<NewItemState>({
     bahanBakuId: '',
     nama: '',
-    kuantitas: 0,
+    kuantitas: '',
     satuan: '',
-    hargaSatuan: 0,
+    hargaSatuan: '',
     keterangan: '',
     // kemasan (opsional)
-    jumlahKemasan: 0,
-    isiPerKemasan: 1,
+    jumlahKemasan: '',
+    isiPerKemasan: '1',
     satuanKemasan: '',
-    hargaTotalBeliKemasan: 0,
+    hargaTotalBeliKemasan: '',
   });
 
   const [showAddItem, setShowAddItem] = useState(false);
@@ -90,32 +97,37 @@ export const usePurchaseItemManager = ({
     const sk = (src.satuanKemasan ?? '').trim();
 
     // addItem minta Omit<PurchaseItem, 'subtotal'> → subtotal dihitung di form/core
-    addItem({
+    const itemToAdd: Omit<PurchaseItem, 'subtotal'> & {
+      jumlahKemasan?: number;
+      isiPerKemasan?: number;
+      satuanKemasan?: string;
+      hargaTotalBeliKemasan?: number;
+    } = {
       bahanBakuId: String(src.bahanBakuId),
       nama: String(src.nama).trim(),
       kuantitas: qty,
       satuan: (src.satuan ?? 'unit').trim(),
       hargaSatuan: price,
       keterangan: src.keterangan ? String(src.keterangan).trim() : undefined,
-      // field ekstra ikut ke transformer melalui object item (akan diambil di transformer)
       ...(jk > 0 ? { jumlahKemasan: jk } : {}),
       ...(ipk > 0 ? { isiPerKemasan: ipk } : {}),
       ...(sk ? { satuanKemasan: sk } : {}),
       ...(htot > 0 ? { hargaTotalBeliKemasan: htot } : {}),
-    } as any);
+    };
+    addItem(itemToAdd);
 
     // reset mini-form
     setNewItem({
       bahanBakuId: '',
       nama: '',
-      kuantitas: 0,
+      kuantitas: '',
       satuan: '',
-      hargaSatuan: 0,
+      hargaSatuan: '',
       keterangan: '',
-      jumlahKemasan: 0,
-      isiPerKemasan: 1,
+      jumlahKemasan: '',
+      isiPerKemasan: '1',
       satuanKemasan: '',
-      hargaTotalBeliKemasan: 0,
+      hargaTotalBeliKemasan: '',
     });
     setShowAddItem(false);
     toast.success('Item berhasil ditambahkan');

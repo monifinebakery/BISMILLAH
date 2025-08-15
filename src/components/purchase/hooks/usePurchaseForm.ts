@@ -1,6 +1,6 @@
 // src/components/purchase/hooks/usePurchaseForm.ts
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
 import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
@@ -77,6 +77,9 @@ export const usePurchaseForm = ({
     warnings: [],
   });
 
+  // Ref for debounced validation
+  const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Calculate total value
   const totalValue = calculatePurchaseTotal(formData.items);
 
@@ -84,10 +87,16 @@ export const usePurchaseForm = ({
   const setFormData = useCallback((data: PurchaseFormData) => {
     setFormDataState(data);
     setIsDirty(true);
-    
-    // Auto-validate on change
-    const validationResult = validatePurchaseForm(data);
-    setValidation(validationResult);
+
+    // Debounce validation to avoid lag on fast typing
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+
+    validationTimeoutRef.current = setTimeout(() => {
+      const validationResult = validatePurchaseForm(data);
+      setValidation(validationResult);
+    }, 300);
   }, []);
 
   // Validate specific field
@@ -208,11 +217,21 @@ export const usePurchaseForm = ({
     });
   }, [mode, initialData]);
 
-  // Auto-validate on mount and when form data changes
+  // Initial validation on mount
   useEffect(() => {
     const validationResult = validatePurchaseForm(formData);
     setValidation(validationResult);
-  }, [formData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cleanup pending validation timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Update total in form data when items change
   useEffect(() => {

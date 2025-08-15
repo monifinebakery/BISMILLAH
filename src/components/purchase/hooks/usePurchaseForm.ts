@@ -17,7 +17,7 @@ interface UsePurchaseFormProps {
 interface UsePurchaseFormReturn {
   // Form data
   formData: PurchaseFormData;
-  setFormData: (data: PurchaseFormData) => void;
+  setFormData: (data: PurchaseFormData, skipValidation?: boolean) => void;
 
   // Form state
   isSubmitting: boolean;
@@ -26,6 +26,7 @@ interface UsePurchaseFormReturn {
   // Validation
   validation: ValidationResult;
   validateField: (field: string) => void;
+  validateForm: () => void; // NEW: Manual validation trigger
 
   // Items management
   addItem: (item: Omit<PurchaseItem, 'subtotal'>) => void;
@@ -84,10 +85,13 @@ export const usePurchaseForm = ({
   // Calculate total value
   const totalValue = calculatePurchaseTotal(formData.items);
 
-  // Update form data + auto-validate
-  const setFormData = useCallback((data: PurchaseFormData) => {
+  // ✅ FIXED: Update form data dengan opsi skip validation untuk numeric input
+  const setFormData = useCallback((data: PurchaseFormData, skipValidation = false) => {
     setFormDataState(data);
     setIsDirty(true);
+
+    // Skip auto-validation jika diminta (untuk menghindari gangguan pada numeric input)
+    if (skipValidation) return;
 
     // Debounce validation to avoid lag on fast typing
     if (validationTimeoutRef.current) {
@@ -99,6 +103,13 @@ export const usePurchaseForm = ({
       setValidation(validationResult);
     }, 300);
   }, []);
+
+  // ✅ NEW: Manual validation trigger (untuk dipanggil saat submit atau blur)
+  const validateForm = useCallback(() => {
+    const validationResult = validatePurchaseForm(formData);
+    setValidation(validationResult);
+    return validationResult;
+  }, [formData]);
 
   // Validate specific field (sederhana: re-validate seluruh form)
   const validateField = useCallback(
@@ -121,7 +132,8 @@ export const usePurchaseForm = ({
         items: [...formData.items, newItem],
       };
 
-      setFormData(updatedFormData);
+      // Skip validation untuk operasi item (akan divalidasi saat submit)
+      setFormData(updatedFormData, true);
     },
     [formData, setFormData]
   );
@@ -149,7 +161,8 @@ export const usePurchaseForm = ({
         items: updatedItems,
       };
 
-      setFormData(updatedFormData);
+      // Skip validation untuk operasi item (akan divalidasi saat submit)
+      setFormData(updatedFormData, true);
     },
     [formData, setFormData]
   );
@@ -161,17 +174,17 @@ export const usePurchaseForm = ({
         ...formData,
         items: updatedItems,
       };
-      setFormData(updatedFormData);
+      // Skip validation untuk operasi item (akan divalidasi saat submit)
+      setFormData(updatedFormData, true);
     },
     [formData, setFormData]
   );
 
   // Form submission
   const handleSubmit = useCallback(async () => {
-    // Final validation
-    const validationResult = validatePurchaseForm(formData);
-    setValidation(validationResult);
-
+    // Final validation (tidak di-debounce)
+    const validationResult = validateForm();
+    
     if (!validationResult.isValid) {
       onError?.(validationResult.errors[0]);
       return;
@@ -211,7 +224,7 @@ export const usePurchaseForm = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, totalValue, mode, addPurchase, updatePurchase, initialData, onSuccess, onError]);
+  }, [formData, totalValue, mode, addPurchase, updatePurchase, initialData, onSuccess, onError, validateForm]);
 
   // Reset form
   const handleReset = useCallback(() => {
@@ -234,7 +247,7 @@ export const usePurchaseForm = ({
     });
   }, [mode, initialData]);
 
-  // Initial validation on mount
+  // Initial validation on mount (tanpa debounce)
   useEffect(() => {
     const validationResult = validatePurchaseForm(formData);
     setValidation(validationResult);
@@ -250,10 +263,6 @@ export const usePurchaseForm = ({
     };
   }, []);
 
-
-  // ❌ Tidak perlu effect yang “menyelaraskan total” ke form state:
-  // total memang dihitung derived (bukan field yang disimpan di form)
-
   return {
     // Form data
     formData,
@@ -266,6 +275,7 @@ export const usePurchaseForm = ({
     // Validation
     validation,
     validateField,
+    validateForm,
 
     // Items management
     addItem,

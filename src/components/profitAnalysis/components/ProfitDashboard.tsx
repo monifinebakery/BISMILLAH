@@ -390,9 +390,6 @@ const ProfitDashboard = ({
   const advancedMetrics = showAdvancedMetrics ? 
     calculateAdvancedMetricsHelper(profitHistory, currentAnalysis) : null;
   
-  const forecast = showAdvancedMetrics ? 
-    generateForecastHelper(profitHistory, currentAnalysis) : null;
-  
   const benchmark = showAdvancedMetrics ? 
     performBenchmarkHelper(advancedMetrics) : null;
   
@@ -521,123 +518,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
   };
 
   const renderForecast = () => {
-    if (!forecast) {
-      return (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Prediksi Profit</CardTitle>
-            <CardDescription>Data tidak cukup untuk membuat prediksi yang akurat</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <Info className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="mb-2">Minimal 3 periode data historis diperlukan untuk prediksi AI</p>
-              <p className="text-sm">Saat ini tersedia: {profitHistory?.length || 0} periode</p>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Prediksi Profit</CardTitle>
-          <CardDescription>Prediksi bertenaga AI berdasarkan tren historis dan analisis pasar</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Peringatan jika ada masalah validasi */}
-          {forecast.metadata?.validationIssues?.length > 0 && (
-            <Alert className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <div className="font-medium mb-1">Peringatan Data:</div>
-                <ul className="text-sm list-disc list-inside space-y-1">
-                  {forecast.metadata.validationIssues.map((issue, index) => (
-                    <li key={index}>{issue}</li>
-                  ))}
-                </ul>
-                <div className="mt-2 text-xs text-gray-600">
-                  Data telah disesuaikan untuk prediksi yang lebih akurat.
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Bulan Depan</div>
-              <div className="text-2xl font-bold text-blue-700 mb-1">
-                {formatCurrency(forecast.nextMonth?.profit || 0)}
-              </div>
-              <div className="text-sm text-blue-600">
-                {formatPercentage(forecast.nextMonth?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextMonth?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Kuartal Depan</div>
-              <div className="text-2xl font-bold text-green-700 mb-1">
-                {formatCurrency(forecast.nextQuarter?.profit || 0)}
-              </div>
-              <div className="text-sm text-green-600">
-                {formatPercentage(forecast.nextQuarter?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextQuarter?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Tahun Depan</div>
-              <div className="text-2xl font-bold text-purple-700 mb-1">
-                {formatCurrency(forecast.nextYear?.profit || 0)}
-              </div>
-              <div className="text-sm text-purple-600">
-                {formatPercentage(forecast.nextYear?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextYear?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-          </div>
-          
-          {/* Metodologi dan Info Debug */}
-          {forecast.metadata && (
-            <div className="mt-6 space-y-4">
-              <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-900 mb-2">Metodologi Prediksi</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <div className="text-gray-600">Pertumbuhan Rata-rata</div>
-                    <div className="font-medium">{forecast.metadata.averageGrowthRate.toFixed(1)}%/bulan</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-600">Rasio COGS</div>
-                    <div className="font-medium">{forecast.metadata.cogsPercentage.toFixed(1)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-600">Rasio OPEX</div>
-                    <div className="font-medium">{forecast.metadata.opexPercentage.toFixed(1)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-600">Data Historis</div>
-                    <div className="font-medium">{forecast.metadata.historyLength} periode</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                <strong>Catatan:</strong> Prediksi ini menggunakan analisis tren historis dengan 
-                pembatasan pertumbuhan realistis (-20% hingga +50% per bulan). Tingkat keyakinan 
-                menurun seiring bertambahnya jangka waktu prediksi.
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
+    return null; // Fitur prediksi dihapus
   };
 
   // ✅ MAIN RENDER - PASTIKAN TIDAK ADA CONDITIONAL HOOKS
@@ -729,9 +610,6 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           isLoading={loading} 
         />
       )}
-
-      {/* Forecast */}
-      {showAdvancedMetrics && renderForecast()}
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

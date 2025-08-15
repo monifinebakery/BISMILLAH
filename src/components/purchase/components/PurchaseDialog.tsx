@@ -103,7 +103,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     updateItem,
   });
 
-  // Reset form states when dialog opens/closes
+  // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setNewItem({
@@ -113,6 +113,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         satuan: '',
         hargaSatuan: 0,
         keterangan: '',
+        // 🆕 packaging
+        jumlahKemasan: 0,
+        isiPerKemasan: 1,
+        satuanKemasan: 'pak, botol, dus',
+        hargaTotalBeliKemasan: 0,
       });
       setShowAddItem(false);
       handleCancelEditItem();
@@ -122,6 +127,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // from toggling correctly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // ✅ Auto-hitung harga satuan dari detail kemasan
+  useEffect(() => {
+    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan } = newItem as any;
+    const totalIsi = (Number(jumlahKemasan) || 0) * (Number(isiPerKemasan) || 0);
+    if (totalIsi > 0 && Number(hargaTotalBeliKemasan) > 0) {
+      const unit = Number(hargaTotalBeliKemasan) / totalIsi;
+      setNewItem(prev => ({ ...prev, hargaSatuan: unit }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newItem.jumlahKemasan, newItem.isiPerKemasan, newItem.hargaTotalBeliKemasan]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -451,6 +467,70 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                       </div>
                     </div>
 
+                    {/* 🆕 Detail Kemasan (opsional, akan auto-hitung harga satuan) */}
+                    <div className="col-span-full rounded-lg border p-3 mb-4">
+                      <div className="text-sm font-medium mb-2">Detail Kemasan (opsional)</div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div className="space-y-2">
+                          <Label>Jumlah Kemasan</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={(newItem as any).jumlahKemasan || ''}
+                            onChange={(e) => setNewItem(prev => ({ ...prev, jumlahKemasan: Number(e.target.value) || 0 }))}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Isi per Kemasan *</Label>
+                          <Input
+                            type="number"
+                            min="0.001"
+                            step="0.001"
+                            value={(newItem as any).isiPerKemasan || ''}
+                            onChange={(e) => setNewItem(prev => ({ ...prev, isiPerKemasan: Number(e.target.value) || 0 }))}
+                            placeholder="1"
+                          />
+                          <div className="text-xs text-gray-500">
+                            Satuan dasar: {newItem.satuan || 'unit'}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Jenis Kemasan</Label>
+                          <Select
+                            value={(newItem as any).satuanKemasan || 'pak, botol, dus'}
+                            onValueChange={(v) => setNewItem(prev => ({ ...prev, satuanKemasan: v }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pak, botol, dus">pak, botol, dus</SelectItem>
+                              <SelectItem value="pak">pak</SelectItem>
+                              <SelectItem value="dus">dus</SelectItem>
+                              <SelectItem value="botol">botol</SelectItem>
+                              <SelectItem value="karung">karung</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Harga Total Beli Kemasan</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={(newItem as any).hargaTotalBeliKemasan || ''}
+                            onChange={(e) => setNewItem(prev => ({ ...prev, hargaTotalBeliKemasan: Number(e.target.value) || 0 }))}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-800">
+                        Harga per satuan akan dihitung: <b>harga total ÷ (jumlah kemasan × isi per kemasan)</b>.  
+                        Kamu masih bisa override kolom "Harga Satuan" di atas jika perlu.
+                      </div>
+                    </div>
+
                     {/* Notes */}
                     <div className="space-y-2 mb-4">
                       <Label>Keterangan</Label>
@@ -476,7 +556,19 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
                     <Button
                       type="button"
-                      onClick={handleAddItem}
+                      onClick={() => {
+                        // pastikan subtotal terisi
+                        const subtotal = (newItem.kuantitas || 0) * (newItem.hargaSatuan || 0);
+                        handleAddItem({
+                          ...newItem,
+                          subtotal,
+                          // kemasan ikut
+                          jumlahKemasan: (newItem as any).jumlahKemasan || 0,
+                          isiPerKemasan: (newItem as any).isiPerKemasan || 0,
+                          satuanKemasan: (newItem as any).satuanKemasan || undefined,
+                          hargaTotalBeliKemasan: (newItem as any).hargaTotalBeliKemasan || 0,
+                        });
+                      }}
                       disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
                       className="w-full"
                     >
@@ -518,6 +610,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               <div>
                                 <div className="font-medium">{item.nama}</div>
                                 <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                                {/* ✅ Tampilkan ringkas info kemasan di list item (kalau ada) */}
+                                {(item as any).jumlahKemasan > 0 && (item as any).isiPerKemasan > 0 && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan}
+                                    { (item as any).satuanKemasan ? ` (${(item as any).satuanKemasan})` : '' }
+                                  </div>
+                                )}
                               </div>
                               <div className="text-right">
                                 <div className="font-medium">{item.kuantitas} {item.satuan}</div>

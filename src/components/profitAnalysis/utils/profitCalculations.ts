@@ -52,48 +52,85 @@ export interface OperationalCostActual {
   cost_category: string | null;
 }
 
-// ✅ TAMBAH: Interface untuk pemakaian bahan
+// ✅ TAMBAH: Interface untuk pemakaian bahan (kompatibel dengan view)
 export interface PemakaianBahan {
   bahan_baku_id: string;
   qty_base: number;
+  tanggal?: string;
+  // kolom dari view (opsional)
+  harga_efektif?: number | null;
+  hpp_value?: number | null;
 }
 
 /**
- * ✅ TAMBAH: Get effective unit price using warehouseUtils
+ * ✅ TAMBAH: Get effective unit price using snake_case with fallback
  */
-export function getEffectiveUnitPrice(item: BahanBakuActual): number {
-  // Gunakan warehouseUtils untuk konsistensi
-  const frontendItem: any = {
-    hargaRataRata: item.harga_rata_rata,
-    harga: item.harga_satuan
-  };
-  return warehouseUtils.getEffectiveUnitPrice(frontendItem);
+export function getEffectiveUnitPrice(item: BahanBakuActual | any): number {
+  // Utamakan snake_case, fallback ke camelCase bila ada
+  const wac = Number(item?.harga_rata_rata ?? item?.hargaRataRata ?? 0);
+  const base = Number(item?.harga_satuan ?? item?.harga ?? 0);
+  return wac > 0 ? wac : base;
 }
 
 /**
- * ✅ TAMBAH: Calculate HPP using effective price (WAC)
+ * ✅ TAMBAH: Calculate HPP using multiple fallback strategies
  */
 export function calcHPP(
   pemakaian: PemakaianBahan[],
-  bahanMap: Record<string, BahanBakuActual>
-): { totalHPP: number; breakdown: Array<{ id: string; qty: number; price: number; hpp: number }> } {
+  bahanMap: Record<string, BahanBakuActual | any>
+): {
+  totalHPP: number;
+  breakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }>;
+} {
   let total = 0;
-  const breakdown = [];
+  const breakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }> = [];
 
-  for (const row of pemakaian) {
+  for (const row of pemakaian || []) {
     const bb = bahanMap[row.bahan_baku_id];
     if (!bb) continue;
 
-    const price = getEffectiveUnitPrice(bb);
-    const hpp = Math.round(row.qty_base * price);
+    const qty = Number(row.qty_base || 0);
 
+    // 1) kalau view sudah kirim nilai HPP langsung
+    if (typeof row.hpp_value === 'number' && !Number.isNaN(row.hpp_value)) {
+      const hpp = Math.round(Number(row.hpp_value));
+      const price = qty > 0 ? hpp / qty : getEffectiveUnitPrice(bb);
+      total += hpp;
+      breakdown.push({
+        id: row.bahan_baku_id,
+        nama: bb.nama || 'Unknown',
+        qty,
+        price,
+        hpp,
+      });
+      continue;
+    }
+
+    // 2) kalau ada harga_efektif (WAC) dari view
+    if (typeof row.harga_efektif === 'number' && !Number.isNaN(row.harga_efektif)) {
+      const price = Number(row.harga_efektif);
+      const hpp = Math.round(qty * price);
+      total += hpp;
+      breakdown.push({
+        id: row.bahan_baku_id,
+        nama: bb.nama || 'Unknown',
+        qty,
+        price,
+        hpp,
+      });
+      continue;
+    }
+
+    // 3) fallback: ambil dari map bahan (WAC/harga_satuan)
+    const price = getEffectiveUnitPrice(bb);
+    const hpp = Math.round(qty * price);
     total += hpp;
-    breakdown.push({ 
-      id: row.bahan_baku_id, 
-      qty: row.qty_base, 
-      price, 
+    breakdown.push({
+      id: row.bahan_baku_id,
+      nama: bb.nama || 'Unknown',
+      qty,
+      price,
       hpp,
-      nama: bb.nama || 'Unknown'
     });
   }
 

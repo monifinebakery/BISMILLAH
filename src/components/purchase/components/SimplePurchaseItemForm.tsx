@@ -32,13 +32,13 @@ export interface FormData {
   bahanBakuId: string;
   nama: string;
   satuan: string;
-  kuantitas: number;
-  hargaSatuan: number;
+  kuantitas: number | '';
+  hargaSatuan: number | '';
   keterangan: string;
-  jumlahKemasan?: number;
-  isiPerKemasan?: number;
+  jumlahKemasan?: number | '';
+  isiPerKemasan?: number | '';
   satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
+  hargaTotalBeliKemasan?: number | '';
 }
 
 interface SimplePurchaseItemFormProps {
@@ -57,19 +57,21 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     bahanBakuId: '',
     nama: '',
     satuan: '',
-    kuantitas: 0,
-    hargaSatuan: 0,
+    kuantitas: '',               // '' bukan 0
+    hargaSatuan: '',
     keterangan: '',
-    jumlahKemasan: 0,
-    isiPerKemasan: 1,
+    jumlahKemasan: '',
+    isiPerKemasan: '',
     satuanKemasan: '',
-    hargaTotalBeliKemasan: 0,
+    hargaTotalBeliKemasan: '',
   });
 
+  // Helper function untuk konversi number safely
+  const num = (v: number | '' | undefined) => (v === '' || v == null ? 0 : Number(v));
+
   const calculateAccuratePrice = () => {
-    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan } = formData;
-    const totalContent = (jumlahKemasan || 0) * (isiPerKemasan || 0);
-    return totalContent > 0 ? Math.round(((hargaTotalBeliKemasan || 0) / totalContent) * 100) / 100 : 0;
+    const totalContent = num(formData.jumlahKemasan) * num(formData.isiPerKemasan);
+    return totalContent > 0 ? Math.round((num(formData.hargaTotalBeliKemasan) / totalContent) * 100) / 100 : 0;
   };
 
   const accuratePrice = calculateAccuratePrice();
@@ -94,19 +96,22 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   };
 
   const handleSubmit = () => {
+    const qty = num(formData.kuantitas);
+    const price = num(formData.hargaSatuan);
+
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
-    if (formData.kuantitas <= 0) return toast.error('Kuantitas harus > 0');
-    if (formData.hargaSatuan <= 0) return toast.error('Harga satuan harus > 0');
+    if (qty <= 0) return toast.error('Kuantitas harus > 0');
+    if (price <= 0) return toast.error('Harga satuan harus > 0');
 
-    const cleanData = {
+    onAdd({
       ...formData,
-      jumlahKemasan: (formData.jumlahKemasan || 0) > 0 ? formData.jumlahKemasan : undefined,
-      isiPerKemasan: (formData.isiPerKemasan || 0) > 0 ? formData.isiPerKemasan : undefined,
+      kuantitas: qty,
+      hargaSatuan: price,
+      jumlahKemasan: num(formData.jumlahKemasan) || undefined,
+      isiPerKemasan: num(formData.isiPerKemasan) || undefined,
+      hargaTotalBeliKemasan: num(formData.hargaTotalBeliKemasan) || undefined,
       satuanKemasan: formData.satuanKemasan?.trim() || undefined,
-      hargaTotalBeliKemasan: (formData.hargaTotalBeliKemasan || 0) > 0 ? formData.hargaTotalBeliKemasan : undefined,
-    };
-
-    onAdd(cleanData as FormData);
+    } as FormData);
   };
 
   const QuickMode = () => (
@@ -138,10 +143,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="flex gap-2">
               <Input
                 type="number"
+                inputMode="decimal"
                 min="0.001"
                 step="0.001"
-                value={formData.kuantitas || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: Number(e.target.value) || 0 }))}
+                value={formData.kuantitas}
+                onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: e.target.value }))}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -157,10 +163,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
-                value={formData.hargaSatuan || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: Number(e.target.value) || 0 }))}
+                value={formData.hargaSatuan}
+                onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: e.target.value }))}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -298,10 +305,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="flex gap-2">
             <Input
               type="number"
+              inputMode="decimal"
               min="0.001"
               step="0.001"
-              value={formData.kuantitas || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: Number(e.target.value) || 0 }))}
+              value={formData.kuantitas}
+              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: e.target.value }))}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -324,9 +332,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <Input
               type="number"
+              inputMode="decimal"
               min="1"
-              value={formData.jumlahKemasan || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, jumlahKemasan: Number(e.target.value) || 0 }))}
+              value={formData.jumlahKemasan}
+              onChange={(e) => setFormData(prev => ({ ...prev, jumlahKemasan: e.target.value }))}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -355,10 +364,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="flex gap-2">
               <Input
                 type="number"
+                inputMode="decimal"
                 min="0.001"
                 step="0.001"
-                value={formData.isiPerKemasan || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, isiPerKemasan: Number(e.target.value) || 0 }))}
+                value={formData.isiPerKemasan}
+                onChange={(e) => setFormData(prev => ({ ...prev, isiPerKemasan: e.target.value }))}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -374,10 +384,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
-                value={formData.hargaTotalBeliKemasan || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, hargaTotalBeliKemasan: Number(e.target.value) || 0 }))}
+                value={formData.hargaTotalBeliKemasan}
+                onChange={(e) => setFormData(prev => ({ ...prev, hargaTotalBeliKemasan: e.target.value }))}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
               />
@@ -397,7 +408,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <div className="text-center sm:text-left">
                   <div className="text-emerald-700 font-medium">Total Isi</div>
                   <div className="text-gray-700">
-                    {formData.jumlahKemasan} × {formData.isiPerKemasan} = {(formData.jumlahKemasan || 0) * (formData.isiPerKemasan || 0)} {formData.satuan}
+                    {num(formData.jumlahKemasan)} × {num(formData.isiPerKemasan)} = {num(formData.jumlahKemasan) * num(formData.isiPerKemasan)} {formData.satuan}
                   </div>
                 </div>
                 <div className="text-center">
@@ -409,7 +420,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <div className="text-center sm:text-right">
                   <div className="text-emerald-700 font-medium">Subtotal</div>
                   <div className="font-semibold text-gray-900">
-                    {formatCurrency(formData.kuantitas * accuratePrice)}
+                    {formatCurrency(num(formData.kuantitas) * accuratePrice)}
                   </div>
                 </div>
               </div>
@@ -469,12 +480,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         )}
 
         {/* Subtotal Preview */}
-        {mode !== 'accurate' && formData.kuantitas > 0 && formData.hargaSatuan > 0 && (
+        {mode !== 'accurate' && num(formData.kuantitas) > 0 && num(formData.hargaSatuan) > 0 && (
           <div className="bg-white/60 border border-gray-200 p-4 rounded-xl">
             <div className="text-sm text-gray-700">
               <span className="font-medium">Subtotal: </span>
               <span className="font-semibold text-orange-600 text-lg">
-                {formatCurrency(formData.kuantitas * formData.hargaSatuan)}
+                {formatCurrency(num(formData.kuantitas) * num(formData.hargaSatuan))}
               </span>
             </div>
           </div>
@@ -485,7 +496,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={!formData.bahanBakuId || formData.kuantitas <= 0 || formData.hargaSatuan <= 0}
+            disabled={!formData.bahanBakuId || num(formData.kuantitas) <= 0 || num(formData.hargaSatuan) <= 0}
             className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500"
           >
             <Plus className="h-4 w-4 mr-2" />

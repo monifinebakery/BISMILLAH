@@ -1,3 +1,4 @@
+// src/components/warehouse/components/ProfitDashboard.tsx
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ export interface ProfitDashboardProps {
 // ==============================================
 
 // Fungsi validasi data sebelum forecast
-const validateForecastData = (currentAnalysis) => {
+const validateForecastData = (currentAnalysis: any) => {
   const revenue = currentAnalysis?.revenue_data?.total || 0;
   const cogs = currentAnalysis?.cogs_data?.total || 0;
   const opex = currentAnalysis?.opex_data?.total || 0;
@@ -106,7 +107,7 @@ const validateForecastData = (currentAnalysis) => {
   };
 };
 
-const generateForecastHelper = (profitHistory, currentAnalysis) => {
+const generateForecastHelper = (profitHistory: any[], currentAnalysis: any) => {
   if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
     return null;
   }
@@ -184,7 +185,7 @@ const generateForecastHelper = (profitHistory, currentAnalysis) => {
     const opexPercentage = revenue > 0 ? (opex / revenue) : 0.25; // default 25%
     
     // Hitung prediksi profit
-    const calculatePredictedProfit = (predictedRevenue) => {
+    const calculatePredictedProfit = (predictedRevenue: number) => {
       const predictedCogs = predictedRevenue * cogsPercentage;
       const predictedOpex = predictedRevenue * opexPercentage;
       const predictedNetProfit = predictedRevenue - predictedCogs - predictedOpex;
@@ -201,7 +202,7 @@ const generateForecastHelper = (profitHistory, currentAnalysis) => {
     const nextYear = calculatePredictedProfit(nextYearRevenue);
     
     // Hitung confidence berdasarkan konsistensi data historis
-    const calculateConfidence = (periodsAhead) => {
+    const calculateConfidence = (periodsAhead: number) => {
       const baseConfidence = 90;
       const historyPenalty = Math.max(0, (6 - recentHistory.length) * 10);
       const timeDecay = periodsAhead * 5; // confidence menurun seiring waktu
@@ -244,7 +245,7 @@ const generateForecastHelper = (profitHistory, currentAnalysis) => {
   }
 };
 
-const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
+const calculateAdvancedMetricsHelper = (profitHistory: any[], currentAnalysis: any) => {
   if (!currentAnalysis?.revenue_data?.total) return null;
   
   try {
@@ -273,7 +274,7 @@ const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
   }
 };
 
-const performBenchmarkHelper = (advancedMetrics) => {
+const performBenchmarkHelper = (advancedMetrics: any) => {
   if (!advancedMetrics?.netProfitMargin) return null;
   
   try {
@@ -309,7 +310,7 @@ const performBenchmarkHelper = (advancedMetrics) => {
   }
 };
 
-const generateExecutiveSummaryHelper = (currentAnalysis, advancedMetrics) => {
+const generateExecutiveSummaryHelper = (currentAnalysis: any, advancedMetrics: any) => {
   if (!currentAnalysis || !advancedMetrics) return null;
   
   try {
@@ -329,7 +330,7 @@ const generateExecutiveSummaryHelper = (currentAnalysis, advancedMetrics) => {
   }
 };
 
-const findPreviousAnalysis = (currentPeriod, profitHistory) => {
+const findPreviousAnalysis = (currentPeriod: string, profitHistory: any[]) => {
   if (!currentPeriod || !profitHistory?.length) return null;
   
   try {
@@ -350,14 +351,14 @@ const findPreviousAnalysis = (currentPeriod, profitHistory) => {
 // MAIN COMPONENT
 // ==============================================
 
-const ProfitDashboard = ({
+const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   className = '',
   defaultPeriod,
   showAdvancedMetrics = true,
 }) => {
   // ✅ SEMUA STATE HOOKS DI ATAS - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
   const [isDataStale, setIsDataStale] = useState(false);
-  const [lastCalculated, setLastCalculated] = useState(null);
+  const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
@@ -407,7 +408,7 @@ const ProfitDashboard = ({
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
   // ✅ UPDATE: Event handler dengan refresh WAC
-  const handlePeriodChange = (period) => {
+  const handlePeriodChange = (period: string) => {
     setCurrentPeriod(period);
   };
 
@@ -424,12 +425,14 @@ const ProfitDashboard = ({
     }
   };
 
+  // ✅ 1) UPDATE: Pakai COGS efektif saat export CSV
   const handleExportData = () => {
     if (!currentAnalysis) return;
     
     try {
       const revenue = currentAnalysis.revenue_data?.total || 0;
-      const cogs = currentAnalysis.cogs_data?.total || 0;
+      // ⬇️ pakai WAC (profitMetrics.cogs), fallback ke API kalau belum ada
+      const cogs = profitMetrics?.cogs ?? (currentAnalysis.cogs_data?.total || 0);
       const opex = currentAnalysis.opex_data?.total || 0;
       
       const csvContent = `Period,Revenue,COGS,OPEX,Gross Profit,Net Profit
@@ -559,7 +562,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             disabled={loading}
             className="flex items-center space-x-2"
           >
-            <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
           <Button
@@ -580,13 +583,13 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         {isDataStale && (
           <Badge variant="secondary" className="flex items-center space-x-1">
             <AlertTriangle className="w-3 h-3" />
-            <span>Data mungkin sudah usang</span>
+            <span className="text-xs">Data mungkin sudah usang</span>
           </Badge>
         )}
         {lastCalculated && (
           <Badge variant="outline" className="flex items-center space-x-1">
             <CheckCircle className="w-3 h-3" />
-            <span>Diperbarui: {lastCalculated.toLocaleTimeString()}</span>
+            <span className="text-xs">Diperbarui: {lastCalculated.toLocaleTimeString('id-ID')}</span>
           </Badge>
         )}
         {benchmark?.competitive?.position && (
@@ -595,7 +598,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             className="flex items-center space-x-1"
           >
             <Target className="w-3 h-3" />
-            <span>performa {benchmark.competitive.position}</span>
+            <span className="text-xs">performa {benchmark.competitive.position}</span>
           </Badge>
         )}
       </div>
@@ -611,16 +614,14 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Executive Summary */}
       {renderExecutiveSummary()}
 
-      {/* Summary Cards - UPDATE: Kirim angka efektif ke komponen anak */}
+      {/* Summary Cards - ✅ 2) UPDATE: Rapihin props ke ProfitSummaryCards */}
       {hasValidData && (
         <ProfitSummaryCards 
           currentAnalysis={currentAnalysis} 
           previousAnalysis={previousAnalysis} 
           isLoading={loading} 
-          // ⬇️ props baru (nanti kita update file komponennya)
+          // ⬇️ props baru (sudah dirapihkan)
           effectiveCogs={profitMetrics.cogs}
-          grossProfit={profitMetrics.grossProfit}
-          netProfit={profitMetrics.netProfit}
           labels={labels}
         />
       )}
@@ -636,19 +637,23 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
         <TabsContent value="ikhtisar" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* UPDATE: ProfitBreakdownChart dengan angka WAC */}
+            {/* ✅ 3) UPDATE: Teruskan WAC ke ProfitTrendChart */}
             <ProfitBreakdownChart 
               currentAnalysis={currentAnalysis} 
               isLoading={loading} 
               chartType={selectedChartType} 
               // ⬇️ supaya chart pakai angka WAC
               effectiveCogs={profitMetrics.cogs}
+              labels={labels}
             />
             <ProfitTrendChart
               profitHistory={profitHistory}
               isLoading={loading}
               chartType="line"
               showMetrics={['revenue', 'grossProfit', 'netProfit']}
+              // ⬇️ tambahkan effectiveCogs dan labels
+              effectiveCogs={profitMetrics.cogs}
+              labels={labels}
             />
           </div>
         </TabsContent>
@@ -659,11 +664,14 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             isLoading={loading}
             chartType="area"
             showMetrics={['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex']}
+            // ⬇️ tambahkan effectiveCogs dan labels
+            effectiveCogs={profitMetrics.cogs}
+            labels={labels}
           />
         </TabsContent>
 
         <TabsContent value="breakdown" className="space-y-6">
-          {/* UPDATE: DetailedBreakdownTable dengan HPP WAC */}
+          {/* ✅ 4) UPDATE: Kirim WAC props ke komponen yang baru kamu update */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
             isLoading={loading} 
@@ -757,7 +765,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
       </Tabs>
 
-      {/* Status Footer - UPDATE: Gunakan profitMetrics dan tambah badge WAC */}
+      {/* Status Footer - ✅ 5) UPDATE: Tambah badge kecil "WAC aktif" di status bar */}
       {hasValidData && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -767,17 +775,18 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             </span>
           </div>
           <span>•</span>
-          {/* UPDATE: Gunakan profitMetrics untuk konsistensi WAC */}
           <span>Pendapatan: {formatCurrency(profitMetrics.revenue)}</span>
           <span>•</span>
           <span>Laba Bersih: {formatCurrency(profitMetrics.netProfit)}</span>
           <span>•</span>
           <span>Margin: {formatPercentage(profitMetrics.netMargin)}</span>
           {/* ✅ TAMBAH: Badge/tooltip info WAC */}
-          <span>•</span>
-          <span title={labels.hppHint}>
-            {labels.hppLabel} aktif
-          </span>
+          {labels?.hppLabel && (
+            <>
+              <span>•</span>
+              <span title={labels.hppHint}>{labels.hppLabel} aktif</span>
+            </>
+          )}
         </div>
       )}
     </div>
